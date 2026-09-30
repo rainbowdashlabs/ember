@@ -241,34 +241,34 @@ class MediaVariantServiceTest {
     }
 
     /**
-     * Stations uploaded under the old layout still hold an {@code orig.webp} beside the original.
-     * Written directly rather than through the encoder, because the encoder no longer produces one.
+     * A request without a width is a request for the file itself, so a WebP copy lying beside the
+     * original is not handed out in its place.
      */
     @Test
-    void readBestServesALegacyOrigWebpWhenNoWidthIsRequested() throws IOException {
+    void readBestServesTheOriginalWhenNoWidthIsRequested() throws IOException {
         byte[] png = pngBytes(800, 600);
         String hash = MediaStorageService.hash(png);
         storage.store(STATION_ID, hash, png, "image/png");
-        storage.storeVariant(STATION_ID, hash, "orig", "webp", "legacy-webp-bytes".getBytes());
+        storage.storeVariant(STATION_ID, hash, "orig", "webp", "stray-webp-bytes".getBytes());
+
+        var result = variants.readBest(STATION_ID, hash, null, "image/webp,*/*;q=0.8");
+
+        assertTrue(result.isPresent());
+        assertEquals("image/png", result.orElseThrow().contentType());
+        assertArrayEquals(png, result.orElseThrow().data());
+    }
+
+    @Test
+    void readBestServesAWebpUploadAsItself() throws IOException {
+        byte[] webp = "uploaded-webp-bytes".getBytes();
+        String hash = MediaStorageService.hash(webp);
+        storage.store(STATION_ID, hash, webp, "image/webp");
 
         var result = variants.readBest(STATION_ID, hash, null, "image/webp,*/*;q=0.8");
 
         assertTrue(result.isPresent());
         assertEquals("image/webp", result.orElseThrow().contentType());
-        assertArrayEquals("legacy-webp-bytes".getBytes(), result.orElseThrow().data());
-    }
-
-    @Test
-    void readBestIgnoresALegacyOrigWebpWhenTheClientRejectsWebp() throws IOException {
-        byte[] png = pngBytes(800, 600);
-        String hash = MediaStorageService.hash(png);
-        storage.store(STATION_ID, hash, png, "image/png");
-        storage.storeVariant(STATION_ID, hash, "orig", "webp", "legacy-webp-bytes".getBytes());
-
-        var result = variants.readBest(STATION_ID, hash, null, "image/png");
-
-        assertTrue(result.isPresent());
-        assertEquals("image/png", result.orElseThrow().contentType());
+        assertArrayEquals(webp, result.orElseThrow().data());
     }
 
     @Test

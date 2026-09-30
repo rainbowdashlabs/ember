@@ -18,9 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
@@ -28,7 +26,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 /**
  * On-disk storage for the station media library (images, PDFs, downloads). Backed by the
@@ -38,12 +35,6 @@ import java.util.stream.Stream;
  * <p>Layout in the storage model:
  * {@code <scope>/<category>/<contentHash>/<variantFilename>} →
  * {@code station/<uid>/media/files/<contentHash>/orig.<ext>}.
- *
- * <p>A one-shot boot migration relocates uploads from the oldest
- * {@code data/page-files/<stationUid>/<contentHash>/...} layout straight into the current one,
- * so a station that never ran the intermediate layout is not left behind. Stations sitting on
- * the intermediate {@code station/<uid>/page-files} prefix are moved by
- * {@link MediaPrefixMigrationService}, which can also reach a remote backend.
  */
 @Singleton
 public class MediaStorageService {
@@ -60,7 +51,6 @@ public class MediaStorageService {
         this.storage = storage;
         this.stationRepository = stationRepository;
         this.localBackend = localBackend;
-        migrateLegacyRoot();
     }
 
     /**
@@ -245,32 +235,6 @@ public class MediaStorageService {
             if (name.base().equals(keepBase)) {
                 storage.delete(scope, categoryFor(scope), contentHash, new Variant(name.filename()));
             }
-        }
-    }
-
-    private void migrateLegacyRoot() {
-        Path legacyRoot = localBackend.root().resolve("page-files");
-        if (!Files.isDirectory(legacyRoot)) return;
-        log.info("Migrating legacy media layout from {}", legacyRoot);
-        try (Stream<Path> stationDirs = Files.list(legacyRoot)) {
-            for (Path stationDir : stationDirs.filter(Files::isDirectory).toList()) {
-                String uid = stationDir.getFileName().toString();
-                Path target = localBackend
-                        .root()
-                        .resolve("station")
-                        .resolve(uid)
-                        .resolve(StorageCategory.MEDIA_FILES.prefix());
-                Files.createDirectories(target.getParent());
-                if (Files.exists(target)) continue;
-                Files.move(stationDir, target, StandardCopyOption.ATOMIC_MOVE);
-            }
-            try {
-                Files.deleteIfExists(legacyRoot);
-            } catch (IOException e) {
-                log.debug("Legacy media root {} stays behind, empty", legacyRoot, e);
-            }
-        } catch (IOException e) {
-            log.warn("Legacy media migration failed; older uploads may not be reachable", e);
         }
     }
 

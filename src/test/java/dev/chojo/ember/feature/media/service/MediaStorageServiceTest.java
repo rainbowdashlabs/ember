@@ -208,49 +208,4 @@ class MediaStorageServiceTest {
         assertTrue(served.isPresent());
         assertEquals("image/webp", served.orElseThrow().contentType());
     }
-
-    @Test
-    void legacyPageFilesDirectoryIsRelocated() throws IOException {
-        byte[] data = "legacy-tree".getBytes();
-        String hash = MediaStorageService.hash(data);
-        Path legacyDir =
-                tempDir.resolve("page-files").resolve(stationOneUid.toString()).resolve(hash);
-        Files.createDirectories(legacyDir);
-        Files.write(legacyDir.resolve("orig.png"), data);
-
-        var stationRepo = Mockito.mock(StationRepository.class);
-        Mockito.when(stationRepo.resolveUid(1)).thenReturn(stationOneUid);
-        var backend = new LocalStorageBackend(tempDir);
-        var resolver = new StorageBackendResolver(backend);
-        var storageService = new StorageService(resolver, backend);
-        var migrated = new MediaStorageService(storageService, stationRepo, backend);
-
-        var result = migrated.read(1, hash);
-        assertTrue(result.isPresent());
-        assertArrayEquals(data, result.orElseThrow().data());
-        assertFalse(Files.exists(tempDir.resolve("page-files").resolve(stationOneUid.toString())));
-    }
-
-    @Test
-    void legacyRelocationLeavesAStationThatIsAlreadyThereAlone() throws IOException {
-        byte[] current = "already-moved".getBytes();
-        String hash = MediaStorageService.hash(current);
-        storage.store(1, hash, current, "image/png");
-
-        Path legacyDir =
-                tempDir.resolve("page-files").resolve(stationOneUid.toString()).resolve(hash);
-        Files.createDirectories(legacyDir);
-        Files.write(legacyDir.resolve("orig.png"), "stale".getBytes());
-
-        var stationRepo = Mockito.mock(StationRepository.class);
-        Mockito.when(stationRepo.resolveUid(1)).thenReturn(stationOneUid);
-        var backend = new LocalStorageBackend(tempDir);
-        var storageService = new StorageService(new StorageBackendResolver(backend), backend);
-        var migrated = new MediaStorageService(storageService, stationRepo, backend);
-
-        assertArrayEquals(
-                current,
-                migrated.read(1, hash).orElseThrow().data(),
-                "what the station already holds is never overwritten by the legacy tree");
-    }
 }

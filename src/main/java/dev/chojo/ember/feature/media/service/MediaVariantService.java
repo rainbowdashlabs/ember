@@ -37,10 +37,7 @@ import java.util.Optional;
  *
  * <p>Variants are derived cache: regenerable from the original, never counted against the
  * station's quota, and always optional. A missing variant file falls back to the original
- * transparently so a partial generation failure never breaks the page. Stations carried over
- * from earlier releases may still hold legacy {@code w<width>.<png|jpg>} or {@code orig.webp}
- * variants on disk; {@link #readBest} continues to serve them when present so the rollout
- * does not regress already-cached images.
+ * transparently so a partial generation failure never breaks the page.
  */
 @Singleton
 public class MediaVariantService {
@@ -219,9 +216,8 @@ public class MediaVariantService {
      * raw bytes + MIME type. Falls back to the original whenever no variant matches - callers
      * never need to handle a "no variant found" case.
      *
-     * <p>Resized variants are WebP-only; clients that do not advertise WebP support always
-     * receive the uploaded original. Legacy stations may still hold an {@code orig.webp} from
-     * the old layout - it is served when the client advertises WebP and no width was requested.
+     * <p>Resized variants are WebP-only; clients that do not advertise WebP support, and requests
+     * without a width, always receive the uploaded original.
      *
      * @param requestedWidth optional CSS-pixel width the client intends to display the image
      *                       at; {@code null} means "give me the original"
@@ -234,13 +230,9 @@ public class MediaVariantService {
                 acceptHeader != null && acceptHeader.toLowerCase(Locale.ROOT).contains("image/webp");
         String chosenVariant = chooseVariantName(requestedWidth);
 
-        if (acceptsWebp && storageConfig.imageVariantsWebp()) {
-            if (!chosenVariant.equals(ORIG)) {
-                var webp = storage.readVariant(stationId, contentHash, chosenVariant, WEBP);
-                if (webp.isPresent()) return webp;
-            }
-            var webpOrig = storage.readVariant(stationId, contentHash, ORIG, WEBP);
-            if (webpOrig.isPresent()) return webpOrig;
+        if (acceptsWebp && storageConfig.imageVariantsWebp() && !chosenVariant.equals(ORIG)) {
+            var webp = storage.readVariant(stationId, contentHash, chosenVariant, WEBP);
+            if (webp.isPresent()) return webp;
         }
         return storage.read(stationId, contentHash);
     }

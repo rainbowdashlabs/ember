@@ -23,7 +23,6 @@ import dev.chojo.ember.feature.events.service.FieldRegistrationSweeper;
 import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.mailimport.service.MailImportPoller;
-import dev.chojo.ember.feature.media.service.MediaPrefixMigrationService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
@@ -213,11 +212,6 @@ public class Bootstrapper {
         injector.getInstance(BeaconReportService.class).startForwarding(updateCheck.currentVersion());
 
         injector.getInstance(MailImportPoller.class).start();
-
-        // Media moved from the page-files prefix onto media/. The move is per station and
-        // resumable, so it runs off the boot path and picks up where it left off after a crash.
-        var mediaMigration = injector.getInstance(MediaPrefixMigrationService.class);
-        Thread.ofPlatform().daemon().name("media-prefix-migration").start(mediaMigration::migrateAll);
 
         var searchIndexRebuild = injector.getInstance(SearchIndexRebuildService.class);
         Thread.ofPlatform().daemon().name("search-index-rebuild").start(searchIndexRebuild::rebuildInBackground);
