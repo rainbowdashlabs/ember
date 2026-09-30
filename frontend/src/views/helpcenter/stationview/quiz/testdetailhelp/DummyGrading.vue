@@ -17,14 +17,14 @@ const {t} = useI18n()
   <NeutralContainer>
     <div class="space-y-3">
       <div class="flex items-center justify-between">
-        <span class="font-medium text-sm">Max Mustermann</span>
+        <span class="font-medium text-sm">{{ t('helpCenter.sample.people.maxMustermann') }}</span>
         <div class="flex items-center gap-2">
           <span class="text-sm">8 / 10 {{ t('quiz.points') }}</span>
           <SecondaryButton disabled>{{ t('quiz.evaluate.title') }}</SecondaryButton>
         </div>
       </div>
       <div class="flex items-center justify-between">
-        <span class="font-medium text-sm">Lisa Beispiel</span>
+        <span class="font-medium text-sm">{{ t('helpCenter.sample.people.lisaBeispiel') }}</span>
         <div class="flex items-center gap-2">
           <InfoBadge>{{ t('quiz.statusSubmitted') }}</InfoBadge>
           <PrimaryButton disabled>{{ t('quiz.evaluate.title') }}</PrimaryButton>

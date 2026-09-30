@@ -48,7 +48,7 @@ const { t } = useI18n()
         <SectionHeader>{{ t('waitingList.title') }}</SectionHeader>
         <NeutralContainer class="space-y-2">
           <div class="flex items-center justify-between">
-            <span class="font-medium">Warteliste 2026</span>
+            <span class="font-medium">{{ t('helpCenter.sample.members.waitingList') }}</span>
             <SecondaryBadge>3 {{ t('waitingList.entries') }}</SecondaryBadge>
           </div>
           <p class="text-sm text-(--text-muted)">{{ t('helpCenter.waitingList.exampleDesc') }}</p>
@@ -133,7 +133,7 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.waitingList.entryDetailText') }}</p>
       <NeutralContainer class="space-y-3 mt-2">
         <div class="flex items-center gap-2">
-          <SubHeader>Max Müller</SubHeader>
+          <SubHeader>{{ t('helpCenter.sample.people.maxMueller') }}</SubHeader>
           <SecondaryBadge>{{ t('waitingList.status_WAITING') }}</SecondaryBadge>
         </div>
         <div class="text-sm text-(--text-muted) flex flex-wrap gap-4">
@@ -155,7 +155,7 @@ const { t } = useI18n()
           <div class="flex items-center gap-2 rounded-lg px-4 py-3 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30">
             <div class="flex-1">
               <div class="flex items-center gap-2">
-                <span class="font-medium">Alter</span>
+                <span class="font-medium">{{ t('helpCenter.sample.members.age') }}</span>
                 <SecondaryBadge>{{ t('waitingList.typeNumber') }}</SecondaryBadge>
                 <PrimaryBadge>{{ t('waitingList.required') }}</PrimaryBadge>
               </div>
@@ -166,10 +166,10 @@ const { t } = useI18n()
           <div class="flex items-center gap-2 rounded-lg px-4 py-3 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30">
             <div class="flex-1">
               <div class="flex items-center gap-2">
-                <span class="font-medium">Erfahrung</span>
+                <span class="font-medium">{{ t('helpCenter.sample.members.experience') }}</span>
                 <SecondaryBadge>{{ t('waitingList.typeEnum') }}</SecondaryBadge>
               </div>
-              <MutedText class="mt-1">{{ t('waitingList.options') }}: Anfänger, Fortgeschritten</MutedText>
+              <MutedText class="mt-1">{{ t('waitingList.options') }}: {{ t('helpCenter.sample.members.experienceOptions') }}</MutedText>
             </div>
             <EditButton/>
             <DeleteButton/>
@@ -194,18 +194,18 @@ const { t } = useI18n()
           <div>
             <span class="font-medium">{{ t('helpCenter.waitingList.fieldRef') }}</span>
             <p class="text-(--text-muted)">{{ t('helpCenter.waitingList.fieldRefText') }}</p>
-            <CodeSnippet block class="mt-1">[Alter]</CodeSnippet>
+            <CodeSnippet block class="mt-1">{{ t('helpCenter.sample.members.ageReference') }}</CodeSnippet>
           </div>
 
           <div>
             <span class="font-medium">{{ t('helpCenter.waitingList.examples') }}</span>
             <div class="mt-1 space-y-2">
               <div>
-                <CodeSnippet block>[Alter] * 2</CodeSnippet>
+                <CodeSnippet block>{{ t('helpCenter.sample.members.ageDoubled') }}</CodeSnippet>
                 <MutedText tag="p" class="mt-1">{{ t('helpCenter.waitingList.example1') }}</MutedText>
               </div>
               <div>
-                <CodeSnippet block>[Alter] &gt; 8 ? [Alter] * 2 : [Alter]</CodeSnippet>
+                <CodeSnippet block>{{ t('helpCenter.sample.members.ageConditional') }}</CodeSnippet>
                 <MutedText tag="p" class="mt-1">{{ t('helpCenter.waitingList.example3') }}</MutedText>
               </div>
             </div>
@@ -216,11 +216,11 @@ const { t } = useI18n()
             <p class="text-(--text-muted)">{{ t('helpCenter.waitingList.generatedFieldsText') }}</p>
             <div class="mt-1 space-y-1 text-xs">
               <div class="flex items-center gap-2">
-                <CodeSnippet>[wartezeit_tage]</CodeSnippet>
+                <CodeSnippet>{{ t('helpCenter.sample.members.waitDaysField') }}</CodeSnippet>
                 <span class="text-(--text-muted)">{{ t('helpCenter.waitingList.waitDays') }}</span>
               </div>
               <div class="flex items-center gap-2">
-                <CodeSnippet>[alter_Geburtstag]</CodeSnippet>
+                <CodeSnippet>{{ t('helpCenter.sample.members.birthdayAgeField') }}</CodeSnippet>
                 <span class="text-(--text-muted)">{{ t('helpCenter.waitingList.ageField') }}</span>
               </div>
             </div>

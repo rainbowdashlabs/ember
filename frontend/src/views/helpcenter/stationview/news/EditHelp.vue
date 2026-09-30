@@ -44,7 +44,7 @@ const {t} = useI18n()
       <div class="space-y-1">
         <FieldLabel>{{ t('news.titleField') }}</FieldLabel>
         <div class="rounded-lg border border-bg-light-accent dark:border-bg-dark-accent px-3 py-2 text-sm">
-          Dienstplanänderung Mai
+          {{ t('helpCenter.sample.news.title') }}
         </div>
       </div>
       <div class="space-y-1">
@@ -55,11 +55,7 @@ const {t} = useI18n()
           </SecondaryButton>
         </div>
         <div class="rounded-lg border border-bg-light-accent dark:border-bg-dark-accent px-3 py-2 text-sm min-h-[120px]">
-          Ab dem 20. Mai gilt ein **neuer Dienstplan**. Bitte prüft eure Einteilungen.
-
-          ## Änderungen
-          - Dienstag: Beginn um 18:30 statt 18:00
-          - Freitag: entfällt bis auf Weiteres
+          {{ t('helpCenter.sample.news.markdown') }}
         </div>
         <p class="text-xs text-(--text-muted)">{{ t('news.markdownHint') }}</p>
       </div>
@@ -73,11 +69,11 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-2">
       <SubHeader>{{ t('news.preview') }}</SubHeader>
       <NeutralContainer class="prose prose-sm dark:prose-invert max-w-none">
-        <p>Ab dem 20. Mai gilt ein <strong>neuer Dienstplan</strong>. Bitte prüft eure Einteilungen.</p>
-        <SectionHeader>Änderungen</SectionHeader>
+        <p>{{ t('helpCenter.sample.news.lead') }} <strong>{{ t('helpCenter.sample.news.plan') }}</strong>{{ t('helpCenter.sample.news.check') }}</p>
+        <SectionHeader>{{ t('helpCenter.sample.news.changes') }}</SectionHeader>
         <ul>
-          <li>Dienstag: Beginn um 18:30 statt 18:00</li>
-          <li>Freitag: entfällt bis auf Weiteres</li>
+          <li>{{ t('helpCenter.sample.news.tuesday') }}</li>
+          <li>{{ t('helpCenter.sample.news.friday') }}</li>
         </ul>
       </NeutralContainer>
     </NeutralContainer>
@@ -93,13 +89,13 @@ const {t} = useI18n()
       <p class="text-xs text-(--text-muted)">{{ t('news.restrictHint') }}</p>
       <div class="flex flex-wrap gap-2">
         <span class="rounded-lg px-3 py-1.5 text-xs font-medium border border-primary bg-primary/10 text-primary ring-1 ring-primary/30">
-          Betreuer
+          {{ t('helpCenter.sample.groups.supervisors') }}
         </span>
         <span class="rounded-lg px-3 py-1.5 text-xs font-medium border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">
-          Anfänger
+          {{ t('helpCenter.sample.groups.beginners') }}
         </span>
         <span class="rounded-lg px-3 py-1.5 text-xs font-medium border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">
-          Fortgeschritten
+          {{ t('helpCenter.sample.groups.advanced') }}
         </span>
       </div>
     </NeutralContainer>
@@ -121,11 +117,11 @@ const {t} = useI18n()
       <div class="flex items-center gap-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent p-2">
         <font-awesome-icon :icon="['fas', 'paperclip']" class="w-3.5 h-3.5 text-(--text-muted)"/>
         <div class="flex-1 min-w-0">
-          <p class="text-sm truncate">Protokoll_Mai.pdf</p>
+          <p class="text-sm truncate">{{ t('helpCenter.sample.news.attachmentName') }}</p>
           <p class="text-xs text-(--text-muted)">248 KB</p>
         </div>
         <div class="rounded-lg border border-bg-light-accent dark:border-bg-dark-accent px-3 py-1.5 text-xs text-(--text-muted)">
-          Protokoll der Sitzung
+          {{ t('helpCenter.sample.news.attachmentLabel') }}
         </div>
       </div>
     </NeutralContainer>

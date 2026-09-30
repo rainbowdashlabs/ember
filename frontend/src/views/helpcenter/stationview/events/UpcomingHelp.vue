@@ -71,10 +71,10 @@ const activeView = ref('')
       <div class="grid gap-3 sm:grid-cols-2">
         <PrimaryContainer class="space-y-2">
           <div class="flex items-center justify-between">
-            <span class="font-semibold">Übungsabend</span>
+            <span class="font-semibold">{{ t('helpCenter.sample.events.practiceEvening') }}</span>
             <span class="text-sm">18:00 – 20:00</span>
           </div>
-          <p class="text-sm text-(--text-muted)">Regulärer Übungsabend</p>
+          <p class="text-sm text-(--text-muted)">{{ t('helpCenter.sample.events.regularPracticeEvening') }}</p>
         </PrimaryContainer>
       </div>
     </HelpSection>
@@ -94,8 +94,8 @@ const activeView = ref('')
         <NeutralContainer class="space-y-2">
           <div class="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <span class="font-medium">Wettkampf Vorbereitung</span>
-              <MutedText size="sm" class="ml-2">Samstag, 25.05.2026</MutedText>
+              <span class="font-medium">{{ t('helpCenter.sample.events.competitionPrep') }}</span>
+              <MutedText size="sm" class="ml-2">{{ t('helpCenter.sample.events.saturday') }}</MutedText>
               <MutedText class="ml-2">14:00 – 17:00</MutedText>
             </div>
             <div class="flex items-center gap-2 text-xs">
@@ -115,8 +115,8 @@ const activeView = ref('')
         <NeutralContainer class="space-y-2">
           <div class="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <span class="font-medium">Übungsabend</span>
-              <MutedText size="sm" class="ml-2">Dienstag, 19.05.2026</MutedText>
+              <span class="font-medium">{{ t('helpCenter.sample.events.practiceEvening') }}</span>
+              <MutedText size="sm" class="ml-2">{{ t('helpCenter.sample.events.tuesday') }}</MutedText>
               <MutedText class="ml-2">18:00 – 20:00</MutedText>
             </div>
           </div>

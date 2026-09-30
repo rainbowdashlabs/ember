@@ -13,7 +13,7 @@ const {t} = useI18n()
 <template>
   <NeutralContainer class="space-y-3">
     <div>
-      <p class="font-medium">Was gefällt dir am besten?</p>
+      <p class="font-medium">{{ t('helpCenter.sample.forms.likedMost') }}</p>
     </div>
     <div class="space-y-1">
       <div class="flex items-center gap-2 px-4 py-3 rounded-lg border-2 border-primary bg-primary/10 text-primary text-sm font-medium">

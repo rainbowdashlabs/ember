@@ -67,7 +67,7 @@ const ROWS = [
               <label class="block text-xs flex-1">
                 {{ t('setup.steps.invites.group') }}
                 <SelectInput model-value="1">
-                  <option value="1">Jugendgruppe</option>
+                  <option value="1">{{ t('helpCenter.sample.groups.youthGroup') }}</option>
                 </SelectInput>
               </label>
             </div>

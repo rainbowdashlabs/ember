@@ -29,18 +29,18 @@ const { t } = useI18n()
     <NeutralContainer>
       <div class="space-y-3 text-sm">
         <div class="space-y-1">
-          <div class="font-medium">Welche Notrufnummer ist für die Feuerwehr?</div>
+          <div class="font-medium">{{ t('helpCenter.sample.quiz.fireNumber') }}</div>
           <div class="flex items-center gap-2 text-xs">
-            <span class="text-[var(--text-muted)]">Antwort:</span>
+            <span class="text-[var(--text-muted)]">{{ t('helpCenter.sample.quiz.answer') }}</span>
             <span>112</span>
-            <SuccessBadge class="ml-auto">2 / 2 P</SuccessBadge>
+            <SuccessBadge class="ml-auto">{{ t('helpCenter.sample.protocol.pointsOfSpaced', {points: 2, total: 2}) }}</SuccessBadge>
           </div>
         </div>
         <div class="space-y-1">
-          <div class="font-medium">Erkläre den Unterschied zwischen Saug- und Druckschlauch.</div>
+          <div class="font-medium">{{ t('helpCenter.sample.quiz.explainHoses') }}</div>
           <div class="flex items-center gap-2 text-xs">
-            <span class="text-[var(--text-muted)]">Antwort:</span>
-            <span class="italic">Der Saugschlauch ist formstabil, der Druckschlauch nicht.</span>
+            <span class="text-[var(--text-muted)]">{{ t('helpCenter.sample.quiz.answer') }}</span>
+            <span class="italic">{{ t('helpCenter.sample.quiz.hosesAnswer') }}</span>
           </div>
           <div class="flex justify-end">
             <InfoBadge>{{ t('helpCenter.quizTestEvaluate.manualLabel') }}</InfoBadge>

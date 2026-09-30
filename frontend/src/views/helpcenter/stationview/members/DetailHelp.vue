@@ -57,7 +57,7 @@ const tabs = [
         </ButtonRow>
       </div>
 
-      <SectionHeader class="mt-3">Max Mustermann</SectionHeader>
+      <SectionHeader class="mt-3">{{ t('helpCenter.sample.people.maxMustermann') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">max@example.com</p>
 
       <!-- Dummy: Tab bar showing all tabs -->
@@ -87,7 +87,7 @@ const tabs = [
           </div>
           <div class="text-sm">
             <span class="text-(--text-muted)">{{ t('helpCenter.exampleFields.emergencyContact') }}:</span>
-            <span class="ml-1 font-medium">Petra Mustermann</span>
+            <span class="ml-1 font-medium">{{ t('helpCenter.sample.people.petraMustermann') }}</span>
           </div>
         </div>
       </NeutralContainer>
@@ -112,7 +112,7 @@ const tabs = [
       <NeutralContainer class="space-y-3 mt-2">
         <SubHeader class="text-sm">{{ t('memberDetail.groups') }}</SubHeader>
         <div class="flex flex-wrap gap-2">
-          <SecondaryBadge>Anfänger</SecondaryBadge>
+          <SecondaryBadge>{{ t('helpCenter.sample.groups.beginners') }}</SecondaryBadge>
         </div>
       </NeutralContainer>
     </HelpSection>
@@ -147,8 +147,8 @@ const tabs = [
           <NeutralContainer>
             <div class="flex items-start justify-between gap-2">
               <div>
-                <div class="font-medium text-sm">Helm <span class="font-normal text-(--text-muted)">M</span></div>
-                <div class="text-xs text-(--text-muted)">Helme</div>
+                <div class="font-medium text-sm">{{ t('helpCenter.sample.equipment.helmet') }} <span class="font-normal text-(--text-muted)">M</span></div>
+                <div class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.equipment.helmets') }}</div>
               </div>
               <div class="flex items-center gap-1">
                 <IconButton :icon="['fas', 'rotate']" label="Tausch" disabled/>

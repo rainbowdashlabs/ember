@@ -23,7 +23,7 @@ const {t} = useI18n()
     <div class="space-y-1">
       <FieldLabel>{{ t('adminSettings.theme.defaultTheme') }}</FieldLabel>
       <SelectInput :model-value="'ember'" class="w-full">
-        <option value="ember">Ember</option>
+        <option value="ember">{{ t('helpCenter.sample.admin.emberTheme') }}</option>
       </SelectInput>
     </div>
 

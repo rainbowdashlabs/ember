@@ -15,14 +15,14 @@ const {t} = useI18n()
   <div class="space-y-4">
     <NeutralContainer>
       <div class="space-y-3">
-        <SubHeader class="font-medium">Was hat dir zuletzt besonders gut gefallen?</SubHeader>
+        <SubHeader class="font-medium">{{ t('helpCenter.sample.forms.likedLately') }}</SubHeader>
         <p class="text-xs text-(--text-muted)">12 {{ t('forms.responses') }}</p>
         <div class="flex items-center justify-center gap-6 py-4">
           <div class="w-24 h-24 rounded-full border-8 border-primary/40 border-t-primary border-r-secondary"/>
           <div class="space-y-1 text-sm">
-            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-primary inline-block"/> Übungen (7)</div>
-            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-secondary inline-block"/> Gemeinschaft (3)</div>
-            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-info inline-block"/> Ausflüge (2)</div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-primary inline-block"/> {{ t('helpCenter.sample.forms.exercisesCount') }}</div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-secondary inline-block"/> {{ t('helpCenter.sample.forms.communityCount') }}</div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-info inline-block"/> {{ t('helpCenter.sample.forms.tripsCount') }}</div>
           </div>
         </div>
       </div>
@@ -30,7 +30,7 @@ const {t} = useI18n()
 
     <NeutralContainer>
       <div class="space-y-3">
-        <SubHeader class="font-medium">Wie zufrieden bist du insgesamt?</SubHeader>
+        <SubHeader class="font-medium">{{ t('helpCenter.sample.forms.satisfaction') }}</SubHeader>
         <p class="text-xs text-(--text-muted)">12 {{ t('forms.responses') }}</p>
         <div class="flex items-end gap-3 h-24 px-2">
           <div v-for="bar in [{n: 1, h: 15}, {n: 2, h: 10}, {n: 3, h: 30}, {n: 4, h: 55}, {n: 5, h: 80}]" :key="bar.n" class="flex flex-col items-center gap-1 flex-1">

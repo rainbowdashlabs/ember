@@ -42,7 +42,7 @@ const dummySelectedLabels = [
     <div class="flex items-center gap-2 rounded-theme px-2 py-1 text-sm cursor-pointer hover:bg-(--bg-accent)">
       <UserAvatar :identity="{stationUid: 's1', memberUid: 'u1', displayTag: {name: 'Max Mustermann', color: ''}}"
                   size="sm"/>
-      <span>Max Mustermann</span>
+      <span>{{ t('helpCenter.sample.people.maxMustermann') }}</span>
     </div>
   </div>
 

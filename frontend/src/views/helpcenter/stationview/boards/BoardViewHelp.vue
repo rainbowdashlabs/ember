@@ -92,11 +92,11 @@ const {t} = useI18n()
         <HelpSection :title="t('helpCenter.boardView.labelsTitle')">
             <p>{{ t('helpCenter.boardView.labelsText') }}</p>
             <div class="flex flex-wrap gap-1.5">
-                <BaseBadge bg-class="bg-blue-500" class="text-white">Planung</BaseBadge>
-                <BaseBadge bg-class="bg-green-600" class="text-white">Wartung</BaseBadge>
-                <BaseBadge bg-class="bg-orange-500" class="text-white">Dringend</BaseBadge>
-                <BaseBadge bg-class="bg-purple-500" class="text-white">Ausbildung</BaseBadge>
-                <BaseBadge bg-class="bg-rose-500" class="text-white">Einsatz</BaseBadge>
+                <BaseBadge bg-class="bg-blue-500" class="text-white">{{ t('helpCenter.sample.boards.planning') }}</BaseBadge>
+                <BaseBadge bg-class="bg-green-600" class="text-white">{{ t('helpCenter.sample.boards.maintenance') }}</BaseBadge>
+                <BaseBadge bg-class="bg-orange-500" class="text-white">{{ t('helpCenter.sample.boards.urgent') }}</BaseBadge>
+                <BaseBadge bg-class="bg-purple-500" class="text-white">{{ t('helpCenter.sample.boards.training') }}</BaseBadge>
+                <BaseBadge bg-class="bg-rose-500" class="text-white">{{ t('helpCenter.sample.boards.operation') }}</BaseBadge>
             </div>
         </HelpSection>
 

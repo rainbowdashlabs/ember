@@ -19,21 +19,21 @@ const {t} = useI18n()
       <div class="space-y-2">
         <FieldHint>{{ t('forms.restrictions.roles') }}</FieldHint>
         <div class="flex flex-wrap gap-2">
-          <span class="px-2 py-1 text-xs rounded border border-primary bg-primary/15 text-primary">Mitglied</span>
-          <span class="px-2 py-1 text-xs rounded border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">Team</span>
+          <span class="px-2 py-1 text-xs rounded border border-primary bg-primary/15 text-primary">{{ t('helpCenter.sample.groups.member') }}</span>
+          <span class="px-2 py-1 text-xs rounded border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">{{ t('helpCenter.sample.groups.team') }}</span>
         </div>
       </div>
       <div class="space-y-2">
         <FieldHint>{{ t('forms.restrictions.groups') }}</FieldHint>
         <div class="flex flex-wrap gap-2">
-          <span class="px-2 py-1 text-xs rounded border border-primary bg-primary/15 text-primary">Anfänger</span>
-          <span class="px-2 py-1 text-xs rounded border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">Fortgeschritten</span>
+          <span class="px-2 py-1 text-xs rounded border border-primary bg-primary/15 text-primary">{{ t('helpCenter.sample.groups.beginners') }}</span>
+          <span class="px-2 py-1 text-xs rounded border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">{{ t('helpCenter.sample.groups.advanced') }}</span>
         </div>
       </div>
       <div class="space-y-2">
         <FieldHint>{{ t('forms.restrictions.tags') }}</FieldHint>
         <div class="flex flex-wrap gap-2">
-          <span class="px-2 py-1 text-xs rounded border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">Wettkampfgruppe</span>
+          <span class="px-2 py-1 text-xs rounded border border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted)">{{ t('helpCenter.sample.groups.competitionGroup') }}</span>
         </div>
       </div>
       <p class="text-xs text-(--text-muted) italic">{{ t('forms.restrictions.noRestrictions') }}</p>

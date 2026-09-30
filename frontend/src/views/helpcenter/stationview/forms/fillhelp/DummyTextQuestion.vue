@@ -15,8 +15,8 @@ const {t} = useI18n()
 <template>
   <NeutralContainer class="space-y-3">
     <div>
-      <p class="font-medium">Was hat dir zuletzt besonders gut gefallen? <span class="text-error">*</span></p>
-      <MutedText tag="p" class="mt-0.5">Schreib es einfach mit deinen eigenen Worten.</MutedText>
+      <p class="font-medium">{{ t('helpCenter.sample.forms.likedLately') }} <span class="text-error">*</span></p>
+      <MutedText tag="p" class="mt-0.5">{{ t('helpCenter.sample.forms.ownWords') }}</MutedText>
     </div>
     <TextInput model-value="" :placeholder="t('forms.questionTitle')" disabled />
   </NeutralContainer>

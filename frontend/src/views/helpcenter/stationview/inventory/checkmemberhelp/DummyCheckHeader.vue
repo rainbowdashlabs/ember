@@ -16,7 +16,7 @@ const {t} = useI18n()
 <template>
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
     <div>
-      <SectionHeader>Max Mustermann</SectionHeader>
+      <SectionHeader>{{ t('helpCenter.sample.people.maxMustermann') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ t('inventory.check.title') }}</p>
     </div>
     <ButtonRow>

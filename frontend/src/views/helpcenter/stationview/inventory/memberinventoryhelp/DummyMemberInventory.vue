@@ -18,7 +18,7 @@ const {t} = useI18n()
 <template>
   <div class="space-y-6">
     <div class="flex items-center justify-between flex-wrap gap-2">
-      <SectionHeader>{{ t('profile.inventory') }}: Max Mustermann</SectionHeader>
+      <SectionHeader>{{ t('profile.inventory') }}: {{ t('helpCenter.sample.people.maxMustermann') }}</SectionHeader>
       <SecondaryButton :icon="['fas', 'chevron-left']">
         {{ t('common.back') }}
       </SecondaryButton>
@@ -33,7 +33,7 @@ const {t} = useI18n()
 
     <DummyInventoryGroup title="Jacken" :count="1">
       <DummyItemCard name="Jacke" size="L" inventory-id="INV-0015">
-        <InfoBadge class="mt-1">Tausch angefordert</InfoBadge>
+        <InfoBadge class="mt-1">{{ t('helpCenter.sample.equipment.exchangeRequested') }}</InfoBadge>
       </DummyItemCard>
     </DummyInventoryGroup>
   </div>

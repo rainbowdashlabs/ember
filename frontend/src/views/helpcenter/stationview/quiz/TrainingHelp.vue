@@ -37,8 +37,8 @@ const { t } = useI18n()
         <label class="flex items-center gap-2 cursor-pointer">
           <ToggleInput :model-value="true" disabled />
           <div>
-            <span class="font-medium">Brandschutz Grundlagen</span>
-            <p class="text-xs text-(--text-muted)">12 Fragen</p>
+            <span class="font-medium">{{ t('helpCenter.sample.quiz.fireBasics') }}</span>
+            <p class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.quiz.questionCount', {count: 12}) }}</p>
           </div>
         </label>
       </NeutralContainer>
@@ -46,8 +46,8 @@ const { t } = useI18n()
         <label class="flex items-center gap-2 cursor-pointer">
           <ToggleInput :model-value="false" disabled />
           <div>
-            <span class="font-medium">Erste Hilfe</span>
-            <p class="text-xs text-(--text-muted)">8 Fragen</p>
+            <span class="font-medium">{{ t('helpCenter.sample.quiz.firstAid') }}</span>
+            <p class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.quiz.questionCount', {count: 8}) }}</p>
           </div>
         </label>
       </NeutralContainer>
@@ -75,7 +75,7 @@ const { t } = useI18n()
       <NeutralContainer>
         <div class="space-y-3">
           <SectionLabel>{{ t('quiz.questionTypes.FILL_IN_THE_BLANK') }}</SectionLabel>
-          <SubHeader class="font-medium">Welche Nummer hat die Feuerwehr?</SubHeader>
+          <SubHeader class="font-medium">{{ t('helpCenter.sample.quiz.fireNumberShort') }}</SubHeader>
           <TextInput model-value="112" disabled />
         </div>
       </NeutralContainer>

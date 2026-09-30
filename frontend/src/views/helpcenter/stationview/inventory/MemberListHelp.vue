@@ -41,8 +41,8 @@ const {t} = useI18n()
           <label class="text-sm font-medium">{{ t('inventoryMembers.role') }}</label>
           <SelectInput class="w-40 text-sm">
             <option value="">{{ t('inventoryMembers.allRoles') }}</option>
-            <option>Mitglied</option>
-            <option>Team</option>
+            <option>{{ t('helpCenter.sample.groups.member') }}</option>
+            <option>{{ t('helpCenter.sample.groups.team') }}</option>
           </SelectInput>
         </div>
         <div class="flex items-center gap-2">
@@ -66,27 +66,27 @@ const {t} = useI18n()
       <DataTable>
         <template #head>
           <Th>{{ t('membersList.colName') }}</Th>
-          <Th>Helme</Th>
-          <Th>Jacken</Th>
-          <Th>Stiefel</Th>
+          <Th>{{ t('helpCenter.sample.equipment.helmets') }}</Th>
+          <Th>{{ t('helpCenter.sample.equipment.jackets') }}</Th>
+          <Th>{{ t('helpCenter.sample.equipment.boots') }}</Th>
         </template>
         <TRow class="hover:bg-(--bg-accent)/30 cursor-pointer">
-          <Td class="font-medium text-primary">Max Mustermann</Td>
-          <Td><span class="text-xs">Helm [M]</span></Td>
-          <Td><span class="text-xs">Jacke [L]</span></Td>
-          <Td><span class="text-xs">Stiefel [42]</span></Td>
+          <Td class="font-medium text-primary">{{ t('helpCenter.sample.people.maxMustermann') }}</Td>
+          <Td><span class="text-xs">{{ t('helpCenter.sample.equipment.helmet') }} [M]</span></Td>
+          <Td><span class="text-xs">{{ t('helpCenter.sample.equipment.jacket') }} [L]</span></Td>
+          <Td><span class="text-xs">{{ t('helpCenter.sample.equipment.boots') }} [42]</span></Td>
         </TRow>
         <TRow class="hover:bg-(--bg-accent)/30 cursor-pointer">
-          <Td class="font-medium text-primary">Erika Musterfrau</Td>
-          <Td><span class="text-xs text-error">Helm [S] ({{ t('inventoryMembers.lost') }})</span></Td>
-          <Td><span class="text-xs">Jacke [M]</span></Td>
+          <Td class="font-medium text-primary">{{ t('helpCenter.sample.people.erikaMusterfrau') }}</Td>
+          <Td><span class="text-xs text-error">{{ t('helpCenter.sample.equipment.helmet') }} [S] ({{ t('inventoryMembers.lost') }})</span></Td>
+          <Td><span class="text-xs">{{ t('helpCenter.sample.equipment.jacket') }} [M]</span></Td>
           <Td><MutedText size="base">–</MutedText></Td>
         </TRow>
         <TRow class="hover:bg-(--bg-accent)/30 cursor-pointer">
-          <Td class="font-medium text-primary">Jan Schmidt</Td>
-          <Td><span class="text-xs">Helm [L]</span></Td>
+          <Td class="font-medium text-primary">{{ t('helpCenter.sample.people.janSchmidt') }}</Td>
+          <Td><span class="text-xs">{{ t('helpCenter.sample.equipment.helmet') }} [L]</span></Td>
           <Td><MutedText size="base">–</MutedText></Td>
-          <Td><span class="text-xs">Stiefel [44]</span></Td>
+          <Td><span class="text-xs">{{ t('helpCenter.sample.equipment.boots') }} [44]</span></Td>
         </TRow>
       </DataTable>
 

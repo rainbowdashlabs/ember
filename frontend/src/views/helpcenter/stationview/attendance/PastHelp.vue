@@ -31,7 +31,7 @@ const {t} = useI18n()
       <NeutralContainer clickable>
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <span class="font-semibold text-sm">Übungsabend</span>
+            <span class="font-semibold text-sm">{{ t('helpCenter.sample.events.practiceEvening') }}</span>
             <MutedText size="sm" class="ml-3">10.05.2026</MutedText>
             <MutedText class="ml-2">18:00 – 20:00</MutedText>
           </div>
@@ -45,7 +45,7 @@ const {t} = useI18n()
       <NeutralContainer clickable>
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <span class="font-semibold text-sm">Jugenddienst</span>
+            <span class="font-semibold text-sm">{{ t('helpCenter.sample.events.youthService') }}</span>
             <MutedText size="sm" class="ml-3">07.05.2026</MutedText>
             <MutedText class="ml-2">14:00 – 17:00</MutedText>
           </div>

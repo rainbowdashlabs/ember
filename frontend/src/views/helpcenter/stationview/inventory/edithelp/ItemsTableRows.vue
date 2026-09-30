@@ -15,10 +15,10 @@ const {t} = useI18n()
 <template>
   <tbody>
     <TRow>
-      <Td class="font-medium">Helm</Td>
+      <Td class="font-medium">{{ t('helpCenter.sample.equipment.helmet') }}</Td>
       <Td muted>INV-0001</Td>
       <Td muted>M</Td>
-      <Td><span class="text-primary font-medium">Max Mustermann</span></Td>
+      <Td><span class="text-primary font-medium">{{ t('helpCenter.sample.people.maxMustermann') }}</span></Td>
       <Td align="right">
         <div class="flex items-center justify-end gap-0.5">
           <IconButton :icon="['fas', 'ellipsis-vertical']" :label="t('common.actions')" class="text-(--text-muted)"/>
@@ -26,7 +26,7 @@ const {t} = useI18n()
       </Td>
     </TRow>
     <TRow>
-      <Td class="font-medium">Helm</Td>
+      <Td class="font-medium">{{ t('helpCenter.sample.equipment.helmet') }}</Td>
       <Td muted>INV-0002</Td>
       <Td muted>L</Td>
       <Td><span class="text-(--text-muted)">&ndash;</span></Td>
@@ -38,11 +38,11 @@ const {t} = useI18n()
     </TRow>
     <TRow class="opacity-60">
       <Td class="font-medium">
-        Helm <span class="ml-2 text-xs text-error font-normal">{{ t('inventory.edit.lost') }} (01.05.2026)</span>
+        {{ t('helpCenter.sample.equipment.helmet') }} <span class="ml-2 text-xs text-error font-normal">{{ t('inventory.edit.lost') }} (01.05.2026)</span>
       </Td>
       <Td muted>INV-0003</Td>
       <Td muted>S</Td>
-      <Td><span class="text-primary font-medium">Erika Musterfrau</span></Td>
+      <Td><span class="text-primary font-medium">{{ t('helpCenter.sample.people.erikaMusterfrau') }}</span></Td>
       <Td align="right">
         <div class="flex items-center justify-end gap-0.5">
           <IconButton :icon="['fas', 'ellipsis-vertical']" :label="t('common.actions')" class="text-(--text-muted)"/>

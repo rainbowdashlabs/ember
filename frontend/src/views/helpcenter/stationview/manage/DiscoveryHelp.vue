@@ -39,10 +39,10 @@ const {t} = useI18n()
             <font-awesome-icon :icon="['fas', 'building']" class="text-[var(--text-muted)]"/>
           </div>
           <div class="min-w-0 flex-1">
-            <div class="font-medium truncate">JF Musterstadt</div>
+            <div class="font-medium truncate">{{ t('helpCenter.sample.stations.jfMusterstadt') }}</div>
           </div>
         </div>
-        <MutedText size="sm">Jugendfeuerwehr im Herzen von Musterstadt</MutedText>
+        <MutedText size="sm">{{ t('helpCenter.sample.stations.jfMusterstadtText') }}</MutedText>
         <div class="flex items-center gap-2 flex-wrap mt-auto pt-2">
           <PrimaryBadge>{{ t('discovery.ownStation') }}</PrimaryBadge>
         </div>
@@ -54,10 +54,10 @@ const {t} = useI18n()
             <font-awesome-icon :icon="['fas', 'building']" class="text-[var(--text-muted)]"/>
           </div>
           <div class="min-w-0 flex-1">
-            <div class="font-medium truncate">JF Beispieldorf</div>
+            <div class="font-medium truncate">{{ t('helpCenter.sample.stations.jfBeispieldorf') }}</div>
           </div>
         </div>
-        <MutedText size="sm">Freiwillige Feuerwehr Beispieldorf</MutedText>
+        <MutedText size="sm">{{ t('helpCenter.sample.stations.jfBeispieldorfText') }}</MutedText>
         <div class="flex items-center gap-2 flex-wrap mt-auto pt-2">
           <SuccessBadge>{{ t('discovery.alreadyConnected') }}</SuccessBadge>
         </div>
@@ -69,7 +69,7 @@ const {t} = useI18n()
             <font-awesome-icon :icon="['fas', 'building']" class="text-[var(--text-muted)]"/>
           </div>
           <div class="min-w-0 flex-1">
-            <div class="font-medium truncate">JF Altenburg</div>
+            <div class="font-medium truncate">{{ t('helpCenter.sample.stations.jfAltenburg') }}</div>
           </div>
         </div>
         <div class="flex items-center gap-2 flex-wrap mt-auto pt-2">

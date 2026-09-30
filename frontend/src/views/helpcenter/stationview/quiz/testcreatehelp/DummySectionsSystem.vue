@@ -48,7 +48,7 @@ const { t } = useI18n()
 
             <div class="flex flex-col sm:flex-row gap-2 items-start sm:items-center p-3 rounded border border-bg-light-accent dark:border-bg-dark-accent">
               <SelectInput :model-value="'1'" class="flex-1" disabled>
-                <option value="1">Brandschutz-Katalog</option>
+                <option value="1">{{ t('helpCenter.sample.quiz.fireCatalog') }}</option>
               </SelectInput>
 
               <SelectInput :model-value="''" class="flex-1" disabled>

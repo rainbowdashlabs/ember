@@ -15,7 +15,7 @@ const {t} = useI18n()
   <div class="rounded-lg px-4 py-3 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20 space-y-2">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div class="flex items-center gap-2 flex-wrap">
-        <span class="font-semibold text-sm">Kleidergröße</span>
+        <span class="font-semibold text-sm">{{ t('helpCenter.exampleFields.clothingSize') }}</span>
         <span class="text-xs text-(--text-muted)">13.05.2026, 10:00</span>
       </div>
       <SuccessBadge>
@@ -31,7 +31,7 @@ const {t} = useI18n()
     <div class="text-xs text-(--text-muted)">
       <div class="flex items-center gap-1">
         <font-awesome-icon :icon="['fas', 'check']" class="h-3 w-3 text-success"/>
-        <span>Anna Schmidt (13.05.2026, 14:15)</span>
+        <span>{{ t('helpCenter.sample.people.annaSchmidt') }} (13.05.2026, 14:15)</span>
       </div>
     </div>
   </div>

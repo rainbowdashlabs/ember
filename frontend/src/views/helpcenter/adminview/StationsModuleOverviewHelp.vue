@@ -38,21 +38,21 @@ const {t} = useI18n()
           <span class="font-medium">{{ t('helpCenter.adminStationsOverview.dummyCreate') }}</span>
         </PrimaryContainer>
         <NeutralContainer class="flex items-center justify-between py-4">
-          <span class="font-medium">DLRG Musterstadt</span>
+          <span class="font-medium">{{ t('helpCenter.sample.stations.dlrgMusterstadt') }}</span>
           <div class="flex items-center gap-2">
             <EditButton/>
             <DeleteButton/>
           </div>
         </NeutralContainer>
         <NeutralContainer class="flex items-center justify-between py-4">
-          <span class="font-medium">DLRG Beispielburg</span>
+          <span class="font-medium">{{ t('helpCenter.sample.stations.dlrgBeispielburg') }}</span>
           <div class="flex items-center gap-2">
             <EditButton/>
             <DeleteButton/>
           </div>
         </NeutralContainer>
         <NeutralContainer class="flex items-center justify-between py-4">
-          <span class="font-medium">DLRG Neustadt</span>
+          <span class="font-medium">{{ t('helpCenter.sample.stations.dlrgNeustadt') }}</span>
           <div class="flex items-center gap-2">
             <EditButton/>
             <DeleteButton/>

@@ -18,8 +18,8 @@ const {t} = useI18n()
 
 <template>
   <section>
-    <SectionHeader>Zufriedenheitsumfrage</SectionHeader>
-    <p class="text-sm text-(--text-muted) mb-4">Wie gefällt dir unsere Jugendfeuerwehr? Bitte beantworte alle Fragen ehrlich.</p>
+    <SectionHeader>{{ t('helpCenter.sample.forms.survey') }}</SectionHeader>
+    <p class="text-sm text-(--text-muted) mb-4">{{ t('helpCenter.sample.forms.surveyIntro') }}</p>
 
     <DummyMemberSelector/>
     <DummyTextQuestion/>

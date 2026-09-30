@@ -19,9 +19,9 @@ const {t} = useI18n()
   <div class="rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40 border-l-4 border-primary space-y-2">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div class="flex items-center gap-2 flex-wrap">
-        <span class="font-semibold text-sm">Telefon</span>
+        <span class="font-semibold text-sm">{{ t('helpCenter.exampleFields.phone') }}</span>
         <span class="text-xs text-(--text-muted)">14.05.2026, 15:30</span>
-        <span class="text-xs text-(--text-muted)">{{ t('memberDetail.changedBy') }}: Max Mustermann</span>
+        <span class="text-xs text-(--text-muted)">{{ t('memberDetail.changedBy') }}: {{ t('helpCenter.sample.people.maxMustermann') }}</span>
       </div>
       <ErrorBadge>{{ t('memberDetail.notAcknowledged') }}</ErrorBadge>
     </div>

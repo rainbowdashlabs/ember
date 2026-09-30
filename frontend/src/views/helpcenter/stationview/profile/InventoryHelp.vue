@@ -64,8 +64,8 @@ const dummyStiefel: MyInventoryItem = {
         <SectionHeader>{{ t('profile.inventory') }}</SectionHeader>
         <SelectInput model-value="self" class="w-48 text-sm">
           <option value="self">{{ t('profile.myInventorySelf') }}</option>
-          <option value="1">Lena Mustermann</option>
-          <option value="2">Tim Mustermann</option>
+          <option value="1">{{ t('helpCenter.sample.people.lenaMustermann') }}</option>
+          <option value="2">{{ t('helpCenter.sample.people.timMustermann') }}</option>
         </SelectInput>
       </div>
     </template>
@@ -75,7 +75,7 @@ const dummyStiefel: MyInventoryItem = {
       <!-- Group: Helme -->
       <div>
         <div class="flex items-center justify-between mb-2">
-          <SubHeader>Helme</SubHeader>
+          <SubHeader>{{ t('helpCenter.sample.equipment.helmets') }}</SubHeader>
           <span class="text-sm text-(--text-muted)">1 / 1</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -86,7 +86,7 @@ const dummyStiefel: MyInventoryItem = {
       <!-- Group: Jacken (with exchange) -->
       <div>
         <div class="flex items-center justify-between mb-2">
-          <SubHeader>Jacken</SubHeader>
+          <SubHeader>{{ t('helpCenter.sample.equipment.jackets') }}</SubHeader>
           <span class="text-sm text-(--text-muted)">1 / 1</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -97,10 +97,10 @@ const dummyStiefel: MyInventoryItem = {
       <!-- Group: Stiefel (with lost item) -->
       <div>
         <div class="flex items-center justify-between mb-2">
-          <SubHeader>Stiefel</SubHeader>
+          <SubHeader>{{ t('helpCenter.sample.equipment.boots') }}</SubHeader>
           <span class="text-sm text-(--text-muted)">
             1 / 1
-            <span class="text-error">(1 fehlt)</span>
+            <span class="text-error">{{ t('helpCenter.sample.equipment.oneMissing') }}</span>
           </span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -132,7 +132,7 @@ const dummyStiefel: MyInventoryItem = {
       <div class="space-y-3">
         <SectionHeader>{{ t('profile.requestExchange') }}</SectionHeader>
         <p class="text-sm">
-          Helme - Helm #12 <SizeBadge>M</SizeBadge>
+          {{ t('helpCenter.sample.equipment.helmetNumber12') }} <SizeBadge>M</SizeBadge>
         </p>
         <div class="space-y-1">
           <FieldLabel>{{ t('movements.newSize') }}</FieldLabel>

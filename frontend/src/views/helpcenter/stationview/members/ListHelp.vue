@@ -62,24 +62,24 @@ const tabs = [
           <Th>{{ t('helpCenter.exampleFields.phone') }}</Th>
         </template>
         <TRow class="cursor-pointer hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
-          <Td class="font-medium">Max Mustermann</Td>
+          <Td class="font-medium">{{ t('helpCenter.sample.people.maxMustermann') }}</Td>
           <Td>max@example.com</Td>
           <Td><InfoBadge>{{ t('memberEdit.userTypeMember') }}</InfoBadge></Td>
-          <Td><PrimaryBadge>Anfänger</PrimaryBadge></Td>
+          <Td><PrimaryBadge>{{ t('helpCenter.sample.groups.beginners') }}</PrimaryBadge></Td>
           <Td>0170 1234567</Td>
         </TRow>
         <TRow class="cursor-pointer hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
-          <Td class="font-medium">Anna Schmidt</Td>
+          <Td class="font-medium">{{ t('helpCenter.sample.people.annaSchmidt') }}</Td>
           <Td>anna@example.com</Td>
           <Td><InfoBadge>{{ t('memberEdit.userTypeTeam') }}</InfoBadge></Td>
-          <Td><SecondaryBadge>Fortgeschrittene</SecondaryBadge></Td>
+          <Td><SecondaryBadge>{{ t('helpCenter.sample.groups.advancedPlural') }}</SecondaryBadge></Td>
           <Td>0171 7654321</Td>
         </TRow>
         <TRow class="cursor-pointer hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
-          <Td class="font-medium">Lisa Weber</Td>
+          <Td class="font-medium">{{ t('helpCenter.sample.people.lisaWeber') }}</Td>
           <Td>lisa@example.com</Td>
           <Td><InfoBadge>{{ t('memberEdit.userTypeGuardian') }}</InfoBadge></Td>
-          <Td><PrimaryBadge>Betreuer</PrimaryBadge></Td>
+          <Td><PrimaryBadge>{{ t('helpCenter.sample.groups.supervisors') }}</PrimaryBadge></Td>
           <Td>0172 9876543</Td>
         </TRow>
       </DataTable>

@@ -39,7 +39,7 @@ const {t} = useI18n()
             <font-awesome-icon :icon="['fas', 'chevron-left']"/>
             {{ t('kb.backToBrowse') }}
           </SecondaryButton>
-          <PageHeader class="flex-1 !mb-0">Einsatzhinweise Höhenrettung</PageHeader>
+          <PageHeader class="flex-1 !mb-0">{{ t('helpCenter.sample.knowledge.heightRescue') }}</PageHeader>
           <ButtonRow align="end">
             <PrimaryButton compact>
               <font-awesome-icon :icon="['fas', 'copy']"/>
@@ -49,7 +49,7 @@ const {t} = useI18n()
           </ButtonRow>
         </div>
         <StationBadge station-name="Wache Nordstadt"/>
-        <MutedText tag="p" size="sm">Ablauf und Ausrüstung für den Höhenrettungseinsatz.</MutedText>
+        <MutedText tag="p" size="sm">{{ t('helpCenter.sample.knowledge.heightRescueText') }}</MutedText>
       </NeutralContainer>
     </HelpSection>
 

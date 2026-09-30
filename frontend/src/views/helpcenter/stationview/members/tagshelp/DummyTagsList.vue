@@ -28,7 +28,7 @@ const {t} = useI18n()
       <NeutralContainer class="flex items-center justify-between gap-2 flex-wrap cursor-pointer border-primary">
         <span class="flex items-center gap-2">
           <ColorDot color="#ec2929"/>
-          <span class="font-medium">Ersthelfer</span>
+          <span class="font-medium">{{ t('helpCenter.sample.groups.firstAiders') }}</span>
           <font-awesome-icon :icon="['fas', 'eye']" class="text-xs text-(--text-muted)"/>
         </span>
         <div class="flex items-center gap-2">
@@ -40,7 +40,7 @@ const {t} = useI18n()
       <NeutralContainer class="flex items-center justify-between gap-2 flex-wrap cursor-pointer hover:border-primary">
         <span class="flex items-center gap-2">
           <ColorDot color="#3694FF"/>
-          <span class="font-medium">Fahrer</span>
+          <span class="font-medium">{{ t('helpCenter.sample.groups.drivers') }}</span>
         </span>
         <div class="flex items-center gap-2">
           <MutedIconButton :icon="['fas', 'people-group']" :label="t('userTags.convertToGroup')"/>

@@ -14,10 +14,10 @@ const {t} = useI18n()
   <NeutralContainer>
     <div class="space-y-2">
       <div class="flex items-center justify-between">
-        <span class="font-medium text-sm">Abschnitt 1: Grundwissen</span>
+        <span class="font-medium text-sm">{{ t('helpCenter.sample.quiz.sectionBasics') }}</span>
         <span class="text-xs text-(--text-muted)">5 {{ t('quiz.questions.title') }}</span>
       </div>
-      <p class="text-xs text-(--text-muted)">Quelle: Brandschutz Grundlagen (Kategorie: Grundwissen)</p>
+      <p class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.quiz.sectionSource') }}</p>
     </div>
   </NeutralContainer>
 </template>

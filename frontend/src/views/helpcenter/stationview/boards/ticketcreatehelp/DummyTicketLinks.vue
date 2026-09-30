@@ -33,8 +33,8 @@ const {t} = useI18n()
       </SelectInput>
       <SelectInput model-value="" class="flex-1 min-w-0">
         <option value="">{{ t('boards.linkedTickets') }}...</option>
-        <option value="1">JF-10 Schläuche bestellen</option>
-        <option value="2">JF-11 Helme sortieren</option>
+        <option value="1">{{ t('helpCenter.sample.boards.orderHoses') }}</option>
+        <option value="2">{{ t('helpCenter.sample.boards.sortHelmets') }}</option>
       </SelectInput>
       <IconButton :icon="['fas', 'plus']" :label="t('common.add')" class="text-(--text-muted)" />
     </div>

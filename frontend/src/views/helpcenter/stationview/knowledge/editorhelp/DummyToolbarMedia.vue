@@ -23,7 +23,7 @@ const { t } = useI18n()
       <font-awesome-icon :icon="['fas', 'highlighter']" class="w-3 h-3" /> {{ t('helpCenter.knowledgeEditorToolbarMedia.highlight') }}
     </KeyBadge>
     <KeyBadge>
-      <font-awesome-icon :icon="['fab', 'youtube']" class="w-3 h-3" /> YouTube
+      <font-awesome-icon :icon="['fab', 'youtube']" class="w-3 h-3" /> {{ t('helpCenter.sample.knowledge.youtube') }}
     </KeyBadge>
     <KeyBadge>
       <font-awesome-icon :icon="['fas', 'image']" class="w-3 h-3" /> {{ t('helpCenter.knowledgeEditorToolbarMedia.image') }}

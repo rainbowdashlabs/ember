@@ -31,8 +31,8 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-3">
       <div class="flex items-center justify-between gap-2 p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
         <div>
-          <div class="text-sm font-medium">Wie gefällt dir das Training?</div>
-          <div class="text-xs text-(--text-muted)">Bewertung (1–5)</div>
+          <div class="text-sm font-medium">{{ t('helpCenter.sample.forms.trainingRating') }}</div>
+          <div class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.forms.ratingType') }}</div>
         </div>
         <div class="flex items-center gap-2">
           <SecondaryButton compact disabled>
@@ -43,8 +43,8 @@ const {t} = useI18n()
       </div>
       <div class="flex items-center justify-between gap-2 p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
         <div>
-          <div class="text-sm font-medium">Was hat dir besonders gut gefallen?</div>
-          <div class="text-xs text-(--text-muted)">Freitext</div>
+          <div class="text-sm font-medium">{{ t('helpCenter.sample.forms.likedTraining') }}</div>
+          <div class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.forms.freeText') }}</div>
         </div>
         <div class="flex items-center gap-2">
           <SecondaryButton compact disabled>
@@ -55,8 +55,8 @@ const {t} = useI18n()
       </div>
       <div class="flex items-center justify-between gap-2 p-3 rounded bg-[var(--bg)] border border-[var(--border)]">
         <div>
-          <div class="text-sm font-medium">Welche Themen soll das nächste Training behandeln?</div>
-          <div class="text-xs text-(--text-muted)">Multiple Choice</div>
+          <div class="text-sm font-medium">{{ t('helpCenter.sample.forms.nextTopics') }}</div>
+          <div class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.forms.multipleChoice') }}</div>
         </div>
         <div class="flex items-center gap-2">
           <SecondaryButton compact disabled>

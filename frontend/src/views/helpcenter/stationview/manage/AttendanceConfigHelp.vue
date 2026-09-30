@@ -37,7 +37,7 @@ const {t} = useI18n()
 
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <NeutralContainer class="flex items-center justify-between">
-          <span class="font-medium">Übungsabend</span>
+          <span class="font-medium">{{ t('helpCenter.sample.events.practiceEvening') }}</span>
           <div class="flex items-center gap-2">
             <IconButton :icon="['fas', 'copy']" :label="t('attendanceConfig.duplicate')"
                         class="text-secondary hover:bg-secondary/15" disabled/>
@@ -46,7 +46,7 @@ const {t} = useI18n()
           </div>
         </NeutralContainer>
         <NeutralContainer class="flex items-center justify-between">
-          <span class="font-medium">Jugenddienst</span>
+          <span class="font-medium">{{ t('helpCenter.sample.events.youthService') }}</span>
           <div class="flex items-center gap-2">
             <IconButton :icon="['fas', 'copy']" :label="t('attendanceConfig.duplicate')"
                         class="text-secondary hover:bg-secondary/15" disabled/>
@@ -55,7 +55,7 @@ const {t} = useI18n()
           </div>
         </NeutralContainer>
         <NeutralContainer class="flex items-center justify-between">
-          <span class="font-medium">Wettkampf</span>
+          <span class="font-medium">{{ t('helpCenter.sample.events.competition') }}</span>
           <div class="flex items-center gap-2">
             <IconButton :icon="['fas', 'copy']" :label="t('attendanceConfig.duplicate')"
                         class="text-secondary hover:bg-secondary/15" disabled/>

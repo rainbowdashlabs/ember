@@ -49,9 +49,9 @@ const groupOptions = [
       <div class="space-y-1">
         <FieldLabel>{{ t('attendanceReport.rounding') }}</FieldLabel>
         <SelectInput :model-value="'exact'" disabled>
-          <option value="exact">Exakt (2 Dezimalstellen)</option>
-          <option value="round">Gerundet (0.5h)</option>
-          <option value="ceil">Aufgerundet (volle Stunde)</option>
+          <option value="exact">{{ t('helpCenter.sample.attendance.roundExact') }}</option>
+          <option value="round">{{ t('helpCenter.sample.attendance.roundHalf') }}</option>
+          <option value="ceil">{{ t('helpCenter.sample.attendance.roundUp') }}</option>
         </SelectInput>
       </div>
     </div>
@@ -60,9 +60,9 @@ const groupOptions = [
       <div class="space-y-1">
         <FieldLabel>{{ t('attendanceReport.period') }}</FieldLabel>
         <SelectInput :model-value="'month'" disabled>
-          <option value="week">Woche</option>
-          <option value="month">Monat</option>
-          <option value="year">Jahr</option>
+          <option value="week">{{ t('helpCenter.sample.attendance.week') }}</option>
+          <option value="month">{{ t('helpCenter.sample.attendance.month') }}</option>
+          <option value="year">{{ t('helpCenter.sample.attendance.year') }}</option>
         </SelectInput>
       </div>
       <div class="space-y-1">
@@ -74,7 +74,7 @@ const groupOptions = [
       <div class="space-y-1">
         <FieldLabel>{{ t('attendanceReport.month') }}</FieldLabel>
         <SelectInput :model-value="'5'" disabled>
-          <option value="5">Juni</option>
+          <option value="5">{{ t('helpCenter.sample.attendance.june') }}</option>
         </SelectInput>
       </div>
     </div>

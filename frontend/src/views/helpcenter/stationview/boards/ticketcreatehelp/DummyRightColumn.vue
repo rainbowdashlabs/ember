@@ -28,7 +28,7 @@ const dummyMembers: MemberOption[] = [
     <div>
       <FieldLabel class="mb-1">{{ t('boards.lanes') }}</FieldLabel>
       <SelectInput model-value="1" class="w-full">
-        <option value="1">Backlog</option>
+        <option value="1">{{ t('helpCenter.sample.boards.backlog') }}</option>
         <option value="2">{{ t('helpCenter.ticketCreate.laneToDo') }}</option>
       </SelectInput>
     </div>

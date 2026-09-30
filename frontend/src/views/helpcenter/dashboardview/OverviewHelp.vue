@@ -118,9 +118,9 @@ const activeView = ref('')
       </SectionHeader>
       <NeutralContainer class="flex items-center justify-between gap-2 py-2 px-3">
         <div>
-          <p class="text-sm font-medium">Helme</p>
+          <p class="text-sm font-medium">{{ t('helpCenter.sample.equipment.helmets') }}</p>
           <p class="text-xs text-(--text-muted)">M → L</p>
-          <p class="text-xs text-(--text-muted)">Helm passt nicht mehr</p>
+          <p class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.equipment.helmetTooSmall') }}</p>
         </div>
         <InfoBadge>{{ t('dashboard.exchangeStatus.ANNOUNCED') }}</InfoBadge>
       </NeutralContainer>
@@ -134,14 +134,14 @@ const activeView = ref('')
       </SectionHeader>
       <NeutralContainer class="flex items-center justify-between gap-2 py-2 px-3">
         <div>
-          <p class="text-sm font-medium">Übungsabend</p>
+          <p class="text-sm font-medium">{{ t('helpCenter.sample.events.practiceEvening') }}</p>
           <p class="text-xs text-(--text-muted)">20.05.2026</p>
         </div>
         <SuccessBadge>{{ t('dashboard.registrationStatus.ACCEPTED') }}</SuccessBadge>
       </NeutralContainer>
       <NeutralContainer class="flex items-center justify-between gap-2 py-2 px-3">
         <div>
-          <p class="text-sm font-medium">Wettkampf Vorbereitung</p>
+          <p class="text-sm font-medium">{{ t('helpCenter.sample.events.competitionPrep') }}</p>
           <p class="text-xs text-(--text-muted)">25.05.2026</p>
         </div>
         <InfoBadge>{{ t('dashboard.registrationStatus.PENDING') }}</InfoBadge>

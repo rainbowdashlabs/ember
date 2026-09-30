@@ -36,15 +36,15 @@ const {t} = useI18n()
             </thead>
             <tbody>
               <TRow>
-                <Td>Handfunkgerät</Td>
+                <Td>{{ t('helpCenter.sample.equipment.radio') }}</Td>
                 <Td muted>FG-0042</Td>
-                <Td><PrimaryBadge>Wache Nord</PrimaryBadge></Td>
+                <Td><PrimaryBadge>{{ t('helpCenter.sample.stations.north') }}</PrimaryBadge></Td>
                 <Td muted>14.03.2026</Td>
               </TRow>
               <TRow>
-                <Td>Wärmebildkamera</Td>
+                <Td>{{ t('helpCenter.sample.equipment.thermalCamera') }}</Td>
                 <Td muted>WBK-0003</Td>
-                <Td><PrimaryBadge>Wache Süd</PrimaryBadge></Td>
+                <Td><PrimaryBadge>{{ t('helpCenter.sample.stations.south') }}</PrimaryBadge></Td>
                 <Td muted>{{ t('inventory.borrowed.noDueDate') }}</Td>
               </TRow>
             </tbody>

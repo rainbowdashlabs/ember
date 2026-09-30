@@ -56,7 +56,7 @@ const noop = () => undefined
             <div class="space-y-1 md:col-span-2">
               <FieldLabel>{{ t('geolocation.country') }}</FieldLabel>
               <SelectInput model-value="DE">
-                <option value="DE">Deutschland (DE)</option>
+                <option value="DE">{{ t('helpCenter.sample.stations.germany') }}</option>
               </SelectInput>
             </div>
           </div>

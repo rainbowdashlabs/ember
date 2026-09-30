@@ -32,10 +32,10 @@ const {t} = useI18n()
         <div class="flex items-center justify-between gap-4">
           <div class="min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-medium">Grundlagen Atemschutz</span>
+              <span class="font-medium">{{ t('helpCenter.sample.quiz.breathingBasics') }}</span>
               <StationBadge station-name="Wache Nordstadt"/>
             </div>
-            <MutedText tag="p" size="sm">42 Fragen in 5 Kategorien</MutedText>
+            <MutedText tag="p" size="sm">{{ t('helpCenter.sample.quiz.catalogCount') }}</MutedText>
           </div>
           <PrimaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'copy']"/>

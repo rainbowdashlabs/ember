@@ -38,25 +38,25 @@ const {t} = useI18n()
         <div>
           <div class="flex items-center gap-2">
             <font-awesome-icon :icon="['fas', 'file-lines']" class="text-[var(--accent)]" />
-            <span class="font-semibold text-base">Grundlagen der Ersten Hilfe</span>
-            <PrimaryBadge>Markdown</PrimaryBadge>
+            <span class="font-semibold text-base">{{ t('helpCenter.sample.knowledge.firstAidBasics') }}</span>
+            <PrimaryBadge>{{ t('helpCenter.sample.knowledge.markdown') }}</PrimaryBadge>
           </div>
-          <MutedText tag="div" class="mt-1">Zuletzt geändert: 12. Mai 2026 · Max Mustermann</MutedText>
+          <MutedText tag="div" class="mt-1">{{ t('helpCenter.sample.knowledge.changedBy') }}</MutedText>
         </div>
         <div class="flex gap-2 flex-shrink-0 items-center">
           <PrimaryButton compact disabled>
-            <font-awesome-icon :icon="['fas', 'pen']" class="mr-1" /> Bearbeiten
+            <font-awesome-icon :icon="['fas', 'pen']" class="mr-1" /> {{ t('helpCenter.sample.knowledge.edit') }}
           </PrimaryButton>
           <IconButton :icon="['fas', 'ellipsis-vertical']" :label="t('common.actions')" disabled/>
         </div>
       </div>
       <div class="border-t border-[var(--border)] pt-3 text-sm space-y-2">
-        <p class="font-semibold text-base">Was ist Erste Hilfe?</p>
-        <p class="text-sm">Erste Hilfe bedeutet, einer verletzten oder erkrankten Person sofort zu helfen - noch bevor der Rettungsdienst eintrifft. Das kann Leben retten.</p>
+        <p class="font-semibold text-base">{{ t('helpCenter.sample.knowledge.whatIsFirstAid') }}</p>
+        <p class="text-sm">{{ t('helpCenter.sample.knowledge.firstAidText') }}</p>
         <BulletList>
-          <li>Notruf absetzen (112)</li>
-          <li>Stabile Seitenlage bei Bewusstlosigkeit</li>
-          <li>Herzdruckmassage bei Herzstillstand</li>
+          <li>{{ t('helpCenter.sample.knowledge.callEmergency') }}</li>
+          <li>{{ t('helpCenter.sample.knowledge.recoveryPosition') }}</li>
+          <li>{{ t('helpCenter.sample.knowledge.chestCompressions') }}</li>
         </BulletList>
       </div>
     </NeutralContainer>
@@ -128,17 +128,17 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-4">
       <div class="flex items-center gap-2">
         <font-awesome-icon :icon="['fas', 'file-powerpoint']" class="text-[var(--accent)]"/>
-        <span class="font-semibold">Schulung-Brandschutz.pptx</span>
-        <PrimaryBadge>Präsentation</PrimaryBadge>
+        <span class="font-semibold">{{ t('helpCenter.sample.knowledge.presentationFile') }}</span>
+        <PrimaryBadge>{{ t('helpCenter.sample.knowledge.presentation') }}</PrimaryBadge>
       </div>
       <div class="flex gap-2 items-center">
         <PrimaryButton compact disabled>
-          <font-awesome-icon :icon="['fas', 'display']" class="mr-1"/> Präsentieren
+          <font-awesome-icon :icon="['fas', 'display']" class="mr-1"/> {{ t('helpCenter.sample.knowledge.present') }}
         </PrimaryButton>
         <IconButton :icon="['fas', 'ellipsis-vertical']" :label="t('common.actions')" disabled/>
       </div>
       <div class="w-64 rounded-theme border border-(--border) py-1">
-        <DropdownMenuItem :icon="['fas', 'download']">Original herunterladen</DropdownMenuItem>
+        <DropdownMenuItem :icon="['fas', 'download']">{{ t('helpCenter.sample.knowledge.downloadOriginal') }}</DropdownMenuItem>
       </div>
       <MutedText tag="p">{{ t('helpCenter.kbFileView.presentationsButtons') }}</MutedText>
     </NeutralContainer>
@@ -157,7 +157,7 @@ const {t} = useI18n()
     <!-- Dummy: Conversion pending -->
     <NeutralContainer class="text-center py-4">
       <Spinner size="lg"/>
-      <MutedText tag="p" class="mt-2">Die Datei wird in ein PDF umgewandelt...</MutedText>
+      <MutedText tag="p" class="mt-2">{{ t('helpCenter.sample.knowledge.converting') }}</MutedText>
     </NeutralContainer>
     <MutedText tag="p" size="sm" class="mt-1">{{ t('helpCenter.kbFileView.conversionHint') }}</MutedText>
 

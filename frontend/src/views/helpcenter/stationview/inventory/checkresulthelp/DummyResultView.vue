@@ -20,7 +20,7 @@ const {t} = useI18n()
   <div class="space-y-3">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div>
-        <SectionHeader>Max Mustermann</SectionHeader>
+        <SectionHeader>{{ t('helpCenter.sample.people.maxMustermann') }}</SectionHeader>
         <p class="text-sm text-(--text-muted)">{{ t('inventory.check.lastResult') }}</p>
       </div>
       <SecondaryButton :icon="['fas', 'chevron-left']">
@@ -30,7 +30,7 @@ const {t} = useI18n()
 
     <NeutralContainer>
       <div class="text-sm text-(--text-muted)">
-        10.05.2026, 14:30 &middot; {{ t('inventory.check.checkedBy') }}: Admin User
+        10.05.2026, 14:30 &middot; {{ t('inventory.check.checkedBy') }}: {{ t('helpCenter.sample.people.adminUser') }}
       </div>
     </NeutralContainer>
 

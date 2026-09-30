@@ -77,10 +77,10 @@ const activeView = ref('')
               {{ t('profile.absenceMyself') }}
             </SelectionToggleButton>
             <SelectionToggleButton :selected="true" size="md">
-              Lena Mustermann
+              {{ t('helpCenter.sample.people.lenaMustermann') }}
             </SelectionToggleButton>
             <SelectionToggleButton :selected="false" size="md">
-              Tim Mustermann
+              {{ t('helpCenter.sample.people.timMustermann') }}
             </SelectionToggleButton>
           </div>
         </div>
@@ -104,7 +104,7 @@ const activeView = ref('')
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="text-sm">01.06.2026 – 14.06.2026</span>
-            <MutedText size="sm" class="ml-3">Sommerurlaub</MutedText>
+            <MutedText size="sm" class="ml-3">{{ t('helpCenter.sample.profile.summerHoliday') }}</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <InfoBadge>{{ t('profile.absenceUpcoming') }}</InfoBadge>
@@ -116,7 +116,7 @@ const activeView = ref('')
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="text-sm">10.05.2026 – 16.05.2026</span>
-            <MutedText size="sm" class="ml-3">Klassenfahrt</MutedText>
+            <MutedText size="sm" class="ml-3">{{ t('helpCenter.sample.profile.classTrip') }}</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <SuccessBadge>{{ t('profile.absenceActive') }}</SuccessBadge>
@@ -128,7 +128,7 @@ const activeView = ref('')
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
             <span class="text-sm">01.04.2026 – 05.04.2026</span>
-            <MutedText size="sm" class="ml-3">Krank</MutedText>
+            <MutedText size="sm" class="ml-3">{{ t('helpCenter.sample.profile.sick') }}</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <ErrorBadge>{{ t('profile.absenceExpired') }}</ErrorBadge>

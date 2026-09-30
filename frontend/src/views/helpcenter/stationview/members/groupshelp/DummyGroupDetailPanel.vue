@@ -22,17 +22,17 @@ const detailTabs = [
 
 <template>
   <div class="space-y-4">
-    <SectionHeader>Anfänger</SectionHeader>
+    <SectionHeader>{{ t('helpCenter.sample.groups.beginners') }}</SectionHeader>
     <TabBar :model-value="detailTab" :tabs="detailTabs"/>
     <div class="space-y-1">
       <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.currentMembers') }}</FieldLabel>
       <div class="space-y-1">
         <div class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
-          <span class="text-sm font-medium">Max Mustermann</span>
+          <span class="text-sm font-medium">{{ t('helpCenter.sample.people.maxMustermann') }}</span>
           <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-error hover:text-error/80" />
         </div>
         <div class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
-          <span class="text-sm font-medium">Anna Schmidt</span>
+          <span class="text-sm font-medium">{{ t('helpCenter.sample.people.annaSchmidt') }}</span>
           <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-error hover:text-error/80" />
         </div>
       </div>
@@ -41,7 +41,7 @@ const detailTabs = [
       <FieldLabel class="text-(--text-muted)">{{ t('memberGroups.addMembers') }}</FieldLabel>
       <div class="space-y-1">
         <div class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent cursor-pointer">
-          <span class="text-sm font-medium">Lisa Weber</span>
+          <span class="text-sm font-medium">{{ t('helpCenter.sample.people.lisaWeber') }}</span>
           <font-awesome-icon :icon="['fas', 'plus']" class="text-primary text-sm"/>
         </div>
       </div>

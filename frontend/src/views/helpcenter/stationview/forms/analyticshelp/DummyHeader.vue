@@ -15,7 +15,7 @@ const {t} = useI18n()
 <template>
   <div class="flex items-center justify-between mb-4">
     <div>
-      <SectionHeader class="text-xl font-semibold">Zufriedenheitsumfrage</SectionHeader>
+      <SectionHeader class="text-xl font-semibold">{{ t('helpCenter.sample.forms.survey') }}</SectionHeader>
       <p class="text-(--text-muted) text-sm">{{ t('forms.analytics.totalResponses') }}: 12</p>
     </div>
     <ButtonRow pair>

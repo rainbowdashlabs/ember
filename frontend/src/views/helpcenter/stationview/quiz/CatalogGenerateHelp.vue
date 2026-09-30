@@ -33,13 +33,13 @@ const { t } = useI18n()
       <div class="space-y-3 text-sm">
         <div class="text-xs text-[var(--text-muted)] uppercase font-semibold">{{ t('helpCenter.quizCatalogGenerate.previewLabel') }}</div>
         <div class="flex items-center gap-2 p-2 rounded border border-[var(--border)]">
-          <span class="flex-1 font-medium">Was ist der Unterschied zwischen Saug- und Druckschlauch?</span>
+          <span class="flex-1 font-medium">{{ t('helpCenter.sample.quiz.hoseDifference') }}</span>
           <SecondaryButton disabled>
             <font-awesome-icon :icon="['fas', 'rotate']" />
           </SecondaryButton>
         </div>
         <div class="flex items-center gap-2 p-2 rounded border border-[var(--border)]">
-          <span class="flex-1 font-medium">Welche Notrufnummer gilt in Deutschland?</span>
+          <span class="flex-1 font-medium">{{ t('helpCenter.sample.quiz.emergencyNumberGermany') }}</span>
           <SecondaryButton disabled>
             <font-awesome-icon :icon="['fas', 'rotate']" />
           </SecondaryButton>

@@ -50,7 +50,7 @@ const BODY = ref('<p>Am Samstag treffen wir uns um 9 Uhr an der Wache. Bringt bi
               <UserAvatar :name="AUTHOR" size="md"/>
               <div>
                 <SubHeader class="flex items-center gap-1">
-                  Gemeinsame Übung am Samstag
+                  {{ t('helpCenter.sample.news.detailTitle') }}
                   <font-awesome-icon :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-(--text-muted)"/>
                 </SubHeader>
                 <p class="text-xs text-(--text-muted)">{{ AUTHOR }} &middot; {{ PUBLISHED }}</p>

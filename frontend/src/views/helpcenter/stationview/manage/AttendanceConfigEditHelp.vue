@@ -51,7 +51,7 @@ const {t} = useI18n()
       <p class="text-sm text-(--text-muted)">{{ t('attendanceConfig.groupsHint') }}</p>
       <div class="space-y-2">
         <NeutralContainer class="flex items-center justify-between py-2 px-3">
-          <span class="text-sm font-medium">Anfänger</span>
+          <span class="text-sm font-medium">{{ t('helpCenter.sample.groups.beginners') }}</span>
           <div class="flex items-center gap-2">
             <MutedIcon :icon="['fas', 'chevron-up']"/>
             <MutedIcon :icon="['fas', 'chevron-down']"/>
@@ -59,7 +59,7 @@ const {t} = useI18n()
           </div>
         </NeutralContainer>
         <NeutralContainer class="flex items-center justify-between py-2 px-3">
-          <span class="text-sm font-medium">Fortgeschrittene</span>
+          <span class="text-sm font-medium">{{ t('helpCenter.sample.groups.advancedPlural') }}</span>
           <div class="flex items-center gap-2">
             <MutedIcon :icon="['fas', 'chevron-up']"/>
             <MutedIcon :icon="['fas', 'chevron-down']"/>
@@ -67,7 +67,7 @@ const {t} = useI18n()
           </div>
         </NeutralContainer>
         <NeutralContainer class="flex items-center justify-between py-2 px-3">
-          <span class="text-sm font-medium">Betreuer</span>
+          <span class="text-sm font-medium">{{ t('helpCenter.sample.groups.supervisors') }}</span>
           <div class="flex items-center gap-2">
             <MutedIcon :icon="['fas', 'chevron-up']"/>
             <MutedIcon :icon="['fas', 'chevron-down']"/>

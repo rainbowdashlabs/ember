@@ -45,16 +45,16 @@ const {t} = useI18n()
           <Th>{{ t('movements.queue.columns.step') }}</Th>
         </template>
         <TRow>
-          <Td>Helme <MutedText size="base">[M &rarr; L]</MutedText></Td>
+          <Td>{{ t('helpCenter.sample.equipment.helmets') }} <MutedText size="base">[M &rarr; L]</MutedText></Td>
           <Td>{{ t('movements.purpose.EXCHANGE') }}</Td>
-          <Td>Max Mustermann</Td>
-          <Td><InfoBadge>Tausch angefordert</InfoBadge></Td>
+          <Td>{{ t('helpCenter.sample.people.maxMustermann') }}</Td>
+          <Td><InfoBadge>{{ t('helpCenter.sample.equipment.exchangeRequested') }}</InfoBadge></Td>
         </TRow>
         <TRow>
-          <Td>Jacken <MutedText size="base">[S &rarr; M]</MutedText></Td>
+          <Td>{{ t('helpCenter.sample.equipment.jackets') }} <MutedText size="base">[S &rarr; M]</MutedText></Td>
           <Td>{{ t('movements.purpose.EXCHANGE') }}</Td>
-          <Td>Erika Musterfrau</Td>
-          <Td><SecondaryBadge>Altes Teil zurückgenommen</SecondaryBadge></Td>
+          <Td>{{ t('helpCenter.sample.people.erikaMusterfrau') }}</Td>
+          <Td><SecondaryBadge>{{ t('helpCenter.sample.equipment.oldPieceTakenBack') }}</SecondaryBadge></Td>
         </TRow>
       </DataTable>
     </NeutralContainer>
@@ -72,9 +72,9 @@ const {t} = useI18n()
           <Th>{{ t('inventory.overview.colNotes') }}</Th>
         </template>
         <TRow>
-          <Td>Stiefel <MutedText size="base">[42]</MutedText></Td>
-          <Td>Max Mustermann</Td>
-          <Td muted>Alter Stiefel gerissen</Td>
+          <Td>{{ t('helpCenter.sample.equipment.boots') }} <MutedText size="base">[42]</MutedText></Td>
+          <Td>{{ t('helpCenter.sample.people.maxMustermann') }}</Td>
+          <Td muted>{{ t('helpCenter.sample.equipment.bootTorn') }}</Td>
         </TRow>
       </DataTable>
     </NeutralContainer>
@@ -90,10 +90,10 @@ const {t} = useI18n()
         </template>
         <TRow>
           <Td>
-            <div class="font-medium">Helm <MutedText size="base" class="font-normal">[M]</MutedText></div>
+            <div class="font-medium">{{ t('helpCenter.sample.equipment.helmet') }} <MutedText size="base" class="font-normal">[M]</MutedText></div>
             <MutedText tag="div">INV-0042</MutedText>
           </Td>
-          <Td>Erika Musterfrau</Td>
+          <Td>{{ t('helpCenter.sample.people.erikaMusterfrau') }}</Td>
           <Td><ErrorBadge>01.05.2026</ErrorBadge></Td>
         </TRow>
       </DataTable>

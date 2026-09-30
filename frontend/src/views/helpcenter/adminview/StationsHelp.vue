@@ -55,7 +55,7 @@ const {t} = useI18n()
         </NeutralContainer>
 
         <NeutralContainer class="flex items-center justify-between py-6">
-          <span class="font-medium text-lg">DLRG Musterstadt</span>
+          <span class="font-medium text-lg">{{ t('helpCenter.sample.stations.dlrgMusterstadt') }}</span>
           <div class="flex items-center gap-2">
             <EditButton />
             <DeleteButton />
@@ -63,7 +63,7 @@ const {t} = useI18n()
         </NeutralContainer>
 
         <NeutralContainer class="flex items-center justify-between py-6">
-          <span class="font-medium text-lg">DLRG Beispielburg</span>
+          <span class="font-medium text-lg">{{ t('helpCenter.sample.stations.dlrgBeispielburg') }}</span>
           <div class="flex items-center gap-2">
             <EditButton />
             <DeleteButton />

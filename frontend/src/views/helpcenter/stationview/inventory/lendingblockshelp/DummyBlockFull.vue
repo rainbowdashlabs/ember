@@ -21,7 +21,7 @@ const {t} = useI18n()
           <span class="font-medium">20.06.2026 – 22.06.2026</span>
           <PrimaryBadge>{{ t('helpCenter.inventoryLendingBlocks.dummyScopeAll') }}</PrimaryBadge>
         </div>
-        <MutedText tag="div" size="sm" class="mt-1">Stadtfest 2026</MutedText>
+        <MutedText tag="div" size="sm" class="mt-1">{{ t('helpCenter.sample.events.cityFestival') }}</MutedText>
       </div>
       <DeleteButton />
     </div>

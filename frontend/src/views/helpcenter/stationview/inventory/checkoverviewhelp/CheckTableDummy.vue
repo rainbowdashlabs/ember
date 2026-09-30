@@ -51,7 +51,7 @@ const {t} = useI18n()
         <template #action><SecondaryButton>{{ t('inventory.check.continue') }}</SecondaryButton></template>
       </CheckRowDummy>
       <CheckRowDummy member="Lisa Müller" last-checked="05.05.2026, 16:00" checked-by="Betreuer A">
-        <template #status><ErrorBadge>{{ t('inventory.check.locked') }}: Betreuer B</ErrorBadge></template>
+        <template #status><ErrorBadge>{{ t('inventory.check.locked') }}: {{ t('helpCenter.sample.people.supervisorB') }}</ErrorBadge></template>
         <template #action><PrimaryButton disabled>{{ t('inventory.check.start') }}</PrimaryButton></template>
       </CheckRowDummy>
     </DataTable>

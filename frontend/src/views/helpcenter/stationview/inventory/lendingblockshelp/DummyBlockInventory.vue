@@ -22,11 +22,11 @@ const {t} = useI18n()
         </div>
         <div class="mt-2 space-y-1">
           <div class="flex items-center gap-2 text-xs">
-            <SecondaryBadge>Stiefel</SecondaryBadge>
+            <SecondaryBadge>{{ t('helpCenter.sample.equipment.boots') }}</SecondaryBadge>
             <MutedText size="sm">{{ t('helpCenter.inventoryLendingBlocks.dummyAllItems') }}</MutedText>
           </div>
         </div>
-        <MutedText tag="div" size="sm" class="mt-1">Wachenwettbewerb</MutedText>
+        <MutedText tag="div" size="sm" class="mt-1">{{ t('helpCenter.sample.events.stationContest') }}</MutedText>
       </div>
       <DeleteButton />
     </div>

@@ -57,7 +57,7 @@ const dummyPausedExport = ref(false)
       <div class="space-y-2">
         <div class="flex items-center gap-2">
           <div class="flex-1 min-w-0">
-            <div class="font-medium text-sm">JF Musterstadt</div>
+            <div class="font-medium text-sm">{{ t('helpCenter.sample.stations.jfMusterstadt') }}</div>
             <div class="text-xs text-(--text-muted)">v1</div>
           </div>
           <SuccessBadge>{{ t('federation.active') }}</SuccessBadge>
@@ -67,7 +67,7 @@ const dummyPausedExport = ref(false)
         </div>
         <div class="flex items-center gap-2">
           <div class="flex-1 min-w-0">
-            <div class="font-medium text-sm">JF Beispieldorf</div>
+            <div class="font-medium text-sm">{{ t('helpCenter.sample.stations.jfBeispieldorf') }}</div>
             <div class="text-xs text-(--text-muted)">v1</div>
           </div>
           <SecondaryBadge>{{ t('federation.pending') }}</SecondaryBadge>
@@ -77,7 +77,7 @@ const dummyPausedExport = ref(false)
         </div>
         <div class="flex items-center gap-2">
           <div class="flex-1 min-w-0">
-            <div class="font-medium text-sm">JF Altenburg</div>
+            <div class="font-medium text-sm">{{ t('helpCenter.sample.stations.jfAltenburg') }}</div>
             <div class="text-xs text-(--text-muted)">v1</div>
           </div>
           <ErrorBadge>{{ t('federation.suspended') }}</ErrorBadge>

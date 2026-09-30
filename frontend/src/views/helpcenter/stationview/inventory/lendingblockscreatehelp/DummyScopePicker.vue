@@ -25,15 +25,15 @@ const {t} = useI18n()
       <div class="mt-3 flex flex-wrap gap-2">
         <FieldLabel inline class="cursor-pointer">
           <CheckboxInput :model-value="true" disabled />
-          Jacke (INV-0010)
+          {{ t('helpCenter.sample.equipment.jacket0010') }}
         </FieldLabel>
         <FieldLabel inline class="cursor-pointer">
           <CheckboxInput :model-value="true" disabled />
-          Jacke (INV-0011)
+          {{ t('helpCenter.sample.equipment.jacket0011') }}
         </FieldLabel>
         <FieldLabel inline class="cursor-pointer">
           <CheckboxInput :model-value="false" disabled />
-          Jacke (INV-0012)
+          {{ t('helpCenter.sample.equipment.jacket0012') }}
         </FieldLabel>
       </div>
     </DummyScopeEntry>
@@ -42,7 +42,7 @@ const {t} = useI18n()
       <div class="flex-1">
         <SelectInput :model-value="''">
           <option value="">{{ t('lending.selectInventory') }}</option>
-          <option>Stiefel</option>
+          <option>{{ t('helpCenter.sample.equipment.boots') }}</option>
         </SelectInput>
       </div>
       <SecondaryButton :icon="['fas', 'plus']" disabled>

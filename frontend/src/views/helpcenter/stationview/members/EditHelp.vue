@@ -48,7 +48,7 @@ const dummySelected = new Set([1])
       <SecondaryButton :icon="['fas', 'chevron-left']">
         {{ t('memberEdit.back') }}
       </SecondaryButton>
-      <SectionHeader class="mt-3">Max Mustermann</SectionHeader>
+      <SectionHeader class="mt-3">{{ t('helpCenter.sample.people.maxMustermann') }}</SectionHeader>
 
       <!-- Dummy: Tab bar with correct 4 tabs -->
       <TabBar :model-value="activeTab" :tabs="tabs" class="mt-3"/>
@@ -89,16 +89,16 @@ const dummySelected = new Set([1])
         <div class="space-y-2">
           <SubHeader>{{ t('memberGroups.title') }}</SubHeader>
           <div class="flex flex-wrap gap-2">
-            <SecondaryBadge>Anfänger</SecondaryBadge>
-            <SecondaryBadge class="opacity-50">Fortgeschrittene</SecondaryBadge>
+            <SecondaryBadge>{{ t('helpCenter.sample.groups.beginners') }}</SecondaryBadge>
+            <SecondaryBadge class="opacity-50">{{ t('helpCenter.sample.groups.advancedPlural') }}</SecondaryBadge>
           </div>
         </div>
 
         <div class="space-y-2">
           <SubHeader>{{ t('userTags.title') }}</SubHeader>
           <div class="flex flex-wrap gap-2">
-            <InfoBadge>Ersthelfer</InfoBadge>
-            <InfoBadge class="opacity-50">Fahrer</InfoBadge>
+            <InfoBadge>{{ t('helpCenter.sample.groups.firstAiders') }}</InfoBadge>
+            <InfoBadge class="opacity-50">{{ t('helpCenter.sample.groups.drivers') }}</InfoBadge>
           </div>
         </div>
       </NeutralContainer>
@@ -113,7 +113,7 @@ const dummySelected = new Set([1])
       <NeutralContainer class="space-y-3">
         <SubHeader>{{ t('memberEdit.relations.guardians') }}</SubHeader>
         <div class="rounded-lg px-3 py-2 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30 flex items-center justify-between">
-          <span class="text-sm font-medium">Petra Mustermann</span>
+          <span class="text-sm font-medium">{{ t('helpCenter.sample.people.petraMustermann') }}</span>
           <MutedText size="sm">petra@example.com</MutedText>
         </div>
         <SecondaryButton :icon="['fas', 'plus']">

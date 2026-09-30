@@ -25,23 +25,23 @@ const {t} = useI18n()
           <thead>
           <tr class="text-left">
             <th class="p-2">{{ t('checklist.memberSet') }}</th>
-            <th class="p-2 text-center">Briefing</th>
-            <th class="p-2 text-center">Unterschrift</th>
+            <th class="p-2 text-center">{{ t('helpCenter.sample.checklist.briefing') }}</th>
+            <th class="p-2 text-center">{{ t('helpCenter.sample.checklist.signature') }}</th>
           </tr>
           </thead>
           <tbody>
           <tr>
-            <td class="p-2">Anna Sample</td>
+            <td class="p-2">{{ t('helpCenter.sample.people.annaSample') }}</td>
             <td class="p-2 text-center"><ToggleInput :model-value="true" disabled/></td>
             <td class="p-2 text-center"><ToggleInput :model-value="false" disabled/></td>
           </tr>
           <tr>
-            <td class="p-2 flex items-center gap-2">Bert Beispiel <InfoBadge>{{ t('checklist.notInFilter') }}</InfoBadge></td>
+            <td class="p-2 flex items-center gap-2">{{ t('helpCenter.sample.people.bertBeispiel') }} <InfoBadge>{{ t('checklist.notInFilter') }}</InfoBadge></td>
             <td class="p-2 text-center"><ToggleInput :model-value="true" disabled/></td>
             <td class="p-2 text-center"><ToggleInput :model-value="true" disabled/></td>
           </tr>
           <tr>
-            <td class="p-2 flex items-center gap-2">Clara Demo <SecondaryBadge>{{ t('checklist.previouslyRemoved') }}</SecondaryBadge></td>
+            <td class="p-2 flex items-center gap-2">{{ t('helpCenter.sample.people.claraDemo') }} <SecondaryBadge>{{ t('checklist.previouslyRemoved') }}</SecondaryBadge></td>
             <td class="p-2 text-center"><ToggleInput :model-value="false" disabled/></td>
             <td class="p-2 text-center"><ToggleInput :model-value="false" disabled/></td>
           </tr>

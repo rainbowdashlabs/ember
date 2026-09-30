@@ -42,7 +42,7 @@ const {t} = useI18n()
         <!-- Inventory header with station -->
         <NeutralContainer>
           <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-medium text-lg">Rettungsringe</span>
+            <span class="font-medium text-lg">{{ t('helpCenter.sample.equipment.lifebuoys') }}</span>
             <StationBadge station-name="DLRG Musterstadt" />
           </div>
           <span class="text-sm text-(--text-muted)">5 {{ t('helpCenter.inventoryLendingCreate.dummyAvailable') }}</span>

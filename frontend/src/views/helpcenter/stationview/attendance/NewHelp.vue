@@ -31,10 +31,10 @@ const {t} = useI18n()
     <div class="grid gap-3 sm:grid-cols-2">
       <PrimaryContainer class="space-y-2 cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all">
         <div class="flex items-center justify-between">
-          <span class="font-semibold">Übungsabend</span>
+          <span class="font-semibold">{{ t('helpCenter.sample.events.practiceEvening') }}</span>
           <span class="text-sm">18:00 – 20:00</span>
         </div>
-        <p class="text-xs text-(--text-muted)">{{ t('attendanceNew.template') }}: Übungsabend</p>
+        <p class="text-xs text-(--text-muted)">{{ t('attendanceNew.template') }}: {{ t('helpCenter.sample.events.practiceEvening') }}</p>
       </PrimaryContainer>
     </div>
 
@@ -48,7 +48,7 @@ const {t} = useI18n()
       <NeutralContainer clickable>
         <div class="space-y-2">
           <div class="flex items-center justify-between gap-2">
-            <span class="font-medium">Übungsabend</span>
+            <span class="font-medium">{{ t('helpCenter.sample.events.practiceEvening') }}</span>
             <PrimaryButton :icon="['fas', 'plus']">
               {{ t('attendanceNew.create') }}
             </PrimaryButton>
@@ -60,7 +60,7 @@ const {t} = useI18n()
       <NeutralContainer clickable>
         <div class="space-y-2">
           <div class="flex items-center justify-between gap-2">
-            <span class="font-medium">Jugenddienst</span>
+            <span class="font-medium">{{ t('helpCenter.sample.events.youthService') }}</span>
             <PrimaryButton :icon="['fas', 'plus']">
               {{ t('attendanceNew.create') }}
             </PrimaryButton>

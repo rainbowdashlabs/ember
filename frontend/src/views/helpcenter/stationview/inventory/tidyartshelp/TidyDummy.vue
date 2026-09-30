@@ -25,7 +25,7 @@ const {t} = useI18n()
         <li class="flex items-center gap-3 py-2">
           <CheckboxInput :model-value="true"/>
           <div>
-            <p class="text-sm">Funkgerät orange</p>
+            <p class="text-sm">{{ t('helpCenter.sample.equipment.radioOrange') }}</p>
             <p class="text-xs text-(--text-muted)">
               {{ t('inventory.art.nameCount', {pieces: 4, unassigned: 4}) }}
             </p>
@@ -34,7 +34,7 @@ const {t} = useI18n()
         <li class="flex items-center gap-3 py-2">
           <CheckboxInput :model-value="true"/>
           <div>
-            <p class="text-sm">Funkgerät organge</p>
+            <p class="text-sm">{{ t('helpCenter.sample.equipment.radioMisspelled') }}</p>
             <p class="text-xs text-(--text-muted)">
               {{ t('inventory.art.nameCount', {pieces: 1, unassigned: 1}) }}
             </p>
@@ -43,7 +43,7 @@ const {t} = useI18n()
         <li class="flex items-center gap-3 py-2">
           <CheckboxInput :model-value="false"/>
           <div>
-            <p class="text-sm">Ladestation</p>
+            <p class="text-sm">{{ t('helpCenter.sample.equipment.chargingStation') }}</p>
             <p class="text-xs text-(--text-muted)">
               {{ t('inventory.art.nameCount', {pieces: 1, unassigned: 1}) }}
             </p>

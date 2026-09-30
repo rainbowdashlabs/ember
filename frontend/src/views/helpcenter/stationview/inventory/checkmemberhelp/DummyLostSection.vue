@@ -18,14 +18,14 @@ const {t} = useI18n()
 <template>
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between gap-2">
-      <SubHeader>Jacken</SubHeader>
+      <SubHeader>{{ t('helpCenter.sample.equipment.jackets') }}</SubHeader>
       <MutedText size="sm" class="shrink-0">1 / 1</MutedText>
     </div>
 
     <div class="rounded border border-bg-light-accent/50 dark:border-bg-dark-accent/50 p-3 space-y-2 ring-2 ring-error bg-error/10">
       <div class="flex flex-col sm:flex-row sm:items-center gap-2">
         <div class="flex-1 min-w-0">
-          <div class="font-medium text-sm">Jacke <span class="font-normal text-(--text-muted)">[L]</span></div>
+          <div class="font-medium text-sm">{{ t('helpCenter.sample.equipment.jacket') }} <span class="font-normal text-(--text-muted)">[L]</span></div>
           <div class="text-xs text-(--text-muted)">INV-0015</div>
         </div>
         <div class="flex gap-1 shrink-0">

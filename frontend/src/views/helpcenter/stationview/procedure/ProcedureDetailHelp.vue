@@ -71,7 +71,7 @@ const LOCKED_ITEM: ProcedureItem = {
             <PrimaryBadge>{{ t('procedures.open') }}</PrimaryBadge>
             <ErrorBadge>{{ t('procedures.overdue') }}</ErrorBadge>
           </div>
-          <p class="text-(--text-muted) text-sm">Alle Schritte bis zum ersten Übungsabend.</p>
+          <p class="text-(--text-muted) text-sm">{{ t('helpCenter.sample.events.untilFirstEvening') }}</p>
         </div>
         <ButtonRow pair class="shrink-0">
           <SecondaryButton :icon="['fas', 'pen']">{{ t('common.edit') }}</SecondaryButton>

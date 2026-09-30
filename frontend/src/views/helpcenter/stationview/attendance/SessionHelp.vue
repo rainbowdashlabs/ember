@@ -85,7 +85,7 @@ const {t} = useI18n()
     <!-- Dummy: Attendance entries with check-in/check-out -->
     <HelpSection :title="t('helpCenter.attendanceSession.memberEntryTitle')">
       <p>{{ t('helpCenter.attendanceSession.memberEntryText') }}</p>
-      <SubHeader>Anfänger</SubHeader>
+      <SubHeader>{{ t('helpCenter.sample.groups.beginners') }}</SubHeader>
       <div class="space-y-1">
         <MemberAttendanceRow name="Max Mustermann" status="present" check-in="18:00" check-out="20:15"/>
         <MemberAttendanceRow name="Erika Muster" status="absent"/>
@@ -122,7 +122,7 @@ const {t} = useI18n()
       <NeutralContainer class="space-y-4">
         <SectionHeader>{{ t('attendanceSession.checkMode') }}</SectionHeader>
         <div class="text-center space-y-4 py-4">
-          <p class="text-2xl font-bold">Anna Schmidt</p>
+          <p class="text-2xl font-bold">{{ t('helpCenter.sample.people.annaSchmidt') }}</p>
           <p class="text-sm text-(--text-muted)">1 / 2</p>
           <ButtonRow align="center">
             <SuccessButton :icon="['fas', 'check']" disabled>

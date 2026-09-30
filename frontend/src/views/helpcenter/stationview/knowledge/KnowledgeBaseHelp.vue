@@ -34,18 +34,18 @@ const { t } = useI18n()
       <div class="grid grid-cols-3 gap-3">
         <div class="flex flex-col items-center gap-1 p-3 rounded border border-bg-light-accent dark:border-bg-dark-accent">
           <font-awesome-icon :icon="['fas', 'folder']" class="text-2xl text-primary" />
-          <span class="text-xs font-medium text-center">Grundlagen</span>
-          <span class="text-xs text-(--text-muted)">Basiswissen</span>
+          <span class="text-xs font-medium text-center">{{ t('helpCenter.sample.knowledge.basics') }}</span>
+          <span class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.knowledge.basicKnowledge') }}</span>
         </div>
         <div class="flex flex-col items-center gap-1 p-3 rounded border border-bg-light-accent dark:border-bg-dark-accent">
           <font-awesome-icon :icon="['fas', 'folder']" class="text-2xl text-primary" />
-          <span class="text-xs font-medium text-center">Ausrüstung</span>
-          <span class="text-xs text-(--text-muted)">PSA & Geräte</span>
+          <span class="text-xs font-medium text-center">{{ t('helpCenter.sample.knowledge.equipment') }}</span>
+          <span class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.knowledge.equipmentText') }}</span>
         </div>
         <div class="flex flex-col items-center gap-1 p-3 rounded border border-bg-light-accent dark:border-bg-dark-accent">
           <font-awesome-icon :icon="['fas', 'file-lines']" class="text-2xl text-(--text-muted)" />
-          <span class="text-xs font-medium text-center">Willkommen</span>
-          <span class="text-xs text-(--text-muted)">Startseite</span>
+          <span class="text-xs font-medium text-center">{{ t('helpCenter.sample.knowledge.welcome') }}</span>
+          <span class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.knowledge.home') }}</span>
         </div>
       </div>
     </NeutralContainer>
@@ -64,11 +64,11 @@ const { t } = useI18n()
 
     <HelpSection :title="t('helpCenter.kb.fileTypesTitle')">
       <BulletList>
-        <li><strong>Markdown</strong>: {{ t('helpCenter.kb.markdownDesc') }}</li>
+        <li><strong>{{ t('helpCenter.sample.knowledge.markdown') }}</strong>: {{ t('helpCenter.kb.markdownDesc') }}</li>
         <li><strong>PDF</strong>: {{ t('helpCenter.kb.pdfDesc') }}</li>
         <li><strong>{{ t('helpCenter.kb.textFiles') }}</strong>: {{ t('helpCenter.kb.textDesc') }}</li>
         <li><strong>{{ t('helpCenter.kb.images') }}</strong>: {{ t('helpCenter.kb.imagesDesc') }}</li>
-        <li><strong>YouTube</strong>: {{ t('helpCenter.kb.youtubeDesc') }}</li>
+        <li><strong>{{ t('helpCenter.sample.knowledge.youtube') }}</strong>: {{ t('helpCenter.kb.youtubeDesc') }}</li>
         <li><strong>{{ t('helpCenter.kb.presentations') }}</strong>: {{ t('helpCenter.kb.presentationsDesc') }}</li>
       </BulletList>
     </HelpSection>

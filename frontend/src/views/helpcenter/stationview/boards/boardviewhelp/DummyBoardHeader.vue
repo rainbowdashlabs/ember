@@ -16,7 +16,7 @@ const {t} = useI18n()
 <template>
   <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
     <div class="flex items-center gap-3">
-      <SectionHeader>Dienstplanung</SectionHeader>
+      <SectionHeader>{{ t('helpCenter.sample.boards.boardName') }}</SectionHeader>
       <span class="text-xs font-mono text-(--text-muted) bg-(--bg-accent) px-1.5 py-0.5 rounded">PLAN</span>
     </div>
     <div class="flex items-center gap-2">

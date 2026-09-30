@@ -45,7 +45,7 @@ const dummySeparator = ref(';')
         </SecondaryButton>
         <span class="text-sm">
           <font-awesome-icon :icon="['fas', 'check']" class="text-success mr-1"/>
-          team.csv (5 {{ t('csvImport.rows') }})
+          {{ t('helpCenter.sample.members.teamFile') }} (5 {{ t('csvImport.rows') }})
         </span>
       </div>
       <div class="flex items-center gap-2">
@@ -67,8 +67,8 @@ const dummySeparator = ref(';')
         <div class="rounded-lg px-3 py-2 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
             <div>
-              <span class="font-medium text-sm">Vorname</span>
-              <div class="text-xs text-(--text-muted)">Lisa, Tom, Sarah</div>
+              <span class="font-medium text-sm">{{ t('helpCenter.sample.members.firstName') }}</span>
+              <div class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.members.teamFirstNames') }}</div>
             </div>
             <div class="sm:col-span-2 text-sm text-primary font-medium">
               → {{ t('memberImport.targetFirstName') }}
@@ -78,8 +78,8 @@ const dummySeparator = ref(';')
         <div class="rounded-lg px-3 py-2 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
             <div>
-              <span class="font-medium text-sm">Nachname</span>
-              <div class="text-xs text-(--text-muted)">Weber, Fischer, Braun</div>
+              <span class="font-medium text-sm">{{ t('helpCenter.sample.members.lastName') }}</span>
+              <div class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.members.teamLastNames') }}</div>
             </div>
             <div class="sm:col-span-2 text-sm text-primary font-medium">
               → {{ t('memberImport.targetLastName') }}
@@ -89,7 +89,7 @@ const dummySeparator = ref(';')
         <div class="rounded-lg px-3 py-2 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
             <div>
-              <span class="font-medium text-sm">E-Mail</span>
+              <span class="font-medium text-sm">{{ t('helpCenter.sample.members.email') }}</span>
               <div class="text-xs text-(--text-muted)">lisa@example.com, tom@example.com</div>
             </div>
             <div class="sm:col-span-2 text-sm text-primary font-medium">

@@ -23,7 +23,7 @@ const {t} = useI18n()
       <div class="flex items-center gap-2">
         <MutedIcon :icon="['fas', 'chevron-down']"/>
         <div>
-          <span class="font-semibold text-sm">Max Mustermann</span>
+          <span class="font-semibold text-sm">{{ t('helpCenter.sample.people.maxMustermann') }}</span>
           <p class="text-xs text-(--text-muted)">
             {{ t('memberChanges.lastChange') }}: 14.05.2026, 15:30
           </p>

@@ -15,7 +15,7 @@ const {t} = useI18n()
 <template>
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between gap-2">
-      <SubHeader>Stiefel</SubHeader>
+      <SubHeader>{{ t('helpCenter.sample.equipment.boots') }}</SubHeader>
       <MutedText size="sm" class="shrink-0">0 / 1</MutedText>
     </div>
 

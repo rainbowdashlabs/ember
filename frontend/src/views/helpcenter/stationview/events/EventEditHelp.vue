@@ -35,7 +35,7 @@ const {t} = useI18n()
           <SectionHeader>{{ t('events.editEvent') }}</SectionHeader>
           <SelectInput model-value="" class="w-48 text-sm" disabled>
             <option value="" disabled>{{ t('eventTemplates.loadTemplate') }}</option>
-            <option value="1">Standard-Übung</option>
+            <option value="1">{{ t('helpCenter.sample.events.standardPractice') }}</option>
           </SelectInput>
         </div>
       </NeutralContainer>

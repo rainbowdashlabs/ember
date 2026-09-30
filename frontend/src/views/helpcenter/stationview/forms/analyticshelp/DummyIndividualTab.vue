@@ -31,11 +31,11 @@ const {t} = useI18n()
       </div>
       <div class="space-y-4">
         <div class="border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 pb-3">
-          <p class="text-xs text-(--text-muted) mb-1">Was hat dir zuletzt besonders gut gefallen?</p>
-          <p class="text-sm font-medium">Übungen</p>
+          <p class="text-xs text-(--text-muted) mb-1">{{ t('helpCenter.sample.forms.likedLately') }}</p>
+          <p class="text-sm font-medium">{{ t('helpCenter.sample.forms.exercises') }}</p>
         </div>
         <div class="pb-3">
-          <p class="text-xs text-(--text-muted) mb-1">Wie zufrieden bist du insgesamt?</p>
+          <p class="text-xs text-(--text-muted) mb-1">{{ t('helpCenter.sample.forms.satisfaction') }}</p>
           <p class="text-sm font-medium">4</p>
         </div>
       </div>

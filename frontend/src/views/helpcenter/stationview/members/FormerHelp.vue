@@ -44,7 +44,7 @@ const {t} = useI18n()
           <th class="px-3 py-2"/>
         </template>
         <TRow>
-          <Td class="font-medium text-(--text-muted)">Jan Müller</Td>
+          <Td class="font-medium text-(--text-muted)">{{ t('helpCenter.sample.people.janMueller') }}</Td>
           <Td muted>jan@example.com</Td>
           <Td muted>15.04.2026</Td>
           <Td align="right">
@@ -54,7 +54,7 @@ const {t} = useI18n()
           </Td>
         </TRow>
         <TRow>
-          <Td class="font-medium text-(--text-muted)">Sara Klein</Td>
+          <Td class="font-medium text-(--text-muted)">{{ t('helpCenter.sample.people.saraKlein') }}</Td>
           <Td muted>sara@example.com</Td>
           <Td muted>02.03.2026</Td>
           <Td align="right">

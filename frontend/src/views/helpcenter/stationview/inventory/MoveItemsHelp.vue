@@ -36,21 +36,21 @@ const {t} = useI18n()
         <div class="space-y-1">
           <FieldLabel>{{ t('inventory.move.targetLabel') }}</FieldLabel>
           <SelectInput disabled model-value="1">
-            <option value="1">Bundhose schwer</option>
+            <option value="1">{{ t('helpCenter.sample.equipment.heavyTrousers') }}</option>
           </SelectInput>
         </div>
         <ul class="divide-y divide-(--border)">
           <li class="flex items-center gap-3 py-2">
             <CheckboxInput :model-value="true"/>
             <div>
-              <p class="text-sm">Bundhose</p>
+              <p class="text-sm">{{ t('helpCenter.sample.equipment.trousers') }}</p>
               <p class="text-xs text-(--text-muted)">BH-0007 &middot; {{ t('inventory.move.sizeKept', {size: '152'}) }}</p>
             </div>
           </li>
           <li class="flex items-center gap-3 py-2">
             <CheckboxInput :model-value="true"/>
             <div>
-              <p class="text-sm">Bundhose</p>
+              <p class="text-sm">{{ t('helpCenter.sample.equipment.trousers') }}</p>
               <p class="text-xs text-(--text-muted)">BH-0008 &middot; {{ t('inventory.move.sizeCleared', {size: '188'}) }}</p>
             </div>
           </li>

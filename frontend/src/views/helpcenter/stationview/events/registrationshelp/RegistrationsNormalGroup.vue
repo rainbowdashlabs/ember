@@ -18,7 +18,7 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
-        <span class="font-medium text-primary">Wettkampf Vorbereitung</span>
+        <span class="font-medium text-primary">{{ t('helpCenter.sample.events.competitionPrep') }}</span>
         <MutedText class="ml-2">
           {{ t('eventsRegistrations.deadline') }}: 20.05.2026 18:00
         </MutedText>

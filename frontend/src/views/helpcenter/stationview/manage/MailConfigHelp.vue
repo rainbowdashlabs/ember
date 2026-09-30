@@ -89,10 +89,7 @@ const {t} = useI18n()
         <FieldLabel>{{ t('stationManage.mailProvider') }}</FieldLabel>
         <SelectInput model-value="BREVO" disabled>
           <option value="NONE">{{ t('stationManage.mailProviderNone') }}</option>
-          <option value="RAPIDMAIL">RapidMail</option>
-          <option value="TWILIO">Twilio</option>
-          <option value="SWEEGO">Sweego</option>
-          <option value="BREVO">Brevo</option>
+          <option v-for="(name, key) in RELAY_PROVIDER_NAMES" :key="key" :value="key">{{ name }}</option>
           <option value="SMTP">{{ t('stationManage.mailProviderCustomSmtp') }}</option>
         </SelectInput>
       </div>
@@ -108,7 +105,7 @@ const {t} = useI18n()
         </div>
       </div>
 
-      <SubHeader>Brevo</SubHeader>
+      <SubHeader>{{ RELAY_PROVIDER_NAMES.BREVO }}</SubHeader>
       <p class="text-xs text-(--text-muted)">{{ t('mailProviders.BREVO.intro') }}</p>
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">

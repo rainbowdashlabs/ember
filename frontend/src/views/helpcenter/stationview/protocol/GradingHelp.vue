@@ -36,7 +36,7 @@ const { t } = useI18n()
     <HelpSection :title="t('helpCenter.protocolGrading.headerTitle')">
       <p>{{ t('helpCenter.protocolGrading.headerText') }}</p>
       <div class="flex items-center justify-between mb-2">
-        <SectionHeader>Lena Mueller</SectionHeader>
+        <SectionHeader>{{ t('helpCenter.sample.people.lenaMuellerPlain') }}</SectionHeader>
         <SecondaryButton disabled>
           <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1" /> {{ t('protocol.saveAndExit') }}
         </SecondaryButton>
@@ -49,15 +49,15 @@ const { t } = useI18n()
       <div class="flex flex-wrap gap-1.5 mb-4">
         <SelectionToggleButton :selected="true" disabled>
           <font-awesome-icon :icon="['fas', 'circle-check']" class="w-3 h-3 text-[var(--success)] mr-1" />
-          Notruf
+          {{ t('helpCenter.sample.protocol.emergencyCall') }}
           <span class="ml-1 font-mono">7/8</span>
         </SelectionToggleButton>
         <SelectionToggleButton :selected="false" disabled>
-          Knoten
+          {{ t('helpCenter.sample.protocol.knotsShort') }}
           <span class="ml-1 font-mono">0/11</span>
         </SelectionToggleButton>
         <SelectionToggleButton :selected="false" disabled>
-          Schlauche
+          {{ t('helpCenter.sample.protocol.hosesPlain') }}
           <span class="ml-1 font-mono">0/15</span>
         </SelectionToggleButton>
       </div>
@@ -65,7 +65,7 @@ const { t } = useI18n()
       <!-- Total score -->
       <div class="flex items-center justify-between text-sm mb-4">
         <span class="text-[var(--text-muted)]">{{ t('protocol.totalScore') }}:</span>
-        <span class="font-mono font-bold text-lg">7 / 34P</span>
+        <span class="font-mono font-bold text-lg">{{ t('helpCenter.sample.protocol.pointsOf', {points: 7, total: 34}) }}</span>
       </div>
     </HelpSection>
 
@@ -76,24 +76,24 @@ const { t } = useI18n()
         <div class="flex items-center justify-between">
           <SectionHeader class="font-bold">
             <font-awesome-icon :icon="['fas', 'circle-check']" class="w-4 h-4 text-[var(--success)] mr-1" />
-            Notruf
+            {{ t('helpCenter.sample.protocol.emergencyCall') }}
           </SectionHeader>
-          <SuccessBadge>7 / 8P</SuccessBadge>
+          <SuccessBadge>{{ t('helpCenter.sample.protocol.pointsOf', {points: 7, total: 8}) }}</SuccessBadge>
         </div>
 
         <div class="flex items-center gap-2 p-3 rounded-lg border-2 border-[var(--success)]" style="background: color-mix(in srgb, var(--success) 10%, transparent)">
           <font-awesome-icon :icon="['fas', 'square-check']" class="w-6 h-6 text-[var(--success)]" />
-          <span class="flex-1 text-sm">5 W-Fragen nennen</span>
+          <span class="flex-1 text-sm">{{ t('helpCenter.sample.protocol.fiveW') }}</span>
           <span class="text-xs text-[var(--text-muted)] font-mono">5P</span>
         </div>
         <div class="flex items-center gap-2 p-3 rounded-lg border-2 border-[var(--success)]" style="background: color-mix(in srgb, var(--success) 10%, transparent)">
           <font-awesome-icon :icon="['fas', 'square-check']" class="w-6 h-6 text-[var(--success)]" />
-          <span class="flex-1 text-sm">Notrufnummer 112</span>
+          <span class="flex-1 text-sm">{{ t('helpCenter.sample.protocol.number112') }}</span>
           <span class="text-xs text-[var(--text-muted)] font-mono">2P</span>
         </div>
         <div class="flex items-center gap-2 p-3 rounded-lg border-2 border-[var(--border)]">
           <font-awesome-icon :icon="['fas', 'square']" class="w-6 h-6 text-[var(--text-muted)]" />
-          <span class="flex-1 text-sm">Notrufnummer 110</span>
+          <span class="flex-1 text-sm">{{ t('helpCenter.sample.protocol.number110') }}</span>
           <span class="text-xs text-[var(--text-muted)] font-mono">1P</span>
         </div>
       </NeutralContainer>

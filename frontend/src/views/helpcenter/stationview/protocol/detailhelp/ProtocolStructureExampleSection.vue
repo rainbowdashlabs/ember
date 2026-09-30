@@ -26,17 +26,17 @@ const { t } = useI18n()
       <SecondaryButton disabled>
         <font-awesome-icon :icon="['fas', 'chevron-left']" />
       </SecondaryButton>
-      <SectionHeader>Jugendflamme Stufe 1</SectionHeader>
+      <SectionHeader>{{ t('helpCenter.sample.protocol.jugendflamme1') }}</SectionHeader>
       <EditButton disabled :label="t('common.edit')" />
       <span class="text-sm text-[var(--text-muted)] ml-auto">
-        {{ t('protocol.threshold') }}: 25P / 34P {{ t('protocol.total') }}
+        {{ t('protocol.threshold') }}: {{ t('helpCenter.sample.protocol.points', {points: 25}) }} / {{ t('helpCenter.sample.protocol.points', {points: 34}) }} {{ t('protocol.total') }}
       </span>
     </div>
 
     <div class="space-y-4">
       <NeutralContainer class="space-y-2">
         <div class="flex items-center gap-2">
-          <SubHeader>Notruf</SubHeader>
+          <SubHeader>{{ t('helpCenter.sample.protocol.emergencyCall') }}</SubHeader>
           <MutedText class="ml-auto">8P</MutedText>
           <IconButton :icon="['fas', 'plus']" label="" disabled />
           <IconButton :icon="['fas', 'folder-plus']" label="" disabled />
@@ -46,21 +46,21 @@ const { t } = useI18n()
 
         <div class="flex items-center gap-2 pl-4 text-xs">
           <MutedIcon :icon="['fas', 'square']" />
-          <span class="flex-1">5 W-Fragen nennen</span>
+          <span class="flex-1">{{ t('helpCenter.sample.protocol.fiveW') }}</span>
           <span class="text-xs text-[var(--text-muted)]">5P</span>
           <IconButton :icon="['fas', 'pen']" label="" disabled />
           <DeleteButton disabled />
         </div>
         <div class="flex items-center gap-2 pl-4 text-xs">
           <MutedIcon :icon="['fas', 'square']" />
-          <span class="flex-1">Notrufnummer 112</span>
+          <span class="flex-1">{{ t('helpCenter.sample.protocol.number112') }}</span>
           <span class="text-xs text-[var(--text-muted)]">2P</span>
           <IconButton :icon="['fas', 'pen']" label="" disabled />
           <DeleteButton disabled />
         </div>
         <div class="flex items-center gap-2 pl-4 text-xs">
           <MutedIcon :icon="['fas', 'square']" />
-          <span class="flex-1">Notrufnummer 110</span>
+          <span class="flex-1">{{ t('helpCenter.sample.protocol.number110') }}</span>
           <span class="text-xs text-[var(--text-muted)]">1P</span>
           <IconButton :icon="['fas', 'pen']" label="" disabled />
           <DeleteButton disabled />
@@ -69,7 +69,7 @@ const { t } = useI18n()
 
       <NeutralContainer class="space-y-2">
         <div class="flex items-center gap-2">
-          <SubHeader>Knoten und Stiche</SubHeader>
+          <SubHeader>{{ t('helpCenter.sample.protocol.knots') }}</SubHeader>
           <MutedText class="ml-auto">11P</MutedText>
         </div>
       </NeutralContainer>

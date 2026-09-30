@@ -45,11 +45,11 @@ const {t} = useI18n()
       <div class="grid sm:grid-cols-2 gap-3 text-sm">
         <NeutralContainer>
           <p class="text-[var(--text-muted)] text-xs mb-1">{{ t('helpCenter.inventoryLendingRequest.colStation') }}</p>
-          <p class="font-medium">DLRG Musterstadt</p>
+          <p class="font-medium">{{ t('helpCenter.sample.stations.dlrgMusterstadt') }}</p>
         </NeutralContainer>
         <NeutralContainer>
           <p class="text-[var(--text-muted)] text-xs mb-1">{{ t('helpCenter.inventoryLendingRequest.colItem') }}</p>
-          <p class="font-medium">Rettungsring (3×)</p>
+          <p class="font-medium">{{ t('helpCenter.sample.equipment.lifebuoysThree') }}</p>
         </NeutralContainer>
         <NeutralContainer>
           <p class="text-[var(--text-muted)] text-xs mb-1">{{ t('helpCenter.inventoryLendingRequest.colFrom') }}</p>
@@ -73,11 +73,11 @@ const {t} = useI18n()
         <p class="text-xs text-[var(--text-muted)] font-medium uppercase tracking-wide">{{ t('helpCenter.inventoryLendingRequest.chatTitle') }}</p>
         <div class="flex flex-col gap-2">
           <div class="self-start bg-[var(--bg-accent)] rounded-lg px-3 py-2 text-sm max-w-xs">
-            <p class="text-xs text-[var(--text-muted)] mb-0.5">DLRG Musterstadt</p>
-            <p>Werden die Ringe in gutem Zustand zurückgegeben?</p>
+            <p class="text-xs text-[var(--text-muted)] mb-0.5">{{ t('helpCenter.sample.stations.dlrgMusterstadt') }}</p>
+            <p>{{ t('helpCenter.sample.inventory.lendingQuestion') }}</p>
           </div>
           <div class="self-end bg-primary text-primary-text rounded-lg px-3 py-2 text-sm max-w-xs">
-            <p>Ja, wir passen gut auf die Ausrüstung auf.</p>
+            <p>{{ t('helpCenter.sample.inventory.lendingAnswer') }}</p>
           </div>
           <SuccessBadge class="self-start">{{ t('helpCenter.inventoryLendingRequest.statusReturned') }}</SuccessBadge>
         </div>

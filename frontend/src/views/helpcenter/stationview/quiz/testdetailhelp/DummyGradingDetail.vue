@@ -19,11 +19,11 @@ const {t} = useI18n()
       <SectionLabel>{{ t('quiz.evaluate.title') }}</SectionLabel>
       <div>
         <FieldLabel hint class="mb-1">{{ t('quiz.evaluate.studentAnswer') }}</FieldLabel>
-        <p class="text-sm px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent">Wasser</p>
+        <p class="text-sm px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent">{{ t('helpCenter.sample.quiz.water') }}</p>
       </div>
       <div>
         <label class="text-xs text-success block mb-1">{{ t('quiz.evaluate.correctAnswer') }}</label>
-        <p class="text-sm px-3 py-2 rounded border border-success/30 bg-success/10">Wasser, Schaum</p>
+        <p class="text-sm px-3 py-2 rounded border border-success/30 bg-success/10">{{ t('helpCenter.sample.quiz.waterAndFoam') }}</p>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-sm font-medium">{{ t('quiz.evaluate.points') }}</label>

@@ -56,7 +56,7 @@ const {t} = useI18n()
       <!-- Event header -->
       <div class="flex items-center justify-between flex-wrap gap-3">
         <div class="flex items-center gap-3">
-          <SectionHeader>Wettkampf Vorbereitung</SectionHeader>
+          <SectionHeader>{{ t('helpCenter.sample.events.competitionPrep') }}</SectionHeader>
           <SecondaryBadge>{{ t('events.typeOneTime') }}</SecondaryBadge>
         </div>
         <ButtonRow>
@@ -77,19 +77,19 @@ const {t} = useI18n()
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="sm:col-span-2">
             <DetailLabel>{{ t('events.description') }}</DetailLabel>
-            <p class="text-sm mt-1">Vorbereitung auf den Kreiswettkampf. Bitte pünktlich erscheinen.</p>
+            <p class="text-sm mt-1">{{ t('helpCenter.sample.events.competitionPrepText') }}</p>
           </div>
           <div>
             <DetailLabel>{{ t('events.category') }}</DetailLabel>
-            <p class="text-sm">Wettkampf</p>
+            <p class="text-sm">{{ t('helpCenter.sample.events.competition') }}</p>
           </div>
           <div>
             <DetailLabel>{{ t('events.startTime') }}</DetailLabel>
-            <p class="text-sm">Montag, 25.05.2026, 14:00</p>
+            <p class="text-sm">{{ t('helpCenter.sample.events.mondayStart') }}</p>
           </div>
           <div>
             <DetailLabel>{{ t('events.endTime') }}</DetailLabel>
-            <p class="text-sm">Montag, 25.05.2026, 17:00</p>
+            <p class="text-sm">{{ t('helpCenter.sample.events.mondayEnd') }}</p>
           </div>
         </div>
       </NeutralContainer>
@@ -125,15 +125,15 @@ const {t} = useI18n()
           <div class="space-y-1 text-sm">
             <div class="flex items-center gap-2">
               <SuccessBadge>{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
-              <span>Max Mustermann</span>
+              <span>{{ t('helpCenter.sample.people.maxMustermann') }}</span>
             </div>
             <div class="flex items-center gap-2">
               <SuccessBadge>{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
-              <span>Lisa Schmidt</span>
+              <span>{{ t('helpCenter.sample.people.lisaSchmidt') }}</span>
             </div>
             <div class="flex items-center gap-2">
               <InfoBadge>{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
-              <span>Tom Müller</span>
+              <span>{{ t('helpCenter.sample.people.tomMueller') }}</span>
             </div>
           </div>
         </NeutralContainer>

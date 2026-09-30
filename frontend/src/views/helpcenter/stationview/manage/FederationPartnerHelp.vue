@@ -45,8 +45,8 @@ const dummyInventorySend = ref(false)
     <NeutralContainer class="space-y-2">
       <div class="flex items-center gap-2">
         <div class="flex-1">
-          <div class="font-semibold text-base">JF Musterstadt</div>
-          <div class="text-xs text-(--text-muted)">Verbunden seit 1. März 2026 · Protokollversion v1</div>
+          <div class="font-semibold text-base">{{ t('helpCenter.sample.stations.jfMusterstadt') }}</div>
+          <div class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.stations.connectedSince') }}</div>
         </div>
         <SuccessBadge>{{ t('federation.active') }}</SuccessBadge>
         <div class="flex gap-2">
