@@ -104,7 +104,19 @@ public final class TaskScheduler {
      * @return a new lane
      */
     public SerialLane lane(String name) {
-        return new SerialLane(name, this);
+        return lane(name, Integer.MAX_VALUE);
+    }
+
+    /**
+     * An ordered queue like {@link #lane(String)} that holds at most the given number of waiting items and
+     * refuses more.
+     *
+     * @param name     the name the lane's items run and are logged under
+     * @param capacity how many items may wait at once
+     * @return a new lane
+     */
+    public SerialLane lane(String name, int capacity) {
+        return new SerialLane(name, capacity, this);
     }
 
     /**

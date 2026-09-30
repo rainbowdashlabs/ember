@@ -23,12 +23,14 @@ public final class SerialLane {
     private static final Logger log = LoggerFactory.getLogger(SerialLane.class);
 
     private final String name;
+    private final int capacity;
     private final TaskScheduler scheduler;
     private final Queue<Runnable> queue = new ArrayDeque<>();
     private boolean draining;
 
-    SerialLane(String name, TaskScheduler scheduler) {
+    SerialLane(String name, int capacity, TaskScheduler scheduler) {
         this.name = name;
+        this.capacity = capacity;
         this.scheduler = scheduler;
     }
 
@@ -36,11 +38,11 @@ public final class SerialLane {
      * Queues a piece of work behind everything already in the lane.
      *
      * @param work the work
-     * @return {@code false} when the scheduler is stopping and the work was not accepted
+     * @return {@code false} when the lane is full or the scheduler is stopping, and the work was not accepted
      */
     public boolean submit(Runnable work) {
         synchronized (this) {
-            if (scheduler.isStopping()) return false;
+            if (scheduler.isStopping() || queue.size() >= capacity) return false;
             queue.add(work);
             if (draining) return true;
             draining = true;

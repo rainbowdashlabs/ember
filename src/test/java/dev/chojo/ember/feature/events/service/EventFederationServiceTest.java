@@ -41,6 +41,7 @@ import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
 import io.javalin.http.BadRequestResponse;
@@ -121,7 +122,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         stationRepo,
                         mock(MemberGroupService.class),
                         mock(UserTagService.class)),
-                new FederationFanout(),
+                new FederationFanout(new TaskScheduler()),
                 new FederationEntityResolver(federationRepo, httpClient),
                 attachmentService,
                 new EventFieldService(

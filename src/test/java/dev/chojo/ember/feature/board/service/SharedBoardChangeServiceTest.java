@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.federation.service.FederationWebhookService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -82,7 +83,7 @@ class SharedBoardChangeServiceTest extends RepositoryTestBase {
                 stationMemberRepo.create(localPartnerStation.id(), account.id()).id();
 
         httpClient = mock(FederationHttpClient.class);
-        var webhooks = new FederationWebhookService(new FederationRepository(), httpClient);
+        var webhooks = new FederationWebhookService(new FederationRepository(), httpClient, new TaskScheduler());
 
         federatedBoards = new FederatedBoardService(federatedBoardRepo);
         var boardService = new BoardService(

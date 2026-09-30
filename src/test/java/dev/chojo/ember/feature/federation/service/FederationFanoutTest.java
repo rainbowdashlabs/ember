@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.federation.service.FederationFanout.PartnerOutcome;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -79,7 +80,7 @@ class FederationFanoutTest {
 
     @Test
     void aFailingPartnerIsToldApartFromAnEmptyOne() {
-        var fanout = new FederationFanout();
+        var fanout = new FederationFanout(new TaskScheduler());
         var failing = partner(1, "https://failing.example");
         var empty = partner(2, "https://empty.example");
 

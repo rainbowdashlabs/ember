@@ -177,6 +177,7 @@ import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.TestStationKeys;
 import dev.chojo.ember.util.sql.Transactions;
 import org.junit.jupiter.api.AfterAll;
@@ -779,7 +780,7 @@ public abstract class RepositoryTestBase {
                 new LendingRepository(),
                 httpClient,
                 new FederationService(new FederationRepository(), stationRepo, TestStationKeys.store(), new Api()),
-                new FederationFanout(),
+                new FederationFanout(new TaskScheduler()),
                 stationRepo,
                 inventoryRepo,
                 clusterRepo,

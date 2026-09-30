@@ -95,6 +95,7 @@ import dev.chojo.ember.feature.account.service.AuthCleanupSweeper;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
 import dev.chojo.ember.feature.beacon.route.BeaconAdminRoutes;
 import dev.chojo.ember.feature.beacon.route.BeaconIntakeRoutes;
+import dev.chojo.ember.feature.beacon.service.BeaconMetricsService;
 import dev.chojo.ember.feature.board.route.BoardRoutes;
 import dev.chojo.ember.feature.board.route.BoardTicketAttachmentRoutes;
 import dev.chojo.ember.feature.board.route.BoardTicketDetailRoutes;
@@ -622,13 +623,7 @@ public class EmberModule extends AbstractModule {
         // Eager singletons - started on boot
         bind(StorageReconciliationService.class).asEagerSingleton();
         bind(KbTrashPurger.class).asEagerSingleton();
-        bind(FederationVersionBroadcaster.class).asEagerSingleton();
         bind(FeedMetricsService.class).asEagerSingleton();
-        // Discovery chain
-        bind(FederationPartnerSeeder.class).asEagerSingleton();
-        bind(DiscoveryPingScheduler.class).asEagerSingleton();
-        bind(DiscoveryStationRefreshScheduler.class).asEagerSingleton();
-        bind(DiscoveryMaintenanceScheduler.class).asEagerSingleton();
     }
 
     /**
@@ -661,6 +656,13 @@ public class EmberModule extends AbstractModule {
         tasks.addBinding().to(ProblemReportSweeper.Task.class);
         tasks.addBinding().to(UpdateCheckService.Task.class);
         tasks.addBinding().to(DemoService.IdleResetTask.class);
+        tasks.addBinding().to(FederationPartnerSeeder.Task.class);
+        tasks.addBinding().to(DiscoveryPingScheduler.class);
+        tasks.addBinding().to(DiscoveryStationRefreshScheduler.class);
+        tasks.addBinding().to(DiscoveryMaintenanceScheduler.NonceTask.class);
+        tasks.addBinding().to(DiscoveryMaintenanceScheduler.ReputationTask.class);
+        tasks.addBinding().to(FederationVersionBroadcaster.Task.class);
+        tasks.addBinding().to(BeaconMetricsService.WatchTask.class);
     }
 
     /**

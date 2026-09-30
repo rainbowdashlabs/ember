@@ -185,8 +185,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationRepo,
                 new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo())),
                 contractRefreshRef::get);
-        contractRefreshRef.set(new FederationContractRefreshService(federationRepo, federationHttpClient));
-        var federationFanout = new FederationFanout();
+        contractRefreshRef.set(
+                new FederationContractRefreshService(federationRepo, federationHttpClient, new TaskScheduler()));
+        var federationFanout = new FederationFanout(new TaskScheduler());
         var federationEntityResolver = new FederationEntityResolver(federationRepo, federationHttpClient);
 
         var eventServices = newEventServices(noOpBus);

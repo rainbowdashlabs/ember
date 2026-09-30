@@ -30,6 +30,7 @@ import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedComme
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedNewsData;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedNewsItem;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
 import io.javalin.http.BadRequestResponse;
@@ -108,7 +109,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                         new Api()),
                 eventFederationRepo,
                 memberNameResolver,
-                new FederationFanout(),
+                new FederationFanout(new TaskScheduler()),
                 new FederationEntityResolver(federationRepo, httpClient));
 
         stationA = stationRepo.create("NewsFedSvcA");

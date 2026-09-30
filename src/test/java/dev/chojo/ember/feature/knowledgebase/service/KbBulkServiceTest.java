@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
@@ -97,7 +98,7 @@ class KbBulkServiceTest extends RepositoryTestBase {
                 new KbCommentRepository(),
                 mock(EventFederationRepository.class),
                 memberNameResolver,
-                new FederationFanout(),
+                new FederationFanout(new TaskScheduler()),
                 new FederationEntityResolver(federationRepo, httpClient),
                 mock(KbPdfExportService.class),
                 accessService);

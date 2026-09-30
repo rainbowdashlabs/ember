@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.TaggedItemSummary;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
@@ -60,7 +61,7 @@ class FederatedItemTagServiceTest extends RepositoryTestBase {
                 inventoryTagService,
                 federationService,
                 federationRepo,
-                new FederationFanout(),
+                new FederationFanout(new TaskScheduler()),
                 httpClient,
                 stationRepo);
 

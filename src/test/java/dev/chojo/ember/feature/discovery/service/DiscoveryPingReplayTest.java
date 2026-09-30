@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,7 +62,8 @@ class DiscoveryPingReplayTest extends RepositoryTestBase {
                 mock(DiscoveryReputationService.class),
                 settings,
                 validator,
-                mock(Conf.class));
+                mock(Conf.class),
+                mock(TaskScheduler.class));
     }
 
     private static DiscoveryPingMessage ping(String fromKey, String nonce) {

@@ -9,15 +9,16 @@ import dev.chojo.ember.feature.discovery.entity.PeerSource;
 import dev.chojo.ember.feature.discovery.protocol.DiscoveryInfoResponse;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * On startup (and on demand), walks active federation partners and inserts them into the
@@ -25,8 +26,7 @@ import java.util.concurrent.TimeUnit;
  * is learned by probing its {@code /public/discovery/info} endpoint - discovery and
  * federation use independent keys.
  *
- * <p>Triggered as an eager singleton with a startup delay so QueryConfiguration and Javalin
- * have time to come up first.
+ * <p>Runs once, two minutes after the scheduled tasks start, so the instance has settled first.
  */
 @Singleton
 public class FederationPartnerSeeder {
@@ -45,13 +45,6 @@ public class FederationPartnerSeeder {
         this.federationRepository = federationRepository;
         this.peerRepository = peerRepository;
         this.httpClient = httpClient;
-
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "discovery-fed-seeder");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.schedule(this::seedFromFederationPartners, 2, TimeUnit.MINUTES);
     }
 
     /**
@@ -95,6 +88,15 @@ public class FederationPartnerSeeder {
         } catch (Exception e) {
             log.debug("Probe of {} failed: {}", baseUrl, e.getMessage());
             return false;
+        }
+    }
+
+    /** Seeds the peer registry once, two minutes after the start. */
+    @Singleton
+    public static final class Task extends DelegatingTask {
+        @Inject
+        Task(FederationPartnerSeeder seeder) {
+            super("discovery-partner-seed", Schedule.once(Duration.ofMinutes(2)), seeder::seedFromFederationPartners);
         }
     }
 }

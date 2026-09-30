@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
@@ -58,7 +59,7 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                 federationRepo,
                 httpClient,
                 stationRepo,
-                new FederationFanout(),
+                new FederationFanout(new TaskScheduler()),
                 new FederationEntityResolver(federationRepo, httpClient));
 
         station = stationRepo.create("QuizFedStation");

@@ -9,6 +9,8 @@ import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.discovery.service.DiscoveryHttpClient;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
+import dev.chojo.ember.lifecycle.SerialLane;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -22,9 +24,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -66,32 +65,28 @@ public class BeaconReportService {
     private final BeaconSettings config;
     private final DiscoveryHttpClient httpClient;
     private final SelfDelivery self;
-    private final BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
+    private final SerialLane lane;
 
     @Inject
-    public BeaconReportService(BeaconSettings config, DiscoveryHttpClient httpClient, SelfDelivery self) {
+    public BeaconReportService(
+            BeaconSettings config, DiscoveryHttpClient httpClient, SelfDelivery self, TaskScheduler scheduler) {
         this.config = config;
         this.httpClient = httpClient;
         this.self = self;
-        startWorker();
+        this.lane = scheduler.lane("beacon-sender", QUEUE_CAPACITY);
     }
 
-    private void startWorker() {
-        var worker = Executors.newSingleThreadExecutor(runnable -> {
-            var thread = new Thread(runnable, "beacon-sender");
-            thread.setDaemon(true);
-            return thread;
-        });
-        worker.submit(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    queue.take().run();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } catch (Exception e) {
-                    log.warn("A beacon send failed", e);
-                    sleepBackoff();
-                }
+    /**
+     * Puts one send on the lane. A send that fails holds the lane for the backoff, so a beacon that is
+     * down is not asked again at once for everything queued behind it.
+     */
+    private boolean enqueue(Runnable send) {
+        return lane.submit(() -> {
+            try {
+                send.run();
+            } catch (RuntimeException e) {
+                log.warn("A beacon send failed", e);
+                sleepBackoff();
             }
         });
     }
@@ -182,7 +177,7 @@ public class BeaconReportService {
     }
 
     /**
-     * Queues one problem for its beacon. Returns at once; the sending happens on the worker.
+     * Queues one problem for its beacon. Returns at once; the sending happens on the lane.
      *
      * @param entry   the problem being forwarded
      * @param version this instance's version
@@ -190,7 +185,7 @@ public class BeaconReportService {
      */
     public boolean send(ProblemLogAppender.Snapshot entry, String version) {
         if (!config.enabled()) return false;
-        return queue.offer(() -> deliver("/api/v1/beacon/problems", payloadFor(entry, version)));
+        return enqueue(() -> deliver("/api/v1/beacon/problems", payloadFor(entry, version)));
     }
 
     /**
@@ -268,11 +263,11 @@ public class BeaconReportService {
      */
     public boolean sendReportNow(ProblemReport report, String version, byte[] picture, String contentType) {
         if (picture == null || picture.length == 0) {
-            return queue.offer(() -> deliver("/api/v1/beacon/reports", reportPayloadFor(report, version, null)));
+            return enqueue(() -> deliver("/api/v1/beacon/reports", reportPayloadFor(report, version, null)));
         }
         var image = new BeaconPayloads.ReportImagePayload(
                 envelope(), contentType, Base64.getEncoder().encodeToString(picture));
-        return queue.offer(() -> {
+        return enqueue(() -> {
             var numbered = deliverPicture(image);
             if (numbered.isEmpty()) {
                 log.warn("The picture of a report was not taken, so the report was not sent either");

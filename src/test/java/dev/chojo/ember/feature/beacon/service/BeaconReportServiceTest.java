@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.beacon.service;
 import dev.chojo.ember.feature.discovery.service.DiscoveryHttpClient;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -40,7 +41,7 @@ class BeaconReportServiceTest {
         when(config.contactMail()).thenReturn("");
         var self = mock(SelfDelivery.class);
         when(self.isSelf()).thenReturn(false);
-        return new BeaconReportService(config, httpClient, self);
+        return new BeaconReportService(config, httpClient, self, new TaskScheduler());
     }
 
     /**

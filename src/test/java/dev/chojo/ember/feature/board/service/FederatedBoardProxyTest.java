@@ -41,6 +41,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
@@ -162,7 +163,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 memberService,
                 gateway,
                 locator,
-                new FederationFanout());
+                new FederationFanout(new TaskScheduler()));
         structureProxy = new FederatedBoardStructureProxy(boardService, gateway, locator);
         ticketProxy = new FederatedTicketProxy(
                 boardService, ticketService, resolver, memberIdentityFactory, gateway, locator);

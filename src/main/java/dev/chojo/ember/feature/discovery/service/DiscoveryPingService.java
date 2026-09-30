@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -32,9 +33,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Orchestrates the instance-gossip layer: outbound pings, inbound ping handling, and
@@ -54,6 +52,7 @@ public class DiscoveryPingService {
     private static final Duration CALLBACK_WINDOW = Duration.ofSeconds(60);
     private static final Duration MAX_DRIFT = Duration.ofMinutes(5);
     private static final Duration NONCE_TTL = Duration.ofMinutes(30);
+    private static final Duration CALLBACK_DELAY = Duration.ofMillis(100);
     private static final String PING_PATH = "/api/v1/discovery/ping";
     private static final String CALLBACK_PATH = "/api/v1/discovery/peers";
     private static final String REPLAY_SCOPE = "discovery";
@@ -69,12 +68,7 @@ public class DiscoveryPingService {
     private final DiscoverySettingsService settingsService;
     private final RemoteUrlValidator urlValidator;
     private final Conf conf;
-
-    private final ScheduledExecutorService callbackExecutor = Executors.newScheduledThreadPool(2, r -> {
-        var t = new Thread(r, "discovery-callback");
-        t.setDaemon(true);
-        return t;
-    });
+    private final TaskScheduler scheduler;
 
     @Inject
     public DiscoveryPingService(
@@ -88,7 +82,9 @@ public class DiscoveryPingService {
             DiscoveryReputationService reputationService,
             DiscoverySettingsService settingsService,
             RemoteUrlValidator urlValidator,
-            Conf conf) {
+            Conf conf,
+            TaskScheduler scheduler) {
+        this.scheduler = scheduler;
         this.keyService = keyService;
         this.signingService = signingService;
         this.httpClient = httpClient;
@@ -200,7 +196,7 @@ public class DiscoveryPingService {
                 null);
 
         // Dispatch the callback asynchronously so the inbound request returns 204 immediately.
-        callbackExecutor.schedule(() -> sendCallback(message), 100, TimeUnit.MILLISECONDS);
+        scheduler.later("discovery-callback", CALLBACK_DELAY, () -> sendCallback(message));
     }
 
     /**

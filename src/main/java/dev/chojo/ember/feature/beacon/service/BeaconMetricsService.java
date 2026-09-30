@@ -9,18 +9,20 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.beacon.repository.BeaconMetricsSourceRepository;
 import dev.chojo.ember.feature.discovery.service.DiscoveryHttpClient;
+import dev.chojo.ember.feature.system.service.UpdateCheckService;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * The daily account of how much this instance holds.
@@ -36,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 public class BeaconMetricsService {
 
     private static final Logger log = LoggerFactory.getLogger(BeaconMetricsService.class);
-    private static final long CHECK_INTERVAL_MINUTES = 10;
+    private static final Duration CHECK_INTERVAL = Duration.ofMinutes(10);
 
     private final BeaconSettings config;
     private final Demo demo;
@@ -62,7 +64,8 @@ public class BeaconMetricsService {
     }
 
     /**
-     * Starts the watch that sends the day's numbers when the instance's own slot has passed.
+     * One turn of the watch that sends the day's numbers when the instance's own slot has passed,
+     * unless this instance must not report at all.
      *
      * <p>The watch ticks often and sends rarely. Ticking is what lets an instance that was down over
      * its slot notice as soon as it is back, without the tick itself deciding anything: the slot and
@@ -73,15 +76,13 @@ public class BeaconMetricsService {
      *
      * @param version this instance's version
      */
-    public void start(String version) {
+    void watch(String version) {
         if (suppressed()) return;
-        var executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            var thread = new Thread(runnable, "beacon-metrics");
-            thread.setDaemon(true);
-            return thread;
-        });
-        executor.scheduleWithFixedDelay(
-                () -> tick(version), CHECK_INTERVAL_MINUTES, CHECK_INTERVAL_MINUTES, TimeUnit.MINUTES);
+        tick(version);
+    }
+
+    private void announceSlot() {
+        if (suppressed()) return;
         log.info("Beacon metrics, when switched on, go at minute {} of the UTC day", identity.dailySlotMinute());
     }
 
@@ -174,5 +175,18 @@ public class BeaconMetricsService {
                 version,
                 LocalDate.ofInstant(now, ZoneOffset.UTC).toString(),
                 List.copyOf(subjects));
+    }
+
+    /** Looks every ten minutes whether the day's numbers are due. */
+    @Singleton
+    public static final class WatchTask extends DelegatingTask {
+        @Inject
+        WatchTask(BeaconMetricsService service, UpdateCheckService updates) {
+            super(
+                    "beacon-metrics",
+                    Schedule.fixedDelay(CHECK_INTERVAL, CHECK_INTERVAL),
+                    () -> service.watch(updates.currentVersion()));
+            service.announceSlot();
+        }
     }
 }

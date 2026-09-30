@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
 import io.javalin.http.BadRequestResponse;
@@ -70,7 +71,7 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
                 new LendingRepository(),
                 mock(FederationHttpClient.class),
                 federationService,
-                new FederationFanout(),
+                new FederationFanout(new TaskScheduler()),
                 stationRepo,
                 inventoryRepo,
                 clusterRepo,

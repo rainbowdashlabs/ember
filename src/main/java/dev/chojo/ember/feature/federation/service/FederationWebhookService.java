@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -16,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 /**
  * Pushes change notifications to federation partners on other instances.
@@ -41,8 +41,9 @@ public class FederationWebhookService {
     private final List<Duration> retryDelays;
 
     @Inject
-    public FederationWebhookService(FederationRepository repository, FederationHttpClient httpClient) {
-        this(repository, httpClient, Executors.newVirtualThreadPerTaskExecutor(), RETRY_DELAYS);
+    public FederationWebhookService(
+            FederationRepository repository, FederationHttpClient httpClient, TaskScheduler scheduler) {
+        this(repository, httpClient, scheduler.executor(), RETRY_DELAYS);
     }
 
     /**

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -19,8 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 
 /**
  * Fetches a remote partner's contract vector via the version ping and stores it on the
@@ -37,14 +37,16 @@ public class FederationContractRefreshService {
 
     private final FederationRepository repository;
     private final FederationHttpClient httpClient;
-    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    private final Executor executor;
     private final Set<Integer> inFlight = ConcurrentHashMap.newKeySet();
     private final Map<Integer, Instant> lastAttempt = new ConcurrentHashMap<>();
 
     @Inject
-    public FederationContractRefreshService(FederationRepository repository, FederationHttpClient httpClient) {
+    public FederationContractRefreshService(
+            FederationRepository repository, FederationHttpClient httpClient, TaskScheduler scheduler) {
         this.repository = repository;
         this.httpClient = httpClient;
+        this.executor = scheduler.executor();
     }
 
     /**
@@ -80,7 +82,7 @@ public class FederationContractRefreshService {
     public void refreshAsync(FederationPartner partner) {
         if (!partner.isRemote() || recentlyAttempted(partner.id()) || !inFlight.add(partner.id())) return;
         lastAttempt.put(partner.id(), Instant.now());
-        executor.submit(() -> {
+        executor.execute(() -> {
             try {
                 refresh(partner);
             } catch (Exception e) {

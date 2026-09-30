@@ -51,6 +51,26 @@ class SerialLaneTest {
     }
 
     @Test
+    void fullLaneRefusesMoreWork() throws InterruptedException {
+        var lane = scheduler.lane("bounded", 1);
+        var release = new CountDownLatch(1);
+        var started = new CountDownLatch(1);
+        lane.submit(() -> {
+            started.countDown();
+            try {
+                release.await(1, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        assertTrue(started.await(1, TimeUnit.SECONDS));
+
+        assertTrue(lane.submit(() -> {}), "one item may wait");
+        assertFalse(lane.submit(() -> {}), "a second waiting item is refused");
+        release.countDown();
+    }
+
+    @Test
     void failingItemDoesNotHoldUpTheRest() throws InterruptedException {
         var lane = scheduler.lane("failing");
         var ran = new CountDownLatch(1);

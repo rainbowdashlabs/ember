@@ -18,7 +18,6 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.beacon.service.BeaconMetricsService;
 import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.StationKeyStore;
@@ -204,8 +203,6 @@ public class Bootstrapper {
         injector.getInstance(CloudflareRangesService.class).refreshAsync();
 
         var updateCheck = injector.getInstance(UpdateCheckService.class);
-
-        injector.getInstance(BeaconMetricsService.class).start(updateCheck.currentVersion());
         injector.getInstance(BeaconReportService.class).startForwarding(updateCheck.currentVersion());
 
         var searchIndexRebuild = injector.getInstance(SearchIndexRebuildService.class);
@@ -216,10 +213,11 @@ public class Bootstrapper {
         // API is up and anybody could be looking at the news.
         injector.getInstance(ChangelogAnnouncer.class).announce();
 
+        var tasks = injector.getInstance(SCHEDULED_TASKS);
         var apiServer = injector.getInstance(ApiServer.class);
         apiServer.start();
 
         injector.getInstance(Lifecycle.class).installShutdownHook();
-        injector.getInstance(TaskScheduler.class).start(injector.getInstance(SCHEDULED_TASKS));
+        injector.getInstance(TaskScheduler.class).start(tasks);
     }
 }

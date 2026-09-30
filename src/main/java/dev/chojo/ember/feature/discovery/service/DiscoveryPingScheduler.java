@@ -6,48 +6,44 @@
 package dev.chojo.ember.feature.discovery.service;
 
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 /**
- * Periodically pings every usable peer so the gossip graph stays warm. Cadence is
- * driven by {@code discovery_ping_interval_minutes} (default 60).
+ * Periodically pings every usable peer so the gossip graph stays warm, every
+ * {@link DiscoverySettingsService#DEFAULT_PING_INTERVAL_MINUTES} minutes.
+ *
+ * <p>The first run waits three minutes so the partner seeding, two minutes after the start, has a chance
+ * to fill the registry first. Administrators can change {@code discovery_ping_interval_minutes} at
+ * runtime, but the cadence stays the default until the next restart, which is good enough for now.
  */
 @Singleton
-public class DiscoveryPingScheduler {
+public class DiscoveryPingScheduler extends DelegatingTask {
     private static final Logger log = LoggerFactory.getLogger(DiscoveryPingScheduler.class);
-
-    private final DiscoveryPeerRepository peerRepository;
-    private final DiscoveryPingService pingService;
-    private final DiscoverySettingsService settingsService;
 
     @Inject
     public DiscoveryPingScheduler(
             DiscoveryPeerRepository peerRepository,
             DiscoveryPingService pingService,
             DiscoverySettingsService settingsService) {
-        this.peerRepository = peerRepository;
-        this.pingService = pingService;
-        this.settingsService = settingsService;
-
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "discovery-ping-scheduler");
-            t.setDaemon(true);
-            return t;
-        });
-        // Initial delay 3 min so seeding (2 min) has a chance to fill the registry first.
-        // Period is the default; admins can change discovery_ping_interval_minutes at runtime
-        // but the next reschedule only takes effect after the JVM restarts (good enough for v1).
-        scheduler.scheduleWithFixedDelay(
-                this::runCycle, 3, DiscoverySettingsService.DEFAULT_PING_INTERVAL_MINUTES, TimeUnit.MINUTES);
+        super(
+                "discovery-ping",
+                Schedule.fixedDelay(
+                        Duration.ofMinutes(3),
+                        Duration.ofMinutes(DiscoverySettingsService.DEFAULT_PING_INTERVAL_MINUTES)),
+                () -> runCycle(peerRepository, pingService, settingsService));
     }
 
-    private void runCycle() {
+    private static void runCycle(
+            DiscoveryPeerRepository peerRepository,
+            DiscoveryPingService pingService,
+            DiscoverySettingsService settingsService) {
         if (!settingsService.isEnabled()) return;
         try {
             var peers = peerRepository.findUsable();

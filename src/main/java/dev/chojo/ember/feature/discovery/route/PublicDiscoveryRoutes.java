@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.discovery.service.DiscoverySettingsService;
 import dev.chojo.ember.feature.discovery.service.DiscoverySigningService;
 import dev.chojo.ember.feature.discovery.service.DiscoveryStationProjectionService;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
+import dev.chojo.ember.lifecycle.SerialLane;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -24,17 +26,14 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
 /**
  * Public, anonymous-internet endpoints exposed by every Ember instance.
  *
  * <ul>
  *   <li>{@code GET /public/discovery/info} - cheap metadata probe (§6.0).</li>
  *   <li>{@code GET /public/discovery/stations} - {@code PUBLIC}-scoped station cards (§6.1).</li>
- *   <li>{@code POST /discovery/ping} - receive a signed ping; answers 204 and dispatches the
- *       callback asynchronously.</li>
+ *   <li>{@code POST /discovery/ping} - receive a signed ping; answers 204 and handles it on a lane,
+ *       one ping at a time, so a flood of pings queues rather than fanning out.</li>
  *   <li>{@code POST /discovery/peers} - receive a signed callback for one of our outbound
  *       pings.</li>
  * </ul>
@@ -43,16 +42,14 @@ import java.util.concurrent.ScheduledExecutorService;
 public class PublicDiscoveryRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(PublicDiscoveryRoutes.class);
 
+    /** How many received pings may wait for handling; the ones beyond are answered and dropped. */
+    private static final int INBOUND_CAPACITY = 1_000;
+
     private final DiscoveryKeyService keyService;
     private final DiscoveryPingService pingService;
     private final DiscoverySettingsService settingsService;
     private final DiscoveryStationProjectionService projectionService;
-
-    private final ScheduledExecutorService inboundExecutor = Executors.newScheduledThreadPool(2, r -> {
-        var t = new Thread(r, "discovery-inbound");
-        t.setDaemon(true);
-        return t;
-    });
+    private final SerialLane inboundLane;
 
     @Inject
     public PublicDiscoveryRoutes(
@@ -60,7 +57,9 @@ public class PublicDiscoveryRoutes implements Routes {
             DiscoveryPingService pingService,
             DiscoverySettingsService settingsService,
             DiscoverySigningService signingService,
-            DiscoveryStationProjectionService projectionService) {
+            DiscoveryStationProjectionService projectionService,
+            TaskScheduler scheduler) {
+        this.inboundLane = scheduler.lane("discovery-inbound", INBOUND_CAPACITY);
         this.keyService = keyService;
         this.pingService = pingService;
         this.settingsService = settingsService;
@@ -114,7 +113,7 @@ public class PublicDiscoveryRoutes implements Routes {
         // The service validates the signature, drift, replay, then dispatches the callback
         // asynchronously. Either way, we answer 204 - never block the peer waiting for our
         // peer-list compilation.
-        inboundExecutor.execute(() -> {
+        inboundLane.submit(() -> {
             try {
                 pingService.handleInboundPing(body, message, signature);
             } catch (Exception e) {

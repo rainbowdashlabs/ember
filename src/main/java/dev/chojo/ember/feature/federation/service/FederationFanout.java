@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -17,7 +18,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
@@ -41,8 +41,8 @@ public class FederationFanout {
     private final Duration partnerTimeout;
 
     @Inject
-    public FederationFanout() {
-        this(Executors.newVirtualThreadPerTaskExecutor(), PARTNER_TIMEOUT);
+    public FederationFanout(TaskScheduler scheduler) {
+        this(scheduler.executor(), PARTNER_TIMEOUT);
     }
 
     /**

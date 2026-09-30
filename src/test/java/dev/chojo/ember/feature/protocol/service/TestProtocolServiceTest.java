@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
@@ -61,7 +62,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
                 federationRepo,
                 httpClient,
                 stationRepo,
-                new FederationFanout(),
+                new FederationFanout(new TaskScheduler()),
                 new FederationEntityResolver(federationRepo, httpClient));
         station = stationRepo.create("ProtocolSvcStation");
         stationB = stationRepo.create("ProtocolSvcStationB");
