@@ -798,6 +798,7 @@ export default {
     'E-100': 'Dieser Tag ist nicht abgesagt, es gibt nichts wiederherzustellen',
     'E-101': 'Dieser Tag ist schon vorbei und kann nicht mehr wiederhergestellt werden',
     'E-102': 'Die ganze Serie ist abgesagt, einzelne Tage können nicht wiederhergestellt werden',
+    'E-103': 'Dieser Termin wurde abgesagt, für ihn wird keine Anwesenheit erfasst',
 
     'CM-001': DAY_NOT_A_DATE,
     'CM-002': COMMENT_NEEDS_TEXT,

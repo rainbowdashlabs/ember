@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -16,6 +18,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
@@ -70,7 +73,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 memberGroupRepo,
                 new Attendance(),
-                stationRepo);
+                stationRepo,
+                eventDateCancellationRepo);
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -501,6 +505,40 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertEquals(Duration.ofHours(2), Duration.between(session.startTime(), session.endTime()));
 
         service.deleteSession(session.id());
+        eventRepo.delete(weekly.id());
+    }
+
+    /** No sheet is taken for a date that was called off; the next date of the series takes one. */
+    @Test
+    @Order(51)
+    void noSheetIsTakenForACancelledDate() {
+        LocalDate wednesday = LocalDate.of(2027, 3, 3);
+        var weekly = eventRepo.create(
+                station.id(),
+                "Abgesagte Übung",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                3,
+                Instant.parse("2027-01-06T18:00:00Z"),
+                Instant.parse("2027-01-06T20:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        eventDateCancellationRepo.cancel(weekly.id(), wednesday, CancellationCause.MANUAL, null, null);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.createSession(templateId, null, null, weekly.id(), null, null, null, wednesday));
+        assertEquals(Refusal.ATTENDANCE_DAY_CANCELLED, refused.refusal());
+        var next = service.createSession(templateId, null, null, weekly.id(), null, null, null, wednesday.plusWeeks(1));
+
+        service.deleteSession(next.id());
         eventRepo.delete(weekly.id());
     }
 

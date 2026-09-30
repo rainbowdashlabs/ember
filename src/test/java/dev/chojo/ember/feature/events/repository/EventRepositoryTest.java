@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -120,6 +121,43 @@ class EventRepositoryTest extends RepositoryTestBase {
         } finally {
             eventRepo.delete(closing.id());
             eventRepo.delete(later.id());
+        }
+    }
+
+    /** A one-time appointment whose date was called off has no list closing and nobody owing an answer. */
+    @Test
+    void aCancelledOneOffIsNeitherClosingNorAwaitingAnswers() {
+        Instant start = Instant.now().plus(java.time.Duration.ofDays(10));
+        var called = eventRepo.create(
+                station.id(),
+                "Abgesagt",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plusSeconds(3600),
+                null,
+                true,
+                Instant.now().plus(java.time.Duration.ofDays(2)),
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        try {
+            assertTrue(eventRepo.findEventsClosingIn(3).stream().anyMatch(e -> e.eventId() == called.id()));
+            assertTrue(eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
+                    .anyMatch(a -> a.eventId() == called.id()));
+
+            var day = occurrenceCalendar.dateInView(called).orElseThrow();
+            eventDateCancellationRepo.cancel(called.id(), day, CancellationCause.MANUAL, null, null);
+
+            assertTrue(eventRepo.findEventsClosingIn(3).stream().noneMatch(e -> e.eventId() == called.id()));
+            assertTrue(eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
+                    .noneMatch(a -> a.eventId() == called.id()));
+        } finally {
+            eventRepo.delete(called.id());
         }
     }
 

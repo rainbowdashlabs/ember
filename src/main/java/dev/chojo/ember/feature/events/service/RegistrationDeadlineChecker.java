@@ -86,6 +86,9 @@ public class RegistrationDeadlineChecker {
      * <p>Each station is asked about on its own clock. Read on the server's, a station two hours ahead
      * spends the last two hours of its evening being told about yesterday, and the appointment whose
      * list closes at midnight closes it on the wrong day.
+     *
+     * <p>A next date that was called off closes nothing: its places are kept as they stand, so they
+     * are still there if the date is brought back.
      */
     private void checkRecurringEvents() {
         var events = eventRepository.findRecurringEventsWithCloseDays();
@@ -98,6 +101,7 @@ public class RegistrationDeadlineChecker {
             var next = calendar.next(event, today);
             if (next.isEmpty()) continue;
             var nextDate = next.get();
+            if (calendar.isCancelled(event, nextDate)) continue;
 
             var deadlineDate = nextDate.minusDays(event.registrationCloseDays());
             if (today.isBefore(deadlineDate)) continue;

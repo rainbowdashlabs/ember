@@ -810,6 +810,7 @@ public class EventRegistrationRoutes implements Routes {
         var registration =
                 registrationService.findById(id).orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_ANSWER::raise);
         var event = requireOwnedEvent(crudService, registration.eventId(), session);
+        occurrenceCalendar.dateToAnswerFor(event, registration.eventDate());
 
         boolean manages = guardianPolicy.mayActFor(session, registration.memberId());
         boolean runsTheEvent = session.hasPermission(StationPermission.EVENT_MANAGER)

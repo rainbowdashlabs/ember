@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -20,6 +21,8 @@ import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
@@ -82,6 +85,7 @@ public class AttendanceService {
     private final MemberGroupRepository memberGroupRepository;
     private final Attendance attendanceConfig;
     private final StationRepository stationRepository;
+    private final EventDateCancellationRepository cancellationRepository;
 
     @Inject
     public AttendanceService(
@@ -93,7 +97,9 @@ public class AttendanceService {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             Attendance attendanceConfig,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            EventDateCancellationRepository cancellationRepository) {
+        this.cancellationRepository = cancellationRepository;
         this.attendanceRepository = attendanceRepository;
         this.eventRepository = eventRepository;
         this.eventFieldRepository = eventFieldRepository;
@@ -103,6 +109,28 @@ public class AttendanceService {
         this.memberGroupRepository = memberGroupRepository;
         this.attendanceConfig = attendanceConfig;
         this.stationRepository = stationRepository;
+    }
+
+    /**
+     * The day a sheet for an appointment is taken for: a one-time appointment's own day, the day a
+     * caller named for a series, and otherwise the day of the start asked for, or of now.
+     */
+    private static LocalDate sheetDay(StationEvent event, LocalDate eventDate, Instant startTime, ZoneId zone) {
+        if (!event.isRecurring() && event.startTime() != null) {
+            return event.startTime().atZone(zone).toLocalDate();
+        }
+        if (eventDate != null) return eventDate;
+        return (startTime != null ? startTime : Instant.now()).atZone(zone).toLocalDate();
+    }
+
+    /**
+     * Refuses a sheet for a date that was called off, on its own or with its whole series: nobody is
+     * coming, so there is nobody to count.
+     */
+    private void requireNotCancelled(StationEvent event, LocalDate day) {
+        if (event.cancelled() || cancellationRepository.isCancelled(event.id(), day)) {
+            throw Refusal.ATTENDANCE_DAY_CANCELLED.raise();
+        }
     }
 
     private static String toJsonValue(Object value) {
@@ -336,12 +364,9 @@ public class AttendanceService {
                 if (resolvedTitle == null || resolvedTitle.isBlank()) {
                     resolvedTitle = event.name();
                 }
+                LocalDate day = sheetDay(event, eventDate, startTime, zone);
+                requireNotCancelled(event, day);
                 if (resolvedStart == null || resolvedEnd == null) {
-                    LocalDate day = eventDate != null
-                            ? eventDate
-                            : (startTime != null ? startTime : Instant.now())
-                                    .atZone(zone)
-                                    .toLocalDate();
                     var span = event.occurrenceOn(day);
                     if (span.isPresent()) {
                         if (resolvedStart == null) resolvedStart = span.get().start();

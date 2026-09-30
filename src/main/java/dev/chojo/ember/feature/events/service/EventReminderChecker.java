@@ -130,14 +130,17 @@ public class EventReminderChecker {
 
     /**
      * The days this event takes place on that are worth reminding about: from today up to the
-     * furthest reminder, with the dates the station's breaks take out left out.
+     * furthest reminder, with the dates the station's breaks take out and the dates called off left
+     * out. Nobody is reminded to come to something that is not happening.
      *
      * @param calendar the station's calendar, which decides the day an appointment belongs to
      */
     private static List<LocalDate> computeOccurrences(
             StationEvent event, LocalDate today, List<Integer> reminderDays, StationCalendar calendar) {
         int maxDays = reminderDays.stream().mapToInt(Integer::intValue).max().orElse(0);
-        return calendar.between(event, today, today.plusDays(maxDays));
+        return calendar.between(event, today, today.plusDays(maxDays)).stream()
+                .filter(date -> calendar.takesPlaceOn(event, date))
+                .toList();
     }
 
     /**

@@ -2153,6 +2153,13 @@ public enum Refusal {
             HttpStatus.CONFLICT,
             "The whole series is cancelled, so none of its dates can be restored"),
 
+    /** An attendance sheet taken for a date of an appointment that was called off. */
+    ATTENDANCE_DAY_CANCELLED(
+            Area.EVENTS,
+            103,
+            HttpStatus.BAD_REQUEST,
+            "That date of the appointment was cancelled, so no attendance is taken for it"),
+
     /** A list of comments asked for on a day that is not a date. */
     COMMENT_DAY_NOT_A_DATE(Area.COMMENTS, 1, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),
 

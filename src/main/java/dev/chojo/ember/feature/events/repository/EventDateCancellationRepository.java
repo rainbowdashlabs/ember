@@ -26,16 +26,6 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class EventDateCancellationRepository {
 
-    /**
-     * The condition, for a query reading {@code station_event} as {@code e}, that no date of the event
-     * is off. It is what the reads about one-time appointments ask, whose one date is the event.
-     */
-    public static final String NO_DATE_CANCELLED = """
-            NOT EXISTS (SELECT 1
-                        FROM event_date_cancellation edc
-                        WHERE edc.event_id = e.id
-                          AND edc.restored_at IS NULL)""";
-
     private static final String COLUMNS =
             "event_id, event_date, cause, reason, cancelled_at, cancelled_by, restored_at";
 

@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventBreak;
+import dev.chojo.ember.feature.events.entity.EventDateCancellation;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
@@ -102,6 +104,26 @@ class EventReminderCheckerTest {
         verify(reminderRepository).markSent(42, eventDate, 3);
         verify(notificationService)
                 .notifyMembers(eq(List.of(10)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+    }
+
+    /** Nobody is reminded of a date that was called off, and the reminder is not spent on it either. */
+    @Test
+    void aCancelledDateIsNotRemindedOf() {
+        when(stationRepository.findById(STATION_ID)).thenReturn(Optional.of(berlinStation()));
+        LocalDate eventDate = LocalDate.now(BERLIN).plusDays(3);
+        Instant eventStart = eventDate.atTime(18, 0).atZone(BERLIN).toInstant();
+
+        var event = oneTimeEvent(42, eventStart, false);
+        when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
+        when(reminderRepository.findDays(42)).thenReturn(List.of(3));
+        when(cancellationRepository.findActiveByStation(STATION_ID))
+                .thenReturn(List.of(new EventDateCancellation(
+                        42, eventDate, CancellationCause.MANUAL, null, Instant.now(), null, null)));
+
+        invokeCheck();
+
+        verify(reminderRepository, never()).markSent(anyInt(), any(), anyInt());
+        verify(notificationService, never()).notifyMembers(any(), eq(NotificationType.EVENT_REMINDER), any());
     }
 
     private static Station berlinStation() {

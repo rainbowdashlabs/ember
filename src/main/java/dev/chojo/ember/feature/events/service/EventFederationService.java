@@ -198,7 +198,7 @@ public class EventFederationService {
     public EventFederationRegistration registerFederated(
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
         var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
-        requireOpenForRegistration(event);
+        requireOpenForRegistration(event, eventDate);
         boolean somebodyChooses = event.requiresConfirmation()
                 || federationRepository.findPartnerPlaces(eventId, partnerId).partnerConfirms();
         var status = somebodyChooses ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
@@ -219,21 +219,23 @@ public class EventFederationService {
      *
      * <p>Being shared with is what makes somebody eligible from another station, and that is checked
      * before this. Everything else the local door asks applies just as much to a visitor: an event
-     * that takes no registrations has no list to join, an event that has been called off is not one
-     * to join, and a deadline that has passed has passed for everybody. Without these the host's list
-     * filled up with people its own door would have turned away.
+     * that takes no registrations has no list to join, a date the appointment does not fall on, or
+     * that was called off on its own or with its whole series, is not one to join, and a deadline that
+     * has passed has passed for everybody. Without these the host's list filled up with people its own
+     * door would have turned away.
+     *
+     * <p>The date is asked the way the local door asks it, and only asked: what a partner names is
+     * still what the registration is filed under, so the wire format stays as it was.
      *
      * <p>There is no equivalent of the eligibility check. Restrictions are written in terms of this
      * station's members and groups, and a visitor is in none of them; the host said who may come when
      * it chose whom to share with.
      */
-    private static void requireOpenForRegistration(StationEvent event) {
+    private void requireOpenForRegistration(StationEvent event, LocalDate eventDate) {
         if (!event.requiresRegistration()) {
             throw new BadRequestResponse("Event does not require registration");
         }
-        if (event.cancelled()) {
-            throw new BadRequestResponse("Event has been cancelled");
-        }
+        occurrenceCalendar.dateToAnswerFor(event, eventDate);
         if (event.registrationDeadline() != null && Instant.now().isAfter(event.registrationDeadline())) {
             throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
         }

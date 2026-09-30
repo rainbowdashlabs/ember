@@ -594,6 +594,7 @@ public class EventRegistrationRepository {
                   AND e.requires_registration
                   AND e.event_type = 'ONE_TIME'
                   AND e.cancelled = FALSE
+                  AND %s
                   AND e.registration_deadline IS NOT NULL
                   AND e.registration_deadline > now()
                   AND NOT EXISTS (SELECT 1
@@ -601,7 +602,7 @@ public class EventRegistrationRepository {
                                   WHERE er.event_id = e.id
                                     AND er.member_id = sm.id
                                     AND er.status <> 'WITHDRAWN')
-                ORDER BY e.registration_deadline, e.id;""")
+                ORDER BY e.registration_deadline, e.id;""", CancellationSql.NO_DATE_CANCELLED)
                 .single(call().bind("member_ids", memberIds, PostgreSqlTypes.INTEGER))
                 .map(row -> new AwaitingAnswer(
                         row.getInt("event_id"),

@@ -440,7 +440,8 @@ public class EventRepository {
                   AND e.registration_deadline < now()
                   AND e.deadline_notified = FALSE
                   AND e.cancelled = FALSE
-                GROUP BY e.id, e.station_id, e.name;""")
+                  AND %s
+                GROUP BY e.id, e.station_id, e.name;""", CancellationSql.NO_DATE_CANCELLED)
                 .single(call())
                 .map(row -> new ExpiredDeadlineEvent(
                         row.getInt("event_id"),
@@ -472,13 +473,14 @@ public class EventRepository {
                 WHERE e.requires_registration
                   AND e.event_type = 'ONE_TIME'
                   AND e.cancelled = FALSE
+                  AND %s
                   AND e.registration_deadline IS NOT NULL
                   AND e.registration_deadline > now()
                   AND e.registration_deadline <= now() + make_interval(days => :days_before)
                   AND NOT EXISTS (SELECT 1
                                   FROM event_deadline_reminder_sent s
                                   WHERE s.event_id = e.id
-                                    AND s.days_before = :days_before);""")
+                                    AND s.days_before = :days_before);""", CancellationSql.NO_DATE_CANCELLED)
                 .single(call().bind("days_before", daysBefore))
                 .map(row -> new ClosingEvent(
                         row.getInt("event_id"),

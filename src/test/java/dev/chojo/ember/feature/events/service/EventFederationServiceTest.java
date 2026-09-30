@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
@@ -15,6 +17,7 @@ import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
@@ -407,6 +410,53 @@ class EventFederationServiceTest extends RepositoryTestBase {
         assertTrue(
                 service.partnerPlaces(eventId).isEmpty(),
                 "taking it back leaves no row, so nothing reads as an arrangement that is not one");
+    }
+
+    /**
+     * A visitor is asked about the date the way a member of this station is: a date the series does
+     * not fall on and a date that was called off are both refused, and the dates beside a cancelled
+     * one still take visitors.
+     */
+    @Test
+    @Order(19)
+    void aVisitorCannotRegisterForACancelledDate() {
+        var calendar = occurrenceCalendar.forStation(stationA.id());
+        LocalDate next = calendar.today().plusDays(2);
+        var weekly = eventRepo.create(
+                stationA.id(),
+                "Weekly Visitors",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                next.getDayOfWeek().getValue(),
+                next.minusWeeks(2).atTime(18, 0).atZone(calendar.zone()).toInstant(),
+                next.minusWeeks(2).atTime(20, 0).atZone(calendar.zone()).toInstant(),
+                null,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        UUID visitor = UUID.fromString("00000000-0000-0000-0000-0000000000d1");
+        try {
+            eventDateCancellationRepo.cancel(weekly.id(), next, CancellationCause.MANUAL, null, null);
+
+            var cancelled = assertThrows(
+                    RefusalResponse.class, () -> service.registerFederated(weekly.id(), partnerId, visitor, next));
+            assertEquals(Refusal.REGISTRATION_DAY_CANCELLED, cancelled.refusal());
+            var notADate = assertThrows(
+                    RefusalResponse.class,
+                    () -> service.registerFederated(weekly.id(), partnerId, visitor, next.plusDays(1)));
+            assertEquals(Refusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE, notADate.refusal());
+            assertEquals(
+                    next.plusWeeks(1),
+                    service.registerFederated(weekly.id(), partnerId, visitor, next.plusWeeks(1))
+                            .eventDate());
+        } finally {
+            eventRepo.delete(weekly.id());
+        }
     }
 
     /**
