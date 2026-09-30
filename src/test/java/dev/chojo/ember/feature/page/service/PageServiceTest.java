@@ -77,7 +77,8 @@ class PageServiceTest extends RepositoryTestBase {
                 new CellDescriptions(media, (stationId, pageUid) -> Optional.empty()),
                 stationMemberRepo,
                 new AvatarService(new ImageVariantService(storageService)),
-                new ShareTokens());
+                new ShareTokens(),
+                stationRepo);
         station = stationRepo.create("PageServiceStation");
         account = accountRepo.create("page-svc@test.com", "Page", "Author");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -513,6 +514,23 @@ class PageServiceTest extends RepositoryTestBase {
         service.setVisibility(id, PageVisibility.DRAFT);
         assertTrue(service.getSharedPage(token).isEmpty(), "a draft is reached by nothing at all");
         service.deletePage(id);
+    }
+
+    /**
+     * A link opens nothing while the station keeps its pages closed, and a new station starts with
+     * them closed. Whoever hands the link out has to be told, or the first to hear of it is a
+     * stranger holding a link that leads nowhere.
+     */
+    @Test
+    @Order(93)
+    void linksOpenOnlyWhileTheStationsPagesAreOpen() {
+        assertFalse(service.linksOpen(station.id()), "a new station keeps its pages closed");
+
+        stationRepo.updatePublicPagesEnabled(station.id(), true);
+        assertTrue(service.linksOpen(station.id()));
+
+        stationRepo.updatePublicPagesEnabled(station.id(), false);
+        assertFalse(service.linksOpen(station.id()));
     }
 
     @Test

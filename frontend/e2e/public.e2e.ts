@@ -199,4 +199,60 @@ test.describe('A page reached by its link', () => {
         await page.goto(`${STATION}/page/${unlisted.slug}`)
         await expect(page.getByText('Einladung zum Sommerfest')).toHaveCount(0)
     })
+
+    test('a link that leads nowhere says so rather than reporting a fault', async ({page}) => {
+        await page.goto('/s/es-gibt-keinen-solchen-link')
+
+        await expect(page.getByText('Dieser Link führt nirgendwo mehr hin.')).toBeVisible()
+        await expect(page.getByText('Ember kann nicht sagen was')).toHaveCount(0)
+    })
+
+    test('a PDF on the page opens for a stranger', async ({managerPage, page}) => {
+        const {path, title, pdfUrl} = await sharedPageWithPdf(managerPage)
+        await page.goto(path)
+
+        await expect(page).toHaveTitle(new RegExp(title))
+        await expect(page.locator(`main iframe[src="${pdfUrl}"]`)).toBeVisible()
+        const pdf = await page.request.get(pdfUrl)
+        expect(pdf.status()).toBe(200)
+        expect(pdf.headers()['content-type']).toContain('application/pdf')
+    })
 })
+
+/** The smallest document a PDF reader accepts: one empty page. */
+const PDF = Buffer.from(
+    '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n'
+    + '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n',
+)
+
+/**
+ * A page of its own, reachable by its link, holding a PDF from the station's library: the block the
+ * way the editor writes it once a file has been picked or uploaded in its dialog.
+ */
+async function sharedPageWithPdf(page: Page): Promise<{path: string; title: string; pdfUrl: string}> {
+    const headers = await apiHeaders(page)
+    const uploaded = await page.request.post('/api/v1/media/files', {
+        headers,
+        multipart: {file: {name: `${unique('aushang')}.pdf`, mimeType: 'application/pdf', buffer: PDF}},
+    })
+    expect(uploaded.status(), await uploaded.text()).toBe(201)
+    const {contentHash} = await uploaded.json()
+    const pdfUrl = `/api/v1/public/media/${headers['X-Station-Id']}/${contentHash}`
+
+    const created = await page.request.post('/api/v1/pages', {headers, data: {title: unique('Aushang')}})
+    expect(created.status(), await created.text()).toBe(201)
+    const {id, title, slug} = await created.json()
+    const visible = await page.request.put(`/api/v1/pages/${id}/visibility`, {headers, data: {visibility: 'UNLISTED'}})
+    expect(visible.ok(), await visible.text()).toBe(true)
+    const saved = await page.request.put(`/api/v1/pages/${id}`, {headers, data: {
+        title,
+        slug,
+        rows: [{sortOrder: 0, cells: [{
+            sortOrder: 0, widthPercent: 100, contentType: 'PDF', content: '', config: {url: pdfUrl, heightPx: 400},
+        }]}],
+    }})
+    expect(saved.ok(), await saved.text()).toBe(true)
+
+    const link = await page.request.get(`/api/v1/pages/${id}/share-link`, {headers})
+    return {path: `/s/${(await link.json()).token}`, title, pdfUrl}
+}

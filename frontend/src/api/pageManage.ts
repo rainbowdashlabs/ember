@@ -538,15 +538,26 @@ export async function setVisibility(id: number, visibility: PageVisibilityName):
     return res.data
 }
 
-/** The link an unlisted page is reached at, kept off the page itself so it never travels to a reader. */
-export async function getPageShareLink(id: number): Promise<string | null> {
-    const res = await client.get<{token: string | null}>(`/pages/${id}/share-link`)
-    return res.data.token
+/**
+ * The link a page is reached at, and whether it opens anything today.
+ *
+ * <p>A link opens nothing while the station keeps its public pages switched off, which is where a new
+ * station starts, so whoever hands one out is told alongside the link itself.
+ */
+export interface PageShareLink {
+    token: string | null
+    opens: boolean
 }
 
-export async function replacePageShareLink(id: number, currentToken: string | null): Promise<string> {
-    const res = await client.post<{token: string}>(`/pages/${id}/share-link`, {currentToken})
-    return res.data.token
+/** The link an unlisted page is reached at, kept off the page itself so it never travels to a reader. */
+export async function getPageShareLink(id: number): Promise<PageShareLink> {
+    const res = await client.get<PageShareLink>(`/pages/${id}/share-link`)
+    return res.data
+}
+
+export async function replacePageShareLink(id: number, currentToken: string | null): Promise<PageShareLink> {
+    const res = await client.post<PageShareLink>(`/pages/${id}/share-link`, {currentToken})
+    return res.data
 }
 
 export async function setLandingPage(pageId: number | null): Promise<void> {

@@ -161,6 +161,36 @@ describe('describeFailure', () => {
     })
 })
 
+/**
+ * A page the server renders fetches with Nuxt's own client rather than axios, and what that leaves
+ * behind is a different shape: the status and the body sit on the error itself, and the response it
+ * came with is dropped on the way from the server to the browser.
+ */
+describe('a refusal fetched while the server renders', () => {
+    const refusal = {error: 'Not Found', message: 'No page is reached by this link', code: 'P-011'}
+
+    it('reads the status and the body off an error handed over from the server', () => {
+        const failure = describeFailure({statusCode: 404, statusMessage: 'Not Found', data: refusal}, t)
+
+        expect(failure.kind).toBe(FailureKind.GONE)
+        expect(failure.status).toBe(404)
+        expect(failure.code).toBe('P-011')
+        expect(failure.message).toBe('No page is reached by this link')
+    })
+
+    it('reads them off a fetch that failed in the browser', () => {
+        const failure = describeFailure({statusCode: 404, data: refusal, response: {status: 404, _data: refusal}}, t)
+
+        expect(failure.kind).toBe(FailureKind.GONE)
+        expect(failure.code).toBe('P-011')
+    })
+
+    it('names the status in the report', () => {
+        expect(technicalSummary({statusCode: 404, data: refusal}))
+            .toBe('HTTP 404 · Not Found · No page is reached by this link')
+    })
+})
+
 describe('technicalSummary', () => {
     it('names the status and whatever the server said', () => {
         expect(technicalSummary(rejected(500, {message: 'NullPointerException'})))
