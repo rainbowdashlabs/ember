@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.media.service;
 
 import dev.chojo.ember.feature.media.MediaLayoutFixtures;
+import dev.chojo.ember.feature.media.image.ImageEncoder;
+import dev.chojo.ember.feature.media.image.ImageFormat;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
@@ -15,6 +17,7 @@ import dev.chojo.ember.util.WebpEncoder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mockito;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
@@ -31,6 +34,7 @@ import javax.imageio.ImageIO;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ImageVariantServiceTest {
@@ -46,12 +50,14 @@ class ImageVariantServiceTest {
     @TempDir
     Path root;
 
+    private StorageService storage;
     private ImageVariantService variants;
 
     @BeforeEach
     void setUp() {
         var backend = new LocalStorageBackend(root);
-        variants = new ImageVariantService(new StorageService(new StorageBackendResolver(backend), backend));
+        storage = new StorageService(new StorageBackendResolver(backend), backend);
+        variants = new ImageVariantService(storage);
     }
 
     @Test
@@ -70,7 +76,7 @@ class ImageVariantServiceTest {
         assertServed(AVATAR_DIR + "64.png", read(64));
         assertServed(AVATAR_DIR + "128.png", read(100));
         assertServed(AVATAR_DIR + "original.png", read(0));
-        assertServed(AVATAR_DIR + "1024.png", read(2000));
+        assertServed(AVATAR_DIR + "original.png", read(2000));
 
         var jpeg = variants.read(
                         STATION_SCOPE, StorageCategory.IMAGE_LOST_AND_FOUND, MediaLayoutFixtures.LOST_ITEM_KEY, 200)
@@ -104,6 +110,33 @@ class ImageVariantServiceTest {
         assertArrayEquals(gif, read(0).orElseThrow().data());
         assertArrayEquals(gif, read(128).orElseThrow().data());
         assertEquals(List.of("original.gif"), storedNames(AVATAR_DIR));
+    }
+
+    @Test
+    void anUploadThatCannotBeEncodedKeepsThePreviousPicture() throws IOException {
+        var failing = Mockito.spy(new ImageEncoder());
+        Mockito.doThrow(new IOException("no encoder")).when(failing).encode(Mockito.any(), Mockito.eq(ImageFormat.PNG));
+        variants = new ImageVariantService(storage, failing);
+        byte[] gif = MediaLayoutFixtures.picture("animated.gif");
+        assertStores(gif, "image/gif");
+
+        assertThrows(
+                IOException.class,
+                () -> variants.store(
+                        AVATAR_SCOPE, StorageCategory.IMAGE_AVATAR, AVATAR_KEY, png(300, 200), "image/png"));
+
+        assertArrayEquals(gif, read(0).orElseThrow().data());
+    }
+
+    @Test
+    void readsNothingForAMissingKeyOrAScopeTheCategoryDoesNotTake() {
+        assertTrue(read(64).isEmpty());
+        assertTrue(variants.read(AVATAR_SCOPE, StorageCategory.IMAGE_AVATAR, "", 64)
+                .isEmpty());
+        assertFalse(variants.exists(AVATAR_SCOPE, StorageCategory.IMAGE_AVATAR, AVATAR_KEY));
+        assertTrue(variants.read(STATION_SCOPE, StorageCategory.IMAGE_AVATAR, AVATAR_KEY, 64)
+                .isEmpty());
+        assertFalse(variants.exists(STATION_SCOPE, StorageCategory.IMAGE_AVATAR, AVATAR_KEY));
     }
 
     private void assertStores(byte[] data, String mime) {

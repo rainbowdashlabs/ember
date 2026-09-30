@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.media.image.ImageFormat;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
 import io.javalin.http.BadRequestResponse;
@@ -35,10 +36,6 @@ public class ProblemReportScreenshotService {
     /** What a picture of a page may weigh. Generous for a screen, far short of what a page may hold. */
     private static final int MAX_BYTES = 3 * 1024 * 1024;
 
-    private static final byte[] PNG_MAGIC = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'};
-    private static final byte[] RIFF_MAGIC = {'R', 'I', 'F', 'F'};
-    private static final byte[] WEBP_MAGIC = {'W', 'E', 'B', 'P'};
-
     private final MediaLibraryService media;
 
     @Inject
@@ -61,9 +58,10 @@ public class ProblemReportScreenshotService {
     public Optional<Integer> store(String encoded, Integer memberId) {
         if (encoded == null || encoded.isBlank()) return Optional.empty();
         byte[] picture = decode(encoded);
-        String type = typeOf(picture);
+        ImageFormat format = formatOf(picture);
         try {
-            var stored = media.upload(null, null, memberId, fileName(type), type, picture);
+            var stored = media.upload(
+                    null, null, memberId, "problem-report." + format.extension(), format.mimeType(), picture);
             return Optional.of(stored.id());
         } catch (IOException e) {
             log.warn("The picture of a problem report could not be kept", e);
@@ -108,21 +106,9 @@ public class ProblemReportScreenshotService {
     }
 
     /** What the bytes say they are, rather than what the request claimed. */
-    private static String typeOf(byte[] picture) {
-        if (startsWith(picture, PNG_MAGIC, 0)) return "image/png";
-        if (startsWith(picture, RIFF_MAGIC, 0) && startsWith(picture, WEBP_MAGIC, 8)) return "image/webp";
-        throw new BadRequestResponse("the picture is neither a PNG nor a WebP");
-    }
-
-    private static boolean startsWith(byte[] picture, byte[] magic, int offset) {
-        if (picture.length < offset + magic.length) return false;
-        for (int i = 0; i < magic.length; i++) {
-            if (picture[offset + i] != magic[i]) return false;
-        }
-        return true;
-    }
-
-    private static String fileName(String type) {
-        return "problem-report" + ("image/png".equals(type) ? ".png" : ".webp");
+    private static ImageFormat formatOf(byte[] picture) {
+        return ImageFormat.sniff(picture)
+                .filter(format -> format == ImageFormat.PNG || format == ImageFormat.WEBP)
+                .orElseThrow(() -> new BadRequestResponse("the picture is neither a PNG nor a WebP"));
     }
 }

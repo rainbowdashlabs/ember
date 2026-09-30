@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.feature.media.image.ImageFormat;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
@@ -108,8 +109,8 @@ public class KbFilePictureService {
      */
     static String pictureType(String storedType, byte[] data) {
         if (!isUntyped(storedType)) return storedType;
-        var image = ImageVariantService.sniffImageMime(data);
-        if (image.isPresent()) return image.get();
+        var image = ImageFormat.sniff(data);
+        if (image.isPresent()) return image.get().mimeType();
         return startsWith(data, PDF_SIGNATURE) ? PDF_TYPE : storedType;
     }
 

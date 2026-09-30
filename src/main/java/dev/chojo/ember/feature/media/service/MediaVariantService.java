@@ -6,18 +6,19 @@
 package dev.chojo.ember.feature.media.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.feature.media.image.AcceptedFormats;
+import dev.chojo.ember.feature.media.image.ImageEncoder;
+import dev.chojo.ember.feature.media.image.ImageFormat;
+import dev.chojo.ember.feature.media.image.VariantLayout;
 import dev.chojo.ember.util.FilePicture;
 import dev.chojo.ember.util.PixelBudget;
-import dev.chojo.ember.util.WebpEncoder;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import net.coobird.thumbnailator.Thumbnails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -27,13 +28,14 @@ import java.util.Optional;
  * source-of-truth for download and re-encoding; everything served to in-page consumers is
  * the matching WebP variant.
  *
- * <p>All resizing is done in pure Java via Thumbnailator; WebP encoding shells out to the
+ * <p>Resizing is done in pure Java via Thumbnailator; WebP encoding shells out to the
  * {@code cwebp} binary (libwebp-tools), which ships in every backend image.
  *
  * <p>A document with pages goes through the same mill on its first page, which is what lets a list of
  * files show a sheet rather than a row of identical paperclips. Its page is filed under names of its
- * own rather than beside the file's variants, and is read only by {@link #readPicture}: left under
- * {@code orig}, {@link #readBest} would hand the drawn page to anybody downloading the document.
+ * own ({@link VariantLayout#LIBRARY_PAGE}) rather than beside the file's variants, and is read only by
+ * {@link #readPicture}: left under {@code orig}, {@link #readBest} would hand the drawn page to anybody
+ * downloading the document.
  *
  * <p>Variants are derived cache: regenerable from the original, never counted against the
  * station's quota, and always optional. A missing variant file falls back to the original
@@ -42,24 +44,25 @@ import java.util.Optional;
 @Singleton
 public class MediaVariantService {
     private static final Logger log = LoggerFactory.getLogger(MediaVariantService.class);
-    private static final String WEBP = "webp";
-    private static final String ORIG = "orig";
-    private static final String PAGE = "page1";
     private static final String PDF = "application/pdf";
-    private static final int WEBP_QUALITY = 78;
     private static final int PDF_RENDER_DPI = 96;
 
     private final MediaStorageService storage;
     private final Storage storageConfig;
+    private final ImageEncoder encoder;
 
     @Inject
-    public MediaVariantService(MediaStorageService storage, Storage storageConfig) {
+    public MediaVariantService(MediaStorageService storage, Storage storageConfig, ImageEncoder encoder) {
         this.storage = storage;
         this.storageConfig = storageConfig;
+        this.encoder = encoder;
     }
 
-    private static byte[] encodeWebp(BufferedImage image) throws IOException, InterruptedException {
-        return WebpEncoder.encode(image, WEBP_QUALITY);
+    /**
+     * The service with the standard encoder, for callers that build it by hand.
+     */
+    public MediaVariantService(MediaStorageService storage, Storage storageConfig) {
+        this(storage, storageConfig, new ImageEncoder());
     }
 
     /** Whether the picture of this kind of file has to be drawn rather than read out of it. */
@@ -83,17 +86,15 @@ public class MediaVariantService {
     }
 
     /**
-     * What a picture of this kind of file is filed under.
+     * The layout a picture of this kind of file is filed in.
      *
      * <p>A drawn page is filed apart from the file's own variants and never under {@code orig}. The
      * two are read by different callers for different reasons: {@link #readBest} answers with the file
      * and falls back to {@code orig}, so a page left there would be handed out in place of the very
      * document it was drawn from, to every browser that says it takes WebP.
      */
-    private static String pictureName(String mimeType, Integer width) {
-        String base = rendersToPicture(mimeType) ? PAGE : ORIG;
-        if (width == null) return base;
-        return base.equals(ORIG) ? "w" + width : PAGE + "-w" + width;
+    private static VariantLayout pictureLayout(String mimeType) {
+        return rendersToPicture(mimeType) ? VariantLayout.LIBRARY_PAGE : VariantLayout.LIBRARY;
     }
 
     /**
@@ -106,16 +107,6 @@ public class MediaVariantService {
      */
     private static boolean isDrawing(String mimeType) {
         return mimeType != null && mimeType.equalsIgnoreCase("image/svg+xml");
-    }
-
-    /** The width a chosen variant name stands for, so a picture can be filed under its own name. */
-    private static Integer widthOf(String variantName) {
-        if (variantName == null || !variantName.startsWith("w")) return null;
-        try {
-            return Integer.valueOf(variantName.substring(1));
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 
     /**
@@ -167,10 +158,9 @@ public class MediaVariantService {
 
     private void storeVariant(Integer stationId, String contentHash, String name, BufferedImage image) {
         try {
-            byte[] webp = encodeWebp(image);
-            if (webp.length > 0) storage.storeVariant(stationId, contentHash, name, WEBP, webp);
-        } catch (IOException | InterruptedException e) {
-            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
+            byte[] webp = encoder.encode(image, ImageFormat.WEBP);
+            if (webp.length > 0) storage.storeFile(stationId, contentHash, name, webp);
+        } catch (IOException e) {
             log.warn("Variant generation failed station={} hash={} variant={}", stationId, contentHash, name, e);
         }
     }
@@ -187,24 +177,22 @@ public class MediaVariantService {
      */
     public void generateVariants(Integer stationId, String contentHash, byte[] originalBytes, String mimeType) {
         if (!storageConfig.imageVariantsEnabled()) return;
-        if (!storageConfig.imageVariantsWebp() || !WebpEncoder.isAvailable()) return;
+        if (!storageConfig.imageVariantsWebp() || !encoder.writes(ImageFormat.WEBP)) return;
 
         BufferedImage source = sourceImageOf(mimeType, originalBytes, stationId, contentHash);
         if (source == null) return;
 
+        VariantLayout layout = pictureLayout(mimeType);
         if (rendersToPicture(mimeType)) {
-            storeVariant(stationId, contentHash, pictureName(mimeType, null), source);
+            storeVariant(stationId, contentHash, layout.originalName(ImageFormat.WEBP.extension()), source);
         }
-        int sourceWidth = source.getWidth();
+        int sourceWidth = layout.measure(source);
 
         for (int width : storageConfig.imageVariantsWidthList()) {
             if (width >= sourceWidth) continue;
             try {
                 storeVariant(
-                        stationId,
-                        contentHash,
-                        pictureName(mimeType, width),
-                        Thumbnails.of(source).width(width).asBufferedImage());
+                        stationId, contentHash, layout.sizeName(width, ImageFormat.WEBP), layout.scale(source, width));
             } catch (IOException e) {
                 log.warn("Variant generation failed station={} hash={} width={}", stationId, contentHash, width, e);
             }
@@ -226,15 +214,12 @@ public class MediaVariantService {
      */
     public Optional<MediaStorageService.FileData> readBest(
             Integer stationId, String contentHash, Integer requestedWidth, String acceptHeader) {
-        boolean acceptsWebp =
-                acceptHeader != null && acceptHeader.toLowerCase(Locale.ROOT).contains("image/webp");
-        String chosenVariant = chooseVariantName(requestedWidth);
-
-        if (acceptsWebp && storageConfig.imageVariantsWebp() && !chosenVariant.equals(ORIG)) {
-            var webp = storage.readVariant(stationId, contentHash, chosenVariant, WEBP);
-            if (webp.isPresent()) return webp;
-        }
-        return storage.read(stationId, contentHash);
+        AcceptedFormats accepted = storageConfig.imageVariantsWebp()
+                ? AcceptedFormats.fromAcceptHeader(acceptHeader)
+                : AcceptedFormats.WITHOUT_WEBP;
+        return storage.set(stationId, contentHash, VariantLayout.LIBRARY)
+                .choose(widthOf(requestedWidth), accepted)
+                .flatMap(file -> storage.readFile(stationId, contentHash, file));
     }
 
     /**
@@ -248,25 +233,14 @@ public class MediaVariantService {
     public Optional<MediaStorageService.FileData> readPicture(
             Integer stationId, String contentHash, String mimeType, Integer requestedWidth) {
         if (!canHavePicture(mimeType)) return Optional.empty();
-        String chosen = chooseVariantName(requestedWidth);
-        if (!chosen.equals(ORIG)) {
-            var sized = storage.readVariant(stationId, contentHash, pictureName(mimeType, widthOf(chosen)), WEBP);
-            if (sized.isPresent()) return sized;
-        }
-        var full = storage.readVariant(stationId, contentHash, pictureName(mimeType, null), WEBP);
-        if (full.isPresent()) return full;
-        return isImage(mimeType) ? storage.read(stationId, contentHash) : Optional.empty();
+        var pictures = storage.set(stationId, contentHash, pictureLayout(mimeType));
+        var chosen = pictures.size(widthOf(requestedWidth), AcceptedFormats.EVERY_FORMAT)
+                .or(() -> pictures.original(ImageFormat.WEBP));
+        if (isImage(mimeType)) chosen = chosen.or(pictures::original);
+        return chosen.flatMap(file -> storage.readFile(stationId, contentHash, file));
     }
 
-    private String chooseVariantName(Integer requestedWidth) {
-        if (requestedWidth == null || requestedWidth <= 0) return ORIG;
-        int best = -1;
-        for (int width : storageConfig.imageVariantsWidthList()) {
-            if (width >= requestedWidth) {
-                best = width;
-                break;
-            }
-        }
-        return best > 0 ? "w" + best : ORIG;
+    private static int widthOf(Integer requestedWidth) {
+        return requestedWidth == null ? 0 : requestedWidth;
     }
 }

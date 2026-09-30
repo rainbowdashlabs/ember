@@ -5,6 +5,10 @@
  */
 package dev.chojo.ember.feature.media.service;
 
+import dev.chojo.ember.feature.media.image.MediaTypes;
+import dev.chojo.ember.feature.media.image.VariantFile;
+import dev.chojo.ember.feature.media.image.VariantLayout;
+import dev.chojo.ember.feature.media.image.VariantSet;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StoredStream;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -21,14 +25,13 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
  * On-disk storage for the station media library (images, PDFs, downloads). Backed by the
- * unified {@link StorageService}; this class owns only the library's keying convention
- * (content-hash key, {@code orig.<ext>} / {@code w<width>.<ext>} variant slot).
+ * unified {@link StorageService}; this class owns only the library's keying convention: the content
+ * hash is the key, and the files of one hash are named in {@link VariantLayout#LIBRARY}.
  *
  * <p>Layout in the storage model:
  * {@code <scope>/<category>/<contentHash>/<variantFilename>} →
@@ -37,7 +40,6 @@ import java.util.UUID;
 @Singleton
 public class MediaStorageService {
     private static final Logger log = LoggerFactory.getLogger(MediaStorageService.class);
-    private static final String ORIG_PREFIX = "orig";
 
     private final StorageService storage;
     private final StationRepository stationRepository;
@@ -58,40 +60,21 @@ public class MediaStorageService {
         return Sha256.hex(data);
     }
 
-    private static String mimeForExtension(String ext) {
-        return switch (ext) {
-            case "jpg", "jpeg" -> "image/jpeg";
-            case "png" -> "image/png";
-            case "gif" -> "image/gif";
-            case "webp" -> "image/webp";
-            case "svg" -> "image/svg+xml";
-            case "pdf" -> "application/pdf";
-            default -> "application/octet-stream";
-        };
-    }
-
-    private static String extensionFor(String mimeType) {
-        if (mimeType == null) return "bin";
-        return switch (mimeType.toLowerCase(Locale.ROOT)) {
-            case "image/jpeg" -> "jpg";
-            case "image/png" -> "png";
-            case "image/gif" -> "gif";
-            case "image/webp" -> "webp";
-            case "image/svg+xml" -> "svg";
-            case "application/pdf" -> "pdf";
-            default -> "bin";
-        };
-    }
-
     /**
      * Persists the original bytes for a (station, hash) pair. Idempotent - calling twice with
      * the same hash is a semantic no-op because the bytes are identical by definition.
      */
     public void store(Integer stationId, String contentHash, byte[] data, String contentType) throws IOException {
-        StorageScope scope = stationScope(stationId);
-        cleanupLegacyOriginals(scope, contentHash, ORIG_PREFIX);
-        String filename = ORIG_PREFIX + "." + extensionFor(contentType);
-        storage.store(scope, categoryFor(stationId), contentHash, new Variant(filename), data, contentType);
+        StorageScope scope = scopeOf(stationId);
+        StorageCategory category = categoryFor(stationId);
+        for (String key : storage.listKeys(scope, category, contentHash)) {
+            VariantFile file = VariantFile.of(key);
+            if (VariantLayout.LIBRARY.isOriginal(file)) {
+                storage.delete(scope, category, contentHash, new Variant(file.fileName()));
+            }
+        }
+        String filename = VariantLayout.LIBRARY.originalName(MediaTypes.extensionFor(contentType));
+        storage.store(scope, category, contentHash, new Variant(filename), data, contentType);
     }
 
     /**
@@ -99,7 +82,43 @@ public class MediaStorageService {
      * {@link Optional#empty()} when no original is present.
      */
     public Optional<FileData> read(Integer stationId, String contentHash) {
-        return readVariant(stationId, contentHash, ORIG_PREFIX, null);
+        return set(stationId, contentHash, VariantLayout.LIBRARY)
+                .original()
+                .flatMap(file -> readFile(stationId, contentHash, file));
+    }
+
+    /**
+     * The files stored under one hash, read in a layout.
+     *
+     * @param stationId   the station, or {@code null} for the instance's own library
+     * @param contentHash the hash the files are stored under
+     * @param layout      the layout the names are read in
+     * @return the set, empty when nothing is stored
+     */
+    public VariantSet set(Integer stationId, String contentHash, VariantLayout layout) {
+        return VariantSet.of(layout, storage.listKeys(scopeOf(stationId), categoryFor(stationId), contentHash));
+    }
+
+    /**
+     * Reads one stored file of a hash.
+     *
+     * @param stationId   the station, or {@code null} for the instance's own library
+     * @param contentHash the hash the file is stored under
+     * @param file        the file, as a {@link VariantSet} named it
+     * @return the bytes and the type to serve them as, or empty when the file is gone
+     */
+    public Optional<FileData> readFile(Integer stationId, String contentHash, VariantFile file) {
+        Optional<StoredStream> opt =
+                storage.read(scopeOf(stationId), categoryFor(stationId), contentHash, new Variant(file.fileName()));
+        if (opt.isEmpty()) return Optional.empty();
+        try (StoredStream s = opt.get()) {
+            byte[] data = s.body().readAllBytes();
+            return Optional.of(new FileData(
+                    data, MediaTypes.contentTypeOf(file, s.metadata().contentType())));
+        } catch (IOException e) {
+            log.error("Failed to read media file station={} hash={} file={}", stationId, contentHash, file, e);
+            return Optional.empty();
+        }
     }
 
     /**
@@ -107,29 +126,23 @@ public class MediaStorageService {
      *
      * <p>{@code baseName} is the file name without extension (e.g. {@code "orig"},
      * {@code "w512"}). {@code extension} pins a specific format ({@code "webp"},
-     * {@code "jpg"}, …) - pass {@code null} to accept any extension, which is the right
-     * choice when reading the original whose on-disk format is whatever the user uploaded.
+     * {@code "jpg"}, …) - pass {@code null} to accept any extension, preferring one that is not WebP,
+     * which is the right choice when reading the original whose on-disk format is whatever the user
+     * uploaded.
      */
     public Optional<FileData> readVariant(Integer stationId, String contentHash, String baseName, String extension) {
-        StorageScope scope = stationScope(stationId);
-        String filename = pickVariantFilename(scope, contentHash, baseName, extension);
-        if (filename == null) return Optional.empty();
-        Optional<StoredStream> opt = storage.read(scope, categoryFor(stationId), contentHash, new Variant(filename));
-        if (opt.isEmpty()) return Optional.empty();
-        try (StoredStream s = opt.get()) {
-            byte[] data = s.body().readAllBytes();
-            String contentType = contentTypeFor(filename, s.metadata().contentType());
-            return Optional.of(new FileData(data, contentType));
-        } catch (IOException e) {
-            log.error(
-                    "Failed to read media file station={} hash={} base={} ext={}",
-                    stationId,
-                    contentHash,
-                    baseName,
-                    extension,
-                    e);
-            return Optional.empty();
-        }
+        List<VariantFile> named = storage.listKeys(scopeOf(stationId), categoryFor(stationId), contentHash).stream()
+                .map(VariantFile::of)
+                .filter(file -> file.base().equals(baseName))
+                .filter(file -> extension == null
+                        || extension.isEmpty()
+                        || file.extension().equals(extension))
+                .toList();
+        return named.stream()
+                .filter(file -> !file.extension().equals("webp"))
+                .findFirst()
+                .or(() -> named.stream().findFirst())
+                .flatMap(file -> readFile(stationId, contentHash, file));
     }
 
     /**
@@ -137,10 +150,21 @@ public class MediaStorageService {
      * {@code <variantName>.<extension>}.
      */
     public void storeVariant(Integer stationId, String contentHash, String variantName, String extension, byte[] data) {
-        String filename = variantName + "." + extension;
-        String contentType = mimeForExtension(extension);
+        storeFile(stationId, contentHash, variantName + "." + extension, data);
+    }
+
+    /**
+     * Writes one file into the (station, hash) directory under a name a layout gave it.
+     *
+     * @param stationId   the station, or {@code null} for the instance's own library
+     * @param contentHash the hash the file belongs to
+     * @param fileName    the file name, extension included
+     * @param data        the bytes
+     */
+    public void storeFile(Integer stationId, String contentHash, String fileName, byte[] data) {
+        String contentType = MediaTypes.mimeTypeFor(VariantFile.of(fileName).extension());
         storage.store(
-                stationScope(stationId), categoryFor(stationId), contentHash, new Variant(filename), data, contentType);
+                scopeOf(stationId), categoryFor(stationId), contentHash, new Variant(fileName), data, contentType);
     }
 
     /**
@@ -149,7 +173,7 @@ public class MediaStorageService {
      * same station.
      */
     public void delete(Integer stationId, String contentHash) {
-        storage.deletePrefix(stationScope(stationId), categoryFor(stationId), contentHash);
+        storage.deletePrefix(scopeOf(stationId), categoryFor(stationId), contentHash);
     }
 
     /**
@@ -158,87 +182,24 @@ public class MediaStorageService {
      * the directory does not yet exist on disk.
      */
     public Path hashDir(Integer stationId, String contentHash) {
-        String full = storage.fullKey(stationScope(stationId), categoryFor(stationId), contentHash, Variant.ORIGINAL);
+        String full = storage.fullKey(scopeOf(stationId), categoryFor(stationId), contentHash, Variant.ORIGINAL);
         return localBackend.resolve(full);
     }
 
     /**
-     * Where a file's bytes live.
-     *
-     * <p>A file belongs to a station's library or to the instance's own, and the instance's has no
-     * station to name a folder after. Null means the instance, the same way it does in the column
-     * the file is read from.
-     */
-    /**
      * The category a file's bytes live under. It follows the scope: the same folder name, declared
      * once for a station and once for the instance, because the storage layer checks that a
-     * category is used at the scope it was declared for.
+     * category is used at the scope it was declared for. Null means the instance, the same way it
+     * does in the column the file is read from.
      */
     private StorageCategory categoryFor(Integer stationId) {
         return stationId == null ? StorageCategory.INSTANCE_MEDIA_FILES : StorageCategory.MEDIA_FILES;
     }
 
-    /** The same choice made from the scope, for the helpers that hold one rather than a station. */
-    private StorageCategory categoryFor(StorageScope scope) {
-        return scope instanceof StorageScope.Instance
-                ? StorageCategory.INSTANCE_MEDIA_FILES
-                : StorageCategory.MEDIA_FILES;
-    }
-
-    private StorageScope stationScope(Integer stationId) {
+    private StorageScope scopeOf(Integer stationId) {
         if (stationId == null) return new StorageScope.Instance();
         UUID uid = stationRepository.resolveUid(stationId);
         return new StorageScope.Station(stationId, uid);
-    }
-
-    /**
-     * Splits a storage key into its bare filename (the part after the last slash) and the base
-     * name that precedes the file extension.
-     */
-    private static KeyParts splitKey(String key) {
-        int slash = key.lastIndexOf('/');
-        String filename = slash < 0 ? key : key.substring(slash + 1);
-        int dot = filename.lastIndexOf('.');
-        String base = dot < 0 ? filename : filename.substring(0, dot);
-        return new KeyParts(filename, base);
-    }
-
-    private String pickVariantFilename(StorageScope scope, String contentHash, String baseName, String extension) {
-        if (extension != null && !extension.isEmpty()) {
-            String candidate = baseName + "." + extension;
-            if (storage.exists(scope, categoryFor(scope), contentHash, new Variant(candidate))) {
-                return candidate;
-            }
-            return null;
-        }
-        List<String> keys = storage.listKeys(scope, categoryFor(scope), contentHash);
-        String fallback = null;
-        for (String key : keys) {
-            var name = splitKey(key);
-            if (!name.base().equals(baseName)) continue;
-            if (!name.filename().endsWith(".webp")) return name.filename();
-            if (fallback == null) fallback = name.filename();
-        }
-        return fallback;
-    }
-
-    private void cleanupLegacyOriginals(StorageScope scope, String contentHash, String keepBase) {
-        for (String key : storage.listKeys(scope, categoryFor(scope), contentHash)) {
-            var name = splitKey(key);
-            if (name.base().equals(keepBase)) {
-                storage.delete(scope, categoryFor(scope), contentHash, new Variant(name.filename()));
-            }
-        }
-    }
-
-    private String contentTypeFor(String filename, String stored) {
-        if (filename.endsWith(".webp")) return "image/webp";
-        if (stored != null && !stored.isBlank() && !"application/octet-stream".equals(stored)) {
-            return stored;
-        }
-        int dot = filename.lastIndexOf('.');
-        String ext = dot < 0 ? "" : filename.substring(dot + 1).toLowerCase(Locale.ROOT);
-        return mimeForExtension(ext);
     }
 
     /**
@@ -247,6 +208,4 @@ public class MediaStorageService {
      * to the stored sidecar) so callers can set the {@code Content-Type} header verbatim.
      */
     public record FileData(byte[] data, String contentType) {}
-
-    private record KeyParts(String filename, String base) {}
 }

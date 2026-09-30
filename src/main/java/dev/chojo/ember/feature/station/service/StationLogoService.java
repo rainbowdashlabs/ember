@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import dev.chojo.ember.feature.media.image.ImageFormat;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.media.service.ImageVariantService.ImageData;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -97,7 +98,7 @@ public class StationLogoService {
             return Optional.empty();
         }
         var blob = legacy.get();
-        if (ImageVariantService.sniffImageMime(blob.data()).isPresent()) {
+        if (ImageFormat.sniff(blob.data()).isPresent()) {
             try {
                 var scope = scope(stationId);
                 variants.store(scope, StorageCategory.IMAGE_STATION_LOGO, KEY, blob.data(), blob.contentType(), 0);

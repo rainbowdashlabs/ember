@@ -5,170 +5,79 @@
  */
 package dev.chojo.ember.feature.media.service;
 
+import dev.chojo.ember.feature.media.image.AcceptedFormats;
+import dev.chojo.ember.feature.media.image.ImageEncoder;
+import dev.chojo.ember.feature.media.image.ImageFormat;
+import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.image.MediaTypes;
+import dev.chojo.ember.feature.media.image.VariantFile;
+import dev.chojo.ember.feature.media.image.VariantLayout;
+import dev.chojo.ember.feature.media.image.VariantSet;
 import dev.chojo.ember.feature.storage.backend.StoredStream;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.util.PixelBudget;
-import dev.chojo.ember.util.WebpEncoder;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import net.coobird.thumbnailator.Thumbnails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 /**
  * Handles the multi-size variant set for an image keyed by {@code (scope, category, key)}.
- * Sits above {@link StorageService}: on writes it resizes the source through Thumbnailator into
- * the standard size set and persists every variant; on reads it picks the matching variant,
- * falling back to the original when the requested size is missing. Per-domain image services
- * delegate every byte-level call to this class.
+ * Sits above {@link StorageService}: on writes it scales the source into the sizes of its
+ * {@link ImageProfile} and persists every one; on reads it picks the stored file that answers the
+ * request through {@link VariantSet}. Per-domain image services delegate every byte-level call to
+ * this class.
  *
- * <p>Each write produces:
- * <ul>
- *   <li>{@code original.&lt;ext&gt;} capped at {@link #MAX_PIXEL_SIZE} on the longest side, and</li>
- *   <li>One file per entry in {@link #SIZES} ({@code 1024}, {@code 512}, {@code 256}, {@code 128},
- *       {@code 64}), capped at the source's longest side so a small upload still produces every
- *       variant.</li>
- * </ul>
+ * <p>Each write produces {@code original.<ext>} capped at the profile's longest side, and one file per
+ * size of the profile, capped at the source's longest side. A GIF is kept as it came with no sizes,
+ * and a WebP original is kept as it came with its sizes written by {@code cwebp}. The whole set is
+ * encoded before the previous one is removed, so an upload that cannot be encoded leaves the previous
+ * picture in place.
  *
- * <p>A GIF is kept as it came with no sizes, and a WebP original is kept as it came with its sizes
- * made by {@code cwebp}. The whole set is encoded before the previous one is removed, so an upload
- * that cannot be encoded leaves the previous picture in place.
- *
- * <p>The extension is derived from the sniffed MIME type - the client-supplied content-type is
- * advisory only. An off-allow-list or unidentifiable upload is rejected before any disk write
- * so an attacker cannot land scriptable content (HTML / SVG / JS) regardless of the claimed
- * MIME header.
+ * <p>The format is the one the bytes are in, never the one the client declared, and an upload that is
+ * none of the accepted formats is rejected before anything is written, so scriptable content cannot
+ * land in storage whatever MIME header it came with.
  */
 @Singleton
 public class ImageVariantService {
-    /**
-     * Maximum pixel dimension (longest side); larger uploads are resized down.
-     */
-    public static final int MAX_PIXEL_SIZE = 2048;
-
-    /**
-     * Fixed size variants written for every upload (longest side, in pixels).
-     */
-    public static final int[] SIZES = {1024, 512, 256, 128, 64};
-
-    /**
-     * Variant base name for the (possibly downsized) original.
-     */
-    public static final String ORIGINAL_BASE = "original";
-
-    private static final double COMPRESSION_QUALITY = 0.85;
-    private static final int WEBP_QUALITY = 78;
     private static final Logger log = LoggerFactory.getLogger(ImageVariantService.class);
+    private static final VariantLayout LAYOUT = VariantLayout.SIZED;
 
     private final StorageService storage;
+    private final ImageEncoder encoder;
 
     @Inject
-    public ImageVariantService(StorageService storage) {
+    public ImageVariantService(StorageService storage, ImageEncoder encoder) {
         this.storage = storage;
+        this.encoder = encoder;
     }
 
     /**
-     * Returns the MIME type identified by inspecting the first bytes of {@code data}, or empty
-     * when the bytes do not match any allow-listed image signature (PNG / JPEG / WebP / GIF).
-     * The client-declared MIME is intentionally not consulted - clients can forge it; magic
-     * bytes cannot be forged without also changing the actual format.
+     * The service with the standard encoder, for callers that build it by hand.
      */
-    public static Optional<String> sniffImageMime(byte[] data) {
-        if (data == null || data.length < 4) return Optional.empty();
-        if (startsWith(data, new int[] {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A})) {
-            return Optional.of("image/png");
-        }
-        if (startsWith(data, new int[] {0xFF, 0xD8, 0xFF})) {
-            return Optional.of("image/jpeg");
-        }
-        if (data.length >= 12
-                && startsWith(data, new int[] {0x52, 0x49, 0x46, 0x46})
-                && data[8] == 0x57
-                && data[9] == 0x45
-                && data[10] == 0x42
-                && data[11] == 0x50) {
-            return Optional.of("image/webp");
-        }
-        if (data.length >= 6
-                && startsWith(data, new int[] {0x47, 0x49, 0x46, 0x38})
-                && (data[4] == 0x37 || data[4] == 0x39)
-                && data[5] == 0x61) {
-            return Optional.of("image/gif");
-        }
-        return Optional.empty();
-    }
-
-    private static byte[] compressTo(BufferedImage source, int longestSide, String extension) throws IOException {
-        int w = source.getWidth();
-        int h = source.getHeight();
-        double scale = (double) longestSide / Math.max(w, h);
-        int newW = Math.max(1, (int) Math.round(w * scale));
-        int newH = Math.max(1, (int) Math.round(h * scale));
-
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Thumbnails.of(source)
-                .size(newW, newH)
-                .outputQuality(COMPRESSION_QUALITY)
-                .outputFormat(extension)
-                .toOutputStream(out);
-        return out.toByteArray();
-    }
-
-    private static String extensionFor(String mimeType) {
-        return switch (mimeType.toLowerCase(Locale.ROOT)) {
-            case "image/png" -> "png";
-            case "image/webp" -> "webp";
-            case "image/gif" -> "gif";
-            default -> "jpg";
-        };
-    }
-
-    private static String contentTypeFor(String filename, String storedContentType) {
-        if (storedContentType != null
-                && !storedContentType.isBlank()
-                && !"application/octet-stream".equals(storedContentType)) {
-            return storedContentType;
-        }
-        int dot = filename.lastIndexOf('.');
-        String ext = dot < 0 ? "" : filename.substring(dot + 1).toLowerCase(Locale.ROOT);
-        return switch (ext) {
-            case "png" -> "image/png";
-            case "webp" -> "image/webp";
-            case "gif" -> "image/gif";
-            case "jpg", "jpeg" -> "image/jpeg";
-            default -> "application/octet-stream";
-        };
-    }
-
-    private static boolean startsWith(byte[] data, int[] signature) {
-        if (data.length < signature.length) return false;
-        for (int i = 0; i < signature.length; i++) {
-            if ((data[i] & 0xff) != signature[i]) return false;
-        }
-        return true;
+    public ImageVariantService(StorageService storage) {
+        this(storage, new ImageEncoder());
     }
 
     /**
-     * Persists every variant for an uploaded image. Replaces any existing variants for the
-     * same {@code (scope, category, key)} tuple before writing.
+     * Persists every variant for an uploaded image, replacing the set stored under the same
+     * {@code (scope, category, key)} once the new one is encoded.
      *
      * @param maxBytes upper bound on the raw upload size; {@code 0} disables the check.
      * @throws BadRequestResponse on oversize uploads, MIME-mismatch, or unreadable images.
      * @throws dev.chojo.ember.api.RefusalResponse when the image declares more pixels than
      *                            {@link PixelBudget#MAX_PIXELS}, before any of it is decoded.
-     * @throws IOException        on a disk write failure during variant generation.
+     * @throws IOException        when the picture cannot be encoded; nothing stored has changed.
      */
     public void store(
             StorageScope scope, StorageCategory category, String key, byte[] data, String declaredMime, int maxBytes)
@@ -176,8 +85,9 @@ public class ImageVariantService {
         if (maxBytes > 0 && data.length > maxBytes) {
             throw new BadRequestResponse("Image exceeds maximum size of " + (maxBytes / 1024 / 1024) + " MB");
         }
-        String sniffedMime = sniffImageMime(data).orElseThrow(() -> new BadRequestResponse("Unsupported image format"));
-        if (!category.acceptsMimeType(sniffedMime)) {
+        ImageFormat format =
+                ImageFormat.sniff(data).orElseThrow(() -> new BadRequestResponse("Unsupported image format"));
+        if (!category.acceptsMimeType(format.mimeType())) {
             throw new BadRequestResponse("Unsupported image format");
         }
 
@@ -186,63 +96,20 @@ public class ImageVariantService {
             throw new BadRequestResponse("Unsupported image format");
         }
 
-        List<EncodedVariant> encoded = encode(original, data, sniffedMime);
+        ImageProfile profile = ImageProfile.of(category).orElse(ImageProfile.CONTENT);
+        List<Encoded> encoded = encode(profile, format, original, data);
 
         delete(scope, category, key);
-        for (EncodedVariant variant : encoded) {
-            storage.store(scope, category, key, new Variant(variant.name()), variant.data(), variant.mime());
+        for (Encoded file : encoded) {
+            storage.store(
+                    scope,
+                    category,
+                    key,
+                    new Variant(file.name()),
+                    file.data(),
+                    file.format().mimeType());
         }
     }
-
-    /**
-     * Encodes the whole set in memory before anything stored is touched, so a picture that cannot be
-     * encoded leaves the previous one in place.
-     *
-     * <p>A GIF is kept as it came, since a resize keeps only its first frame. A WebP original is kept
-     * as it came as well, because nothing here writes WebP but {@code cwebp}; its sizes are made by
-     * {@code cwebp} when the host has it, and without it only the original is kept.
-     */
-    private static List<EncodedVariant> encode(BufferedImage original, byte[] data, String mime) throws IOException {
-        String extension = extensionFor(mime);
-        if ("gif".equals(extension)) {
-            return List.of(new EncodedVariant(ORIGINAL_BASE + "." + extension, data, mime));
-        }
-        int longestSide = Math.max(original.getWidth(), original.getHeight());
-        var encoded = new ArrayList<EncodedVariant>();
-        if ("webp".equals(extension)) {
-            encoded.add(new EncodedVariant(ORIGINAL_BASE + "." + extension, data, mime));
-            if (!WebpEncoder.isAvailable()) return encoded;
-            for (int size : SIZES) {
-                encoded.add(new EncodedVariant(size + ".webp", webpOf(original, Math.min(size, longestSide)), mime));
-            }
-            return encoded;
-        }
-        int originalTarget = Math.min(longestSide, MAX_PIXEL_SIZE);
-        encoded.add(new EncodedVariant(
-                ORIGINAL_BASE + "." + extension, compressTo(original, originalTarget, extension), mime));
-        for (int size : SIZES) {
-            int target = Math.min(size, longestSide);
-            encoded.add(new EncodedVariant(size + "." + extension, compressTo(original, target, extension), mime));
-        }
-        return encoded;
-    }
-
-    private static byte[] webpOf(BufferedImage source, int longestSide) throws IOException {
-        int w = source.getWidth();
-        int h = source.getHeight();
-        double scale = (double) longestSide / Math.max(w, h);
-        BufferedImage resized = Thumbnails.of(source)
-                .size(Math.max(1, (int) Math.round(w * scale)), Math.max(1, (int) Math.round(h * scale)))
-                .asBufferedImage();
-        try {
-            return WebpEncoder.encode(resized, WEBP_QUALITY);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Interrupted while encoding WebP", e);
-        }
-    }
-
-    private record EncodedVariant(String name, byte[] data, String mime) {}
 
     /**
      * Convenience overload that skips the size check.
@@ -252,64 +119,42 @@ public class ImageVariantService {
         store(scope, category, key, data, declaredMime, 0);
     }
 
+    private List<Encoded> encode(ImageProfile profile, ImageFormat format, BufferedImage image, byte[] data)
+            throws IOException {
+        var encoded = new ArrayList<Encoded>();
+        if (format == ImageFormat.GIF || format == ImageFormat.WEBP) {
+            encoded.add(new Encoded(LAYOUT.originalName(format.extension()), data, format));
+        } else {
+            int side = Math.min(LAYOUT.measure(image), profile.maxOriginalSide());
+            encoded.add(new Encoded(
+                    LAYOUT.originalName(format.extension()),
+                    encoder.encode(LAYOUT.scale(image, side), format),
+                    format));
+        }
+        if (format == ImageFormat.GIF || !encoder.writes(format)) return encoded;
+        for (int size : profile.sizes()) {
+            int side = Math.min(size, LAYOUT.measure(image));
+            encoded.add(new Encoded(
+                    LAYOUT.sizeName(size, format), encoder.encode(LAYOUT.scale(image, side), format), format));
+        }
+        return encoded;
+    }
+
     /**
-     * Reads the best-fit variant for the requested size from a previously stored image. When
-     * {@code size} does not exactly match a stored variant, the smallest variant at least as
-     * large as {@code size} is served (so a {@code size=64} request is answered by the 128px
-     * variant rather than the full-resolution original); when the request is larger than every
-     * variant, the largest variant is used. Falls back to the original only when no sized
-     * variant exists.
+     * Reads the variant that answers a request for {@code size}: the smallest stored size at or
+     * above it, else the original.
      *
      * @param size requested longest side; {@code 0} returns the original.
      */
     public Optional<ImageData> read(StorageScope scope, StorageCategory category, String key, int size) {
         if (key == null || key.isBlank()) return Optional.empty();
         try {
-            Optional<Variant> chosen = size > 0
-                    ? chooseVariantForSize(scope, category, key, size)
-                    : findVariantByBase(scope, category, key, ORIGINAL_BASE);
-            if (chosen.isEmpty() && size > 0) {
-                chosen = findVariantByBase(scope, category, key, ORIGINAL_BASE);
-            }
-            if (chosen.isPresent()) return readVariant(scope, category, key, chosen.get());
+            return set(scope, category, key)
+                    .choose(size, AcceptedFormats.EVERY_FORMAT)
+                    .flatMap(file -> readVariant(scope, category, key, file));
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
-        return Optional.empty();
-    }
-
-    /**
-     * Picks the stored sized variant that best serves {@code size}: the smallest variant whose
-     * longest side is at least {@code size}, or the largest available when the request exceeds
-     * every variant. Returns empty when the image has no numeric-sized variants.
-     */
-    private Optional<Variant> chooseVariantForSize(StorageScope scope, StorageCategory category, String key, int size) {
-        Variant smallestAtLeast = null;
-        int smallestAtLeastSize = Integer.MAX_VALUE;
-        Variant largest = null;
-        int largestSize = -1;
-        for (String entry : storage.listKeys(scope, category, key)) {
-            int slash = entry.lastIndexOf('/');
-            String filename = slash < 0 ? entry : entry.substring(slash + 1);
-            int dot = filename.lastIndexOf('.');
-            String base = dot < 0 ? filename : filename.substring(0, dot);
-            int variantSize;
-            try {
-                variantSize = Integer.parseInt(base);
-            } catch (NumberFormatException ignored) {
-                continue;
-            }
-            if (variantSize > largestSize) {
-                largestSize = variantSize;
-                largest = new Variant(filename);
-            }
-            if (variantSize >= size && variantSize < smallestAtLeastSize) {
-                smallestAtLeastSize = variantSize;
-                smallestAtLeast = new Variant(filename);
-            }
-        }
-        if (smallestAtLeast != null) return Optional.of(smallestAtLeast);
-        return Optional.ofNullable(largest);
     }
 
     /**
@@ -318,7 +163,7 @@ public class ImageVariantService {
     public boolean exists(StorageScope scope, StorageCategory category, String key) {
         if (key == null || key.isBlank()) return false;
         try {
-            return findVariantByBase(scope, category, key, ORIGINAL_BASE).isPresent();
+            return set(scope, category, key).original().isPresent();
         } catch (IllegalArgumentException e) {
             return false;
         }
@@ -332,32 +177,25 @@ public class ImageVariantService {
         storage.deletePrefix(scope, category, key);
     }
 
-    private Optional<ImageData> readVariant(StorageScope scope, StorageCategory category, String key, Variant variant) {
-        Optional<StoredStream> opt = storage.read(scope, category, key, variant);
+    private VariantSet set(StorageScope scope, StorageCategory category, String key) {
+        return VariantSet.of(LAYOUT, storage.listKeys(scope, category, key));
+    }
+
+    private Optional<ImageData> readVariant(
+            StorageScope scope, StorageCategory category, String key, VariantFile file) {
+        Optional<StoredStream> opt = storage.read(scope, category, key, new Variant(file.fileName()));
         if (opt.isEmpty()) return Optional.empty();
         try (StoredStream stream = opt.get()) {
             byte[] bytes = stream.body().readAllBytes();
-            String contentType =
-                    contentTypeFor(variant.name(), stream.metadata().contentType());
-            return Optional.of(new ImageData(bytes, contentType));
+            return Optional.of(new ImageData(
+                    bytes, MediaTypes.contentTypeOf(file, stream.metadata().contentType())));
         } catch (IOException e) {
             log.warn("Failed to read image variant scope={} category={} key={}", scope, category, key, e);
             return Optional.empty();
         }
     }
 
-    private Optional<Variant> findVariantByBase(
-            StorageScope scope, StorageCategory category, String key, String baseName) {
-        List<String> keys = storage.listKeys(scope, category, key);
-        for (String entry : keys) {
-            int slash = entry.lastIndexOf('/');
-            String filename = slash < 0 ? entry : entry.substring(slash + 1);
-            int dot = filename.lastIndexOf('.');
-            String base = dot < 0 ? filename : filename.substring(0, dot);
-            if (base.equals(baseName)) return Optional.of(new Variant(filename));
-        }
-        return Optional.empty();
-    }
+    private record Encoded(String name, byte[] data, ImageFormat format) {}
 
     /**
      * Bytes + MIME type returned by {@link #read}.
