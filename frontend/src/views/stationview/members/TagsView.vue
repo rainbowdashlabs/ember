@@ -19,7 +19,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import TagListPanel from './tagsview/TagListPanel.vue'
 import TagMembersPanel from './tagsview/TagMembersPanel.vue'
 import TagFormModal from './tagsview/TagFormModal.vue'
-import TagDeleteModal from './tagsview/TagDeleteModal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import TagConvertModal from './tagsview/TagConvertModal.vue'
 import {useMemberAssignment} from './useMemberAssignment'
 import {describeFailure} from '@/util/failure'
@@ -189,7 +189,8 @@ const {
 
       <TagFormModal v-model="showTagModal" v-model:name="tagName" v-model:color="tagColor"
                     v-model:visible="tagVisible" :is-edit="!!editingTag" :saving="tagSaving" @save="saveTag"/>
-      <TagDeleteModal v-model="showDeleteModal" :target="deleteTarget" @confirm="confirmDelete"/>
+      <ConfirmDeleteModal v-model="showDeleteModal" :message="t('userTags.deleteConfirmDetail', {name: deleteTarget?.name})"
+                          @confirm="confirmDelete"/>
       <TagConvertModal v-model="showConvertModal" :target="convertTarget" @confirm="confirmConvert"/>
     </div>
   </ViewContent>

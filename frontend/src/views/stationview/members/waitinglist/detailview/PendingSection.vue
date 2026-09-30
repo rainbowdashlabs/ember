@@ -13,6 +13,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {WaitingListEntryWithScore, WaitingListField} from '@/api/waitingList'
 import {formatDate} from '@/util/format'
+import {entryFullName} from './entryFullName'
 
 /**
  * The entries still waiting for an answer, each folded. A header opens its entry wherever it is
@@ -33,10 +34,6 @@ const emit = defineEmits<{
 const {t} = useI18n()
 const expandedId = ref<number | null>(null)
 
-function fullName(item: WaitingListEntryWithScore): string {
-  const e = item.entry
-  return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
-}
 
 function fieldName(fieldId: number): string {
   return props.fields.find(f => f.id === fieldId)?.name ?? `#${fieldId}`
@@ -66,7 +63,7 @@ function toggle(id: number) {
               @keydown.space.prevent="toggle(item.entry.id)"
           >
             <font-awesome-icon :icon="['fas', expandedId === item.entry.id ? 'chevron-down' : 'chevron-right']" class="h-3 w-3 text-(--text-muted) shrink-0"/>
-            <span class="font-medium text-sm">{{ fullName(item) }}</span>
+            <span class="font-medium text-sm">{{ entryFullName(item) }}</span>
             <span v-if="item.entry.email" class="text-xs text-(--text-muted) truncate">{{ item.entry.email }}</span>
             <InfoBadge class="shrink-0">{{ t('waitingList.status_PENDING') }}</InfoBadge>
           </div>

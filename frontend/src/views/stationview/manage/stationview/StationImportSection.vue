@@ -10,11 +10,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import ImportProgressChecklist from '@/components/transfer/ImportProgressChecklist.vue'
 import {stationManage} from '@/api'
 import type {StationImportProgress} from '@/api/stationManage'
@@ -87,14 +84,11 @@ function pollStationImport() {
   </NeutralContainer>
 
   <!-- Import confirmation modal -->
-  <Modal v-model="showImportConfirm">
-    <div class="space-y-4">
-      <SectionHeader>{{ t('stationManage.importConfirmTitle') }}</SectionHeader>
-      <p class="text-sm">{{ t('stationManage.importConfirmText') }}</p>
-      <ButtonRow align="end">
-        <SecondaryButton @click="showImportConfirm = false">{{ t('common.cancel') }}</SecondaryButton>
-        <ErrorButton @click="startStationImport">{{ t('stationManage.importConfirmAction') }}</ErrorButton>
-      </ButtonRow>
-    </div>
-  </Modal>
+  <ConfirmDeleteModal
+      v-model="showImportConfirm"
+      :title="t('stationManage.importConfirmTitle')"
+      :message="t('stationManage.importConfirmText')"
+      :confirm-label="t('stationManage.importConfirmAction')"
+      @confirm="startStationImport"
+  />
 </template>

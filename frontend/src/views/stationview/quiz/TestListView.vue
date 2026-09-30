@@ -20,7 +20,7 @@ import { useBreakpoint } from '@/composables/useBreakpoint'
 import TabBar from '@/components/navigation/TabBar.vue'
 import TestList from './testlistview/TestList.vue'
 import ResultsList from './testlistview/ResultsList.vue'
-import ConfirmDeleteModal from './testlistview/ConfirmDeleteModal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { StationPermission } from '@/api/types'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 

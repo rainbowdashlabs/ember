@@ -9,9 +9,9 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {StationFileFolder} from '@/api/media'
 
 const moveOpen = defineModel<boolean>('moveOpen', {required: true})
@@ -51,16 +51,11 @@ const {t} = useI18n()
         </div>
     </Modal>
 
-    <Modal v-model="deleteOpen" size="md">
-        <div class="space-y-3">
-            <SubHeader>{{ t('stationPages.editor.deleteSelected') }}</SubHeader>
-            <p class="text-sm">
-                {{ t('stationPages.editor.deleteSelectedPrompt', {count: selectedCount}) }}
-            </p>
-            <ButtonRow align="end">
-                <SecondaryButton @click="deleteOpen = false">{{ t('common.cancel') }}</SecondaryButton>
-                <ErrorButton @click="emit('delete')">{{ t('stationPages.editor.deleteSelected') }}</ErrorButton>
-            </ButtonRow>
-        </div>
-    </Modal>
+    <ConfirmDeleteModal
+        v-model="deleteOpen"
+        :title="t('stationPages.editor.deleteSelected')"
+        :message="t('stationPages.editor.deleteSelectedPrompt', {count: selectedCount})"
+        :confirm-label="t('stationPages.editor.deleteSelected')"
+        @confirm="emit('delete')"
+    />
 </template>

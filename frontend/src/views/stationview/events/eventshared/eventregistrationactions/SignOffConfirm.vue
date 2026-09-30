@@ -5,14 +5,11 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import Modal from '@/components/feedback/Modal.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 
 /**
- * The question asked before somebody is signed off an appointment.
+ * The question asked before somebody is signed off an appointment, worded once for the four
+ * places that ask it.
  *
  * <p>A place given up is gone: whoever wants it back joins the queue again, and where the list is
  * already full that is the end of it.
@@ -31,16 +28,13 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <Modal v-model="open">
-    <div class="space-y-4">
-      <SubHeader>{{ t('eventsUpcoming.signOffConfirmTitle') }}</SubHeader>
-      <p class="text-sm">{{ t('eventsUpcoming.signOffConfirmBody') }}</p>
-      <ButtonRow pair align="end">
-        <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
-        <ErrorButton :disabled="busy" data-testid="confirm-sign-off" @click="emit('confirm')">
-          {{ t('eventsUpcoming.decline') }}
-        </ErrorButton>
-      </ButtonRow>
-    </div>
-  </Modal>
+  <ConfirmDeleteModal
+      v-model="open"
+      :title="t('eventsUpcoming.signOffConfirmTitle')"
+      :message="t('eventsUpcoming.signOffConfirmBody')"
+      :confirm-label="t('eventsUpcoming.decline')"
+      :busy="busy"
+      confirm-test-id="confirm-sign-off"
+      @confirm="emit('confirm')"
+  />
 </template>

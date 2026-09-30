@@ -13,6 +13,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import type { WaitingListEntryWithScore } from '@/api/waitingList'
 import { formatDate } from '@/util/format'
+import { entryFullName } from './entryFullName'
 
 const props = defineProps<{
   entries: WaitingListEntryWithScore[]
@@ -21,10 +22,6 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-function entryFullName(item: WaitingListEntryWithScore): string {
-  const e = item.entry
-  return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
-}
 
 function canNavigateToMember(item: WaitingListEntryWithScore): boolean {
   return item.entry.status === 'JOINED' && !!item.entry.memberId && !!props.canLinkMember

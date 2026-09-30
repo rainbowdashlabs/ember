@@ -17,6 +17,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type { WaitingListEntryWithScore } from '@/api/waitingList'
 import { formatDate } from '@/util/format'
+import { entryFullName } from './entryFullName'
 
 const props = defineProps<{
   entries: WaitingListEntryWithScore[]
@@ -38,10 +39,6 @@ function toggleExpand(entryId: number) {
   expandedId.value = expandedId.value === entryId ? null : entryId
 }
 
-function entryFullName(item: WaitingListEntryWithScore): string {
-  const e = item.entry
-  return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
-}
 
 function entryPage(item: WaitingListEntryWithScore): RouteLocationRaw | null {
   return props.listId == null

@@ -15,7 +15,8 @@ import StatusDetails from './waitingliststatusview/StatusDetails.vue'
 import StatusActions from './waitingliststatusview/StatusActions.vue'
 import InvitationDetails from './waitingliststatusview/InvitationDetails.vue'
 import InvitationAnswerActions from './waitingliststatusview/InvitationAnswerActions.vue'
-import RemoveConfirmationModal from './waitingliststatusview/RemoveConfirmationModal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import type { WaitingListAnswerName, WaitingListPublicStatus } from '@/api/waitingList'
 import { waitingList } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
@@ -147,12 +148,17 @@ onMounted(loadStatus)
           <router-link class="text-sm text-primary hover:underline" to="/login">{{ t('waitingList.publicStatus.backToLogin') }}</router-link>
         </div>
       </template>
-
-      <RemoveConfirmationModal
-        v-model="showRemoveModal"
-        :removing="removing"
-        @confirm="removeFromList"
-      />
     </div>
+
+    <ConfirmDeleteModal
+      v-model="showRemoveModal"
+      :title="t('waitingList.publicStatus.removeTitle')"
+      :message="t('waitingList.publicStatus.removeConfirm')"
+      :confirm-label="t('waitingList.publicStatus.removeFromList')"
+      :busy="removing"
+      @confirm="removeFromList"
+    >
+      <MutedText tag="p">{{ t('waitingList.publicStatus.removeHint') }}</MutedText>
+    </ConfirmDeleteModal>
   </div>
 </template>

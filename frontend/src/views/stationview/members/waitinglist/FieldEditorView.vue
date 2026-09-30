@@ -19,7 +19,7 @@ import { useConfirmAction } from '@/composables/useConfirmAction'
 import {usableOptions} from '@/util/choiceOptions'
 import FieldsList from './fieldeditorview/FieldsList.vue'
 import FieldModal from './fieldeditorview/FieldModal.vue'
-import DeleteFieldModal from './fieldeditorview/DeleteFieldModal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {describeFailure} from '@/util/failure'
 
 const { t } = useI18n()
@@ -216,9 +216,10 @@ function goBack() {
         @save="saveField"
       />
 
-      <DeleteFieldModal
+      <ConfirmDeleteModal
         v-model="showDeleteModal"
-        :target="deleteTarget"
+        :title="t('waitingList.deleteFieldTitle')"
+        :message="t('waitingList.deleteFieldConfirm', { name: deleteTarget?.name })"
         @confirm="confirmDelete"
       />
     </div>

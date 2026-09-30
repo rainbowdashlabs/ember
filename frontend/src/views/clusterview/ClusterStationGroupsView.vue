@@ -12,7 +12,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import GroupListPanel from '@/views/stationview/members/groupsview/GroupListPanel.vue'
 import GroupDetailPanel from '@/views/stationview/members/groupsview/GroupDetailPanel.vue'
 import GroupFormModal from '@/views/stationview/members/groupsview/GroupFormModal.vue'
-import GroupDeleteModal from '@/views/stationview/members/groupsview/GroupDeleteModal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {useMemberAssignment} from '@/views/stationview/members/useMemberAssignment'
 import {clusterStationGroups, clusterStations} from '@/api'
 import {useGroupsConfig, type AssignableMember, type GroupsPort} from '@/composables/useGroupsConfig'
@@ -116,7 +116,8 @@ const {
 
       <GroupFormModal v-model="showGroupModal" v-model:name="groupName" v-model:color="groupColor"
                       :is-edit="!!editingGroup" :saving="groupSaving" @save="saveGroup"/>
-      <GroupDeleteModal v-model="showDeleteModal" :target="deleteTarget" @confirm="confirmDelete"/>
+      <ConfirmDeleteModal v-model="showDeleteModal" :message="t('memberGroups.deleteConfirm', {name: deleteTarget?.name})"
+                          @confirm="confirmDelete"/>
     </div>
   </ViewContent>
 </template>

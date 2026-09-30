@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SingleFieldModal from '@/components/feedback/SingleFieldModal.vue'
 import FileListPanel from './FileListPanel.vue'
-import DeleteFileModal from './DeleteFileModal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import LoadTemplateModal from './LoadTemplateModal.vue'
 import ImportDocumentModal from './ImportDocumentModal.vue'
 import {adminSettings} from '@/api'
@@ -137,9 +137,10 @@ defineExpose({reload: load})
         :confirm-label="t('adminSettings.legal.addFile')"
         @confirm="addFile"
     />
-    <DeleteFileModal
-        v-model:show="showDeleteFileModal"
-        :display-name="fileToDeleteName"
+    <ConfirmDeleteModal
+        v-model="showDeleteFileModal"
+        :title="t('adminSettings.legal.deleteFileTitle')"
+        :message="t('adminSettings.legal.deleteFileConfirm', {name: fileToDeleteName})"
         @confirm="deleteFile"
     />
     <LoadTemplateModal

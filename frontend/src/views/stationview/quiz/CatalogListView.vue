@@ -22,7 +22,7 @@ import {describeFailure} from '@/util/failure'
 import CatalogToolbar from './cataloglistview/CatalogToolbar.vue'
 import CatalogList from './cataloglistview/CatalogList.vue'
 import CreateCatalogModal from './cataloglistview/CreateCatalogModal.vue'
-import DeleteCatalogModal from './cataloglistview/DeleteCatalogModal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -192,8 +192,10 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         @submit="createCatalog"
       />
 
-      <DeleteCatalogModal
+      <ConfirmDeleteModal
         v-model="showDeleteModal"
+        :title="t('quiz.catalogs.deleteCatalog')"
+        :message="t('quiz.catalogs.deleteConfirm')"
         @confirm="deleteCatalog"
       />
     </div>

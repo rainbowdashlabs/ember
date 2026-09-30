@@ -13,12 +13,10 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
 import NewsViewBadge from './newsshared/NewsViewBadge.vue'
 import AttachmentList from './newsshared/AttachmentList.vue'
@@ -125,14 +123,12 @@ watch(() => route.params.id, reload)
         </div>
       </NeutralContainer>
 
-      <Modal v-model="showDeleteModal">
-        <template #title>{{ t('news.deleteConfirmTitle') }}</template>
-        <p class="mb-4">{{ t('news.deleteConfirmMessage') }}</p>
-        <ButtonRow pair align="end">
-          <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>
-          <ErrorButton @click="confirmDelete">{{ t('common.delete') }}</ErrorButton>
-        </ButtonRow>
-      </Modal>
+      <ConfirmDeleteModal
+          v-model="showDeleteModal"
+          :title="t('news.deleteConfirmTitle')"
+          :message="t('news.deleteConfirmMessage')"
+          @confirm="confirmDelete"
+      />
     </div>
   </ViewContent>
 </template>

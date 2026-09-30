@@ -14,10 +14,9 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DetailHeader from './detailview/DetailHeader.vue'
 import LoadedSections from './detailview/LoadedSections.vue'
 import CreateInviteModal from './detailview/CreateInviteModal.vue'
-import DeleteListModal from './detailview/DeleteListModal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import TransitionConfirmModal from './detailview/TransitionConfirmModal.vue'
 import InviteEntryModal from './detailview/InviteEntryModal.vue'
-import DeleteEntryModal from './detailview/DeleteEntryModal.vue'
 import type {
   WaitingList,
   WaitingListEntryWithScore,
@@ -36,6 +35,7 @@ import { describeFailure, type Failure } from '@/util/failure'
 import { useListInvites } from './detailview/useListInvites'
 import { useEntryTransitions } from './detailview/useEntryTransitions'
 import { useEntryInvitation } from './detailview/useEntryInvitation'
+import { entryFullName } from './detailview/entryFullName'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -244,10 +244,12 @@ function showFailure(reported: Failure) {
       :creating="invite.creating.value"
       @submit="invite.create"
     />
-    <DeleteListModal
+    <ConfirmDeleteModal
       v-model="showDeleteModal"
-      :list-name="list?.name"
-      :deleting="deletingList"
+      :title="t('waitingList.deleteListTitle')"
+      :message="t('waitingList.deleteListConfirm', { name: list?.name })"
+      :confirm-label="t('waitingList.deleteList')"
+      :busy="deletingList"
       @confirm="confirmDeleteList"
     />
     <TransitionConfirmModal
@@ -264,9 +266,10 @@ function showFailure(reported: Failure) {
       @cancel="invitation.cancel"
       @confirm="invitation.confirm"
     />
-    <DeleteEntryModal
+    <ConfirmDeleteModal
       v-model="showDeleteEntryModal"
-      :target="deleteEntryTarget"
+      :title="t('waitingList.deleteEntryTitle')"
+      :message="t('waitingList.deleteEntryConfirm', { name: deleteEntryTarget ? entryFullName(deleteEntryTarget) : '' })"
       @confirm="confirmDeleteEntry"
     />
   </ViewContent>

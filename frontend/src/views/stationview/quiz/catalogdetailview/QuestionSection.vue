@@ -16,12 +16,8 @@ import QuestionBatchBar from './questionsection/QuestionBatchBar.vue'
 import { useQuestionForm } from './questionsection/useQuestionForm'
 import { useQuestionListState } from './questionsection/useQuestionListState'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import BatchActionModal from './BatchActionModal.vue'
 import type { QuizCategory, QuizQuestion, QuizQuestionReport } from '@/api/quiz'
 import { quiz } from '@/api'
@@ -206,16 +202,12 @@ function onBatchDone() {
 
   <ReadonlyQuestionList v-if="readonly" :questions="questions" :categories="categories" />
 
-  <Modal v-model="showDeleteQuestionModal">
-    <div class="space-y-4">
-      <SubHeader>{{ t('common.delete') }}</SubHeader>
-      <p class="text-sm">{{ t('quiz.questions.deleteConfirm') }}</p>
-      <ButtonRow pair align="end">
-        <SecondaryButton @click="showDeleteQuestionModal = false">{{ t('common.cancel') }}</SecondaryButton>
-        <ErrorButton @click="deleteQuestion">{{ t('common.delete') }}</ErrorButton>
-      </ButtonRow>
-    </div>
-  </Modal>
+  <ConfirmDeleteModal
+      v-model="showDeleteQuestionModal"
+      :title="t('common.delete')"
+      :message="t('quiz.questions.deleteConfirm')"
+      @confirm="deleteQuestion"
+  />
 
   <BatchActionModal
       v-model:show="showBatchModal"

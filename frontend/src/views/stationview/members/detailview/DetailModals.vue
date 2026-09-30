@@ -7,6 +7,8 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -168,19 +170,15 @@ defineExpose({
   </Modal>
 
   <!-- Delete member modal (first step) -->
-  <Modal v-model="showDeleteModal">
-    <div class="space-y-4">
-      <SubHeader>{{ t('memberDetail.deleteTitle') }}</SubHeader>
-      <p class="text-sm">{{ t('memberDetail.deleteText', { name: memberDisplayName }) }}</p>
-      <p class="text-xs text-(--text-muted)">{{ t('memberDetail.deleteHint') }}</p>
-      <ButtonRow pair align="end">
-        <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>
-        <ErrorButton @click="showDeleteModal = false; showDeleteConfirm = true">
-          {{ t('memberDetail.deleteConfirmAction') }}
-        </ErrorButton>
-      </ButtonRow>
-    </div>
-  </Modal>
+  <ConfirmDeleteModal
+      v-model="showDeleteModal"
+      :title="t('memberDetail.deleteTitle')"
+      :message="t('memberDetail.deleteText', { name: memberDisplayName })"
+      :confirm-label="t('memberDetail.deleteConfirmAction')"
+      @confirm="showDeleteModal = false; showDeleteConfirm = true"
+  >
+    <MutedText tag="p">{{ t('memberDetail.deleteHint') }}</MutedText>
+  </ConfirmDeleteModal>
 
   <!-- Delete member modal (second confirmation) -->
   <Modal v-model="showDeleteConfirm">

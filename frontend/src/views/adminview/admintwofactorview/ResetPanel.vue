@@ -12,9 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import AccountSearchPicker from '@/components/input/search/AccountSearchPicker.vue'
 import {twoFactorAdmin} from '@/api'
 import type {AccountSearchResult} from '@/api/twoFactorAdmin'
@@ -85,20 +83,15 @@ const {running: resetLoading, failure, run: confirmReset} = useAsyncAction(async
       </ErrorButton>
     </div>
 
-    <Modal v-model="resetConfirmOpen" size="sm">
-      <div class="space-y-4 p-4">
-        <SubHeader>{{ t('twoFactor.admin.resetConfirmTitle') }}</SubHeader>
-        <p class="text-sm">{{ t('twoFactor.admin.resetConfirmText', {name: resetAccountName ?? resetAccountId}) }}</p>
-        <Alert variant="error">{{ t('twoFactor.admin.resetWarning') }}</Alert>
-        <ButtonRow pair align="end">
-          <SecondaryButton :disabled="resetLoading" @click="resetConfirmOpen = false">
-            {{ t('common.cancel') }}
-          </SecondaryButton>
-          <ErrorButton :disabled="resetLoading" @click="confirmReset">
-            {{ resetLoading ? t('common.loading') : t('twoFactor.admin.reset') }}
-          </ErrorButton>
-        </ButtonRow>
-      </div>
-    </Modal>
+    <ConfirmDeleteModal
+        v-model="resetConfirmOpen"
+        :title="t('twoFactor.admin.resetConfirmTitle')"
+        :message="t('twoFactor.admin.resetConfirmText', {name: resetAccountName ?? resetAccountId})"
+        :confirm-label="t('twoFactor.admin.reset')"
+        :busy="resetLoading"
+        @confirm="confirmReset"
+    >
+      <Alert variant="error">{{ t('twoFactor.admin.resetWarning') }}</Alert>
+    </ConfirmDeleteModal>
   </NeutralContainer>
 </template>

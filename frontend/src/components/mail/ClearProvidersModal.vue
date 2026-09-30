@@ -5,14 +5,12 @@
  */
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
-import Modal from '@/components/feedback/Modal.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 
 /**
  * The one way to empty the provider list, which is why it asks first: a save can no longer do it
- * by accident, so this is the deliberate act it was separated out to be.
+ * by accident, so this is the deliberate act it was separated out to be. Worded once for the
+ * instance and the station mail settings alike.
  */
 const show = defineModel<boolean>({required: true})
 
@@ -28,15 +26,12 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <Modal v-model="show">
-    <div class="space-y-4">
-      <p>{{ t('adminSettings.mailing.clearConfirm') }}</p>
-      <ButtonRow pair align="end">
-        <SecondaryButton :disabled="clearing" @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
-        <ErrorButton :icon="['fas', 'trash']" :disabled="clearing" @click="emit('confirm')">
-          {{ t('adminSettings.mailing.clear') }}
-        </ErrorButton>
-      </ButtonRow>
-    </div>
-  </Modal>
+  <ConfirmDeleteModal
+      v-model="show"
+      :message="t('adminSettings.mailing.clearConfirm')"
+      :confirm-label="t('adminSettings.mailing.clear')"
+      :confirm-icon="['fas', 'trash']"
+      :busy="clearing"
+      @confirm="emit('confirm')"
+  />
 </template>

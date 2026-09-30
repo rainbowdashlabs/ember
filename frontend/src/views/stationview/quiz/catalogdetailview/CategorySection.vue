@@ -12,7 +12,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -127,14 +127,10 @@ async function updateCategory() {
     </div>
   </Modal>
 
-  <Modal v-model="showDeleteCategoryModal">
-    <div class="space-y-4">
-      <SubHeader>{{ t('common.delete') }}</SubHeader>
-      <p class="text-sm">{{ t('quiz.categories.deleteConfirm') }}</p>
-      <ButtonRow pair align="end">
-        <SecondaryButton @click="showDeleteCategoryModal = false">{{ t('common.cancel') }}</SecondaryButton>
-        <ErrorButton @click="deleteCategory">{{ t('common.delete') }}</ErrorButton>
-      </ButtonRow>
-    </div>
-  </Modal>
+  <ConfirmDeleteModal
+      v-model="showDeleteCategoryModal"
+      :title="t('common.delete')"
+      :message="t('quiz.categories.deleteConfirm')"
+      @confirm="deleteCategory"
+  />
 </template>

@@ -16,7 +16,7 @@ import {useConfirmAction} from '@/composables/useConfirmAction'
 import GroupListPanel from './groupsview/GroupListPanel.vue'
 import GroupDetailPanel from './groupsview/GroupDetailPanel.vue'
 import GroupFormModal from './groupsview/GroupFormModal.vue'
-import GroupDeleteModal from './groupsview/GroupDeleteModal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import GroupConvertModal from './groupsview/GroupConvertModal.vue'
 import {useMemberAssignment} from './useMemberAssignment'
 import {memberDisplayName} from './listview/useMemberData'
@@ -117,7 +117,8 @@ const {
 
       <GroupFormModal v-model="showGroupModal" v-model:name="groupName" v-model:color="groupColor"
                       :is-edit="!!editingGroup" :saving="groupSaving" @save="saveGroup"/>
-      <GroupDeleteModal v-model="showDeleteModal" :target="deleteTarget" @confirm="confirmDelete"/>
+      <ConfirmDeleteModal v-model="showDeleteModal" :message="t('memberGroups.deleteConfirm', {name: deleteTarget?.name})"
+                          @confirm="confirmDelete"/>
       <GroupConvertModal v-model="showConvertModal" :target="convertTarget" @confirm="confirmConvertToTag"/>
     </div>
   </ViewContent>
