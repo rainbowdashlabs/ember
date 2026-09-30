@@ -33,6 +33,18 @@ export async function localeSnapshots() {
 }
 
 /**
+ * The locale modules themselves, as a glob for the plugin's `localeDir`.
+ *
+ * <p>The plugin's rules for locale files act only on a file it knows as a locale, and it knows one
+ * by finding it in `localeDir`. The locale parser in `i18n/locale-parser.mjs` hands them the file.
+ *
+ * @returns the glob of the German and English modules
+ */
+export function localeModules() {
+    return `${I18N}{de-DE,de-DE.*,en}.ts`
+}
+
+/**
  * Two message trees merged the way `mergeLocaleMessage` merges them: nested objects key by key,
  * anything else replaced by the later value.
  *

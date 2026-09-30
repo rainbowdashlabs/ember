@@ -2,7 +2,44 @@ import vueI18n from '@intlify/eslint-plugin-vue-i18n'
 import {createTypeScriptImportResolver} from 'eslint-import-resolver-typescript'
 import vueA11y from 'eslint-plugin-vuejs-accessibility'
 import withNuxt from './.nuxt/eslint.config.mjs'
-import {localeSnapshots} from './eslint/locales.mjs'
+import * as localeParser from './eslint/i18n/locale-parser.mjs'
+import ember from './eslint/index.mjs'
+import {localeModules, localeSnapshots} from './eslint/locales.mjs'
+
+/**
+ * The messages as the application holds them, for the rules that look keys up. The locale modules
+ * themselves are added to this for the locale rules only: the plugin cannot load their messages,
+ * which the rules on components would trip over.
+ */
+const SNAPSHOTS = await localeSnapshots()
+
+/** The locale modules, which only the locale rules read. */
+const LOCALE_FILES = ['src/i18n/de-DE.ts', 'src/i18n/de-DE.*.ts', 'src/i18n/en.ts']
+
+/** The German messages: the main file, and the blocks that live in files of their own under a prefix. */
+const GERMAN = [
+    {file: 'src/i18n/de-DE.ts'},
+    {file: 'src/i18n/de-DE.refusals.ts', prefix: 'refusal'},
+    {file: 'src/i18n/de-DE.helpcenter.ts', prefix: 'helpCenter'},
+]
+
+const JAVA = '../src/main/java/dev/chojo/ember/'
+
+/** The backend sources that send a message key to the frontend as data. */
+const BACKEND_KEY_FILES = [
+    `${JAVA}feature/notifications/entity/NotificationType.java`,
+    `${JAVA}feature/account/route/AuthRoutes.java`,
+]
+
+/** Locale sections holding one entry per constant of a backend enum. */
+const ENUM_SECTIONS = [
+    {enumFiles: [`${JAVA}api/Refusal.java`], prefix: 'refusal', reader: 'refusal-codes'},
+    {enumFiles: [`${JAVA}api/auth/StationPermission.java`, `${JAVA}api/auth/ClusterPermission.java`], prefix: 'permissions', leaves: ['label', 'desc']},
+    {enumFiles: [`${JAVA}feature/notifications/entity/NotificationType.java`], prefix: 'notification.typeLabel'},
+    {enumFiles: [`${JAVA}feature/twofactor/entity/TwoFactorEvent.java`], prefix: 'twoFactor.admin.audit.events'},
+    {enumFiles: [`${JAVA}feature/twofactor/entity/TwoFactorKind.java`], prefix: 'twoFactor.admin.audit.factors'},
+    {enumFiles: [`${JAVA}feature/mail/entity/MailDeliveryStatus.java`], prefix: 'mailDashboard.delivery'},
+]
 
 /**
  * Which layer may not reach which, as `import/no-restricted-paths` zones.
@@ -55,13 +92,58 @@ const SANITISED_HTML = [
  * included. Where the first attribute of an element written over several lines stands is
  * formatting, like the rest of Vue's layout rules that Nuxt's config switches off when its
  * stylistic preset is off; this one it leaves on, and its fix cannot indent what it moves.
+ * `ProseContent` is a single element carrying the prose classes and is built to take `v-html`
+ * through attribute fallthrough, so it is the one component the HTML may be bound on.
  */
 const VUE_RULES = {
     'vue/block-order': ['error', {order: ['script', 'template', 'style']}],
     'vue/first-attribute-linebreak': 'off',
     'vue/html-self-closing': ['error', {html: {void: 'always', normal: 'always', component: 'always'}, svg: 'always', math: 'always'}],
-    'vue/no-v-html': ['error', {ignorePattern: '^render(Page)?Markdown\\('}],
+    'vue/no-v-text-v-html-on-component': ['error', {allow: ['ProseContent']}],    'vue/no-v-html': ['error', {ignorePattern: '^render(Page)?Markdown\\('}],
 }
+
+/**
+ * Text on a help page that reads the same in every language, so there is nothing to translate: a
+ * run without letters, a quantity with its unit, an upper-case code, a multiplier, a version, a data
+ * path, an address path, a URL and an e-mail address. Everything else on a help page goes through
+ * `t()`, and text inside `<code>` is left alone as well.
+ */
+const LANGUAGE_NEUTRAL_TEXT = [
+    '[\\p{N}\\p{P}\\p{S}\\s]+',
+    '[<>≤≥]?\\s?\\d[\\d.,]*\\s?(?:ms|s|min|h|%|[KMGT]i?B)?(?:\\s?[–-]\\s?\\d[\\d.,]*\\s?(?:ms|s|min|h|%|[KMGT]i?B)?)?',
+    '[\\[(]?[A-Z0-9]+(?:[-/][A-Z0-9]+)*(?:\\s?→\\s?[A-Z0-9]+)?[\\])]?(?:\\s[-–·(])?',
+    '[x×]',
+    'v\\d+(?:\\.\\d+)*',
+    '[a-z]\\w*\\[\\d+\\]:?',
+    '/[\\w/{}:.?=&-]*',
+    'https?://\\S+',
+    '[\\w.+-]+@[\\w-]+(?:\\.[\\w-]+)+(?:,\\s[\\w.+-]+@[\\w-]+(?:\\.[\\w-]+)+)*',
+]
+
+/**
+ * The components whose root is a native form control, or a switch button, which a label names
+ * like the element itself.
+ *
+ * <p>A label is associated with its control by wrapping it or by pointing at its id, either of the
+ * two, which is what the accessibility tree reads. The rule's default asks for both at once.
+ */
+const CONTROL_COMPONENTS = [
+    'BaseInput', 'CheckboxInput', 'RadioInput', 'SelectInput', 'TextAreaInput', 'TextInput', 'NumberInput',
+    'DecimalInput', 'PasswordInput', 'DateInput', 'DateTimeInput', 'TimeInput', 'TimeShortInput', 'ToggleInput',
+    'CompactToggle',
+]
+
+/**
+ * The players of video and audio people upload, which carry no captions: nothing in the product lets
+ * anybody attach a caption track to an upload yet, and an empty track would only claim one.
+ */
+const UNCAPTIONED_MEDIA = [
+    'src/components/content/ContentCell.vue',
+    'src/components/content/blockeditor/CellVideoEditor.vue',
+    'src/components/content/blockeditor/cells/AudioEmbedCell.vue',
+    'src/components/documents/FileView.vue',
+    'src/views/stationview/media/mediaview/MediaFilePreviewModal.vue',
+]
 
 const IDENTITY_FIELDS = '/^(email|lastName|firstName|username)$/'
 
@@ -105,20 +187,26 @@ function restrictSyntax(...restrictions) {
 export default withNuxt(
     {
         name: 'ember/ignores',
-        ignores: ['e2e/report/**', 'e2e/results/**', 'e2e/.auth/**', 'public/**', 'coverage/**'],
+        ignores: ['e2e/report/**', 'e2e/results/**', 'e2e/.auth/**', 'public/**', 'coverage/**', 'eslint/**/fixtures/**'],
     },
     {
         name: 'ember/settings',
         settings: {
             'import-x/resolver-next': [createTypeScriptImportResolver({project: './tsconfig.json'})],
             'vue-i18n': {
-                localeDir: await localeSnapshots(),
+                localeDir: SNAPSHOTS,
                 messageSyntaxVersion: '^11.0.0',
             },
         },
     },
     {
-        name: 'ember/typescript',
+        name: 'ember/plugin',
+        plugins: {ember},
+    },
+    {
+        name: 'ember/console',
+        files: ['src/**/*.{ts,vue}'],
+        ignores: ['src/plugins/**', 'src/**/debug/**', 'src/**/*init.client.ts'],
         rules: {
             'no-restricted-properties': ['error',
                 {object: 'console', property: 'log', message: 'Leftover console.log: remove it.'},
@@ -128,9 +216,58 @@ export default withNuxt(
     },
     ...vueA11y.configs['flat/recommended'],
     {
+        name: 'ember/accessibility',
+        files: ['**/*.vue'],
+        rules: {
+            'vuejs-accessibility/label-has-for': ['error', {
+                required: {some: ['nesting', 'id']},
+                allowChildren: true,
+                controlComponents: CONTROL_COMPONENTS,
+            }],
+        },
+    },
+    {
+        name: 'ember/uncaptioned-media',
+        files: UNCAPTIONED_MEDIA,
+        rules: {
+            'vuejs-accessibility/media-has-caption': 'off',
+        },
+    },
+    {
         name: 'ember/vue',
         files: ['**/*.vue'],
         rules: VUE_RULES,
+    },
+    {
+        name: 'ember/templates',
+        files: ['src/**/*.vue'],
+        rules: {
+            'ember/button-row': 'error',
+            'ember/no-dead-button-size': 'error',
+            'ember/no-stacked-inline-text': 'error',
+            'ember/rows-open-pages-as-links': 'error',
+            'ember/styled-elements': 'error',
+            'ember/view-content-title': 'error',
+        },
+    },
+    {
+        name: 'ember/pages',
+        files: ['src/pages/**/*.vue'],
+        rules: {
+            'ember/context-title': 'error',
+            'ember/route-view-content': 'error',
+            'ember/social-meta': 'error',
+        },
+    },
+    {
+        name: 'ember/view-templates',
+        files: ['src/**/*.vue'],
+        ignores: ['src/components/**'],
+        rules: {
+            'ember/repeated-class-pattern': 'error',
+            'ember/section-density': 'error',
+            'ember/template-block-size': 'error',
+        },
     },
     {
         name: 'ember/sanitised-html',
@@ -149,11 +286,37 @@ export default withNuxt(
         },
     },
     {
+        name: 'ember/locales',
+        files: LOCALE_FILES,
+        languageOptions: {parser: localeParser},
+        plugins: {'@intlify/vue-i18n': vueI18n},
+        settings: {
+            'vue-i18n': {
+                localeDir: [SNAPSHOTS, localeModules()],
+                messageSyntaxVersion: '^11.0.0',
+            },
+        },
+        rules: {
+            '@intlify/vue-i18n/valid-message-syntax': 'error',
+            'ember/i18n-no-plural-messages': 'error',
+            'ember/i18n-unused-keys': ['error', {
+                sources: 'src',
+                german: GERMAN,
+                translations: ['src/i18n/en.ts'],
+                backendKeyFiles: BACKEND_KEY_FILES,
+            }],
+            'ember/i18n-backend-keys': ['error', {german: GERMAN, sections: ENUM_SECTIONS, keyFiles: BACKEND_KEY_FILES}],
+        },
+    },
+    {
         name: 'ember/help-center-text',
         files: ['src/views/helpcenter/**/*.vue'],
         plugins: {'@intlify/vue-i18n': vueI18n},
         rules: {
-            '@intlify/vue-i18n/no-raw-text': ['error', {ignorePattern: '^[-#:()&.,/·+|→←↑↓…\\s\\d]+$'}],
+            '@intlify/vue-i18n/no-raw-text': ['error', {
+                ignorePattern: `^(?:${LANGUAGE_NEUTRAL_TEXT.join('|')})$`,
+                ignoreNodes: ['code'],
+            }],
         },
     },
     {
@@ -184,7 +347,7 @@ export default withNuxt(
         files: ['src/**/*.{ts,vue}'],
         ignores: ['src/**/*.test.ts', 'src/i18n/**'],
         rules: {
-            'max-lines-per-function': ['error', {max: 79, IIFEs: true}],
+            'ember/max-function-lines': ['error', {max: 79}],
         },
     },
     {
@@ -222,4 +385,27 @@ export default withNuxt(
             ],
         },
     },
-)
+    {
+        name: 'ember/fixtures',
+        files: ['e2e/**/*.ts'],
+        rules: {
+            'no-empty-pattern': ['error', {allowObjectPatternsAsParameters: true}],
+        },
+    },
+).onResolved(configs => configs.map(keepOffLocales))
+
+/**
+ * Leaves the locale modules to the locale rules.
+ *
+ * <p>The locale parser hands ESLint a JSON AST, which no rule written for a script can read, so
+ * every entry that switches rules on, or runs a processor, ignores those files. The entries that
+ * only register plugins or carry settings stay global, since the locale rules need both.
+ *
+ * @param config one resolved config entry
+ * @returns the entry, ignoring the locale modules where it would apply rules to them
+ */
+function keepOffLocales(config) {
+    if (config.name === 'ember/locales') return config
+    if (!config.rules && !config.processor) return config
+    return {...config, ignores: [...(config.ignores ?? []), ...LOCALE_FILES]}
+}
