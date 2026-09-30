@@ -53,6 +53,7 @@
 - **Geänderte Speicher-Einstellungen ließen Verbindungen offen.** Jede Änderung am Speicher einer Wache oder eines Verbunds ließ die Verbindung zum alten Server bis zum nächsten Neustart offen. Ersetzte Verbindungen werden jetzt geschlossen.
 - **Löschen auf SFTP-Speicher konnte fehlschlagen.** In manchen Fällen wurde das Entfernen einer Datei, die auf dem SFTP-Speicher schon fehlte, mit einem Fehler beantwortet. Es gelingt jetzt still, wie auf jedem anderen Speicher.
 - **Animierte Logos standen still.** Ein animiertes GIF als Logo einer Wache und die Kachel eines GIFs im Wiki zeigten nur das erste Bild. Sie bewegen sich jetzt.
+- **Die Seite unter `/pitch` öffnete sich auf dem Handy im Desktop-Layout.** In manchen Fällen blieben die Anwesenheitsknöpfe ihres Beispiels auf einem Handy in Desktop-Breite, bis der Bildschirm gedreht oder die Fenstergröße geändert wurde. Die Seite wechselt jetzt gleich nach dem Laden ins Handy-Layout.
 
 ## v26.19.5
 

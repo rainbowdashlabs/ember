@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {useEventListener, useMounted} from '@vueuse/core'
+import {useEventListener} from '@vueuse/core'
 import {computed, ref} from 'vue'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
@@ -17,9 +17,7 @@ const {sessionInfo, fullName} = useSession()
 const {logout} = useLogout()
 
 const open = ref(false)
-const mounted = useMounted()
-const {isDesktop: desktopWidth} = useBreakpoint()
-const isDesktop = computed(() => mounted.value && desktopWidth.value)
+const {isDesktop} = useBreakpoint()
 const rootEl = ref<HTMLElement | null>(null)
 
 function onDocumentClick(e: MouseEvent) {

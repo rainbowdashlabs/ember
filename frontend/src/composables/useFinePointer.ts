@@ -3,8 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {useMediaQuery, useMounted} from '@vueuse/core'
+import {useMediaQuery} from '@vueuse/core'
 import {computed} from 'vue'
+import {useHydrated} from '@/composables/useHydrated'
 
 /**
  * Whether the device points with something as precise as a mouse.
@@ -13,11 +14,12 @@ import {computed} from 'vue'
  * down again, so a list that can only be dragged cannot be sorted on a phone. It asks about the pointer
  * rather than the width of the window, because a tablet is wide and still has no mouse.
  *
- * <p>It reads false until the component is mounted, so the server and the first client render agree, and
- * whatever is offered only for a mouse appears once the browser has said there is one.
+ * <p>It reads false on the server and while the browser takes up the page the server sent (see
+ * {@link useHydrated}), so whatever is offered only for a mouse appears once the browser has said
+ * there is one.
  */
 export function useFinePointer() {
-    const mounted = useMounted()
+    const hydrated = useHydrated()
     const fine = useMediaQuery('(pointer: fine)')
-    return {finePointer: computed(() => mounted.value && fine.value)}
+    return {finePointer: computed(() => hydrated.value && fine.value)}
 }

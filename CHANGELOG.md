@@ -53,6 +53,7 @@
 - **Changed storage settings left connections open.** Every change to the storage of a station or a cluster left the connection to the old server open until Ember was restarted. Replaced connections are now closed.
 - **Deleting a file on SFTP storage could fail.** In some cases removing a file from SFTP storage that was already gone was answered with an error. It now succeeds quietly, as it does on every other storage.
 - **Animated logos stood still.** An animated GIF uploaded as a station logo, and the tile of a GIF in the wiki, showed only its first frame. They now keep moving.
+- **The page at `/pitch` opened in the desktop layout on phones.** In some cases the attendance buttons of its example stayed at desktop width on a phone until the screen was turned or resized. The page now switches to the phone layout as soon as it has loaded.
 
 ## v26.19.5
 
