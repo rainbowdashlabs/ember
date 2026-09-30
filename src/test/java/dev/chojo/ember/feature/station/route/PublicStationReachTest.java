@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -19,20 +19,18 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
-import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.testtools.Response;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+import tools.jackson.databind.JsonNode;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteHarness.read;
+import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -99,37 +97,23 @@ class PublicStationReachTest {
                 formService);
     }
 
-    private static void askFor(PublicStationRoutes routes, Context ctx) throws Exception {
-        when(ctx.pathParam("stationUid")).thenReturn(STATION_UID.toString());
-        Method handler = PublicStationRoutes.class.getDeclaredMethod("getInfo", Context.class);
-        handler.setAccessible(true);
-        try {
-            handler.invoke(routes, ctx);
-        } catch (InvocationTargetException e) {
-            if (e.getCause() instanceof RuntimeException cause) throw cause;
-            throw e;
-        }
+    private static Response askFor(PublicStationRoutes routes) {
+        return RouteHarness.serving(routes)
+                .request(client -> client.get(RouteHarness.PREFIX + "/public/station/" + STATION_UID + "/info"));
     }
 
     @Test
     void aStationWithNothingPublicAtAllAnswersNobody() {
-        var routes = routesWhereFormsReach(false);
-        Context ctx = mock(Context.class);
+        var refused = askFor(routesWhereFormsReach(false));
 
-        var refused = assertThrows(RefusalResponse.class, () -> askFor(routes, ctx));
-        assertEquals(Refusal.PUBLIC_STATION_NOTHING_TO_SHOW, refused.refusal());
-        assertEquals(HttpStatus.NOT_FOUND.getCode(), refused.getStatus());
+        assertEquals(Refusal.PUBLIC_STATION_NOTHING_TO_SHOW, refusalOf(refused));
+        assertEquals(HttpStatus.NOT_FOUND.getCode(), refused.code());
     }
 
     @Test
-    void aFormAnybodyCanReachIsEnoughToAnswerWith() throws Exception {
-        var routes = routesWhereFormsReach(true);
-        Context ctx = mock(Context.class);
+    void aFormAnybodyCanReachIsEnoughToAnswerWith() {
+        var card = read(askFor(routesWhereFormsReach(true)), JsonNode.class);
 
-        askFor(routes, ctx);
-
-        var card = ArgumentCaptor.forClass(PublicStationRoutes.PublicStationInfo.class);
-        verify(ctx).json(card.capture());
-        assertEquals("Wache", card.getValue().name());
+        assertEquals("Wache", card.path("name").asString());
     }
 }

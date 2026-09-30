@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.station.route;
 
+import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -17,18 +18,15 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
-import io.javalin.http.Context;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+import tools.jackson.databind.JsonNode;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteHarness.read;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -78,7 +76,7 @@ class PublicStationInfoTimezoneTest {
                 false);
     }
 
-    private static PublicStationRoutes.PublicStationInfo cardOf(String timezone) throws Exception {
+    private static JsonNode cardOf(String timezone) {
         var stationRepository = mock(StationRepository.class);
         when(stationRepository.findByAddress(STATION_UID.toString())).thenReturn(Optional.of(station(timezone)));
         var routes = new PublicStationRoutes(
@@ -90,26 +88,16 @@ class PublicStationInfoTimezoneTest {
                 mock(NewsService.class),
                 mock(FormService.class));
 
-        Context ctx = mock(Context.class);
-        when(ctx.pathParam("stationUid")).thenReturn(STATION_UID.toString());
-
-        Method handler = PublicStationRoutes.class.getDeclaredMethod("getInfo", Context.class);
-        handler.setAccessible(true);
-        try {
-            handler.invoke(routes, ctx);
-        } catch (InvocationTargetException e) {
-            if (e.getCause() instanceof RuntimeException cause) throw cause;
-            throw e;
-        }
-
-        var card = ArgumentCaptor.forClass(PublicStationRoutes.PublicStationInfo.class);
-        verify(ctx).json(card.capture());
-        return card.getValue();
+        return read(
+                RouteHarness.serving(routes)
+                        .request(
+                                client -> client.get(RouteHarness.PREFIX + "/public/station/" + STATION_UID + "/info")),
+                JsonNode.class);
     }
 
     @Test
-    void aStationHandsOutTheClockItKeeps() throws Exception {
-        assertEquals("Europe/Berlin", cardOf("Europe/Berlin").timezone());
+    void aStationHandsOutTheClockItKeeps() {
+        assertEquals("Europe/Berlin", cardOf("Europe/Berlin").path("timezone").asString());
     }
 
     /**
@@ -118,8 +106,8 @@ class PublicStationInfoTimezoneTest {
      * date formatter knows that spelling.
      */
     @Test
-    void aStationThatNamedNoClockHandsOutOneABrowserCanRead() throws Exception {
-        assertEquals("UTC", cardOf(null).timezone());
-        assertEquals("UTC", cardOf("Nirgendwo/Nirgends").timezone());
+    void aStationThatNamedNoClockHandsOutOneABrowserCanRead() {
+        assertEquals("UTC", cardOf(null).path("timezone").asString());
+        assertEquals("UTC", cardOf("Nirgendwo/Nirgends").path("timezone").asString());
     }
 }
