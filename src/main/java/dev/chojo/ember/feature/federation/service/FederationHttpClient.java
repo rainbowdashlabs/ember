@@ -37,7 +37,8 @@ import java.util.UUID;
 
 /**
  * HTTP client for cross-instance federation communication.
- * Calls remote federation endpoints and signs requests using {@link FederationSigningService}.
+ * Calls remote federation endpoints and signs requests as the calling station through
+ * {@link StationSigner}; callers name the station and never handle its key.
  * The remote host is determined per-partner from the {@code remote_host} field.
  * <p>
  * Every signed request binds the HTTP method, request path (with sorted query
@@ -66,7 +67,7 @@ public class FederationHttpClient {
 
     private final HttpClient httpsClient;
     private final HttpClient httpClient1;
-    private final FederationSigningService signingService;
+    private final StationSigner signer;
     private final StationRepository stationRepository;
     private final RemoteUrlValidator urlValidator;
     private final Provider<FederationContractRefreshService> refreshService;
@@ -75,11 +76,11 @@ public class FederationHttpClient {
 
     @Inject
     public FederationHttpClient(
-            FederationSigningService signingService,
+            StationSigner signer,
             StationRepository stationRepository,
             RemoteUrlValidator urlValidator,
             Provider<FederationContractRefreshService> refreshService) {
-        this(signingService, stationRepository, urlValidator, refreshService, REQUEST_TIMEOUT);
+        this(signer, stationRepository, urlValidator, refreshService, REQUEST_TIMEOUT);
     }
 
     /**
@@ -87,12 +88,12 @@ public class FederationHttpClient {
      * answer, so a test can stand in a stalled partner without waiting out the production limit.
      */
     FederationHttpClient(
-            FederationSigningService signingService,
+            StationSigner signer,
             StationRepository stationRepository,
             RemoteUrlValidator urlValidator,
             Provider<FederationContractRefreshService> refreshService,
             Duration requestTimeout) {
-        this.signingService = signingService;
+        this.signer = signer;
         this.stationRepository = stationRepository;
         this.urlValidator = urlValidator;
         this.refreshService = refreshService;
@@ -169,6 +170,16 @@ public class FederationHttpClient {
         }
     }
 
+    /**
+     * Whether a station can send signed requests at all, which it cannot before it has a key.
+     *
+     * @param stationId the station that would send
+     * @return true when it has a key to sign with
+     */
+    public boolean canSign(int stationId) {
+        return signer.canSign(stationId);
+    }
+
     private static HandshakeStatus handshakeStatus(int statusCode) {
         return switch (statusCode) {
             case 200, 201 -> HandshakeStatus.ESTABLISHED;
@@ -189,12 +200,10 @@ public class FederationHttpClient {
             FederationRequest request,
             UUID partnerStationUid,
             int localStationId,
-            String localPrivateKeyBase64,
             Class<T> responseType) {
         request.requireResponseType(responseType);
         try {
-            var response = sendSigned(
-                    "GET", remoteHost, request, null, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("GET", remoteHost, request, null, partnerStationUid, localStationId);
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 return mapper.readValue(response.body(), responseType);
             }
@@ -217,12 +226,10 @@ public class FederationHttpClient {
             FederationRequest request,
             UUID partnerStationUid,
             int localStationId,
-            String localPrivateKeyBase64,
             Class<T> elementType) {
         request.requireResponseType(elementType);
         try {
-            var response = sendSigned(
-                    "GET", remoteHost, request, null, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("GET", remoteHost, request, null, partnerStationUid, localStationId);
             if (response.statusCode() != 200) {
                 log.warn("Signed GET list {} failed: HTTP {}", request.path(), response.statusCode());
                 return List.of();
@@ -246,13 +253,11 @@ public class FederationHttpClient {
             Object requestBody,
             UUID partnerStationUid,
             int localStationId,
-            String localPrivateKeyBase64,
             Class<T> responseType) {
         request.requireResponseType(responseType);
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = sendSigned(
-                    "POST", remoteHost, request, jsonBody, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("POST", remoteHost, request, jsonBody, partnerStationUid, localStationId);
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 return mapper.readValue(response.body(), responseType);
             }
@@ -275,13 +280,11 @@ public class FederationHttpClient {
             Object requestBody,
             UUID partnerStationUid,
             int localStationId,
-            String localPrivateKeyBase64,
             Class<T> elementType) {
         request.requireResponseType(elementType);
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = sendSigned(
-                    "POST", remoteHost, request, jsonBody, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("POST", remoteHost, request, jsonBody, partnerStationUid, localStationId);
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 var type = mapper.getTypeFactory().constructCollectionType(List.class, elementType);
                 return mapper.readValue(response.body(), type);
@@ -303,12 +306,10 @@ public class FederationHttpClient {
             FederationRequest request,
             Object requestBody,
             UUID partnerStationUid,
-            int localStationId,
-            String localPrivateKeyBase64) {
+            int localStationId) {
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = sendSigned(
-                    "POST", remoteHost, request, jsonBody, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("POST", remoteHost, request, jsonBody, partnerStationUid, localStationId);
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
             log.error("Failed signed POST {} on {}", request.path(), remoteHost, e);
@@ -327,13 +328,11 @@ public class FederationHttpClient {
             Object requestBody,
             UUID partnerStationUid,
             int localStationId,
-            String localPrivateKeyBase64,
             Class<T> responseType) {
         request.requireResponseType(responseType);
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = sendSigned(
-                    "PUT", remoteHost, request, jsonBody, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("PUT", remoteHost, request, jsonBody, partnerStationUid, localStationId);
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 return mapper.readValue(response.body(), responseType);
             }
@@ -354,12 +353,10 @@ public class FederationHttpClient {
             FederationRequest request,
             Object requestBody,
             UUID partnerStationUid,
-            int localStationId,
-            String localPrivateKeyBase64) {
+            int localStationId) {
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = sendSigned(
-                    "PUT", remoteHost, request, jsonBody, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("PUT", remoteHost, request, jsonBody, partnerStationUid, localStationId);
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
             log.error("Failed signed PUT {} on {}", request.path(), remoteHost, e);
@@ -370,15 +367,9 @@ public class FederationHttpClient {
     /**
      * Performs a signed DELETE without a request body, returning true on 2xx success.
      */
-    public boolean delete(
-            String remoteHost,
-            FederationRequest request,
-            UUID partnerStationUid,
-            int localStationId,
-            String localPrivateKeyBase64) {
+    public boolean delete(String remoteHost, FederationRequest request, UUID partnerStationUid, int localStationId) {
         try {
-            var response = sendSigned(
-                    "DELETE", remoteHost, request, "", partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("DELETE", remoteHost, request, "", partnerStationUid, localStationId);
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
             log.error("Failed signed DELETE {} on {}", request.path(), remoteHost, e);
@@ -395,12 +386,10 @@ public class FederationHttpClient {
             FederationRequest request,
             Object requestBody,
             UUID partnerStationUid,
-            int localStationId,
-            String localPrivateKeyBase64) {
+            int localStationId) {
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = sendSigned(
-                    "DELETE", remoteHost, request, jsonBody, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("DELETE", remoteHost, request, jsonBody, partnerStationUid, localStationId);
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
             log.error("Failed signed DELETE {} on {}", request.path(), remoteHost, e);
@@ -433,8 +422,7 @@ public class FederationHttpClient {
             FederationRequest request,
             String body,
             UUID partnerStationUid,
-            int localStationId,
-            String localPrivateKeyBase64)
+            int localStationId)
             throws Exception {
         String url = apiUrl(remoteHost) + request.path();
         if (!urlValidator.isAllowed(url)) {
@@ -444,10 +432,9 @@ public class FederationHttpClient {
         var uri = URI.create(url);
         String pathWithQuery = FederationSigningService.canonicalPathWithQuery(uri);
         String signedBody = body == null ? "" : body;
-        var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
         String nonce = UUID.randomUUID().toString();
-        String signature = signingService.sign(
-                method, pathWithQuery, partnerStationUid, nonce, signedBody, timestampStr, privateKey);
+        String signature = signer.signRequest(
+                localStationId, method, pathWithQuery, partnerStationUid, nonce, signedBody, timestampStr);
         String stationUid = stationRepository.resolveUid(localStationId).toString();
 
         var local = FederationContractVersions.current();

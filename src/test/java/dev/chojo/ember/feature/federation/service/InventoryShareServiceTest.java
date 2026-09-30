@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
@@ -62,7 +63,7 @@ class InventoryShareServiceTest extends RepositoryTestBase {
     static void setup() {
         shareRepo = new InventoryShareRepository();
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         service = new InventoryShareService(shareRepo, federationService, inventoryRepo, artRepo);
 
         owner = stationRepo.create("ShareSvcOwner");

@@ -23,6 +23,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
@@ -39,6 +40,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -74,14 +76,26 @@ class FederationWebhookServiceTest {
                 "Partner");
     }
 
-    private static StationRepository stationsWithKey(String privateKey) {
+    private static StationRepository stations() {
         var station = mock(Station.class);
-        when(station.federationPrivateKey()).thenReturn(privateKey);
         when(station.name()).thenReturn("Local");
         var stations = mock(StationRepository.class);
         when(stations.findById(LOCAL_STATION_ID)).thenReturn(Optional.of(station));
         when(stations.resolveUid(LOCAL_STATION_ID)).thenReturn(LOCAL_STATION_UID);
         return stations;
+    }
+
+    private static StationSigner signerWith(PrivateKey privateKey, FederationSigningService signing) {
+        var keys = mock(StationKeyStore.class);
+        when(keys.hasKey(LOCAL_STATION_ID)).thenReturn(true);
+        when(keys.privateKey(LOCAL_STATION_ID)).thenReturn(Optional.of(privateKey));
+        return new StationSigner(keys, signing);
+    }
+
+    private static FederationHttpClient signingClient() {
+        var client = mock(FederationHttpClient.class);
+        when(client.canSign(LOCAL_STATION_ID)).thenReturn(true);
+        return client;
     }
 
     private static FederationRepository partners(FederationPartner partner) {
@@ -90,9 +104,8 @@ class FederationWebhookServiceTest {
         return repository;
     }
 
-    private static FederationWebhookService inline(
-            FederationRepository repository, FederationHttpClient client, StationRepository stations) {
-        return new FederationWebhookService(repository, client, stations, Runnable::run, List.of(Duration.ZERO));
+    private static FederationWebhookService inline(FederationRepository repository, FederationHttpClient client) {
+        return new FederationWebhookService(repository, client, Runnable::run, List.of(Duration.ZERO));
     }
 
     /**
@@ -103,7 +116,6 @@ class FederationWebhookServiceTest {
     void deliversASignedRequestToTheDeclaredWebhookPath() throws Exception {
         var keys = keyPair();
         var ownPublicKey = Base64.getEncoder().encodeToString(keys.getPublic().getEncoded());
-        var privateKey = Base64.getEncoder().encodeToString(keys.getPrivate().getEncoded());
         var received = new AtomicReference<Received>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/", exchange -> {
@@ -118,16 +130,15 @@ class FederationWebhookServiceTest {
         server.start();
         try {
             var host = "http://127.0.0.1:" + server.getAddress().getPort();
-            var stations = stationsWithKey(privateKey);
             var signing = new FederationSigningService();
             var client = new FederationHttpClient(
-                    signing,
-                    stations,
+                    signerWith(keys.getPrivate(), signing),
+                    stations(),
                     TestRemoteUrlValidator.permissive(),
                     () -> mock(FederationContractRefreshService.class));
             var boardUid = UUID.randomUUID();
 
-            inline(partners(partner(host, FederationStatus.ACTIVE, ownPublicKey)), client, stations)
+            inline(partners(partner(host, FederationStatus.ACTIVE, ownPublicKey)), client)
                     .notifyPartner(
                             PARTNER_ID,
                             RemoteBoardWebhookRoutes.BOARD_RENAMED.at(),
@@ -163,14 +174,13 @@ class FederationWebhookServiceTest {
 
     @Test
     void retriesUntilThePartnerAccepts() {
-        var client = mock(FederationHttpClient.class);
-        when(client.post(anyString(), any(), any(), any(), anyInt(), anyString()))
+        var client = signingClient();
+        when(client.post(anyString(), any(), any(), any(), anyInt()))
                 .thenReturn(false)
                 .thenReturn(true);
         var service = new FederationWebhookService(
                 partners(partner("https://partner.example", FederationStatus.ACTIVE, null)),
                 client,
-                stationsWithKey("private"),
                 Runnable::run,
                 List.of(Duration.ZERO, Duration.ZERO));
 
@@ -182,15 +192,24 @@ class FederationWebhookServiceTest {
                         eq(RemoteBoardWebhookRoutes.BOARD_UNSHARED.at()),
                         eq("body"),
                         eq(PARTNER_STATION_UID),
-                        eq(LOCAL_STATION_ID),
-                        eq("private"));
+                        eq(LOCAL_STATION_ID));
+    }
+
+    @Test
+    void stationsWithoutAKeyDoNotCall() {
+        var client = mock(FederationHttpClient.class);
+
+        inline(partners(partner("https://partner.example", FederationStatus.ACTIVE, null)), client)
+                .notifyPartner(PARTNER_ID, RemoteBoardWebhookRoutes.BOARD_UNSHARED.at(), "body");
+
+        verify(client, never()).post(anyString(), any(), any(), any(), anyInt());
     }
 
     @Test
     void partnersOnThisInstanceAreNotCalled() {
         var client = mock(FederationHttpClient.class);
 
-        inline(partners(partner(null, FederationStatus.ACTIVE, null)), client, stationsWithKey("private"))
+        inline(partners(partner(null, FederationStatus.ACTIVE, null)), client)
                 .notifyPartner(PARTNER_ID, RemoteBoardWebhookRoutes.BOARD_UNSHARED.at(), "body");
 
         verifyNoInteractions(client);
@@ -200,10 +219,7 @@ class FederationWebhookServiceTest {
     void inactivePartnersAreNotCalled() {
         var client = mock(FederationHttpClient.class);
 
-        inline(
-                        partners(partner("https://partner.example", FederationStatus.SUSPENDED, null)),
-                        client,
-                        stationsWithKey("private"))
+        inline(partners(partner("https://partner.example", FederationStatus.SUSPENDED, null)), client)
                 .notifyPartner(PARTNER_ID, RemoteBoardWebhookRoutes.BOARD_UNSHARED.at(), "body");
 
         verifyNoInteractions(client);

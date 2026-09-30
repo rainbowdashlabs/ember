@@ -118,8 +118,7 @@ public class FederatedItemTagService {
     }
 
     private List<TaggedItemSummary> fromRemotePartner(FederationPartner partner, int stationId, String name) {
-        var station = stationRepository.findById(stationId).orElse(null);
-        if (station == null || station.federationPrivateKey() == null) {
+        if (!httpClient.canSign(stationId)) {
             log.warn("No private key found for station {}, cannot ask partners for tagged items", stationId);
             return List.of();
         }
@@ -128,7 +127,6 @@ public class FederatedItemTagService {
                 RemoteInventoryTagRoutes.GET_TAGGED_ITEMS.at(URLEncoder.encode(name, StandardCharsets.UTF_8)),
                 partner.partnerStationId(),
                 stationId,
-                station.federationPrivateKey(),
                 TaggedItemSummary.class);
     }
 }

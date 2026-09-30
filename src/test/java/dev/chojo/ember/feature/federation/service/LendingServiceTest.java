@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
@@ -79,7 +80,7 @@ class LendingServiceTest extends RepositoryTestBase {
         lendingRepo = new LendingRepository();
         federationRepo = new FederationRepository();
         shareRepo = new InventoryShareRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         shareService = new InventoryShareService(shareRepo, federationService, inventoryRepo, artRepo);
         httpClient = mock(FederationHttpClient.class);
         service = newLendingService(
@@ -258,8 +259,7 @@ class LendingServiceTest extends RepositoryTestBase {
         assertTrue(messages.stream().anyMatch(m -> stationB.uid().equals(m.senderStationUid())));
 
         // Verify HTTP client was never called (local partner)
-        verify(httpClient, never())
-                .getList(anyString(), any(FederationRequest.class), any(), anyInt(), anyString(), any());
+        verify(httpClient, never()).getList(anyString(), any(FederationRequest.class), any(), anyInt(), any());
     }
 
     @Test
@@ -297,12 +297,10 @@ class LendingServiceTest extends RepositoryTestBase {
                         pathIs("/remote/lending/messages/" + req.id()),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(LendingMessage.class)))
                 .thenReturn(List.of(remoteMsg));
 
-        // Set federation private key on station A so the service can call HTTP
-        stationRepo.updateFederationPrivateKey(stationA.id(), "dummyPrivateKey");
+        when(httpClient.canSign(stationA.id())).thenReturn(true);
 
         var messages = service.getMessages(req.id(), stationA.id());
         assertFalse(messages.isEmpty());
@@ -317,7 +315,6 @@ class LendingServiceTest extends RepositoryTestBase {
                         pathIs("/remote/lending/messages/" + req.id()),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(LendingMessage.class));
 
         // Cleanup
@@ -720,12 +717,10 @@ class LendingServiceTest extends RepositoryTestBase {
                         pathIs("/remote/lending/messages/" + req.id()),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(LendingMessage.class)))
                 .thenReturn(List.of(lateMsg, earlyMsg));
 
-        // Set federation private key so HTTP call proceeds
-        stationRepo.updateFederationPrivateKey(stationA.id(), "dummyKey");
+        when(httpClient.canSign(stationA.id())).thenReturn(true);
 
         var messages = service.getMessages(req.id(), stationA.id());
         assertFalse(messages.isEmpty());
@@ -802,8 +797,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 null,
                 "https://remote-nopk.example.com");
 
-        // Clear the private key
-        stationRepo.updateFederationPrivateKey(stationNoPk.id(), null);
+        when(httpClient.canSign(stationNoPk.id())).thenReturn(false);
 
         // Create a request where stationNoPk needs to fetch remote messages
         var req = lendingRepo.createRequest(

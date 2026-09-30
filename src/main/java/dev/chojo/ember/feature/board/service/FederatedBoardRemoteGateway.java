@@ -8,8 +8,6 @@ package dev.chojo.ember.feature.board.service;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
-import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -18,18 +16,16 @@ import java.util.List;
 
 /**
  * Signed HTTP transport for board requests against a federation partner living on another instance.
- * Resolves the calling station's federation key for every call and turns transport failures and
- * empty bodies into a {@link NotFoundResponse}.
+ * Every call is signed as the partner row's own station and turns transport failures and empty
+ * bodies into a {@link NotFoundResponse}.
  */
 @Singleton
 public class FederatedBoardRemoteGateway {
     private final FederationHttpClient httpClient;
-    private final StationRepository stationRepository;
 
     @Inject
-    public FederatedBoardRemoteGateway(FederationHttpClient httpClient, StationRepository stationRepository) {
+    public FederatedBoardRemoteGateway(FederationHttpClient httpClient) {
         this.httpClient = httpClient;
-        this.stationRepository = stationRepository;
     }
 
     /**
@@ -44,12 +40,7 @@ public class FederatedBoardRemoteGateway {
     public <T> T get(FederationPartner partner, FederationRequest request, Class<T> type) {
         try {
             var result = httpClient.get(
-                    partner.remoteHost(),
-                    request,
-                    partner.partnerStationId(),
-                    partner.stationId(),
-                    privateKey(partner),
-                    type);
+                    partner.remoteHost(), request, partner.partnerStationId(), partner.stationId(), type);
             if (result == null) throw new NotFoundResponse("Empty response from remote partner");
             return result;
         } catch (NotFoundResponse e) {
@@ -70,12 +61,7 @@ public class FederatedBoardRemoteGateway {
      */
     public <T> List<T> getList(FederationPartner partner, FederationRequest request, Class<T> elementType) {
         return httpClient.getList(
-                partner.remoteHost(),
-                request,
-                partner.partnerStationId(),
-                partner.stationId(),
-                privateKey(partner),
-                elementType);
+                partner.remoteHost(), request, partner.partnerStationId(), partner.stationId(), elementType);
     }
 
     /**
@@ -91,13 +77,7 @@ public class FederatedBoardRemoteGateway {
     public <T> T post(FederationPartner partner, FederationRequest request, Object body, Class<T> type) {
         try {
             var result = httpClient.post(
-                    partner.remoteHost(),
-                    request,
-                    body,
-                    partner.partnerStationId(),
-                    partner.stationId(),
-                    privateKey(partner),
-                    type);
+                    partner.remoteHost(), request, body, partner.partnerStationId(), partner.stationId(), type);
             if (result == null) throw new NotFoundResponse("Empty response from remote partner");
             return result;
         } catch (NotFoundResponse e) {
@@ -120,13 +100,7 @@ public class FederatedBoardRemoteGateway {
     public <T> List<T> postList(
             FederationPartner partner, FederationRequest request, Object body, Class<T> elementType) {
         return httpClient.postList(
-                partner.remoteHost(),
-                request,
-                body,
-                partner.partnerStationId(),
-                partner.stationId(),
-                privateKey(partner),
-                elementType);
+                partner.remoteHost(), request, body, partner.partnerStationId(), partner.stationId(), elementType);
     }
 
     /**
@@ -137,13 +111,7 @@ public class FederatedBoardRemoteGateway {
      * @param body    the request body
      */
     public void post(FederationPartner partner, FederationRequest request, Object body) {
-        httpClient.post(
-                partner.remoteHost(),
-                request,
-                body,
-                partner.partnerStationId(),
-                partner.stationId(),
-                privateKey(partner));
+        httpClient.post(partner.remoteHost(), request, body, partner.partnerStationId(), partner.stationId());
     }
 
     /**
@@ -159,13 +127,7 @@ public class FederatedBoardRemoteGateway {
     public <T> T put(FederationPartner partner, FederationRequest request, Object body, Class<T> type) {
         try {
             var result = httpClient.put(
-                    partner.remoteHost(),
-                    request,
-                    body,
-                    partner.partnerStationId(),
-                    partner.stationId(),
-                    privateKey(partner),
-                    type);
+                    partner.remoteHost(), request, body, partner.partnerStationId(), partner.stationId(), type);
             if (result == null) throw new NotFoundResponse("Empty response from remote partner");
             return result;
         } catch (NotFoundResponse e) {
@@ -183,13 +145,7 @@ public class FederatedBoardRemoteGateway {
      * @param body    the request body
      */
     public void put(FederationPartner partner, FederationRequest request, Object body) {
-        httpClient.put(
-                partner.remoteHost(),
-                request,
-                body,
-                partner.partnerStationId(),
-                partner.stationId(),
-                privateKey(partner));
+        httpClient.put(partner.remoteHost(), request, body, partner.partnerStationId(), partner.stationId());
     }
 
     /**
@@ -199,8 +155,7 @@ public class FederatedBoardRemoteGateway {
      * @param request    the remote request
      */
     public void delete(FederationPartner partner, FederationRequest request) {
-        httpClient.delete(
-                partner.remoteHost(), request, partner.partnerStationId(), partner.stationId(), privateKey(partner));
+        httpClient.delete(partner.remoteHost(), request, partner.partnerStationId(), partner.stationId());
     }
 
     /**
@@ -211,19 +166,6 @@ public class FederatedBoardRemoteGateway {
      * @param body    the request body
      */
     public void delete(FederationPartner partner, FederationRequest request, Object body) {
-        httpClient.delete(
-                partner.remoteHost(),
-                request,
-                body,
-                partner.partnerStationId(),
-                partner.stationId(),
-                privateKey(partner));
-    }
-
-    private String privateKey(FederationPartner partner) {
-        return stationRepository
-                .findById(partner.stationId())
-                .map(Station::federationPrivateKey)
-                .orElse(null);
+        httpClient.delete(partner.remoteHost(), request, body, partner.partnerStationId(), partner.stationId());
     }
 }

@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.feature.federation.service.StationKeyTransfer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
@@ -77,6 +78,7 @@ public class StationImportService {
     private final TransferBackendImporter backendImporter;
     private final TransferFileImporter fileImporter;
     private final FederationPartnerTransferFixupService federationFixup;
+    private final StationKeyTransfer keyTransfer;
     private final RemoteUrlValidator urlValidator;
     private final StationTableImporter stationImporter;
     private final Map<String, TableImporter> importers;
@@ -99,6 +101,7 @@ public class StationImportService {
             TransferBackendImporter backendImporter,
             TransferFileImporter fileImporter,
             FederationPartnerTransferFixupService federationFixup,
+            StationKeyTransfer keyTransfer,
             RemoteUrlValidator urlValidator,
             StationTableImporter stationImporter,
             Set<TableImporter> importers,
@@ -112,6 +115,7 @@ public class StationImportService {
         this.backendImporter = backendImporter;
         this.fileImporter = fileImporter;
         this.federationFixup = federationFixup;
+        this.keyTransfer = keyTransfer;
         this.urlValidator = urlValidator;
         this.stationImporter = stationImporter;
         this.importers = importers.stream().collect(Collectors.toMap(TableImporter::table, Function.identity()));
@@ -227,7 +231,8 @@ public class StationImportService {
         var client = new TransferSourceClient(baseUrl, token, api.baseUrl());
         verifyRemoteSchemaHash(client, baseUrl);
 
-        Map<String, Object> stationData = fetchStationEntry(client);
+        Map<String, Object> stationPage = fetchStationPage(client);
+        Map<String, Object> stationData = asMap(stationPage.get("station"));
         if (stationData == null) {
             throw new BadRequestResponse("Remote station table missing 'station' field");
         }
@@ -236,6 +241,7 @@ public class StationImportService {
         Station station = stationRepository.create(stationName);
         int stationId = station.id();
         stationImporter.applyFields(stationId, stationData);
+        keyTransfer.adopt(stationId, stationPage, stationData, token);
 
         UUID currentUid =
                 stationRepository.findById(stationId).map(Station::uid).orElse(station.uid());
@@ -258,8 +264,12 @@ public class StationImportService {
         var client = new TransferSourceClient(baseUrl, token, api.baseUrl());
         verifyRemoteSchemaHash(client, baseUrl);
 
-        Map<String, Object> stationData = fetchStationEntry(client);
-        if (stationData != null) stationImporter.applyFields(stationId, stationData);
+        Map<String, Object> stationPage = fetchStationPage(client);
+        Map<String, Object> stationData = asMap(stationPage.get("station"));
+        if (stationData != null) {
+            stationImporter.applyFields(stationId, stationData);
+            keyTransfer.adopt(stationId, stationPage, stationData, token);
+        }
 
         Station target = stationRepository
                 .findById(stationId)
@@ -309,8 +319,8 @@ public class StationImportService {
         return baseUrl;
     }
 
-    private Map<String, Object> fetchStationEntry(TransferSourceClient client) {
-        return asMap(client.fetchPage("station", 0, PAGE_SIZE).get("station"));
+    private Map<String, Object> fetchStationPage(TransferSourceClient client) {
+        return client.fetchPage("station", 0, PAGE_SIZE);
     }
 
     private StationImportContext newContext(int stationId, Map<String, Object> stationData) {

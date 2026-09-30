@@ -25,7 +25,6 @@ import dev.chojo.ember.feature.federation.service.FederationWebhookService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -83,11 +82,7 @@ class SharedBoardChangeServiceTest extends RepositoryTestBase {
                 stationMemberRepo.create(localPartnerStation.id(), account.id()).id();
 
         httpClient = mock(FederationHttpClient.class);
-        var keyedStation = mock(Station.class);
-        when(keyedStation.federationPrivateKey()).thenReturn("private-key");
-        var stations = mock(StationRepository.class);
-        when(stations.findById(station.id())).thenReturn(Optional.of(keyedStation));
-        var webhooks = new FederationWebhookService(new FederationRepository(), httpClient, stations);
+        var webhooks = new FederationWebhookService(new FederationRepository(), httpClient);
 
         federatedBoards = new FederatedBoardService(federatedBoardRepo);
         var boardService = new BoardService(
@@ -137,18 +132,18 @@ class SharedBoardChangeServiceTest extends RepositoryTestBase {
         federatedBoards.createBookmark(
                 localMemberId, counterpartId, board.uid(), "Shared Board", "SHB", BoardShareMode.FULL);
         reset(httpClient);
-        when(httpClient.post(anyString(), any(), any(), any(), anyInt(), anyString()))
-                .thenReturn(true);
+        when(httpClient.canSign(station.id())).thenReturn(true);
+        when(httpClient.post(anyString(), any(), any(), any(), anyInt())).thenReturn(true);
     }
 
     private static void verifyOnlyDelivery(FederationRequest request, Object body) {
         verify(httpClient, after(SETTLE_MILLIS).times(1))
-                .post(eq(REMOTE_HOST), eq(request), eq(body), any(), eq(station.id()), eq("private-key"));
-        verify(httpClient, times(1)).post(any(), any(), any(), any(), anyInt(), any());
+                .post(eq(REMOTE_HOST), eq(request), eq(body), any(), eq(station.id()));
+        verify(httpClient, times(1)).post(any(), any(), any(), any(), anyInt());
     }
 
     private static void verifyNothingDelivered() {
-        verify(httpClient, after(SETTLE_MILLIS).never()).post(any(), any(), any(), any(), anyInt(), any());
+        verify(httpClient, after(SETTLE_MILLIS).never()).post(any(), any(), any(), any(), anyInt());
     }
 
     private static Optional<FederationBoardBookmark> localBookmark() {

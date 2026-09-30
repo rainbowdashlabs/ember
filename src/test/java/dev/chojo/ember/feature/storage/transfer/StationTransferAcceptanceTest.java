@@ -37,6 +37,7 @@ import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.storage.service.TransferBackendDescriptorService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
+import dev.chojo.ember.util.TestStationKeys;
 import dev.chojo.ember.util.WebpEncoder;
 import io.javalin.Javalin;
 import org.junit.jupiter.api.AfterAll;
@@ -114,7 +115,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         var backendImporter = new TransferBackendImporter(configRepo, credentialCipher, resolver);
         var descriptorService = new TransferBackendDescriptorService(configRepo, credentialCipher);
 
-        exportService = new StationExportService(stationRepo, new Api());
+        exportService = new StationExportService(stationRepo, TestStationKeys.transfer(), new Api());
         var fileImporter = new TransferFileImporter(
                 storageService, avatarService, imageVariantService, mediaStorageService, mediaVariantService);
         var stationImporter = new StationTableImporter(stationRepo);
@@ -124,7 +125,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 new Api(),
                 backendImporter,
                 fileImporter,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo),
+                new FederationPartnerTransferFixupService(new FederationRepository(), null),
+                TestStationKeys.transfer(),
                 TestRemoteUrlValidator.permissive(),
                 stationImporter,
                 Set.of(
@@ -139,7 +141,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 exportService,
                 importService,
                 stationRepo,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo));
+                new FederationPartnerTransferFixupService(new FederationRepository(), null));
         var assetRoutes = new StationTransferAssetRoutes(
                 exportService, descriptorService, stationRepo, storageService, avatarService);
 

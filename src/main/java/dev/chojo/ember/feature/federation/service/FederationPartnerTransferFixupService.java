@@ -9,7 +9,6 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -46,16 +45,12 @@ public class FederationPartnerTransferFixupService {
 
     private final FederationRepository federationRepository;
     private final FederationHttpClient federationHttpClient;
-    private final StationRepository stationRepository;
 
     @Inject
     public FederationPartnerTransferFixupService(
-            FederationRepository federationRepository,
-            FederationHttpClient federationHttpClient,
-            StationRepository stationRepository) {
+            FederationRepository federationRepository, FederationHttpClient federationHttpClient) {
         this.federationRepository = federationRepository;
         this.federationHttpClient = federationHttpClient;
-        this.stationRepository = stationRepository;
     }
 
     /**
@@ -128,32 +123,33 @@ public class FederationPartnerTransferFixupService {
             log.warn("skip new-host announce for station {}: destination instance URL not configured", stationId);
             return;
         }
-        var station = stationRepository.findById(stationId).orElse(null);
-        if (station == null || station.federationPrivateKey() == null) {
+        var partners = federationRepository.findPartners(stationId);
+        var remote = partners.stream()
+                .filter(partner -> partner.status() == FederationPartner.FederationStatus.ACTIVE)
+                .filter(partner ->
+                        partner.remoteHost() != null && !partner.remoteHost().isBlank())
+                .toList();
+        int skipped = partners.size() - remote.size();
+        if (remote.isEmpty()) {
+            log.info("no remote partner to announce new host {} to for station {}", url, stationId);
+            return;
+        }
+        if (!federationHttpClient.canSign(stationId)) {
             log.warn(
                     "skip new-host announce for station {}: no federation private key on the imported station",
                     stationId);
             return;
         }
-        var partners = federationRepository.findPartners(stationId);
         var payload = new AnnounceBody(url);
         int sent = 0;
-        int skipped = 0;
-        for (FederationPartner partner : partners) {
-            if (partner.status() != FederationPartner.FederationStatus.ACTIVE
-                    || partner.remoteHost() == null
-                    || partner.remoteHost().isBlank()) {
-                skipped++;
-                continue;
-            }
+        for (FederationPartner partner : remote) {
             try {
                 boolean ok = federationHttpClient.post(
                         partner.remoteHost(),
                         RemoteFederationRoutes.ANNOUNCE.at(),
                         payload,
                         partner.partnerStationId(),
-                        stationId,
-                        station.federationPrivateKey());
+                        stationId);
                 if (ok) {
                     sent++;
                 } else {

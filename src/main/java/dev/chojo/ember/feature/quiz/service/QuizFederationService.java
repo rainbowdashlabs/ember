@@ -172,13 +172,12 @@ public class QuizFederationService {
     }
 
     public List<RemoteQuizCatalog> fetchSharedQuizCatalogs(
-            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
+            String remoteHost, UUID partnerStationUid, int localStationId) {
         return federationHttpClient.getList(
                 remoteHost,
                 RemoteQuizRoutes.BROWSE_CATALOGS.at(),
                 partnerStationUid,
                 localStationId,
-                localPrivateKeyBase64,
                 RemoteQuizCatalog.class);
     }
 
@@ -201,8 +200,7 @@ public class QuizFederationService {
     private List<SharedQuizItem> browseSharedQuizViaHttp(
             int localStationId, FederationPartner partner, int remoteStationId) {
         var result = new ArrayList<SharedQuizItem>();
-        var catalogs = fetchSharedQuizCatalogs(
-                partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
+        var catalogs = fetchSharedQuizCatalogs(partner.remoteHost(), partner.partnerStationId(), localStationId);
         for (var remoteCatalog : catalogs) {
             result.add(new SharedQuizItem(
                     remoteCatalog.id(),
@@ -218,13 +216,6 @@ public class QuizFederationService {
                     remoteCatalog.description());
         }
         return result;
-    }
-
-    private String getPrivateKey(int stationId) {
-        return stationRepository
-                .findById(stationId)
-                .map(Station::federationPrivateKey)
-                .orElse(null);
     }
 
     private int resolvePartnerStationId(FederationPartner partner) {

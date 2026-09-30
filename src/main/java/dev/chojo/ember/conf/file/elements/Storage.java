@@ -107,10 +107,11 @@ public class Storage {
     private StorageBackendSettings backend = new StorageBackendSettings();
 
     /**
-     * AES-256 key used to encrypt station-supplied remote-backend credentials at rest. Read
-     * from {@code STORAGE_CREDENTIAL_ENCRYPTION_KEY}; required once any station opts into
-     * self-service remote storage. Auto-generated and persisted on first production boot
-     * when left blank.
+     * AES-256 key (base64, 32 bytes) used to encrypt secrets at rest: station-supplied
+     * remote-backend credentials, mailbox passwords and the stations' federation signing keys.
+     * When left blank, Ember generates a key on its first start and keeps it in
+     * {@code data/secrets/encryption.key} rather than in this file or the database; a key set
+     * here always takes precedence over that file.
      */
     @Overwrite(env = @Env)
     private String credentialEncryptionKey = "";

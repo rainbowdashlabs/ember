@@ -8,8 +8,8 @@ package dev.chojo.ember.auth;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
-import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
+import dev.chojo.ember.feature.storage.credential.EncryptionKeyFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,9 +26,12 @@ import java.util.Base64;
  * refuses to boot (production) or substitutes a deterministic dev placeholder
  * (demo / dev). Running this initializer first means a fresh production install
  * never trips the boot guard - the first start generates a strong secret,
- * persists it to disk, and subsequent boots reuse it. The remote-storage
- * credential key is covered the same way so self-service remote backends work
- * without manual key setup.
+ * persists it to disk, and subsequent boots reuse it.
+ *
+ * <p>The key that encrypts secrets at rest is not written here: a configured
+ * {@code storage.credentialEncryptionKey} still wins, and without one the key is
+ * generated into the data directory by {@link EncryptionKeyFile}, away from both the
+ * database and the configuration file.
  *
  * <p>Demo / dev runs are skipped intentionally: tests and demo containers expect
  * the placeholder values so config files committed into images stay diff-free.
@@ -60,14 +63,6 @@ public final class SecretsInitializer {
             setField(TwoFactorSettings.class, twoFactor, "secretKey", generateBase64(32));
             log.warn(
                     "auth.twoFactor.secretKey was empty - generated a fresh 32-byte value and persisted it to config.yaml.");
-            dirty = true;
-        }
-        Storage storage = conf.main().storage();
-        if (storage.credentialEncryptionKey() == null
-                || storage.credentialEncryptionKey().isBlank()) {
-            setField(Storage.class, storage, "credentialEncryptionKey", generateBase64(32));
-            log.warn(
-                    "storage.credentialEncryptionKey was empty - generated a fresh 32-byte value and persisted it to config.yaml.");
             dirty = true;
         }
         if (dirty) {

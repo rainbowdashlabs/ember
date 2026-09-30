@@ -191,7 +191,7 @@ public class TransferRoutes implements Routes {
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(500);
         log.info("serving table '{}' offset={} limit={} for station {}", table, offset, limit, stationId);
-        ctx.json(exportService.exportTable(stationId, table, offset, limit));
+        ctx.json(exportService.exportTableForTransfer(token, stationId, table, offset, limit));
     }
 
     @OpenApi(

@@ -203,14 +203,6 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertTrue(stationRepo.findDisabledModules(stationId).isEmpty());
     }
 
-    // -- Federation key --
-
-    @Test
-    @Order(27)
-    void updateFederationPrivateKey() {
-        assertTrue(stationRepo.updateFederationPrivateKey(stationId, "mock-private-key"));
-    }
-
     // -- Timezone / Locale --
 
     @Test

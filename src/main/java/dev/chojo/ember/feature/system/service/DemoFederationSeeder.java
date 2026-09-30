@@ -342,15 +342,9 @@ public class DemoFederationSeeder implements DemoSeeder {
         // When federationForceHttp is set, register partners as remote (same host, exercising HTTP path)
         String remoteHost = demoConfig.federationForceHttp() ? "http://localhost:" + apiConfig.port() : null;
 
-        var initiatingKeyPair = federationService.generateKeyPair();
-        stationRepository.updateFederationPrivateKey(
-                partnerStation.id(), federationService.encodePrivateKey(initiatingKeyPair));
+        String initiatingPublicKey = federationService.ensureStationKey(partnerStation.id());
         var partner = federationService.acceptInvite(
-                primaryStationId,
-                partnerStation.id(),
-                federationService.encodePublicKey(initiatingKeyPair),
-                remoteHost,
-                remoteHost);
+                primaryStationId, partnerStation.id(), initiatingPublicKey, remoteHost, remoteHost);
 
         // Share the partner station's KB with the primary station (files + folders)
         var kbFiles = kbService.findFiles(partnerStation.id(), null);
@@ -410,11 +404,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         // second key pair here would replace the first station's and break the pairing it already has
         for (int stationId : alsoFederated) {
             var alsoPartner = federationService.acceptInvite(
-                    stationId,
-                    partnerStation.id(),
-                    federationService.encodePublicKey(initiatingKeyPair),
-                    remoteHost,
-                    remoteHost);
+                    stationId, partnerStation.id(), initiatingPublicKey, remoteHost, remoteHost);
             enableCapabilities(alsoPartner.id());
             log.info("Demo: Federated station {} with the partner station as well", stationId);
         }

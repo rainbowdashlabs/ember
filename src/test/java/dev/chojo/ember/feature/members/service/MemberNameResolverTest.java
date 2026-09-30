@@ -362,7 +362,6 @@ class MemberNameResolverTest {
                 ThemeFeel.ROUNDED,
                 false,
                 PublicKbMode.OFF,
-                null,
                 DiscoveryVisibility.NONE,
                 null,
                 false,

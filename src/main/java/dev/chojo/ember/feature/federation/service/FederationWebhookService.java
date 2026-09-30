@@ -8,8 +8,6 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -39,14 +37,12 @@ public class FederationWebhookService {
 
     private final FederationRepository repository;
     private final FederationHttpClient httpClient;
-    private final StationRepository stationRepository;
     private final Executor executor;
     private final List<Duration> retryDelays;
 
     @Inject
-    public FederationWebhookService(
-            FederationRepository repository, FederationHttpClient httpClient, StationRepository stationRepository) {
-        this(repository, httpClient, stationRepository, Executors.newVirtualThreadPerTaskExecutor(), RETRY_DELAYS);
+    public FederationWebhookService(FederationRepository repository, FederationHttpClient httpClient) {
+        this(repository, httpClient, Executors.newVirtualThreadPerTaskExecutor(), RETRY_DELAYS);
     }
 
     /**
@@ -56,12 +52,10 @@ public class FederationWebhookService {
     FederationWebhookService(
             FederationRepository repository,
             FederationHttpClient httpClient,
-            StationRepository stationRepository,
             Executor executor,
             List<Duration> retryDelays) {
         this.repository = repository;
         this.httpClient = httpClient;
-        this.stationRepository = stationRepository;
         this.executor = executor;
         this.retryDelays = List.copyOf(retryDelays);
     }
@@ -83,19 +77,14 @@ public class FederationWebhookService {
     }
 
     private void deliver(FederationPartner partner, FederationRequest request, Object body) {
-        var privateKey = stationRepository
-                .findById(partner.stationId())
-                .map(Station::federationPrivateKey)
-                .orElse(null);
-        if (privateKey == null) {
+        if (!httpClient.canSign(partner.stationId())) {
             log.warn("Skipping webhook {} for partner {}: station has no federation key", request.path(), partner.id());
             return;
         }
         int attempts = retryDelays.size() + 1;
         for (int attempt = 1; attempt <= attempts; attempt++) {
             if (attempt > 1 && !pause(retryDelays.get(attempt - 2))) return;
-            if (httpClient.post(
-                    partner.remoteHost(), request, body, partner.partnerStationId(), partner.stationId(), privateKey)) {
+            if (httpClient.post(partner.remoteHost(), request, body, partner.partnerStationId(), partner.stationId())) {
                 log.debug("Webhook {} delivered to partner {} (attempt {})", request.path(), partner.id(), attempt);
                 return;
             }

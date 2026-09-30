@@ -53,6 +53,7 @@ public class FederationEnrollmentService {
     private final StationRepository stationRepository;
     private final FederationHttpClient httpClient;
     private final FederationSigningService signingService;
+    private final StationSigner signer;
     private final RemoteUrlValidator urlValidator;
     private final String localBaseUrl;
     private final String remoteScheme;
@@ -64,6 +65,7 @@ public class FederationEnrollmentService {
             StationRepository stationRepository,
             FederationHttpClient httpClient,
             FederationSigningService signingService,
+            StationSigner signer,
             RemoteUrlValidator urlValidator,
             Api apiConfig,
             Federation federationConfig) {
@@ -72,6 +74,7 @@ public class FederationEnrollmentService {
         this.stationRepository = stationRepository;
         this.httpClient = httpClient;
         this.signingService = signingService;
+        this.signer = signer;
         this.urlValidator = urlValidator;
         this.localBaseUrl = apiConfig.baseUrl();
         this.remoteScheme = federationConfig.allowPrivateHosts() ? "http://" : "https://";
@@ -157,11 +160,11 @@ public class FederationEnrollmentService {
             return new Handshake.Rejected(HandshakeRejection.SPENT_TOKEN);
         }
 
-        var keys = ensureStationKeys(station.id());
+        String publicKey = signer.ensurePublicKey(station.id());
         establish(
                 station.id(),
                 request.stationUid(),
-                keys.publicKey(),
+                publicKey,
                 request.publicKey(),
                 request.baseUrl(),
                 request.stationName(),
@@ -172,7 +175,7 @@ public class FederationEnrollmentService {
                 request.stationUid(),
                 request.baseUrl());
         return new Handshake.Accepted(new HandshakeResponse(
-                station.uid(), station.name(), localBaseUrl, FederationContractVersions.current(), keys.publicKey()));
+                station.uid(), station.name(), localBaseUrl, FederationContractVersions.current(), publicKey));
     }
 
     /**
@@ -198,8 +201,8 @@ public class FederationEnrollmentService {
             return new CodeOutcome.Refused(CodeRefusal.ALREADY_PARTNERED, null);
         }
 
-        var keys = ensureStationKeys(enteringStationId);
-        var attempt = httpClient.handshake(remoteBaseUrl, signedRequest(station, parts, keys));
+        String publicKey = signer.ensurePublicKey(enteringStationId);
+        var attempt = httpClient.handshake(remoteBaseUrl, signedRequest(station, parts, publicKey));
         if (attempt.status() != FederationHttpClient.HandshakeStatus.ESTABLISHED) {
             return new CodeOutcome.Refused(refusalFor(attempt.status()), parts.host());
         }
@@ -212,7 +215,7 @@ public class FederationEnrollmentService {
         var partner = establish(
                 enteringStationId,
                 parts.stationUid(),
-                keys.publicKey(),
+                publicKey,
                 answer.publicKey(),
                 agreedRemoteHost(remoteBaseUrl, answer.baseUrl()),
                 answer.stationName(),
@@ -222,18 +225,17 @@ public class FederationEnrollmentService {
     }
 
     private HandshakeRequest signedRequest(
-            Station station, FederationService.PairingCodeParts parts, StationKeys keys) {
+            Station station, FederationService.PairingCodeParts parts, String publicKey) {
         var unsigned = new HandshakeRequest(
                 station.uid(),
                 parts.stationUid(),
                 station.name(),
                 localBaseUrl,
                 FederationContractVersions.current(),
-                keys.publicKey(),
+                publicKey,
                 parts.token(),
                 "");
-        String signature = signingService.signEnrollmentPayload(
-                enrollmentPayload(unsigned), signingService.decodePrivateKey(keys.privateKey()));
+        String signature = signer.signEnrollment(station.id(), enrollmentPayload(unsigned));
         return new HandshakeRequest(
                 unsigned.stationUid(),
                 unsigned.targetStationUid(),
@@ -278,29 +280,6 @@ public class FederationEnrollmentService {
                 stationId, partnerStationUid, publicKey, partnerPublicKey, remoteHost, partnerStationName, contract);
         federationService.enableEveryCapability(partner);
         return partner;
-    }
-
-    /**
-     * The key pair the station signs federation traffic with, made on first use.
-     *
-     * <p>A station keeps one pair for all of its partners, and each partner holds the matching public
-     * half. Generating a fresh pair for a new partnership would leave every older partner verifying
-     * against a key this station no longer signs with, so an existing private key is kept and its
-     * public half derived from it.
-     */
-    private StationKeys ensureStationKeys(int stationId) {
-        String stored = stationRepository
-                .findById(stationId)
-                .map(Station::federationPrivateKey)
-                .filter(key -> !key.isBlank())
-                .orElse(null);
-        if (stored != null) {
-            return new StationKeys(stored, signingService.derivePublicKey(stored));
-        }
-        var keyPair = federationService.generateKeyPair();
-        String privateKey = federationService.encodePrivateKey(keyPair);
-        stationRepository.updateFederationPrivateKey(stationId, privateKey);
-        return new StationKeys(privateKey, federationService.encodePublicKey(keyPair));
     }
 
     private boolean isComplete(HandshakeRequest request) {
@@ -368,12 +347,4 @@ public class FederationEnrollmentService {
         /** The token is not on record here, or somebody has already redeemed it. */
         SPENT_TOKEN
     }
-
-    /**
-     * A station's federation key pair.
-     *
-     * @param privateKey the Base64 private key, as it is stored
-     * @param publicKey  the Base64 public key belonging to it
-     */
-    private record StationKeys(String privateKey, String publicKey) {}
 }

@@ -98,6 +98,7 @@ const requirements = [
         <li><code>data/account/&lt;uuid&gt;/</code> - {{ t('helpCenter.basics.hosting.dataAccount') }}</li>
         <li><code>data/inst/</code> - {{ t('helpCenter.basics.hosting.dataInst') }}</li>
         <li><code>data/discovery/</code> - {{ t('helpCenter.basics.hosting.dataDiscovery') }}</li>
+        <li><code>data/secrets/</code> - {{ t('helpCenter.basics.hosting.dataSecrets') }}</li>
         <li><code>data/maps/</code> - {{ t('helpCenter.basics.hosting.dataMaps') }}</li>
       </BulletList>
       <p class="mt-2 text-sm">{{ t('helpCenter.basics.hosting.dataDirText2') }}</p>

@@ -40,6 +40,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -71,7 +72,7 @@ class KbMoveServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        federation = new FederationService(federationRepo, stationRepo, new Api());
+        federation = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         var httpClient = mock(FederationHttpClient.class);
         var storageConfig = new Storage();
         var fileStorage = mock(KbFileStorageService.class);
@@ -106,7 +107,7 @@ class KbMoveServiceTest extends RepositoryTestBase {
                 mock(EventFederationRepository.class),
                 memberNameResolver,
                 new FederationFanout(),
-                new FederationEntityResolver(federationRepo, stationRepo, httpClient),
+                new FederationEntityResolver(federationRepo, httpClient),
                 mock(KbPdfExportService.class),
                 accessService);
         service = new KbMoveService(knowledgeBaseRepo, accessService, federationService, stationRepo);

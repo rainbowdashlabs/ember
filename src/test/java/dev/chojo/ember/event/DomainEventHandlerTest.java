@@ -1133,7 +1133,6 @@ class DomainEventHandlerTest {
                 ThemeFeel.ROUNDED,
                 true,
                 PublicKbMode.OFF,
-                null,
                 DiscoveryVisibility.NONE,
                 null,
                 false,

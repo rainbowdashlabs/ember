@@ -9,8 +9,6 @@ import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -26,16 +24,11 @@ import java.util.function.Function;
 @Singleton
 public class FederationEntityResolver {
     private final FederationRepository federationRepository;
-    private final StationRepository stationRepository;
     private final FederationHttpClient httpClient;
 
     @Inject
-    public FederationEntityResolver(
-            FederationRepository federationRepository,
-            StationRepository stationRepository,
-            FederationHttpClient httpClient) {
+    public FederationEntityResolver(FederationRepository federationRepository, FederationHttpClient httpClient) {
         this.federationRepository = federationRepository;
-        this.stationRepository = stationRepository;
         this.httpClient = httpClient;
     }
 
@@ -110,22 +103,10 @@ public class FederationEntityResolver {
             Class<T> responseType,
             String entityName) {
         var result = httpClient.get(
-                partner.remoteHost(),
-                remoteRequest,
-                partner.partnerStationId(),
-                localStationId,
-                privateKey(localStationId),
-                responseType);
+                partner.remoteHost(), remoteRequest, partner.partnerStationId(), localStationId, responseType);
         if (result == null) {
             throw new IllegalStateException("Failed to fetch " + entityName + " from remote partner");
         }
         return result;
-    }
-
-    private String privateKey(int stationId) {
-        return stationRepository
-                .findById(stationId)
-                .map(Station::federationPrivateKey)
-                .orElse(null);
     }
 }

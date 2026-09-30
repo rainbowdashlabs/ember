@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -50,7 +51,7 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     static void setup() {
         fedRepo = new NewsFederationRepository();
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
 
         station = stationRepo.create("NewsFedRepoStation");
         var stationB = stationRepo.create("NewsFedRepoStationB");

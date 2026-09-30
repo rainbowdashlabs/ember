@@ -255,7 +255,6 @@ public class NewsFederationService {
                 RemoteNewsRoutes.LIST_COMMENTS.at(newsId),
                 partner.partnerStationId(),
                 station.id(),
-                station.federationPrivateKey(),
                 CommentResponse.class);
     }
 
@@ -298,7 +297,6 @@ public class NewsFederationService {
                 body,
                 partner.partnerStationId(),
                 station.id(),
-                station.federationPrivateKey(),
                 CommentResponse.class);
         if (result == null) {
             log.warn("Partner {} refused a comment on its news article {}", partner.id(), newsId);
@@ -335,7 +333,6 @@ public class NewsFederationService {
                 body,
                 partner.partnerStationId(),
                 station.id(),
-                station.federationPrivateKey(),
                 CommentResponse.class);
         if (result == null) {
             log.warn("Partner {} refused an edit of its comment {}", partner.id(), commentId);
@@ -368,8 +365,7 @@ public class NewsFederationService {
                 partner.remoteHost(),
                 RemoteNewsRoutes.DELETE_COMMENT.at(commentId),
                 partner.partnerStationId(),
-                station.id(),
-                station.federationPrivateKey());
+                station.id());
         if (!deleted) {
             log.warn("Partner {} refused a deletion of its comment {}", partner.id(), commentId);
             throw new InternalServerErrorResponse("Failed to delete comment on partner");
@@ -439,7 +435,6 @@ public class NewsFederationService {
                 RemoteNewsRoutes.LIST_NEWS.at(),
                 partner.partnerStationId(),
                 localStation.id(),
-                localStation.federationPrivateKey(),
                 RemoteNewsListEntry.class);
         return remoteNews.stream()
                 .map(entry -> {

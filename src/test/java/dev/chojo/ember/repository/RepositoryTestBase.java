@@ -175,6 +175,7 @@ import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
+import dev.chojo.ember.util.TestStationKeys;
 import dev.chojo.ember.util.sql.Transactions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -471,7 +472,7 @@ public abstract class RepositoryTestBase {
         inventoryTagRepo = new InventoryTagRepository();
         inventoryShareService = new InventoryShareService(
                 new InventoryShareRepository(),
-                new FederationService(new FederationRepository(), stationRepo, new Api()),
+                new FederationService(new FederationRepository(), stationRepo, TestStationKeys.store(), new Api()),
                 inventoryRepo,
                 artRepo);
         inventoryTagService = new InventoryTagService(inventoryTagRepo, inventoryRepo, inventoryShareService);
@@ -529,7 +530,7 @@ public abstract class RepositoryTestBase {
                 clusterRepo,
                 stationRepo,
                 clusterItemHandoverService,
-                new FederationService(new FederationRepository(), stationRepo, new Api()),
+                new FederationService(new FederationRepository(), stationRepo, TestStationKeys.store(), new Api()),
                 clusterGovernanceService,
                 clusterProfileFieldService,
                 clusterStorageQuotaRepo,
@@ -767,7 +768,7 @@ public abstract class RepositoryTestBase {
         return new LendingService(
                 new LendingRepository(),
                 httpClient,
-                new FederationService(new FederationRepository(), stationRepo, new Api()),
+                new FederationService(new FederationRepository(), stationRepo, TestStationKeys.store(), new Api()),
                 new FederationFanout(),
                 stationRepo,
                 inventoryRepo,

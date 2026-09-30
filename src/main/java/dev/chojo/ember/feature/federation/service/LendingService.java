@@ -751,8 +751,7 @@ public class LendingService {
 
     private List<LendingMessage> fetchRemoteMessagesViaHttp(
             FederationPartner partner, int requestId, int localStationId) {
-        var station = stationRepository.findById(localStationId).orElse(null);
-        if (station == null || station.federationPrivateKey() == null) {
+        if (!httpClient.canSign(localStationId)) {
             log.warn("No private key found for station {}, cannot fetch remote messages", localStationId);
             return List.of();
         }
@@ -761,7 +760,6 @@ public class LendingService {
                 RemoteLendingRoutes.GET_MESSAGES.at(requestId),
                 partner.partnerStationId(),
                 localStationId,
-                station.federationPrivateKey(),
                 LendingMessage.class);
     }
 

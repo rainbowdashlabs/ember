@@ -41,13 +41,31 @@ public class FederationService {
     private static final Logger log = LoggerFactory.getLogger(FederationService.class);
     private final FederationRepository repository;
     private final StationRepository stationRepository;
+    private final StationKeyStore stationKeys;
     private final String instanceHost;
 
     @Inject
-    public FederationService(FederationRepository repository, StationRepository stationRepository, Api apiConfig) {
+    public FederationService(
+            FederationRepository repository,
+            StationRepository stationRepository,
+            StationKeyStore stationKeys,
+            Api apiConfig) {
         this.repository = repository;
         this.stationRepository = stationRepository;
+        this.stationKeys = stationKeys;
         this.instanceHost = extractHost(apiConfig.baseUrl());
+    }
+
+    /**
+     * The public half of the key the station signs federation traffic with, generating the key pair
+     * on first use. A station that already has a key keeps it, so its existing partners go on
+     * verifying what it sends.
+     *
+     * @param stationId the station
+     * @return the Base64 public key
+     */
+    public String ensureStationKey(int stationId) {
+        return stationKeys.ensurePublicKey(stationId);
     }
 
     /**
@@ -252,12 +270,6 @@ public class FederationService {
         return Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded());
     }
 
-    // -- Keypair --
-
-    public String encodePrivateKey(KeyPair keyPair) {
-        return Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded());
-    }
-
     public List<FederationPartner> findPartners(int stationId) {
         return repository.findPartners(stationId);
     }
@@ -340,11 +352,7 @@ public class FederationService {
             String initiatingPublicKey,
             String initiatingRemoteHost,
             String acceptingRemoteHost) {
-        var keyPair = generateKeyPair();
-        String acceptingPublicKey = encodePublicKey(keyPair);
-
-        // Store private key on accepting station (if not already set)
-        stationRepository.updateFederationPrivateKey(acceptingStationId, encodePrivateKey(keyPair));
+        String acceptingPublicKey = ensureStationKey(acceptingStationId);
 
         UUID acceptingUid = resolveStationUid(acceptingStationId);
         UUID initiatingUid = resolveStationUid(initiatingStationId);

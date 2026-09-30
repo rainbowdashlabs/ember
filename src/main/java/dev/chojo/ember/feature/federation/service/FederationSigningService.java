@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +18,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.interfaces.RSAKey;
-import java.security.interfaces.RSAPrivateCrtKey;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Duration;
 import java.time.Instant;
@@ -50,6 +49,11 @@ public class FederationSigningService {
     private static final String ALGORITHM = "SHA256withRSA";
     private static final Duration MAX_TIMESTAMP_DRIFT = Duration.ofMinutes(5);
     private static final int MIN_RSA_KEY_BITS = 2048;
+
+    private final Cache<String, PublicKey> decodedPublicKeys = Caffeine.newBuilder()
+            .expireAfterAccess(Duration.ofMinutes(30))
+            .maximumSize(10_000)
+            .build();
 
     /**
      * Builds the canonical path-with-query string by sorting {@code &}-separated
@@ -221,8 +225,16 @@ public class FederationSigningService {
      * Decodes a Base64-encoded RSA public key. Rejects keys weaker than
      * {@value #MIN_RSA_KEY_BITS} bits so a partner cannot register a trivially
      * factorable key.
+     *
+     * <p>Every signed request from a partner needs its key, so decoded keys are kept for a while,
+     * keyed by the encoded form: a partner whose stored key changes simply misses the cache.
+     * Keys that fail to decode are never cached.
      */
     public PublicKey decodePublicKey(String base64Key) {
+        return decodedPublicKeys.get(base64Key, FederationSigningService::parsePublicKey);
+    }
+
+    private static PublicKey parsePublicKey(String base64Key) {
         try {
             var keyBytes = Base64.getDecoder().decode(base64Key);
             var spec = new X509EncodedKeySpec(keyBytes);
@@ -233,41 +245,6 @@ public class FederationSigningService {
             return key;
         } catch (Exception e) {
             throw new RuntimeException("Failed to decode public key", e);
-        }
-    }
-
-    /**
-     * Derives the Base64-encoded public key belonging to a Base64-encoded RSA private key.
-     *
-     * <p>A station signs everything it federates with one key pair, and only the private half is
-     * kept. Deriving the public half rather than generating a fresh pair is what lets a station
-     * enter a second partnership without invalidating the first: the partners it already has hold
-     * the public key of the pair it still signs with.
-     */
-    public String derivePublicKey(String base64PrivateKey) {
-        try {
-            var privateKey = decodePrivateKey(base64PrivateKey);
-            if (!(privateKey instanceof RSAPrivateCrtKey crt)) {
-                throw new IllegalArgumentException("Private key carries no public exponent");
-            }
-            var spec = new RSAPublicKeySpec(crt.getModulus(), crt.getPublicExponent());
-            var publicKey = KeyFactory.getInstance("RSA").generatePublic(spec);
-            return Base64.getEncoder().encodeToString(publicKey.getEncoded());
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to derive public key", e);
-        }
-    }
-
-    /**
-     * Decodes a Base64-encoded RSA private key.
-     */
-    public PrivateKey decodePrivateKey(String base64Key) {
-        try {
-            var keyBytes = Base64.getDecoder().decode(base64Key);
-            var spec = new PKCS8EncodedKeySpec(keyBytes);
-            return KeyFactory.getInstance("RSA").generatePrivate(spec);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to decode private key", e);
         }
     }
 }

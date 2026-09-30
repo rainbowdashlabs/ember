@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -52,7 +53,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         httpClient = mock(FederationHttpClient.class);
         service = new TestProtocolService(
                 testProtocolRepo,
@@ -61,7 +62,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
                 httpClient,
                 stationRepo,
                 new FederationFanout(),
-                new FederationEntityResolver(federationRepo, stationRepo, httpClient));
+                new FederationEntityResolver(federationRepo, httpClient));
         station = stationRepo.create("ProtocolSvcStation");
         stationB = stationRepo.create("ProtocolSvcStationB");
         stationC = stationRepo.create("ProtocolSvcStationC");
@@ -489,7 +490,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
                         pathIs("/remote/protocols"),
                         any(),
                         eq(station.id()),
-                        any(),
                         eq(TestProtocolService.RemoteProtocol.class)))
                 .thenReturn(List.of(new TestProtocolService.RemoteProtocol(99, "RemoteProto", "remote desc")));
         var items = service.browseSharedProtocols(station.id());
@@ -506,7 +506,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
                         pathIs("/remote/protocols/77"),
                         any(),
                         eq(station.id()),
-                        any(),
                         any()))
                 .thenReturn(remoteResult);
         var result = service.getFederatedProtocol(station.id(), stationC.uid(), 77);

@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -61,7 +62,8 @@ class EquipmentBrowseServiceTest extends RepositoryTestBase {
         inventoryTagRepo.setItemTags(radio.id(), owner.id(), List.of(word.id()));
         inventoryTagRepo.setItemTags(charger.id(), owner.id(), List.of(word.id()));
 
-        var federationService = new FederationService(new FederationRepository(), stationRepo, new Api());
+        var federationService =
+                new FederationService(new FederationRepository(), stationRepo, TestStationKeys.store(), new Api());
         var keyPair = federationService.generateKeyPair();
         federationService.acceptInvite(
                 borrower.id(), owner.id(), federationService.encodePublicKey(keyPair), null, null);

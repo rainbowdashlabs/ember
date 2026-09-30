@@ -39,6 +39,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
@@ -93,7 +94,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         attachmentService = new EventAttachmentService(new EventAttachmentRepository(), media);
         federationRepo = new FederationRepository();
         EventFederationRepository eventFederationRepo = new EventFederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
         crudService = newEventServices(eventBus).crud();
@@ -118,7 +119,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         mock(MemberGroupService.class),
                         mock(UserTagService.class)),
                 new FederationFanout(),
-                new FederationEntityResolver(federationRepo, stationRepo, httpClient),
+                new FederationEntityResolver(federationRepo, httpClient),
                 attachmentService,
                 new EventFieldService(
                         eventFieldRepo,
@@ -671,7 +672,6 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/events"),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(SharedEvent.class)))
                 .thenReturn(List.of(remoteEvent));
 
@@ -686,7 +686,6 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/events"),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(SharedEvent.class));
 
         // Should contain the remote event
@@ -721,7 +720,6 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/events/" + eventId),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         any()))
                 .thenReturn(new RemoteEventRoutes.RemoteEventDetail(remoteEvent, List.of(), null));
 
@@ -736,7 +734,6 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/events/" + eventId),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         any());
     }
 
@@ -749,7 +746,6 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/events/" + eventId),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         any()))
                 .thenReturn(null);
 
@@ -786,7 +782,6 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/events"),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(SharedEvent.class)))
                 .thenReturn(List.of());
 
@@ -985,7 +980,6 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/events/" + eventId + "/comments"),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(CommentResponse.class)))
                 .thenReturn(mockResponses);
 
@@ -1040,7 +1034,6 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any(),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(CommentResponse.class)))
                 .thenReturn(mockResponse);
 
@@ -1061,7 +1054,6 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any(),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(CommentResponse.class)))
                 .thenReturn(null);
 
@@ -1125,7 +1117,6 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any(),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(CommentResponse.class)))
                 .thenReturn(mockResponse);
 
@@ -1144,7 +1135,6 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any(),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(CommentResponse.class)))
                 .thenReturn(null);
 
@@ -1187,8 +1177,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         eq("https://remote-event.example.com"),
                         pathIs("/remote/events/comments/300"),
                         any(),
-                        eq(stationA.id()),
-                        any()))
+                        eq(stationA.id())))
                 .thenReturn(true);
 
         boolean deleted = service.deleteFederatedComment(stationA.id(), stationC.uid(), 300, REMOTE_MEMBER_1);
@@ -1202,8 +1191,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         eq("https://remote-event.example.com"),
                         pathIs("/remote/events/comments/301"),
                         any(),
-                        eq(stationA.id()),
-                        any()))
+                        eq(stationA.id())))
                 .thenReturn(false);
 
         assertThrows(
@@ -1251,11 +1239,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/events"),
                         eq(partnerUid),
                         eq(1),
-                        eq("key123"),
                         eq(SharedEvent.class)))
                 .thenReturn(List.of(remoteEvent));
 
-        var result = service.fetchFederatedEvents("https://example.com", partnerUid, 1, "key123");
+        var result = service.fetchFederatedEvents("https://example.com", partnerUid, 1);
         assertEquals(1, result.size());
         assertEquals("Test Event", result.getFirst().name());
         assertEquals("desc", result.getFirst().description());
@@ -1284,12 +1271,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any(),
                         eq(partnerUid),
                         eq(1),
-                        eq("key123"),
                         eq(EventFederationRegistration.class)))
                 .thenReturn(accepted);
 
         var status = service.registerForFederatedEvent(
-                "https://example.com", partnerUid, 1, REMOTE_MEMBER_1, "2026-07-01", 1, "key123");
+                "https://example.com", partnerUid, 1, REMOTE_MEMBER_1, "2026-07-01", 1);
         assertEquals(RegistrationStatus.ACCEPTED, status.orElseThrow());
     }
 
@@ -1298,16 +1284,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
     void withdrawFederatedRegistration() {
         UUID partnerUid = UUID.randomUUID();
         when(httpClient.delete(
-                        eq("https://example.com"),
-                        pathIs("/remote/events/1/register"),
-                        any(),
-                        eq(partnerUid),
-                        eq(1),
-                        eq("key123")))
+                        eq("https://example.com"), pathIs("/remote/events/1/register"), any(), eq(partnerUid), eq(1)))
                 .thenReturn(true);
 
         boolean success = service.withdrawFederatedRegistration(
-                "https://example.com", partnerUid, 1, REMOTE_MEMBER_1, "2026-07-01", 1, "key123");
+                "https://example.com", partnerUid, 1, REMOTE_MEMBER_1, "2026-07-01", 1);
         assertTrue(success);
     }
 

@@ -56,7 +56,6 @@ class PublicStationInfoTimezoneTest {
                 ThemeFeel.ROUNDED,
                 false,
                 PublicKbMode.DENY_ALL,
-                null,
                 DiscoveryVisibility.NONE,
                 null,
                 false,

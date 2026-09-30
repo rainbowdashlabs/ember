@@ -46,6 +46,9 @@ class RouteSourceConventionsTest {
     private static final Pattern INLINE_STATION_COMPARISON = Pattern.compile(
             "\\.stationId\\(\\)\\s*!=\\s*session\\.stationId\\(\\)|session\\.stationId\\(\\)\\s*!=\\s*[\\w.]+\\.stationId\\(\\)");
 
+    private static final Pattern FEDERATION_KEY_MATERIAL = Pattern.compile(
+            "federationPrivateKey|federation_private_key|PrivateKeyBase64|java\\.security\\.PrivateKey|StationKeyStore");
+
     private static final Pattern INLINE_UUID_PATH_PARSE = Pattern.compile("UUID\\.fromString\\(\\s*ctx\\.pathParam");
 
     private static final Pattern REMOTE_DIRECT_REGISTRATION = Pattern.compile("prefix\\s*\\+\\s*\"/remote");
@@ -133,6 +136,20 @@ class RouteSourceConventionsTest {
 
     private static final Path EMBER_MODULE =
             Path.of("src", "main", "java", "dev", "chojo", "ember", "EmberModule.java");
+
+    /**
+     * A route never holds a station's federation key.
+     *
+     * <p>Signing is asked for by station id, and the key stays inside the key store that keeps it
+     * encrypted. A route that reads the key, or passes it on, has put key material within reach of
+     * a request handler for no reason at all.
+     */
+    @Test
+    void routesNeverHandleFederationKeyMaterial() throws IOException {
+        assertNoMatches(
+                FEDERATION_KEY_MATERIAL,
+                "handles a station's federation key; name the station and let the signer sign instead");
+    }
 
     @Test
     void routesUseOwnershipHelpersInsteadOfInlineStationComparisons() throws IOException {

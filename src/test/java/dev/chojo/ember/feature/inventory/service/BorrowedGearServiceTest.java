@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
@@ -64,7 +65,7 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         lending = new LendingService(
                 new LendingRepository(),
                 mock(FederationHttpClient.class),

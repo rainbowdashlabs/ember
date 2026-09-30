@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.board.service.DueDateReminderChecker;
 import dev.chojo.ember.feature.events.service.FieldRegistrationSweeper;
 import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
+import dev.chojo.ember.feature.federation.service.StationKeyStore;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.mailimport.service.MailImportPoller;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -168,6 +169,7 @@ public class Bootstrapper {
         var injector = Guice.createInjector(new EmberModule(conf));
         // Eagerly initialize the query configuration so query(...) works globally
         injector.getInstance(QueryConfiguration.class);
+        injector.getInstance(StationKeyStore.class).sealLegacyKeys();
         // Initialize domain event bus (registers all handlers)
         injector.getInstance(DomainEventBus.class);
         // Start registration deadline checker (daemon thread)

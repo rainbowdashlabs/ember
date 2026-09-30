@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -46,7 +47,7 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         httpClient = mock(FederationHttpClient.class);
         questionService = new QuizQuestionService(quizCatalogRepo);
         catalogService = new QuizCatalogService(quizCatalogRepo);
@@ -58,7 +59,7 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                 httpClient,
                 stationRepo,
                 new FederationFanout(),
-                new FederationEntityResolver(federationRepo, stationRepo, httpClient));
+                new FederationEntityResolver(federationRepo, httpClient));
 
         station = stationRepo.create("QuizFedStation");
         localPartner = stationRepo.create("QuizFedStationLocal");
@@ -234,7 +235,6 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/quiz/catalogs"),
                         any(),
                         eq(station.id()),
-                        any(),
                         eq(QuizFederationService.RemoteQuizCatalog.class)))
                 .thenReturn(List.of(new QuizFederationService.RemoteQuizCatalog(99, "RemoteCatalog", "remote desc")));
 
@@ -261,7 +261,6 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/quiz/catalogs/88"),
                         any(),
                         eq(station.id()),
-                        any(),
                         any()))
                 .thenReturn(remoteResult);
 
@@ -288,12 +287,11 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/quiz/catalogs"),
                         any(),
                         eq(station.id()),
-                        any(),
                         eq(QuizFederationService.RemoteQuizCatalog.class)))
                 .thenReturn(List.of(new QuizFederationService.RemoteQuizCatalog(7, "Elsewhere", "desc")));
 
-        var catalogs = service.fetchSharedQuizCatalogs(
-                "https://elsewhere.example.com", remotePartner.uid(), station.id(), "key");
+        var catalogs =
+                service.fetchSharedQuizCatalogs("https://elsewhere.example.com", remotePartner.uid(), station.id());
         assertEquals(1, catalogs.size());
         assertEquals("Elsewhere", catalogs.getFirst().name());
     }

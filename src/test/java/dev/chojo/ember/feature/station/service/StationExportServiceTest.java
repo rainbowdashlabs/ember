@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
@@ -38,7 +39,7 @@ class StationExportServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void setup() {
-        exportService = new StationExportService(stationRepo, new Api());
+        exportService = new StationExportService(stationRepo, TestStationKeys.transfer(), new Api());
 
         var station = stationRepo.create("Export Test Station");
         stationId = station.id();

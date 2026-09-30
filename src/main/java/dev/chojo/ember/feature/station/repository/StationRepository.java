@@ -36,7 +36,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class StationRepository {
 
     private static final String STATION_COLUMNS =
-            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled, landing_page_id, public_pages_enabled, public_slug, public_waitlist_enabled, public_blog_enabled, address_line, postal_code, city, country, latitude, longitude, setup_completed_at, station_kind, cluster_id, loss_note_required, pdf_hides_instance_url, nicknames_enabled";
+            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled, landing_page_id, public_pages_enabled, public_slug, public_waitlist_enabled, public_blog_enabled, address_line, postal_code, city, country, latitude, longitude, setup_completed_at, station_kind, cluster_id, loss_note_required, pdf_hides_instance_url, nicknames_enabled";
 
     private final Cache<Integer, UUID> uidCache = Caffeine.newBuilder()
             .expireAfterAccess(5, TimeUnit.MINUTES)
@@ -368,13 +368,6 @@ public class StationRepository {
     public void updatePublicBlogEnabled(int id, boolean enabled) {
         query("UPDATE station SET public_blog_enabled = :enabled WHERE id = :id;")
                 .single(call().bind("enabled", enabled).bind("id", id))
-                .update()
-                .changed();
-    }
-
-    public boolean updateFederationPrivateKey(int id, String privateKey) {
-        return query("UPDATE station SET federation_private_key = :key WHERE id = :id;")
-                .single(call().bind("key", privateKey).bind("id", id))
                 .update()
                 .changed();
     }

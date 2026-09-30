@@ -306,7 +306,6 @@ public class EventFederationService {
                             RemoteEventRoutes.LIST_MEMBER_REGISTRATIONS.at(uid),
                             partner.partnerStationId(),
                             stationId,
-                            station.federationPrivateKey(),
                             MyFederatedRegistration.class);
                     result.addAll(remoteRegs);
                 }
@@ -728,7 +727,6 @@ public class EventFederationService {
                     RemoteEventRoutes.LIST_COMMENTS.at(eventId),
                     partner.partnerStationId(),
                     station.id(),
-                    station.federationPrivateKey(),
                     CommentResponse.class);
             return FederatedCommentResult.ofList(result);
         }
@@ -762,7 +760,6 @@ public class EventFederationService {
                     body,
                     partner.partnerStationId(),
                     station.id(),
-                    station.federationPrivateKey(),
                     CommentResponse.class);
             if (result == null) {
                 log.warn("Partner {} refused a comment on its event {}", partner.id(), eventId);
@@ -790,7 +787,6 @@ public class EventFederationService {
                     body,
                     partner.partnerStationId(),
                     station.id(),
-                    station.federationPrivateKey(),
                     CommentResponse.class);
             if (result == null) {
                 log.warn("Partner {} refused an edit of its comment {}", partner.id(), commentId);
@@ -815,8 +811,7 @@ public class EventFederationService {
                     partner.remoteHost(),
                     RemoteEventRoutes.DELETE_COMMENT.at(commentId),
                     partner.partnerStationId(),
-                    station.id(),
-                    station.federationPrivateKey());
+                    station.id());
             if (!success) {
                 log.warn("Partner {} refused a deletion of its comment {}", partner.id(), commentId);
                 throw new IllegalStateException("Failed to delete comment on partner");
@@ -839,15 +834,9 @@ public class EventFederationService {
         }
     }
 
-    public List<SharedEvent> fetchFederatedEvents(
-            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
+    public List<SharedEvent> fetchFederatedEvents(String remoteHost, UUID partnerStationUid, int localStationId) {
         return httpClient.getList(
-                remoteHost,
-                RemoteEventRoutes.LIST_EVENTS.at(),
-                partnerStationUid,
-                localStationId,
-                localPrivateKeyBase64,
-                SharedEvent.class);
+                remoteHost, RemoteEventRoutes.LIST_EVENTS.at(), partnerStationUid, localStationId, SharedEvent.class);
     }
 
     /**
@@ -865,15 +854,13 @@ public class EventFederationService {
             int eventId,
             UUID remoteMemberId,
             String eventDate,
-            int localStationId,
-            String localPrivateKeyBase64) {
+            int localStationId) {
         var registered = Optional.ofNullable(httpClient.post(
                         remoteHost,
                         RemoteEventRoutes.REGISTER.at(eventId),
                         new FederatedRegBody(remoteMemberId, eventDate),
                         partnerStationUid,
                         localStationId,
-                        localPrivateKeyBase64,
                         EventFederationRegistration.class))
                 .map(EventFederationRegistration::status);
         if (registered.isPresent()) {
@@ -895,15 +882,13 @@ public class EventFederationService {
             int eventId,
             UUID remoteMemberId,
             String eventDate,
-            int localStationId,
-            String localPrivateKeyBase64) {
+            int localStationId) {
         boolean withdrawn = httpClient.delete(
                 remoteHost,
                 RemoteEventRoutes.WITHDRAW.at(eventId),
                 new FederatedRegBody(remoteMemberId, eventDate),
                 partnerStationUid,
-                localStationId,
-                localPrivateKeyBase64);
+                localStationId);
         if (withdrawn)
             log.info("Station {} withdrew a registration for event {} at {}", localStationId, eventId, remoteHost);
         else log.warn("Withdrawal for event {} at {} was refused", eventId, remoteHost);
@@ -925,15 +910,13 @@ public class EventFederationService {
             int eventId,
             UUID remoteMemberId,
             String eventDate,
-            int localStationId,
-            String localPrivateKeyBase64) {
+            int localStationId) {
         boolean confirmed = httpClient.post(
                 remoteHost,
                 RemoteEventRoutes.CONFIRM_OWN.at(eventId),
                 new FederatedRegBody(remoteMemberId, eventDate),
                 partnerStationUid,
-                localStationId,
-                localPrivateKeyBase64);
+                localStationId);
         if (confirmed) {
             log.info("Station {} confirmed one of its own for event {} at {}", localStationId, eventId, remoteHost);
         } else {
@@ -957,15 +940,13 @@ public class EventFederationService {
             int eventId,
             UUID remoteMemberId,
             String eventDate,
-            int localStationId,
-            String localPrivateKeyBase64) {
+            int localStationId) {
         boolean restored = httpClient.post(
                 remoteHost,
                 RemoteEventRoutes.UNDO_WITHDRAWAL.at(eventId),
                 new FederatedRegBody(remoteMemberId, eventDate),
                 partnerStationUid,
-                localStationId,
-                localPrivateKeyBase64);
+                localStationId);
         if (restored) {
             log.info("Station {} took a withdrawal back for event {} at {}", localStationId, eventId, remoteHost);
         } else {
@@ -994,11 +975,7 @@ public class EventFederationService {
     }
 
     private List<FederatedEventItem> browseEventsViaHttp(Station localStation, FederationPartner partner) {
-        var remoteEvents = fetchFederatedEvents(
-                partner.remoteHost(),
-                partner.partnerStationId(),
-                localStation.id(),
-                localStation.federationPrivateKey());
+        var remoteEvents = fetchFederatedEvents(partner.remoteHost(), partner.partnerStationId(), localStation.id());
         return remoteEvents.stream()
                 .map(event -> new FederatedEventItem(
                         partner.id(),

@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -37,17 +36,14 @@ public class FederationContractRefreshService {
     private static final Duration RETRY_INTERVAL = Duration.ofMinutes(1);
 
     private final FederationRepository repository;
-    private final StationRepository stationRepository;
     private final FederationHttpClient httpClient;
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
     private final Set<Integer> inFlight = ConcurrentHashMap.newKeySet();
     private final Map<Integer, Instant> lastAttempt = new ConcurrentHashMap<>();
 
     @Inject
-    public FederationContractRefreshService(
-            FederationRepository repository, StationRepository stationRepository, FederationHttpClient httpClient) {
+    public FederationContractRefreshService(FederationRepository repository, FederationHttpClient httpClient) {
         this.repository = repository;
-        this.stationRepository = stationRepository;
         this.httpClient = httpClient;
     }
 
@@ -57,15 +53,13 @@ public class FederationContractRefreshService {
      */
     public boolean refresh(FederationPartner partner) {
         if (!partner.isRemote()) return false;
-        var station = stationRepository.findById(partner.stationId()).orElse(null);
-        if (station == null || station.federationPrivateKey() == null) return false;
+        if (!httpClient.canSign(partner.stationId())) return false;
 
         var response = httpClient.get(
                 partner.remoteHost(),
                 RemoteFederationRoutes.VERSION_PING.at(),
                 partner.partnerStationId(),
                 partner.stationId(),
-                station.federationPrivateKey(),
                 RemoteFederationRoutes.VersionPingResponse.class);
         if (response == null || response.contract() == null) return false;
 

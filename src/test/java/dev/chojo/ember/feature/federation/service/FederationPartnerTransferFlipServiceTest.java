@@ -38,8 +38,7 @@ class FederationPartnerTransferFlipServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        service = new FederationPartnerTransferFixupService(
-                federationRepo, mock(FederationHttpClient.class), stationRepo);
+        service = new FederationPartnerTransferFixupService(federationRepo, mock(FederationHttpClient.class));
         stayed = stationRepo.create("FlipStationStayed");
         // One departed station per story: a station may hold only one partnership with any other,
         // and the flip reaches every row naming the station it is given.

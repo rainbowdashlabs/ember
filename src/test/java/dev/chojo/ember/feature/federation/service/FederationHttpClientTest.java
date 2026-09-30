@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import java.net.InetSocketAddress;
 import java.security.KeyPairGenerator;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -48,13 +47,14 @@ class FederationHttpClientTest {
         try {
             var generator = KeyPairGenerator.getInstance("RSA");
             generator.initialize(2048);
-            var privateKey = Base64.getEncoder()
-                    .encodeToString(generator.generateKeyPair().getPrivate().getEncoded());
+            var keys = mock(StationKeyStore.class);
+            when(keys.privateKey(1))
+                    .thenReturn(Optional.of(generator.generateKeyPair().getPrivate()));
             var stations = mock(StationRepository.class);
             when(stations.resolveUid(1)).thenReturn(UUID.randomUUID());
             when(stations.findById(1)).thenReturn(Optional.empty());
             var client = new FederationHttpClient(
-                    new FederationSigningService(),
+                    new StationSigner(keys, new FederationSigningService()),
                     stations,
                     TestRemoteUrlValidator.permissive(),
                     () -> mock(FederationContractRefreshService.class),
@@ -67,8 +67,7 @@ class FederationHttpClientTest {
                             RemoteBoardWebhookRoutes.MENTION.at(),
                             "body",
                             UUID.randomUUID(),
-                            1,
-                            privateKey));
+                            1));
 
             assertFalse(delivered);
         } finally {

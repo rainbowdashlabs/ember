@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,7 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        exportService = new StationExportService(stationRepo, new Api());
+        exportService = new StationExportService(stationRepo, TestStationKeys.transfer(), new Api());
         var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
@@ -54,7 +55,8 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
                 new Api(),
                 null,
                 null,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo),
+                new FederationPartnerTransferFixupService(new FederationRepository(), null),
+                TestStationKeys.transfer(),
                 TestRemoteUrlValidator.permissive(),
                 stationImporter,
                 Set.of(

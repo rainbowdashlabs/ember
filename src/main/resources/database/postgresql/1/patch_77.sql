@@ -76,3 +76,6 @@ COMMENT ON COLUMN ember_schema.station_mail_provider.smtp_encryption
     IS 'How the connection to the relay is secured: IMPLICIT_TLS from the first byte, STARTTLS required before login, or NONE for an unencrypted relay chosen on purpose.';
 
 DROP TABLE IF EXISTS ember_schema.account_external_auth;
+
+COMMENT ON COLUMN ember_schema.station.federation_private_key
+    IS 'Private key the station signs federation requests with, shared across all of its partners. Stored encrypted with the instance key from the configuration or the data directory, marked by the enc:v1: prefix; a value without it predates encryption and is encrypted once at startup. Never exported as a column: a station transfer carries it sealed with the transfer token.';

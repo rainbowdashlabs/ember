@@ -49,7 +49,6 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
-import dev.chojo.ember.feature.federation.service.FederationSigningService;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
@@ -117,6 +116,7 @@ import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.ShareTokens;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -176,17 +176,16 @@ class DemoServiceTest extends RepositoryTestBase {
         var lendingRepo = new LendingRepository();
 
         // -- Services --
-        var federationService = new FederationService(federationRepo, stationRepo, apiConfig);
-        var signingService = new FederationSigningService();
+        var federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), apiConfig);
         var contractRefreshRef = new AtomicReference<FederationContractRefreshService>();
         var federationHttpClient = new FederationHttpClient(
-                signingService,
+                TestStationKeys.signer(),
                 stationRepo,
                 new RemoteUrlValidator(new Federation(), new Demo()),
                 contractRefreshRef::get);
-        contractRefreshRef.set(new FederationContractRefreshService(federationRepo, stationRepo, federationHttpClient));
+        contractRefreshRef.set(new FederationContractRefreshService(federationRepo, federationHttpClient));
         var federationFanout = new FederationFanout();
-        var federationEntityResolver = new FederationEntityResolver(federationRepo, stationRepo, federationHttpClient);
+        var federationEntityResolver = new FederationEntityResolver(federationRepo, federationHttpClient);
 
         var eventServices = newEventServices(noOpBus);
         var newsService = new NewsService(

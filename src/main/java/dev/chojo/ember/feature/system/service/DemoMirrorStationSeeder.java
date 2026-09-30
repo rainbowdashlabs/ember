@@ -99,10 +99,12 @@ public class DemoMirrorStationSeeder implements DemoSeeder {
         }
 
         String remoteHost = demoConfig.federationForceHttp() ? "http://localhost:" + apiConfig.port() : null;
-        var keyPair = federationService.generateKeyPair();
-        stationRepository.updateFederationPrivateKey(ffStation.id(), federationService.encodePrivateKey(keyPair));
         federationService.acceptInvite(
-                jfStationId, ffStation.id(), federationService.encodePublicKey(keyPair), remoteHost, remoteHost);
+                jfStationId,
+                ffStation.id(),
+                federationService.ensureStationKey(ffStation.id()),
+                remoteHost,
+                remoteHost);
 
         log.info(
                 "Demo: Created FF Musterstadt (id={}) with {} mirrored members, federated with JF Musterstadt",

@@ -188,8 +188,7 @@ public class FederatedEventRoutes implements Routes {
                                 fed.eventId(),
                                 fed.remoteMemberId(),
                                 fed.req().eventDate(),
-                                fed.station().id(),
-                                fed.station().federationPrivateKey())
+                                fed.station().id())
                         .orElseThrow(Refusal.FEDERATED_REGISTRATION_NOT_TAKEN::raise)
                 : eventFederationService
                         .registerFederated(
@@ -211,8 +210,7 @@ public class FederatedEventRoutes implements Routes {
                     fed.eventId(),
                     fed.remoteMemberId(),
                     fed.req().eventDate(),
-                    fed.station().id(),
-                    fed.station().federationPrivateKey());
+                    fed.station().id());
         } else {
             eventFederationService.withdrawRegistration(
                     fed.eventId(),
@@ -240,8 +238,7 @@ public class FederatedEventRoutes implements Routes {
                         fed.eventId(),
                         fed.remoteMemberId(),
                         fed.req().eventDate(),
-                        fed.station().id(),
-                        fed.station().federationPrivateKey())
+                        fed.station().id())
                 : eventFederationService.undoWithdrawal(
                         fed.eventId(),
                         fed.hostPartner().id(),
@@ -272,8 +269,7 @@ public class FederatedEventRoutes implements Routes {
                         fed.eventId(),
                         fed.remoteMemberId(),
                         fed.req().eventDate(),
-                        fed.station().id(),
-                        fed.station().federationPrivateKey())
+                        fed.station().id())
                 : confirmOnThisInstance(fed);
         if (!confirmed) {
             throw Refusal.NO_PLACES_LEFT_AT_HOLDER.raise();

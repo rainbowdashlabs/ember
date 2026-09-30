@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.station.service;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.federation.service.StationKeyTransfer;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
@@ -62,11 +63,13 @@ public class StationExportService {
     private final String appVersion;
     private final String schemaHash;
     private final StationRepository stationRepository;
+    private final StationKeyTransfer keyTransfer;
     private final Api apiConfig;
 
     @Inject
-    public StationExportService(StationRepository stationRepository, Api apiConfig) {
+    public StationExportService(StationRepository stationRepository, StationKeyTransfer keyTransfer, Api apiConfig) {
         this.stationRepository = stationRepository;
+        this.keyTransfer = keyTransfer;
         this.apiConfig = apiConfig;
         DataTracking tracking;
         try {
@@ -370,6 +373,29 @@ public class StationExportService {
         data.put("limit", limit);
         Object payload = engine.exportShaped(tableName, stationId, offset, limit);
         if (payload != null) data.put(tableName, payload);
+        return data;
+    }
+
+    /**
+     * Exports a table page for a destination pulling with a transfer token.
+     *
+     * <p>The same page as {@link #exportTable(int, String, int, int)}, except that the station page
+     * also carries the station's federation key, sealed with the token, so the destination can go
+     * on signing as the station its partners know. The key column itself is never exported.
+     *
+     * @param token     the transfer token the destination pulls with
+     * @param stationId the station being transferred
+     * @param tableName the tracked table
+     * @param offset    the row offset
+     * @param limit     the page size
+     * @return the page
+     */
+    public Map<String, Object> exportTableForTransfer(
+            String token, int stationId, String tableName, int offset, int limit) {
+        var data = exportTable(stationId, tableName, offset, limit);
+        if ("station".equals(tableName)) {
+            keyTransfer.seal(stationId, token).ifPresent(sealedKey -> data.put(StationKeyTransfer.FIELD, sealedKey));
+        }
         return data;
     }
 

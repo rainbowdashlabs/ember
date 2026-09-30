@@ -20,6 +20,7 @@ import dev.chojo.ember.tracking.OutputShape;
 import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -59,7 +60,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        exportService = new StationExportService(stationRepo, new Api());
+        exportService = new StationExportService(stationRepo, TestStationKeys.transfer(), new Api());
         var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
@@ -67,7 +68,8 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                 new Api(),
                 null,
                 null,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo),
+                new FederationPartnerTransferFixupService(new FederationRepository(), null),
+                TestStationKeys.transfer(),
                 TestRemoteUrlValidator.permissive(),
                 stationImporter,
                 Set.of(

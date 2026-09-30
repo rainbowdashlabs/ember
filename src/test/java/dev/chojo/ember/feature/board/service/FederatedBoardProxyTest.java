@@ -140,7 +140,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 silentCommentMentions());
         federationRepository = mock(FederationRepository.class);
 
-        var gateway = new FederatedBoardRemoteGateway(httpClient, stationRepo);
+        var gateway = new FederatedBoardRemoteGateway(httpClient);
         locator = new FederatedBoardLocator(
                 federationRepository, stationRepo, boardService, ticketService, new EventFederationRepository());
         accessService = new FederatedBoardAccessService(
@@ -625,12 +625,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 .thenReturn(true);
 
         when(httpClient.getList(
-                        eq("https://remote.example.com"),
-                        pathIs("/remote/boards"),
-                        any(),
-                        eq(station1.id()),
-                        any(),
-                        any()))
+                        eq("https://remote.example.com"), pathIs("/remote/boards"), any(), eq(station1.id()), any()))
                 .thenReturn(List.of(new FederatedBoardDiscoveryService.RemoteDiscoveredBoard(
                         UUID.randomUUID().toString(),
                         "Remote Board",
@@ -665,7 +660,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationService.hasCapability(
                         any(FederationPartner.class), eq(CapabilityType.BOARD_SHARE), eq(Direction.IMPORT)))
                 .thenReturn(true);
-        when(httpClient.getList(any(), any(), any(), anyInt(), any(), any()))
+        when(httpClient.getList(any(), any(), any(), anyInt(), any()))
                 .thenThrow(new RuntimeException("Connection failed"));
 
         var discovered = discoveryService.discoverBoards(station1.id());
@@ -1192,7 +1187,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(remoteDetail);
 
@@ -1214,7 +1208,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of(remoteSummary));
 
@@ -1252,7 +1245,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any(),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(responseTicket);
 
@@ -1272,7 +1264,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/lanes"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of(lane));
 
@@ -1291,7 +1282,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/labels"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of(label));
 
@@ -1307,12 +1297,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var remoteSummary =
                 new TicketSummary(1, 10, 1, 1, "Found Ticket", null, TicketPriority.MEDIUM, null, 0, null, 0, 0, 0);
         when(httpClient.getList(
-                        eq("https://remote.example.com"),
-                        pathContains("/tickets/search"),
-                        any(),
-                        anyInt(),
-                        any(),
-                        any()))
+                        eq("https://remote.example.com"), pathContains("/tickets/search"), any(), anyInt(), any()))
                 .thenReturn(List.of(remoteSummary));
 
         var tickets = ticketProxy.proxySearchTickets(partnerId, BOARD_KEY, "Found");
@@ -1328,8 +1313,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         eq("https://remote.example.com"),
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/99"),
                         any(),
-                        anyInt(),
-                        any()))
+                        anyInt()))
                 .thenReturn(true);
 
         ticketProxy.proxyDeleteTicket(partnerId, BOARD_KEY, 99);
@@ -1338,8 +1322,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         eq("https://remote.example.com"),
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/99"),
                         any(),
-                        anyInt(),
-                        any());
+                        anyInt());
     }
 
     @Test
@@ -1351,7 +1334,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/fields"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of());
 
@@ -1387,7 +1369,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(remoteTicket);
 
@@ -1405,7 +1386,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/comments"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of());
 
@@ -1423,7 +1403,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of());
 
@@ -1441,7 +1420,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/links"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of());
 
@@ -1459,7 +1437,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/labels"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of());
 
@@ -1477,7 +1454,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/transitions"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of());
 
@@ -1495,7 +1471,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/history"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of());
 
@@ -1513,7 +1488,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/attachments"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of());
 
@@ -1532,7 +1506,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/watchers"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(watcherData);
 
@@ -1552,7 +1525,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any(),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(responseTicket);
 
@@ -1574,7 +1546,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any(),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(responseTicket);
 
@@ -1593,7 +1564,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any(),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(responseComment);
 
@@ -1614,7 +1584,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any(),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(responseItem);
 
@@ -1634,7 +1603,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any(),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(responseLabel);
 
@@ -1652,8 +1620,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/reorder"),
                         any(),
                         any(),
-                        anyInt(),
-                        any()))
+                        anyInt()))
                 .thenReturn(true);
 
         ticketProxy.proxyReorderTickets(partnerId, BOARD_KEY, 1, List.of(1, 2, 3));
@@ -1663,8 +1630,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/reorder"),
                         any(),
                         any(),
-                        anyInt(),
-                        any());
+                        anyInt());
     }
 
     @Test
@@ -1678,7 +1644,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any(),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of(responseLabel));
 
@@ -1699,8 +1664,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/labels/5/remove"),
                         any(),
                         any(),
-                        anyInt(),
-                        any());
+                        anyInt());
     }
 
     @Test
@@ -1712,8 +1676,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
                         any(),
                         any(),
-                        anyInt(),
-                        any()))
+                        anyInt()))
                 .thenReturn(true);
 
         ticketDetailProxy.proxyWatchTicket(partnerId, BOARD_KEY, 1, REMOTE_MEMBER_1);
@@ -1723,8 +1686,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
                         any(),
                         any(),
-                        anyInt(),
-                        any());
+                        anyInt());
     }
 
     @Test
@@ -1735,8 +1697,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         eq("https://remote.example.com"),
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
                         any(),
-                        anyInt(),
-                        any()))
+                        anyInt()))
                 .thenReturn(true);
 
         ticketDetailProxy.proxyUnwatchTicket(partnerId, BOARD_KEY, 1, REMOTE_MEMBER_1);
@@ -1745,8 +1706,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         eq("https://remote.example.com"),
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
                         any(),
-                        anyInt(),
-                        any());
+                        anyInt());
     }
 
     @Test
@@ -1758,8 +1718,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist/5"),
                         any(),
                         any(),
-                        anyInt(),
-                        any()))
+                        anyInt()))
                 .thenReturn(true);
 
         ticketDetailProxy.proxyUpdateChecklistItem(partnerId, BOARD_KEY, 1, 5, "Updated", true, null, null);
@@ -1769,8 +1728,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist/5"),
                         any(),
                         any(),
-                        anyInt(),
-                        any());
+                        anyInt());
     }
 
     @Test
@@ -1781,8 +1739,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         eq("https://remote.example.com"),
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist/5"),
                         any(),
-                        anyInt(),
-                        any()))
+                        anyInt()))
                 .thenReturn(true);
 
         ticketDetailProxy.proxyDeleteChecklistItem(partnerId, BOARD_KEY, 1, 5, null, null);
@@ -1791,8 +1748,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         eq("https://remote.example.com"),
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist/5"),
                         any(),
-                        anyInt(),
-                        any());
+                        anyInt());
     }
 
     @Test
@@ -1804,7 +1760,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(null);
 
@@ -1820,7 +1775,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/lanes"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of());
 
@@ -1839,7 +1793,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any(),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(null);
 
@@ -1867,7 +1820,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any(),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(null);
 
@@ -1886,7 +1838,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any(),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of());
 
@@ -1905,7 +1856,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any(),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenThrow(new RuntimeException("Connection refused"));
 
@@ -1925,7 +1875,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any(),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenThrow(new RuntimeException("Timeout"));
 
@@ -2219,7 +2168,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/members"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of());
 
@@ -2237,7 +2185,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/ticket-labels"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of());
 
@@ -2255,7 +2202,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/search"),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenReturn(List.of());
 
@@ -2277,8 +2223,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/links"),
                         any(),
                         any(),
-                        anyInt(),
-                        any());
+                        anyInt());
     }
 
     @Test
@@ -2293,8 +2238,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/links/2"),
                         any(),
                         any(),
-                        anyInt(),
-                        any());
+                        anyInt());
     }
 
     @Test
@@ -2306,7 +2250,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         pathIs("/remote/boards/" + BOARD_KEY),
                         any(),
                         anyInt(),
-                        any(),
                         any()))
                 .thenThrow(new RuntimeException("Connection refused"));
 

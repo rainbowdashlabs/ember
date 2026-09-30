@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:86797d009e7748008e0013bce92ab063dcaa7e411d3f51a6bbc1e71746514ead",
-  "generatedAt": "2026-09-30T00:40:38Z",
+  "schemaHash": "sha256:cbfe926a6eee2427d2f856e36ad63f956bec1702d62cd9a816d37bf00296e751",
+  "generatedAt": "2026-09-30T00:32:09Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -20479,7 +20479,7 @@
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "Private key for signing federation HTTP requests. Shared across all partners of this station."
+          "description": "Private key the station signs federation requests with, shared across all of its partners. Stored encrypted with the instance key from the configuration or the data directory, marked by the enc:v1: prefix; a value without it predates encryption and is encrypted once at startup. Never exported as a column: a station transfer carries it sealed with the transfer token."
         },
         {
           "name": "discovery_visibility",
@@ -20770,9 +20770,10 @@
           "storage_preset_id",
           "read_only_for_transfer",
           "setup_completed_at",
-          "metrics_uid"
+          "metrics_uid",
+          "federation_private_key"
         ],
-        "rationale": "Single-row table; exported as an object via outputShape=SINGLE"
+        "rationale": "Single-row table; exported as an object via outputShape=SINGLE. The federation key is encrypted with the source instance's key, so it travels sealed with the transfer token beside the station page instead of as a column."
       },
       "gdprExport": {
         "status": "IGNORED",

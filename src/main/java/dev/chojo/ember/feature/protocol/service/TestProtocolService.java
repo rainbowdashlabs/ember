@@ -472,14 +472,12 @@ public class TestProtocolService {
         return newProto;
     }
 
-    public List<RemoteProtocol> fetchSharedProtocols(
-            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
+    public List<RemoteProtocol> fetchSharedProtocols(String remoteHost, UUID partnerStationUid, int localStationId) {
         return federationHttpClient.getList(
                 remoteHost,
                 RemoteTestProtocolRoutes.BROWSE_PROTOCOLS.at(),
                 partnerStationUid,
                 localStationId,
-                localPrivateKeyBase64,
                 RemoteProtocol.class);
     }
 
@@ -502,8 +500,7 @@ public class TestProtocolService {
     private List<SharedProtocolItem> browseSharedProtocolsViaHttp(
             int localStationId, FederationPartner partner, int remoteStationId) {
         var result = new ArrayList<SharedProtocolItem>();
-        var protocols = fetchSharedProtocols(
-                partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
+        var protocols = fetchSharedProtocols(partner.remoteHost(), partner.partnerStationId(), localStationId);
         for (var remoteProto : protocols) {
             result.add(new SharedProtocolItem(
                     remoteProto.id(), remoteProto.name(), remoteProto.description(), remoteStationId, partner.id()));
@@ -524,13 +521,6 @@ public class TestProtocolService {
                 .findByUid(partner.partnerStationId())
                 .map(Station::id)
                 .orElse(0);
-    }
-
-    private String getPrivateKey(int stationId) {
-        return stationRepository
-                .findById(stationId)
-                .map(Station::federationPrivateKey)
-                .orElse(null);
     }
 
     public record FederatedProtocolDetail(

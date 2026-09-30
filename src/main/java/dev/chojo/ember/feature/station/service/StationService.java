@@ -113,9 +113,7 @@ public class StationService {
      */
     public Station create(String name) {
         var station = stationRepository.create(name);
-        // Ensure every station has a federation private key
-        var keyPair = federationService.generateKeyPair();
-        stationRepository.updateFederationPrivateKey(station.id(), federationService.encodePrivateKey(keyPair));
+        federationService.ensureStationKey(station.id());
         // Auto-generate a public slug from the station name
         var slug = SlugGenerator.uniqueSlug(
                 name, (s, _) -> stationRepository.findBySlug(s).isPresent(), 0);

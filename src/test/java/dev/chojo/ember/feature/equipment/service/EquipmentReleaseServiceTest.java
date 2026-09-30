@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,7 @@ class EquipmentReleaseServiceTest extends RepositoryTestBase {
         trailer = inventoryRepo.createItem(drawer.id(), "REL-01", "Anhaenger", null, InventoryItemMetadata.empty());
 
         var federationRepo = new FederationRepository();
-        var federationService = new FederationService(federationRepo, stationRepo, new Api());
+        var federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         var keyPair = federationService.generateKeyPair();
         federationService.acceptInvite(
                 station.id(), partner.id(), federationService.encodePublicKey(keyPair), null, null);
