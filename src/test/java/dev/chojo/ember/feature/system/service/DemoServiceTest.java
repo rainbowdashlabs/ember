@@ -116,7 +116,6 @@ import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
 import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -521,8 +520,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         demoMediaLibrary,
                         new CellDescriptions(demoMediaLibrary, (stationId, pageUid) -> Optional.empty()),
                         stationMemberRepo,
-                        avatarService,
-                        new ShareTokens()),
+                        avatarService),
                 pageRepo,
                 demoMediaLibrary,
                 formRepo,

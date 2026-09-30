@@ -19,7 +19,6 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.entity.WaitlistVerificationToken;
-import dev.chojo.ember.util.JsonUtil;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.JsonNode;
@@ -568,7 +567,7 @@ public class WaitingListRepository {
                 ON CONFLICT (entry_id, field_id) DO UPDATE SET value = :value::JSONB;""")
                 .single(call().bind("entry_id", entryId)
                         .bind("field_id", fieldId)
-                        .bind("value", JsonUtil.toJson(value)))
+                        .bind("value", value == null ? "{}" : value.toString()))
                 .insert();
     }
 

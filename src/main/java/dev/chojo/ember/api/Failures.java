@@ -6,13 +6,12 @@
 package dev.chojo.ember.api;
 
 import dev.chojo.ember.feature.storage.backend.StorageUnavailableException;
+import dev.chojo.ember.util.RandomTokens;
 import tools.jackson.core.JacksonException;
 
 import java.sql.SQLException;
-import java.util.HexFormat;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
 
 /**
@@ -56,9 +55,7 @@ public final class Failures {
      * @return eight hex characters, short enough to be read out over a telephone
      */
     public static String reference() {
-        var bytes = new byte[4];
-        ThreadLocalRandom.current().nextBytes(bytes);
-        return HexFormat.of().formatHex(bytes);
+        return RandomTokens.hex(4);
     }
 
     /**

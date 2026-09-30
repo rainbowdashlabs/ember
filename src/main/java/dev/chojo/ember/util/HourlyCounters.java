@@ -17,16 +17,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLongArray;
 
 /**
- * Additive counters in hourly buckets: filled on the request path without blocking, and written to the
- * database in deltas.
+ * Additive counters in buckets of one hour and one key, filled without blocking and flushed as deltas.
  *
- * <p>A bucket is one hour and one key, holding a fixed number of counters. Every flush hands the writer only
- * what was added since the last successful write of that bucket, so the table's upsert adds rather than
- * overwrites and nothing is counted twice however often the flush runs. A bucket whose write fails keeps its
- * delta for the next flush. Buckets of hours that are over leave memory once their last delta has landed;
- * the current hour's stay, so further counts keep aggregating without a write per request.
- *
- * <p>Shared by the page hit and the station traffic recorders, which used to carry one copy each.
+ * <p>A flush hands the writer only what was added since that bucket's last successful write, so an adding
+ * upsert never counts twice; a failed write keeps its delta for the next flush. Past hours leave memory once
+ * written, the current hour stays so counts keep aggregating.
  *
  * @param <K> what a bucket is counted for within its hour
  */
@@ -39,7 +34,7 @@ public final class HourlyCounters<K> {
     private final ConcurrentHashMap<Bucket<K>, Counters> buckets = new ConcurrentHashMap<>();
 
     /**
-     * Creates an empty set of counters.
+     * Creates empty counters.
      *
      * @param name  what the counters are called in the log
      * @param width how many counters every bucket holds
@@ -52,12 +47,7 @@ public final class HourlyCounters<K> {
         this.clock = clock;
     }
 
-    /**
-     * Adds to the counters of the key's bucket in the current hour. Never blocks on anything but the map.
-     *
-     * @param key     what is counted
-     * @param amounts one amount per counter, in the order the writer reads them
-     */
+    /** Adds one amount per counter to the key's bucket in the current hour. */
     public void add(K key, long... amounts) {
         if (amounts.length != width) {
             throw new IllegalArgumentException("Expected %d amounts, got %d".formatted(width, amounts.length));
@@ -69,11 +59,9 @@ public final class HourlyCounters<K> {
     }
 
     /**
-     * Hands every unwritten delta to the writer and forgets the buckets of past hours that have been written
-     * completely.
+     * Hands every unwritten delta to the writer and forgets past hours that are fully written.
      *
      * @param includeCurrentHour whether the hour still being counted is written too
-     * @param writer             writes one delta; a delta whose write throws is kept for the next flush
      */
     public synchronized void flush(boolean includeCurrentHour, Writer<K> writer) {
         Instant currentHour = currentHour();
@@ -103,20 +91,12 @@ public final class HourlyCounters<K> {
         }
     }
 
-    /**
-     * How many buckets are held in memory.
-     *
-     * @return the number of buckets
-     */
+    /** How many buckets are held in memory. */
     public int size() {
         return buckets.size();
     }
 
-    /**
-     * A copy of every bucket held, with the totals counted in it so far.
-     *
-     * @return the buckets, in no particular order
-     */
+    /** A copy of every bucket held, with its totals so far, in no particular order. */
     public List<Snapshot<K>> snapshot() {
         var out = new ArrayList<Snapshot<K>>(buckets.size());
         buckets.forEach(
@@ -135,37 +115,17 @@ public final class HourlyCounters<K> {
         return true;
     }
 
-    /**
-     * Writes one delta of one bucket.
-     *
-     * @param <K> what the bucket is counted for
-     */
+    /** Adds one bucket's delta to the stored bucket; throwing keeps the delta for the next flush. */
     @FunctionalInterface
     public interface Writer<K> {
-        /**
-         * Adds the delta to the stored bucket.
-         *
-         * @param hour  the hour of the bucket
-         * @param key   what the bucket is counted for
-         * @param delta what was counted since the last write, one value per counter
-         * @throws Exception when the write failed and the delta has to be tried again
-         */
         void write(Instant hour, K key, long[] delta) throws Exception;
     }
 
-    /**
-     * One bucket as {@link #snapshot()} reads it.
-     *
-     * @param hour   the hour of the bucket
-     * @param key    what the bucket is counted for
-     * @param totals everything counted in it so far, one value per counter
-     * @param <K>    the key type
-     */
+    /** One bucket with everything counted in it so far, one total per counter. */
     public record Snapshot<K>(Instant hour, K key, long[] totals) {}
 
     private record Bucket<K>(Instant hour, K key) {}
 
-    /** The counters of one bucket and what of them has been written. */
     private static final class Counters {
         private final AtomicLongArray totals;
         private long[] written;

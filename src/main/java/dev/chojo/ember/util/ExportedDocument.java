@@ -8,14 +8,10 @@ package dev.chojo.ember.util;
 import java.nio.charset.StandardCharsets;
 
 /**
- * A document and the name it should reach the reader under.
- *
- * <p>The two travel together because whoever builds a document is the only one who knows what it
- * turned out to be: which period it covers, whose list it is, which language the station reads. A
- * route handed only the bytes would have to work all of that out a second time.
+ * A finished document with its whole filename, named by its builder, which alone knows what it covers.
  *
  * @param bytes    the finished document
- * @param filename the name, already whole, including its extension
+ * @param filename the name, including its extension
  */
 public record ExportedDocument(byte[] bytes, String filename) {
 
@@ -24,13 +20,7 @@ public record ExportedDocument(byte[] bytes, String filename) {
         return SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, filename);
     }
 
-    /**
-     * A document that was written as text rather than rendered.
-     *
-     * <p>A spreadsheet opens its umlauts as rubbish without a byte order mark in front, which is the
-     * single most reported thing about a CSV and costs two bytes to prevent. It goes in here so that
-     * no writer has to remember it.
-     */
+    /** A text document as UTF-8 behind a byte order mark, without which a spreadsheet garbles umlauts. */
     public static ExportedDocument ofText(String text, String filename) {
         return new ExportedDocument((BYTE_ORDER_MARK + text).getBytes(StandardCharsets.UTF_8), filename);
     }

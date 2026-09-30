@@ -16,7 +16,6 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -43,8 +42,7 @@ class FormCompletionTest extends RepositoryTestBase {
                 mock(MemberGroupService.class),
                 mock(UserTagService.class),
                 restrictionService,
-                new DomainEventBus(Set.of()),
-                new ShareTokens());
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("FormCompletionStation");
         account = accountRepo.create("form-completion@test.com", "Form", "Done");
         member = stationMemberRepo.create(station.id(), account.id());

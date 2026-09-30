@@ -15,29 +15,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The one way a spreadsheet is written here.
- *
- * <p>There used to be four, agreeing on nothing: two separators, two opinions about the byte order
- * mark, and headers in the station's language in one and hardcoded English in another. A reader
- * opening two exports from the same product got two different files.
- *
- * <p>The writing itself is Commons CSV's: lines end in a bare line feed, and a cell is quoted only
- * where it needs to be, which keeps a file readable to a person opening it in anything but a
- * spreadsheet. What needs it is a cell holding the separator, a quote or a line break, or one that
- * starts or ends in a space. Commons CSV also quotes a cell that starts with {@code !} or {@code #};
- * every reader takes that cell back unchanged, and it is the only place the files differ from the
- * ones written before.
+ * Writes every spreadsheet export: Commons CSV with bare line feeds and minimal quoting, empty cells as
+ * nothing, short rows padded to the header's width, and formula starts defused.
  */
 public final class CsvWriter {
 
-    /**
-     * What goes between two cells.
-     *
-     * <p>Offered to the reader rather than decided here: a spreadsheet set up for German expects the
-     * semicolon, and something being fed the file afterwards often insists on the comma. Guessing
-     * wrong puts every row into a single column, which is the failure people report as "the export is
-     * broken".
-     */
+    /** What goes between two cells; the reader picks it, since the wrong one puts a row into a single column. */
     public enum Separator {
         SEMICOLON(';'),
         COMMA(',');
@@ -52,12 +35,7 @@ public final class CsvWriter {
                     .get();
         }
 
-        /**
-         * Reads a separator from what the request asked for, falling back to the semicolon.
-         *
-         * <p>The semicolon is the default because this is written for German spreadsheets first, and
-         * because a comma file opened there needs the reader to know about import dialogs.
-         */
+        /** The comma when asked for, otherwise the semicolon German spreadsheets expect. */
         public static Separator of(String asked) {
             return "comma".equalsIgnoreCase(asked) ? COMMA : SEMICOLON;
         }
@@ -69,9 +47,6 @@ public final class CsvWriter {
 
     /**
      * Writes a header line and its rows.
-     *
-     * <p>A row shorter than the header is filled out rather than cut short, so every line has the same
-     * number of cells and the columns stay lined up.
      *
      * @param headers   the column titles, already in the station's language
      * @param rows      the rows, in output order
@@ -90,10 +65,6 @@ public final class CsvWriter {
         return out.toString();
     }
 
-    /**
-     * The cells of one line, padded to the header's width. An empty cell is handed over as
-     * {@code null}, which Commons CSV writes as nothing at all rather than as a pair of quotes.
-     */
     private static List<String> line(List<String> cells, int width) {
         var line = new ArrayList<String>(width);
         for (int i = 0; i < width; i++) {
@@ -103,12 +74,8 @@ public final class CsvWriter {
     }
 
     /**
-     * Stops a cell being read as a formula when the file is opened.
-     *
-     * <p>A spreadsheet runs what a cell says where it begins like this, so a value somebody typed into
-     * a form can reach for what is in the rest of the sheet, or ask the machine opening it to fetch
-     * something. An apostrophe in front makes it text again, and is what spreadsheets themselves put
-     * there for the same reason.
+     * Puts an apostrophe before a cell a spreadsheet would run as a formula, so a typed value cannot reach
+     * into the sheet or make the machine fetch something. Empty becomes {@code null}, which prints as nothing.
      */
     private static String defused(String value) {
         if (value == null || value.isEmpty()) return null;

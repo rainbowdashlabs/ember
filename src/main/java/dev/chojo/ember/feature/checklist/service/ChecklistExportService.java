@@ -205,10 +205,4 @@ public class ChecklistExportService {
     private static String cellKey(int entryId, int columnId) {
         return entryId + ":" + columnId;
     }
-
-    private static String csvField(String value) {
-        if (value == null) return "";
-        String escaped = value.replace("\"", "\"\"");
-        return '"' + escaped + '"';
-    }
 }

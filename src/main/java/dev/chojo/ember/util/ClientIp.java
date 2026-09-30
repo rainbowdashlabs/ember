@@ -19,57 +19,24 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Resolves the real visitor IP for an incoming Javalin request, honouring
- * forwarded-for headers only from trusted hops.
+ * Resolves the visitor address of a request, trusting forwarding headers only from a trusted immediate hop,
+ * since any client reaching the socket can send any header. The hop is always the socket peer, because
+ * {@link #installOn} makes {@link Context#ip()} itself answer the resolved address.
  *
- * <p>The same app may be deployed in four shapes:
- * <ul>
- *   <li>Direct on a public interface - no proxy, no header trust.</li>
- *   <li>Behind Traefik (or another reverse proxy) - trust
- *       {@code X-Forwarded-For} / {@code X-Real-IP} from the configured CIDRs only.</li>
- *   <li>Behind Cloudflare - trust {@code CF-Connecting-IP}, but only when the
- *       immediate hop is in Cloudflare's published edge ranges.</li>
- *   <li>Behind Cloudflare → Traefik - the Cloudflare edge ranges join the
- *       trusted-hop set and the {@code X-Forwarded-For} chain is walked from
- *       the right. {@code CF-Connecting-IP} is deliberately NOT honoured here:
- *       the immediate hop is Traefik, which forwards that header from direct
- *       (non-Cloudflare) visitors untouched, so it would be forgeable.</li>
- * </ul>
- *
- * <p>Headers from untrusted hops are ignored. This is essential because any
- * client that can reach the app socket can claim any value in a header - the
- * trust gate is the immediate hop, not the header itself.
- *
- * <p>{@link #installOn(ContextResolverConfig, Network)} makes this resolution what
- * {@link Context#ip()} answers for every request, so request code reads {@code ctx.ip()}
- * and never sees the proxy's address. The immediate hop is therefore always read from
- * the socket peer ({@code ctx.req().getRemoteAddr()}), never from {@link Context#ip()}.
- *
- * <p>Resolution order:
  * <ol>
- *   <li>{@code CF-Connecting-IP} - only if {@link Network#cloudflare()} is
- *       {@code true} AND the socket peer is a Cloudflare edge address.</li>
- *   <li>{@code X-Forwarded-For} - only if the socket peer is a trusted
- *       hop (one of {@link Network#trustedProxies()}, or a Cloudflare edge
- *       when {@link Network#cloudflare()} is {@code true}). The chain is
- *       walked right to left and the first address that is not itself a
- *       trusted hop wins. Left-hand entries beyond that point are
- *       client-supplied and forgeable (Cloudflare appends to whatever
- *       {@code X-Forwarded-For} the visitor sends), so they are never
- *       consulted. An unparseable entry aborts the walk and falls back to
- *       the socket peer; a chain consisting solely of trusted hops
- *       resolves to its leftmost entry.</li>
- *   <li>{@code X-Real-IP} - same trust check as step 2, only consulted when
- *       {@code X-Forwarded-For} is absent.</li>
- *   <li>The socket peer as a final fallback. This is the correct value
- *       for a no-proxy deployment.</li>
+ *   <li>{@code CF-Connecting-IP}, when Cloudflare is enabled and the peer is a Cloudflare edge. Behind
+ *       Cloudflare and a proxy the peer is the proxy, which passes that header on from anyone, so it is
+ *       not read there.</li>
+ *   <li>{@code X-Forwarded-For}, when the peer is a trusted proxy or (with Cloudflare) an edge: walked from
+ *       the right, the first address that is not a trusted hop wins, since entries further left are
+ *       forgeable. An unparseable entry falls back to the peer; a chain of trusted hops only gives its
+ *       leftmost entry.</li>
+ *   <li>{@code X-Real-IP}, under the same trust, when there is no {@code X-Forwarded-For}.</li>
+ *   <li>The socket peer.</li>
  * </ol>
  *
- * <p>The Cloudflare edge ranges are loaded once at class load from
- * {@code resources/cloudflare-ranges.txt} (a committed snapshot, rewritten by
- * {@code ./toolchain.sh be-cloudflare-ranges}) and may be refreshed at runtime
- * via {@link #updateCloudflareRanges(String)} - never via a live HTTP call at
- * request time.
+ * <p>The Cloudflare ranges come from the committed {@code cloudflare-ranges.txt} and may be replaced at
+ * runtime through {@link #updateCloudflareRanges(String)}, never fetched at request time.
  */
 public final class ClientIp {
 
@@ -81,25 +48,15 @@ public final class ClientIp {
 
     private ClientIp() {}
 
-    /**
-     * Makes {@link Context#ip()} answer the resolved visitor address for every request of the
-     * application the resolver belongs to.
-     *
-     * @param resolver the Javalin context resolver configuration
-     * @param network  the network / proxy configuration
-     */
+    /** Makes {@link Context#ip()} answer the resolved visitor address for every request of the application. */
     public static void installOn(ContextResolverConfig resolver, Network network) {
         resolver.ip = ctx -> resolve(ctx, network).getHostAddress();
     }
 
     /**
-     * Resolves the real visitor IP for the given request.
+     * The visitor address of this request, never {@code null}.
      *
-     * @param ctx     the Javalin context
-     * @param network the network / proxy configuration
-     * @return the visitor's {@link InetAddress}; never {@code null}
-     * @throws IllegalStateException if the socket peer address cannot be parsed as an
-     *                               IP address - should never happen with Javalin
+     * @throws IllegalStateException when the socket peer is not an IP address, which Javalin never gives
      */
     public static InetAddress resolve(Context ctx, Network network) {
         InetAddress immediateHop = parseOrThrow(ctx.req().getRemoteAddr());
@@ -123,16 +80,10 @@ public final class ClientIp {
     }
 
     /**
-     * Replaces the in-memory Cloudflare edge range list with the entries parsed
-     * from the given text body (one CIDR per line, {@code #} comments ignored).
-     * Used by the startup refresh that fetches the latest list from Cloudflare;
-     * a no-op (logged at warn level by the caller) if parsing yields nothing,
-     * so a transient upstream issue cannot wipe the baseline list shipped with
-     * the build.
+     * Replaces the Cloudflare ranges with those in the text (one CIDR per line, {@code #} comments), unless
+     * it yields none, so a bad upstream answer cannot wipe the shipped list.
      *
-     * @param content the raw text of {@code ips-v4} concatenated with
-     *                {@code ips-v6}, exactly as served by Cloudflare
-     * @return the number of CIDR entries that were applied
+     * @return how many ranges were applied
      */
     public static int updateCloudflareRanges(String content) {
         List<Cidr> parsed = parseRanges(content);
@@ -217,11 +168,7 @@ public final class ClientIp {
         return List.copyOf(ranges);
     }
 
-    /**
-     * A parsed CIDR block. Supports both IPv4 and IPv6; comparison is done by
-     * masking the network bits with {@link BigInteger} so the same path handles
-     * both families.
-     */
+    /** An IPv4 or IPv6 CIDR block, masked as a {@link BigInteger} so both families share one path. */
     record Cidr(BigInteger network, BigInteger mask, int family) {
 
         static Optional<Cidr> parse(String input) {

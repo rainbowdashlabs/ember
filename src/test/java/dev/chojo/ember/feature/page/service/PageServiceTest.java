@@ -25,7 +25,6 @@ import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
 import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -75,8 +74,7 @@ class PageServiceTest extends RepositoryTestBase {
                 media,
                 new CellDescriptions(media, (stationId, pageUid) -> Optional.empty()),
                 stationMemberRepo,
-                new AvatarService(new ImageVariants(storageService)),
-                new ShareTokens());
+                new AvatarService(new ImageVariants(storageService)));
         station = stationRepo.create("PageServiceStation");
         account = accountRepo.create("page-svc@test.com", "Page", "Author");
         member = stationMemberRepo.create(station.id(), account.id());

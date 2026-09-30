@@ -22,17 +22,8 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 /**
- * Fetches Cloudflare's published edge IP ranges from {@code cloudflare.com} and
- * hot-swaps them into {@link ClientIp}. Runs once on startup so the in-memory
- * list reflects the latest upstream data without requiring a rebuild; a committed
- * snapshot on the classpath answers until then, so the first request after boot is
- * never gated on the live fetch finishing.
- *
- * <p>Skipped when {@link Network#cloudflare()} is {@code false} - a non-CF
- * deployment never reads {@code CF-Connecting-IP} anyway, so the list is unused.
- *
- * <p>Failures are logged at {@code warn} and leave the committed snapshot in
- * place. Never throws to the caller.
+ * Replaces the Cloudflare edge ranges in {@link ClientIp} with the ones Cloudflare publishes, once at startup
+ * and only with Cloudflare enabled. The committed snapshot answers until then and stays on any failure.
  */
 @Singleton
 public class CloudflareRangesService {
@@ -52,10 +43,7 @@ public class CloudflareRangesService {
         this.scheduler = scheduler;
     }
 
-    /**
-     * Kicks off the refresh in the background so the startup sequence is
-     * never blocked on outbound HTTP to {@code cloudflare.com}.
-     */
+    /** Refreshes in the background, so startup never waits on {@code cloudflare.com}. */
     public void refreshAsync() {
         if (!network.cloudflare()) {
             log.debug("Cloudflare integration disabled; skipping edge range refresh");
@@ -64,11 +52,7 @@ public class CloudflareRangesService {
         scheduler.background("cloudflare-ranges-refresh", this::refresh);
     }
 
-    /**
-     * Performs the synchronous refresh - fetches both {@code ips-v4} and
-     * {@code ips-v6}, parses, and replaces the in-memory list. Returns silently
-     * on any failure.
-     */
+    /** Fetches both range lists and applies them; a failure is logged and leaves the current list. */
     public void refresh() {
         try {
             String body = fetch(IPS_V4) + "\n" + fetch(IPS_V6);

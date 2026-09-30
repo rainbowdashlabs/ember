@@ -29,7 +29,6 @@ import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -79,8 +78,7 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
                 mock(MemberGroupService.class),
                 mock(UserTagService.class),
                 restrictionService,
-                new DomainEventBus(Set.of()),
-                new ShareTokens());
+                new DomainEventBus(Set.of()));
         var assembler = new FormAnalyticsAssembler(
                 formService,
                 new FormRespondents(stationMemberRepo, memberGroupRepo, userTagRepo, profileFieldRepo, stationRepo),

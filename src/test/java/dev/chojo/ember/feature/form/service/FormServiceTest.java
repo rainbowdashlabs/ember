@@ -26,7 +26,6 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
 import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -66,8 +65,7 @@ class FormServiceTest extends RepositoryTestBase {
         var groupService = mock(MemberGroupService.class);
         var tagService = mock(UserTagService.class);
 
-        service = new FormService(
-                formRepo, memberService, groupService, tagService, restrictionService, eventBus, new ShareTokens());
+        service = new FormService(formRepo, memberService, groupService, tagService, restrictionService, eventBus);
         station = stationRepo.create("FormSvcStation");
         account = accountRepo.create("form-svc@test.com", "Form", "Svc");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -342,8 +340,8 @@ class FormServiceTest extends RepositoryTestBase {
         when(tagService.findTagsForMember(member.id())).thenReturn(List.of());
 
         var eventBus = new DomainEventBus(Set.of());
-        var restrictedService = new FormService(
-                formRepo, memberService, groupService, tagService, restrictionService, eventBus, new ShareTokens());
+        var restrictedService =
+                new FormService(formRepo, memberService, groupService, tagService, restrictionService, eventBus);
 
         // Member is in the restriction list - should have access
         assertTrue(restrictedService.canMemberAccess(form.id(), member.id()));
@@ -659,8 +657,7 @@ class FormServiceTest extends RepositoryTestBase {
                     public void handle(FormPublished event) {
                         announced.add(event.formTitle());
                     }
-                })),
-                new ShareTokens());
+                })));
 
         var poll = listening.create(
                 station.id(),

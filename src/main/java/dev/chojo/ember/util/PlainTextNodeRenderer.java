@@ -25,12 +25,9 @@ import org.jsoup.Jsoup;
 import java.util.Set;
 
 /**
- * The nodes {@link Markdown#toPlainText(String)} renders differently from CommonMark's own text
- * renderer, which writes a link as its label followed by the address, a quote inside guillemets and
- * inline code inside quotes. Here only the words are kept: a link is its label, an image and a
- * horizontal rule are nothing, embedded HTML is the text between its tags, a bullet is a bullet glyph
- * whichever character the source used, and table cells are joined with a middle dot so a row still
- * reads as one.
+ * The nodes {@link Markdown#toPlainText(String)} renders as words only, where CommonMark's text renderer
+ * would add the link address, guillemets or quotes: images, inline HTML and rules vanish, block HTML keeps
+ * its text, bullets become one glyph and table cells are joined with a middle dot.
  */
 final class PlainTextNodeRenderer implements NodeRenderer {
 
@@ -80,7 +77,6 @@ final class PlainTextNodeRenderer implements NodeRenderer {
             }
             case ListItem item -> renderListItem(item);
             case ThematicBreak _ -> writer.block();
-            case Image _, HtmlInline _ -> {}
             default -> {}
         }
     }

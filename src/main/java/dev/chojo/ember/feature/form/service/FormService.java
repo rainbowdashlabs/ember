@@ -37,7 +37,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.system.service.RequirementsService;
-import dev.chojo.ember.util.ShareTokens;
+import dev.chojo.ember.util.RandomTokens;
 import dev.chojo.ember.util.sql.Transactions;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
@@ -70,7 +70,6 @@ public class FormService {
     private final UserTagService tagService;
     private final RestrictionService restrictionService;
     private final DomainEventBus eventBus;
-    private final ShareTokens shareTokens;
 
     @Inject
     public FormService(
@@ -79,15 +78,13 @@ public class FormService {
             MemberGroupService groupService,
             UserTagService tagService,
             RestrictionService restrictionService,
-            DomainEventBus eventBus,
-            ShareTokens shareTokens) {
+            DomainEventBus eventBus) {
         this.repository = repository;
         this.memberService = memberService;
         this.groupService = groupService;
         this.tagService = tagService;
         this.restrictionService = restrictionService;
         this.eventBus = eventBus;
-        this.shareTokens = shareTokens;
     }
 
     /**
@@ -486,7 +483,7 @@ public class FormService {
         if (form.purpose() == FormPurpose.INTERNAL) {
             throw new BadRequestResponse("A form for the station's own members is not sent by link");
         }
-        String replacement = shareTokens.mint();
+        String replacement = RandomTokens.urlSafe(32);
         if (!repository.replaceShareToken(id, expected, replacement)) return Optional.empty();
         log.info("Form {} share link replaced", id);
         return Optional.of(replacement);

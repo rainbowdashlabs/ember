@@ -29,7 +29,6 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -63,8 +62,7 @@ class PublicFormWithholdingRouteTest extends RepositoryTestBase {
                 mock(MemberGroupService.class),
                 mock(UserTagService.class),
                 restrictionService,
-                new DomainEventBus(Set.of()),
-                new ShareTokens());
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("PublicFormWithholdingStation");
         account = accountRepo.create("public-withholding@test.com", "Wilma", "Withheld");
         member = stationMemberRepo.create(station.id(), account.id());

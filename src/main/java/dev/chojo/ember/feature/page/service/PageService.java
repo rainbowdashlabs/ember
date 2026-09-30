@@ -18,7 +18,7 @@ import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.util.HtmlSanitizer.Policy;
 import dev.chojo.ember.util.Markdown;
-import dev.chojo.ember.util.ShareTokens;
+import dev.chojo.ember.util.RandomTokens;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -45,7 +45,6 @@ public class PageService {
     private final CellDescriptions descriptions;
     private final StationMemberRepository stationMemberRepository;
     private final AvatarService avatarService;
-    private final ShareTokens shareTokens;
 
     @Inject
     public PageService(
@@ -54,15 +53,13 @@ public class PageService {
             MediaLibraryService mediaLibrary,
             CellDescriptions descriptions,
             StationMemberRepository stationMemberRepository,
-            AvatarService avatarService,
-            ShareTokens shareTokens) {
+            AvatarService avatarService) {
         this.pageRepository = pageRepository;
         this.blocks = blocks;
         this.mediaLibrary = mediaLibrary;
         this.descriptions = descriptions;
         this.stationMemberRepository = stationMemberRepository;
         this.avatarService = avatarService;
-        this.shareTokens = shareTokens;
     }
 
     // --- Page CRUD ---
@@ -267,7 +264,7 @@ public class PageService {
         }
 
         boolean minting = visibility == PageVisibility.UNLISTED;
-        boolean changed = pageRepository.setVisibility(pageId, visibility, minting ? shareTokens.mint() : null);
+        boolean changed = pageRepository.setVisibility(pageId, visibility, minting ? RandomTokens.urlSafe(32) : null);
         if (!changed) return false;
         log.info("Page {} visibility set to {}", pageId, visibility);
 
@@ -319,7 +316,7 @@ public class PageService {
         if (!page.visibility().reachable()) {
             throw new BadRequestResponse("A page nobody outside can open is not reached by a link either");
         }
-        String replacement = shareTokens.mint();
+        String replacement = RandomTokens.urlSafe(32);
         if (!pageRepository.replaceShareToken(pageId, expected, replacement)) return Optional.empty();
         log.info("Page {} share link replaced", pageId);
         return Optional.of(replacement);

@@ -16,34 +16,24 @@ import java.util.Optional;
 import javax.imageio.ImageIO;
 
 /**
- * What a stored file looks like, for a tile that shows it rather than naming it.
- *
- * <p>An image is its own picture and a PDF is its first page. Anything else has none, and the tile
- * says what kind of file it is instead. The one place that answers it, so member documents, the
- * media library and the wiki cannot come to three different opinions about the same file.
+ * What a stored file looks like on a tile: an image is its own picture, a PDF its first page, anything
+ * else has none.
  */
 public final class FilePicture {
     private static final String PDF = "application/pdf";
 
     private FilePicture() {}
 
-    /**
-     * Whether a file of this type has a picture to be made of it.
-     *
-     * @param mimeType the stored type of the file
-     */
+    /** Whether a file of this stored type has a picture. */
     public static boolean exists(String mimeType) {
         return mimeType != null && (mimeType.startsWith("image/") || PDF.equals(mimeType));
     }
 
     /**
-     * The picture of a file, as image bytes ready to be stored.
+     * The picture of a file as image bytes.
      *
-     * @param mimeType the stored type of the file
-     * @param data     the file's bytes
-     * @param dpi      how finely a PDF page is drawn, which is what decides the size of its picture
-     * @return the file itself for an image, its first page as a PNG for a PDF, and empty for anything
-     *     else or a PDF with no pages
+     * @param dpi how finely a PDF page is drawn
+     * @return the file itself for an image, its first page as a PNG for a PDF, and empty otherwise
      */
     public static Optional<byte[]> of(String mimeType, byte[] data, int dpi) throws IOException {
         if (mimeType != null && mimeType.startsWith("image/")) return Optional.of(data);
@@ -56,14 +46,10 @@ public final class FilePicture {
     }
 
     /**
-     * The first page of a PDF, drawn.
+     * The first page of a PDF, drawn at a scale lowered to stay inside the {@link PixelBudget}, since a page
+     * can declare any size.
      *
-     * <p>A page can declare any size it likes, and drawing it allocates that many pixels. The scale
-     * is lowered for a page that would come out above {@link PixelBudget#MAX_PIXELS}, and a page
-     * whose shape keeps it above the budget at any scale is not drawn at all.
-     *
-     * @return the page, or {@code null} for a document with no pages or a page that cannot be drawn
-     *     inside the budget
+     * @return the page, or {@code null} without pages or when no scale fits the budget
      */
     public static BufferedImage firstPage(byte[] pdf, int dpi) throws IOException {
         try (var document = Loader.loadPDF(pdf)) {

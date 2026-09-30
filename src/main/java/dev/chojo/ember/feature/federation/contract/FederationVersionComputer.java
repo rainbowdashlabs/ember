@@ -5,11 +5,10 @@
  */
 package dev.chojo.ember.feature.federation.contract;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
+import dev.chojo.ember.util.Json;
 import dev.chojo.ember.util.Sha256;
+import tools.jackson.core.type.TypeReference;
 
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
@@ -153,7 +152,7 @@ public final class FederationVersionComputer {
      * hashes from the current development cycle are pruned.
      */
     static void main(String[] args) throws Exception {
-        var mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        var mapper = Json.PRETTY;
         var contract = computeContract();
         var appVersion = args[2];
 

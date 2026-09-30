@@ -43,16 +43,8 @@ import java.util.regex.Pattern;
 public final class HtmlSanitizer {
 
     /**
-     * A link to somewhere else in this instance: one leading slash and something after it.
-     *
-     * <p>Most of what anybody writes here links inside the product, and those are written as paths.
-     * A path has no protocol, so the protocol allow-list threw every one of them away and left
-     * underlined words nobody could follow.
-     *
-     * <p>Two leading slashes are refused on purpose. {@code //elsewhere.test/x} reads as a path and
-     * is an address: allowing it would turn a link somebody wrote inside the product into a way out
-     * of it. A backslash is refused for the same reason, since browsers have been known to read it
-     * as a slash.
+     * A link inside this instance, which has no protocol for the protocol allow-list to pass. A second
+     * leading slash or a backslash is refused, since {@code //elsewhere.test/x} is an address, not a path.
      */
     private static final Pattern INTERNAL_PATH = Pattern.compile("^/(?![/\\\\])[^\\s]*$");
 

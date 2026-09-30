@@ -96,7 +96,7 @@ public final class TypstCompiler {
         }
     }
 
-    public static String logoExtension(String contentType) {
+    private static String logoExtension(String contentType) {
         return switch (contentType) {
             case "image/jpeg" -> "jpg";
             case "image/svg+xml" -> "svg";
