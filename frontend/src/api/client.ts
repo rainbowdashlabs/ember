@@ -11,7 +11,7 @@ import {requestStepUp, StepUpCancelledError, StepUpProof, type StepUpCategory, t
 import type {ApiErrorBody} from '@/util/apiError'
 import {getActingStation} from '@/util/actingStationState'
 import {isPublicRoute} from '@/util/publicRoute'
-import i18n from '@/i18n'
+import {translator} from '@/util/translatorState'
 
 declare module 'axios' {
     export interface InternalAxiosRequestConfig {
@@ -186,7 +186,7 @@ client.interceptors.response.use(
                 if (attempts >= MAX_STEP_UP_ATTEMPTS) {
                     // Answering again cannot help, so say why the action stopped rather than let the
                     // caller render a bare "something went wrong" with no prompt in sight.
-                    showToast(i18n.global.t('twoFactor.stepUp.stillRequired'), 'error')
+                    showToast(translator.t('twoFactor.stepUp.stillRequired'), 'error')
                     return Promise.reject(error as AxiosError)
                 }
                 config._stepUpAttempts = attempts + 1
@@ -212,7 +212,7 @@ client.interceptors.response.use(
         if (error.response?.status === 403) {
             // Rights are the station's to give, so the toast points there rather than at a bug report.
             const said = error.response?.data?.message
-            showToast(said?.trim() ? said : i18n.global.t('failure.DENIED.message'), 'error')
+            showToast(said?.trim() ? said : translator.t('failure.DENIED.message'), 'error')
         }
         return Promise.reject(error)
     },

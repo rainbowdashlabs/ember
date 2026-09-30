@@ -3,12 +3,25 @@ export default defineNuxtConfig({
 
   srcDir: 'src/',
 
-  modules: ['@nuxt/test-utils/module', '@nuxt/eslint'],
+  modules: ['@nuxt/test-utils/module', '@nuxt/eslint', '@nuxtjs/i18n'],
 
   eslint: {
     config: {
       autoInit: false,
     },
+  },
+
+  i18n: {
+    restructureDir: 'src',
+    langDir: 'i18n',
+    vueI18n: 'i18n/config.ts',
+    strategy: 'no_prefix',
+    defaultLocale: 'de-DE',
+    detectBrowserLanguage: false,
+    locales: [
+      {code: 'de-DE', language: 'de-DE', file: 'de-DE.ts'},
+      {code: 'en', language: 'en', file: 'en.ts'},
+    ],
   },
 
   runtimeConfig: {

@@ -21,7 +21,7 @@ const GEAR: Gear[] = [
     {id: 3, name: 'Stiefel'},
 ]
 
-const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': {common: {empty: 'leer', delete: 'weg'}}}})
+const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': {common: {empty: 'leer', delete: 'weg'}}, en: {}}})
 
 function picker(extra: Record<string, unknown> = {}) {
     return mount(EntitySearchPicker, {

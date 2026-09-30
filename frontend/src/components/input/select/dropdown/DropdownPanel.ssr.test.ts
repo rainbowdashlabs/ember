@@ -26,7 +26,7 @@ describe('Dropdowns on the server', () => {
         ['LinkSearchInput', LinkSearchInput, {modelValue: 'https://example.org', noFiles: true}],
     ])('renders %s closed without a document', async (_name, component, props) => {
         const app = createSSRApp({render: () => h(component, props)})
-        app.use(createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': deDE}}))
+        app.use(createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': deDE, en: {}}}))
         app.component('font-awesome-icon', {render: () => h('span')})
 
         const html = await renderToString(app)

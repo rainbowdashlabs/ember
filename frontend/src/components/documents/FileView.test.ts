@@ -25,7 +25,7 @@ const i18n = createI18n({
     locale: 'de-DE',
     missingWarn: false,
     fallbackWarn: false,
-    messages: {'de-DE': {}},
+    messages: {'de-DE': {}, en: {}},
 })
 
 const stubs = {

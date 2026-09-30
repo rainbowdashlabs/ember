@@ -7,10 +7,20 @@
 import {readdirSync, readFileSync, statSync} from 'node:fs'
 import {join, relative} from 'node:path'
 import {describe, expect, it} from 'vitest'
+import {createI18n} from 'vue-i18n'
+import deDE from '@/i18n/de-DE'
+import helpCenter from '@/i18n/de-DE.helpcenter'
 import {buildHelpSearchIndex} from './useHelpSearch'
 import {HELP_PAGES} from './helpPages.generated'
 
 const PAGES = join(import.meta.dirname, '..', 'pages', 'helpcenter')
+
+/** The German messages the way a help page holds them, once its layout has merged the help text in. */
+const GERMAN_WITH_HELP = (() => {
+    const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': deDE, en: {}}})
+    i18n.global.mergeLocaleMessage('de-DE', {helpCenter})
+    return i18n.global.getLocaleMessage('de-DE') as Record<string, unknown>
+})()
 
 /** Every route name a help page answers at, read off the page files rather than off the map. */
 function routeNames(): Map<string, string> {
@@ -40,8 +50,8 @@ function routeNames(): Map<string, string> {
  * unit test exists for.
  */
 describe('the help center search index', () => {
-    it('holds an entry for every page, not some of them', async () => {
-        const index = await buildHelpSearchIndex()
+    it('holds an entry for every page, not some of them', () => {
+        const index = buildHelpSearchIndex(GERMAN_WITH_HELP)
         const missing = HELP_PAGES.filter(page => !index.some(entry => entry.route === page.route))
         expect(missing.map(page => page.i18nPrefix), 'a prefix that resolves to nothing is a page nobody can find')
             .toEqual([])
@@ -51,20 +61,20 @@ describe('the help center search index', () => {
      * The promise the generated index makes that the hand-written one could not: a page is in the search
      * because it exists. Nobody adds it, so nobody can forget to.
      */
-    it('carries text for every page in the tree', async () => {
-        const index = await buildHelpSearchIndex()
+    it('carries text for every page in the tree', () => {
+        const index = buildHelpSearchIndex(GERMAN_WITH_HELP)
         const silent = index.filter(entry => entry.text.trim().length === 0).map(entry => entry.route)
         expect(silent, 'a page in the index with no text answers no search').toEqual([])
     })
 
-    it('says where a page sits, ending with the page itself', async () => {
-        const index = await buildHelpSearchIndex()
+    it('says where a page sits, ending with the page itself', () => {
+        const index = buildHelpSearchIndex(GERMAN_WITH_HELP)
         const wrong = index.filter(entry => !entry.section.endsWith(entry.title)).map(entry => entry.route)
         expect(wrong, 'the last part of the breadcrumb is the page you are looking at').toEqual([])
     })
 
-    it('finds a word the help text certainly contains', async () => {
-        const index = await buildHelpSearchIndex()
+    it('finds a word the help text certainly contains', () => {
+        const index = buildHelpSearchIndex(GERMAN_WITH_HELP)
         const found = index.filter(entry => entry.text.toLowerCase().includes('termine'))
         expect(found.length, 'Termine is in the help text more than a hundred times').toBeGreaterThan(1)
     })
@@ -93,8 +103,8 @@ describe('the help center search index', () => {
         expect(dangling, 'an entry for a page nobody can reach is a dead result').toEqual([])
     })
 
-    it('reaches the association, whose pages were in no map at all', async () => {
-        const index = await buildHelpSearchIndex()
+    it('reaches the association, whose pages were in no map at all', () => {
+        const index = buildHelpSearchIndex(GERMAN_WITH_HELP)
         const association = index.filter(entry => entry.path.startsWith('/helpcenter/cluster'))
         expect(association.length, 'the association has help of its own and it has to be findable')
             .toBeGreaterThan(30)

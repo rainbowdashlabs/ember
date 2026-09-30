@@ -13,7 +13,7 @@ import deDE from '@/i18n/de-DE'
 function panel(confirmedByMail: boolean) {
   return mount(WaitlistSuccessPanel, {
     props: {confirmedByMail},
-    global: {plugins: [createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': deDE}})]},
+    global: {plugins: [createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': deDE, en: {}}})]},
   })
 }
 

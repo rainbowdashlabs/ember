@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref, watch} from 'vue'
-import i18n from '@/i18n'
 import {loadHelpcenterMessages} from '@/composables/useHelpcenterMessages'
 import {HELP_PAGES} from '@/composables/helpPages.generated'
 
@@ -78,11 +77,10 @@ function resolveKey(obj: Record<string, unknown>, keyPath: string): unknown {
  * <p>Reading the merged messages is the fix, and it costs nothing: the search box only ever renders
  * inside a help center layout, and that layout has awaited the chunk before anybody can type. Importing
  * the chunk statically here would work too and would undo the code splitting it exists for.
+ *
+ * @param messages the German messages with the help text merged in under `helpCenter`
  */
-export async function buildHelpSearchIndex(): Promise<HelpSearchEntry[]> {
-    await loadHelpcenterMessages()
-    const messages = i18n.global.getLocaleMessage('de-DE') as Record<string, unknown>
-
+export function buildHelpSearchIndex(messages: Record<string, unknown>): HelpSearchEntry[] {
     const drawn = HELP_PAGES.map(page => {
         const prefixes = Array.isArray(page.i18nPrefix) ? page.i18nPrefix : [page.i18nPrefix]
         const subtrees = prefixes.map(prefix => resolveKey(messages, prefix)).filter(Boolean)
@@ -150,15 +148,19 @@ function lastSegment(path: string): string {
  * <p>A failed attempt is forgotten rather than remembered. The chunk comes over the network, a fetch can
  * fail, and a remembered failure would leave the box answering nothing for the rest of the visit, which
  * is the shape of the fault this whole repair is about.
+ *
+ * <p>Built in the browser only. Nobody types into a page the server renders, and an index kept at
+ * module level on the server would be one request's messages answering every request after it.
  */
 const index = ref<HelpSearchEntry[]>([])
 let building: Promise<void> | null = null
 
 function ensureIndex(): void {
-    if (building) return
-    building = buildHelpSearchIndex()
-        .then(entries => {
-            index.value = entries
+    if (import.meta.server || building) return
+    const i18n = useNuxtApp().$i18n
+    building = loadHelpcenterMessages()
+        .then(() => {
+            index.value = buildHelpSearchIndex(i18n.getLocaleMessage('de-DE') as Record<string, unknown>)
         })
         .catch(() => {
             building = null

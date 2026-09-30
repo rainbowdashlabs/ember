@@ -11,7 +11,7 @@ import ImageLightbox from './ImageLightbox.vue'
 
 enableAutoUnmount(afterEach)
 
-const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': {}}, missingWarn: false, fallbackWarn: false})
+const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': {}, en: {}}, missingWarn: false, fallbackWarn: false})
 
 async function mountLightbox(props: Record<string, unknown> = {}, slot?: string) {
     const wrapper = mount(ImageLightbox, {

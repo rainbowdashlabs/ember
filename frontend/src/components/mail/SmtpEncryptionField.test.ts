@@ -17,7 +17,7 @@ import {SmtpEncryption, type SmtpEncryptionName} from '@/api/mailProviders'
  * @vitest-environment happy-dom
  */
 describe('SmtpEncryptionField', () => {
-    const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': de}})
+    const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': de, en: {}}})
 
     function field(modelValue: SmtpEncryptionName) {
         return mount(SmtpEncryptionField, {props: {modelValue}, global: {plugins: [i18n]}})

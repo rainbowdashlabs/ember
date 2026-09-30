@@ -65,7 +65,7 @@ describe('a refusal said in the reader\'s language', () => {
             legacy: false,
             locale: 'de-DE',
             fallbackLocale: 'de-DE',
-            messages: {'de-DE': {refusal: {'F-001': 'Das Formular gibt es nicht mehr.'}}},
+            messages: {'de-DE': {refusal: {'F-001': 'Das Formular gibt es nicht mehr.'}}, en: {}},
         })
 
         const failure = describeFailure(

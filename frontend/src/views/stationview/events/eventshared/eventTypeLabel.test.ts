@@ -9,7 +9,7 @@ import de from '@/i18n/de-DE'
 import {EventTypes} from '@/api/events'
 import {eventTypeLabelKey} from './eventTypeLabel'
 
-const {t} = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': de}}).global
+const {t} = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': de, en: {}}}).global
 
 /**
  * Each kind of appointment is called by its own name, not by the name of the weekly series.
