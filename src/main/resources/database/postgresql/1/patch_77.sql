@@ -220,3 +220,6 @@ COMMENT ON COLUMN ember_schema.account_ai_credential.api_key
     IS 'The key, encrypted with the instance credential key (enc:v1: prefix). Never sent back to a browser and never exported.';
 COMMENT ON COLUMN ember_schema.account_ai_credential.updated_at
     IS 'When the key or its settings were last saved.';
+
+COMMENT ON COLUMN ember_schema.station_ai_provider.api_key
+    IS 'The station key for the provider, encrypted with the instance credential key (enc:v1: prefix). A key stored in plaintext before encryption existed is encrypted at start-up. Never sent to a browser.';

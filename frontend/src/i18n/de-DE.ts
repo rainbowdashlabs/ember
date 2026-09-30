@@ -8940,7 +8940,7 @@ export default {
             generate: 'Generieren',
             generating: 'Generiere...',
             count: 'Anzahl',
-            keyNotEncrypted: 'Hinweis: Der Schlüssel wird unverschlüsselt auf dem Server gespeichert.',
+            stationKeyHint: 'Der Schlüssel wird verschlüsselt gespeichert und gilt für alle, die in dieser Wache Fragen generieren und keinen eigenen Schlüssel hinterlegt haben.',
             keyStoredHint: 'Der Schlüssel wird verschlüsselt in deinem Konto gespeichert und danach nie wieder an den Browser gesendet. Er gilt in jedem Browser, in dem du angemeldet bist.',
             keyStoredEnding: 'Dein gespeicherter Schlüssel endet auf {ending}. Lass das Feld leer, um ihn zu behalten.',
             keyUnusable: 'Dein gespeicherter Schlüssel lässt sich nicht mehr verwenden. Bitte gib ihn erneut ein.',

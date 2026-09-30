@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
+import dev.chojo.ember.feature.quiz.service.AiCredentialService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.system.service.ChangelogAnnouncer;
@@ -173,6 +174,7 @@ public class Bootstrapper {
         // Eagerly initialize the query configuration so query(...) works globally
         injector.getInstance(QueryConfiguration.class);
         injector.getInstance(StationKeyStore.class).sealLegacyKeys();
+        injector.getInstance(AiCredentialService.class).sealLegacyStationKeys();
         // Initialize domain event bus (registers all handlers)
         injector.getInstance(DomainEventBus.class);
         injector.getInstance(TransferTimeoutWatchdog.class);

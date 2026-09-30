@@ -87,7 +87,7 @@ public class AiService {
     }
 
     public void saveProvider(int stationId, String provider, String apiKey, String model) {
-        providerRepository.upsert(stationId, provider, apiKey, model);
+        credentials.saveStationKey(stationId, provider, apiKey, model);
         log.info("Saved AI provider {} (model {}) for station {}", provider, model, stationId);
     }
 
@@ -272,7 +272,7 @@ public class AiService {
         if (transientKey != null && !transientKey.isBlank()) return transientKey;
         return credentials
                 .keyFor(accountId, provider)
-                .or(() -> providerRepository.findByProvider(stationId, provider).map(StationAiProvider::apiKey))
+                .or(() -> credentials.stationKey(stationId, provider))
                 .orElse(null);
     }
 

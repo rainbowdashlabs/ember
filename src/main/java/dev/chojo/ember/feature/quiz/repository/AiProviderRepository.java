@@ -49,6 +49,43 @@ public class AiProviderRepository {
                 .insert();
     }
 
+    /**
+     * Every station provider whose key is stored without the given prefix, which is how a key written
+     * before encryption at rest is recognised.
+     *
+     * @param sealedPrefix the prefix every encrypted value starts with
+     * @return the providers still holding a plaintext key
+     */
+    public List<StationAiProvider> findWithoutPrefix(String sealedPrefix) {
+        return query("""
+                SELECT %s
+                FROM station_ai_provider
+                WHERE NOT starts_with(api_key, :prefix)
+                ORDER BY id;""", STATION_AI_PROVIDER_COLUMNS)
+                .single(call().bind("prefix", sealedPrefix))
+                .map(StationAiProvider.map())
+                .all();
+    }
+
+    /**
+     * Replaces a provider's key, but only while it still holds the value that was read, so a key a
+     * station saved in the meantime is left alone.
+     *
+     * @param id       the provider row
+     * @param expected the key as it was read
+     * @param stored   the key to write instead
+     * @return whether the key was replaced
+     */
+    public boolean replaceKeyIfUnchanged(int id, String expected, String stored) {
+        return query("""
+                UPDATE station_ai_provider
+                SET api_key = :stored
+                WHERE id = :id AND api_key = :expected;""")
+                .single(call().bind("stored", stored).bind("id", id).bind("expected", expected))
+                .update()
+                .changed();
+    }
+
     public void delete(int stationId, String provider) {
         query("DELETE FROM station_ai_provider WHERE station_id = :station_id AND provider = :provider;")
                 .single(call().bind("station_id", stationId).bind("provider", provider))

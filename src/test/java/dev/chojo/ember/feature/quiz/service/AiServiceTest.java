@@ -12,7 +12,6 @@ import com.anthropic.models.messages.MessageCreateParams;
 import com.openai.client.OpenAIClient;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
-import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,8 +51,7 @@ class AiServiceTest {
 
     @Test
     void theKeyComesFromTheRequestThenThePersonThenTheStation() {
-        when(stations.findByProvider(1, "claude"))
-                .thenReturn(Optional.of(new StationAiProvider(1, 1, "claude", "station", null)));
+        when(credentials.stationKey(1, "claude")).thenReturn(Optional.of("station"));
         when(credentials.keyFor(7, "claude")).thenReturn(Optional.of("personal"));
         when(clients.anthropic(anyString())).thenThrow(new IllegalStateException("offline"));
 
@@ -72,6 +70,14 @@ class AiServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.fetchModels(1, 7, "claude", null));
 
         verifyNoInteractions(clients);
+    }
+
+    @Test
+    void aStationKeyIsSavedThroughTheCredentialsSoItIsEncrypted() {
+        service.saveProvider(1, "openai", "sk-station", "gpt-4o");
+
+        verify(credentials).saveStationKey(1, "openai", "sk-station", "gpt-4o");
+        verifyNoInteractions(stations);
     }
 
     @Test

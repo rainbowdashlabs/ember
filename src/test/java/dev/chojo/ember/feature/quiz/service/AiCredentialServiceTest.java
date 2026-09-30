@@ -6,7 +6,9 @@
 package dev.chojo.ember.feature.quiz.service;
 
 import dev.chojo.ember.feature.quiz.entity.AccountAiCredential;
+import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.repository.AccountAiCredentialRepository;
+import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.feature.quiz.service.AiCredentialService.AiCredentialSummary;
 import dev.chojo.ember.feature.quiz.service.AiCredentialService.SaveOutcome;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
@@ -16,6 +18,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,12 +39,58 @@ class AiCredentialServiceTest {
     private static final String KEY = Base64.getEncoder().encodeToString(new byte[32]);
 
     private final AccountAiCredentialRepository repository = mock(AccountAiCredentialRepository.class);
+    private final AiProviderRepository stations = mock(AiProviderRepository.class);
     private final CredentialCipher cipher = new CredentialCipher(KEY);
     private AiCredentialService service;
 
     @BeforeEach
     void setUp() {
-        service = new AiCredentialService(repository, cipher);
+        service = new AiCredentialService(repository, stations, cipher);
+    }
+
+    @Test
+    void aStationKeyIsWrittenSealed() {
+        service.saveStationKey(3, "openai", " sk-station ", "gpt-4o");
+
+        var sealed = ArgumentCaptor.forClass(String.class);
+        verify(stations).upsert(eq(3), eq("openai"), sealed.capture(), eq("gpt-4o"));
+        assertEquals("sk-station", cipher.unseal(sealed.getValue()));
+    }
+
+    @Test
+    void aStationKeyIsReadWhetherSealedOrFromBeforeEncryption() {
+        when(stations.findByProvider(3, "openai"))
+                .thenReturn(Optional.of(new StationAiProvider(1, 3, "openai", cipher.seal("sk-sealed"), null)));
+        when(stations.findByProvider(4, "openai"))
+                .thenReturn(Optional.of(new StationAiProvider(2, 4, "openai", "sk-plain", null)));
+        when(stations.findByProvider(5, "openai"))
+                .thenReturn(Optional.of(new StationAiProvider(3, 5, "openai", "enc:v1:broken", null)));
+
+        assertEquals("sk-sealed", service.stationKey(3, "openai").orElseThrow());
+        assertEquals("sk-plain", service.stationKey(4, "openai").orElseThrow());
+        assertTrue(service.stationKey(5, "openai").isEmpty());
+        assertTrue(service.stationKey(6, "openai").isEmpty());
+    }
+
+    @Test
+    void plaintextStationKeysAreSealedOnceAndOnlyWhileUnchanged() {
+        when(stations.findWithoutPrefix(CredentialCipher.SEALED_PREFIX))
+                .thenReturn(List.of(
+                        new StationAiProvider(1, 3, "openai", "sk-one", null),
+                        new StationAiProvider(2, 4, "claude", "sk-two", null)));
+        when(stations.replaceKeyIfUnchanged(eq(1), eq("sk-one"), anyString())).thenReturn(true);
+        when(stations.replaceKeyIfUnchanged(eq(2), eq("sk-two"), anyString())).thenReturn(false);
+
+        assertEquals(1, service.sealLegacyStationKeys());
+
+        var sealed = ArgumentCaptor.forClass(String.class);
+        verify(stations).replaceKeyIfUnchanged(eq(1), eq("sk-one"), sealed.capture());
+        assertEquals("sk-one", cipher.unseal(sealed.getValue()));
+    }
+
+    @Test
+    void nothingToSealWritesNothing() {
+        assertEquals(0, service.sealLegacyStationKeys());
     }
 
     @Test

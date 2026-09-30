@@ -20991,7 +20991,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "API key for the provider."
+          "description": "The station key for the provider, encrypted with the instance credential key (enc:v1: prefix). A key stored in plaintext before encryption existed is encrypted at start-up. Never sent to a browser."
         },
         {
           "name": "model",
@@ -21014,7 +21014,7 @@
         "ignoredColumns": [
           "station_id"
         ],
-        "rationale": "Per-station AI provider configuration; transfers with the station so AI features keep working."
+        "rationale": "Per-station AI provider configuration; transfers with the station. The key is encrypted with the source instance's credential key, so the target reads it as missing and the station enters it again."
       },
       "gdprExport": {
         "status": "IGNORED",

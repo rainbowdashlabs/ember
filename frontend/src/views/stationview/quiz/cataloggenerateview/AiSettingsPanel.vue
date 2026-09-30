@@ -148,7 +148,7 @@ defineExpose({getProvider, getModel})
           <ToggleInput v-model="saveOnServer"/>
           <span class="text-sm font-medium">{{ t('quiz.ai.saveOnServer') }}</span>
         </div>
-        <MutedText v-if="saveOnServer" tag="p" class="text-xs">{{ t('quiz.ai.keyNotEncrypted') }}</MutedText>
+        <MutedText v-if="saveOnServer" tag="p" class="text-xs">{{ t('quiz.ai.stationKeyHint') }}</MutedText>
 
         <FailureAlert :failure="saveFailure ?? removeFailure"/>
         <ButtonRow pair>

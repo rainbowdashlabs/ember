@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.quiz.service;
 import dev.chojo.ember.feature.quiz.entity.AccountAiCredential;
 import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.repository.AccountAiCredentialRepository;
+import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.credential.CredentialCipherException;
 import jakarta.inject.Inject;
@@ -18,15 +19,18 @@ import org.slf4j.LoggerFactory;
 import java.util.Optional;
 
 /**
- * The AI provider key a person keeps on the server, encrypted, instead of in their browser.
+ * The AI provider keys kept on the server, encrypted: the one a person keeps for themselves, and the
+ * one a station keeps for everybody at it.
  *
- * <p>The key is sealed by {@link CredentialCipher} before it is written and only ever opened to make
- * a call to the provider. What a person is shown of it is which provider and model it is for and its
- * last four characters, which is enough to recognise it and useless to anybody else.
+ * <p>A key is sealed by {@link CredentialCipher} before it is written and only ever opened to make a
+ * call to the provider. What a person is shown of their own is which provider and model it is for
+ * and its last four characters, which is enough to recognise it and useless to anybody else. A
+ * station's key is never shown at all.
  *
  * <p>A key that no longer opens, because the instance's credential key was lost or replaced, counts
- * as no key at all: the person is asked to enter it again rather than shown a failure they cannot
- * fix.
+ * as no key at all: it is entered again rather than shown as a failure nobody can fix. A station
+ * key stored before encryption existed is still read, and {@link #sealLegacyStationKeys()} converts
+ * those once at start-up.
  */
 @Singleton
 public class AiCredentialService {
@@ -34,12 +38,62 @@ public class AiCredentialService {
     private static final int VISIBLE_ENDING = 4;
 
     private final AccountAiCredentialRepository repository;
+    private final AiProviderRepository stations;
     private final CredentialCipher cipher;
 
     @Inject
-    public AiCredentialService(AccountAiCredentialRepository repository, CredentialCipher cipher) {
+    public AiCredentialService(
+            AccountAiCredentialRepository repository, AiProviderRepository stations, CredentialCipher cipher) {
         this.repository = repository;
+        this.stations = stations;
         this.cipher = cipher;
+    }
+
+    /**
+     * Saves the key a station keeps for a provider, encrypted.
+     *
+     * @param stationId the station
+     * @param provider  the provider the key is for
+     * @param apiKey    the key
+     * @param model     the model to ask by default, or {@code null}
+     */
+    public void saveStationKey(int stationId, String provider, String apiKey, String model) {
+        stations.upsert(stationId, provider, cipher.seal(apiKey.trim()), model);
+    }
+
+    /**
+     * The key to call a provider with on a station's behalf.
+     *
+     * @param stationId the station
+     * @param provider  the provider to be called
+     * @return the plaintext key, or empty when the station keeps none for this provider or it no
+     *         longer opens
+     */
+    // TODO: carry station AI keys across a station transfer the way the federation key is carried
+    public Optional<String> stationKey(int stationId, String provider) {
+        return stations.findByProvider(stationId, provider).flatMap(station -> {
+            if (!CredentialCipher.isSealed(station.apiKey())) return Optional.of(station.apiKey());
+            return open(station.apiKey(), "station " + stationId);
+        });
+    }
+
+    /**
+     * Encrypts every station key still stored in plaintext.
+     *
+     * <p>Each row is converted on its own and only while it still holds the plaintext that was read,
+     * so the conversion can be interrupted at any point and simply run again.
+     *
+     * @return how many keys were encrypted
+     */
+    public int sealLegacyStationKeys() {
+        int sealed = 0;
+        for (var station : stations.findWithoutPrefix(CredentialCipher.SEALED_PREFIX)) {
+            if (stations.replaceKeyIfUnchanged(station.id(), station.apiKey(), cipher.seal(station.apiKey()))) {
+                sealed++;
+            }
+        }
+        if (sealed > 0) log.info("Encrypted {} station AI key(s) that were stored in plaintext", sealed);
+        return sealed;
     }
 
     /**
@@ -113,12 +167,14 @@ public class AiCredentialService {
     }
 
     private Optional<String> open(AccountAiCredential credential) {
+        return open(credential.sealedKey(), "account " + credential.accountId());
+    }
+
+    private Optional<String> open(String sealed, String owner) {
         try {
-            return Optional.of(cipher.unseal(credential.sealedKey()));
+            return Optional.of(cipher.unseal(sealed));
         } catch (CredentialCipherException e) {
-            log.warn(
-                    "The AI key of account {} could not be decrypted and has to be entered again",
-                    credential.accountId());
+            log.warn("The AI key of {} could not be decrypted and has to be entered again", owner);
             return Optional.empty();
         }
     }
