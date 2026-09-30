@@ -371,6 +371,7 @@ export default {
     'B-003': 'Die Anfrage hat nicht die Form, die diese Schnittstelle erwartet',
     'B-004': 'Ein Wert in der Anfrage ist keiner, den diese Schnittstelle annimmt',
     'B-005': NOTHING_SAVED_UNUSABLE,
+    'B-006': 'Die Einstellungen eines Blocks passen nicht zu seiner Art, es wurde nichts gespeichert',
 
     'NW-001': NOT_HERE_OR_NOT_YOURS,
     'NW-002': NEWS_NEEDS_A_TITLE,

@@ -619,6 +619,13 @@ public enum Refusal {
     INPUT_NOT_USABLE(
             Area.BODY, 5, HttpStatus.BAD_REQUEST, "Something in what was sent could not be used, so nothing was saved"),
 
+    /** A block of a page, news entry or article sent with settings its kind of block does not take. */
+    BLOCK_SETTINGS_REJECTED(
+            Area.BODY,
+            6,
+            HttpStatus.BAD_REQUEST,
+            "The settings of a block do not fit its kind of block, so nothing was saved"),
+
     /**
      * An entry that is not here, or one the reader was never among the people it was addressed to.
      *

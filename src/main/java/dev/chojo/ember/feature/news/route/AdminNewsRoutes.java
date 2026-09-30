@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.content.route.SaveBlocksRequest;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
@@ -188,11 +189,11 @@ public class AdminNewsRoutes implements Routes {
             summary = "Save the blocks of an entry the instance published",
             tags = {"Admin"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NewsRoutes.SaveBlocksRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SaveBlocksRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SystemNewsResponse.class)))
     private void saveBlocks(Context ctx) {
         int id = requireSystemEntry(pathInt(ctx, "id")).id();
-        var request = ctx.bodyAsClass(NewsRoutes.SaveBlocksRequest.class);
+        var request = ctx.bodyAsClass(SaveBlocksRequest.class);
         var saved = newsService
                 .saveBlocks(id, request.toRowData())
                 .orElseThrow(Refusal.SYSTEM_NEWS_NOT_HERE_ON_BLOCK_SAVE::raise);

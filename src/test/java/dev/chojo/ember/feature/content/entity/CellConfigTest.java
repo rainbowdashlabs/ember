@@ -10,6 +10,7 @@ import tools.jackson.databind.JsonNode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * The settings of a cell arrive as an object and are bound once the content type says which record
@@ -38,9 +39,9 @@ class CellConfigTest {
         assertEquals(CellContentType.VIDEO.emptyConfig(), CellConfig.parse(CellContentType.VIDEO, node("{}")));
     }
 
-    /** A tree that does not fit the type is the cell's own settings gone, not the request refused. */
+    /** A stored tree that does not fit the type loads as empty rather than taking the page down. */
     @Test
-    void fallsBackToTheEmptySettingsWhenTheTreeDoesNotFit() {
+    void fallsBackToTheEmptySettingsWhenAStoredTreeDoesNotFit() {
         assertEquals(
                 CellContentType.VIDEO.emptyConfig(),
                 CellConfig.parse(CellContentType.VIDEO, node("{\"autoplay\":\"not a flag\"}")));
@@ -53,5 +54,41 @@ class CellConfigTest {
 
         assertEquals(
                 true, assertInstanceOf(CellConfig.VideoConfig.class, config).autoplay());
+    }
+
+    @Test
+    void aStoredRowThatDoesNotFitLoadsAsEmpty() {
+        assertEquals(
+                CellContentType.SPACER.emptyConfig(),
+                CellConfig.parse(CellContentType.SPACER, "{\"heightPx\":\"abc\"}"));
+    }
+
+    @Test
+    void bindingRefusesAValueOfTheWrongType() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> CellConfig.bind(CellContentType.SPACER, node("{\"heightPx\":\"abc\"}")));
+    }
+
+    @Test
+    void bindingRefusesSettingsThatAreNotAnObject() {
+        assertThrows(IllegalArgumentException.class, () -> CellConfig.bind(CellContentType.SPACER, node("\"tall\"")));
+    }
+
+    @Test
+    void bindingKeepsWhatFits() {
+        var spacer = CellConfig.bind(CellContentType.SPACER, node("{\"heightPx\":48,\"unknown\":1}"));
+
+        assertEquals(new CellConfig.SpacerConfig(48), spacer);
+        assertEquals(CellContentType.SPACER.emptyConfig(), CellConfig.bind(CellContentType.SPACER, node("{}")));
+    }
+
+    /** The empty settings of every kind are its record with nothing set, which is what saving one writes. */
+    @Test
+    void everyKindHasEmptySettingsOfItsOwnRecord() {
+        for (var type : CellContentType.values()) {
+            var empty = assertInstanceOf(type.configClass(), type.emptyConfig());
+            assertEquals("{}", empty.toJson(), type.name());
+        }
     }
 }

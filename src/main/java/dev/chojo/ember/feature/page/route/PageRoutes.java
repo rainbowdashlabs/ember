@@ -13,7 +13,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.content.entity.CellConfig;
-import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
@@ -269,22 +269,7 @@ public class PageRoutes implements Routes {
             throw Refusal.PAGE_ADDRESS_MISSING_ON_SAVE.raise();
         }
 
-        List<ContentBlockService.RowData> rows = request.rows() == null
-                ? List.of()
-                : request.rows().stream()
-                        .map(r -> new ContentBlockService.RowData(
-                                r.sortOrder(),
-                                r.cells() == null
-                                        ? List.of()
-                                        : r.cells().stream()
-                                                .map(c -> new ContentBlockService.CellData(
-                                                        c.sortOrder(),
-                                                        c.widthPercent() != null ? c.widthPercent() : 100.0,
-                                                        CellContentType.valueOf(c.contentType()),
-                                                        c.content() != null ? c.content() : "",
-                                                        c.parsedConfig()))
-                                                .toList()))
-                        .toList();
+        List<ContentBlockService.RowData> rows = BlockRowRequest.toRowData(request.rows());
 
         try {
             if (!pageService.savePage(
@@ -423,20 +408,7 @@ public class PageRoutes implements Routes {
             Integer parentId,
             String metaDescription,
             Integer ogImageId,
-            List<RowRequest> rows) {}
-
-    record RowRequest(int sortOrder, List<CellRequest> cells) {}
-
-    /**
-     * @param config the cell's settings as an object. Which record they are follows from the content
-     *               type beside them, so they are bound once that is known rather than while the
-     *               request is read.
-     */
-    record CellRequest(int sortOrder, Double widthPercent, String contentType, String content, JsonNode config) {
-        CellConfig parsedConfig() {
-            return CellConfig.parse(CellContentType.valueOf(contentType), config);
-        }
-    }
+            List<BlockRowRequest> rows) {}
 
     record VisibilityRequest(PageVisibility visibility) {}
 

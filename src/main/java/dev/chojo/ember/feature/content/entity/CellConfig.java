@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -24,33 +25,66 @@ public sealed interface CellConfig {
 
     CellConfig EMPTY = new MarkdownConfig();
 
+    /**
+     * Reads stored settings. A stored row that no longer fits its record is logged and read as the
+     * empty settings of its kind, so one stale block cannot take the whole page down with it.
+     */
     static CellConfig parse(CellContentType type, String json) {
         if (json == null || json.isBlank() || "{}".equals(json)) {
             return type.emptyConfig();
         }
         try {
             return MAPPER.readValue(json, type.configClass());
-        } catch (Exception e) {
+        } catch (JacksonException e) {
             log.error("Failed to parse CellConfig for type {}: {}", type, json, e);
             return type.emptyConfig();
         }
     }
 
     /**
-     * Binds settings that arrived as an object rather than as text.
-     *
-     * <p>Which record they are depends on the content type standing next to them, so they cannot be
-     * bound while the request is read. Carrying them this far as a tree rather than as JSON text
-     * spares them a trip through the serialiser and back that could only lose something.
+     * Reads stored settings that arrived as a tree, such as the cells of nested rows. As tolerant as
+     * {@link #parse(CellContentType, String)}: what does not fit is logged and read as empty.
      */
     static CellConfig parse(CellContentType type, JsonNode node) {
-        if (node == null || node.isNull() || node.isEmpty()) return type.emptyConfig();
         try {
-            return MAPPER.treeToValue(node, type.configClass());
-        } catch (Exception e) {
+            return bind(type, node);
+        } catch (IllegalArgumentException e) {
             log.error("Failed to read CellConfig for type {}: {}", type, node, e);
             return type.emptyConfig();
         }
+    }
+
+    /**
+     * Binds settings an author sent, refusing any that do not fit.
+     *
+     * <p>Which record they are depends on the content type standing next to them, so they cannot be
+     * bound while the request is read. Carrying them this far as a tree rather than as JSON text
+     * spares them a trip through the serialiser and back that could only lose something. Absent or
+     * empty settings are the empty settings of the kind.
+     *
+     * @throws IllegalArgumentException when the settings are not an object or a value in them does
+     *                                  not fit the record of this kind, for example text where a
+     *                                  number belongs
+     */
+    static CellConfig bind(CellContentType type, JsonNode node) {
+        if (node == null || node.isNull()) return type.emptyConfig();
+        if (!node.isObject()) {
+            throw new IllegalArgumentException("The settings of a " + type + " block are not an object");
+        }
+        if (node.isEmpty()) return type.emptyConfig();
+        try {
+            return MAPPER.treeToValue(node, type.configClass());
+        } catch (JacksonException e) {
+            throw new IllegalArgumentException("The settings do not fit a " + type + " block", e);
+        }
+    }
+
+    /**
+     * The settings of a kind of block with nothing set, which is what its record reads an empty
+     * object as.
+     */
+    static CellConfig emptyOf(Class<? extends CellConfig> configClass) {
+        return MAPPER.treeToValue(MAPPER.createObjectNode(), configClass);
     }
 
     default String toJson() {

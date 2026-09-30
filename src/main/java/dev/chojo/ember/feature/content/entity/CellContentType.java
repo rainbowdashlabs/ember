@@ -9,56 +9,49 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * The kinds of block a container can hold.
+ * The kinds of block a container can hold, each with the record its settings are read into.
+ *
+ * <p>The settings sit beside the kind in their own column, so the record is chosen here rather than
+ * by a type name inside the settings. A kind's empty settings are whatever its record reads an empty
+ * object as.
  */
 public enum CellContentType {
-    EMPTY(CellConfig.MarkdownConfig.class, new CellConfig.MarkdownConfig()),
-    MARKDOWN(CellConfig.MarkdownConfig.class, new CellConfig.MarkdownConfig()),
-    IMAGE(
-            CellConfig.ImageConfig.class,
-            new CellConfig.ImageConfig(null, null, null, null, null, null, null, null, null, null, null)),
-    VIDEO(CellConfig.VideoConfig.class, new CellConfig.VideoConfig(null, null)),
-    CALLOUT(CellConfig.CalloutConfig.class, new CellConfig.CalloutConfig(null, null)),
-    QUOTE(CellConfig.QuoteConfig.class, new CellConfig.QuoteConfig(null, null)),
-    DIVIDER(CellConfig.DividerConfig.class, new CellConfig.DividerConfig(null)),
-    SPACER(CellConfig.SpacerConfig.class, new CellConfig.SpacerConfig(null)),
-    ACCORDION(CellConfig.AccordionConfig.class, new CellConfig.AccordionConfig(null, null)),
-    PDF(CellConfig.PdfConfig.class, new CellConfig.PdfConfig(null, null)),
-    FILE_DOWNLOAD(CellConfig.FileDownloadConfig.class, new CellConfig.FileDownloadConfig(null, null, null)),
-    COUNTDOWN(CellConfig.CountdownConfig.class, new CellConfig.CountdownConfig(null, null, null)),
-    FEATURED_EVENT(
-            CellConfig.FeaturedEventConfig.class,
-            new CellConfig.FeaturedEventConfig(null, null, null, null, null, null)),
-    UPCOMING_EVENTS(CellConfig.UpcomingEventsConfig.class, new CellConfig.UpcomingEventsConfig(null, null)),
-    KB_ARTICLE(CellConfig.KbArticleConfig.class, new CellConfig.KbArticleConfig(null, null)),
-    NEWS_TEASER(CellConfig.NewsTeaserConfig.class, new CellConfig.NewsTeaserConfig(null, null, null, null, null)),
-    PAGE_LINK(CellConfig.PageLinkConfig.class, new CellConfig.PageLinkConfig(null, null)),
-    MAP(CellConfig.MapConfig.class, new CellConfig.MapConfig(null, null, null, null, null)),
-    ADDRESS_CARD(
-            CellConfig.AddressCardConfig.class, new CellConfig.AddressCardConfig(null, null, null, null, null, null)),
-    PARTNER_STATIONS(CellConfig.PartnerStationsConfig.class, new CellConfig.PartnerStationsConfig(null, null, null)),
-    MEMBER_SPOTLIGHT(
-            CellConfig.MemberSpotlightConfig.class, new CellConfig.MemberSpotlightConfig(null, null, null, null)),
-    MEMBER_LIST_SPOTLIGHT(
-            CellConfig.MemberListConfig.class,
-            new CellConfig.MemberListConfig(null, null, null, null, null, null, null, null)),
-    STATS_COUNTER(CellConfig.StatsCounterConfig.class, new CellConfig.StatsCounterConfig(null)),
-    IMAGE_GALLERY(CellConfig.ImageGalleryConfig.class, new CellConfig.ImageGalleryConfig(null, null, null, null)),
-    HERO_BANNER(CellConfig.HeroBannerConfig.class, new CellConfig.HeroBannerConfig(null, null, null, null, null)),
-    PAST_EVENT_RECAP(
-            CellConfig.PastEventRecapConfig.class, new CellConfig.PastEventRecapConfig(null, null, null, null)),
-    TABS(CellConfig.TabsConfig.class, new CellConfig.TabsConfig(null)),
-    ACHIEVEMENTS(CellConfig.AchievementsConfig.class, new CellConfig.AchievementsConfig(null, null)),
-    EXTERNAL_LINK_CARD(
-            CellConfig.ExternalLinkCardConfig.class,
-            new CellConfig.ExternalLinkCardConfig(null, null, null, null, null)),
-    BLOG_SIGNUP(CellConfig.BlogSignupConfig.class, new CellConfig.BlogSignupConfig(null, null)),
-    AUDIO_EMBED(CellConfig.AudioEmbedConfig.class, new CellConfig.AudioEmbedConfig(null, null)),
-    POLL_EMBED(CellConfig.PollEmbedConfig.class, new CellConfig.PollEmbedConfig(null, null)),
-    QUIZ_TEASER(CellConfig.QuizTeaserConfig.class, new CellConfig.QuizTeaserConfig(null, null, null)),
-    FORMS_CTA(CellConfig.FormsCtaConfig.class, new CellConfig.FormsCtaConfig(null, null, null)),
-    CODE_BLOCK(CellConfig.CodeBlockConfig.class, new CellConfig.CodeBlockConfig(null)),
-    NESTED_ROWS(CellConfig.NestedRowsConfig.class, new CellConfig.NestedRowsConfig(null));
+    EMPTY(CellConfig.MarkdownConfig.class),
+    MARKDOWN(CellConfig.MarkdownConfig.class),
+    IMAGE(CellConfig.ImageConfig.class),
+    VIDEO(CellConfig.VideoConfig.class),
+    CALLOUT(CellConfig.CalloutConfig.class),
+    QUOTE(CellConfig.QuoteConfig.class),
+    DIVIDER(CellConfig.DividerConfig.class),
+    SPACER(CellConfig.SpacerConfig.class),
+    ACCORDION(CellConfig.AccordionConfig.class),
+    PDF(CellConfig.PdfConfig.class),
+    FILE_DOWNLOAD(CellConfig.FileDownloadConfig.class),
+    COUNTDOWN(CellConfig.CountdownConfig.class),
+    FEATURED_EVENT(CellConfig.FeaturedEventConfig.class),
+    UPCOMING_EVENTS(CellConfig.UpcomingEventsConfig.class),
+    KB_ARTICLE(CellConfig.KbArticleConfig.class),
+    NEWS_TEASER(CellConfig.NewsTeaserConfig.class),
+    PAGE_LINK(CellConfig.PageLinkConfig.class),
+    MAP(CellConfig.MapConfig.class),
+    ADDRESS_CARD(CellConfig.AddressCardConfig.class),
+    PARTNER_STATIONS(CellConfig.PartnerStationsConfig.class),
+    MEMBER_SPOTLIGHT(CellConfig.MemberSpotlightConfig.class),
+    MEMBER_LIST_SPOTLIGHT(CellConfig.MemberListConfig.class),
+    STATS_COUNTER(CellConfig.StatsCounterConfig.class),
+    IMAGE_GALLERY(CellConfig.ImageGalleryConfig.class),
+    HERO_BANNER(CellConfig.HeroBannerConfig.class),
+    PAST_EVENT_RECAP(CellConfig.PastEventRecapConfig.class),
+    TABS(CellConfig.TabsConfig.class),
+    ACHIEVEMENTS(CellConfig.AchievementsConfig.class),
+    EXTERNAL_LINK_CARD(CellConfig.ExternalLinkCardConfig.class),
+    BLOG_SIGNUP(CellConfig.BlogSignupConfig.class),
+    AUDIO_EMBED(CellConfig.AudioEmbedConfig.class),
+    POLL_EMBED(CellConfig.PollEmbedConfig.class),
+    QUIZ_TEASER(CellConfig.QuizTeaserConfig.class),
+    FORMS_CTA(CellConfig.FormsCtaConfig.class),
+    CODE_BLOCK(CellConfig.CodeBlockConfig.class),
+    NESTED_ROWS(CellConfig.NestedRowsConfig.class);
 
     /**
      * The blocks a page may have and an article may not.
@@ -84,9 +77,9 @@ public enum CellContentType {
     private final Class<? extends CellConfig> configClass;
     private final CellConfig emptyConfig;
 
-    CellContentType(Class<? extends CellConfig> configClass, CellConfig emptyConfig) {
+    CellContentType(Class<? extends CellConfig> configClass) {
         this.configClass = configClass;
-        this.emptyConfig = emptyConfig;
+        this.emptyConfig = CellConfig.emptyOf(configClass);
     }
 
     public Class<? extends CellConfig> configClass() {

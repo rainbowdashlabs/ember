@@ -10,11 +10,9 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.content.entity.CellConfig;
-import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.content.entity.ContentRow;
-import dev.chojo.ember.feature.content.service.ContentBlockService;
+import dev.chojo.ember.feature.content.route.SaveBlocksRequest;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
@@ -50,7 +48,6 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
-import tools.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -1226,44 +1223,6 @@ public class KnowledgeBaseRoutes implements Routes {
      * the article.
      */
     public record BlocksResponse(ContentMode contentMode, List<ContentRow> rows, List<ContentRow> describedRows) {}
-
-    /**
-     * Request body for saving the blocks of a rich article.
-     */
-    public record SaveBlocksRequest(List<BlockRowRequest> rows) {
-        List<ContentBlockService.RowData> toRowData() {
-            if (rows == null) return List.of();
-            return rows.stream().map(BlockRowRequest::toRowData).toList();
-        }
-    }
-
-    public record BlockRowRequest(int sortOrder, List<BlockCellRequest> cells) {
-        ContentBlockService.RowData toRowData() {
-            return new ContentBlockService.RowData(
-                    sortOrder,
-                    cells == null
-                            ? List.of()
-                            : cells.stream().map(BlockCellRequest::toCellData).toList());
-        }
-    }
-
-    /**
-     * @param config the block's settings as an object. Which record they are follows from the
-     *               content type beside them, so they are bound once that is known rather than
-     *               while the request is read.
-     */
-    public record BlockCellRequest(
-            int sortOrder, Double widthPercent, String contentType, String content, JsonNode config) {
-        ContentBlockService.CellData toCellData() {
-            var type = CellContentType.valueOf(contentType);
-            return new ContentBlockService.CellData(
-                    sortOrder,
-                    widthPercent != null ? widthPercent : 100.0,
-                    type,
-                    content != null ? content : "",
-                    CellConfig.parse(type, config));
-        }
-    }
 
     /**
      * A folder's contents together with what the caller may do with each entry, so a listing can
