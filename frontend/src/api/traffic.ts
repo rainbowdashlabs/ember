@@ -19,7 +19,7 @@ export type AuthBucketName = (typeof AuthBucket)[keyof typeof AuthBucket]
 
 /**
  * One row of {@code station_traffic_hourly} as exposed by the admin / station endpoints.
- * {@code stationId} is the public UUID string (serialized via {@code StationIdModule} on the
+ * {@code stationId} is the public UUID string (serialized via {@code PublicIdModule} on the
  * backend), or {@code null} for instance-global rows.
  */
 export interface HourlyTrafficRow {

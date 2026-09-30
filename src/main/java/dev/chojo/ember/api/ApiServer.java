@@ -890,8 +890,7 @@ public class ApiServer {
      */
     private JavalinJackson3 jacksonMapper() {
         JsonMapper mapper = JsonMapper.builder()
-                .addModule(new StationIdModule(stationRepository))
-                .addModule(new ClusterIdModule(clusterRepository))
+                .addModule(PublicIdModule.forApi(stationRepository, clusterRepository))
                 .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))

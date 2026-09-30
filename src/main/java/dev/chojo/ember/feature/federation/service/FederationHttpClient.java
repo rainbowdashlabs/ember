@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.api.FederationHeaders;
-import dev.chojo.ember.api.ForeignStationIdModule;
+import dev.chojo.ember.api.PublicIdModule;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
@@ -55,8 +55,8 @@ import java.util.UUID;
  * {@code FAIL_ON_UNKNOWN_PROPERTIES} so a federation peer running a newer protocol
  * version can add fields to a response without breaking older peers. The main API
  * mapper in {@code ApiServer.jacksonMapper()} keeps the strict default for
- * inbound client payloads. It also carries {@link ForeignStationIdModule}, which reads the
- * station ids a partner publishes as UUIDs without trying to resolve them locally.
+ * inbound client payloads. It also carries {@link PublicIdModule#forPartnerResponses()}, which reads
+ * the station ids a partner publishes as UUIDs without trying to resolve them locally.
  */
 @Singleton
 public class FederationHttpClient {
@@ -68,7 +68,7 @@ public class FederationHttpClient {
     private final StationSigner signer;
     private final StationRepository stationRepository;
     private final Provider<FederationContractRefreshService> refreshService;
-    private final JsonMapper mapper = OutboundHttp.lenientMapper(new ForeignStationIdModule());
+    private final JsonMapper mapper = OutboundHttp.lenientMapper(PublicIdModule.forPartnerResponses());
     private final Duration requestTimeout;
 
     @Inject
