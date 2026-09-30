@@ -11,6 +11,7 @@ import {
     parseHexColor,
     type Rgb,
 } from '@/util/contrastColor'
+import {browserShallowRef} from '@/util/browserState'
 
 /**
  * The surface a glyph is drawn on, named by whoever draws it.
@@ -31,8 +32,21 @@ const HIGHLIGHT_TINT = 0.1
 
 const PAPER: Rgb = [255, 255, 255]
 
-let surfaces: Map<GlyphSurface, Rgb> | null = null
-let outlines = new Map<string, string | null>()
+/** What was measured of the page and what was worked out from it, kept until the theme repaints. */
+interface Measured {
+    surfaces: Map<GlyphSurface, Rgb> | null
+    outlines: Map<string, string | null>
+}
+
+const measured = browserShallowRef<Measured>({surfaces: null, outlines: new Map()})
+
+/**
+ * Whether there is a page to measure. On the server there is none: every surface is taken for
+ * paper, and nothing is kept, since the browser measures for itself.
+ */
+function pageToMeasure(): boolean {
+    return typeof document !== 'undefined'
+}
 
 function readToken(styles: CSSStyleDeclaration, token: string, fallback: Rgb): Rgb {
     const parsed = parseCssColor(styles.getPropertyValue(token).trim())
@@ -41,13 +55,6 @@ function readToken(styles: CSSStyleDeclaration, token: string, fallback: Rgb): R
 }
 
 function measureSurfaces(): Map<GlyphSurface, Rgb> {
-    if (typeof document === 'undefined') {
-        return new Map<GlyphSurface, Rgb>([
-            ['page', PAPER],
-            ['accent', PAPER],
-            ['highlight', PAPER],
-        ])
-    }
     const styles = getComputedStyle(document.documentElement)
     const page = readToken(styles, '--bg', PAPER)
     const accent = readToken(styles, '--bg-accent', page)
@@ -67,8 +74,7 @@ function measureSurfaces(): Map<GlyphSurface, Rgb> {
  * answers for the theme the page is actually wearing.
  */
 export function forgetGlyphSurfaces(): void {
-    surfaces = null
-    outlines = new Map()
+    measured.value = {surfaces: null, outlines: new Map()}
 }
 
 /**
@@ -77,8 +83,9 @@ export function forgetGlyphSurfaces(): void {
  * @param surface the surface the caller is painting on
  */
 export function surfaceColor(surface: GlyphSurface): Rgb {
-    if (!surfaces) surfaces = measureSurfaces()
-    return surfaces.get(surface) ?? PAPER
+    if (!pageToMeasure()) return PAPER
+    measured.value.surfaces ??= measureSurfaces()
+    return measured.value.surfaces.get(surface) ?? PAPER
 }
 
 /**
@@ -97,19 +104,21 @@ export function surfaceColor(surface: GlyphSurface): Rgb {
  */
 export function outlineFor(color: string | null | undefined, surface: GlyphSurface = 'page'): string | null {
     if (!color) return null
+    if (!pageToMeasure()) return outlineAgainst(color, PAPER)
+    const outlines = measured.value.outlines
     const key = `${color}|${surface}`
     const known = outlines.get(key)
     if (known !== undefined) return known
 
-    const painted = parseHexColor(color)
-    if (!painted) {
-        outlines.set(key, null)
-        return null
-    }
-    const behind = surfaceColor(surface)
-    const answer = contrastRatio(painted, behind) < GRAPHIC_CONTRAST_MIN
-        ? contrastingTextColor(behind[0], behind[1], behind[2])
-        : null
+    const answer = outlineAgainst(color, surfaceColor(surface))
     outlines.set(key, answer)
     return answer
+}
+
+function outlineAgainst(color: string, behind: Rgb): string | null {
+    const painted = parseHexColor(color)
+    if (!painted) return null
+    return contrastRatio(painted, behind) < GRAPHIC_CONTRAST_MIN
+        ? contrastingTextColor(behind[0], behind[1], behind[2])
+        : null
 }

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {shallowRef} from 'vue'
+import {browserShallowRef} from '@/util/browserState'
 
 export type StepUpCategory =
     | 'ACCOUNT_SECURITY'
@@ -41,12 +41,12 @@ interface Waiter {
 }
 
 /**
- * What the modal renders. Only the category and the proof set live in the ref: the promise
- * plumbing is plain state, because handing callbacks to a reactive proxy and then mutating them
- * through it is a trap nobody reading the modal would expect.
+ * What the modal renders. Only the category and the proof set live in this ref: the promise
+ * plumbing is held apart and shallow, because handing callbacks to a reactive proxy and then
+ * mutating them through it is a trap nobody reading the modal would expect.
  */
-const current = shallowRef<{category: StepUpCategory | null, proofs: StepUpProofName[] | null} | null>(null)
-let waiters: Waiter[] = []
+const current = browserShallowRef<{category: StepUpCategory | null, proofs: StepUpProofName[] | null} | null>(null)
+const waiters = browserShallowRef<Waiter[]>([])
 
 /**
  * Opens the step-up prompt for the given category and resolves once the reader has answered it
@@ -64,7 +64,7 @@ export function requestStepUp(category: StepUpCategory | null, proofs: StepUpPro
         current.value = {category, proofs}
     }
     return new Promise<void>((resolve, reject) => {
-        waiters.push({resolve, reject})
+        waiters.value.push({resolve, reject})
     })
 }
 
@@ -79,8 +79,8 @@ export function stepUpPending(): boolean {
  */
 export function useStepUpPrompt() {
     function settle(outcome: (waiter: Waiter) => void) {
-        const pending = waiters
-        waiters = []
+        const pending = waiters.value
+        waiters.value = []
         current.value = null
         pending.forEach(outcome)
     }

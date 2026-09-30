@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {readonly, ref} from 'vue'
+import {readonly} from 'vue'
+import {browserRef} from '@/util/browserState'
 import {reportCaughtError} from '@/util/devErrorReporter'
 
 export type BarcodeFormat =
@@ -43,8 +44,8 @@ interface BarcodeDetectorInstance {
  * rest of the session without touching localStorage - a desktop with a webcam plugged in
  * between reloads still re-detects on the next page load.
  */
-const noCameraAvailable = ref(false)
-const tierCache = ref<ScannerTier | null>(null)
+const noCameraAvailable = browserRef(false)
+const tierCache = browserRef<ScannerTier | null>(null)
 
 /**
  * Strips Code 39 sentinel asterisks, trims whitespace and upper-cases using the invariant

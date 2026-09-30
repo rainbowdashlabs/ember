@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onUnmounted, ref, useSlots, watch} from 'vue'
+import {computed, ref, useSlots, watch} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
 import {useSidebarInFlyout} from '@/composables/useSidebarFlyoutContext'
@@ -13,12 +13,7 @@ import SidebarFlyoutMenu from '@/components/navigation/SidebarFlyoutMenu.vue'
 import BareButton from '@/components/button/BareButton.vue'
 import CountBadge from '@/components/badge/CountBadge.vue'
 import {collectSidebarPaths, sidebarEntryVNodes} from '@/util/sidebarEntries'
-import {
-  bestSidebarMatch,
-  claimSidebarGroup,
-  releaseSidebarGroup,
-  reportSidebarMatch,
-} from '@/util/sidebarGroupState'
+import {bestSidebarMatch, followSidebarMatch} from '@/util/sidebarGroupState'
 
 const props = defineProps<{
   icon?: string[]
@@ -68,21 +63,19 @@ const matchLength = computed(() => {
   return best
 })
 
-const groupId = claimSidebarGroup()
-watch(matchLength, length => reportSidebarMatch(groupId, length), {immediate: true})
-onUnmounted(() => releaseSidebarGroup(groupId))
+followSidebarMatch(matchLength)
 
 /**
  * Lit only when nothing matches the page better. Without that the group declared `/cluster` would be
  * highlighted on every page of the association, which is the one group that says nothing about where
  * you are.
  *
- * <p>A best of zero means nobody has reported yet, which on a server render is every time, and matching
- * at all is then the best answer available.
+ * <p>A best of zero means nobody has reported yet, which on a server render and on the browser's first
+ * render is every time, and matching at all is then the best answer available.
  */
 const isActive = computed(() => {
   if (matchLength.value === 0) return false
-  const best = bestSidebarMatch.value
+  const best = bestSidebarMatch()
   return best === 0 || matchLength.value === best
 })
 

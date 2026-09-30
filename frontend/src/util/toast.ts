@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {readonly, ref} from 'vue'
+import {readonly} from 'vue'
+import {browserRef, browserShallowRef} from '@/util/browserState'
 
 /** Something the reader may do about what the toast says, offered beside it. */
 export interface ToastAction {
@@ -29,9 +30,14 @@ interface Countdown {
     holds: Set<ToastHold>
 }
 
-let nextId = 0
-const toasts = ref<Toast[]>([])
-const countdowns = new Map<number, Countdown>()
+/** The numbering of the toasts and the clock of each one on screen, which nothing renders. */
+interface Clocks {
+    nextId: number
+    countdowns: Map<number, Countdown>
+}
+
+const toasts = browserRef<Toast[]>([])
+const clocks = browserShallowRef<Clocks>({nextId: 0, countdowns: new Map()})
 
 /**
  * Adds a toast to the global queue. The toast disappears automatically after {@code durationMs}
@@ -47,10 +53,10 @@ export function showToast(
     durationMs = 5000,
     action?: ToastAction,
 ) {
-    const id = nextId++
+    const id = clocks.value.nextId++
     toasts.value.push({id, message, variant, action})
     const countdown: Countdown = {remainingMs: durationMs, startedAt: 0, handle: null, holds: new Set()}
-    countdowns.set(id, countdown)
+    clocks.value.countdowns.set(id, countdown)
     startCountdown(id, countdown)
 }
 
@@ -59,7 +65,7 @@ export function showToast(
  * who is still reading or about to press its action does not lose it under their hand.
  */
 export function holdToast(id: number, hold: ToastHold) {
-    const countdown = countdowns.get(id)
+    const countdown = clocks.value.countdowns.get(id)
     if (!countdown) return
     countdown.holds.add(hold)
     if (!countdown.handle) return
@@ -70,7 +76,7 @@ export function holdToast(id: number, hold: ToastHold) {
 
 /** Lets go of one hold, and starts the clock again with the time it had left once nothing holds it. */
 export function releaseToast(id: number, hold: ToastHold) {
-    const countdown = countdowns.get(id)
+    const countdown = clocks.value.countdowns.get(id)
     if (!countdown) return
     countdown.holds.delete(hold)
     if (countdown.holds.size === 0 && !countdown.handle) startCountdown(id, countdown)
@@ -85,9 +91,9 @@ function startCountdown(id: number, countdown: Countdown) {
  * Removes the toast with the given id from the queue, if present.
  */
 export function dismissToast(id: number) {
-    const countdown = countdowns.get(id)
+    const countdown = clocks.value.countdowns.get(id)
     if (countdown?.handle) clearTimeout(countdown.handle)
-    countdowns.delete(id)
+    clocks.value.countdowns.delete(id)
     toasts.value = toasts.value.filter(t => t.id !== id)
 }
 

@@ -35,19 +35,28 @@ export const PAGE_TREE = [
     {page: page(5, 'Fahrzeuge', 'fahrzeuge', false), depth: 0},
 ]
 
-let cellId = 0
-
 function cell(contentType: CellContentTypeName, content: string,
               config: CellConfig, widthPercent = 100): PageCell {
-    cellId += 1
-    return {id: cellId, rowId: 0, sortOrder: cellId, widthPercent, contentType, content, config}
+    return {id: 0, rowId: 0, sortOrder: 0, widthPercent, contentType, content, config}
 }
 
 function row(id: number, cells: PageCell[]): PageRow {
     return {id, pageId: 1, sortOrder: id, cells: cells.map(entry => ({...entry, rowId: id}))}
 }
 
-const ROWS: PageRow[] = [
+/** Numbers the cells of the whole page in reading order, which is what the renderer sorts them by. */
+function numbered(rows: PageRow[]): PageRow[] {
+    let next = 0
+    return rows.map(entry => ({
+        ...entry,
+        cells: entry.cells.map(content => {
+            next += 1
+            return {...content, id: next, sortOrder: next}
+        }),
+    }))
+}
+
+const ROWS: PageRow[] = numbered([
     row(1, [
         cell('HERO_BANNER', '', {
             headline: 'Feuerwehr Musterstadt',
@@ -82,6 +91,6 @@ const ROWS: PageRow[] = [
             targetDate: daysFromNow(24), label: 'Tag der offenen Tür', sublabel: 'Wir freuen uns auf euch',
         }, 45),
     ]),
-]
+])
 
 export const PAGES: PitchPages = {tree: PAGE_TREE, rows: ROWS, landingPageId: 1}

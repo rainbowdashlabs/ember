@@ -87,7 +87,7 @@ function body(task: OnboardingTaskView): string {
  * else the task keeps the written instructions it always had.
  */
 function installable(task: OnboardingTaskView): boolean {
-  return task.key === 'member.bookmark' && canInstall.value
+  return task.key === 'member.bookmark' && canInstall()
 }
 
 /** Ticks the task off when the reader went through with the installation, and not before. */
