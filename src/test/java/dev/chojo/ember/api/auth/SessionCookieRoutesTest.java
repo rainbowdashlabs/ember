@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.api.auth;
 
-import dev.chojo.ember.api.Jackson3Mapper;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -15,6 +14,7 @@ import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import io.javalin.Javalin;
+import io.javalin.json.JavalinJackson3;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,7 +59,7 @@ class SessionCookieRoutesTest {
                 mock(PasskeyModeService.class),
                 new SessionCookies(demo, csrfGuard(demo)));
         app = Javalin.create(config -> {
-            config.jsonMapper(new Jackson3Mapper(JsonMapper.builder().build()));
+            config.jsonMapper(new JavalinJackson3(JsonMapper.builder().build(), false));
             routes.register(config.routes, "/api/v1");
         });
         app.start(0);

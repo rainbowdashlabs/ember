@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.auth.CsrfGuard;
+import dev.chojo.ember.api.auth.SessionCookies;
+import dev.chojo.ember.api.auth.SessionGate;
 import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Auth;
@@ -133,7 +136,7 @@ public final class RouteHarness {
     public Consumer<Request.Builder> as(UserSession session) {
         String token = UUID.randomUUID().toString();
         signedIn.put(token, session);
-        return request -> request.header("Authorization", "Bearer " + token);
+        return request -> request.header("Cookie", SessionCookies.SESSION_COOKIE + "=" + token);
     }
 
     /**
@@ -252,6 +255,18 @@ public final class RouteHarness {
                 mock(TwoFactorService.class),
                 mock(StepUpGuard.class),
                 network,
-                new GlobalRateLimiter());
+                new GlobalRateLimiter(),
+                sessionGate());
+    }
+
+    /**
+     * The session gate of the real server, with the page token taken as given: what a route test
+     * judges is the route and its access rule, and the page token has tests of its own.
+     */
+    private SessionGate sessionGate() {
+        CsrfGuard csrf = mock(CsrfGuard.class);
+        when(csrf.permits(any(), anyString())).thenReturn(true);
+        return new SessionGate(
+                accessManager, mock(AccountRepository.class), new Auth(), mock(SessionCookies.class), csrf);
     }
 }
