@@ -44,6 +44,23 @@ public interface StorageBackend extends AutoCloseable {
     void store(String fullKey, InputStream body, long contentLength, ObjectMetadata metadata);
 
     /**
+     * Persists {@code body} and seals the SHA-256 of what was written into its metadata.
+     *
+     * <p>By default the digest is computed while the body streams into {@link #store} and written
+     * afterwards through {@link #updateMetadata}. A backend that can write the metadata once, after the
+     * body, overrides this and saves the second write.
+     *
+     * @return the metadata as stored, the digest included
+     */
+    default ObjectMetadata storeSealed(String fullKey, InputStream body, long contentLength, ObjectMetadata metadata) {
+        var digesting = new DigestingInputStream(body);
+        store(fullKey, digesting, contentLength, metadata);
+        ObjectMetadata sealed = metadata.withSha256(digesting.hexDigest());
+        updateMetadata(fullKey, sealed);
+        return sealed;
+    }
+
+    /**
      * Replaces the metadata sidecar for an existing object without rewriting the body. Used by
      * {@code StorageService} to seal the computed SHA-256 into the sidecar after the upload
      * stream has been fully drained.

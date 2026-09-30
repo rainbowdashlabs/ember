@@ -25,9 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.MessageDigest;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 
@@ -100,11 +98,8 @@ public class StorageService {
         guardReadOnlyForTransfer(scope);
         StorageBackend backend = resolver.forScope(scope, category);
         String fullKey = fullKey(scope, category, key, variant);
-        DigestingInputStream wrapped = new DigestingInputStream(body);
         ObjectMetadata initial = ObjectMetadata.of(mimeHint == null ? "application/octet-stream" : mimeHint);
-        backend.store(fullKey, wrapped, contentLength, initial);
-        ObjectMetadata sealed = initial.withSha256(wrapped.hexDigest());
-        backend.updateMetadata(fullKey, sealed);
+        ObjectMetadata sealed = backend.storeSealed(fullKey, body, contentLength, initial);
         applyPosixMode(backend, fullKey, category);
         log.info(
                 "Stored file scope={} category={} key={} variant={} size={}",
@@ -327,43 +322,6 @@ public class StorageService {
         if (instanceReadOnly == null) return;
         if (instanceReadOnly.isLocked()) {
             throw new InstanceReadOnlyForMigrationException();
-        }
-    }
-
-    /**
-     * {@link InputStream} wrapper that computes SHA-256 as bytes flow through. The digest is
-     * read once the underlying stream is fully drained - typically right after the backend's
-     * {@code store(...)} call returns.
-     */
-    private static final class DigestingInputStream extends InputStream {
-        private final InputStream delegate;
-        private final MessageDigest digest = Sha256.digest();
-
-        DigestingInputStream(InputStream delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public int read() throws IOException {
-            int b = delegate.read();
-            if (b >= 0) digest.update((byte) b);
-            return b;
-        }
-
-        @Override
-        public int read(byte[] b, int off, int len) throws IOException {
-            int n = delegate.read(b, off, len);
-            if (n > 0) digest.update(b, off, n);
-            return n;
-        }
-
-        @Override
-        public void close() throws IOException {
-            delegate.close();
-        }
-
-        String hexDigest() {
-            return HexFormat.of().formatHex(digest.digest());
         }
     }
 }
