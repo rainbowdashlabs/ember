@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.feature.storage.backend.StorageException;
+import dev.chojo.ember.feature.storage.backend.StorageUnavailableException;
 import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +25,16 @@ class FailuresTest {
         assertEquals(Refusal.UNEXPECTED_FAULT, refusal);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, refusal.status());
         assertFalse(refusal.message().isBlank());
+    }
+
+    @Test
+    void storageThatCannotBeReachedIsUnavailableRatherThanAFault() {
+        var lost = new StorageUnavailableException("SFTP storage lost its connection");
+
+        var refusal = Failures.describe(new StorageException("reading failed", lost));
+
+        assertEquals(Refusal.STORAGE_UNREACHABLE, refusal);
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, refusal.status());
     }
 
     @Test

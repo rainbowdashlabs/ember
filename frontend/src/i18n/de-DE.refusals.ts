@@ -1277,6 +1277,7 @@ export default {
     'ST-016': SESSION_WITHOUT_ACCOUNT,
     'ST-017': 'Der Umzug ist mittendrin abgebrochen und wurde zurückgenommen, die Dateien liegen weiterhin dort, '
         + 'wo sie waren. Der Grund steht im Log der Instanz',
+    'ST-018': 'Der Speicher dieser Wache ist gerade nicht erreichbar. Ein neuer Versuch in einem Moment kann klappen',
 
     'TR-001': TRAFFIC_SPAN_MISSING,
     'TR-002': TRAFFIC_SPAN_NOT_A_TIME,

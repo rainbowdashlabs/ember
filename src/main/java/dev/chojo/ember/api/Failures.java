@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.feature.storage.backend.StorageUnavailableException;
 import tools.jackson.core.JacksonException;
 
 import java.sql.SQLException;
@@ -69,10 +70,14 @@ public final class Failures {
      * of those gets the status that says so and a sentence saying that nothing was saved.
      * Everything else is a fault, named as one rather than dressed up as something specific.
      *
+     * <p>A storage server that could not be reached comes before all of that: it is not Ember's
+     * fault either, and the reader is told the storage is unreachable and to try again.
+     *
      * @param err what was thrown
      * @return the refusal to answer with
      */
     public static Refusal describe(Throwable err) {
+        if (storageUnreachable(err)) return Refusal.STORAGE_UNREACHABLE;
         String state = sqlStateOf(err);
         if (state == null) return Refusal.UNEXPECTED_FAULT;
         if (DUPLICATE_STATES.contains(state)) return Refusal.ALREADY_EXISTS;
@@ -135,6 +140,19 @@ public final class Failures {
             }
         }
         return written.isEmpty() ? Optional.empty() : Optional.of(written.toString());
+    }
+
+    /**
+     * Whether the failure is a storage backend that could not be reached, however deep in the cause
+     * chain: a lost connection that could not be had again, or a server that did not answer in time.
+     */
+    private static boolean storageUnreachable(Throwable err) {
+        Throwable current = err;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            if (current instanceof StorageUnavailableException) return true;
+            current = current.getCause() == current ? null : current.getCause();
+        }
+        return false;
     }
 
     private static String sqlStateOf(Throwable err) {

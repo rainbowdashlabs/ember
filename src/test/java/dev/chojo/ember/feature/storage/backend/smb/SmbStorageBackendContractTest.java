@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.storage.backend.StorageContainers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.GenericContainer;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -117,6 +118,11 @@ class SmbStorageBackendContractTest extends FileTreeBackendContract {
     @Override
     protected StorageBackend openBackend() {
         return new SmbStorageBackend(config());
+    }
+
+    @Override
+    protected Optional<GenericContainer<?>> server() {
+        return Optional.of(StorageContainers.smb());
     }
 
     /**

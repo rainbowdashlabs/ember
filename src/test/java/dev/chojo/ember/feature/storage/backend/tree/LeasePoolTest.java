@@ -181,6 +181,56 @@ class LeasePoolTest {
     }
 
     @Test
+    void afterThreeFailedConnectsTheServerIsRefusedAtOnceButTheProbeStillTries() {
+        int[] attempts = {0};
+        boolean[] up = {false};
+        var flaky = new LeasePool<FakeTree>(
+                "test storage",
+                () -> {
+                    attempts[0]++;
+                    if (!up[0]) throw new IOException("connection refused");
+                    return open();
+                },
+                4,
+                Duration.ofSeconds(5),
+                clock);
+        for (int i = 0; i < LeasePool.FAILURES_BEFORE_REFUSING; i++) {
+            assertThrows(StorageUnavailableException.class, flaky::acquire);
+        }
+
+        var refused = assertThrows(StorageUnavailableException.class, flaky::acquire);
+        assertTrue(refused.getMessage().contains("not tried again"));
+        assertEquals(LeasePool.FAILURES_BEFORE_REFUSING, attempts[0]);
+
+        up[0] = true;
+        flaky.acquireForProbe().close();
+        flaky.acquire().close();
+        assertEquals(LeasePool.FAILURES_BEFORE_REFUSING + 1, attempts[0]);
+    }
+
+    @Test
+    void theRefusalWindowEndsOnItsOwn() {
+        boolean[] up = {false};
+        var flaky = new LeasePool<FakeTree>(
+                "test storage",
+                () -> {
+                    if (!up[0]) throw new IOException("connection refused");
+                    return open();
+                },
+                4,
+                Duration.ofSeconds(5),
+                clock);
+        for (int i = 0; i <= LeasePool.FAILURES_BEFORE_REFUSING; i++) {
+            assertThrows(StorageUnavailableException.class, flaky::acquire);
+        }
+        up[0] = true;
+
+        clock.advance(LeasePool.REFUSAL_WINDOW.plusSeconds(1));
+
+        flaky.acquire().close();
+    }
+
+    @Test
     void closingClosesIdleTreesAtOnceAndLentOnesOnReturn() {
         var pool = pool(2, Duration.ofSeconds(1));
         var idle = pool.acquire();

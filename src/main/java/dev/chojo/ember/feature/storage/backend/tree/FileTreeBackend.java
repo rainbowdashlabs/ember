@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.backend.StorageException;
+import dev.chojo.ember.feature.storage.backend.StorageUnavailableException;
 import dev.chojo.ember.feature.storage.backend.StoredStream;
 import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
@@ -110,12 +111,18 @@ public class FileTreeBackend implements StorageBackend {
 
     /**
      * Stores the body and writes its sidecar once, with the SHA-256 computed while the body streamed.
+     *
+     * <p>A body held in memory is stored again on a fresh connection when the first one breaks
+     * halfway; a body streamed from elsewhere cannot be read twice and is not.
      */
     @Override
     public ObjectMetadata storeSealed(String fullKey, InputStream body, long contentLength, ObjectMetadata metadata) {
         String target = path(fullKey);
-        String partial = target + PARTIAL_MARKER + UUID.randomUUID();
-        return call(tree -> {
+        boolean repeatable = body.markSupported();
+        if (repeatable) body.mark(Integer.MAX_VALUE);
+        return call(repeatable, tree -> {
+            if (repeatable) body.reset();
+            String partial = target + PARTIAL_MARKER + UUID.randomUUID();
             var digesting = new DigestingInputStream(body);
             try {
                 writeFile(tree, partial, digesting);
@@ -133,7 +140,7 @@ public class FileTreeBackend implements StorageBackend {
     @Override
     public void updateMetadata(String fullKey, ObjectMetadata metadata) {
         String target = path(fullKey);
-        call(tree -> {
+        call(true, tree -> {
             if (!isFile(tree, target)) {
                 throw new StorageException("Cannot update metadata; missing object " + fullKey);
             }
@@ -145,43 +152,55 @@ public class FileTreeBackend implements StorageBackend {
     /**
      * Opens a key for reading. The tree stays lent to the returned stream until the stream is
      * closed, so a slow download holds one connection and never more; a caller that does not close
-     * what it read keeps it, which the pool reports.
+     * what it read keeps it, which the pool reports. Opening is tried once more on a fresh connection
+     * when the first one turns out to be gone.
      */
     @Override
     public Optional<StoredStream> read(String fullKey) {
         String target = path(fullKey);
-        Lease<? extends FileTree> lease = trees.acquire();
-        try {
-            FileTree tree = lease.tree();
-            var opened = tree.open(target);
-            if (opened.isEmpty()) {
-                lease.close();
-                return Optional.empty();
-            }
-            ObjectMetadata metadata;
+        for (int attempt = 1; ; attempt++) {
+            Lease<? extends FileTree> lease = trees.acquire();
             try {
-                metadata = readSidecar(tree, target);
+                return openLeased(lease, target);
+            } catch (IOException e) {
+                boolean broken = lease.tree().brokenBy(e);
+                if (broken) lease.discard();
+                lease.close();
+                if (!broken) throw new StorageException(type + " storage call failed: " + e.getMessage(), e);
+                if (attempt >= 2) {
+                    throw new StorageUnavailableException(type + " storage lost its connection: " + e.getMessage(), e);
+                }
+                log.info("The connection to the {} storage was lost, trying once more on a fresh one", type);
             } catch (RuntimeException e) {
-                opened.get().body().close();
+                if (!lease.tree().isUsable()) lease.discard();
+                lease.close();
                 throw e;
             }
-            return Optional.of(new StoredStream(
-                    new LeasedStream(opened.get().body(), lease), opened.get().size(), metadata));
-        } catch (IOException e) {
-            if (!lease.tree().isUsable()) lease.discard();
+        }
+    }
+
+    private Optional<StoredStream> openLeased(Lease<? extends FileTree> lease, String target) throws IOException {
+        FileTree tree = lease.tree();
+        var opened = tree.open(target);
+        if (opened.isEmpty()) {
             lease.close();
-            throw new StorageException(type + " storage call failed: " + e.getMessage(), e);
+            return Optional.empty();
+        }
+        ObjectMetadata metadata;
+        try {
+            metadata = readSidecar(tree, target);
         } catch (RuntimeException e) {
-            if (!lease.tree().isUsable()) lease.discard();
-            lease.close();
+            opened.get().body().close();
             throw e;
         }
+        return Optional.of(new StoredStream(
+                new LeasedStream(opened.get().body(), lease), opened.get().size(), metadata));
     }
 
     @Override
     public void delete(String fullKey) {
         String target = path(fullKey);
-        call(tree -> {
+        call(true, tree -> {
             tree.remove(target);
             tree.remove(target + META_SUFFIX);
             prune(tree, target);
@@ -192,13 +211,13 @@ public class FileTreeBackend implements StorageBackend {
     @Override
     public boolean exists(String fullKey) {
         String target = path(fullKey);
-        return call(tree -> isFile(tree, target));
+        return call(true, tree -> isFile(tree, target));
     }
 
     @Override
     public List<String> listByPrefix(String prefix) {
         String rooted = prefix == null ? "" : prefix;
-        return call(tree -> {
+        return call(true, tree -> {
             var out = new ArrayList<String>();
             walk(tree, rooted, (key, size) -> out.add(key));
             out.sort(String::compareTo);
@@ -209,7 +228,7 @@ public class FileTreeBackend implements StorageBackend {
     @Override
     public long sumSizeByPrefix(String prefix) {
         String rooted = prefix == null ? "" : prefix;
-        return call(tree -> {
+        return call(true, tree -> {
             long[] total = {0};
             walk(tree, rooted, (key, size) -> total[0] += size);
             return total[0];
@@ -219,7 +238,9 @@ public class FileTreeBackend implements StorageBackend {
     @Override
     public Optional<Long> size(String fullKey) {
         String target = path(fullKey);
-        return call(tree -> tree.stat(target).filter(info -> !info.directory()).map(FileInfo::size));
+        return call(
+                true,
+                tree -> tree.stat(target).filter(info -> !info.directory()).map(FileInfo::size));
     }
 
     @Override
@@ -238,7 +259,10 @@ public class FileTreeBackend implements StorageBackend {
                     }
                 }
                 return HealthStatus.ok();
-            } catch (IOException | RuntimeException e) {
+            } catch (IOException e) {
+                if (tree.brokenBy(e)) lease.discard();
+                return HealthStatus.unhealthy(type + " backend probe failed: " + e.getMessage());
+            } catch (RuntimeException e) {
                 if (!tree.isUsable()) lease.discard();
                 return HealthStatus.unhealthy(type + " backend probe failed: " + e.getMessage());
             } finally {
@@ -256,23 +280,38 @@ public class FileTreeBackend implements StorageBackend {
     }
 
     /**
-     * Runs one call on a lent tree. A tree whose connection broke during the call is discarded
-     * rather than lent again.
+     * Runs one call on a lent tree.
      *
-     * @param call what to do with the tree
+     * <p>A tree whose connection broke during the call is closed rather than lent again. An idempotent
+     * call is then tried once more on a fresh tree, since repeating it cannot do anything twice; when
+     * that fails too, or the call was not idempotent, the storage is reported unreachable.
+     *
+     * @param idempotent whether repeating the call is harmless
+     * @param call       what to do with the tree
      * @return what the call answered
-     * @throws StorageException when the call fails
+     * @throws StorageUnavailableException when the connection was lost and could not be had again
+     * @throws StorageException            when the server refused the call
      */
-    protected <R> R call(TreeCall<R> call) {
-        try (var lease = trees.acquire()) {
-            try {
-                return call.apply(lease.tree());
-            } catch (IOException e) {
-                if (!lease.tree().isUsable()) lease.discard();
-                throw new StorageException(type + " storage call failed: " + e.getMessage(), e);
-            } catch (RuntimeException e) {
-                if (!lease.tree().isUsable()) lease.discard();
-                throw e;
+    protected <R> R call(boolean idempotent, TreeCall<R> call) {
+        int attempts = idempotent ? 2 : 1;
+        for (int attempt = 1; ; attempt++) {
+            try (var lease = trees.acquire()) {
+                try {
+                    return call.apply(lease.tree());
+                } catch (IOException e) {
+                    if (!lease.tree().brokenBy(e)) {
+                        throw new StorageException(type + " storage call failed: " + e.getMessage(), e);
+                    }
+                    lease.discard();
+                    if (attempt >= attempts) {
+                        throw new StorageUnavailableException(
+                                type + " storage lost its connection: " + e.getMessage(), e);
+                    }
+                    log.info("The connection to the {} storage was lost, trying once more on a fresh one", type);
+                } catch (RuntimeException e) {
+                    if (!lease.tree().isUsable()) lease.discard();
+                    throw e;
+                }
             }
         }
     }

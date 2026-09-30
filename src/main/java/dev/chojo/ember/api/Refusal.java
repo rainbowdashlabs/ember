@@ -4097,6 +4097,17 @@ public enum Refusal {
             "The move broke part way through and was taken back, so the files are still where they were. "
                     + "The reason is in the instance log"),
 
+    /**
+     * The storage the files of this station are kept on could not be reached: the connection was
+     * lost and could not be had again, or the server did not answer in time. Not a fault of Ember's,
+     * which is why it is a {@code 503} and says to try again rather than hand out a reference.
+     */
+    STORAGE_UNREACHABLE(
+            Area.STORAGE,
+            18,
+            HttpStatus.SERVICE_UNAVAILABLE,
+            "The storage of this station cannot be reached right now. Trying again in a moment may work"),
+
     /** Traffic figures for the whole instance asked for without one end of the stretch of time. */
     TRAFFIC_SPAN_MISSING(Area.TRAFFIC, 1, HttpStatus.BAD_REQUEST, Sentences.TRAFFIC_SPAN_MISSING),
 

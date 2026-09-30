@@ -34,6 +34,11 @@ import java.util.concurrent.locks.ReentrantLock;
  * four. When a server refuses to open another tree while others it opened still work, the pool takes
  * that as the server's limit and stays below it.
  *
+ * <p>A server that cannot be connected to {@link #FAILURES_BEFORE_REFUSING} times in a row is refused
+ * at once for {@link #REFUSAL_WINDOW}, rather than every caller waiting out its own connect timeout;
+ * the health check ({@link #acquireForProbe()}) always really tries, and the first connect that
+ * succeeds ends the window.
+ *
  * <p>A lease held longer than {@link #LEAK_AFTER} is reported once, with the stack of whoever took it:
  * a caller that never closes what it read would otherwise exhaust the pool without a trace.
  *
@@ -52,6 +57,12 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
     /** How long closing the pool waits for lent trees to come back. */
     public static final Duration DRAIN_LIMIT = Duration.ofSeconds(30);
 
+    /** How many failed connects in a row make the pool refuse at once. */
+    public static final int FAILURES_BEFORE_REFUSING = 3;
+
+    /** How long the pool refuses at once after that, rather than letting every caller wait out a connect. */
+    public static final Duration REFUSAL_WINDOW = Duration.ofSeconds(30);
+
     private static final Logger log = LoggerFactory.getLogger(LeasePool.class);
 
     private final String name;
@@ -64,6 +75,8 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
     private final Map<PooledLease, Lent> lent = new IdentityHashMap<>();
     private int open;
     private int limit;
+    private int failedOpens;
+    private Instant refusedUntil;
     private boolean closed;
 
     /**
@@ -88,12 +101,27 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
 
     @Override
     public Lease<T> acquire() {
+        return acquire(false);
+    }
+
+    /**
+     * Lends a tree even inside the window in which a server that failed repeatedly is refused at once,
+     * so the health check always really tries.
+     */
+    @Override
+    public Lease<T> acquireForProbe() {
+        return acquire(true);
+    }
+
+    private Lease<T> acquire(boolean probe) {
         long deadline = System.nanoTime() + acquireTimeout.toNanos();
         while (true) {
-            var ready = idleOrSlot(deadline);
+            var ready = idleOrSlot(deadline, probe);
             if (ready != null) return lend(ready);
             try {
-                return lend(opener.open());
+                T tree = opener.open();
+                openSucceeded();
+                return lend(tree);
             } catch (IOException | RuntimeException e) {
                 if (!openFailedBelowTheServersLimit()) {
                     throw new StorageUnavailableException(name + " cannot be reached: " + e.getMessage(), e);
@@ -137,7 +165,7 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
      * An idle tree for the caller, or null when the caller may open one. Waits while every tree is
      * lent and none may be opened.
      */
-    private T idleOrSlot(long deadline) {
+    private T idleOrSlot(long deadline, boolean probe) {
         lock.lock();
         try {
             while (true) {
@@ -149,6 +177,10 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
                     if (tree.isUsable()) return tree;
                     open--;
                     tree.close();
+                }
+                if (!probe && refusedUntil != null && clock.instant().isBefore(refusedUntil)) {
+                    throw new StorageUnavailableException(name + " failed to connect " + FAILURES_BEFORE_REFUSING
+                            + " times in a row and is not" + " tried again before " + refusedUntil);
                 }
                 if (open < limit) {
                     open++;
@@ -179,9 +211,24 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
             changed.signalAll();
             boolean othersWork = idle.stream().anyMatch(entry -> entry.tree().isUsable())
                     || lent.keySet().stream().anyMatch(lease -> lease.tree.isUsable());
-            if (!othersWork || open == 0) return false;
-            limit = Math.max(1, open);
-            return true;
+            if (othersWork && open > 0) {
+                limit = Math.max(1, open);
+                return true;
+            }
+            failedOpens++;
+            if (failedOpens >= FAILURES_BEFORE_REFUSING)
+                refusedUntil = clock.instant().plus(REFUSAL_WINDOW);
+            return false;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void openSucceeded() {
+        lock.lock();
+        try {
+            failedOpens = 0;
+            refusedUntil = null;
         } finally {
             lock.unlock();
         }

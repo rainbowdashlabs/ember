@@ -207,6 +207,22 @@ final class SmbFileTree implements FileTree {
         return share.isConnected() && session.getConnection().isConnected();
     }
 
+    /**
+     * Anything but a status the server sent means the connection is gone or cannot be trusted, and it
+     * is dropped so every session on it is signed in afresh on a new one.
+     */
+    @Override
+    public boolean brokenBy(IOException failure) {
+        if (failure.getCause() instanceof SMBApiException && isUsable()) return false;
+        if (failure instanceof NoSuchFileException && isUsable()) return false;
+        try {
+            session.getConnection().close(true);
+        } catch (IOException | SMBRuntimeException e) {
+            log.debug("Dropping a broken SMB connection failed", e);
+        }
+        return true;
+    }
+
     @Override
     public void close() {
         try {

@@ -99,6 +99,19 @@ public interface FileTree extends AutoCloseable {
      */
     boolean isUsable();
 
+    /**
+     * Whether a failure means the connection is gone rather than that the server answered no, a
+     * missing directory or a full disk. A timeout counts as gone: the connection behind it cannot be
+     * trusted with the next call. A tree that answers yes tears that connection down, so no other tree
+     * on it is lent again either.
+     *
+     * @param failure what a call on this tree threw
+     * @return whether the connection is gone
+     */
+    default boolean brokenBy(IOException failure) {
+        return !isUsable();
+    }
+
     /** Releases the connection state the tree holds. Never throws. */
     @Override
     void close();

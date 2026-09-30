@@ -5,12 +5,16 @@
  */
 package dev.chojo.ember.feature.storage.backend;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.DockerClientFactory;
+import org.testcontainers.containers.GenericContainer;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,6 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -50,6 +55,40 @@ public abstract class FileTreeBackendContract extends StorageBackendContract {
      * @return what the file holds, or empty when it does not exist
      */
     protected abstract Optional<byte[]> readRaw(String key) throws IOException;
+
+    /**
+     * The container the backend's server runs in, for the tests that take it away for a while.
+     *
+     * @return the container, or empty for a store that has no server
+     */
+    protected Optional<GenericContainer<?>> server() {
+        return Optional.empty();
+    }
+
+    /**
+     * A server that stops answering ends a call as unreachable within the timeouts, rather than as a
+     * fault or never, and the first call once it is back succeeds on a fresh connection.
+     */
+    @Test
+    void aCallDuringAnOutageEndsAsUnavailableAndTheFirstCallAfterItSucceeds() {
+        var server = server();
+        Assumptions.assumeTrue(server.isPresent(), "a store without a server has no outage");
+        store("scope/outage/key", "before");
+        var docker = DockerClientFactory.instance().client();
+        String id = server.get().getContainerId();
+
+        docker.pauseContainerCmd(id).exec();
+        long started = System.nanoTime();
+        try {
+            assertThrows(StorageUnavailableException.class, () -> backend().exists("scope/outage/key"));
+        } finally {
+            docker.unpauseContainerCmd(id).exec();
+        }
+        long seconds = Duration.ofNanos(System.nanoTime() - started).toSeconds();
+
+        assertTrue(seconds < 100, "the outage was reported after " + seconds + " s");
+        assertTrue(backend().exists("scope/outage/key"));
+    }
 
     @Test
     void anObjectAnEarlierBuildStoredIsReadAsItWas() throws IOException {

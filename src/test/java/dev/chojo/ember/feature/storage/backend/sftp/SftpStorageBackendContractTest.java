@@ -15,6 +15,7 @@ import org.apache.sshd.sftp.client.SftpClientFactory;
 import org.apache.sshd.sftp.common.SftpException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Tag;
+import org.testcontainers.containers.GenericContainer;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,6 +45,11 @@ class SftpStorageBackendContractTest extends FileTreeBackendContract {
     @Override
     protected StorageBackend openBackend() {
         return new SftpStorageBackend(config());
+    }
+
+    @Override
+    protected Optional<GenericContainer<?>> server() {
+        return Optional.of(StorageContainers.sftp());
     }
 
     @Override

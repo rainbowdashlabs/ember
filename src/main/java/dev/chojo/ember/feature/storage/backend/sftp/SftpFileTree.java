@@ -157,6 +157,18 @@ final class SftpFileTree implements FileTree {
         return sftp.isOpen() && sftp.getClientSession().isOpen();
     }
 
+    /**
+     * Anything but a status the server sent means the session is gone or cannot be trusted, and the
+     * session is closed so every channel on it is opened afresh.
+     */
+    @Override
+    public boolean brokenBy(IOException failure) {
+        boolean answered = failure instanceof SftpException || failure instanceof NoSuchFileException;
+        if (answered && isUsable()) return false;
+        sftp.getClientSession().close(true);
+        return true;
+    }
+
     @Override
     public void close() {
         try {
