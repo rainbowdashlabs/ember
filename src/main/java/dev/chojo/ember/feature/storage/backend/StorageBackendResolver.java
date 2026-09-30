@@ -15,6 +15,8 @@ import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepositor
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
@@ -38,6 +40,7 @@ import java.util.Optional;
  */
 @Singleton
 public class StorageBackendResolver {
+    private static final Logger log = LoggerFactory.getLogger(StorageBackendResolver.class);
     private static final long MAX_CACHED_OVERRIDES = 256;
 
     private final StorageBackendFactory factory;
@@ -121,6 +124,29 @@ public class StorageBackendResolver {
      */
     public void invalidateAll() {
         overrideCache.invalidateAll();
+    }
+
+    /**
+     * Closes every backend this resolver holds open: the cached station overrides and the instance
+     * default. Called once by the shutdown, after the last write; a backend that fails to close is
+     * logged and the others are closed regardless.
+     */
+    public void closeAll() {
+        overrideCache.asMap().values().forEach(backend -> backend.ifPresent(StorageBackendResolver::closeQuietly));
+        overrideCache.invalidateAll();
+        try {
+            factory.closeInstanceDefault();
+        } catch (Exception e) {
+            log.warn("Could not close the instance storage backend", e);
+        }
+    }
+
+    private static void closeQuietly(StorageBackend backend) {
+        try {
+            backend.close();
+        } catch (Exception e) {
+            log.warn("Could not close a station storage backend of type {}", backend.type(), e);
+        }
     }
 
     /**

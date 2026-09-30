@@ -39,14 +39,9 @@ public class ArchitectureTest {
      */
     private static final Set<String> THREAD_OWNERS_TO_MIGRATE = Set.of(
             "dev.chojo.ember.Bootstrapper",
-            "dev.chojo.ember.feature.feed.service.FeedMetricsService",
             "dev.chojo.ember.feature.knowledgebase.service.KbPresentationService",
-            "dev.chojo.ember.feature.knowledgebase.service.KbTrashPurger",
             "dev.chojo.ember.feature.quiz.route.AiRoutes",
-            "dev.chojo.ember.feature.station.service.StationImportService",
-            "dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog",
             "dev.chojo.ember.feature.storage.route.StorageRoutes",
-            "dev.chojo.ember.feature.storage.service.StorageReconciliationService",
             "dev.chojo.ember.util.service.CloudflareRangesService");
 
     @ArchTest

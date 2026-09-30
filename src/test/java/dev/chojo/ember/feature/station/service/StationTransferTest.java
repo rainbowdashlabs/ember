@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
 import dev.chojo.ember.util.TestStationKeys;
@@ -115,7 +116,8 @@ class StationTransferTest extends RepositoryTestBase {
                         new AccountCredentialTableImporter(accountRepo, passkeyModeService),
                         new DisabledModuleTableImporter(stationRepo)),
                 accountRepo,
-                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class));
+                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
+                new TaskScheduler());
 
         // Create station with full settings
         var station = stationRepo.create("Jugendfeuerwehr Musterstadt");

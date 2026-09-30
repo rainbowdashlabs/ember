@@ -6,13 +6,14 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.conf.file.elements.KnowledgeBase;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 /**
  * Clears wiki entries out of the trash once their time there is up.
@@ -21,14 +22,14 @@ import java.util.concurrent.TimeUnit;
  * was off for a month catches up by itself rather than skipping what fell due while it slept.
  *
  * <p>That catching up is also why one run is capped. Clearing an entry out is file work, not a
- * statement, and the first run after a long outage could otherwise hold the boot up for minutes.
+ * statement, and the first run after a long outage could otherwise hold its thread for minutes.
  * What does not fit goes an hour later, and nothing is lost by waiting.
  */
 @Singleton
 public class KbTrashPurger {
     private static final Logger log = LoggerFactory.getLogger(KbTrashPurger.class);
-    private static final int SCAN_INTERVAL_MINUTES = 60;
-    private static final int START_DELAY_MINUTES = 5;
+    private static final Duration SCAN_INTERVAL = Duration.ofMinutes(60);
+    private static final Duration START_DELAY = Duration.ofMinutes(5);
     /**
      * How many entries one run clears out. Each one takes a file operation per article inside it, so
      * this is a ceiling on how long a single run can hold a thread.
@@ -42,24 +43,26 @@ public class KbTrashPurger {
     public KbTrashPurger(KbTrashService trashService, KnowledgeBase config) {
         this.trashService = trashService;
         this.config = config;
-        var scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            var thread = new Thread(runnable, "kb-trash-purger");
-            thread.setDaemon(true);
-            return thread;
-        });
-        scheduler.scheduleWithFixedDelay(this::purge, START_DELAY_MINUTES, SCAN_INTERVAL_MINUTES, TimeUnit.MINUTES);
     }
 
     /**
      * Body of the run, reachable by tests so they need not wait for the hourly cadence. A failure is
-     * logged and swallowed: what was due stays due and is tried again on the next run, whereas an
-     * exception let through would end the schedule for as long as the instance is up.
+     * logged and swallowed: what was due stays due and is tried again on the next run.
      */
     void purge() {
         try {
             trashService.sweepExpired(config.trashRetentionDays(), MAX_PER_RUN);
         } catch (Exception e) {
             log.warn("Clearing the expired knowledge-base trash failed", e);
+        }
+    }
+
+    /** Clears the expired trash every hour. */
+    @Singleton
+    public static final class Task extends DelegatingTask {
+        @Inject
+        Task(KbTrashPurger purger) {
+            super("kb-trash-purge", Schedule.fixedDelay(START_DELAY, SCAN_INTERVAL), purger::purge);
         }
     }
 }

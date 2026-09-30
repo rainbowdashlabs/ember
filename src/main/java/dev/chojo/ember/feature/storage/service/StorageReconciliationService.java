@@ -10,18 +10,19 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -57,21 +58,10 @@ public class StorageReconciliationService {
 
     @Inject
     public StorageReconciliationService(
-            StorageUsageRepository usageRepository,
-            StationRepository stationRepository,
-            StorageService storage,
-            Storage storageConfig) {
+            StorageUsageRepository usageRepository, StationRepository stationRepository, StorageService storage) {
         this.usageRepository = usageRepository;
         this.stationRepository = stationRepository;
         this.storage = storage;
-
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "storage-reconciliation");
-            t.setDaemon(true);
-            return t;
-        });
-        int intervalHours = storageConfig.reconciliationIntervalHours();
-        scheduler.scheduleWithFixedDelay(this::reconcileAll, 1, intervalHours * 60L, TimeUnit.MINUTES);
     }
 
     /**
@@ -237,5 +227,18 @@ public class StorageReconciliationService {
                     storage.listKeys(scope, StorageCategory.IMAGE_AVATAR, "").size();
         }
         usageRepository.setUsage(stationId, StorageCategory.IMAGE_AVATAR, totalBytes, fileCount);
+    }
+
+    /** Reconciles every station at {@code storage.reconciliationIntervalHours}. */
+    @Singleton
+    public static final class Task extends DelegatingTask {
+        @Inject
+        Task(StorageReconciliationService reconciliation, Storage storageConfig) {
+            super(
+                    "storage-reconciliation",
+                    Schedule.fixedDelay(
+                            Duration.ofMinutes(1), Duration.ofHours(storageConfig.reconciliationIntervalHours())),
+                    reconciliation::reconcileAll);
+        }
     }
 }

@@ -246,6 +246,7 @@ import dev.chojo.ember.feature.station.route.SetupRoutes;
 import dev.chojo.ember.feature.station.route.StationApplicationRoutes;
 import dev.chojo.ember.feature.station.route.StationManageRoutes;
 import dev.chojo.ember.feature.station.route.StationRoutes;
+import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
@@ -619,11 +620,6 @@ public class EmberModule extends AbstractModule {
 
         bindScheduledTasks(Multibinder.newSetBinder(binder(), ScheduledTask.class));
         bindShutdownFlushes(Multibinder.newSetBinder(binder(), ShutdownFlush.class));
-
-        // Eager singletons - started on boot
-        bind(StorageReconciliationService.class).asEagerSingleton();
-        bind(KbTrashPurger.class).asEagerSingleton();
-        bind(FeedMetricsService.class).asEagerSingleton();
     }
 
     /**
@@ -663,6 +659,10 @@ public class EmberModule extends AbstractModule {
         tasks.addBinding().to(DiscoveryMaintenanceScheduler.ReputationTask.class);
         tasks.addBinding().to(FederationVersionBroadcaster.Task.class);
         tasks.addBinding().to(BeaconMetricsService.WatchTask.class);
+        tasks.addBinding().to(StorageReconciliationService.Task.class);
+        tasks.addBinding().to(KbTrashPurger.Task.class);
+        tasks.addBinding().to(TransferTimeoutWatchdog.Task.class);
+        tasks.addBinding().to(FeedMetricsService.PruneTask.class);
     }
 
     /**
@@ -672,6 +672,7 @@ public class EmberModule extends AbstractModule {
         flushes.addBinding().to(PageHitRecorder.class);
         flushes.addBinding().to(StationTrafficRecorder.class);
         flushes.addBinding().to(ApiRequestLogger.class);
+        flushes.addBinding().to(FeedMetricsService.class);
         flushes.addBinding().to(ApplicationLogWriter.class);
     }
 

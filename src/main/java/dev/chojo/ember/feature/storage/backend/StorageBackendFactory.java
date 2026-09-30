@@ -140,6 +140,18 @@ public class StorageBackendFactory {
     }
 
     /**
+     * Closes the instance-default backend if one was built, and forgets it. Nothing is built just to be
+     * closed.
+     *
+     * @throws Exception when the backend could not be closed
+     */
+    public synchronized void closeInstanceDefault() throws Exception {
+        var built = instanceDefault;
+        instanceDefault = null;
+        if (built != null) built.close();
+    }
+
+    /**
      * Builds a fresh instance-target backend from the supplied {@link StorageBackendSettings}.
      * Used by the instance-wide migration probe + byte-copy loop so the target can be
      * exercised before the YAML flip lands.

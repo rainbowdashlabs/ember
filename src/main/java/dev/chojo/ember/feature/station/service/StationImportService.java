@@ -24,6 +24,8 @@ import dev.chojo.ember.feature.station.transfer.TransferSourceClient;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.transfer.TransferBackendImporter;
+import dev.chojo.ember.lifecycle.SerialLane;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.OutputShape;
@@ -44,8 +46,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -89,11 +89,7 @@ public class StationImportService {
     private final DataTracking tracking;
 
     private final ConcurrentHashMap<Integer, ImportProgress> activeImports = new ConcurrentHashMap<>();
-    private final ExecutorService importExecutor = Executors.newSingleThreadExecutor(r -> {
-        var t = new Thread(r, "station-import");
-        t.setDaemon(true);
-        return t;
-    });
+    private final SerialLane importLane;
 
     @Inject
     public StationImportService(
@@ -109,7 +105,9 @@ public class StationImportService {
             StationTableImporter stationImporter,
             Set<TableImporter> importers,
             AccountRepository accountRepository,
-            AuthService authService) {
+            AuthService authService,
+            TaskScheduler scheduler) {
+        this.importLane = scheduler.lane("station-import");
         this.accountRepository = accountRepository;
         this.authService = authService;
         this.stationRepository = stationRepository;
@@ -251,7 +249,7 @@ public class StationImportService {
                 stationRepository.findById(stationId).map(Station::uid).orElse(station.uid());
         var progress = new ImportProgress(stationId, currentUid, stationName, buildPhases(), baseUrl, token);
         activeImports.put(stationId, progress);
-        importExecutor.submit(() -> runRemoteImport(stationId, stationData, client, progress));
+        importLane.submit(() -> runRemoteImport(stationId, stationData, client, progress));
         return new ImportResult(stationId, stationName, 0);
     }
 
@@ -280,7 +278,7 @@ public class StationImportService {
                 .orElseThrow(() -> new BadRequestResponse("Target station not found"));
         var progress = new ImportProgress(stationId, target.uid(), target.name(), buildPhases(), baseUrl, token);
         activeImports.put(stationId, progress);
-        importExecutor.submit(() -> runRemoteImport(stationId, stationData, client, progress));
+        importLane.submit(() -> runRemoteImport(stationId, stationData, client, progress));
     }
 
     /**

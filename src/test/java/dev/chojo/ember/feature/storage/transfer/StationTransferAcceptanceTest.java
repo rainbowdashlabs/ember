@@ -35,6 +35,7 @@ import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.storage.service.TransferBackendDescriptorService;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
 import dev.chojo.ember.util.TestStationKeys;
@@ -136,7 +137,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                         new AccountCredentialTableImporter(accountRepo, passkeyModeService),
                         new DisabledModuleTableImporter(stationRepo)),
                 accountRepo,
-                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class));
+                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
+                new TaskScheduler());
 
         var transferRoutes = new TransferRoutes(
                 exportService,

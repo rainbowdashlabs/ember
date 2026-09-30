@@ -7,6 +7,7 @@ package dev.chojo.ember.lifecycle;
 
 import dev.chojo.ember.MovableClock;
 import dev.chojo.ember.api.ApiServer;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -29,12 +30,14 @@ class LifecycleTest {
     private final MovableClock clock = new MovableClock(Instant.parse("2026-01-01T00:00:00Z"));
     private final ApiServer apiServer = mock(ApiServer.class);
     private final TaskScheduler scheduler = mock(TaskScheduler.class);
+    private final StorageBackendResolver storage = mock(StorageBackendResolver.class);
     private final DataSource dataSource = mock(DataSource.class, withSettings().extraInterfaces(AutoCloseable.class));
 
     @Test
     void stagesRunInOrderWithTheLogWriterLast() throws Exception {
         record(apiServer, "http");
         doAnswer(invocation -> stages.add("tasks")).when(scheduler).stop(any());
+        doAnswer(invocation -> stages.add("storage")).when(storage).closeAll();
         doAnswer(invocation -> stages.add("pool"))
                 .when((AutoCloseable) dataSource)
                 .close();
@@ -42,7 +45,7 @@ class LifecycleTest {
         lifecycle(flush("log", Integer.MAX_VALUE), flush("hits", 0), flush("traffic", 0))
                 .shutdown();
 
-        assertEquals(List.of("http", "tasks", "flush hits", "flush traffic", "flush log", "pool"), stages);
+        assertEquals(List.of("http", "tasks", "flush hits", "flush traffic", "flush log", "storage", "pool"), stages);
     }
 
     @Test
@@ -108,7 +111,7 @@ class LifecycleTest {
 
     @Test
     void poolThatCannotCloseIsLeftAlone() {
-        new Lifecycle(apiServer, scheduler, Set.of(), mock(DataSource.class), clock).shutdown();
+        new Lifecycle(apiServer, scheduler, Set.of(), storage, mock(DataSource.class), clock).shutdown();
     }
 
     private void record(ApiServer server, String stage) {
@@ -116,7 +119,7 @@ class LifecycleTest {
     }
 
     private Lifecycle lifecycle(ShutdownFlush... flushes) {
-        return new Lifecycle(apiServer, scheduler, Set.of(flushes), dataSource, clock);
+        return new Lifecycle(apiServer, scheduler, Set.of(flushes), storage, dataSource, clock);
     }
 
     private ShutdownFlush flush(String name, int order) {

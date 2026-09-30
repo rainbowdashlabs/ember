@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.OutputShape;
@@ -79,7 +80,8 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                         new AccountCredentialTableImporter(accountRepo, passkeyModeService),
                         new DisabledModuleTableImporter(stationRepo)),
                 accountRepo,
-                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class));
+                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
+                new TaskScheduler());
     }
 
     @Test
