@@ -521,6 +521,18 @@ public class EventRepository {
     }
 
     /**
+     * Marks an event as changed without changing anything on its row, for a change kept beside it,
+     * such as one of its dates being called off, that the calendar feeds have to pick up.
+     *
+     * @param eventId the event
+     */
+    public void touch(int eventId) {
+        query("UPDATE station_event SET updated_at = now() WHERE id = :id;")
+                .single(call().bind("id", eventId))
+                .update();
+    }
+
+    /**
      * Returns the most recent {@code updated_at} across all events of a station, or
      * {@link Instant#EPOCH} when the station has no events. Used to derive feed ETags so the
      * cached iCal feed picks up event mutations.

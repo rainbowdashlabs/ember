@@ -53,6 +53,7 @@ class EventCancellationServiceTest extends RepositoryTestBase {
 
     private NotificationService notifications;
     private EventCancellationService service;
+    private EventOccurrenceService occurrences;
     private StationEvent event;
     private LocalDate today;
     private ZoneId zone;
@@ -77,7 +78,9 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         var bus = new DomainEventBus(Set.of(
                 new EventCancelledHandler(notifications, eventRegistrationRepo, occurrenceCalendar, guardians),
                 new EventDateRestoredHandler(notifications, eventRegistrationRepo, guardians)));
-        service = newEventServices(bus).cancellation();
+        var services = newEventServices(bus);
+        service = services.cancellation();
+        occurrences = services.occurrence();
         var calendar = occurrenceCalendar.forStation(station.id());
         today = calendar.today();
         zone = calendar.zone();
@@ -269,6 +272,47 @@ class EventCancellationServiceTest extends RepositoryTestBase {
 
         assertFalse(eventDateCancellationRepo.isCancelled(event.id(), firstDate()));
         verify(notifications, never()).notifyMembers(any(), eq(NotificationType.EVENT_DATE_DROPPED), any());
+    }
+
+    /** A date called off stays on the lists and says why, and the dates beside it say nothing. */
+    @Test
+    void aCancelledDateStaysOnTheListsAndSaysWhy() {
+        weekly();
+        service.cancelDate(event, firstDate(), "Sturm", null);
+        var query = new EventOccurrenceService.OccurrenceQuery(null, null, "Übung", null, null, 2, 0);
+
+        var upcoming = occurrences.findUpcomingOccurrences(station.id(), null, query);
+
+        assertEquals(firstDate(), upcoming.getFirst().date());
+        assertEquals("Sturm", upcoming.getFirst().cancellation().reason());
+        assertEquals(firstDate().plusWeeks(1), upcoming.get(1).date());
+        assertEquals(null, upcoming.get(1).cancellation());
+
+        var page = occurrences.findEventsPage(
+                station.id(),
+                null,
+                new EventOccurrenceService.EventPageQuery(EventOccurrenceService.EventState.CURRENT, null, query));
+        var row = page.stream()
+                .filter(dated -> dated.event().id() == event.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals(firstDate(), row.nextDate());
+        assertEquals(CancellationCause.MANUAL, row.cancellation().cause());
+        assertFalse(row.event().seriesCancelled());
+    }
+
+    /** Every date of a series called off as a whole says so, with the reason given for the series. */
+    @Test
+    void everyDateOfACancelledSeriesSaysSo() {
+        weekly();
+        service.cancelSeries(station.id(), event.id(), "Aufgelöst");
+        var query = new EventOccurrenceService.OccurrenceQuery(null, null, "Übung", null, null, 2, 0);
+
+        var upcoming = occurrences.findUpcomingOccurrences(station.id(), null, query);
+
+        assertTrue(upcoming.stream()
+                .allMatch(o -> "Aufgelöst".equals(o.cancellation().reason())));
+        assertTrue(upcoming.getFirst().event().seriesCancelled());
     }
 
     private static void assertRefused(Refusal refusal, Runnable call) {

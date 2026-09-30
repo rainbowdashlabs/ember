@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.feed.render;
 
+import dev.chojo.ember.feature.events.entity.CancellationCause;
+import dev.chojo.ember.feature.events.entity.CancellationNotice;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
@@ -31,6 +33,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -128,24 +131,29 @@ public class IcalEventRenderer {
     // -- description body --
 
     /**
-     * Builds the {@link VEvent} for the given event, applying registration metadata, location,
-     * and the localised description body. Honours the verbose/images flags from the context.
+     * Builds the entries for the given event, applying registration metadata, location, and the
+     * localised description body. Honours the verbose/images flags from the context.
      *
-     * @return the entry, empty for a series that falls on no date at all
+     * <p>An appointment called off as a whole is one entry marked cancelled. A series with single
+     * dates called off is its own entry followed by one override per such date, each marked
+     * cancelled, so a calendar crosses out those dates and keeps the others.
+     *
+     * @return the entries, none for a series that falls on no date at all
      */
-    public Optional<VEvent> render(StationEvent event, Context ctx) {
-        String summary = event.cancelled() ? cancelledPrefix(ctx.locale()) + event.name() : event.name();
+    public List<VEvent> render(StationEvent event, Context ctx) {
+        var altogether = ctx.calendar().noticeAltogether(event);
+        String summary = altogether.isPresent() ? cancelledPrefix(ctx.locale()) + event.name() : event.name();
         var entry = EventRecurrence.entryOf(event, summary, ctx.calendar());
-        if (entry.isEmpty()) return Optional.empty();
+        if (entry.isEmpty()) return List.of();
         var vevent = entry.get();
-        vevent.add(new Uid("event-" + event.id() + "@ember"));
+        vevent.add(new Uid(EventRecurrence.uidOf(event)));
 
         if (event.categoryId() != null) {
             var cat = ctx.categoryMap().get(event.categoryId());
             if (cat != null) vevent.add(new Categories(cat.name()));
         }
 
-        if (event.cancelled()) {
+        if (altogether.isPresent()) {
             vevent.add(ImmutableStatus.VEVENT_CANCELLED);
         }
 
@@ -162,7 +170,7 @@ public class IcalEventRenderer {
         vevent.add(new Url(URI.create(deepLink)));
 
         if (ctx.verbose()) {
-            String description = buildDescription(event, fields, deepLink, ctx);
+            String description = buildDescription(event, fields, deepLink, altogether, ctx);
             if (!description.isBlank()) vevent.add(new Description(description));
         } else {
             // Compact mode: just the description plus a link so users can still open the source.
@@ -171,12 +179,34 @@ public class IcalEventRenderer {
             vevent.add(new Description(description.stripTrailing()));
         }
 
-        return Optional.of(vevent);
+        var entries = new ArrayList<VEvent>();
+        entries.add(vevent);
+        entries.addAll(cancelledDates(event, ctx));
+        return entries;
+    }
+
+    /** The overrides for the dates of a series called off one by one, each saying why. */
+    private List<VEvent> cancelledDates(StationEvent event, Context ctx) {
+        String summary = cancelledPrefix(ctx.locale()) + event.name();
+        var overrides = new ArrayList<VEvent>();
+        for (var cancellation : ctx.calendar().cancelledDates(event)) {
+            EventRecurrence.cancelledDateOf(event, cancellation.eventDate(), summary)
+                    .ifPresent(override -> {
+                        override.add(new Description(cancelledText(ctx.locale(), cancellation.notice())));
+                        overrides.add(override);
+                    });
+        }
+        return overrides;
     }
 
     // -- helpers --
 
-    private String buildDescription(StationEvent event, List<EventField> fields, String deepLink, Context ctx) {
+    private String buildDescription(
+            StationEvent event,
+            List<EventField> fields,
+            String deepLink,
+            Optional<CancellationNotice> altogether,
+            Context ctx) {
         var sb = new StringBuilder();
 
         if (event.description() != null && !event.description().isBlank()) {
@@ -203,14 +233,8 @@ public class IcalEventRenderer {
             sb.append(field.name()).append(": ").append(value).append("\n");
         }
 
-        if (event.cancelled()) {
-            String cancelled =
-                    event.cancelReason() != null && !event.cancelReason().isBlank()
-                            ? notificationService.resolveLocalized(
-                                    ctx.locale(), "ical", "cancelledWithReason", Map.of("reason", event.cancelReason()))
-                            : notificationService.resolveLocalized(ctx.locale(), "ical", "cancelled", null);
-            sb.append(cancelled).append("\n");
-        }
+        altogether.ifPresent(
+                notice -> sb.append(cancelledText(ctx.locale(), notice)).append("\n"));
 
         if (event.requiresRegistration()) {
             sb.append(notificationService.resolveLocalized(ctx.locale(), "ical", "registrationRequired", null))
@@ -262,6 +286,18 @@ public class IcalEventRenderer {
         sb.append("\n").append(linkLabel).append(": ").append(deepLink);
 
         return sb.toString().stripTrailing();
+    }
+
+    /** Why something is off, in the reader's language: the check's own sentence, or the manager's reason. */
+    private String cancelledText(String locale, CancellationNotice notice) {
+        if (notice.cause() == CancellationCause.THRESHOLD) {
+            return notificationService.resolveLocalized(locale, "ical", "cancelledTooFewRegistrations", null);
+        }
+        if (notice.reason() != null && !notice.reason().isBlank()) {
+            return notificationService.resolveLocalized(
+                    locale, "ical", "cancelledWithReason", Map.of("reason", notice.reason()));
+        }
+        return notificationService.resolveLocalized(locale, "ical", "cancelled", null);
     }
 
     private String cancelledPrefix(String locale) {

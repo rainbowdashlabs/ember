@@ -133,6 +133,7 @@ public class EventCancellationService {
         if (date.isBefore(calendar.today())) throw Refusal.DATE_TO_RESTORE_IN_THE_PAST.raise();
 
         cancellationRepository.restore(event.id(), date);
+        eventRepository.touch(event.id());
         log.info("Restored {} of appointment {}", date, event.id());
         eventBus.publish(new EventDateRestored(event.stationId(), event.id(), event.name(), date));
     }
@@ -150,6 +151,7 @@ public class EventCancellationService {
     }
 
     private void announceCancelled(StationEvent event, LocalDate date, String reason, CancellationCause cause) {
+        eventRepository.touch(event.id());
         equipmentRelease.withdrawRequestsOn(event.id(), event.stationId(), date);
         log.info("Cancelled {} of appointment {} ({})", date, event.id(), cause);
         eventBus.publish(new EventCancelled(event.stationId(), event.id(), event.name(), reason, date, cause));

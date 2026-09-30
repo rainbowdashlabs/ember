@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.DatedEvent;
 import dev.chojo.ember.feature.events.entity.EventSummary;
+import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import jakarta.inject.Inject;
@@ -83,7 +84,7 @@ public class EventOccurrenceService {
                 day -> day.plusDays(1),
                 day -> !day.isAfter(last),
                 Comparator.naturalOrder());
-        return page(walk.from(first, events, query.offset() + query.limit(), calendar.zone()), query);
+        return page(walk.from(first, events, query.offset() + query.limit(), calendar), query);
     }
 
     /**
@@ -115,7 +116,7 @@ public class EventOccurrenceService {
                 day -> day.minusDays(1),
                 day -> oldest == null || !day.isBefore(oldest),
                 Comparator.reverseOrder());
-        return page(walk.from(newest, events, query.offset() + query.limit(), calendar.zone()), query);
+        return page(walk.from(newest, events, query.offset() + query.limit(), calendar), query);
     }
 
     /**
@@ -161,7 +162,13 @@ public class EventOccurrenceService {
         return placed.stream()
                 .skip(filter.offset())
                 .limit(filter.limit())
-                .map(entry -> new DatedEvent(EventSummary.of(entry.event()), entry.next(), entry.previous()))
+                .map(entry -> new DatedEvent(
+                        EventSummary.of(entry.event()),
+                        entry.next(),
+                        entry.previous(),
+                        entry.on() == null
+                                ? null
+                                : calendar.noticeOn(entry.event(), entry.on()).orElse(null)))
                 .toList();
     }
 
@@ -184,11 +191,18 @@ public class EventOccurrenceService {
                 && (query.to() == null || !date.isAfter(query.to()));
     }
 
-    /** Everything falling on one date, in the order the list shows a day's appointments. */
-    private static List<UpcomingEventOccurrence> onDate(List<StationEvent> events, LocalDate date, ZoneId zone) {
+    /**
+     * Everything falling on one date, in the order the list shows a day's appointments, each saying
+     * whether it is off on that date.
+     */
+    private static List<UpcomingEventOccurrence> onDate(
+            List<StationEvent> events, LocalDate date, StationCalendar calendar) {
         var onThisDate = new ArrayList<UpcomingEventOccurrence>();
-        for (var ev : events) onThisDate.add(new UpcomingEventOccurrence(EventSummary.of(ev), date));
-        onThisDate.sort(Comparator.comparing((UpcomingEventOccurrence o) -> timeOfDay(o, zone))
+        for (var ev : events) {
+            onThisDate.add(new UpcomingEventOccurrence(
+                    EventSummary.of(ev), date, calendar.noticeOn(ev, date).orElse(null)));
+        }
+        onThisDate.sort(Comparator.comparing((UpcomingEventOccurrence o) -> timeOfDay(o, calendar.zone()))
                 .thenComparing(occurrence -> occurrence.event().id()));
         return onThisDate;
     }
@@ -256,7 +270,8 @@ public class EventOccurrenceService {
             Comparator<LocalDate> order) {
 
         /** The occurrences from a day on, whole days at a time until at least this many are found. */
-        List<UpcomingEventOccurrence> from(LocalDate start, List<StationEvent> events, int wanted, ZoneId zone) {
+        List<UpcomingEventOccurrence> from(
+                LocalDate start, List<StationEvent> events, int wanted, StationCalendar calendar) {
             var queue = new PriorityQueue<Cursor>(Comparator.comparing(Cursor::date, order));
             for (var event : events) advance(event, start, queue);
 
@@ -269,7 +284,7 @@ public class EventOccurrenceService {
                     onDay.add(cursor.event());
                     advance(cursor.event(), beyond.apply(day), queue);
                 }
-                found.addAll(onDate(onDay, day, zone));
+                found.addAll(onDate(onDay, day, calendar));
             }
             return found;
         }

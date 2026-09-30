@@ -93,15 +93,38 @@ public record StationCalendar(ZoneId zone, List<EventBreak> breaks, DateCancella
     }
 
     /**
+     * What a reader is told about this date being off, whether the date was called off or the whole
+     * series was, empty while it takes place.
+     */
+    public Optional<CancellationNotice> noticeOn(StationEvent event, LocalDate date) {
+        if (event.cancelled()) {
+            return Optional.of(
+                    new CancellationNotice(date, CancellationCause.MANUAL, event.cancelReason(), event.cancelledAt()));
+        }
+        return cancellationOn(event, date).map(EventDateCancellation::notice);
+    }
+
+    /**
      * Whether the appointment as a whole is off: a series that was called off, or a one-time
      * appointment whose one date was.
      */
     public boolean cancelledAltogether(StationEvent event) {
-        if (event.cancelled()) return true;
-        if (event.isRecurring()) return false;
+        return noticeAltogether(event).isPresent();
+    }
+
+    /**
+     * What a reader is told about the appointment as a whole being off: a series called off, or a
+     * one-time appointment whose one date was. Empty while it takes place.
+     */
+    public Optional<CancellationNotice> noticeAltogether(StationEvent event) {
+        if (event.cancelled()) {
+            return Optional.of(
+                    new CancellationNotice(null, CancellationCause.MANUAL, event.cancelReason(), event.cancelledAt()));
+        }
+        if (event.isRecurring()) return Optional.empty();
         return ruleOf(event)
-                .map(rule -> cancellations.on(event.id(), rule.first()).isPresent())
-                .orElse(false);
+                .flatMap(rule -> cancellations.on(event.id(), rule.first()))
+                .map(EventDateCancellation::notice);
     }
 
     /**

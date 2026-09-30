@@ -6,8 +6,11 @@
 package dev.chojo.ember.feature.feed.render;
 
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
+import dev.chojo.ember.feature.events.entity.DateCancellations;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
+import dev.chojo.ember.feature.events.entity.EventDateCancellation;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
@@ -240,7 +243,7 @@ class IcalEventRendererTest {
         when(eventFieldService.findByEvent(eq(10), any())).thenReturn(List.of(loc, other));
         var ctx = ctx(Map.of(), Map.of());
 
-        var ve = renderer.render(event, ctx).orElseThrow();
+        var ve = renderer.render(event, ctx).getFirst();
         var location = ve.getProperty("LOCATION").map(Location.class::cast).orElseThrow();
         assertEquals("Marktplatz 1", location.getValue());
         var url = ve.getProperty("URL").map(Url.class::cast).orElseThrow();
@@ -258,7 +261,7 @@ class IcalEventRendererTest {
         when(eventFieldService.findByEvent(eq(11), any())).thenReturn(List.of());
         var ctx = ctx(Map.of(), Map.of());
 
-        var ve = renderer.render(event, ctx).orElseThrow();
+        var ve = renderer.render(event, ctx).getFirst();
         assertTrue(ve.getProperty("SUMMARY").orElseThrow().getValue().startsWith("summary.cancelledPrefix"));
         assertTrue(ve.getProperty("STATUS").isPresent());
         assertEquals(ImmutableStatus.VEVENT_CANCELLED, ve.getProperty("STATUS").orElseThrow());
@@ -279,7 +282,7 @@ class IcalEventRendererTest {
                 Map.of(),
                 calendar(List.of()));
 
-        var ve = renderer.render(event, ctx).orElseThrow();
+        var ve = renderer.render(event, ctx).getFirst();
         String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
         assertTrue(description.contains("/station/events/12"));
         assertFalse(description.contains("label.eventType"));
@@ -296,7 +299,7 @@ class IcalEventRendererTest {
                         new IcalEventRenderer.ManagedRegistration("Bob", RegistrationStatus.DECLINED)));
         var ctx = ctx(Map.of(13, RegistrationStatus.ACCEPTED), managed);
 
-        var ve = renderer.render(event, ctx).orElseThrow();
+        var ve = renderer.render(event, ctx).getFirst();
         String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
         assertTrue(description.contains("Alice"));
         assertTrue(description.contains("Bob"));
@@ -317,7 +320,7 @@ class IcalEventRendererTest {
         var weekly = series(20, StationEvent.EventType.RECURRING, 3, mondayEvening, null);
         var holiday = new EventBreak(1, 1, "Ferien", LocalDate.parse("2026-09-09"), LocalDate.parse("2026-09-15"));
 
-        var ve = renderer.render(weekly, ctxWithBreaks(List.of(holiday))).orElseThrow();
+        var ve = renderer.render(weekly, ctxWithBreaks(List.of(holiday))).getFirst();
 
         assertEquals("20260902T160000Z", ve.getProperty("DTSTART").orElseThrow().getValue());
         assertEquals(
@@ -330,7 +333,7 @@ class IcalEventRendererTest {
     void aQuarterlySeriesCountsFromItsFirstDate() {
         var quarterly = series(21, StationEvent.EventType.QUARTERLY, 1, Instant.parse("2026-02-02T17:00:00Z"), null);
 
-        var ve = renderer.render(quarterly, ctx(Map.of(), Map.of())).orElseThrow();
+        var ve = renderer.render(quarterly, ctx(Map.of(), Map.of())).getFirst();
 
         assertEquals("20260202T170000Z", ve.getProperty("DTSTART").orElseThrow().getValue());
         assertEquals(
@@ -344,7 +347,7 @@ class IcalEventRendererTest {
     void aYearlySeriesWithoutAWeekdayRepeats() {
         var yearly = series(22, StationEvent.EventType.YEARLY, null, Instant.parse("2026-05-01T08:00:00Z"), null);
 
-        var ve = renderer.render(yearly, ctx(Map.of(), Map.of())).orElseThrow();
+        var ve = renderer.render(yearly, ctx(Map.of(), Map.of())).getFirst();
 
         assertEquals("FREQ=YEARLY", ve.getProperty("RRULE").orElseThrow().getValue());
     }
@@ -362,7 +365,72 @@ class IcalEventRendererTest {
         assertTrue(renderer.render(never, ctx(Map.of(), Map.of())).isEmpty());
     }
 
+    /**
+     * A date of a series called off on its own reaches the calendar as an override of that date,
+     * marked cancelled and saying why, and the series itself stays as it was.
+     */
+    @Test
+    void aCancelledDateOfASeriesIsAnOverrideMarkedCancelled() {
+        var weekly = series(24, StationEvent.EventType.RECURRING, 3, Instant.parse("2026-09-02T16:00:00Z"), null);
+        var stormy = new EventDateCancellation(
+                24, LocalDate.parse("2026-09-16"), CancellationCause.MANUAL, "Sturm", Instant.now(), null, null);
+        var tooFew = new EventDateCancellation(
+                24, LocalDate.parse("2026-09-23"), CancellationCause.THRESHOLD, null, Instant.now(), null, null);
+
+        var entries = renderer.render(weekly, ctxWithCancellations(List.of(stormy, tooFew)));
+
+        assertEquals(3, entries.size());
+        var series = entries.getFirst();
+        assertTrue(series.getProperty("STATUS").isEmpty(), "the series goes on");
+        assertEquals("event-24@ember", series.getProperty("UID").orElseThrow().getValue());
+        var override = entries.get(1);
+        assertEquals("event-24@ember", override.getProperty("UID").orElseThrow().getValue());
+        assertEquals(
+                "20260916T160000Z",
+                override.getProperty("RECURRENCE-ID").orElseThrow().getValue());
+        assertEquals(
+                ImmutableStatus.VEVENT_CANCELLED, override.getProperty("STATUS").orElseThrow());
+        assertTrue(override.getProperty("SUMMARY").orElseThrow().getValue().startsWith("summary.cancelledPrefix"));
+        assertTrue(override.getProperty("DESCRIPTION").orElseThrow().getValue().contains("Sturm"));
+        assertEquals(
+                "cancelledTooFewRegistrations",
+                entries.get(2).getProperty("DESCRIPTION").orElseThrow().getValue());
+    }
+
+    /** A one-time appointment whose date was called off is one entry, marked cancelled as a whole. */
+    @Test
+    void aOneOffCancelledByItsDateIsMarkedCancelled() {
+        var event = simpleEvent(25);
+        when(eventFieldService.findByEvent(eq(25), any())).thenReturn(List.of());
+        var gone = new EventDateCancellation(
+                25, LocalDate.parse("2027-09-15"), CancellationCause.MANUAL, null, Instant.now(), null, null);
+
+        var entries = renderer.render(event, ctxWithCancellations(List.of(gone)));
+
+        assertEquals(1, entries.size());
+        assertEquals(
+                ImmutableStatus.VEVENT_CANCELLED,
+                entries.getFirst().getProperty("STATUS").orElseThrow());
+        assertTrue(entries.getFirst()
+                .getProperty("DESCRIPTION")
+                .orElseThrow()
+                .getValue()
+                .contains("cancelled"));
+    }
+
     // -- helpers --
+
+    private IcalEventRenderer.Context ctxWithCancellations(List<EventDateCancellation> cancellations) {
+        return new IcalEventRenderer.Context(
+                station,
+                "de",
+                "https://ember.example.com",
+                true,
+                Map.of(),
+                Map.of(),
+                Map.of(),
+                new StationCalendar(BERLIN, List.of(), DateCancellations.of(cancellations)));
+    }
 
     private IcalEventRenderer.Context ctx(
             Map<Integer, RegistrationStatus> ownerStatus,

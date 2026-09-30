@@ -10,6 +10,9 @@ import java.time.Instant;
 /**
  * Sparse representation of a station event for list views and federated browse responses.
  * Contains only the fields needed to render an event list row.
+ *
+ * <p>{@code seriesCancelled} says that every date is off for good. A single date that is off is told
+ * beside the date it belongs to, since the appointment itself goes on.
  */
 public record EventSummary(
         int id,
@@ -24,7 +27,8 @@ public record EventSummary(
         Instant registrationDeadline,
         Integer categoryId,
         Integer templateId,
-        boolean restricted) {
+        boolean restricted,
+        boolean seriesCancelled) {
 
     public static EventSummary of(StationEvent event) {
         return new EventSummary(
@@ -40,6 +44,7 @@ public record EventSummary(
                 event.registrationDeadline(),
                 event.categoryId(),
                 event.templateId(),
-                event.restricted());
+                event.restricted(),
+                event.cancelled());
     }
 }

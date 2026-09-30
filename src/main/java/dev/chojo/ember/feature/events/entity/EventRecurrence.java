@@ -9,8 +9,12 @@ import net.fortuna.ical4j.model.DateList;
 import net.fortuna.ical4j.model.component.VEvent;
 import net.fortuna.ical4j.model.property.ExDate;
 import net.fortuna.ical4j.model.property.RRule;
+import net.fortuna.ical4j.model.property.RecurrenceId;
+import net.fortuna.ical4j.model.property.Uid;
+import net.fortuna.ical4j.model.property.immutable.ImmutableStatus;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,10 +29,38 @@ import java.util.Optional;
  * It starts on its first date rather than on the day it was configured, because a calendar counts a
  * quarter from its start and always shows the start itself, and every date a break takes out is
  * named as an exception. A subscribed calendar therefore shows the dates the application shows.
+ *
+ * <p>A date called off is not an exception: it still belongs to the series, and a calendar is told
+ * about it as an override of that one date, marked cancelled, so it shows the date crossed out and
+ * every other date as it was.
  */
 public final class EventRecurrence {
 
     private EventRecurrence() {}
+
+    /** The identifier every entry of one appointment carries, the series and its overrides alike. */
+    public static String uidOf(StationEvent event) {
+        return "event-" + event.id() + "@ember";
+    }
+
+    /**
+     * The override of a series for one date that was called off, marked cancelled. The dates to write
+     * one for are {@link StationCalendar#cancelledDates}.
+     *
+     * @param event   the appointment
+     * @param date    the date called off
+     * @param summary the headline the override carries
+     * @return the override, empty where the appointment has no times to place it at
+     */
+    public static Optional<VEvent> cancelledDateOf(StationEvent event, LocalDate date, String summary) {
+        return event.occurrenceOn(date).map(span -> {
+            var override = new VEvent(span.start(), span.end(), summary);
+            override.add(new Uid(uidOf(event)));
+            override.add(new RecurrenceId<>(span.start()));
+            override.add(ImmutableStatus.VEVENT_CANCELLED);
+            return override;
+        });
+    }
 
     /**
      * The calendar entry of an appointment.

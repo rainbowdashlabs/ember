@@ -321,7 +321,7 @@ public class UserFeedRoutes implements Routes {
         for (var event : events) {
             // Isolate each VEVENT: a malformed event must never tank the whole calendar.
             try {
-                icalRenderer.render(event, renderCtx).ifPresent(calendar::add);
+                icalRenderer.render(event, renderCtx).forEach(calendar::add);
             } catch (Exception e) {
                 log.warn("Failed to render event {} for ical feed", event.id(), e);
             }

@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.events.entity.EventCategory;
+import dev.chojo.ember.feature.events.entity.EventDateCancellation;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventRecurrence;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
@@ -36,9 +37,11 @@ import net.fortuna.ical4j.model.property.ProdId;
 import net.fortuna.ical4j.model.property.Uid;
 import net.fortuna.ical4j.model.property.XProperty;
 import net.fortuna.ical4j.model.property.immutable.ImmutableCalScale;
+import net.fortuna.ical4j.model.property.immutable.ImmutableStatus;
 import net.fortuna.ical4j.model.property.immutable.ImmutableVersion;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -152,9 +155,11 @@ public class PublicEventRoutes implements Routes {
                 publicEvents.stream().map(StationEvent::id).toList(), occurrenceCalendar.datesInView(publicEvents));
         var publicUids = crudService.findPublicUidsByIds(
                 data.station().id(), publicEvents.stream().map(StationEvent::id).toList());
+        var stationCalendar = occurrenceCalendar.forStation(data.station().id());
 
         ctx.json(publicEvents.stream()
-                .map(e -> toPublicResponse(e, data.categoryMap(), overviewFields, publicUids.get(e.id())))
+                .map(e -> toPublicResponse(
+                        e, data.categoryMap(), overviewFields, publicUids.get(e.id()), stationCalendar))
                 .toList());
     }
 
@@ -187,6 +192,7 @@ public class PublicEventRoutes implements Routes {
                 .filter(EventField::isPublic)
                 .toList();
 
+        var stationCalendar = occurrenceCalendar.forStation(station.id());
         ctx.json(new PublicEventDetail(
                 event.id(),
                 event.name(),
@@ -196,7 +202,9 @@ public class PublicEventRoutes implements Routes {
                 event.startTime(),
                 event.endTime(),
                 event.categoryId() != null ? categoryMap.getOrDefault(event.categoryId(), null) : null,
-                fields));
+                fields,
+                stationCalendar.cancelledAltogether(event),
+                cancelledDatesAhead(event, stationCalendar)));
     }
 
     @OpenApi(
@@ -242,6 +250,10 @@ public class PublicEventRoutes implements Routes {
         var stationCalendar = occurrenceCalendar.forStation(data.station().id());
         for (var event : data.publicEvents()) {
             buildVEvent(event, data.categoryMap(), stationCalendar).ifPresent(calendar::add);
+            for (var cancellation : stationCalendar.cancelledDates(event)) {
+                EventRecurrence.cancelledDateOf(event, cancellation.eventDate(), event.name())
+                        .ifPresent(calendar::add);
+            }
         }
 
         ctx.contentType("text/calendar; charset=utf-8");
@@ -254,7 +266,10 @@ public class PublicEventRoutes implements Routes {
         var entry = EventRecurrence.entryOf(event, event.name(), stationCalendar);
         if (entry.isEmpty()) return Optional.empty();
         var vevent = entry.get();
-        vevent.add(new Uid("event-" + event.id() + "@ember"));
+        vevent.add(new Uid(EventRecurrence.uidOf(event)));
+        if (stationCalendar.cancelledAltogether(event)) {
+            vevent.add(ImmutableStatus.VEVENT_CANCELLED);
+        }
 
         if (event.description() != null && !event.description().isBlank()) {
             vevent.add(new Description(event.description()));
@@ -268,11 +283,21 @@ public class PublicEventRoutes implements Routes {
         return Optional.of(vevent);
     }
 
+    /** The dates of a series from today on that were called off one by one, earliest first. */
+    private static List<LocalDate> cancelledDatesAhead(StationEvent event, StationCalendar stationCalendar) {
+        LocalDate today = stationCalendar.today();
+        return stationCalendar.cancelledDates(event).stream()
+                .map(EventDateCancellation::eventDate)
+                .filter(date -> !date.isBefore(today))
+                .toList();
+    }
+
     private PublicEventResponse toPublicResponse(
             StationEvent e,
             Map<Integer, EventCategory> categoryMap,
             Map<Integer, List<EventField>> overviewFields,
-            UUID publicUid) {
+            UUID publicUid,
+            StationCalendar stationCalendar) {
         String categoryName = null;
         if (e.categoryId() != null) {
             var cat = categoryMap.get(e.categoryId());
@@ -292,7 +317,9 @@ public class PublicEventRoutes implements Routes {
                 e.endTime(),
                 e.categoryId(),
                 categoryName,
-                fields);
+                fields,
+                stationCalendar.cancelledAltogether(e),
+                cancelledDatesAhead(e, stationCalendar));
     }
 
     /**
@@ -301,6 +328,13 @@ public class PublicEventRoutes implements Routes {
     private record PublicEventData(
             Station station, Map<Integer, EventCategory> categoryMap, List<StationEvent> publicEvents) {}
 
+    /**
+     * An appointment as the public list shows it.
+     *
+     * @param cancelled      whether it is off as a whole: a series called off, or a one-time
+     *                       appointment whose date was
+     * @param cancelledDates the dates of a series from today on that were called off one by one
+     */
     public record PublicEventResponse(
             int id,
             UUID publicUid,
@@ -312,8 +346,17 @@ public class PublicEventRoutes implements Routes {
             Instant endTime,
             Integer categoryId,
             String categoryName,
-            List<EventField> publicFields) {}
+            List<EventField> publicFields,
+            boolean cancelled,
+            List<LocalDate> cancelledDates) {}
 
+    /**
+     * An appointment as its public page shows it.
+     *
+     * @param cancelled      whether it is off as a whole: a series called off, or a one-time
+     *                       appointment whose date was
+     * @param cancelledDates the dates of a series from today on that were called off one by one
+     */
     public record PublicEventDetail(
             int id,
             String name,
@@ -323,5 +366,7 @@ public class PublicEventRoutes implements Routes {
             Instant startTime,
             Instant endTime,
             EventCategory category,
-            List<EventField> publicFields) {}
+            List<EventField> publicFields,
+            boolean cancelled,
+            List<LocalDate> cancelledDates) {}
 }
