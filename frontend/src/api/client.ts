@@ -180,7 +180,7 @@ client.interceptors.response.use(
                         stepUpErr instanceof StepUpCancelledError ? (error as AxiosError) : stepUpErr,
                     ))
             }
-            if (config?._carriedSession) {
+            if (config?._carriedSession && !body?.code) {
                 removeItem('station_id')
                 removeItem('cluster_id')
                 const currentPath = window.location.pathname

@@ -31,9 +31,9 @@ describe('a refused session', () => {
         Object.defineProperty(window, 'location', {value: location, configurable: true})
     }
 
-    async function requestRefused() {
+    async function requestRefused(data: object = {}) {
         client.defaults.adapter = (config: InternalAxiosRequestConfig) => {
-            const response = {status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config} as AxiosResponse
+            const response = {status: 401, statusText: 'Unauthorized', data, headers: {}, config} as AxiosResponse
             return Promise.reject(new AxiosError('refused', 'ERR_BAD_REQUEST', config, null, response))
         }
         await expect(client.get('/session')).rejects.toBeInstanceOf(AxiosError)
@@ -70,6 +70,15 @@ describe('a refused session', () => {
         await requestRefused()
 
         expect(location.href).toBe(`/login?redirect=${encodeURIComponent('/cluster/members?tab=1')}`)
+    })
+
+    it('keeps a signed-in reader on the page when a named refusal says a confirmation was wrong', async () => {
+        openAt('/station/members/groups')
+
+        await requestRefused({code: 'STEP_UP_CODE_WRONG', message: 'Der Code stimmt nicht.'})
+
+        expect(location.href).toBe('http://localhost/station/members/groups?tab=1')
+        expect(getItem('station_id')).toBe('stale-station')
     })
 
     it('leaves a browser that carried no session where it is', async () => {
