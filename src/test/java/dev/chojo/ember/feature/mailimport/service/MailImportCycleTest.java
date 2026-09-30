@@ -56,10 +56,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -92,6 +95,8 @@ class MailImportCycleTest extends RepositoryTestBase {
     private static Station station;
     private static Account account;
     private static MailMailbox mailbox;
+    private static MailFilingService.MemberNaming memberNaming;
+    private static FilingParts filingParts;
 
     @BeforeAll
     static void setup() throws IOException {
@@ -116,25 +121,61 @@ class MailImportCycleTest extends RepositoryTestBase {
         station = stationRepo.create("Cycle Station");
         account = accountRepo.create("cycle@test.com", "Anna", "Weber");
         int memberId = stationMemberRepo.create(station.id(), account.id()).id();
+        memberNaming = stationId -> List.of(new SubjectMemberMatch.Candidate(memberId, "Anna Weber"));
+        filingParts = new FilingParts(documentService, originRepository, quotaService);
 
+        importService = serviceNaming(memberNaming);
+    }
+
+    private record FilingParts(
+            DocumentService documentService, MailOriginRepository originRepository, StorageQuotaService quotaService) {}
+
+    private static MailImportService serviceNaming(MailFilingService.MemberNaming naming) {
         var filingService = new MailFilingService(
-                documentService,
+                filingParts.documentService(),
                 logRepository,
-                originRepository,
-                quotaService,
-                stationId -> List.of(new SubjectMemberMatch.Candidate(memberId, "Anna Weber")));
-
-        importService = new MailImportService(
+                filingParts.originRepository(),
+                filingParts.quotaService(),
+                naming);
+        return new MailImportService(
                 mailboxRepository,
                 ruleRepository,
                 logRepository,
                 filingService,
-                quotaService,
+                filingParts.quotaService(),
                 cipher,
                 MailHostPolicies.allowingTheLocalNetwork(),
                 new DkimVerification(() -> new DKIMVerifier(SignedMail.publishedKeys())),
                 new MailImport(),
                 notifications);
+    }
+
+    /**
+     * A service that does something to the mail server while the first message is being filed.
+     *
+     * <p>Filing asks for the station's members, which happens after the search and before the next message
+     * is read, so this is where another client or a dropped connection lands in the middle of a cycle.
+     */
+    private static MailImportService interruptedWhileFiling(Interruption interruption) {
+        var done = new AtomicBoolean();
+        return serviceNaming(stationId -> {
+            if (!done.getAndSet(true)) interruption.runUnchecked();
+            return memberNaming.candidates(stationId);
+        });
+    }
+
+    /** Something done to the mail server from outside the cycle. */
+    @FunctionalInterface
+    private interface Interruption {
+        void run() throws Exception;
+
+        default void runUnchecked() {
+            try {
+                run();
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        }
     }
 
     @AfterAll
@@ -216,6 +257,11 @@ class MailImportCycleTest extends RepositoryTestBase {
 
     /** Delivers a mail with one attachment, the way a scanner or an office would send it. */
     private void deliver(String from, String subject, String fileName, byte[] data, boolean inline) throws Exception {
+        store(mail(from, subject, fileName, data, inline));
+    }
+
+    private static MimeMessage mail(String from, String subject, String fileName, byte[] data, boolean inline)
+            throws Exception {
         var message = new MimeMessage(Session.getInstance(new Properties()));
         message.setFrom(new InternetAddress(from));
         message.setRecipients(Message.RecipientType.TO, USER);
@@ -235,14 +281,17 @@ class MailImportCycleTest extends RepositoryTestBase {
             multipart.addBodyPart(part);
         }
         message.setContent(multipart);
-        store(message);
+        return message;
     }
 
     private static void store(MimeMessage message) throws Exception {
-        greenMail
-                .getManagers()
+        storeOn(greenMail, message);
+    }
+
+    private static void storeOn(GreenMail server, MimeMessage message) throws Exception {
+        server.getManagers()
                 .getImapHostManager()
-                .getInbox(greenMail.getUserManager().getUser(USER))
+                .getInbox(server.getUserManager().getUser(USER))
                 .store(message);
     }
 
@@ -728,5 +777,93 @@ class MailImportCycleTest extends RepositoryTestBase {
         assertEquals(1, cycle.refused());
         assertTrue(logRepository.findByStation(station.id(), 50, 0).stream()
                 .anyMatch(entry -> entry.outcome() == MailImportOutcome.SIGNATURE_NOT_ALIGNED));
+    }
+
+    /** A rule that reads the subject for a member's name, which is what gives a test its moment mid-cycle. */
+    private void ruleReadingTheSubject(int mailboxId) {
+        ruleRepository.create(
+                mailboxId,
+                "Mit Namen",
+                0,
+                null,
+                null,
+                List.of("application/pdf"),
+                0L,
+                false,
+                MailTitleSource.SUBJECT,
+                false,
+                false,
+                true,
+                MailRuleAction.MARK_SEEN,
+                null,
+                List.of("*@musterstadt.de"),
+                List.of());
+    }
+
+    private static Set<String> importedNames() {
+        return logRepository.findByStation(station.id(), 200, 0).stream()
+                .filter(entry -> entry.outcome() == MailImportOutcome.IMPORTED)
+                .map(entry -> entry.attachmentName())
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Another client removing a message while the cycle is reading, which is ordinary on a shared mailbox.
+     * That one message is skipped and the rest are imported. Failing the cycle for it would fail every
+     * cycle after it too, until the mailbox was suspended over a message that is not even there anymore.
+     *
+     * <p>The last message is the one removed, for the reason {@link MailboxReaderTest} gives: the test
+     * server renumbers the others at once, where a real one waits until it has told the session.
+     */
+    @Test
+    void aMessageAnotherClientRemovesMidCycleIsSkippedAndTheRestAreImported() throws Exception {
+        ruleReadingTheSubject(mailbox.id());
+        deliver("post@musterstadt.de", "Erste", "vor-dem-loeschen.pdf", pdf("first"), false);
+        deliver("post@musterstadt.de", "Zweite", "auch-vorher.pdf", pdf("second"), false);
+        deliver("post@musterstadt.de", "Dritte", "geloescht.pdf", pdf("removed"), false);
+
+        var cycle = interruptedWhileFiling(() -> AnotherClient.expunge(greenMail, USER, PASSWORD, 3))
+                .run(mailbox, Instant.now());
+
+        assertEquals(3, cycle.looked());
+        assertEquals(2, cycle.imported());
+        assertTrue(importedNames().containsAll(Set.of("vor-dem-loeschen.pdf", "auch-vorher.pdf")));
+        assertFalse(importedNames().contains("geloescht.pdf"));
+        var after = mailboxRepository.findById(mailbox.id()).orElseThrow();
+        assertEquals(0, after.failureCount(), "the cycle is recorded as a success");
+        assertNull(after.lastError());
+    }
+
+    /** A connection that drops mid-cycle is not one message: everything after it would fail the same way. */
+    @Test
+    void aConnectionLostMidCycleIsStillRecordedAsAFailure() throws Exception {
+        var dropping = new GreenMail(new ServerSetup(0, "127.0.0.1", ServerSetup.PROTOCOL_IMAP));
+        dropping.start();
+        try {
+            dropping.setUser(USER, USER, PASSWORD);
+            var unsteady = mailboxRepository.create(
+                    station.id(),
+                    "Wackelig",
+                    "127.0.0.1",
+                    dropping.getImap().getPort(),
+                    MailSecurity.NONE,
+                    USER,
+                    cipher.encrypt(PASSWORD.getBytes(StandardCharsets.UTF_8)),
+                    "INBOX",
+                    false,
+                    15,
+                    Instant.now().minusSeconds(3600));
+            ruleReadingTheSubject(unsteady.id());
+            storeOn(dropping, mail("post@musterstadt.de", "Erste", "wackelig-eins.pdf", pdf("one"), false));
+            storeOn(dropping, mail("post@musterstadt.de", "Zweite", "wackelig-zwei.pdf", pdf("two"), false));
+
+            interruptedWhileFiling(dropping::stop).run(unsteady, Instant.now());
+
+            var after = mailboxRepository.findById(unsteady.id()).orElseThrow();
+            assertEquals(1, after.failureCount());
+            assertNotNull(after.lastError());
+        } finally {
+            dropping.stop();
+        }
     }
 }

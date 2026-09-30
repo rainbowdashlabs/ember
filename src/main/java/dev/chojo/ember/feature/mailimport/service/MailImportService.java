@@ -23,9 +23,11 @@ import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -39,8 +41,9 @@ import java.util.Map;
  *
  * <p>What a visit does, in order: read the envelopes that arrived since the mailbox starts from, skip the
  * messages already dealt with, find the rule that takes each one, file what its attachments turn out to
- * be, then do what the rule says with the message. Every message that was looked at leaves a log entry,
- * including the ones nothing was taken from.
+ * be, then do what the rule says with the message. Every message that was read leaves a log entry,
+ * including the ones nothing was taken from. One the mail server could not hand over leaves none: it is
+ * skipped, and looked at again on the next visit if it is still there.
  */
 @Singleton
 public class MailImportService {
@@ -97,7 +100,8 @@ public class MailImportService {
      *
      * <p>Everything that can go wrong with somebody else's mail server goes wrong here, so the failure is
      * recorded on the mailbox and counted rather than thrown at the caller. A mailbox that fails enough
-     * times in a row is taken out of the rotation.
+     * times in a row is taken out of the rotation. A single message the server cannot hand over is not
+     * such a failure: it is skipped and the rest of the mailbox is read.
      *
      * @param mailbox the mailbox to visit
      * @param now     the moment of the visit
@@ -128,7 +132,7 @@ public class MailImportService {
             int budget = settings.maxAttachmentsPerCycle();
             for (Message message : reader.since(mailbox.importFrom(), budget)) {
                 if (budget <= 0) break;
-                var outcome = handle(reader, mailbox, rules, message, ceiling);
+                var outcome = handleOrSkip(reader, mailbox, rules, message, ceiling);
                 looked++;
                 imported += outcome.imported();
                 refused += outcome.refused();
@@ -192,6 +196,32 @@ public class MailImportService {
     }
 
     private record Handled(int imported, int refused) {}
+
+    /**
+     * Deals with one message, or skips it where the server cannot hand it over.
+     *
+     * <p>A message another client expunged mid-cycle, or one the server cannot read back, fails on its
+     * own and says nothing about the rest of the mailbox. Failing the cycle for it would fail every cycle
+     * after it too, since the mailbox starts from the same moment each time, until the mailbox is
+     * suspended over a single message. So it is skipped and counted against the budget like a message
+     * that carried nothing. A lost connection still ends the cycle, since every message after it would
+     * fail the same way.
+     */
+    private Handled handleOrSkip(
+            MailboxReader reader, MailMailbox mailbox, List<MailRule> rules, Message message, long ceiling)
+            throws Exception {
+        try {
+            return handle(reader, mailbox, rules, message, ceiling);
+        } catch (MessagingException | IOException e) {
+            if (MailboxReader.lostTheConnection(e)) throw e;
+            log.warn(
+                    "Skipping message {} of mailbox {}, the mail server could not hand it over: {}",
+                    message.getMessageNumber(),
+                    mailbox.id(),
+                    shortReason(e));
+            return new Handled(0, 0);
+        }
+    }
 
     /**
      * Deals with one message.
