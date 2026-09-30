@@ -50,6 +50,7 @@ import dev.chojo.ember.feature.comment.repository.NoteRepository;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
@@ -71,6 +72,7 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepositor
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.service.EventBlockReferences;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCancellationService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
@@ -152,6 +154,7 @@ import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
+import dev.chojo.ember.feature.news.service.NewsBlockReferences;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
 import dev.chojo.ember.feature.notifications.service.Notifier;
@@ -711,6 +714,15 @@ public abstract class RepositoryTestBase {
      */
     protected static CellDescriptions noCellDescriptions() {
         return new CellDescriptions(mock(MediaLibraryService.class), (stationId, pageUid) -> Optional.empty());
+    }
+
+    /**
+     * The block store over the shared repositories, checking what news and event blocks name the
+     * way the application does.
+     */
+    protected static ContentBlockService contentBlocks() {
+        return new ContentBlockService(
+                contentContainerRepo, Set.of(new NewsBlockReferences(newsRepo), new EventBlockReferences(eventRepo)));
     }
 
     /**

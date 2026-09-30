@@ -10,6 +10,7 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
+import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
@@ -118,8 +119,8 @@ class EventRouteLookupsTest {
                     client.get(PREFIX + "/events/search?mode=sometime", editor).code());
         });
 
-        verify(crudService).searchEventPicker(STATION_ID, "x", PickerMode.PAST, 20);
-        verify(crudService).searchEventPicker(STATION_ID, null, PickerMode.FUTURE, 10);
+        verify(crudService).searchEventPicker(STATION_ID, BlockAudience.PUBLIC, "x", PickerMode.PAST, 20);
+        verify(crudService).searchEventPicker(STATION_ID, BlockAudience.PUBLIC, null, PickerMode.FUTURE, 10);
     }
 
     @Test

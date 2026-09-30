@@ -8,6 +8,7 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {useNewsRoutes} from '@/composables/useNewsRoutes'
+import {provideBlockAudience} from '@/composables/useBlockAudience'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -34,6 +35,7 @@ const route = useRoute()
 const router = useRouter()
 const newsRoutes = useNewsRoutes()
 const {canManageNews, sessionInfo} = useSession()
+provideBlockAudience('MEMBERS')
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
 const entry = ref<NewsEntry | null>(null)

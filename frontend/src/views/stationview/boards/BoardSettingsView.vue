@@ -85,7 +85,7 @@ function partnerName(partnerId: number): string {
 
 function addPartner() {
     if (addPartnerId.value == null) return
-    federationTargets.value.push({ partnerId: addPartnerId.value, shareMode: 'READ_ONLY', requiredRole: 'USER' })
+    federationTargets.value.push({ partnerId: addPartnerId.value, shareMode: 'READ_ONLY', requiredUserType: StationUserType.MEMBER })
     addPartnerId.value = null
 }
 

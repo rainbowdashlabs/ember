@@ -47,6 +47,33 @@ class CellConfigTest {
                 CellConfig.parse(CellContentType.VIDEO, node("{\"autoplay\":\"not a flag\"}")));
     }
 
+    /**
+     * A news block names its entry only by a well formed id, and a block stored before it named one
+     * is still read with the text it was written with.
+     */
+    @Test
+    void aNewsBlockNamesItsEntryOnlyByAWellFormedId() {
+        var named = assertInstanceOf(
+                CellConfig.NewsTeaserConfig.class,
+                CellConfig.parse(
+                        CellContentType.NEWS_TEASER, node("{\"newsUid\":\"3F2B8C4E-1A6D-4E7F-9B0C-5D8E2F1A7C33\"}")));
+        assertEquals("3f2b8c4e-1a6d-4e7f-9b0c-5d8e2f1a7c33", named.newsUid());
+
+        var malformed = assertInstanceOf(
+                CellConfig.NewsTeaserConfig.class,
+                CellConfig.parse(CellContentType.NEWS_TEASER, node("{\"newsUid\":\"javascript:alert(1)\"}")));
+        assertEquals(null, malformed.newsUid());
+
+        var older = assertInstanceOf(
+                CellConfig.NewsTeaserConfig.class,
+                CellConfig.parse(
+                        CellContentType.NEWS_TEASER,
+                        node("{\"title\":\"Neue Drehleiter\",\"summary\":\"Eingeweiht\",\"url\":\"#\"}")));
+        assertEquals(null, older.newsUid());
+        assertEquals("Neue Drehleiter", older.title());
+        assertEquals("Eingeweiht", older.summary());
+    }
+
     /** The event blocks keep what their editor writes, so a saved block still names its event. */
     @Test
     void theEventBlocksKeepTheEventTheyName() {

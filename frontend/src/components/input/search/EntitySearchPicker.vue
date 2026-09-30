@@ -279,6 +279,7 @@ defineExpose({highlightedItem: highlighted})
                         >{{ badgeFn(item)?.text }}</PillBadge>
                     </DropdownMenuItem>
                 </div>
+                <slot v-if="!loading && results.length > 0" name="footer"/>
             </div>
         </div>
     </div>

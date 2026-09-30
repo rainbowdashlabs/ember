@@ -448,7 +448,7 @@ public class ApiServer {
                 server.setStopTimeout(STOP_TIMEOUT.toMillis());
                 server.insertHandler(new GracefulHandler());
             });
-            config.jsonMapper(jacksonMapper());
+            config.jsonMapper(jacksonMapper(stationRepository, clusterRepository));
             configureCompression(config);
             ClientIp.installOn(config.contextResolver, network);
             config.contextResolver.scheme = ApiServer::forwardedScheme;
@@ -923,9 +923,15 @@ public class ApiServer {
      *
      * <p>{@code FAIL_ON_UNKNOWN_PROPERTIES} is Jackson's default but pinned explicitly, so an inbound
      * payload with extra fields is rejected with 400 rather than silently dropped, even if somebody
-     * copies this configuration from a lenient mapper such as the federation client's.
+     * copies this configuration from a lenient mapper such as the federation client's. Route tests
+     * build their server with the same mapper, so a request shape the API refuses is refused there too.
+     *
+     * @param stationRepository resolves the station ids written as addresses
+     * @param clusterRepository resolves the cluster ids written as addresses
+     * @return the mapper
      */
-    private JavalinJackson3 jacksonMapper() {
+    public static JavalinJackson3 jacksonMapper(
+            StationRepository stationRepository, ClusterRepository clusterRepository) {
         JsonMapper mapper = JsonMapper.builder()
                 .addModule(PublicIdModule.forApi(stationRepository, clusterRepository))
                 .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)

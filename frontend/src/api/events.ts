@@ -8,6 +8,7 @@ import {createCrudResource, type NoContent} from './crud'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import {toIsoDate} from '@/util/format'
 import type {MemberIdentity, RestrictionSelection} from './types'
+import type {BlockAudience} from './pageManage'
 
 export interface EventCategory {
     id: number
@@ -1160,12 +1161,6 @@ export async function setPartnerPlaces(eventId: number, partnerId: number, slotB
 
 export type EventPickerMode = 'FUTURE' | 'PAST' | 'ALL'
 
-/**
- * Which events a block may name. A station page is read by anybody and offers public events only;
- * a news entry is written inside the station and may name every event its author can see.
- */
-export type EventPickerScope = 'PUBLIC' | 'VISIBLE'
-
 export interface EventSearchResult {
     eventUid: string
     name: string
@@ -1173,11 +1168,15 @@ export interface EventSearchResult {
     categoryName: string | null
 }
 
+/**
+ * Searches the appointments a block may name for its readers: on a page (`PUBLIC`) those on the
+ * public calendar, in a news or wiki article (`MEMBERS`) every one every member may see.
+ */
 export async function searchEvents(
     query?: string,
     mode: EventPickerMode = 'FUTURE',
     limit = 10,
-    scope: EventPickerScope = 'PUBLIC',
+    scope: BlockAudience = 'PUBLIC',
 ): Promise<EventSearchResult[]> {
     const params: Record<string, string | number> = {mode, limit, scope}
     if (query) params.q = query
@@ -1197,8 +1196,8 @@ export interface EmbeddedEvent {
 }
 
 /**
- * An event of the reader's own station named by its public id, as far as the reader may see it.
- * Answers 404 for an event that is missing or hidden from them.
+ * An event of the reader's own station named by its public id, when every member may see it.
+ * Answers 404 for an event that is missing or kept to part of the station.
  */
 export async function getEmbeddedEvent(eventUid: string): Promise<EmbeddedEvent> {
     const res = await client.get<EmbeddedEvent>(`/events/embed/${encodeURIComponent(eventUid)}`)

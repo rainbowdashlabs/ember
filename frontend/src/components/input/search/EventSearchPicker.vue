@@ -4,13 +4,22 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 import {searchEvents, type EventPickerMode, type EventSearchResult} from '@/api/events'
 import {findEmbeddedEvent} from '@/components/content/blockeditor/embeddedEventLookup'
-import {useEventEmbedScope} from '@/composables/useEventEmbedScope'
+import {useBlockAudience} from '@/composables/useBlockAudience'
 import {formatDateTime} from '@/util/format'
+
+/**
+ * Picks an appointment for an event block by searching the station's appointments by name.
+ *
+ * <p>It offers what every reader of the content may see, because the block shows the same to all of
+ * them: on a page the appointments on the public calendar, in a news or wiki article every
+ * appointment every member may see, internal ones included. Who is picking does not widen it.
+ */
 
 const model = defineModel<string | null>()
 
@@ -35,8 +44,10 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const scope = useEventEmbedScope()
-const searchFn = (q: string) => searchEvents(q, props.mode, 10, scope)
+const audience = useBlockAudience()
+const searchFn = (q: string) => searchEvents(q, props.mode, 10, audience)
+const hint = computed(() =>
+    t(audience === 'MEMBERS' ? 'stationPages.editor.eventPickerHintMembers' : 'stationPages.editor.eventPickerHintPublic'))
 const displayFn = (item: EventSearchResult) => item.name
 const subtitleFn = (item: EventSearchResult) => {
     const parts = [
@@ -51,23 +62,26 @@ const iconFn = (): string[] => ['fas', 'calendar-days']
 const resolvedTitle = ref<string | null>(null)
 async function resolve() {
     if (!props.stationUid || !model.value) { resolvedTitle.value = null; return }
-    resolvedTitle.value = (await findEmbeddedEvent(props.stationUid, model.value))?.name ?? null
+    resolvedTitle.value = (await findEmbeddedEvent(props.stationUid, model.value, audience))?.name ?? null
 }
 onMounted(resolve)
 watch(() => [props.stationUid, model.value], resolve)
 </script>
 
 <template>
-    <EntitySearchPicker
-        v-model="model"
-        :search-fn="searchFn"
-        :display-fn="displayFn"
-        :subtitle-fn="subtitleFn"
-        :key-fn="keyFn"
-        :icon-fn="iconFn"
-        :selected-display="resolvedTitle ?? selectedDisplay"
-        :placeholder="placeholder ?? t('stationPages.editor.eventSearchPlaceholder')"
-        :disabled="disabled"
-        @pick="(it: EventSearchResult) => emit('pick', it)"
-    />
+    <div>
+        <EntitySearchPicker
+            v-model="model"
+            :search-fn="searchFn"
+            :display-fn="displayFn"
+            :subtitle-fn="subtitleFn"
+            :key-fn="keyFn"
+            :icon-fn="iconFn"
+            :selected-display="resolvedTitle ?? selectedDisplay"
+            :placeholder="placeholder ?? t('stationPages.editor.eventSearchPlaceholder')"
+            :disabled="disabled"
+            @pick="(it: EventSearchResult) => emit('pick', it)"
+        />
+        <FieldHint class="mt-1" data-testid="event-picker-hint">{{ hint }}</FieldHint>
+    </div>
 </template>

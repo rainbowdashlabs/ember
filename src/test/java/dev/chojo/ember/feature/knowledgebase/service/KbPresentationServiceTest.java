@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -37,7 +36,7 @@ class KbPresentationServiceTest extends RepositoryTestBase {
         fileStorage = mock(KbFileStorageService.class);
         var contentService = new KbContentService(
                 knowledgeBaseRepo,
-                new ContentBlockService(contentContainerRepo),
+                contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,
                 fileStorage,

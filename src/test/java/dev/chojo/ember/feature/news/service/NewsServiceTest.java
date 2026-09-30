@@ -10,7 +10,6 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
-import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -39,7 +38,7 @@ class NewsServiceTest extends RepositoryTestBase {
     static void setup() {
         service = new NewsService(
                 newsRepo,
-                new ContentBlockService(contentContainerRepo),
+                contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,
                 restrictionService,
@@ -382,7 +381,7 @@ class NewsServiceTest extends RepositoryTestBase {
         var published = new java.util.ArrayList<Object>();
         var notifyingService = new NewsService(
                 newsRepo,
-                new ContentBlockService(contentContainerRepo),
+                contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,
                 restrictionService,
@@ -424,7 +423,7 @@ class NewsServiceTest extends RepositoryTestBase {
         };
         var mentioningService = new NewsService(
                 newsRepo,
-                new ContentBlockService(contentContainerRepo),
+                contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,
                 restrictionService,

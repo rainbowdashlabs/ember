@@ -154,7 +154,7 @@ class ContentProjectionTest {
         assertTrue(project(cell(
                         CellContentType.NEWS_TEASER,
                         "",
-                        new CellConfig.NewsTeaserConfig("Neu", null, "Kurzfassung", "/news/1", null)))
+                        new CellConfig.NewsTeaserConfig("Neu", null, "Kurzfassung", "/news/1", null, null)))
                 .contains("[Neu](/news/1)"));
         assertTrue(project(cell(
                         CellContentType.EXTERNAL_LINK_CARD,

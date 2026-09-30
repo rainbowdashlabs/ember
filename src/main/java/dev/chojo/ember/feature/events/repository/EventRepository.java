@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -53,6 +54,20 @@ public class EventRepository {
             RestrictionSql.visibleFor(RestrictionType.EVENT_VIEW, "e.id", ":member_id", ":is_manager");
     private static final String EVENT_ADMITS_MEMBER_PREDICATE =
             "AND " + RestrictionSql.admits(RestrictionType.EVENT_VIEW, "e.id", ":member_id");
+    private static final String EVENT_UNRESTRICTED =
+            "AND " + RestrictionSql.unrestricted(RestrictionType.EVENT_VIEW, "e.id");
+    private static final String EVENT_ON_PUBLIC_CALENDAR = """
+            AND (e.public = TRUE OR (e.public IS NULL AND EXISTS(
+                SELECT 1 FROM event_category pc WHERE pc.id = e.category_id AND pc.public = TRUE)))""";
+
+    /**
+     * What every reader of the audience may see of the station's events, for a query that reads the
+     * event as {@code e}.
+     */
+    private static WhereBuilder openTo(BlockAudience audience) {
+        var where = WhereBuilder.create().add(EVENT_UNRESTRICTED);
+        return audience == BlockAudience.PUBLIC ? where.add(EVENT_ON_PUBLIC_CALENDAR) : where;
+    }
 
     /**
      * Retrieves all events for a station, ordered by event type and name.
@@ -109,40 +124,33 @@ public class EventRepository {
     }
 
     /**
-     * Editor's event picker. Returns a compact public shape - UUID, name, start
-     * time, category name - for the supplied station's events. {@code mode} filters by start time
-     * (FUTURE/PAST/ALL). {@code search} is a case-insensitive substring match on the event name.
-     * Only events that resolve as public are returned (per-event {@code public = TRUE} or
-     * inherited from a public category).
+     * Resolves an event of the station by its public UUID, when every reader of the given audience
+     * may see it: kept to nobody in particular, and for the public also on the public calendar (its
+     * own public flag, or its category's where it names none). Empty for anything else, never told
+     * apart. Used to draw an event block and to check one on the way in.
      */
-    public List<PickerEvent> searchForPicker(int stationId, String search, PickerMode mode, int limit) {
-        var audience = WhereBuilder.create().add("AND (e.public = TRUE OR (e.public IS NULL AND c.public = TRUE))");
-        return searchForPicker(stationId, audience, search, mode, limit);
+    public Optional<StationEvent> findOpenByUid(int stationId, BlockAudience audience, UUID publicUid) {
+        var where = openTo(audience);
+        return query("""
+                SELECT %s, %s
+                FROM station_event e
+                WHERE e.station_id = :station_id
+                  AND e.public_uid = :public_uid::uuid
+                  %s;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN, where.fragment())
+                .single(where.apply(call().bind("station_id", stationId)
+                        .bind("public_uid", publicUid, StandardValueConverter.UUID_STRING)))
+                .map(StationEvent.map())
+                .first();
     }
 
     /**
-     * The picker for an author writing inside the station, where a block may also name an event
-     * the station keeps to itself. Offers every event the member may see themselves, public or not;
-     * an event they only see through somebody they look after is not offered, since the block is
-     * theirs and not their ward's.
+     * The event picker of the content blocks. Returns a compact shape - UUID, name, start time,
+     * category name - of the station's events every reader of the audience may see, the same rule
+     * {@link #findOpenByUid} draws them by. {@code mode} filters by start time (FUTURE/PAST/ALL);
+     * {@code search} is a case-insensitive substring match on the event name.
      */
-    public List<PickerEvent> searchVisibleForPicker(
-            int stationId, int memberId, String search, PickerMode mode, int limit) {
-        var audience = WhereBuilder.create().add(EVENT_ADMITS_MEMBER_PREDICATE, "member_id", memberId);
-        return searchForPicker(stationId, audience, search, mode, limit);
-    }
-
-    /**
-     * The picker for an author who edits the station's events, and so may open every one of them
-     * whatever its audience. Offers all of them.
-     */
-    public List<PickerEvent> searchStationForPicker(int stationId, String search, PickerMode mode, int limit) {
-        return searchForPicker(stationId, WhereBuilder.create(), search, mode, limit);
-    }
-
-    private List<PickerEvent> searchForPicker(
-            int stationId, WhereBuilder audience, String search, PickerMode mode, int limit) {
-
+    public List<PickerEvent> searchForPicker(
+            int stationId, BlockAudience audience, String search, PickerMode mode, int limit) {
         String timePredicate =
                 switch (mode) {
                     case FUTURE -> "AND e.start_time > NOW()";
@@ -150,7 +158,8 @@ public class EventRepository {
                     case ALL -> "";
                 };
         String order = mode == PickerMode.PAST ? "e.start_time DESC" : "e.start_time ASC";
-        var where = audience.like("AND LOWER(e.name) LIKE :q", "q", search).add(timePredicate);
+        var where =
+                openTo(audience).like("AND LOWER(e.name) LIKE :q", "q", search).add(timePredicate);
         return query("""
                 SELECT e.public_uid, e.name, e.start_time, c.name AS category_name
                 FROM station_event e

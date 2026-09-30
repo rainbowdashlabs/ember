@@ -10,7 +10,6 @@ import dev.chojo.ember.conf.file.elements.Changelog;
 import dev.chojo.ember.conf.file.elements.Updates;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.service.NewsService;
@@ -51,7 +50,7 @@ class ChangelogAnnouncerTest extends RepositoryTestBase {
     static void setup() {
         newsService = new NewsService(
                 newsRepo,
-                new ContentBlockService(contentContainerRepo),
+                contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,
                 restrictionService,

@@ -11,6 +11,7 @@ import EmptyHint from '@/components/typography/EmptyHint.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import type {FeaturedEventConfig} from '@/api/pageManage'
 import {useEventRoutes} from '@/composables/useEventRoutes'
+import {useBlockAudience} from '@/composables/useBlockAudience'
 import {formatDateTimeLong} from '@/util/format'
 import {occurrenceLabel} from '@/util/occurrenceLabel'
 import {findEmbeddedEvent, publicEventsAddress, type FoundEvent} from '../embeddedEventLookup'
@@ -19,9 +20,11 @@ import {findEmbeddedEvent, publicEventsAddress, type FoundEvent} from '../embedd
  * One event, shown live from the event itself.
  *
  * <p>The block keeps only the event's public id, the occurrence it is about and an optional text of
- * its own, so moving the event moves the block with it. Where the reader cannot see the event, as on
- * a partner station or the public blog for an event the station keeps to itself, the block says so
- * and shows nothing else about it.
+ * its own, so moving the event moves the block with it. In a news or wiki article a member of the
+ * station sees internal events too, as long as every member may see them; on a public page only
+ * public events are shown, whoever reads it. Where the reader cannot see the event, as on a partner
+ * station or the public blog for an event the station keeps to itself, the block says so and shows
+ * nothing else about it.
  */
 const props = defineProps<{
     config: FeaturedEventConfig
@@ -33,6 +36,7 @@ const props = defineProps<{
 const {t} = useI18n()
 const router = useRouter()
 const eventRoutes = useEventRoutes()
+const audience = useBlockAudience()
 
 const found = ref<FoundEvent | null>(null)
 const looked = ref(false)
@@ -41,7 +45,7 @@ async function resolve() {
     found.value = null
     looked.value = false
     if (props.stationUid && props.config.eventUid) {
-        found.value = await findEmbeddedEvent(props.stationUid, props.config.eventUid)
+        found.value = await findEmbeddedEvent(props.stationUid, props.config.eventUid, audience)
     }
     looked.value = true
 }

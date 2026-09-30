@@ -9,6 +9,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventChanged;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
+import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -69,30 +70,21 @@ public class EventCrudService {
 
     /**
      * Event picker for the {@code FEATURED_EVENT} / {@code UPCOMING_EVENTS} /
-     * {@code PAST_EVENT_RECAP} cells. Returns a compact picker shape filtered
-     * to public events (per-event {@code public = TRUE} or category-default).
+     * {@code PAST_EVENT_RECAP} cells, offering the events every reader of the audience may see: on a
+     * page the public ones, in a news or wiki article every event kept to nobody in particular. Who
+     * is picking does not widen it, so a block never names what part of its readers cannot see.
      */
     public List<EventRepository.PickerEvent> searchEventPicker(
-            int stationId, String search, PickerMode mode, int limit) {
-        return eventRepository.searchForPicker(stationId, search, mode, limit);
+            int stationId, BlockAudience audience, String search, PickerMode mode, int limit) {
+        return eventRepository.searchForPicker(stationId, audience, search, mode, limit);
     }
 
     /**
-     * Event picker for a block written inside the station, offering every event the member may
-     * see, public or not.
+     * The event a block names, when every reader of the audience may see it. See
+     * {@link EventRepository#findOpenByUid}.
      */
-    public List<EventRepository.PickerEvent> searchVisibleEventPicker(
-            int stationId, int memberId, String search, PickerMode mode, int limit) {
-        return eventRepository.searchVisibleForPicker(stationId, memberId, search, mode, limit);
-    }
-
-    /**
-     * Event picker for a block written by somebody who edits the station's events, offering every
-     * event of the station.
-     */
-    public List<EventRepository.PickerEvent> searchStationEventPicker(
-            int stationId, String search, PickerMode mode, int limit) {
-        return eventRepository.searchStationForPicker(stationId, search, mode, limit);
+    public Optional<StationEvent> findOpenByUid(int stationId, BlockAudience audience, UUID publicUid) {
+        return eventRepository.findOpenByUid(stationId, audience, publicUid);
     }
 
     /**

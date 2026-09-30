@@ -164,6 +164,13 @@ export interface KbArticleConfig {
     fallbackTitle?: string | null
 }
 
+/**
+ * Who reads the content a block sits in, which decides what a news or event block may name and show.
+ * A page (`PUBLIC`) only what is public to everyone; a news entry or wiki article (`MEMBERS`) what
+ * every signed-in member of the station may see, internal ones included.
+ */
+export type BlockAudience = 'PUBLIC' | 'MEMBERS'
+
 export interface NewsTeaserConfig {
     /** Public UUID of the referenced news entry. All other fields come live from the entity. */
     newsUid?: string | null

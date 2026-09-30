@@ -7,7 +7,7 @@ import client from './client'
 import { createCrudResource, createScopedCrudResource, type NoContent } from './crud'
 import { uploadFile } from './upload'
 import { downloadAuthed } from '@/util/downloadAuthed'
-import type { MemberIdentity } from './types'
+import type { MemberIdentity, StationUserTypeName } from './types'
 
 // -- Types --
 
@@ -284,10 +284,11 @@ export async function setFields(
 
 // -- Federation config (owning station) --
 
+/** One partner a board is shared with, and the user type there that may see it. */
 export interface FederationTarget {
     partnerId: number
     shareMode: 'READ_ONLY' | 'FULL'
-    requiredRole: string
+    requiredUserType: StationUserTypeName
 }
 
 export interface BoardFederationConfig {
