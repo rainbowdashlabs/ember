@@ -49,7 +49,7 @@ export async function ownMember(page: Page, label: string): Promise<OwnMember> {
     const account = await invited.json() as {id: number}
 
     const memberId = await memberIdOf(page.request, headers, account.id)
-    remember(headers, memberId)
+    await remember(page, headers, memberId)
     return {
         memberId,
         accountId: account.id,

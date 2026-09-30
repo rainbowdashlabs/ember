@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {MADE_BY_A_STORY} from './fixtures/cluster'
+import {demoSignIn, sessionHeaders} from './fixtures/session'
 import {
     test,
     expect,
@@ -238,10 +239,9 @@ async function applyAsSomeStandaloneOwner(
             if (!account.permissions.includes('STATION_ADMINISTRATOR')
                 && !account.permissions.includes('STATION_MANAGER')) continue
 
-            const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
-            if (!login.ok()) continue
-            const {token} = await login.json()
-            const headers = {Authorization: `Bearer ${token}`, 'X-Station-Id': group.stationId ?? ''}
+            const session = await demoSignIn(request, account.email).catch(() => null)
+            if (!session) continue
+            const headers = sessionHeaders(session, group.stationId)
 
             const applied = await request.post('/api/v1/station/cluster/applications', {
                 headers,
@@ -270,10 +270,9 @@ async function withdrawAsTheWaitingOwner(
             if (!account.permissions.includes('STATION_ADMINISTRATOR')
                 && !account.permissions.includes('STATION_MANAGER')) continue
 
-            const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
-            if (!login.ok()) continue
-            const {token} = await login.json()
-            const headers = {Authorization: `Bearer ${token}`, 'X-Station-Id': group.stationId ?? ''}
+            const session = await demoSignIn(request, account.email).catch(() => null)
+            if (!session) continue
+            const headers = sessionHeaders(session, group.stationId)
 
             const mine = await request.get('/api/v1/station/cluster', {headers})
             if (!mine.ok()) continue

@@ -7,7 +7,9 @@ import {createHmac} from 'node:crypto'
 import {cast, type CastMember} from './cast'
 import {MADE_BY_A_STORY} from './cluster'
 import {removeMade} from './createdMembers'
-import {test as base, type APIRequestContext, type Browser, type Page} from '@playwright/test'
+import {expect, test as base, type APIRequestContext, type Browser, type Page} from '@playwright/test'
+import {listenForCspViolations, watchNewContexts} from './csp'
+import {browserContextWith, csrfOf, demoSignIn, sessionHeaders} from './session'
 
 /**
  * A logged-in page per role, each in its own browser context.
@@ -292,33 +294,28 @@ export async function proveFreshly(api: APIRequestContext): Promise<void> {
 /**
  * The headers a story needs to ask the backend something as the person whose page it holds.
  *
- * The application sends them from what it keeps in the browser; a request made straight from the
- * page carries neither, and the server answers it as if nobody had signed in. A story that reads an
- * endpoint rather than a screen - because what it is about is the endpoint refusing - asks for these
- * first.
+ * The session cookie goes along with every `page.request` on its own, since the page's context holds
+ * it. What the application adds by hand does not: the token a change has to carry, and the station
+ * it keeps in the browser. A story that reads an endpoint rather than a screen - because what it is
+ * about is the endpoint refusing - asks for these first.
  */
 export async function apiHeaders(page: Page): Promise<Record<string, string>> {
     // What the page keeps is planted as the application starts, and a page that has not been
     // anywhere yet has no storage to read at all - asking one refuses outright.
     if (page.url() === 'about:blank') await page.goto('/station/dashboard/overview')
 
-    const session = await page.evaluate(() => ({
-        token: window.localStorage.getItem('session_token'),
-        station: window.localStorage.getItem('station_id'),
-    }))
-    if (!session.token) throw new Error('The page holds no session to ask the backend with')
-
-    const headers: Record<string, string> = {Authorization: `Bearer ${session.token}`}
-    if (session.station) headers['X-Station-Id'] = session.station
-    return headers
+    const csrf = await csrfOf(page.context())
+    if (!csrf) throw new Error('The page holds no session to ask the backend with')
+    const station = await page.evaluate(() => window.localStorage.getItem('station_id'))
+    return sessionHeaders({csrf}, station ?? undefined)
 }
 
 /**
  * Opens a page already carrying the role's session.
  *
- * The state holds both the token and the chosen station, which is what the application itself
- * stores after a login: a session alone leaves the station area redirecting to the station picker,
- * so a fixture that plants only the token lands every story on the wrong page.
+ * The state holds both the session cookies and the chosen station, which is what a browser holds
+ * after a login: a session alone leaves the station area redirecting to the station picker, so a
+ * fixture that plants only the session lands every story on the wrong page.
  */
 export async function pageAs(browser: Browser, role: 'manager' | 'member' | 'admin'): Promise<Page> {
     const context = await browser.newContext({storageState: storageStatePath(role)})
@@ -352,16 +349,7 @@ export async function pageAsThrowaway(
         && !taken.includes(candidate.email))
     if (!account) throw new Error('No spare member account to log out with')
 
-    const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
-    if (!login.ok()) throw new Error(`Demo login for ${account.email} answered ${login.status()}`)
-    const {token} = await login.json()
-
-    const context = await browser.newContext()
-    await context.addInitScript(([sessionToken, stationId]) => {
-        window.localStorage.setItem('session_token', sessionToken)
-        if (stationId) window.localStorage.setItem('station_id', stationId)
-        window.localStorage.setItem('storage_consent', 'accepted')
-    }, [token, account.stationId ?? ''])
+    const context = await browserContextWith(browser, await demoSignIn(request, account.email), account.stationId)
     const page = await context.newPage()
     await answerStepUpPrompts(page)
     return page
@@ -503,16 +491,7 @@ export async function clusterPage(
     request: APIRequestContext,
     account: DemoAccount,
 ): Promise<Page> {
-    const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
-    if (!login.ok()) throw new Error(`Demo login for ${account.email} answered ${login.status()}`)
-    const {token} = await login.json()
-
-    const context = await browser.newContext()
-    await context.addInitScript(([sessionToken, stationId]) => {
-        window.localStorage.setItem('session_token', sessionToken)
-        if (stationId) window.localStorage.setItem('station_id', stationId)
-        window.localStorage.setItem('storage_consent', 'accepted')
-    }, [token, account.stationId ?? ''])
+    const context = await browserContextWith(browser, await demoSignIn(request, account.email), account.stationId)
     const page = await context.newPage()
     await answerStepUpPrompts(page)
     await enterCluster(page)
@@ -574,9 +553,8 @@ async function clusterOf(
 ): Promise<{clusterUid?: string; clusterName?: string} | null> {
     const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
     if (!login.ok()) return null
-    const {token} = await login.json()
     const cluster = await request.get('/api/v1/station/cluster', {
-        headers: {Authorization: `Bearer ${token}`, 'X-Station-Id': group.stationId ?? ''},
+        headers: {'X-Station-Id': group.stationId ?? ''},
     })
     return cluster.ok() ? cluster.json() : null
 }
@@ -658,6 +636,11 @@ interface Fixtures {
      * are exactly the ones that would not think to clear them away. See {@code createdMembers}.
      */
     tidyUp: undefined
+    /**
+     * What the content security policy refused while the story ran. Runs for every story and fails
+     * it when anything was refused, see {@code csp}.
+     */
+    cspViolations: string[]
     managerPage: Page
     memberPage: Page
     adminPage: Page
@@ -671,10 +654,26 @@ interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
-    tidyUp: [async ({request}, use) => {
+    tidyUp: [async ({}, use) => {
         await use(undefined)
-        await removeMade(request)
+        await removeMade()
     }, {auto: true}],
+
+    cspViolations: [async ({browser}, use) => {
+        const violations: string[] = []
+        const restore = watchNewContexts(browser, violations)
+        try {
+            await use(violations)
+        } finally {
+            restore()
+        }
+        expect(violations, 'the content security policy refused nothing').toEqual([])
+    }, {auto: true}],
+
+    context: async ({context, cspViolations}, use) => {
+        listenForCspViolations(context, cspViolations)
+        await use(context)
+    },
 
     managerPage: async ({browser}, use) => {
         const page = await pageAs(browser, 'manager')

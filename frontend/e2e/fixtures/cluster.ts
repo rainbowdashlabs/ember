@@ -5,6 +5,7 @@
  */
 import type {APIRequestContext, Browser, Page} from '@playwright/test'
 import {apiHeaders} from './auth'
+import {browserContextWith, demoSignIn, sessionHeaders} from './session'
 
 /**
  * A cluster of the story's own, with a station under it and somebody who runs that station.
@@ -121,10 +122,8 @@ export async function stationUnder(
     // A station the cluster has just made has not been set up, and its manager is sent into the assistant
     // before anything else. The story is not about the assistant, so it is walked the way the assistant
     // walks it: the one required step it has, and then finishing.
-    const login = await request.post('/api/v1/demo/login', {data: {email: managerEmail}})
-    if (!login.ok()) throw new Error(`Demo login for ${managerEmail} answered ${login.status()}`)
-    const token = (await login.json()).token
-    const asManager = {Authorization: `Bearer ${token}`, 'X-Station-Id': station.uid}
+    const session = await demoSignIn(request, managerEmail)
+    const asManager = sessionHeaders(session, station.uid)
 
     const located = await request.put('/api/v1/station/location', {
         headers: asManager,
@@ -137,13 +136,7 @@ export async function stationUnder(
     const setupDone = await request.post('/api/v1/station/setup/complete', {headers: asManager})
     if (!setupDone.ok()) throw new Error(`Finishing the setup answered ${setupDone.status()}`)
 
-    const context = await browser.newContext()
-    await context.addInitScript(([sessionToken, stationId]) => {
-        window.localStorage.setItem('session_token', sessionToken)
-        window.localStorage.setItem('station_id', stationId)
-        window.localStorage.setItem('storage_consent', 'accepted')
-        window.localStorage.setItem('onboarding_tour_completed', 'true')
-    }, [token, station.uid])
+    const context = await browserContextWith(browser, session, station.uid, true)
 
     return {uid: station.uid, name, page: await context.newPage()}
 }

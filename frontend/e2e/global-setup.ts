@@ -9,7 +9,8 @@ import {dirname} from 'node:path'
 import {instanceAdmin, stationPeers, storageStatePath} from './fixtures/auth'
 import {castPath} from './fixtures/cast'
 import {settleCast} from './fixtures/casting'
-import {peerBaseUrl, waitForInstance} from './fixtures/peer'
+import {instanceRequestAs, peerBaseUrl, waitForInstance} from './fixtures/peer'
+import {demoSignIn, sessionHeaders, type DemoSession} from './fixtures/session'
 
 /**
  * Logs each role in once for the whole run and stores the result on disk.
@@ -27,28 +28,25 @@ async function saveSession(
     email: string,
     stationId: string | undefined,
     role: string,
-): Promise<string> {
+): Promise<DemoSession> {
     const context = await request.newContext({baseURL})
     try {
-        const login = await context.post('/api/v1/demo/login', {data: {email}})
-        if (!login.ok()) throw new Error(`Demo login for ${email} answered ${login.status()}`)
-        const {token} = await login.json()
+        const session = await demoSignIn(context, email)
 
         const path = storageStatePath(role)
         await mkdir(dirname(path), {recursive: true})
         await writeFile(path, JSON.stringify({
-            cookies: [],
+            cookies: session.cookies,
             origins: [{
                 origin: baseURL,
                 localStorage: [
-                    {name: 'session_token', value: token},
                     {name: 'storage_consent', value: 'accepted'},
                     {name: 'onboarding_tour_completed', value: 'true'},
                     ...(stationId ? [{name: 'station_id', value: stationId}] : []),
                 ],
             }],
         }, null, 2))
-        return token as string
+        return session
     } finally {
         await context.dispose()
     }
@@ -102,7 +100,7 @@ export default async function globalSetup(config: FullConfig) {
     const {manager, member} = await stationPeers(context)
     const admin = await instanceAdmin(context)
 
-    const managerToken = await saveSession(baseURL, manager.email, manager.stationId, 'manager')
+    const managerSession = await saveSession(baseURL, manager.email, manager.stationId, 'manager')
     await saveSession(baseURL, member.email, member.stationId, 'member')
     await saveSession(baseURL, admin.email, admin.stationId, 'admin')
 
@@ -110,24 +108,11 @@ export default async function globalSetup(config: FullConfig) {
     // story has edited anybody. What is written down is ids, which nothing rewrites.
     const managers = await request.newContext({
         baseURL,
-        extraHTTPHeaders: {
-            Authorization: `Bearer ${managerToken}`,
-            ...(manager.stationId ? {'X-Station-Id': manager.stationId} : {}),
-        },
+        storageState: {cookies: managerSession.cookies, origins: []},
+        extraHTTPHeaders: sessionHeaders(managerSession, manager.stationId),
     })
     /** A context signed in as whoever is named, for the listings only that person may read. */
-    const asAccount = async (email: string, stationId?: string) => {
-        const login = await context.post('/api/v1/demo/login', {data: {email}})
-        if (!login.ok()) throw new Error(`Demo login for ${email} answered ${login.status()} while casting`)
-        const {token} = await login.json()
-        return request.newContext({
-            baseURL,
-            extraHTTPHeaders: {
-                Authorization: `Bearer ${token}`,
-                ...(stationId ? {'X-Station-Id': stationId} : {}),
-            },
-        })
-    }
+    const asAccount = (email: string, stationId?: string) => instanceRequestAs(baseURL, {email, stationId})
 
     try {
         const cast = await settleCast(context, managers, asAccount)

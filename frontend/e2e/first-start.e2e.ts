@@ -66,7 +66,8 @@ test.describe('First start', () => {
         const login = await request.post('/api/v1/auth/login', {data: {identifier: email, password}})
 
         expect(login.status()).toBe(200)
-        expect((await login.json()).token).toBeTruthy()
+        const {cookies} = await request.storageState()
+        expect(cookies.find(cookie => cookie.name === 'ember_session')?.value).toBeTruthy()
     })
 
     test('another made-up address is refused at the step', async ({page}) => {

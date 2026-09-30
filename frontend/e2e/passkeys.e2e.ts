@@ -15,6 +15,7 @@ import {
 } from './fixtures/auth'
 import type {APIRequestContext, Browser, CDPSession, Page} from '@playwright/test'
 import {cast, passkeySlot, spokenForMemberIds, type CastMember} from './fixtures/cast'
+import {demoSignIn} from './fixtures/session'
 
 /**
  * The passkey stories, over Chromium's virtual authenticator: the only way to prove any of this
@@ -192,12 +193,10 @@ test.describe('Passkeys', () => {
     test('a passkey is created, tried, and signs its owner in', async ({browser, request}) => {
         const account = await storyAccount(0)
 
-        // The context is built by hand: the throwaway fixture plants its session through an init
-        // script that runs on every load, which would put the token back the moment this story
-        // signs out to prove the passkey alone gets in.
-        const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
-        if (!login.ok()) throw new Error(`Demo login for ${account.email} answered ${login.status()}`)
-        const {token} = await login.json() as {token: string}
+        // The context is built by hand, and the session goes in only once the login screen is up:
+        // a login screen opened with a session already in the browser moves on at once, and this
+        // story wants to sign out later and prove the passkey alone gets back in.
+        const session = await demoSignIn(request, account.email)
 
         const context = await browser.newContext()
         const page = await context.newPage()
@@ -205,24 +204,24 @@ test.describe('Passkeys', () => {
         const {cdp, authenticatorId} = await addAuthenticator(page)
         await answerStepUpPrompts(page)
         await page.goto('/login')
-        await page.evaluate(([sessionToken, stationId]) => {
-            window.localStorage.setItem('session_token', sessionToken ?? '')
+        await context.addCookies(session.cookies)
+        await page.evaluate(stationId => {
             if (stationId) window.localStorage.setItem('station_id', stationId)
-        }, [token, account.stationId ?? ''])
+        }, account.stationId ?? '')
 
         await createPasskey(page)
         await expect(page.getByText('Anmeldung', {exact: true})).toBeVisible()
 
         // The credential survives into a fresh sign-in: sign out by clearing the session, then
         // come back in with nothing but the passkey.
-        await page.evaluate(() => window.localStorage.removeItem('session_token'))
+        await context.clearCookies()
         await signInWithPasskey(page)
 
         // A password sign-in afterwards asks nothing extra: the password path is untouched (D3).
         // The authenticator goes away first: it answers the login screen's passkey autofill on
         // its own, and that sign-in would win the race against the password form being filled.
         await cdp.send('WebAuthn.removeVirtualAuthenticator', {authenticatorId})
-        await page.evaluate(() => window.localStorage.removeItem('session_token'))
+        await context.clearCookies()
         await page.goto('/login')
         await page.getByPlaceholder('E-Mail oder Benutzername').fill(account.email)
         await page.getByPlaceholder('Passwort').fill(DEMO_PASSWORD)
@@ -378,7 +377,7 @@ test.describe('Passkeys', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible({timeout: 20_000})
 
         // Declined for good: the next sign-in goes straight through.
-        await page.evaluate(() => window.localStorage.removeItem('session_token'))
+        await context.clearCookies()
         await signInWithPassword()
         await expect(page.getByTestId('app-shell')).toBeVisible({timeout: 20_000})
         expect(page.url()).not.toContain('passkey-offer')

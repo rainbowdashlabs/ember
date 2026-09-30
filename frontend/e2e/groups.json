@@ -103,6 +103,7 @@
     "profile",
     "public",
     "public.ssr",
+    "session-cookie",
     "sidebar-permissions",
     "twofactor"
   ]

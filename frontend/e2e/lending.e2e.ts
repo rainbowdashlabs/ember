@@ -8,6 +8,7 @@ import type {DemoAccount} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 import type {APIRequestContext, Page} from '@playwright/test'
 import {must} from './fixtures/must'
+import {demoSignIn, sessionHeaders} from './fixtures/session'
 
 interface OfferedEntry {
     inventoryId: number
@@ -56,13 +57,9 @@ test.describe('Lending offer', () => {
             if (group.stationId === stationId) continue
             for (const candidate of group.accounts) {
                 if (!candidate.email) continue
-                const login = await request.post('/api/v1/demo/login', {data: {email: candidate.email}})
-                if (!login.ok()) continue
-                const {token} = await login.json()
-                const entries = await browse(request, {
-                    Authorization: `Bearer ${token}`,
-                    'X-Station-Id': group.stationId,
-                })
+                const session = await demoSignIn(request, candidate.email).catch(() => null)
+                if (!session) continue
+                const entries = await browse(request, sessionHeaders(session, group.stationId))
                 if (entries?.some(entry => entry.stationName === ownerName)) {
                     return {...candidate, stationId: group.stationId} as DemoAccount
                 }
@@ -134,7 +131,7 @@ test.describe('Lending offer', () => {
         const name = unique('Ausleihregal')
         const {inventoryId} = await stockedInventory(managerPage, name)
 
-        const before = await browse(request, borrowerHeaders)
+        const before = await browse(borrowerPage.request, borrowerHeaders)
         expect(before?.some(entry => entry.inventoryName === name)).toBe(false)
 
         await managerPage.goto(`/station/inventory/detail/${inventoryId}`)
@@ -149,7 +146,7 @@ test.describe('Lending offer', () => {
         await expect(managerPage.getByTestId('lending-share-state')).toHaveText('Allen Partnerwachen angeboten')
 
         await expect(async () => {
-            const offered = await browse(request, borrowerHeaders)
+            const offered = await browse(borrowerPage.request, borrowerHeaders)
             expect(offeredCount(offered, name), 'the drawer is offered whole').toBe(2)
         }).toPass()
 
@@ -165,7 +162,7 @@ test.describe('Lending offer', () => {
         await managerPage.getByTestId('lending-share-save').click()
 
         await expect(async () => {
-            const offered = await browse(request, borrowerHeaders)
+            const offered = await browse(borrowerPage.request, borrowerHeaders)
             expect(offeredCount(offered, name), 'the withheld kind is gone and the rest stays').toBe(1)
         }).toPass()
 
@@ -176,7 +173,7 @@ test.describe('Lending offer', () => {
         await expect(managerPage.getByTestId('lending-share-state')).toHaveText('Zurückgehalten')
 
         await expect(async () => {
-            const offered = await browse(request, borrowerHeaders)
+            const offered = await browse(borrowerPage.request, borrowerHeaders)
             expect(offered?.some(entry => entry.inventoryName === name)).toBe(false)
         }).toPass()
 

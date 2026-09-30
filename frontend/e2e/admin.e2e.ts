@@ -196,12 +196,13 @@ test.describe('Legal documents', () => {
         await save(adminPage)
 
         await expect(adminPage.getByText(GENERATED_SECTION)).toBeVisible()
-        await expect(adminPage.getByText('session_token')).toBeVisible()
-        expect(await sectionContents(adminPage)).not.toContain('session_token')
+        await expect(adminPage.getByText('ember_session')).toBeVisible()
+        expect(await sectionContents(adminPage)).not.toContain('ember_session')
 
         await page.goto('/privacy')
         await expect(page.getByRole('heading', {name: 'Speicherung im Browser'})).toBeVisible()
-        await expect(page.getByText('session_token')).toBeVisible()
+        await expect(page.getByText('ember_session')).toBeVisible()
+        await expect(page.getByText('keine Cookies')).toHaveCount(0)
     })
 
     /**

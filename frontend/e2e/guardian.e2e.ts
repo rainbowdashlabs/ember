@@ -181,10 +181,7 @@ test.describe('Guardian', () => {
         // seeder gave this guardian.
         const strangerId = await managerPage.evaluate(async managedIds => {
             const response = await fetch('/api/v1/station-members', {
-                headers: {
-                    Authorization: `Bearer ${window.localStorage.getItem('session_token')}`,
-                    'X-Station-Id': window.localStorage.getItem('station_id') ?? '',
-                },
+                headers: {'X-Station-Id': window.localStorage.getItem('station_id') ?? ''},
             })
             const members = await response.json()
             const stranger = (Array.isArray(members) ? members : members.content ?? [])

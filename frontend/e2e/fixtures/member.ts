@@ -44,7 +44,7 @@ export async function createMember(page: Page): Promise<string> {
     if (listed.ok()) {
         const rows = await listed.json() as {id: number; lastName?: string}[]
         const row = rows.find(member => (member.lastName ?? '') === surname)
-        if (row) remember(headers, row.id)
+        if (row) await remember(page, headers, row.id)
     }
     return surname
 }

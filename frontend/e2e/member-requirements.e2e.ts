@@ -3,22 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect} from './fixtures/auth'
+import {test, expect, apiHeaders} from './fixtures/auth'
 import type {Page} from '@playwright/test'
 import {unique} from './fixtures/unique'
-
-/**
- * What a request needs to act as the manager the story is signed in as.
- *
- * The session lives in local storage, not in a cookie, so a bare request from the page's context
- * carries no authorisation at all and every call comes back refused.
- */
-async function managerHeaders(page: Page): Promise<Record<string, string>> {
-    return page.evaluate(() => ({
-        Authorization: `Bearer ${window.localStorage.getItem('session_token') ?? ''}`,
-        'X-Station-Id': window.localStorage.getItem('station_id') ?? '',
-    }))
-}
 
 /** A member the station keeps gear for, with the type a requirement can be written against. */
 async function someoneHoldingGear(page: Page, headers: Record<string, string>) {
@@ -68,7 +55,7 @@ test.describe('Member equipment requirements', () => {
         await page.goto('/station/members/list')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        const headers = await managerHeaders(page)
+        const headers = await apiHeaders(page)
         const member = await someoneHoldingGear(page, headers)
         const {inventoryId, requirementId} = await shortageOfItsOwn(page, headers, member.userType)
 
