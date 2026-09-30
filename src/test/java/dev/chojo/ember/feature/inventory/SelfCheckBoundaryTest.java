@@ -5,16 +5,23 @@
  */
 package dev.chojo.ember.feature.inventory;
 
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption;
+import dev.chojo.ember.api.RegisteredRoutes;
+import dev.chojo.ember.api.RegisteredRoutes.Route;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
+import dev.chojo.ember.feature.inventory.route.SelfCheckRoutes;
+import dev.chojo.ember.feature.inventory.service.SelfCheckService;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -23,66 +30,63 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>A screen that simply does not offer the button is no control at all: the address is still
  * there and still answers. The two halves of the control are that everything which settles a check
  * is registered behind the check permission, and that the member's own endpoints cannot reach any
- * of it even if somebody wires them up to.
+ * of it even if somebody wires them up to. The first half is read from the router the application
+ * builds, the second from the compiled classes.
  */
 class SelfCheckBoundaryTest {
-
-    private static final Path ROUTES = Path.of("src", "main", "java", "dev", "chojo", "ember", "feature", "inventory");
-
-    private static final Pattern REGISTRATION =
-            Pattern.compile("routes\\.(get|post|put|patch|delete)\\(\\s*prefix\\s*\\+\\s*\"([^\"]*)\"([^;]*);");
 
     /**
      * The services that settle something: they hand a piece over, write one down, put a record
      * right or close a check. None of them belongs on an endpoint a member reaches.
      */
-    private static final List<String> SETTLING_SERVICES =
-            List.of("InventoryService", "ItemCustodyService", "ProcurementService", "ItemMovementService");
+    private static final Set<String> SETTLING_SERVICES =
+            Set.of("InventoryService", "ItemCustodyService", "ProcurementService", "ItemMovementService");
 
-    /**
-     * The methods that settle something, named as the walk's own routes call them.
-     */
-    private static final List<String> SETTLING_CALLS = List.of(
-            ".assignItem(",
-            ".createItem(",
-            ".createAndHandOut(",
-            ".completeCheck(",
-            ".completeContainerCheck(",
-            ".correct(",
-            ".markLost(",
-            ".markFound(",
-            ".take(",
-            ".refuse(",
-            ".finish(");
+    /** The methods that settle something, named as the walk's own routes call them. */
+    private static final Set<String> SETTLING_CALLS = Set.of(
+            "assignItem",
+            "createItem",
+            "createAndHandOut",
+            "completeCheck",
+            "completeContainerCheck",
+            "correct",
+            "markLost",
+            "markFound",
+            "take",
+            "refuse",
+            "finish");
 
-    private static String source(String routeClass) throws IOException {
-        return Files.readString(ROUTES.resolve("route").resolve(routeClass + ".java"));
+    private static JavaClasses inventory;
+
+    @BeforeAll
+    static void importTheFeature() {
+        inventory = new ClassFileImporter()
+                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+                .importPackages("dev.chojo.ember.feature.inventory");
+    }
+
+    private static List<Route> routesOf(Class<?> owner) {
+        List<Route> routes = RegisteredRoutes.application().routes().stream()
+                .filter(route -> route.owner() == owner)
+                .toList();
+        assertFalse(routes.isEmpty(), owner.getSimpleName() + " registers routes");
+        return routes;
     }
 
     @Test
-    void everyEndpointOfTheWalkAsksForTheCheckPermission() throws IOException {
-        List<String> open = new ArrayList<>();
-        Matcher registration = REGISTRATION.matcher(source("InventoryCheckRoutes"));
-        while (registration.find()) {
-            if (!registration.group(3).contains("StationPermission.INVENTORY_CHECK")) {
-                open.add(registration.group(1) + " " + registration.group(2));
-            }
-        }
+    void everyEndpointOfTheWalkAsksForTheCheckPermission() {
+        List<Route> open = routesOf(InventoryCheckRoutes.class).stream()
+                .filter(route -> !route.roles().contains(StationPermission.INVENTORY_CHECK))
+                .toList();
         assertTrue(open.isEmpty(), () -> "endpoint(s) of the walk that do not ask for the check permission: " + open);
     }
 
     @Test
-    void aMembersOwnEndpointsAskForNothingButBeingAMember() throws IOException {
-        List<String> wrong = new ArrayList<>();
-        Matcher registration = REGISTRATION.matcher(source("SelfCheckRoutes"));
-        while (registration.find()) {
-            String declared = registration.group(3);
-            boolean handOut = declared.contains("StationPermission.INVENTORY_CHECK");
-            boolean member = declared.contains("StationPermission.USER");
-            if (handOut == member) {
-                wrong.add(registration.group(1) + " " + registration.group(2));
-            }
-        }
+    void aMembersOwnEndpointsAskForNothingButBeingAMember() {
+        List<Route> wrong = routesOf(SelfCheckRoutes.class).stream()
+                .filter(route -> route.roles().contains(StationPermission.INVENTORY_CHECK)
+                        == route.roles().contains(StationPermission.USER))
+                .toList();
         assertTrue(
                 wrong.isEmpty(),
                 () -> "self-check endpoint(s) declaring neither the check permission nor plain"
@@ -90,17 +94,30 @@ class SelfCheckBoundaryTest {
     }
 
     @Test
-    void theMembersEndpointsCannotReachAnythingThatSettles() throws IOException {
-        String routes = source("SelfCheckRoutes");
-        List<String> reachable =
-                SETTLING_SERVICES.stream().filter(routes::contains).toList();
+    void theMembersEndpointsCannotReachAnythingThatSettles() {
+        List<String> reachable = classAndNested(SelfCheckRoutes.class).stream()
+                .flatMap(type -> type.getDirectDependenciesFromSelf().stream())
+                .map(dependency -> dependency.getTargetClass().getSimpleName())
+                .filter(SETTLING_SERVICES::contains)
+                .distinct()
+                .toList();
         assertTrue(reachable.isEmpty(), () -> "SelfCheckRoutes can reach service(s) that settle a check: " + reachable);
     }
 
     @Test
-    void theMembersServiceSettlesNothingEither() throws IOException {
-        String service = Files.readString(ROUTES.resolve("service").resolve("SelfCheckService.java"));
-        List<String> calls = SETTLING_CALLS.stream().filter(service::contains).toList();
+    void theMembersServiceSettlesNothingEither() {
+        List<String> calls = classAndNested(SelfCheckService.class).stream()
+                .flatMap(type -> type.getMethodCallsFromSelf().stream())
+                .filter(call -> SETTLING_CALLS.contains(call.getName()))
+                .map(call -> call.getDescription())
+                .toList();
         assertTrue(calls.isEmpty(), () -> "SelfCheckService calls something that settles a check: " + calls);
+    }
+
+    private static List<JavaClass> classAndNested(Class<?> owner) {
+        return inventory.stream()
+                .filter(type ->
+                        type.getName().equals(owner.getName()) || type.getName().startsWith(owner.getName() + "$"))
+                .toList();
     }
 }

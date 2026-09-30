@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.media.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.SafeContentDisposition;
@@ -63,6 +64,7 @@ public class PublicMediaRoutes implements Routes {
     }
 
     /** A file the instance holds, which belongs to no station and is served to every one of them. */
+    @StationFree("a file of the instance's own library belongs to no station and is served to every one of them")
     private void serveInstanceFile(Context ctx) {
         serve(ctx, null);
     }

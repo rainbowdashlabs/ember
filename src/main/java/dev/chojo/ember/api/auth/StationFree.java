@@ -24,7 +24,7 @@ import java.lang.annotation.Target;
  * whether the exception still holds, so write what makes the endpoint station-free rather than that
  * it is.
  */
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface StationFree {
 
