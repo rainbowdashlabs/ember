@@ -23,14 +23,14 @@ import java.time.Duration;
 /**
  * Fetches Cloudflare's published edge IP ranges from {@code cloudflare.com} and
  * hot-swaps them into {@link ClientIp}. Runs once on startup so the in-memory
- * list reflects the latest upstream data without requiring a rebuild; the build
- * still bakes a snapshot into the classpath so the first request after boot is
+ * list reflects the latest upstream data without requiring a rebuild; a committed
+ * snapshot on the classpath answers until then, so the first request after boot is
  * never gated on the live fetch finishing.
  *
  * <p>Skipped when {@link Network#cloudflare()} is {@code false} - a non-CF
  * deployment never reads {@code CF-Connecting-IP} anyway, so the list is unused.
  *
- * <p>Failures are logged at {@code warn} and leave the build-time snapshot in
+ * <p>Failures are logged at {@code warn} and leave the committed snapshot in
  * place. Never throws to the caller.
  */
 @Singleton

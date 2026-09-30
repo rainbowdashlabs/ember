@@ -177,6 +177,9 @@ Backend
   be-data-tracking-check
                         The data tracking suite CI runs, including the check that the committed file
                         is exactly what be-data-tracking would write
+  be-cloudflare-ranges  Rewrite the committed snapshot of Cloudflare's edge ranges from cloudflare.com.
+                        A running instance fetches the current list on start; the snapshot only
+                        answers until that fetch lands
 
 Docker
   docker-frontend       Build the frontend image, as CI's docker job does. It runs the production
@@ -460,6 +463,14 @@ case "$cmd" in
     be-federation-version) cd "$ROOT"; run ./gradlew generateFederationVersion "$@" ;;
     be-data-tracking)      cd "$ROOT"; run ./gradlew refreshDataTracking spotlessJsonApply "$@" ;;
     be-data-tracking-check) cd "$ROOT"; run ./gradlew testTracking "$@" ;;
+    be-cloudflare-ranges)
+        cd "$ROOT"
+        ranges=$(run sh -c 'set -e
+            v4=$(curl -fsS https://www.cloudflare.com/ips-v4)
+            v6=$(curl -fsS https://www.cloudflare.com/ips-v6)
+            printf "%s\n%s\n" "$v4" "$v6"')
+        printf '%s\n' "$ranges" > src/main/resources/cloudflare-ranges.txt
+        ;;
 
     docker-frontend) cd "$ROOT"; run docker build . -f docker/frontend.Dockerfile "$@" ;;
     docker-backend)  cd "$ROOT"; run docker build . -f docker/backend.Dockerfile "$@" ;;

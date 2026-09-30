@@ -66,8 +66,8 @@ import java.util.Optional;
  * </ol>
  *
  * <p>The Cloudflare edge ranges are loaded once at class load from
- * {@code resources/cloudflare-ranges.txt} (generated at build time by the
- * {@code fetchCloudflareRanges} Gradle task) and may be refreshed at runtime
+ * {@code resources/cloudflare-ranges.txt} (a committed snapshot, rewritten by
+ * {@code ./toolchain.sh be-cloudflare-ranges}) and may be refreshed at runtime
  * via {@link #updateCloudflareRanges(String)} - never via a live HTTP call at
  * request time.
  */

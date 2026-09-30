@@ -1,7 +1,5 @@
 import org.jetbrains.gradle.ext.runConfigurations
 import org.jetbrains.gradle.ext.settings
-import java.net.URI
-import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -317,50 +315,6 @@ tasks {
         maxParallelForks = testForks()
     }
 
-    register("fetchCloudflareRanges") {
-        group = "build"
-        description = "Fetches Cloudflare's published edge IP ranges into generated resources."
-        val outputFile = layout.buildDirectory.file("generated/resources/cloudflare-ranges.txt").get().asFile
-        outputs.file(outputFile)
-        outputs.upToDateWhen {
-            outputFile.exists() &&
-                (Instant.now().toEpochMilli() - outputFile.lastModified()) <
-                    TimeUnit.DAYS.toMillis(7)
-        }
-        doLast {
-            outputFile.parentFile.mkdirs()
-            try {
-                val sb = StringBuilder()
-                sb.append("# Auto-generated at build time from cloudflare.com\n")
-                sb.append("# Generated: ").append(Instant.now().toString()).append('\n')
-                sb.append("# Sources:\n")
-                sb.append("#   https://www.cloudflare.com/ips-v4\n")
-                sb.append("#   https://www.cloudflare.com/ips-v6\n\n")
-                sb.append("# IPv4\n")
-                sb.append(URI.create("https://www.cloudflare.com/ips-v4").toURL().readText())
-                sb.append("\n# IPv6\n")
-                sb.append(URI.create("https://www.cloudflare.com/ips-v6").toURL().readText())
-                sb.append('\n')
-                outputFile.writeText(sb.toString())
-                logger.lifecycle("Fetched Cloudflare edge IP ranges into ${outputFile.relativeTo(rootDir)}")
-            } catch (e: Exception) {
-                if (outputFile.exists()) {
-                    logger.warn("Cloudflare ranges fetch failed ({}); keeping cached file at {}", e.message, outputFile.relativeTo(rootDir))
-                } else {
-                    throw GradleException("Could not fetch Cloudflare ranges and no cached file exists: ${e.message}")
-                }
-            }
-        }
-    }
-
-    processResources {
-        dependsOn("fetchCloudflareRanges")
-    }
-
-    afterEvaluate {
-        tasks.findByName("sourcesJar")?.dependsOn("fetchCloudflareRanges")
-    }
-
     register<JavaExec>("generateFederationVersion") {
         group = "build"
         description = "Generates the per-surface federation contract hashes from the API contract"
@@ -578,14 +532,6 @@ java {
     }
     withSourcesJar()
     withJavadocJar()
-}
-
-sourceSets {
-    main {
-        resources {
-            srcDir(layout.buildDirectory.dir("generated/resources"))
-        }
-    }
 }
 
 idea {
