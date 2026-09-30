@@ -12,7 +12,7 @@ import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
-import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.entity.VisibleRequirement;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -454,9 +454,8 @@ class InventoryServiceTest extends RepositoryTestBase {
         service.createRequirement(theirs.id(), StationUserType.MEMBER, 0, null, 2);
 
         var visible = service.findRequirementsVisibleAt(station.id());
-        var fromCluster = visible.stream()
-                .filter(InventoryRepository.VisibleRequirement::fromCluster)
-                .toList();
+        var fromCluster =
+                visible.stream().filter(VisibleRequirement::fromCluster).toList();
         assertEquals(1, fromCluster.size(), "the cluster's one requirement, named as the cluster's");
         assertEquals("Verbandsvorgabe", fromCluster.getFirst().inventoryName());
         assertEquals(2, fromCluster.getFirst().requirement().quantity());

@@ -10,7 +10,6 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
-import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
 import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
@@ -35,7 +34,6 @@ public class KnowledgeBaseCommentRoutes implements Routes {
     private final KbCommentService commentService;
     private final KbAuthorNameService authorNameService;
     private final KnowledgeBaseFederationService federationService;
-    private final KbCommentRepository commentRepository;
     private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
@@ -44,13 +42,11 @@ public class KnowledgeBaseCommentRoutes implements Routes {
             KbCommentService commentService,
             KbAuthorNameService authorNameService,
             KnowledgeBaseFederationService federationService,
-            KbCommentRepository commentRepository,
             MemberIdentityFactory memberIdentityFactory) {
         this.service = service;
         this.commentService = commentService;
         this.authorNameService = authorNameService;
         this.federationService = federationService;
-        this.commentRepository = commentRepository;
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
@@ -102,7 +98,7 @@ public class KnowledgeBaseCommentRoutes implements Routes {
                 authorNameService.resolveMemberName(session.member().id()),
                 requireContent(req.content()));
         var updated =
-                commentRepository.findById(commentId).orElseThrow(Refusal.KB_COMMENT_NOT_HERE_AFTER_CHANGE::raise);
+                commentService.findComment(commentId).orElseThrow(Refusal.KB_COMMENT_NOT_HERE_AFTER_CHANGE::raise);
         ctx.json(federationService.toCommentResponse(updated));
     }
 
@@ -127,7 +123,7 @@ public class KnowledgeBaseCommentRoutes implements Routes {
      * comment. Answers 404 when the comment is absent or the file belongs to another station.
      */
     private KbComment requireOwnedComment(Context ctx, int commentId) {
-        var comment = commentRepository.findById(commentId).orElseThrow(Refusal.KB_COMMENT_NOT_HERE::raise);
+        var comment = commentService.findComment(commentId).orElseThrow(Refusal.KB_COMMENT_NOT_HERE::raise);
         requireOwnedFile(ctx, service, comment.fileId());
         return comment;
     }

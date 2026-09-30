@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.RandomTokens;
 import io.javalin.http.BadRequestResponse;
@@ -277,6 +278,88 @@ public class FederationService {
 
     public Optional<FederationPartner> findPartner(int id) {
         return repository.findPartnerById(id);
+    }
+
+    /**
+     * The partner row a station holds for another station, whatever state the partnership is in.
+     *
+     * @param stationId         the station holding the row
+     * @param partnerStationUid the station it partners with
+     * @return the row, or empty when the two are not partners
+     */
+    public Optional<FederationPartner> findPartnerByRemoteUid(int stationId, UUID partnerStationUid) {
+        return repository.findPartnerByStationAndRemoteUid(stationId, partnerStationUid);
+    }
+
+    /**
+     * The name a partner station is shown under, the local station's own name first, then the name
+     * recorded with the partnership, and "Unknown" when neither is known.
+     *
+     * @param partner the partnership
+     * @return the name to show
+     */
+    public String partnerName(FederationPartner partner) {
+        return FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
+    }
+
+    /**
+     * The name of the station that asked for a pairing, or "Unknown" when it is gone.
+     *
+     * @param request the pending pair request
+     * @return the requesting station's name
+     */
+    public String requesterName(FederationPartner request) {
+        return stationRepository
+                .findById(request.stationId())
+                .map(Station::name)
+                .orElse("Unknown");
+    }
+
+    /**
+     * A pending pair request, as long as it asks the given station.
+     *
+     * @param requestId the request
+     * @param stationId the station that would answer it
+     * @return the request, or empty when there is none or it asks another station
+     */
+    public Optional<FederationPartner> findRequestTo(int requestId, int stationId) {
+        UUID stationUid =
+                stationRepository.findById(stationId).map(Station::uid).orElse(null);
+        return repository.findPartnerById(requestId).filter(request -> request.partnerStationId()
+                .equals(stationUid));
+    }
+
+    /**
+     * A station invite for the given station.
+     *
+     * @param stationId the inviting station
+     * @return the invite code, or empty when the station does not exist
+     */
+    public Optional<String> generateStationInvite(int stationId) {
+        return stationRepository.findById(stationId).map(station -> generateStationInvite(station.id(), station.uid()));
+    }
+
+    /**
+     * Remembers where a partner wants to be told about changes.
+     *
+     * @param partnerId  the partnership
+     * @param webhookUrl the partner's webhook address, already checked as one this instance calls
+     */
+    public void registerWebhook(int partnerId, String webhookUrl) {
+        repository.setWebhookUrl(partnerId, webhookUrl);
+    }
+
+    /**
+     * The changes a partner polls for, noting that it has polled.
+     *
+     * @param partner the polling partnership
+     * @param since   the moment the partner last saw
+     * @return the station's content changes since then
+     */
+    public List<FederationChangeLog> syncChanges(FederationPartner partner, Instant since) {
+        var changes = repository.findChangesSince(partner.stationId(), since);
+        repository.updateLastSyncAt(partner.id());
+        return changes;
     }
 
     // -- Partner Management --

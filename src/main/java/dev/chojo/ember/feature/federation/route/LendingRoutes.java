@@ -9,20 +9,12 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.federation.entity.LendingMessage;
-import dev.chojo.ember.feature.federation.entity.LendingRequest;
-import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
-import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.service.LendingRequestViewService;
+import dev.chojo.ember.feature.federation.service.LendingRequestViewService.EnrichedItem;
+import dev.chojo.ember.feature.federation.service.LendingRequestViewService.LendingRequestResponse;
 import dev.chojo.ember.feature.federation.service.LendingService;
-import dev.chojo.ember.feature.inventory.entity.InventorySize;
-import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -30,9 +22,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -46,29 +36,12 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 public class LendingRoutes implements Routes {
 
     private final LendingService service;
-    private final LendingRepository lendingRepository;
-    private final StationRepository stationRepository;
-    private final InventoryRepository inventoryRepository;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
-    private final EventCrudService eventService;
+    private final LendingRequestViewService views;
 
     @Inject
-    public LendingRoutes(
-            LendingService service,
-            LendingRepository lendingRepository,
-            StationRepository stationRepository,
-            InventoryRepository inventoryRepository,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
-            EventCrudService eventService) {
-        this.eventService = eventService;
+    public LendingRoutes(LendingService service, LendingRequestViewService views) {
         this.service = service;
-        this.lendingRepository = lendingRepository;
-        this.stationRepository = stationRepository;
-        this.inventoryRepository = inventoryRepository;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
+        this.views = views;
     }
 
     @Override
@@ -138,19 +111,14 @@ public class LendingRoutes implements Routes {
 
     private void listRequests(Context ctx) {
         var session = UserSession.from(ctx);
-        var requests = service.findRequestsByStation(session.stationId());
-        var stream = requests.stream();
-        if (!session.hasPermission(StationPermission.INVENTORY_LENDING_MANAGER)) {
-            UUID sessionStationUid = stationRepository.resolveUid(session.stationId());
-            stream = stream.filter(r -> Objects.equals(r.requestingStationUid(), sessionStationUid));
-        }
-        ctx.json(stream.map(r -> enrichRequest(r, session.stationId())).toList());
+        ctx.json(views.requestsFor(
+                session.stationId(), session.hasPermission(StationPermission.INVENTORY_LENDING_MANAGER)));
     }
 
     private void createRequest(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CreateLendingRequest.class);
-        if (stationRepository.resolveUid(session.stationId()).equals(req.owningStationId())) {
+        if (views.isOwnStation(session.stationId(), req.owningStationId())) {
             throw Refusal.LENDING_FROM_OWN_STATION.raise();
         }
         if (req.dateFrom() == null) {
@@ -172,29 +140,25 @@ public class LendingRoutes implements Routes {
                 session.member().id(),
                 req.eventId(),
                 req.eventDate(),
-                occasionOf(session.stationId(), req.eventId()),
+                views.occasionOf(session.stationId(), req.eventId()),
                 lines);
 
-        ctx.status(HttpStatus.CREATED).json(enrichRequest(request, session.stationId()));
+        ctx.status(HttpStatus.CREATED).json(views.describe(request, session.stationId()));
     }
 
     private void getRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyAccess(request, session.stationId());
-
-        var items = service.findRequestItems(id);
-        ctx.json(new LendingRequestDetail(enrichRequest(request, session.stationId()), enrichItems(items)));
+        var request = views.requireParty(id, session.stationId());
+        ctx.json(new LendingRequestDetail(views.describe(request, session.stationId()), views.describeItems(id)));
     }
 
     private void approveRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyOwner(request, session.stationId());
+        views.requireOwner(id, session.stationId());
         service.approveRequest(id, session.stationId());
-        ctx.json(enrichRequest(
+        ctx.json(views.describe(
                 service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_APPROVAL::raise),
                 session.stationId()));
     }
@@ -202,11 +166,10 @@ public class LendingRoutes implements Routes {
     private void declineRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyOwner(request, session.stationId());
+        views.requireOwner(id, session.stationId());
         var body = ctx.bodyAsClass(DeclineBody.class);
         service.declineRequest(id, session.stationId(), body.reason());
-        ctx.json(enrichRequest(
+        ctx.json(views.describe(
                 service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_DECLINE::raise),
                 session.stationId()));
     }
@@ -214,44 +177,14 @@ public class LendingRoutes implements Routes {
     private void availableItemsForRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyOwner(request, session.stationId());
-
-        var requestItems = service.findRequestItems(id);
-        var result = new ArrayList<AvailableItemDetail>();
-        for (var ri : requestItems) {
-            if (ri.inventoryId() == null) continue;
-            var inv = inventoryRepository.findById(ri.inventoryId()).orElse(null);
-            if (inv == null) continue;
-            var assignable = service.findAssignableItems(session.stationId(), ri.inventoryId());
-            for (var item : assignable) {
-                String sizeName = null;
-                if (item.sizeId() != null) {
-                    sizeName = inventoryRepository.findSizes(ri.inventoryId()).stream()
-                            .filter(s -> s.id() == item.sizeId())
-                            .map(InventorySize::label)
-                            .findFirst()
-                            .orElse(null);
-                }
-                result.add(new AvailableItemDetail(
-                        item.id(),
-                        ri.inventoryId(),
-                        inv.name(),
-                        item.internalId(),
-                        item.name(),
-                        sizeName,
-                        ri.id(),
-                        ri.itemId() != null && ri.itemId() == item.id()));
-            }
-        }
-        ctx.json(result);
+        views.requireOwner(id, session.stationId());
+        ctx.json(views.availableItems(id, session.stationId()));
     }
 
     private void assignItems(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyOwner(request, session.stationId());
+        var request = views.requireOwner(id, session.stationId());
         if (request.status() != LendingStatus.APPROVED) {
             throw Refusal.LENDING_REQUEST_NOT_APPROVED.raise();
         }
@@ -268,10 +201,9 @@ public class LendingRoutes implements Routes {
     private void markLent(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyOwner(request, session.stationId());
+        views.requireOwner(id, session.stationId());
         service.markLent(id, session.stationId());
-        ctx.json(enrichRequest(
+        ctx.json(views.describe(
                 service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_LENDING::raise),
                 session.stationId()));
     }
@@ -279,10 +211,9 @@ public class LendingRoutes implements Routes {
     private void markReturned(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyAccess(request, session.stationId());
+        views.requireParty(id, session.stationId());
         service.markReturned(id, session.stationId());
-        ctx.json(enrichRequest(
+        ctx.json(views.describe(
                 service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_RETURN::raise),
                 session.stationId()));
     }
@@ -290,10 +221,9 @@ public class LendingRoutes implements Routes {
     private void closeRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyAccess(request, session.stationId());
+        views.requireParty(id, session.stationId());
         service.closeRequest(id, session.stationId());
-        ctx.json(enrichRequest(
+        ctx.json(views.describe(
                 service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_CLOSING::raise),
                 session.stationId()));
     }
@@ -301,45 +231,16 @@ public class LendingRoutes implements Routes {
     private void getMessages(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyAccess(request, session.stationId());
-        var messages = service.getMessages(id, session.stationId());
-        ctx.json(messages.stream()
-                .map(message -> enrichMessage(message, session.stationId()))
+        views.requireParty(id, session.stationId());
+        ctx.json(service.getMessages(id, session.stationId()).stream()
+                .map(message -> views.describe(message, session.stationId()))
                 .toList());
-    }
-
-    /**
-     * A message with who wrote it. The member is looked up only where the station that wrote it is on
-     * this instance: a member number written on another instance names somebody else here.
-     */
-    private EnrichedMessage enrichMessage(LendingMessage msg, int viewingStationId) {
-        String senderName = null;
-        boolean writtenHere =
-                stationRepository.findByUid(msg.senderStationUid()).isPresent();
-        if (!msg.isSystem() && msg.senderMemberId() != null && writtenHere) {
-            senderName = stationMemberRepository
-                    .findById(msg.senderMemberId())
-                    .map(m -> {
-                        if (m.displayName() != null && !m.displayName().isBlank()) return m.displayName();
-                        if (m.accountId() != null) {
-                            return accountRepository
-                                    .findById(m.accountId())
-                                    .map(a -> NameParts.of(a).called())
-                                    .orElse(null);
-                        }
-                        return null;
-                    })
-                    .orElse(null);
-        }
-        return new EnrichedMessage(msg, senderName, service.stationName(msg.senderStationUid(), viewingStationId));
     }
 
     private void sendMessage(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyAccess(request, session.stationId());
+        views.requireParty(id, session.stationId());
         var body = ctx.bodyAsClass(MessageBody.class);
         if (body.message() == null || body.message().isBlank()) {
             throw Refusal.LENDING_MESSAGE_NEEDS_TEXT.raise();
@@ -376,67 +277,10 @@ public class LendingRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    private void verifyAccess(LendingRequest request, int stationId) {
-        UUID stationUid = stationRepository.resolveUid(stationId);
-        if (!Objects.equals(request.requestingStationUid(), stationUid)
-                && !Objects.equals(request.owningStationUid(), stationUid)) {
-            throw Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS.raise();
-        }
-    }
-
-    private void verifyOwner(LendingRequest request, int stationId) {
-        UUID stationUid = stationRepository.resolveUid(stationId);
-        if (!Objects.equals(request.owningStationUid(), stationUid)) {
-            throw Refusal.LENDING_NOT_THE_OWNING_STATION.raise();
-        }
-    }
-
-    private LendingRequestResponse enrichRequest(LendingRequest request, int currentStationId) {
-        String requestingName = service.stationName(request.requestingStationUid(), currentStationId);
-        String owningName = service.stationName(request.owningStationUid(), currentStationId);
-        UUID currentStationUid = stationRepository.resolveUid(currentStationId);
-        boolean isOwner = Objects.equals(request.owningStationUid(), currentStationUid);
-
-        String itemSummary = service.buildItemSummary(request.id());
-
-        boolean overdue = (request.status() == LendingStatus.LENT || request.status() == LendingStatus.APPROVED)
-                && request.requestedDateTo() != null
-                && request.requestedDateTo().isBefore(LocalDate.now());
-
-        return new LendingRequestResponse(request, requestingName, owningName, isOwner, itemSummary, overdue);
-    }
-
-    /**
-     * What the owning station is told the request is for: the appointment's name, and nothing else.
-     *
-     * <p>Copied here rather than resolved later, so a rename does not rewrite what was asked for and
-     * nothing that is added to an appointment afterwards can travel with it.
-     *
-     * @param stationId the station asking
-     * @param eventId   the appointment the list was collected for, or {@code null}
-     * @return the name, or an empty string where there is no appointment or it is not this station's
-     */
-    private String occasionOf(int stationId, Integer eventId) {
-        if (eventId == null) return "";
-        return eventService
-                .findById(eventId)
-                .filter(event -> event.stationId() == stationId)
-                .map(StationEvent::name)
-                .orElse("");
-    }
-
-    private List<EnrichedItem> enrichItems(List<LendingRequestItem> items) {
-        return items.stream()
-                .map(item -> new EnrichedItem(item, service.inventoryName(item)))
-                .toList();
-    }
-
     private void lentOutByInventory(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
-        var lentItems = lendingRepository.findLentOutByInventory(
-                inventoryId, stationRepository.resolveUid(session.stationId()));
-        ctx.json(lentItems);
+        ctx.json(views.lentOut(inventoryId, session.stationId()));
     }
 
     /**
@@ -464,29 +308,7 @@ public class LendingRoutes implements Routes {
     public record CreateBlockRequest(
             Integer inventoryId, Integer itemId, LocalDate blockFrom, LocalDate blockTo, String reason) {}
 
-    public record LendingRequestResponse(
-            LendingRequest request,
-            String requestingStationName,
-            String owningStationName,
-            boolean isOwner,
-            String itemSummary,
-            boolean overdue) {}
-
-    public record EnrichedMessage(LendingMessage message, String senderName, String senderStationName) {}
-
-    public record EnrichedItem(LendingRequestItem item, String inventoryName) {}
-
     public record LendingRequestDetail(LendingRequestResponse request, List<EnrichedItem> items) {}
-
-    public record AvailableItemDetail(
-            int itemId,
-            int inventoryId,
-            String inventoryName,
-            String internalId,
-            String itemName,
-            String sizeName,
-            int requestItemId,
-            boolean preselected) {}
 
     public record AssignItemsRequest(List<ItemAssignment> items) {}
 

@@ -16,7 +16,6 @@ import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationChangeLog;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationEnrollmentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
@@ -74,7 +73,6 @@ public class RemoteFederationRoutes implements Routes {
 
     private final FederationService federationService;
     private final FederationEnrollmentService enrollmentService;
-    private final FederationRepository repository;
     private final EventFederationService eventFederationService;
     private final RemoteUrlValidator urlValidator;
     private final StationReadOnlyGuard readOnlyGuard;
@@ -83,13 +81,11 @@ public class RemoteFederationRoutes implements Routes {
     public RemoteFederationRoutes(
             FederationService federationService,
             FederationEnrollmentService enrollmentService,
-            FederationRepository repository,
             EventFederationService eventFederationService,
             RemoteUrlValidator urlValidator,
             StationReadOnlyGuard readOnlyGuard) {
         this.federationService = federationService;
         this.enrollmentService = enrollmentService;
-        this.repository = repository;
         this.eventFederationService = eventFederationService;
         this.urlValidator = urlValidator;
         this.readOnlyGuard = readOnlyGuard;
@@ -104,8 +100,6 @@ public class RemoteFederationRoutes implements Routes {
                 .handle(ANNOUNCE, this::announceHostChange)
                 .handle(VERSION_PING, this::versionPing));
     }
-
-    // -- Handshake --
 
     /**
      * Answers a station on another instance that is redeeming an invite code issued here.
@@ -142,8 +136,6 @@ public class RemoteFederationRoutes implements Routes {
         }
     }
 
-    // -- Webhook Registration --
-
     private void registerWebhook(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
         readOnlyGuard.requireWritable(partner.stationId());
@@ -155,11 +147,9 @@ public class RemoteFederationRoutes implements Routes {
             throw Refusal.WEBHOOK_ADDRESS_NOT_ALLOWED.raise();
         }
 
-        repository.setWebhookUrl(partner.id(), req.webhookUrl());
+        federationService.registerWebhook(partner.id(), req.webhookUrl());
         ctx.status(HttpStatus.OK).json(new WebhookRegisterResponse("registered", req.webhookUrl()));
     }
-
-    // -- Sync Polling --
 
     private void syncMetadata(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
@@ -177,17 +167,15 @@ public class RemoteFederationRoutes implements Routes {
             throw Refusal.SYNC_SINCE_NOT_A_MOMENT.raise();
         }
 
-        var changes = repository.findChangesSince(partner.stationId(), since);
-        repository.updateLastSyncAt(partner.id());
-        ctx.json(changes);
+        ctx.json(federationService.syncChanges(partner, since));
     }
-
-    // -- Host Change Announcement --
 
     /**
      * Called by a station that has moved to a new host. Updates the remote_host
      * on all partner records pointing to the announcing station.
      * Notifies managers of the host change.
+     *
+     * <p>The announcing station is the one the federation signature header names.
      */
     private void announceHostChange(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
@@ -200,7 +188,6 @@ public class RemoteFederationRoutes implements Routes {
             throw Refusal.ANNOUNCED_HOST_NOT_ALLOWED.raise();
         }
 
-        // The announcing station is the one identified by the federation signature header (UUID)
         UUID remoteStationUid = UUID.fromString(ctx.header("X-Federation-Station-Id"));
         federationService.updateRemoteHost(remoteStationUid, req.newHost());
 
@@ -217,14 +204,10 @@ public class RemoteFederationRoutes implements Routes {
         ctx.json(new StatusResponse("ok"));
     }
 
-    // -- Version Ping --
-
     private void versionPing(Context ctx) {
         FederationSession.requirePartner(ctx);
         ctx.json(new VersionPingResponse(FederationContractVersions.current()));
     }
-
-    // -- Request/Response Records --
 
     public record VersionPingResponse(FederationContract contract) {}
 

@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
-import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.inventory.entity.BorrowedItem;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -22,12 +22,12 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlockerKind;
+import dev.chojo.ember.feature.inventory.entity.VisibleRequirement;
 import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -1103,29 +1103,6 @@ public class InventoryRepository {
     }
 
     /**
-     * A borrowed piece as the borrowing station reads it: the row itself, whose gear it is, and when
-     * it goes back.
-     *
-     * @param item             the borrowed row
-     * @param ownerStationId   the partner station that owns it
-     * @param ownerStationName the partner's name as it stands now, which is the one thing here that
-     *                         is not part of the snapshot
-     * @param loanRequestId    the lending request it came in on
-     * @param dueOn            the day the loan was asked to run to, or {@code null} when none was named
-     */
-    public record BorrowedItem(
-            InventoryItem item, int ownerStationId, String ownerStationName, int loanRequestId, LocalDate dueOn) {
-        public static RowMapping<BorrowedItem> map() {
-            return row -> new BorrowedItem(
-                    InventoryItem.map().map(row),
-                    row.getInt("owner_station_id"),
-                    row.getString("owner_station_name"),
-                    row.getInt("loan_request_id"),
-                    row.getObject("due_on", LocalDate.class));
-        }
-    }
-
-    /**
      * Updates an existing inventory item.
      *
      * @param id         the item ID
@@ -1496,16 +1473,6 @@ public class InventoryRepository {
                         row.getBoolean("from_cluster")))
                 .all();
     }
-
-    /**
-     * One requirement as a station reads it, with the name of what it asks for and where it was written.
-     *
-     * @param requirement   the row itself
-     * @param inventoryName what the requirement points at
-     * @param fromCluster   whether the cluster above the station wrote it, in which case the station may
-     *                      read it and nothing more
-     */
-    public record VisibleRequirement(InventoryRequirement requirement, String inventoryName, boolean fromCluster) {}
 
     /**
      * Creates a new inventory requirement for a role or group.

@@ -23,7 +23,7 @@ import dev.chojo.ember.feature.board.service.FederatedBoardStructureProxy;
 import dev.chojo.ember.feature.board.service.FederatedTicketDetailProxy;
 import dev.chojo.ember.feature.board.service.FederatedTicketProxy;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -60,7 +60,7 @@ public class FederatedBoardRoutes implements Routes {
     private final FederatedTicketProxy ticketProxy;
     private final FederatedTicketDetailProxy ticketDetailProxy;
     private final FederatedBoardLocator locator;
-    private final FederationRepository federationRepository;
+    private final FederationService federationService;
 
     @Inject
     public FederatedBoardRoutes(
@@ -71,7 +71,7 @@ public class FederatedBoardRoutes implements Routes {
             FederatedTicketProxy ticketProxy,
             FederatedTicketDetailProxy ticketDetailProxy,
             FederatedBoardLocator locator,
-            FederationRepository federationRepository) {
+            FederationService federationService) {
         this.federatedBoardService = federatedBoardService;
         this.accessService = accessService;
         this.discoveryService = discoveryService;
@@ -79,7 +79,7 @@ public class FederatedBoardRoutes implements Routes {
         this.ticketProxy = ticketProxy;
         this.ticketDetailProxy = ticketDetailProxy;
         this.locator = locator;
-        this.federationRepository = federationRepository;
+        this.federationService = federationService;
     }
 
     @Override
@@ -219,8 +219,8 @@ public class FederatedBoardRoutes implements Routes {
     private int resolvePartnerId(Context ctx) {
         var session = UserSession.from(ctx);
         UUID partnerUid = pathUuid(ctx, "partnerUid");
-        return federationRepository
-                .findPartnerByStationAndRemoteUid(session.stationId(), partnerUid)
+        return federationService
+                .findPartnerByRemoteUid(session.stationId(), partnerUid)
                 .orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE_FOR_BOARD::raise)
                 .id();
     }
@@ -281,7 +281,7 @@ public class FederatedBoardRoutes implements Routes {
         var bookmarks = federatedBoardService.findBookmarks(session.member().id());
         var enriched = bookmarks.stream()
                 .map(bm -> {
-                    var partner = federationRepository.findPartnerById(bm.partnerId());
+                    var partner = federationService.findPartner(bm.partnerId());
                     UUID uid = partner.map(FederationPartner::partnerStationId).orElse(null);
                     return new EnrichedBookmark(
                             bm.id(),
@@ -309,8 +309,8 @@ public class FederatedBoardRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(LocalBookmarkRequest.class);
         UUID partnerUid = req.partnerUid();
-        int partnerId = federationRepository
-                .findPartnerByStationAndRemoteUid(session.stationId(), partnerUid)
+        int partnerId = federationService
+                .findPartnerByRemoteUid(session.stationId(), partnerUid)
                 .orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE_FOR_BOOKMARK::raise)
                 .id();
         ctx.json(federatedBoardService.createBookmark(

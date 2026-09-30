@@ -16,6 +16,7 @@ import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.insights.service.BotClassifier;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.insights.service.RefererDomainExtractor;
@@ -125,6 +126,23 @@ public final class RouteHarness {
     public RouteHarness withNetwork(Network network) {
         this.network = network;
         return this;
+    }
+
+    /**
+     * Takes every request that names a federation station as signed by the given partner, the way
+     * the access gate admits a request whose signature it verified.
+     *
+     * @param partner the partnership the requests arrive on
+     * @return what to pass to a client call to ask as that partner, with the contract this instance speaks
+     */
+    public Consumer<Request.Builder> asPartner(FederationSession partner) {
+        when(accessManager.resolveFederationSession(any())).thenReturn(Optional.of(partner));
+        return request -> request.header(
+                        FederationHeaders.HEADER_STATION_ID,
+                        partner.partnerStationUid().toString())
+                .header(
+                        FederationHeaders.HEADER_CORE,
+                        FederationContractVersions.current().core());
     }
 
     /**

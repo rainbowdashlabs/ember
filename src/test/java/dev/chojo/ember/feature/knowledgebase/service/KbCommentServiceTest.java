@@ -101,6 +101,14 @@ class KbCommentServiceTest extends RepositoryTestBase {
         reset(eventBus, commentRepository, stationMemberService, memberLookup);
     }
 
+    @Test
+    void aCommentIsFoundByItsId() {
+        when(commentRepository.findById(500)).thenReturn(Optional.of(storedComment(500, null, "Hallo")));
+
+        assertEquals("Hallo", service.findComment(500).orElseThrow().content());
+        assertTrue(service.findComment(501).isEmpty());
+    }
+
     /**
      * A comment announces itself once and then fans out one notification per mention: the
      * current {@code station/member} form, the legacy numeric form, and the bulk group form all

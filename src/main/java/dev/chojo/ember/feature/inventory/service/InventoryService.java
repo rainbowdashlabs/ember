@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
+import dev.chojo.ember.feature.inventory.entity.VisibleRequirement;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.question.QuestionCheck;
@@ -1098,7 +1099,7 @@ public class InventoryService {
      * @param stationId the station reading them
      * @return its own and the cluster's, ordered by position
      */
-    public List<InventoryRepository.VisibleRequirement> findRequirementsVisibleAt(int stationId) {
+    public List<VisibleRequirement> findRequirementsVisibleAt(int stationId) {
         return inventoryRepository.findRequirementsVisibleAt(stationId);
     }
 

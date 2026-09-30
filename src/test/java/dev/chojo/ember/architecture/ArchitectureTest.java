@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.architecture;
 
+import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaCall;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -13,6 +14,7 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import jakarta.inject.Singleton;
@@ -23,6 +25,7 @@ import java.util.stream.Stream;
 
 import static com.tngtech.archunit.core.domain.JavaAccess.Predicates.target;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.assignableTo;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static com.tngtech.archunit.core.domain.properties.HasName.Predicates.name;
 import static com.tngtech.archunit.core.domain.properties.HasOwner.Predicates.With.owner;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
@@ -92,9 +95,19 @@ public class ArchitectureTest {
             .orShould()
             .callMethod(JsonMapper.class, "builder");
 
+    /**
+     * A route reads the request, asks a service and writes the answer. Lookups, access decisions and
+     * writes live in services, where they are covered, so a route reaches no repository, not even
+     * for one of its nested read models. The tests beside the routes build their data through
+     * repositories and are not routes.
+     */
+    @ArchTest
+    static final ArchRule routesDoNotDependOnRepositories =
+            noClasses().that(areRoutes()).should().dependOnClassesThat().resideInAPackage("..repository..");
+
     @ArchTest
     static final ArchRule routesDoNotSaveConfiguration =
-            noClasses().that().resideInAPackage("..route..").should().callMethod(Conf.class, "save");
+            noClasses().that(areRoutes()).should().callMethod(Conf.class, "save");
 
     @ArchTest
     static final ArchRule repositoriesDoNotDependOnOtherRepositories = classes()
@@ -107,6 +120,14 @@ public class ArchitectureTest {
     @ArchTest
     static final ArchRule threadsAreLeftToTheScheduler =
             classes().that().resideOutsideOfPackage(LIFECYCLE_PACKAGE).should(leaveThreadsToTheScheduler());
+
+    private static DescribedPredicate<JavaClass> areRoutes() {
+        DescribedPredicate<JavaClass> tests = DescribedPredicate.describe("tests", ArchitectureTest::isTestClass);
+        return resideInAPackage("..route..")
+                .or(assignableTo(Routes.class))
+                .and(DescribedPredicate.not(tests))
+                .as("routes");
+    }
 
     private static ArchCondition<JavaClass> leaveThreadsToTheScheduler() {
         return new ArchCondition<>("leave starting threads, executors and shutdown hooks to the task scheduler") {

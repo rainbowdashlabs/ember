@@ -12,21 +12,15 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.federation.entity.InventoryShare;
 import dev.chojo.ember.feature.federation.entity.ShareGrant;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
-import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.InventoryShareOverviewService;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
-import dev.chojo.ember.feature.inventory.entity.InventoryArt;
-import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
-import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -38,23 +32,12 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 public class InventoryShareRoutes implements Routes {
 
     private final InventoryShareService service;
-    private final InventoryRepository inventoryRepository;
-    private final InventoryArtRepository artRepository;
-    private final FederationService federationService;
-    private final StationRepository stationRepository;
+    private final InventoryShareOverviewService overviewService;
 
     @Inject
-    public InventoryShareRoutes(
-            InventoryShareService service,
-            InventoryRepository inventoryRepository,
-            InventoryArtRepository artRepository,
-            FederationService federationService,
-            StationRepository stationRepository) {
+    public InventoryShareRoutes(InventoryShareService service, InventoryShareOverviewService overviewService) {
         this.service = service;
-        this.inventoryRepository = inventoryRepository;
-        this.artRepository = artRepository;
-        this.federationService = federationService;
-        this.stationRepository = stationRepository;
+        this.overviewService = overviewService;
     }
 
     @Override
@@ -96,63 +79,7 @@ public class InventoryShareRoutes implements Routes {
 
     private void listShares(Context ctx) {
         var session = UserSession.from(ctx);
-        int stationId = session.stationId();
-        var inventoryNames = new HashMap<Integer, String>();
-        for (var inventory : inventoryRepository.findByStation(stationId)) {
-            inventoryNames.put(inventory.id(), inventory.name());
-        }
-        var partnerNames = partnerNames(stationId);
-        ctx.json(service.findShares(stationId).stream()
-                .map(share -> describe(share, inventoryNames, partnerNames))
-                .toList());
-    }
-
-    private ShareDetail describe(
-            InventoryShare share, Map<Integer, String> inventoryNames, Map<Integer, String> partnerNames) {
-        String inventoryName = null;
-        String artName = null;
-        String itemName = null;
-        String itemInternalId = null;
-        switch (share.level()) {
-            case ITEM -> {
-                var item = inventoryRepository.findItemById(share.itemId()).orElse(null);
-                if (item != null) {
-                    itemName = item.name();
-                    itemInternalId = item.internalId();
-                    inventoryName = inventoryNames.get(item.inventoryId());
-                    if (item.artId() != null) {
-                        artName = artRepository
-                                .findById(item.artId())
-                                .map(InventoryArt::name)
-                                .orElse(null);
-                    }
-                }
-            }
-            case ART -> {
-                var art = artRepository.findById(share.artId()).orElse(null);
-                if (art != null) {
-                    artName = art.name();
-                    inventoryName = inventoryNames.get(art.inventoryId());
-                }
-            }
-            case INVENTORY -> inventoryName = inventoryNames.get(share.inventoryId());
-        }
-        var targets = service.findTargets(share.id()).stream()
-                .map(partnerId -> new SharePartner(partnerId, partnerNames.getOrDefault(partnerId, "?")))
-                .toList();
-        return new ShareDetail(share, inventoryName, artName, itemName, itemInternalId, targets);
-    }
-
-    private Map<Integer, String> partnerNames(int stationId) {
-        var names = new HashMap<Integer, String>();
-        for (var partner : federationService.findPartners(stationId)) {
-            String name = stationRepository
-                    .findByUid(partner.partnerStationId())
-                    .map(station -> station.name())
-                    .orElse(partner.partnerStationName());
-            names.put(partner.id(), name != null ? name : "?");
-        }
-        return names;
+        ctx.json(overviewService.overview(session.stationId()));
     }
 
     private void getInventoryShare(Context ctx) {
@@ -252,16 +179,4 @@ public class InventoryShareRoutes implements Routes {
             return new ShareSetting(false, null, null, List.of());
         }
     }
-
-    /** One row of the overview of everything this station offers. */
-    public record ShareDetail(
-            InventoryShare share,
-            String inventoryName,
-            String artName,
-            String itemName,
-            String itemInternalId,
-            List<SharePartner> partners) {}
-
-    /** A partner named by a share, with the name to show for it. */
-    public record SharePartner(int partnerId, String stationName) {}
 }

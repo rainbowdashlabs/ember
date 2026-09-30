@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.federation.repository;
 
-import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.federation.entity.InventoryBlock;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
+import dev.chojo.ember.feature.federation.entity.LentOutItem;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
@@ -418,33 +418,5 @@ public class LendingRepository {
         return count("""
                 SELECT count(*) AS cnt FROM federation_lending_request
                 WHERE owning_station_uid = :station_uid::uuid AND status = 'REQUESTED';""", call().bind("station_uid", stationUid, StandardValueConverter.UUID_STRING));
-    }
-
-    /**
-     * Finds items from lending requests that are currently lent out (APPROVED or LENT status)
-     * for a specific inventory, owned by a specific station.
-     */
-    public record LentOutItem(
-            int requestItemId,
-            int requestId,
-            Integer itemId,
-            int quantity,
-            Integer assignedItemId,
-            String status,
-            LocalDate dateFrom,
-            LocalDate dateTo,
-            String requestingStationName) {
-        public static RowMapping<LentOutItem> map() {
-            return row -> new LentOutItem(
-                    row.getInt("request_item_id"),
-                    row.getInt("request_id"),
-                    row.getObject("item_id", Integer.class),
-                    row.getInt("quantity"),
-                    row.getObject("assigned_item_id", Integer.class),
-                    row.getString("status"),
-                    row.getObject("date_from", LocalDate.class),
-                    row.getObject("date_to", LocalDate.class),
-                    row.getString("requesting_station_name"));
-        }
     }
 }

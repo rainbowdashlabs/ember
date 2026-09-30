@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.events.entity.AwaitingAnswer;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
@@ -613,15 +614,6 @@ public class EventRegistrationRepository {
                         row.getInt("member_id")))
                 .all();
     }
-
-    /** One event still waiting on one member's answer. */
-    public record AwaitingAnswer(
-            int eventId,
-            String name,
-            Instant startTime,
-            Instant registrationDeadline,
-            Integer categoryId,
-            int memberId) {}
 
     /**
      * Counts the pending registrations across a station's events.

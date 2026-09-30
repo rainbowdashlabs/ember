@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
+import dev.chojo.ember.feature.events.entity.AwaitingAnswer;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
@@ -164,7 +165,7 @@ public class EventRegistrationService {
      * @param memberIds the reader and everyone they answer for
      * @return one entry per event and member still owing an answer
      */
-    public List<EventRegistrationRepository.AwaitingAnswer> findAwaitingAnswer(List<Integer> memberIds) {
+    public List<AwaitingAnswer> findAwaitingAnswer(List<Integer> memberIds) {
         return registrationRepository.findAwaitingAnswer(memberIds);
     }
 

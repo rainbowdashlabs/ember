@@ -21,6 +21,8 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
+
 /**
  * Comments on knowledge-base files and the notifications they trigger. Writing a comment announces
  * the comment itself, tells the author of the comment being replied to, and delivers one
@@ -60,6 +62,16 @@ public class KbCommentService {
      */
     private static String preview(String content) {
         return content.length() > PREVIEW_LENGTH ? content.substring(0, PREVIEW_LENGTH) + "..." : content;
+    }
+
+    /**
+     * One comment on a knowledge-base file, whichever station holds the file.
+     *
+     * @param commentId the comment
+     * @return the comment, or empty when there is none by that id
+     */
+    public Optional<KbComment> findComment(int commentId) {
+        return commentRepository.findById(commentId);
     }
 
     /**

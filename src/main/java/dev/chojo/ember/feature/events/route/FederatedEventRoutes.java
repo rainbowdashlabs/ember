@@ -12,9 +12,9 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.Context;
@@ -45,17 +45,17 @@ public class FederatedEventRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(FederatedEventRoutes.class);
 
     private final EventFederationService eventFederationService;
-    private final FederationRepository federationRepository;
-    private final StationMemberRepository stationMemberRepository;
+    private final FederationService federationService;
+    private final StationMemberService stationMemberService;
 
     @Inject
     public FederatedEventRoutes(
             EventFederationService eventFederationService,
-            FederationRepository federationRepository,
-            StationMemberRepository stationMemberRepository) {
+            FederationService federationService,
+            StationMemberService stationMemberService) {
         this.eventFederationService = eventFederationService;
-        this.federationRepository = federationRepository;
-        this.stationMemberRepository = stationMemberRepository;
+        this.federationService = federationService;
+        this.stationMemberService = stationMemberService;
     }
 
     @Override
@@ -238,8 +238,8 @@ public class FederatedEventRoutes implements Routes {
 
     private FederationPartner resolvePartner(Context ctx, int stationId) {
         var partnerUid = pathUuid(ctx, "stationuid");
-        return federationRepository
-                .findPartnerByStationAndRemoteUid(stationId, partnerUid)
+        return federationService
+                .findPartnerByRemoteUid(stationId, partnerUid)
                 .orElseThrow(Refusal.PARTNER_NOT_HERE::raise);
     }
 
@@ -251,7 +251,7 @@ public class FederatedEventRoutes implements Routes {
         }
         var memberUids = new ArrayList<UUID>();
         memberUids.add(session.member().uid());
-        var managed = stationMemberRepository.findManaged(session.member().id());
+        var managed = stationMemberService.findManaged(session.member().id());
         for (var m : managed) {
             if (m.uid() != null) memberUids.add(m.uid());
         }

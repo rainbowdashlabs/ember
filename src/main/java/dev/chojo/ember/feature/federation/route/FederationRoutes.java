@@ -18,12 +18,9 @@ import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
-import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationEnrollmentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
-import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -31,7 +28,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.List;
-import java.util.UUID;
 
 @Singleton
 public class FederationRoutes implements Routes {
@@ -39,23 +35,19 @@ public class FederationRoutes implements Routes {
     private final FederationService service;
     private final FederationEnrollmentService enrollmentService;
     private final KnowledgeBaseFederationService kbFederationService;
-    private final StationRepository stationRepository;
 
     @Inject
     public FederationRoutes(
             FederationService service,
             FederationEnrollmentService enrollmentService,
-            KnowledgeBaseFederationService kbFederationService,
-            StationRepository stationRepository) {
+            KnowledgeBaseFederationService kbFederationService) {
         this.service = service;
         this.enrollmentService = enrollmentService;
         this.kbFederationService = kbFederationService;
-        this.stationRepository = stationRepository;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Partner management
         routes.get(
                 prefix + "/federation/partners",
                 this::listPartners,
@@ -102,7 +94,6 @@ public class FederationRoutes implements Routes {
                 StationPermission.STATION_FEDERATION,
                 StepUpCategory.FEDERATION);
 
-        // Capabilities
         routes.get(
                 prefix + "/federation/partners/{id}/capabilities",
                 this::getCapabilities,
@@ -113,7 +104,6 @@ public class FederationRoutes implements Routes {
                 StationPermission.STATION_FEDERATION,
                 StepUpCategory.FEDERATION);
 
-        // Sharing management
         routes.get(prefix + "/federation/shares/kb", this::listKbShares, StationPermission.STATION_FEDERATION);
         routes.post(
                 prefix + "/federation/shares/kb",
@@ -149,36 +139,25 @@ public class FederationRoutes implements Routes {
                 StationPermission.STATION_FEDERATION,
                 StepUpCategory.FEDERATION);
 
-        // Version/capabilities info
         routes.get(prefix + "/federation/info", this::getInfo, StationPermission.STATION_FEDERATION);
     }
-
-    // -- Partner Management --
 
     private void listPartners(Context ctx) {
         var session = UserSession.from(ctx);
         var partners = service.findPartners(session.stationId());
         ctx.json(partners.stream()
-                .map(p -> new PartnerResponse(p, resolvePartnerName(p)))
+                .map(p -> new PartnerResponse(p, service.partnerName(p)))
                 .toList());
     }
 
     /**
-     * Resolves the displayed name of a federation partner. Prefers the local station name when
-     * the partner row points at a station that lives on this instance; falls back to the cached
-     * {@code partner_station_name} (captured at partnership creation time) when the partner is
-     * remote; ultimately returns "Unknown" only when neither is known.
+     * A station invite, which carries a token proving consent, so the partnership is active as soon
+     * as the other station accepts it.
      */
-    private String resolvePartnerName(FederationPartner partner) {
-        return FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
-    }
-
     private void createInvite(Context ctx) {
         var session = UserSession.from(ctx);
-        var station =
-                stationRepository.findById(session.stationId()).orElseThrow(Refusal.FEDERATION_STATION_NOT_HERE::raise);
-        // Station invite - includes token proving consent, auto-activates on accept
-        var code = service.generateStationInvite(station.id(), station.uid());
+        var code = service.generateStationInvite(session.stationId())
+                .orElseThrow(Refusal.FEDERATION_STATION_NOT_HERE::raise);
         ctx.json(new InviteResponse(code));
     }
 
@@ -229,44 +208,24 @@ public class FederationRoutes implements Routes {
         var session = UserSession.from(ctx);
         var requests = service.findPendingRequests(session.stationId());
         ctx.json(requests.stream()
-                .map(p -> {
-                    String requesterName = stationRepository
-                            .findById(p.stationId())
-                            .map(Station::name)
-                            .orElse("Unknown");
-                    return new PairRequestResponse(
-                            p.id(), requesterName, p.createdAt().toString());
-                })
+                .map(p -> new PairRequestResponse(
+                        p.id(), service.requesterName(p), p.createdAt().toString()))
                 .toList());
     }
 
     private void acceptPairRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int requestId = ctx.pathParamAsClass("id", Integer.class).get();
-        // Verify the request targets this station
-        var partner = service.findPartner(requestId).orElseThrow(Refusal.PAIR_REQUEST_NOT_HERE_TO_ACCEPT::raise);
-        UUID sessionStationUid = stationRepository
-                .findById(session.stationId())
-                .map(Station::uid)
-                .orElse(null);
-        if (!partner.partnerStationId().equals(sessionStationUid)) {
-            throw Refusal.PAIR_REQUEST_NOT_HERE_TO_ACCEPT.raise();
-        }
-        var result = service.acceptPairRequest(requestId);
-        ctx.json(result);
+        service.findRequestTo(requestId, session.stationId())
+                .orElseThrow(Refusal.PAIR_REQUEST_NOT_HERE_TO_ACCEPT::raise);
+        ctx.json(service.acceptPairRequest(requestId));
     }
 
     private void declinePairRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int requestId = ctx.pathParamAsClass("id", Integer.class).get();
-        var partner = service.findPartner(requestId).orElseThrow(Refusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE::raise);
-        UUID sessionStationUid = stationRepository
-                .findById(session.stationId())
-                .map(Station::uid)
-                .orElse(null);
-        if (!partner.partnerStationId().equals(sessionStationUid)) {
-            throw Refusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE.raise();
-        }
+        service.findRequestTo(requestId, session.stationId())
+                .orElseThrow(Refusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE::raise);
         service.declinePairRequest(requestId);
         ctx.json(new MessageResponse("Request declined"));
     }
@@ -286,7 +245,7 @@ public class FederationRoutes implements Routes {
 
     private void getPartner(Context ctx) {
         var partner = requireOwnedPartner(ctx);
-        ctx.json(new PartnerResponse(partner, resolvePartnerName(partner)));
+        ctx.json(new PartnerResponse(partner, service.partnerName(partner)));
     }
 
     private void suspendPartner(Context ctx) {
@@ -309,8 +268,6 @@ public class FederationRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Capabilities --
-
     private void getCapabilities(Context ctx) {
         var partner = requireOwnedPartner(ctx);
         ctx.json(service.findCapabilities(partner.id()));
@@ -324,8 +281,6 @@ public class FederationRoutes implements Routes {
         }
         ctx.json(service.findCapabilities(partner.id()));
     }
-
-    // -- Sharing --
 
     private void listKbShares(Context ctx) {
         var session = UserSession.from(ctx);
@@ -408,13 +363,9 @@ public class FederationRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Info --
-
     private void getInfo(Context ctx) {
         ctx.json(new FederationInfoResponse(FederationContractVersions.current()));
     }
-
-    // -- Records --
 
     public record AcceptRequest(String inviteCode) {}
 

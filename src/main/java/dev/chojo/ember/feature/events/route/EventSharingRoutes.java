@@ -15,12 +15,8 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.FederatedRegistrantService;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -29,7 +25,6 @@ import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -43,25 +38,16 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 public class EventSharingRoutes implements Routes {
     private final EventCrudService crudService;
     private final EventFederationService eventFederationService;
-    private final FederationRepository federationRepository;
-    private final StationRepository stationRepository;
-    private final StationMemberRepository stationMemberRepository;
-    private final MemberIdentityFactory memberIdentityFactory;
+    private final FederatedRegistrantService registrants;
 
     @Inject
     public EventSharingRoutes(
             EventCrudService crudService,
             EventFederationService eventFederationService,
-            FederationRepository federationRepository,
-            StationRepository stationRepository,
-            StationMemberRepository stationMemberRepository,
-            MemberIdentityFactory memberIdentityFactory) {
+            FederatedRegistrantService registrants) {
         this.crudService = crudService;
         this.eventFederationService = eventFederationService;
-        this.federationRepository = federationRepository;
-        this.stationRepository = stationRepository;
-        this.stationMemberRepository = stationMemberRepository;
-        this.memberIdentityFactory = memberIdentityFactory;
+        this.registrants = registrants;
     }
 
     @Override
@@ -130,40 +116,8 @@ public class EventSharingRoutes implements Routes {
         LocalDate date = dateParam != null ? LocalDate.parse(dateParam) : null;
         var registrations = eventFederationService.findRegistrations(id, date);
         ctx.json(registrations.stream()
-                .map(r -> new EnrichedFederationRegistration(r, resolveMemberIdentity(r)))
+                .map(r -> new EnrichedFederationRegistration(r, registrants.identify(r)))
                 .toList());
-    }
-
-    /**
-     * Resolves the member behind a federated registration: preferably as a real local member when
-     * the partner lives on this instance, otherwise as a federated identity carrying the cached
-     * display name and the partner station's name.
-     */
-    private MemberIdentity resolveMemberIdentity(EventFederationRegistration registration) {
-        var partner =
-                federationRepository.findPartnerById(registration.partnerId()).orElse(null);
-        UUID partnerStationUid = partner != null ? partner.partnerStationId() : null;
-        if (partnerStationUid == null) return null;
-
-        var partnerStation = stationRepository.findByUid(partnerStationUid);
-        if (partnerStation.isPresent()) {
-            var localMember =
-                    stationMemberRepository.findByUid(partnerStation.get().id(), registration.remoteMemberId());
-            if (localMember.isPresent()) {
-                return memberIdentityFactory.local(
-                        localMember.get().stationId(), localMember.get().id());
-            }
-        }
-
-        String cachedName = eventFederationService
-                .getCachedName(registration.partnerId(), registration.remoteMemberId())
-                .orElse(null);
-        String stationName = stationRepository
-                .findByUid(partnerStationUid)
-                .map(Station::name)
-                .orElse(null);
-        return new MemberIdentity(partnerStationUid, registration.remoteMemberId())
-                .withDisplay(cachedName, stationName, null, null);
     }
 
     /**
