@@ -106,7 +106,7 @@ test.describe('Members', () => {
 
         await page.getByRole('button', {name: 'Als ehemalig markieren'}).first().click()
         await expect(page.getByText('Mitglied als ehemalig markieren')).toBeVisible()
-        await page.getByRole('button', {name: 'Als ehemalig markieren'}).nth(1).click()
+        await page.getByRole('dialog').getByRole('button', {name: 'Als ehemalig markieren'}).click()
 
         await page.goto('/station/members/former')
         await expect(page.getByText(surname).first()).toBeVisible()

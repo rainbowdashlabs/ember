@@ -38,7 +38,7 @@ async function createRun(page: Page, sheet: string): Promise<string> {
     await page.getByPlaceholder('Name des Laufs').fill(run)
 
     await page.getByRole('button', {name: 'Mitgliedstyp'}).click()
-    await page.getByRole('button', {name: 'Mitglied', exact: true}).click()
+    await page.getByRole('option', {name: 'Mitglied', exact: true}).click()
     await page.keyboard.press('Escape')
 
     await page.getByRole('button', {name: 'Neuer Prüfungslauf'}).last().click()
