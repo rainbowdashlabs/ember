@@ -161,8 +161,8 @@ public class StorageBackendFactory {
     }
 
     /**
-     * Closes the instance default, if one was built, and the shared protocol clients, which is the last
-     * thing storage does before the process stops. Nothing is built just to be closed.
+     * Closes the instance default, if one was built, and the shared protocol clients, which is the
+     * last thing storage does before the process stops. Nothing is built just to be closed.
      */
     public synchronized void closeInstanceDefault() {
         if (instanceDefault != null && instanceDefault != localBackend) instanceDefault.close();

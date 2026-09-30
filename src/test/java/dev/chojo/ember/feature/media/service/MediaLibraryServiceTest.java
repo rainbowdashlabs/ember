@@ -225,6 +225,25 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void theDeliveryReadsAnswerByHashAndSayNothingForMissingOnes() throws Exception {
+        var file = media.upload(station.id(), null, null, "delivered.png", "image/png", bytes("delivered"));
+        try {
+            String hash = file.contentHash();
+            assertTrue(media.readVariant(station.id(), hash, null, "image/webp").isPresent());
+            assertTrue(media.readVariant(station.id(), hash, 256, null).isPresent());
+            assertTrue(media.readVariant(station.id(), " ", 256, "image/webp").isEmpty());
+            assertTrue(media.readVariant(station.id(), null, 256, "image/webp").isEmpty());
+            assertTrue(media.readPicture(station.id(), hash, 128).isPresent());
+            assertTrue(media.readPicture(station.id(), hash, null).isPresent());
+            assertTrue(media.readPicture(station.id(), "no-such-hash", 128).isEmpty());
+            assertTrue(media.readPicture(station.id(), null, 128).isEmpty());
+            assertTrue(media.readPicture(station.id(), "", "image/png", 128).isEmpty());
+        } finally {
+            media.deleteFile(file.id());
+        }
+    }
+
+    @Test
     void imageSizeLimitIsEnforced() {
         byte[] tooLarge = new byte[6 * 1024 * 1024];
         assertThrows(

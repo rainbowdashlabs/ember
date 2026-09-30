@@ -132,7 +132,7 @@ class StorageBackendResolverTest {
         var own = (RecordingBackend) backendOf(OWN_ONE);
         var cluster = (RecordingBackend) backendOf(CLUSTER_ONE);
 
-        resolver.close();
+        resolver.closeAll();
 
         assertTrue(own.closed);
         assertTrue(cluster.closed);

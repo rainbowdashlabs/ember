@@ -16,8 +16,6 @@ import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepositor
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -48,8 +46,7 @@ import java.util.Set;
  * default and the shared protocol clients are closed.
  */
 @Singleton
-public class StorageBackendResolver implements AutoCloseable {
-    private static final Logger log = LoggerFactory.getLogger(StorageBackendResolver.class);
+public class StorageBackendResolver {
     private static final long MAX_CACHED = 256;
 
     private final StorageBackendFactory factory;
@@ -70,9 +67,6 @@ public class StorageBackendResolver implements AutoCloseable {
         this.overrideRepository = overrideRepository;
         this.stationKeys = Caffeine.newBuilder().maximumSize(MAX_CACHED).build();
         this.backends = backendCache();
-        // TODO: close from the storage stage of the application lifecycle once it exists, not from a JVM hook
-        Runtime.getRuntime()
-                .addShutdownHook(Thread.ofPlatform().name("storage-shutdown").unstarted(this::close));
     }
 
     /**
@@ -179,23 +173,13 @@ public class StorageBackendResolver implements AutoCloseable {
     }
 
     /**
-     * Closes every cached backend, the instance default and the shared protocol clients.
-     */
-    @Override
-    public void close() {
-        invalidateAll();
-        try {
-            factory.closeInstanceDefault();
-        } catch (RuntimeException e) {
-            log.warn("Could not close the instance storage backend", e);
-        }
-    }
-
-    /**
-     * Closes every backend this resolver holds open. Called once by the shutdown, after the last write.
+     * Closes every cached backend, the instance default and the shared protocol clients. Called once by
+     * the storage stage of the shutdown, after the last write; each backend waits for the calls still
+     * using it, at most the pool's drain limit.
      */
     public void closeAll() {
-        close();
+        invalidateAll();
+        factory.closeInstanceDefault();
     }
 
     /**
