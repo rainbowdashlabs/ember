@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onBeforeUnmount, onMounted, ref} from 'vue'
+import {useResizeObserver} from '@vueuse/core'
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import {DRAG_CONTROL_COLUMN} from '../dragControls'
@@ -32,7 +33,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   move: [index: number, direction: -1 | 1]
-  grab: [index: number, event: DragEvent]
 }>()
 
 const {t} = useI18n()
@@ -43,20 +43,9 @@ const STACKED_FROM = 88
 const content = ref<HTMLElement | null>(null)
 const stacked = ref(false)
 
-let observer: ResizeObserver | null = null
-
-onMounted(() => {
-  if (!content.value || typeof ResizeObserver === 'undefined') return
-  observer = new ResizeObserver(entries => {
-    const height = entries[0]?.contentRect.height ?? 0
-    stacked.value = height >= STACKED_FROM
-  })
-  observer.observe(content.value)
-})
-
-onBeforeUnmount(() => {
-  observer?.disconnect()
-  observer = null
+useResizeObserver(content, entries => {
+  const height = entries[0]?.contentRect.height ?? 0
+  stacked.value = height >= STACKED_FROM
 })
 </script>
 
@@ -83,9 +72,8 @@ onBeforeUnmount(() => {
           v-if="finePointer"
           class="cursor-grab px-1 text-(--text-muted) active:cursor-grabbing"
           aria-hidden="true"
+          data-drag-grip
           data-testid="drag-handle"
-          draggable="true"
-          @dragstart="emit('grab', props.index, $event)"
       >
         <font-awesome-icon :icon="['fas', 'grip-vertical']" class="h-4 w-4"/>
       </span>
