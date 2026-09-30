@@ -3,25 +3,26 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {readonly, ref} from 'vue'
+import {readonly} from 'vue'
 import {getSidebarCounts, type SidebarCounts} from '@/api/sidebar'
 
-const counts = ref<SidebarCounts>({
-    notifications: 0,
-    requirements: 0,
-    pendingChanges: 0,
-    pendingRegistrations: 0,
-    lendingRequests: 0,
-    federationRequests: 0,
-    openEvents: 0,
-    waitingListEntries: 0,
-    lostAndFoundPending: 0,
-    myInventoryCount: 0,
-    openMovements: 0,
-    procedureCount: 0,
-})
-
+/** The numbers beside the station sidebar's entries, held once for the sidebar and the pages under it. */
 export function useSidebarCounts() {
+    const counts = useState<SidebarCounts>('useSidebarCounts', () => ({
+        notifications: 0,
+        requirements: 0,
+        pendingChanges: 0,
+        pendingRegistrations: 0,
+        lendingRequests: 0,
+        federationRequests: 0,
+        openEvents: 0,
+        waitingListEntries: 0,
+        lostAndFoundPending: 0,
+        myInventoryCount: 0,
+        openMovements: 0,
+        procedureCount: 0,
+    }))
+
     async function refresh() {
         try {
             counts.value = await getSidebarCounts()

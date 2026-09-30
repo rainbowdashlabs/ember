@@ -24,7 +24,7 @@ import ReportProblemButton from '@/components/feedback/ReportProblemButton.vue'
 import DevToolsButton from '@/components/feedback/DevToolsButton.vue'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
-import {handoverPending} from '@/util/onboardingState'
+import {onboardingState} from '@/util/onboardingState'
 import DashboardSidebar from '@/views/dashboardview/DashboardSidebar.vue'
 import DashboardHeaderActions from '@/views/dashboardview/DashboardHeaderActions.vue'
 import {useSidebarBoards} from '@/views/dashboardview/useSidebarBoards'
@@ -38,6 +38,7 @@ const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
+const {handoverPending} = onboardingState()
 const {
   sessionInfo,
   loaded,

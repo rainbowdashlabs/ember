@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
 import {beforeEach, describe, expect, it} from 'vitest'
 import {acceptStorage, setItem} from '@/api/storage'
 import {sessionInfo} from '@/util/sessionState'

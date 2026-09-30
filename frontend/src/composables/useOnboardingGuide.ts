@@ -6,7 +6,7 @@
 import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import {flowFor, type OnboardingStep} from '@/util/onboardingFlows'
-import {activeStep, activeTaskKey, guideDismissed} from '@/util/onboardingState'
+import {onboardingState} from '@/util/onboardingState'
 
 export interface TargetBox {
     top: number
@@ -103,6 +103,7 @@ function prefersReducedMotion(): boolean {
  * step simply waits.
  */
 export function useOnboardingGuide() {
+    const {activeStep, activeTaskKey, guideDismissed} = onboardingState()
     const route = useRoute()
     const box = ref<TargetBox | null>(null)
     const reducedMotion = ref(false)

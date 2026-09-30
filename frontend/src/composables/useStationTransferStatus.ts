@@ -3,14 +3,15 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, readonly, ref} from 'vue'
+import {computed, readonly} from 'vue'
 import {transfer} from '@/api'
 import type {TransferStatus} from '@/api/transfer'
 
-const status = ref<TransferStatus | null>(null)
-const loaded = ref(false)
-
+/** Whether the station has moved to another instance, asked once and read wherever it matters. */
 export function useStationTransferStatus() {
+    const status = useState<TransferStatus | null>('useStationTransferStatus.status', () => null)
+    const loaded = useState('useStationTransferStatus.loaded', () => false)
+
     async function load() {
         try {
             status.value = await transfer.getTransferStatus()

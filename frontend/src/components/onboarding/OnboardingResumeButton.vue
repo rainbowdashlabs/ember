@@ -10,7 +10,7 @@ import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import BareButton from '@/components/button/BareButton.vue'
 import {emberGuide} from '@/composables/useEmberLogo'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
-import {activeTaskId, guideDismissed} from '@/util/onboardingState'
+import {onboardingState} from '@/util/onboardingState'
 import type {OnboardingLevelName} from '@/api/onboarding'
 
 /**
@@ -23,6 +23,7 @@ const props = defineProps<{
 
 const {t} = useI18n()
 const {openOf, startNext} = useOnboardingTasks()
+const {activeTaskId, guideDismissed} = onboardingState()
 const logo = emberGuide('faq')
 
 const visible = computed(() => openOf(props.level).length > 0 && (activeTaskId.value === null || guideDismissed.value))

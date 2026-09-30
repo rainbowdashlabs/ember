@@ -19,6 +19,7 @@ import { useConsentGuard } from '@/composables/useConsentGuard'
  * again. After a successful login the same versions are recorded against the account.
  */
 export function useLoginConsent() {
+  const {setNeedsReconsent} = useConsentGuard()
   const consent = ref<StorageConsent | null>(getConsent())
   /** Starts with everything allowed, so declining a group is a deliberate act rather than the default. */
   const scopes = ref<StorageNecessityName[]>(
@@ -128,7 +129,7 @@ export function useLoginConsent() {
         return
       }
       if (!status.current) {
-        useConsentGuard().setNeedsReconsent(true)
+        setNeedsReconsent(true)
         return
       }
       acceptStorage(current)

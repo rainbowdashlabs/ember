@@ -3,12 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {mount, flushPromises} from '@vue/test-utils'
 import OnboardingTaskCard from './OnboardingTaskCard.vue'
 import type {OnboardingStatus, OnboardingTaskView} from '@/api/onboarding'
-import {onboardingStatus} from '@/util/onboardingState'
+import {onboardingState} from '@/util/onboardingState'
 
 const getTasks = vi.fn()
 const markTask = vi.fn()
@@ -54,7 +53,7 @@ async function mountCard(tasks: OnboardingTaskView[]) {
  */
 describe('OnboardingTaskCard', () => {
     beforeEach(() => {
-        onboardingStatus.value = {}
+        onboardingState().onboardingStatus.value = {}
         getTasks.mockReset()
         markTask.mockReset()
     })

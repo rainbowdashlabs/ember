@@ -16,7 +16,7 @@ import {useOnboardingGuide} from '@/composables/useOnboardingGuide'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
 import {emberGuide} from '@/composables/useEmberLogo'
 import {OnboardingTaskState} from '@/api/onboarding'
-import {activeLevel, activeTaskId, activeTaskKey, activeStep, guideDismissed} from '@/util/onboardingState'
+import {onboardingState} from '@/util/onboardingState'
 
 /**
  * Ember standing next to whatever the reader should do next.
@@ -32,6 +32,7 @@ const router = useRouter()
 const {box, step, steps, pointing, revealing, blocked, behindMenu, gaze, targetLow, finished, reducedMotion, onStepRoute, advance, dismiss} =
     useOnboardingGuide()
 const {stop, skip, load, status, confirm} = useOnboardingTasks()
+const {activeLevel, activeTaskId, activeTaskKey, activeStep, guideDismissed} = onboardingState()
 
 /**
  * A task whose steps have just run out: what it was called, where its list is, and whether it

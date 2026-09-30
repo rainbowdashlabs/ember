@@ -3,16 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, readonly, ref} from 'vue'
+import {computed, readonly} from 'vue'
 import {useRouter} from 'vue-router'
 import {useSession} from './useSession'
 import {StationPermission} from '@/api/types'
-import {handoverPending} from '@/util/onboardingState'
+import {onboardingState} from '@/util/onboardingState'
 
 const STORAGE_KEY = 'onboarding_tour_completed'
-
-const isActive = ref(false)
-const currentStep = ref(0)
 
 export interface TourStep {
     id: string
@@ -45,6 +42,9 @@ const ALL_STEPS: TourStep[] = [
 ]
 
 export function useOnboardingTour() {
+    const isActive = useState('useOnboardingTour.active', () => false)
+    const currentStep = useState('useOnboardingTour.step', () => 0)
+    const {handoverPending} = onboardingState()
     const {hasPermission} = useSession()
     const router = useRouter()
 

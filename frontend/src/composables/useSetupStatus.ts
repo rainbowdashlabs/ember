@@ -3,15 +3,16 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, ref} from 'vue'
+import {computed, readonly} from 'vue'
 import {setup} from '@/api'
 import type {SetupStatus, SetupStep} from '@/api/setup'
 
-const status = ref<SetupStatus | null>(null)
-const loading = ref(false)
-const loaded = ref(false)
-
+/** How far the station's first setup has come, loaded once and shared by the wizard and the dashboard. */
 export function useSetupStatus() {
+    const status = useState<SetupStatus | null>('useSetupStatus.status', () => null)
+    const loading = useState('useSetupStatus.loading', () => false)
+    const loaded = useState('useSetupStatus.loaded', () => false)
+
     async function load(force = false) {
         if (loaded.value && !force) return
         loading.value = true
@@ -60,9 +61,9 @@ export function useSetupStatus() {
     )
 
     return {
-        status,
-        loading,
-        loaded,
+        status: readonly(status),
+        loading: readonly(loading),
+        loaded: readonly(loaded),
         completedAt,
         requiredSteps,
         optionalSteps,

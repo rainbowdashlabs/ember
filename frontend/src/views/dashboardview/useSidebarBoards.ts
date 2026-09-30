@@ -3,10 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {readonly, ref} from 'vue'
+import {readonly} from 'vue'
 import {listBoards, type Board} from '@/api/boards'
-
-const boards = ref<Board[]>([])
 
 /**
  * Boards shown as sub-links of the station sidebar's boards section.
@@ -15,6 +13,8 @@ const boards = ref<Board[]>([])
  * section itself only reads it.
  */
 export function useSidebarBoards() {
+    const boards = useState<Board[]>('useSidebarBoards', () => [])
+
     async function refresh() {
         try {
             boards.value = await listBoards(true)

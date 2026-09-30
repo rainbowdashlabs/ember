@@ -3,12 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {ref} from 'vue'
+import {readonly} from 'vue'
 
 export type QuickSearchScope = 'station' | 'admin' | 'cluster'
-
-const isOpen = ref(false)
-const scope = ref<QuickSearchScope>('station')
 
 /**
  * Global singleton controlling the Ctrl+K command palette.
@@ -18,6 +15,9 @@ const scope = ref<QuickSearchScope>('station')
  * {@code admin} (shown inside the admin layout, page-routes only).
  */
 export function useQuickSearch() {
+    const isOpen = useState('useQuickSearch.open', () => false)
+    const scope = useState<QuickSearchScope>('useQuickSearch.scope', () => 'station')
+
     function open(nextScope: QuickSearchScope) {
         scope.value = nextScope
         isOpen.value = true
@@ -35,5 +35,5 @@ export function useQuickSearch() {
         }
     }
 
-    return {isOpen, scope, open, close, toggle}
+    return {isOpen: readonly(isOpen), scope: readonly(scope), open, close, toggle}
 }
