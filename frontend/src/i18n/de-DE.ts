@@ -6247,6 +6247,7 @@ export default {
                 unconfirmedLapseDaysBefore: 'Anmeldungen, die {days} Tage vorher noch nicht bestätigt sind, werden abgelehnt.',
                 minimumRegistrations: 'Der Termin findet ab {count} Anmeldungen statt.',
                 minimumRegistrationsBy: 'Der Termin findet statt, wenn bis {date} mindestens {count} Anmeldungen da sind.',
+                minimumRegistrationsDaysBefore: 'Der Termin findet statt, wenn {days} Tage vorher mindestens {count} Anmeldungen da sind.',
             },
             restricted: 'Der Termin ist auf eine Auswahl beschränkt, deshalb startet die Neuigkeit mit derselben Auswahl. Solange sie steht, erreicht die Neuigkeit weder Partnerwachen noch die öffentliche Seite.',
             widening: 'Diese Neuigkeit verlässt die Wache.',

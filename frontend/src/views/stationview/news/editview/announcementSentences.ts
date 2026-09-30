@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {StationEvent} from '@/api/events'
-import {formatDate, formatDateTime, formatWeekdayDate} from '@/util/format'
+import {formatDateTime, formatWeekdayDate} from '@/util/format'
 
 /** The sentences an announcement can say about an event, each filled from one of its settings. */
 export type AnnouncementSentence =
@@ -18,6 +18,7 @@ export type AnnouncementSentence =
     | 'unconfirmedLapseDaysBefore'
     | 'minimumRegistrations'
     | 'minimumRegistrationsBy'
+    | 'minimumRegistrationsDaysBefore'
 
 /** Writes one sentence in the reader's language, handed in rather than looked up so this stays testable. */
 export type Say = (sentence: AnnouncementSentence, values?: Record<string, string | number>) => string
@@ -32,7 +33,8 @@ export type Say = (sentence: AnnouncementSentence, values?: Record<string, strin
  *
  * <p>The days-before setting does not close registration. On that day the station declines every
  * sign-up still waiting for confirmation, so it is only mentioned where sign-ups are confirmed, and
- * said as what it does.
+ * said as what it does. The minimum of registrations is counted back from the occurrence the same
+ * way, since it has to be reached a number of days before each date.
  *
  * @param event    the event being announced
  * @param date     the occurrence being announced, which the days-before setting is counted back from
@@ -56,7 +58,7 @@ export function announcementSentences(
         event.registrationLimit ? say('registrationLimit', {count: event.registrationLimit}) : '',
         event.requiresConfirmation ? say('registrationConfirmation') : '',
         event.requiresConfirmation ? lapse(event, date, say) : '',
-        minimum(event, say, timezone),
+        minimum(event, date, say),
     ].filter(sentence => sentence !== '')
 }
 
@@ -67,11 +69,13 @@ function lapse(event: StationEvent, date: string | null, say: Say): string {
     return say('unconfirmedLapseOn', {date: formatWeekdayDate(daysBefore(date, days))})
 }
 
-function minimum(event: StationEvent, say: Say, timezone?: string | null): string {
-    if (!event.minRegistrations) return ''
-    return event.thresholdDate
-        ? say('minimumRegistrationsBy', {count: event.minRegistrations, date: formatDate(event.thresholdDate, timezone)})
-        : say('minimumRegistrations', {count: event.minRegistrations})
+function minimum(event: StationEvent, date: string | null, say: Say): string {
+    const count = event.minRegistrations
+    if (!count) return ''
+    const days = event.thresholdDays
+    if (days == null) return say('minimumRegistrations', {count})
+    if (!date) return say('minimumRegistrationsDaysBefore', {count, days})
+    return say('minimumRegistrationsBy', {count, date: formatWeekdayDate(daysBefore(date, days))})
 }
 
 /** The calendar day a number of days before another, both as `YYYY-MM-DD`. */
