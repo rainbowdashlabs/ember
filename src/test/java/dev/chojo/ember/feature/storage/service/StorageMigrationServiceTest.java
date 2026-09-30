@@ -29,6 +29,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -430,6 +431,24 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         assertFalse(targetBackend.exists(fullKey), "the override backend is cleaned up");
         assertTrue(storageConfigRepo.findOne(station.id()).isEmpty(), "the override row must be dropped");
         assertFalse(locks.isLocked(station.id()));
+    }
+
+    /**
+     * The way home copies onto the backend every other station of the instance stands on. Closing it
+     * afterwards, as a target built for the move would be, stopped a remote instance default for good
+     * and every later storage call of the instance failed until a restart.
+     */
+    @Test
+    void movingAStationBackLeavesTheInstanceDefaultOpen() {
+        var instanceDefault = Mockito.spy(sourceBackend);
+        factory.instanceBackend = instanceDefault;
+        Station station = newStation("Station Migration Keeps Default Open");
+        storeOnSource(station, "doc.txt", "home".getBytes(StandardCharsets.UTF_8));
+        migrationService.migrate(station.id(), targetConfig());
+
+        migrationService.migrateToInstanceDefault(station.id());
+
+        Mockito.verify(instanceDefault, Mockito.never()).close();
     }
 
     /**

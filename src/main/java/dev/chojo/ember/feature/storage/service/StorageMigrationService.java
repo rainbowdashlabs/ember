@@ -123,13 +123,16 @@ public class StorageMigrationService {
             if (destination instanceof Destination.InstanceDefault && standsOnNothing(stationId)) {
                 return new MigrationResult(0, 0, 0, 0, 0L);
             }
-            try (StorageBackend target = buildTarget(destination)) {
+            StorageBackend target = buildTarget(destination);
+            try {
                 HealthStatus probe = target.probe();
                 if (!probe.healthy()) {
                     throw new MigrationException(
                             "Target probe failed: " + probe.error().orElse("unknown error"));
                 }
                 return run(scope, target, destination);
+            } finally {
+                if (builtForTheMove(destination)) target.close();
             }
         } catch (MigrationException e) {
             throw e;
@@ -144,6 +147,15 @@ public class StorageMigrationService {
     private boolean standsOnNothing(int stationId) {
         return configRepository.findOne(stationId).isEmpty()
                 && placementRepository.findByStation(stationId).isEmpty();
+    }
+
+    /**
+     * Whether the move built the backend it copies to, and so has to close it afterwards. The way home
+     * copies onto the instance default every other station stands on, which is never the move's to
+     * close.
+     */
+    private static boolean builtForTheMove(Destination destination) {
+        return !(destination instanceof Destination.InstanceDefault);
     }
 
     private StorageBackend buildTarget(Destination destination) {

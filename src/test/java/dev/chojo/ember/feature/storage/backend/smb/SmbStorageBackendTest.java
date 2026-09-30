@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.storage.backend.smb;
 
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.SmbConfig;
 import dev.chojo.ember.TestContainers;
 import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import org.junit.jupiter.api.AfterAll;
@@ -43,6 +45,7 @@ class SmbStorageBackendTest {
             .waitingFor(Wait.forListeningPort())
             .withStartupAttempts(4);
 
+    private static SmbBackendConfig config;
     private static SmbStorageBackend backend;
 
     @BeforeAll
@@ -50,7 +53,7 @@ class SmbStorageBackendTest {
         TestContainers.startExclusively(SAMBA);
         /* seal */
         /* dfs */
-        SmbBackendConfig config = new SmbBackendConfig(
+        config = new SmbBackendConfig(
                 SAMBA.getHost(),
                 SAMBA.getMappedPort(445),
                 SHARE,
@@ -154,5 +157,32 @@ class SmbStorageBackendTest {
     @Test
     void readMissingKeyReturnsEmpty() {
         assertTrue(backend.read("does/not/exist").isEmpty());
+    }
+
+    /**
+     * A connection the server or the network dropped is opened again, and the session it carried
+     * has to be signed in again with it. Reusing the session of the dead connection failed every call
+     * of the backend until the instance was restarted.
+     */
+    @Test
+    void aDroppedConnectionIsSignedInAgain() throws Exception {
+        var client = new SMBClient(SmbConfig.builder().withEncryptData(false).build());
+        try (var own = new SmbStorageBackend(config, client)) {
+            byte[] payload = "before".getBytes(StandardCharsets.UTF_8);
+            own.store(
+                    "scope/cat/before",
+                    new ByteArrayInputStream(payload),
+                    payload.length,
+                    ObjectMetadata.of("text/plain"));
+
+            client.connect(SAMBA.getHost(), SAMBA.getMappedPort(445)).close(true);
+
+            own.store(
+                    "scope/cat/after",
+                    new ByteArrayInputStream(payload),
+                    payload.length,
+                    ObjectMetadata.of("text/plain"));
+            assertTrue(own.exists("scope/cat/after"));
+        }
     }
 }

@@ -56,8 +56,21 @@ public class StorageBackendResolver {
         this.placementRepository = placementRepository;
         this.factory = factory;
         this.overrideRepository = overrideRepository;
-        this.overrideCache =
-                Caffeine.newBuilder().maximumSize(MAX_CACHED_OVERRIDES).build();
+        this.overrideCache = overrideCache();
+    }
+
+    /**
+     * The cache of station backends. A backend that leaves it, invalidated or evicted, is closed on
+     * the way out: nothing can reach it any more, and left open it would keep its session, its client
+     * threads or its connection pool until the process ends.
+     */
+    private static Cache<Integer, Optional<StorageBackend>> overrideCache() {
+        return Caffeine.newBuilder()
+                .maximumSize(MAX_CACHED_OVERRIDES)
+                .executor(Runnable::run)
+                .<Integer, Optional<StorageBackend>>removalListener((stationId, backend, cause) ->
+                        Optional.ofNullable(backend).flatMap(held -> held).ifPresent(StorageBackend::close))
+                .build();
     }
 
     /**
@@ -69,8 +82,7 @@ public class StorageBackendResolver {
         this.factory = new StorageBackendFactory(new Storage(), localBackend, null);
         this.overrideRepository = null;
         this.placementRepository = null;
-        this.overrideCache =
-                Caffeine.newBuilder().maximumSize(MAX_CACHED_OVERRIDES).build();
+        this.overrideCache = overrideCache();
     }
 
     /**

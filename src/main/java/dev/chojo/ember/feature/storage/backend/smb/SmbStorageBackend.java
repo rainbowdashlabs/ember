@@ -226,10 +226,11 @@ public class SmbStorageBackend implements StorageBackend, AutoCloseable {
     }
 
     private DiskShare openShare() {
-        if (share != null && share.isConnected()) return share;
+        if (share != null && share.isConnected() && connection.isConnected()) return share;
         try {
             if (connection == null || !connection.isConnected()) {
                 connection = client.connect(config.host(), config.port());
+                session = null;
             }
             if (session == null) {
                 session = connection.authenticate(new AuthenticationContext(
