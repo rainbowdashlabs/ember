@@ -11,6 +11,7 @@ import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
 import dev.chojo.ember.EmberModule;
 import dev.chojo.ember.conf.Conf;
+import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationContractCatalog;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
@@ -162,7 +163,8 @@ public final class RegisteredRoutes {
                 throw new AssertionError("%s registers %s %s where its twin registers %s %s"
                         .formatted(owner.getSimpleName(), endpoint.method, endpoint.path, twin.method, twin.path));
             }
-            routes.add(new Route(owner, endpoint, handlerFrames(owner, twin)));
+            var frames = handlerFrames(owner, twin);
+            routes.add(new Route(owner, endpoint, frames.frames(), frames.served()));
         }
         return routes;
     }
@@ -217,15 +219,23 @@ public final class RegisteredRoutes {
      * The methods of the route class on the way from the handler to the request that refused to be
      * read, outermost first: the first is the handler, and for a handler written inline the next is
      * the method it hands the request to.
+     *
+     * <p>A federation endpoint bound with {@link FederationContractBinder#serve} has no method of its
+     * own in the route class: the binder answers it from the feature's serving function. Such a route
+     * is named after the binder's adapter and marked as served.
      */
-    private static List<String> handlerFrames(Class<?> owner, Endpoint endpoint) {
+    private static Handling handlerFrames(Class<?> owner, Endpoint endpoint) {
         Context probe = mock(Context.class, invocation -> answerProbe(endpoint, invocation));
         try {
             endpoint.handler.handle(probe);
         } catch (Throwable thrown) {
             for (Throwable cause = thrown; cause != null; cause = cause.getCause()) {
                 List<String> frames = framesOf(owner, cause);
-                if (!frames.isEmpty()) return frames;
+                if (!frames.isEmpty()) return new Handling(frames, false);
+            }
+            for (Throwable cause = thrown; cause != null; cause = cause.getCause()) {
+                List<String> frames = framesOf(FederationContractBinder.class, cause);
+                if (!frames.isEmpty()) return new Handling(frames, true);
             }
         }
         throw new AssertionError("Could not tell which method of %s answers %s %s"
@@ -285,14 +295,18 @@ public final class RegisteredRoutes {
         }
     }
 
+    private record Handling(List<String> frames, boolean served) {}
+
     /**
      * One registered route and what answers it.
      *
      * @param owner    the route class that registered it
      * @param endpoint the endpoint as the router holds it
      * @param frames   the methods of the owner the request passes through, outermost first
+     * @param served   whether the federation contract binder answers it from a feature's serving
+     *                 function, handing that function the partner resolved from the signature
      */
-    public record Route(Class<? extends Routes> owner, Endpoint endpoint, List<String> frames) {
+    public record Route(Class<? extends Routes> owner, Endpoint endpoint, List<String> frames, boolean served) {
 
         /**
          * The method of the owner that answers the route, which for a handler written inline in

@@ -196,6 +196,43 @@ public enum Refusal {
     LENDING_REQUEST_NOT_HERE_AFTER_CLOSING(
             Area.FEDERATION, 32, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
 
+    /**
+     * A partner station on this instance asked while its partner no longer holds the partnership
+     * as active, which a partner on another instance is refused for at the signature check.
+     */
+    FEDERATION_PARTNERSHIP_NOT_ACTIVE_THERE(
+            Area.FEDERATION,
+            33,
+            HttpStatus.FORBIDDEN,
+            "The partner station does not hold this partnership as active any more"),
+
+    /** A partner station on another instance that did not answer, or answered with nothing to read. */
+    FEDERATION_PARTNER_DID_NOT_ANSWER(
+            Area.FEDERATION, 34, HttpStatus.NOT_FOUND, "The partner station did not answer, or had nothing to give"),
+
+    /** A partner asking what is free on a day that does not read as a day. */
+    LENDING_DAY_NOT_A_DAY(Area.FEDERATION, 35, HttpStatus.BAD_REQUEST, "A day asked about is not a day"),
+
+    /** A partner's request naming gear, a kind of thing or an inventory that is not this station's. */
+    LENDING_LINE_NAMES_FOREIGN_GEAR(
+            Area.FEDERATION,
+            36,
+            HttpStatus.BAD_REQUEST,
+            "A line of the request names gear that is not this station's, so nothing was saved"),
+
+    /** A sign-up for a partner's appointment naming a day that does not read as a day. */
+    FEDERATED_REGISTRATION_DAY_NOT_A_DAY(Area.FEDERATION, 37, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),
+
+    /** A partner's change to a checklist item that is not on the shared ticket it names. */
+    REMOTE_CHECKLIST_ITEM_NOT_ON_TICKET(
+            Area.FEDERATION, 38, HttpStatus.NOT_FOUND, "That checklist item is not on this ticket"),
+
+    /** A partner reordering a lane that is not on the shared board it names. */
+    REMOTE_LANE_NOT_ON_BOARD(Area.FEDERATION, 39, HttpStatus.NOT_FOUND, "That lane is not on this board"),
+
+    /** A partner putting a label on a shared ticket, or taking it off, that is not a label of its board. */
+    REMOTE_LABEL_NOT_ON_BOARD(Area.FEDERATION, 40, HttpStatus.NOT_FOUND, "That label is not on this board"),
+
     /** What a beacon has gathered, asked for on an instance that is not a beacon. */
     BEACON_NOT_RECEIVING(Area.BEACON, 1, HttpStatus.NOT_FOUND, Sentences.BEACON_NOT_RECEIVING),
 
@@ -954,10 +991,6 @@ public enum Refusal {
     FEDERATED_BOARD_NOT_HERE_ON_OVERRIDE_WRITE(
             Area.BOARDS, 40, HttpStatus.NOT_FOUND, Sentences.FEDERATED_BOARD_NOT_HERE),
 
-    /** A board request from another instance that carries no signature this one accepts. */
-    BOARD_FEDERATION_SIGNATURE_NOT_GOOD(
-            Area.BOARDS, 41, HttpStatus.FORBIDDEN, "This request carries no signature this instance accepts"),
-
     /** A board addressed by another instance under a key this station does not use. */
     REMOTE_BOARD_NOT_HERE(Area.BOARDS, 42, HttpStatus.NOT_FOUND, Sentences.BOARD_NOT_HERE),
 
@@ -979,12 +1012,6 @@ public enum Refusal {
 
     /** A ticket that went between the share check and the read another instance asked for. */
     REMOTE_TICKET_NOT_HERE_ON_READ(Area.BOARDS, 48, HttpStatus.NOT_FOUND, Sentences.BOARD_TICKET_NOT_HERE),
-
-    /** A board that went while another instance was creating a ticket on it. */
-    REMOTE_BOARD_NOT_HERE_ON_TICKET_CREATE(Area.BOARDS, 49, HttpStatus.NOT_FOUND, Sentences.BOARD_NOT_HERE),
-
-    /** A board that went while another instance was changing one of its tickets. */
-    REMOTE_BOARD_NOT_HERE_ON_TICKET_UPDATE(Area.BOARDS, 50, HttpStatus.NOT_FOUND, Sentences.BOARD_NOT_HERE),
 
     /** A ticket that went between being changed by another instance and being read back. */
     REMOTE_TICKET_NOT_HERE_AFTER_UPDATE(Area.BOARDS, 51, HttpStatus.NOT_FOUND, Sentences.BOARD_TICKET_NOT_HERE),

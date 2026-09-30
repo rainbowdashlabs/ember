@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
@@ -103,13 +104,14 @@ class KbMoveServiceTest extends RepositoryTestBase {
                 searchService,
                 federation,
                 federationRepo,
-                httpClient,
+                mock(FederationTransport.class),
                 stationRepo,
                 new KbCommentRepository(),
+                mock(KbCommentService.class),
                 mock(EventFederationRepository.class),
                 memberNameResolver,
                 new FederationFanout(new TaskScheduler()),
-                new FederationEntityResolver(federationRepo, httpClient),
+                new FederationEntityResolver(federationRepo),
                 mock(KbPdfExportService.class),
                 accessService);
         service = new KbMoveService(knowledgeBaseRepo, accessService, federationService, stationRepo);

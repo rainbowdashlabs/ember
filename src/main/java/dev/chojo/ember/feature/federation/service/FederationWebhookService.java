@@ -50,7 +50,7 @@ public class FederationWebhookService {
      * Builds the service with its own delivery executor and backoff, so a test can deliver on the
      * calling thread without waiting out the production delays.
      */
-    FederationWebhookService(
+    public FederationWebhookService(
             FederationRepository repository,
             FederationHttpClient httpClient,
             Executor executor,

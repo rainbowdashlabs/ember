@@ -92,7 +92,7 @@ class EquipmentBrowseServiceTest extends RepositoryTestBase {
     @Test
     void aCollectedLineIsCountedAgainAgainstWhatIsOffered() {
         LocalDate day = EquipmentTestSupport.SATURDAY.plusDays(500);
-        var line = new EquipmentBrowseService.CollectedLine(owner.id(), drawer.id(), blue.id(), 2, null);
+        var line = new EquipmentBrowseService.CollectedLine(owner.uid(), drawer.id(), blue.id(), 2, null);
         var answer = browse.recheck(borrower.id(), day, day, List.of(line));
         assertEquals(1, answer.size());
         assertEquals(2, answer.getFirst().available());
@@ -102,7 +102,7 @@ class EquipmentBrowseServiceTest extends RepositoryTestBase {
     @Test
     void aLineAskingForMoreThanIsThereSaysSo() {
         LocalDate day = EquipmentTestSupport.SATURDAY.plusDays(510);
-        var line = new EquipmentBrowseService.CollectedLine(owner.id(), drawer.id(), blue.id(), 9, null);
+        var line = new EquipmentBrowseService.CollectedLine(owner.uid(), drawer.id(), blue.id(), 9, null);
         var answer = browse.recheck(borrower.id(), day, day, List.of(line));
         assertEquals(2, answer.getFirst().available());
         assertTrue(answer.getFirst().changed());
@@ -111,9 +111,9 @@ class EquipmentBrowseServiceTest extends RepositoryTestBase {
     @Test
     void theSendSaysHowManyRequestsItWillMake() {
         var lines = List.of(
-                new EquipmentBrowseService.CollectedLine(owner.id(), drawer.id(), blue.id(), 1, null),
-                new EquipmentBrowseService.CollectedLine(owner.id(), drawer.id(), null, 1, null),
-                new EquipmentBrowseService.CollectedLine(borrower.id(), drawer.id(), null, 1, null));
+                new EquipmentBrowseService.CollectedLine(owner.uid(), drawer.id(), blue.id(), 1, null),
+                new EquipmentBrowseService.CollectedLine(owner.uid(), drawer.id(), null, 1, null),
+                new EquipmentBrowseService.CollectedLine(borrower.uid(), drawer.id(), null, 1, null));
         assertEquals(2, browse.requestCount(lines), "two stations, two letters");
         assertEquals(0, browse.requestCount(List.of()));
     }

@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
@@ -20,8 +22,11 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
-import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
+import dev.chojo.ember.feature.federation.transport.FederationServer;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
+import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessGrant;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -31,13 +36,16 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
+import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.FileContentResponse;
+import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.RemoteKbCommentDeleteRequest;
+import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.RemoteKbCommentRequest;
+import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.RemoteKbCommentUpdateRequest;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.RemoteKbFile;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -46,6 +54,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -58,11 +67,13 @@ import java.util.stream.Collectors;
  * a single partner file, copying it into the local station, serving this station's shared files to
  * a requesting partner, and proxying comments across the partnership.
  * <p>
- * Partner resolution and the local/remote split live here so route handlers never branch on
- * {@link FederationPartner#isRemote()} themselves.
+ * What a partner may read and write is decided by the serving functions registered in
+ * {@link #serveOn}. A partner on another instance reaches them through the {@code /remote} routes, a
+ * partner on this instance through the local transport, so neither this class nor the routes ever
+ * ask where a partner lives.
  */
 @Singleton
-public class KnowledgeBaseFederationService {
+public class KnowledgeBaseFederationService implements FederationServer {
     private static final Logger log = LoggerFactory.getLogger(KnowledgeBaseFederationService.class);
 
     private final KnowledgeBaseService knowledgeBaseService;
@@ -70,9 +81,10 @@ public class KnowledgeBaseFederationService {
     private final KbSearchService searchService;
     private final FederationService federationService;
     private final FederationRepository federationRepository;
-    private final FederationHttpClient httpClient;
+    private final FederationTransport transport;
     private final StationRepository stationRepository;
     private final KbCommentRepository commentRepository;
+    private final KbCommentService commentService;
     private final EventFederationRepository eventFederationRepository;
     private final MemberNameResolver memberNameResolver;
     private final FederationFanout fanout;
@@ -87,9 +99,10 @@ public class KnowledgeBaseFederationService {
             KbSearchService searchService,
             FederationService federationService,
             FederationRepository federationRepository,
-            FederationHttpClient httpClient,
+            FederationTransport transport,
             StationRepository stationRepository,
             KbCommentRepository commentRepository,
+            KbCommentService commentService,
             EventFederationRepository eventFederationRepository,
             MemberNameResolver memberNameResolver,
             FederationFanout fanout,
@@ -101,15 +114,84 @@ public class KnowledgeBaseFederationService {
         this.searchService = searchService;
         this.federationService = federationService;
         this.federationRepository = federationRepository;
-        this.httpClient = httpClient;
+        this.transport = transport;
         this.stationRepository = stationRepository;
         this.commentRepository = commentRepository;
+        this.commentService = commentService;
         this.eventFederationRepository = eventFederationRepository;
         this.memberNameResolver = memberNameResolver;
         this.fanout = fanout;
         this.entityResolver = entityResolver;
         this.pdfExportService = pdfExportService;
         this.accessService = accessService;
+    }
+
+    /**
+     * Registers what this station serves a partner of the knowledge it shares: the top of what is
+     * shared, one folder, a search, one file with or without its text, and the comments on a file.
+     */
+    @Override
+    public void serveOn(FederationEndpoints endpoints) {
+        endpoints.serve(
+                RemoteKnowledgeBaseRoutes.BROWSE_KB, (partner, params, body) -> browseForPartner(partner.row()));
+        endpoints.serve(
+                RemoteKnowledgeBaseRoutes.BROWSE_KB_FOLDER,
+                (partner, params, body) -> folderForPartner(partner.row(), params.integer("id")));
+        endpoints.serve(
+                RemoteKnowledgeBaseRoutes.SEARCH_KB,
+                (partner, params, body) ->
+                        searchForPartner(partner.row(), params.query("q").orElse(null)));
+        endpoints.serve(
+                RemoteKnowledgeBaseRoutes.GET_FILE,
+                (partner, params, body) -> remoteFileForPartner(partner.row(), params.integer("id")));
+        endpoints.serve(RemoteKnowledgeBaseRoutes.GET_FILE_CONTENT, (partner, params, body) -> {
+            int fileId = params.integer("id");
+            return new FileContentResponse(fileId, fileContentForPartner(partner.row(), fileId));
+        });
+        endpoints.serve(RemoteKnowledgeBaseRoutes.LIST_COMMENTS, (partner, params, body) -> {
+            int fileId = params.integer("fileId");
+            fileForPartner(partner.row(), fileId);
+            return listComments(fileId);
+        });
+        endpoints.<RemoteKbCommentRequest, CommentResponse>serve(
+                RemoteKnowledgeBaseRoutes.CREATE_COMMENT,
+                (partner, params, body) -> serveNewComment(partner, params.integer("fileId"), body));
+        endpoints.<RemoteKbCommentUpdateRequest, CommentResponse>serve(
+                RemoteKnowledgeBaseRoutes.UPDATE_COMMENT,
+                (partner, params, body) -> toCommentResponse(updateRemoteComment(
+                        partner.row(),
+                        params.integer("commentId"),
+                        body.remoteMemberUid(),
+                        requireText(body.content()))));
+        endpoints.<RemoteKbCommentDeleteRequest, Void>serve(
+                RemoteKnowledgeBaseRoutes.DELETE_COMMENT, (partner, params, body) -> {
+                    serveCommentDeletion(partner, params.integer("commentId"), body);
+                    return null;
+                });
+    }
+
+    private CommentResponse serveNewComment(ServingPartner partner, int fileId, RemoteKbCommentRequest request) {
+        fileForPartner(partner.row(), fileId);
+        var comment = createRemoteComment(
+                fileId,
+                partner.partnerId(),
+                request.remoteMemberUid(),
+                request.displayName(),
+                request.parentId(),
+                requireText(request.content()));
+        return toCommentResponse(comment);
+    }
+
+    private void serveCommentDeletion(ServingPartner partner, int commentId, RemoteKbCommentDeleteRequest request) {
+        requireRemoteCommentAuthor(partner.row(), commentId, request.remoteMemberUid(), "delete");
+        if (!commentService.deleteComment(partner.servingStationId(), commentId)) {
+            throw Refusal.REMOTE_KB_COMMENT_NOT_DELETED.raise();
+        }
+    }
+
+    private static String requireText(String content) {
+        if (content == null || content.isBlank()) throw Refusal.REMOTE_KB_COMMENT_EMPTY.raise();
+        return content;
     }
 
     /**
@@ -153,16 +235,9 @@ public class KnowledgeBaseFederationService {
      */
     public FederatedKbBrowse browseFederatedKbFolder(
             int stationId, UUID partnerStationUid, int folderId, StationUserType readerUserType) {
-        var level = entityResolver.resolve(
-                stationId,
-                partnerStationUid,
-                RemoteKnowledgeBaseRoutes.BROWSE_KB_FOLDER.at(folderId),
-                RemoteKbBrowse.class,
-                "folder",
-                partner -> folderLevel(partnerStationId(partner), folderId, servingSideId(partner)));
-        var partner = federationRepository
-                .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
-                .orElseThrow(NotFoundResponse::new);
+        var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
+        var level =
+                transport.get(partner, RemoteKnowledgeBaseRoutes.BROWSE_KB_FOLDER.at(folderId), RemoteKbBrowse.class);
         String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
         String uid = partnerStationUid.toString();
         return new FederatedKbBrowse(
@@ -244,10 +319,7 @@ public class KnowledgeBaseFederationService {
      * @return the shared files with their owning station and partnership
      */
     public SharedKbLevel browseSharedKb(int stationId) {
-        var levels = fanout.fanOut(
-                        sharedKbPartners(stationId),
-                        partner -> List.of(browseSharedKbDirect(partnerStationId(partner), partner)),
-                        partner -> List.of(browseSharedKbViaHttp(stationId, partner, partnerStationId(partner))))
+        var levels = fanout.fanOut(sharedKbPartners(stationId), partner -> List.of(browsePartner(partner)))
                 .items();
         return new SharedKbLevel(
                 levels.stream().flatMap(level -> level.folders().stream()).toList(),
@@ -262,25 +334,17 @@ public class KnowledgeBaseFederationService {
      * @return the matches of all partners that answered
      */
     public List<FederatedSearchResult> searchFederatedKb(int stationId, String query) {
-        return fanout.fanOut(
-                        sharedKbPartners(stationId),
-                        partner -> searchKbDirect(partner, query),
-                        partner -> searchKbViaHttp(stationId, partner, query))
+        if (query == null || query.isBlank()) return List.of();
+        return fanout.fanOut(sharedKbPartners(stationId), partner -> searchPartner(partner, query))
                 .items();
     }
 
     /**
-     * Fetches a single knowledge-base file from a federated partner, transparently handling
-     * partners on this instance and on another one.
+     * Fetches a single knowledge-base file from a federated partner.
      */
     public RemoteKbFile getFederatedKbFile(int localStationId, UUID partnerStationUid, int fileId) {
-        return entityResolver.resolve(
-                localStationId,
-                partnerStationUid,
-                RemoteKnowledgeBaseRoutes.GET_FILE.at(fileId),
-                RemoteKbFile.class,
-                "file",
-                partner -> RemoteKbFile.of(requirePartnerFile(fileId, partner), partnerStationUid));
+        var partner = entityResolver.requireActivePartner(localStationId, partnerStationUid);
+        return transport.get(partner, RemoteKnowledgeBaseRoutes.GET_FILE.at(fileId), RemoteKbFile.class);
     }
 
     /**
@@ -378,15 +442,13 @@ public class KnowledgeBaseFederationService {
      * handling partners on this instance and on another one.
      */
     public String getFederatedKbFileContent(int localStationId, UUID partnerStationUid, int fileId) {
-        return entityResolver.resolve(
-                localStationId,
-                partnerStationUid,
-                partner -> {
-                    var file = requirePartnerFile(fileId, partner);
-                    return contentService.getMarkdownContent(file.id()).orElse("");
-                },
-                partner ->
-                        fetchKbFileContent(partner.remoteHost(), partner.partnerStationId(), fileId, localStationId));
+        return contentAt(entityResolver.requireActivePartner(localStationId, partnerStationUid), fileId);
+    }
+
+    private String contentAt(FederationPartner partner, int fileId) {
+        var answer = transport.get(
+                partner, RemoteKnowledgeBaseRoutes.GET_FILE_CONTENT.at(fileId), FileContentResponse.class);
+        return answer.content() == null ? "" : answer.content();
     }
 
     /**
@@ -401,13 +463,10 @@ public class KnowledgeBaseFederationService {
      */
     public KbFile copyKbFile(int fileId, int targetStationId, int createdBy) {
         var source = knowledgeBaseService.findFile(fileId).orElseThrow();
-        String content;
         var partner = findPartnerForStation(targetStationId, source.stationId());
-        if (partner != null && partner.isRemote()) {
-            content = fetchKbFileContent(partner.remoteHost(), partner.partnerStationId(), fileId, targetStationId);
-        } else {
-            content = contentService.getMarkdownContent(fileId).orElse("");
-        }
+        String content = partner != null
+                ? contentAt(partner, fileId)
+                : contentService.getMarkdownContent(fileId).orElse("");
         var copied = knowledgeBaseService.createMarkdownFile(
                 targetStationId, null, source.name(), source.description(), content, createdBy);
         knowledgeBaseService.setSourceReference(copied.id(), source.id(), source.stationId());
@@ -971,16 +1030,7 @@ public class KnowledgeBaseFederationService {
      */
     public List<CommentResponse> listFederatedComments(int stationId, UUID partnerStationUid, int fileId) {
         var partner = resolvePartner(stationId, partnerStationUid);
-        if (!partner.isRemote()) {
-            return listComments(fileId);
-        }
-        var station = requireStation(stationId);
-        return httpClient.getList(
-                partner.remoteHost(),
-                RemoteKnowledgeBaseRoutes.LIST_COMMENTS.at(fileId),
-                partner.partnerStationId(),
-                station.id(),
-                CommentResponse.class);
+        return transport.getList(partner, RemoteKnowledgeBaseRoutes.LIST_COMMENTS.at(fileId), CommentResponse.class);
     }
 
     /**
@@ -995,27 +1045,13 @@ public class KnowledgeBaseFederationService {
             Integer parentId,
             String content) {
         var partner = resolvePartner(stationId, partnerStationUid);
-        if (!partner.isRemote()) {
-            var author = new MemberIdentity(partner.partnerStationId(), memberUid);
-            var comment = commentRepository.create(fileId, parentId, author, content);
-            eventFederationRepository.cacheName(partner.id(), memberUid, displayName);
-            log.info("Comment {} created on knowledge file {} (partner {})", comment.id(), fileId, partner.id());
-            return toCommentResponse(comment);
-        }
-        var station = requireStation(stationId);
-        var result = httpClient.post(
-                partner.remoteHost(),
+        var created = transport.send(
+                partner,
                 RemoteKnowledgeBaseRoutes.CREATE_COMMENT.at(fileId),
-                new RemoteCommentRequest(memberUid, displayName, parentId, content),
-                partner.partnerStationId(),
-                station.id(),
+                new RemoteKbCommentRequest(memberUid, displayName, parentId, content),
                 CommentResponse.class);
-        if (result == null) {
-            log.warn("Partner {} refused a comment on its knowledge file {}", partner.id(), fileId);
-            throw new InternalServerErrorResponse("Failed to create comment on partner");
-        }
         log.info("Station {} commented on knowledge file {} at partner {}", stationId, fileId, partner.id());
-        return result;
+        return created;
     }
 
     /**
@@ -1024,55 +1060,33 @@ public class KnowledgeBaseFederationService {
     public CommentResponse updateFederatedComment(
             int stationId, UUID partnerStationUid, int commentId, UUID memberUid, String content) {
         var partner = resolvePartner(stationId, partnerStationUid);
-        if (!partner.isRemote()) {
-            requireOwnComment(commentId, memberUid, "edit");
-            commentRepository.update(commentId, content);
-            log.info("Comment {} on a knowledge file edited (partner {})", commentId, partner.id());
-            return toCommentResponse(requireComment(commentId));
-        }
-        var station = requireStation(stationId);
-        var result = httpClient.put(
-                partner.remoteHost(),
+        var updated = transport.send(
+                partner,
                 RemoteKnowledgeBaseRoutes.UPDATE_COMMENT.at(commentId),
-                new RemoteCommentUpdateRequest(memberUid, content),
-                partner.partnerStationId(),
-                station.id(),
+                new RemoteKbCommentUpdateRequest(memberUid, content),
                 CommentResponse.class);
-        if (result == null) {
-            log.warn("Partner {} refused an edit of its comment {}", partner.id(), commentId);
-            throw new InternalServerErrorResponse("Failed to update comment on partner");
-        }
         log.info("Station {} edited its comment {} at partner {}", stationId, commentId, partner.id());
-        return result;
+        return updated;
     }
 
     /**
      * Deletes a comment a local member wrote on a partner's knowledge-base file.
-     *
-     * @return {@code true} when the comment was removed
      */
-    public boolean deleteFederatedComment(int stationId, UUID partnerStationUid, int commentId, UUID memberUid) {
+    public void deleteFederatedComment(int stationId, UUID partnerStationUid, int commentId, UUID memberUid) {
         var partner = resolvePartner(stationId, partnerStationUid);
-        if (!partner.isRemote()) {
-            requireOwnComment(commentId, memberUid, "delete");
-            boolean deleted = commentRepository.delete(commentId);
-            if (deleted) log.info("Comment {} on a knowledge file deleted (partner {})", commentId, partner.id());
-            else log.warn("Delete for knowledge comment {} affected zero rows", commentId);
-            return deleted;
-        }
-        var station = requireStation(stationId);
-        boolean success = httpClient.delete(
-                partner.remoteHost(),
-                RemoteKnowledgeBaseRoutes.DELETE_COMMENT.at(commentId),
-                new RemoteCommentDeleteRequest(memberUid),
-                partner.partnerStationId(),
-                station.id());
-        if (!success) {
-            log.warn("Partner {} refused a deletion of its comment {}", partner.id(), commentId);
-            throw new InternalServerErrorResponse("Failed to delete comment on partner");
+        try {
+            transport.send(
+                    partner,
+                    RemoteKnowledgeBaseRoutes.DELETE_COMMENT.at(commentId),
+                    new RemoteKbCommentDeleteRequest(memberUid),
+                    Void.class);
+        } catch (RefusalResponse e) {
+            if (e.refusal() == Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER) {
+                throw Refusal.PARTNER_KB_COMMENT_NOT_DELETED.raise();
+            }
+            throw e;
         }
         log.info("Station {} deleted its comment {} at partner {}", stationId, commentId, partner.id());
-        return true;
     }
 
     /**
@@ -1121,48 +1135,27 @@ public class KnowledgeBaseFederationService {
     }
 
     /**
-     * What one partner on this instance offers at the top of its shared wiki.
+     * What one partner offers at the top of its shared wiki.
      *
      * <p>A shared folder arrives as a folder, and what is in it stays in it: the reader opens it the way
      * they open any other. An article whose folder is already shared is therefore not offered loose as
      * well, or it would stand twice, once at the top and once where it belongs.
      */
-    private SharedKbLevel browseSharedKbDirect(int remoteStationId, FederationPartner partner) {
-        var served = servedLevel(remoteStationId, servingSideId(partner));
-        var folders = served.folders().stream()
-                .map(folder -> new SharedKbFolder(
-                        folder.id(),
-                        folder.name(),
-                        folder.description(),
-                        remoteStationId,
-                        partner.id(),
-                        folder.userTypes()))
-                .toList();
+    private SharedKbLevel browsePartner(FederationPartner partner) {
+        int sourceStationId = partnerStationId(partner);
+        var served = transport.get(partner, RemoteKnowledgeBaseRoutes.BROWSE_KB.at(), RemoteKbBrowse.class);
         var files = new ArrayList<SharedKbItem>();
-        for (var summary : served.files()) {
-            knowledgeBaseService.findFile(summary.id()).ifPresent(file -> {
-                files.add(new SharedKbItem(KbFileSummary.of(file), remoteStationId, partner.id(), summary.userTypes()));
-                federationRepository.upsertMetadataCache(
-                        partner.id(), ContentType.KB, file.id(), file.name(), file.description());
-            });
-        }
-        return new SharedKbLevel(folders, files);
-    }
-
-    private SharedKbLevel browseSharedKbViaHttp(int localStationId, FederationPartner partner, int remoteStationId) {
-        var result = new ArrayList<SharedKbItem>();
-        var served = fetchSharedKb(partner.remoteHost(), partner.partnerStationId(), localStationId);
         for (var remoteFile : served.files()) {
             var summary = new KbFileSummary(
                     remoteFile.id(),
-                    remoteStationId,
+                    sourceStationId,
                     null,
                     remoteFile.name(),
                     remoteFile.description(),
                     KbFileType.valueOf(remoteFile.fileType() != null ? remoteFile.fileType() : "MARKDOWN"),
-                    Instant.now(),
+                    updatedAt(remoteFile.updatedAt()),
                     false);
-            result.add(new SharedKbItem(summary, remoteStationId, partner.id(), remoteFile.userTypes()));
+            files.add(new SharedKbItem(summary, sourceStationId, partner.id(), remoteFile.userTypes()));
             federationRepository.upsertMetadataCache(
                     partner.id(), ContentType.KB, remoteFile.id(), remoteFile.name(), remoteFile.description());
         }
@@ -1171,36 +1164,30 @@ public class KnowledgeBaseFederationService {
                         folder.id(),
                         folder.name(),
                         folder.description(),
-                        remoteStationId,
+                        sourceStationId,
                         partner.id(),
                         folder.userTypes()))
                 .toList();
-        return new SharedKbLevel(folders, result);
+        return new SharedKbLevel(folders, files);
+    }
+
+    private static Instant updatedAt(String servedAs) {
+        try {
+            return servedAs == null ? Instant.now() : Instant.parse(servedAs);
+        } catch (DateTimeParseException e) {
+            return Instant.now();
+        }
     }
 
     /**
-     * Searches a partner that lives on this instance. The partner's knowledge base is reachable
-     * without leaving the process, which is exactly why the sharing rule has to be applied here
-     * too: the reader is owed the same answer they would get over the wire.
+     * Runs a search at one partner, which answers only with what it shares with this station.
      */
-    private List<FederatedSearchResult> searchKbDirect(FederationPartner partner, String query) {
-        String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "?");
-        String stationUid = partner.partnerStationId().toString();
-        int servingStationId = partnerStationId(partner);
-        var hits = sharedHits(
-                servingStationId, servingSideId(partner), searchService.searchWithSnippets(servingStationId, query));
-        return hits.stream()
-                .map(result -> new FederatedSearchResult(
-                        KbFileSummary.of(result.file()), result.snippet(), stationName, stationUid))
-                .toList();
-    }
-
-    private List<FederatedSearchResult> searchKbViaHttp(int localStationId, FederationPartner partner, String query) {
-        if (!httpClient.canSign(localStationId)) return List.of();
+    private List<FederatedSearchResult> searchPartner(FederationPartner partner, String query) {
         int remoteStationId = partnerStationId(partner);
         String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "?");
         String stationUid = partner.partnerStationId().toString();
-        var results = searchKb(partner.remoteHost(), partner.partnerStationId(), localStationId, query);
+        var results = transport.getList(
+                partner, RemoteKnowledgeBaseRoutes.SEARCH_KB.at().query("q", query), RemoteKbSearchResultItem.class);
         return results.stream()
                 .map(result -> new FederatedSearchResult(
                         new KbFileSummary(
@@ -1218,49 +1205,11 @@ public class KnowledgeBaseFederationService {
                 .toList();
     }
 
-    private RemoteKbBrowse fetchSharedKb(String remoteHost, UUID partnerStationUid, int localStationId) {
-        return httpClient.get(
-                remoteHost,
-                RemoteKnowledgeBaseRoutes.BROWSE_KB.at(),
-                partnerStationUid,
-                localStationId,
-                RemoteKbBrowse.class);
-    }
-
-    private List<RemoteKbSearchResultItem> searchKb(
-            String remoteHost, UUID partnerStationUid, int localStationId, String query) {
-        return httpClient.getList(
-                remoteHost,
-                RemoteKnowledgeBaseRoutes.SEARCH_KB.at().query("q", query),
-                partnerStationUid,
-                localStationId,
-                RemoteKbSearchResultItem.class);
-    }
-
-    private String fetchKbFileContent(String remoteHost, UUID partnerStationUid, int fileId, int localStationId) {
-        var remoteContent = httpClient.get(
-                remoteHost,
-                RemoteKnowledgeBaseRoutes.GET_FILE_CONTENT.at(fileId),
-                partnerStationUid,
-                localStationId,
-                RemoteKnowledgeBaseRoutes.FileContentResponse.class);
-        if (remoteContent == null || remoteContent.content() == null) return "";
-        return remoteContent.content();
-    }
-
     private List<FederationPartner> sharedKbPartners(int stationId) {
         return federationService.findPartners(stationId).stream()
                 .filter(partner -> partner.status() == FederationPartner.FederationStatus.ACTIVE)
                 .filter(partner -> federationService.hasCapability(partner, CapabilityType.KB_SHARE, Direction.IMPORT))
                 .toList();
-    }
-
-    private KbFile requirePartnerFile(int fileId, FederationPartner partner) {
-        var file = knowledgeBaseService.findFile(fileId).orElseThrow();
-        if (file.stationId() != partnerStationId(partner)) {
-            throw new BadRequestResponse("File does not belong to this partner");
-        }
-        return file;
     }
 
     /**
@@ -1275,36 +1224,6 @@ public class KnowledgeBaseFederationService {
 
     private KbComment requireComment(int commentId) {
         return commentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
-    }
-
-    private void requireOwnComment(int commentId, UUID memberUid, String action) {
-        var comment = requireComment(commentId);
-        if (comment.author() == null || !comment.author().memberUid().equals(memberUid)) {
-            throw new ForbiddenResponse("You can only " + action + " your own comments");
-        }
-    }
-
-    private Station requireStation(int stationId) {
-        return stationRepository.findById(stationId).orElseThrow();
-    }
-
-    /**
-     * The id of the partnership row the serving station holds, seen from the reader's own row.
-     *
-     * <p>A share aimed at named stations names them by the partnerships the serving station keeps, and the
-     * reader arrives holding the mirror image of one. Both sides exist for the same pairing, and they have
-     * different ids, so reading the aim means crossing over to the serving station's row.
-     *
-     * @param partner the reader's own partnership row
-     * @return the serving station's row id, or {@code null} when the pairing has no other side recorded
-     */
-    private Integer servingSideId(FederationPartner partner) {
-        var readerStation = stationRepository.findById(partner.stationId()).orElse(null);
-        if (readerStation == null) return null;
-        return federationRepository
-                .findPartnerByStationAndRemoteUid(partnerStationId(partner), readerStation.uid())
-                .map(FederationPartner::id)
-                .orElse(null);
     }
 
     private int partnerStationId(FederationPartner partner) {
@@ -1399,21 +1318,4 @@ public class KnowledgeBaseFederationService {
      * A search match as served to a requesting partner.
      */
     public record RemoteKbSearchResultItem(int id, String name, String description, String snippet) {}
-
-    /**
-     * A shared file as received from a partner instance.
-     */
-
-    /**
-     * A search match as received from a partner instance.
-     */
-
-    /**
-     * File content as received from a partner instance.
-     */
-    private record RemoteCommentRequest(UUID remoteMemberUid, String displayName, Integer parentId, String content) {}
-
-    private record RemoteCommentUpdateRequest(UUID remoteMemberUid, String content) {}
-
-    private record RemoteCommentDeleteRequest(UUID remoteMemberUid) {}
 }

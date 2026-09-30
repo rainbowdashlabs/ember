@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -12,9 +14,11 @@ import dev.chojo.ember.feature.equipment.EquipmentTestSupport;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
+import dev.chojo.ember.feature.federation.FederationTestContracts;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.entity.ShareGrant;
@@ -22,6 +26,8 @@ import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
+import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -31,7 +37,6 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
 import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -44,6 +49,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static dev.chojo.ember.feature.federation.FederationTestContracts.pathIs;
 import static org.junit.jupiter.api.Assertions.*;
@@ -294,7 +300,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 9999, req.id(), stationC.uid(), memberC.id(), "Remote msg from C", false, Instant.now());
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        pathIs("/remote/lending/messages/" + req.id()),
+                        pathIs("/remote/lending/requests/" + req.uid() + "/messages"),
                         any(),
                         eq(stationA.id()),
                         eq(LendingMessage.class)))
@@ -312,7 +318,7 @@ class LendingServiceTest extends RepositoryTestBase {
         verify(httpClient)
                 .getList(
                         eq("https://remote.example.com"),
-                        pathIs("/remote/lending/messages/" + req.id()),
+                        pathIs("/remote/lending/requests/" + req.uid() + "/messages"),
                         any(),
                         eq(stationA.id()),
                         eq(LendingMessage.class));
@@ -389,7 +395,8 @@ class LendingServiceTest extends RepositoryTestBase {
     @Test
     @Order(51)
     void getLocalMessages() {
-        var msgs = service.getLocalMessages(requestId, stationA.id(), stationB.uid());
+        var request = service.findRequest(requestId).orElseThrow();
+        var msgs = service.serveMessages(servingAForB(stationB.uid()), request.uid());
         assertNotNull(msgs);
         // We sent at least one message from stationA in order 20/21
         assertTrue(msgs.stream().anyMatch(m -> stationA.uid().equals(m.senderStationUid())));
@@ -403,8 +410,13 @@ class LendingServiceTest extends RepositoryTestBase {
     @Order(51)
     void getLocalMessagesRefusesAPartnerOutsideTheRequest() {
         var outsider = stationRepo.create("LendServiceOutsider");
+        var request = service.findRequest(requestId).orElseThrow();
 
-        assertThrows(NotFoundResponse.class, () -> service.getLocalMessages(requestId, stationA.id(), outsider.uid()));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.serveMessages(servingAForB(outsider.uid()), request.uid()));
+        assertEquals(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS, refused.refusal());
+        assertThrows(
+                RefusalResponse.class, () -> service.serveMessages(servingAForB(stationB.uid()), UUID.randomUUID()));
 
         stationRepo.delete(outsider.id());
     }
@@ -567,7 +579,7 @@ class LendingServiceTest extends RepositoryTestBase {
         assertFalse(results.entries().isEmpty());
         assertNull(results.emptyReason());
         assertTrue(results.entries().stream()
-                .anyMatch(e -> e.inventoryId() == inventoryIdA && e.stationId() == stationA.id()));
+                .anyMatch(e -> e.inventoryId() == inventoryIdA && stationA.uid().equals(e.stationId())));
     }
 
     @Test
@@ -632,12 +644,14 @@ class LendingServiceTest extends RepositoryTestBase {
     @Test
     @Order(204)
     void availableInventoryEntryRecord() {
-        var entry = new LendingService.AvailableInventoryEntry(42, "Test Inv", 9, "Blau", 7, "Station X", 5, null);
+        var station = UUID.randomUUID();
+        var entry =
+                new LendingService.AvailableInventoryEntry(42, "Test Inv", 9, "Blau", station, "Station X", 5, null);
         assertEquals(42, entry.inventoryId());
         assertEquals("Test Inv", entry.inventoryName());
         assertEquals(9, entry.artId());
         assertEquals("Blau", entry.artName());
-        assertEquals(7, entry.stationId());
+        assertEquals(station, entry.stationId());
         assertEquals("Station X", entry.stationName());
         assertEquals(5, entry.availableCount());
         assertNull(entry.distanceKm());
@@ -714,7 +728,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 8002, req.id(), stationR.uid(), memberR.id(), "Remote late", false, now.plusSeconds(60));
         when(httpClient.getList(
                         eq("https://remote-sort.example.com"),
-                        pathIs("/remote/lending/messages/" + req.id()),
+                        pathIs("/remote/lending/requests/" + req.uid() + "/messages"),
                         any(),
                         eq(stationA.id()),
                         eq(LendingMessage.class)))
@@ -761,7 +775,7 @@ class LendingServiceTest extends RepositoryTestBase {
                         stationB.id(), null, LocalDate.now(), LocalDate.now().plusDays(7))
                 .entries();
         // stationA should be blocked entirely - its inventory should not appear
-        assertTrue(results.stream().noneMatch(e -> e.stationId() == stationA.id()));
+        assertTrue(results.stream().noneMatch(e -> stationA.uid().equals(e.stationId())));
         service.deleteBlock(block.id(), stationA.id());
     }
 
@@ -1005,7 +1019,7 @@ class LendingServiceTest extends RepositoryTestBase {
         try {
             var results = service.findAvailableInventory(stationB.id(), "LendSvc", null, null)
                     .entries();
-            assertTrue(results.stream().noneMatch(e -> e.stationId() == stationA.id()));
+            assertTrue(results.stream().noneMatch(e -> stationA.uid().equals(e.stationId())));
             assertThrows(
                     ForbiddenResponse.class,
                     () -> service.createRequest(
@@ -1022,7 +1036,7 @@ class LendingServiceTest extends RepositoryTestBase {
         }
         var restored = service.findAvailableInventory(stationB.id(), "LendSvc", null, null)
                 .entries();
-        assertTrue(restored.stream().anyMatch(e -> e.stationId() == stationA.id()));
+        assertTrue(restored.stream().anyMatch(e -> stationA.uid().equals(e.stationId())));
     }
 
     @Test
@@ -1065,6 +1079,14 @@ class LendingServiceTest extends RepositoryTestBase {
         return lendingRepo
                 .addRequestItem(requestOn(owner), inventoryId, itemId, null, 1, null)
                 .id();
+    }
+
+    /** Station A's side of its partnership with B, asked by the given station. */
+    private static ServingPartner servingAForB(UUID asking) {
+        var row = federationRepo
+                .findPartnerByStationAndRemoteUid(stationA.id(), stationB.uid())
+                .orElseThrow();
+        return new ServingPartner(row, asking);
     }
 
     private static Integer assignedItemOf(int requestId, int requestItemId) {
@@ -1267,5 +1289,183 @@ class LendingServiceTest extends RepositoryTestBase {
         assertTrue(lendingRepo.findAssignedItems(line.id()).isEmpty());
 
         assertTrue(service.closeRequest(request.id(), stationA.id()));
+    }
+
+    // -- Lending between instances --
+
+    /** A partnership of station A with a station on another instance, with lending switched on. */
+    private static FederationPartner partnerElsewhere(UUID elsewhere) {
+        var keyPair = federationService.generateKeyPair();
+        var created = federationRepo.createPartner(
+                stationA.id(),
+                elsewhere,
+                "lend-elsewhere-" + elsewhere,
+                federationService.encodePublicKey(keyPair),
+                "https://lending-elsewhere.example.com");
+        federationRepo.activatePartner(created.id(), federationService.encodePublicKey(keyPair));
+        federationRepo.upsertCapability(created.id(), CapabilityType.INVENTORY_LEND, Direction.IMPORT, true);
+        federationRepo.upsertCapability(created.id(), CapabilityType.INVENTORY_LEND, Direction.EXPORT, true);
+        FederationTestContracts.storeCurrentContractOnRemotePartners(federationService, federationRepo, stationA.id());
+        return federationRepo.findPartnerById(created.id()).orElseThrow();
+    }
+
+    /**
+     * A partner on another instance sees what this station offers, asks for it, and the request
+     * moves on at both ends: this station agrees here, the partner gives the gear back there.
+     */
+    @Test
+    @Order(600)
+    void aPartnerElsewhereBorrowsFromThisStation() {
+        UUID elsewhere = UUID.randomUUID();
+        var row = partnerElsewhere(elsewhere);
+        var asking = new ServingPartner(row, elsewhere);
+
+        var offered = service.serveAvailability(asking, null, null, null);
+        assertTrue(offered.offersAnything());
+        assertTrue(offered.entries().stream().anyMatch(entry -> entry.inventoryId() == inventoryIdA));
+
+        UUID uid = UUID.randomUUID();
+        var sent = new RemoteLendingRoutes.RemoteLendingRequest(
+                uid,
+                LocalDate.now(),
+                LocalDate.now().plusDays(1),
+                "Übung",
+                List.of(new RemoteLendingRoutes.RemoteLendingLine(inventoryIdA, null, null, 1)));
+        var accepted = service.serveRequest(asking, sent);
+        assertEquals(List.of("LendSvcInventory"), accepted.labels());
+        assertEquals(accepted, service.serveRequest(asking, sent), "a request sent twice is written down once");
+
+        var copy = lendingRepo.findRequestByUid(uid).orElseThrow();
+        assertEquals(elsewhere, copy.requestingStationUid());
+        assertEquals(stationA.uid(), copy.owningStationUid());
+        assertEquals("Übung", copy.occasion());
+        assertNull(copy.createdBy());
+
+        assertTrue(service.approveRequest(copy.id(), stationA.id()));
+        var early = assertThrows(
+                RefusalResponse.class,
+                () -> service.serveStatus(
+                        asking, uid, new RemoteLendingRoutes.RemoteLendingStatus(LendingStatus.LENT, null)));
+        assertEquals(Refusal.LENDING_NOT_THE_OWNING_STATION, early.refusal());
+
+        service.serveStatus(asking, uid, new RemoteLendingRoutes.RemoteLendingStatus(LendingStatus.RETURNED, null));
+        assertEquals(
+                LendingStatus.RETURNED,
+                service.findRequest(copy.id()).orElseThrow().status());
+        service.serveStatus(asking, uid, new RemoteLendingRoutes.RemoteLendingStatus(LendingStatus.RETURNED, null));
+
+        assertTrue(service.serveMessages(asking, uid).stream().anyMatch(message -> message.isSystem()));
+        assertDoesNotThrow(
+                () -> service.serveNotice(asking, uid, new RemoteLendingRoutes.RemoteLendingNotice("Fern Leser")));
+
+        federationRepo.deletePartner(row.id());
+    }
+
+    /** A request from elsewhere naming gear this station does not hold is refused whole. */
+    @Test
+    @Order(601)
+    void aRequestFromElsewhereForSomebodyElsesGearIsRefused() {
+        UUID elsewhere = UUID.randomUUID();
+        var row = partnerElsewhere(elsewhere);
+        var foreign = inventoryRepo.create(stationB.id(), "LendSvcForeign", InventoryType.INTERNAL, false);
+        var sent = new RemoteLendingRoutes.RemoteLendingRequest(
+                UUID.randomUUID(),
+                LocalDate.now(),
+                null,
+                "",
+                List.of(new RemoteLendingRoutes.RemoteLendingLine(foreign.id(), null, null, 1)));
+
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.serveRequest(new ServingPartner(row, elsewhere), sent));
+        assertEquals(Refusal.LENDING_LINE_NAMES_FOREIGN_GEAR, refused.refusal());
+        assertTrue(lendingRepo.findRequestByUid(sent.uid()).isEmpty());
+
+        var stranger = new ServingPartner(row, UUID.randomUUID());
+        assertThrows(RefusalResponse.class, () -> service.serveMessages(stranger, UUID.randomUUID()));
+
+        federationRepo.deletePartner(row.id());
+    }
+
+    /**
+     * This station borrows from a partner on another instance. The lines name the partner's gear,
+     * which is not here, so they keep the names the partner gave them; a partner that cannot be
+     * reached leaves nothing behind.
+     */
+    @Test
+    @Order(602)
+    void thisStationBorrowsFromAPartnerElsewhere() {
+        UUID elsewhere = UUID.randomUUID();
+        var row = partnerElsewhere(elsewhere);
+        when(httpClient.canSign(stationA.id())).thenReturn(true);
+        when(httpClient.get(
+                        eq("https://lending-elsewhere.example.com"),
+                        pathIs("/remote/lending/available?q=Funk"),
+                        eq(elsewhere),
+                        eq(stationA.id()),
+                        eq(RemoteLendingRoutes.RemoteAvailability.class)))
+                .thenReturn(new RemoteLendingRoutes.RemoteAvailability(
+                        List.of(new RemoteLendingRoutes.RemoteAvailableEntry(77, "Funkgeräte", null, null, 4)), true));
+        var found = service.findAvailableInventory(stationA.id(), "Funk", null, null)
+                .entries();
+        assertTrue(found.stream().anyMatch(entry -> entry.inventoryId() == 77 && elsewhere.equals(entry.stationId())));
+
+        when(httpClient.post(
+                        eq("https://lending-elsewhere.example.com"),
+                        pathIs("/remote/lending/requests"),
+                        any(),
+                        eq(elsewhere),
+                        eq(stationA.id()),
+                        eq(RemoteLendingRoutes.RemoteLendingAccepted.class)))
+                .thenReturn(new RemoteLendingRoutes.RemoteLendingAccepted(List.of("Funkgeräte")));
+        var request = service.createRequest(
+                stationA.id(),
+                elsewhere,
+                LocalDate.now(),
+                LocalDate.now(),
+                memberA.id(),
+                null,
+                null,
+                "Zeltlager",
+                List.of(new LendingService.RequestLine(77, null, null, 2, null)));
+        var lines = service.findRequestItems(request.id());
+        assertEquals(1, lines.size());
+        assertNull(lines.getFirst().inventoryId());
+        assertEquals("Funkgeräte", service.inventoryName(lines.getFirst()));
+        assertEquals("2x Funkgeräte", service.buildItemSummary(request.id()));
+        assertEquals("Funkgeräte", service.lineLabel(lines.getFirst()));
+
+        when(httpClient.post(
+                        eq("https://lending-elsewhere.example.com"),
+                        pathIs("/remote/lending/requests"),
+                        any(),
+                        eq(elsewhere),
+                        eq(stationA.id()),
+                        eq(RemoteLendingRoutes.RemoteLendingAccepted.class)))
+                .thenReturn(null);
+        int before = service.findRequestsByStation(stationA.id()).size();
+        assertThrows(
+                RefusalResponse.class,
+                () -> service.createRequest(
+                        stationA.id(),
+                        elsewhere,
+                        LocalDate.now(),
+                        LocalDate.now(),
+                        memberA.id(),
+                        null,
+                        null,
+                        "",
+                        List.of(new LendingService.RequestLine(77, null, null, 1, null))));
+        assertEquals(before, service.findRequestsByStation(stationA.id()).size());
+
+        assertTrue(service.closeRequest(request.id(), stationA.id()));
+        federationRepo.deletePartner(row.id());
+    }
+
+    /** A partner's name is the one a station knows it by, here or on another instance. */
+    @Test
+    @Order(603)
+    void aStationIsNamedAsTheViewerKnowsIt() {
+        assertEquals("LendSvcTestStationA", service.stationName(stationA.uid(), stationB.id()));
+        assertEquals("Unknown", service.stationName(UUID.randomUUID(), stationB.id()));
     }
 }

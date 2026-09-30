@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.board.service;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -18,11 +20,21 @@ import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
+import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
 import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteAccessResponse;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteSharedBoardResponse;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.WatcherResponse;
+import dev.chojo.ember.feature.board.route.RemoteBoardTicketDetailRoutes;
+import dev.chojo.ember.feature.board.route.RemoteBoardTicketRoutes;
+import dev.chojo.ember.feature.board.service.FederatedBoardDiscoveryService.FederatedBoardDetail;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -50,6 +62,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.function.Executable;
 
 import java.time.Instant;
 import java.util.List;
@@ -102,6 +115,8 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     private static int boardId;
     private static UUID boardUid;
     private static int partnerId;
+    private static int servingId;
+    private static FederationTestTransport transport;
     private static int bookmarkId;
     private static int ticketId;
     private static int ticketNumber;
@@ -141,9 +156,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 silentCommentMentions());
         federationRepository = mock(FederationRepository.class);
 
-        var gateway = new FederatedBoardRemoteGateway(httpClient);
-        locator = new FederatedBoardLocator(
-                federationRepository, stationRepo, boardService, ticketService, new EventFederationRepository());
+        locator = new FederatedBoardLocator(federationRepository, stationRepo, boardService);
         accessService = new FederatedBoardAccessService(
                 federatedBoardService,
                 federatedBoardRepo,
@@ -153,21 +166,27 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 memberService,
                 groupService,
                 tagService);
+        transport = new FederationTestTransport(httpClient, federationRepository, stationRepo);
+        var guards = new FederatedBoardGuards(
+                boardService, ticketService, federatedBoardService, new EventFederationRepository());
         discoveryService = new FederatedBoardDiscoveryService(
                 federatedBoardService,
-                accessService,
                 boardService,
                 federationService,
-                federationRepository,
                 stationRepo,
                 memberService,
-                gateway,
+                memberIdentityFactory,
+                transport.transport(),
+                guards,
                 locator,
                 new FederationFanout(new TaskScheduler()));
-        structureProxy = new FederatedBoardStructureProxy(boardService, gateway, locator);
+        structureProxy = new FederatedBoardStructureProxy(boardService, locator, transport.transport(), guards);
         ticketProxy = new FederatedTicketProxy(
-                boardService, ticketService, resolver, memberIdentityFactory, gateway, locator);
-        ticketDetailProxy = new FederatedTicketDetailProxy(boardService, ticketService, resolver, gateway, locator);
+                boardService, ticketService, resolver, memberIdentityFactory, locator, transport.transport(), guards);
+        ticketDetailProxy = new FederatedTicketDetailProxy(
+                boardService, ticketService, resolver, locator, transport.transport(), guards);
+        transport.serve(discoveryService, structureProxy, ticketProxy, ticketDetailProxy);
+        when(httpClient.canSign(anyInt())).thenReturn(true);
 
         station1 = stationRepo.create("ProxyStation1");
         station2 = stationRepo.create("ProxyStation2");
@@ -189,6 +208,46 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 .map(row -> row.getInt("id"))
                 .first()
                 .orElseThrow();
+        servingId = Query.query(
+                        "INSERT INTO federation_partner(station_id, partner_station_id, status) VALUES (:s, :p::UUID, 'ACTIVE') RETURNING id;")
+                .single(Call.of()
+                        .bind("s", station2.id())
+                        .bind("p", station1.uid(), StandardValueConverter.UUID_STRING))
+                .map(row -> row.getInt("id"))
+                .first()
+                .orElseThrow();
+        when(federationRepository.findPartnerByStationAndRemoteUid(station2.id(), station1.uid()))
+                .thenReturn(Optional.of(servingRow()));
+    }
+
+    /**
+     * The row the board's station holds for the asking station, which is what its share targets name.
+     */
+    private static FederationPartner servingRow() {
+        return new FederationPartner(
+                servingId,
+                station2.id(),
+                station1.uid(),
+                null,
+                null,
+                null,
+                FederationPartner.FederationStatus.ACTIVE,
+                null,
+                Instant.now(),
+                Instant.now(),
+                null,
+                null);
+    }
+
+    /**
+     * Shares the board with the asking station the way the owning station records it.
+     */
+    private static void shareWithAskingStation(BoardShareMode mode) {
+        federatedBoardService.shareBoard(
+                boardId,
+                List.of(
+                        new FederatedBoardService.PartnerShareConfig(partnerId, mode),
+                        new FederatedBoardService.PartnerShareConfig(servingId, mode)));
     }
 
     @AfterAll
@@ -206,11 +265,8 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void discoverBoardsFindsSharedBoard() {
-        // Share the board with the partner
-        federatedBoardService.shareBoard(
-                boardId, List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.READ_ONLY)));
+        shareWithAskingStation(BoardShareMode.READ_ONLY);
 
-        // Mock federation service to return a local partner
         var partner = new FederationPartner(
                 partnerId,
                 station1.id(),
@@ -627,8 +683,8 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
 
         when(httpClient.getList(
                         eq("https://remote.example.com"), pathIs("/remote/boards"), any(), eq(station1.id()), any()))
-                .thenReturn(List.of(new FederatedBoardDiscoveryService.RemoteDiscoveredBoard(
-                        UUID.randomUUID().toString(),
+                .thenReturn(List.of(new RemoteBoardRoutes.RemoteSharedBoardResponse(
+                        UUID.randomUUID(),
                         "Remote Board",
                         "RMT",
                         "Remote desc",
@@ -670,6 +726,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         // Reset httpClient to clear the catch-all thenThrow stub - otherwise it poisons
         // subsequent when().thenReturn() calls (the when() invocation triggers the stub)
         reset(httpClient);
+        when(httpClient.canSign(anyInt())).thenReturn(true);
     }
 
     // -- DiscoveredBoard record --
@@ -737,9 +794,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     @Test
     @Order(100)
     void proxyGetBoardLocal() {
-        // Ensure FULL share mode
-        federatedBoardService.shareBoard(
-                boardId, List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.FULL)));
+        shareWithAskingStation(BoardShareMode.FULL);
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
 
         var detail = discoveryService.proxyGetBoard(partnerId, BOARD_KEY);
@@ -1061,7 +1116,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertFalse(items.isEmpty());
         int itemId = items.getFirst().id();
 
-        ticketDetailProxy.proxyDeleteChecklistItem(partnerId, BOARD_KEY, ticketNumber, itemId, null, null);
+        ticketDetailProxy.proxyDeleteChecklistItem(partnerId, BOARD_KEY, ticketNumber, itemId, null);
         var afterDelete = ticketService.findChecklistItems(ticketId);
         assertTrue(afterDelete.isEmpty());
     }
@@ -1122,15 +1177,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 reverseBoard.id(),
                 List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.READ_ONLY)));
 
-        // Create a second partner on station2, pointing to station1
-        int partner2Id = Query.query(
-                        "INSERT INTO federation_partner(station_id, partner_station_id, status) VALUES (:s, :p::UUID, 'ACTIVE') RETURNING id;")
-                .single(Call.of()
-                        .bind("s", station2.id())
-                        .bind("p", station1.uid(), StandardValueConverter.UUID_STRING))
-                .map(row -> row.getInt("id"))
-                .first()
-                .orElseThrow();
+        int partner2Id = servingId;
 
         // partner2 is on station2, looking at station1
         var partner2 = new FederationPartner(
@@ -1158,11 +1205,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertTrue(mode.isPresent());
         assertEquals(BoardShareMode.READ_ONLY, mode.get());
 
-        // Cleanup
         boardService.delete(reverseBoard.id());
-        Query.query("DELETE FROM federation_partner WHERE id = :id;")
-                .single(Call.of().bind("id", partner2Id))
-                .delete();
     }
 
     @Test
@@ -1501,7 +1544,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     @Order(216)
     void proxyGetWatchersRemote() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
-        var watcherData = new FederatedTicketDetailProxy.FederatedWatcherData(List.of(), List.of());
+        var watcherData = new RemoteBoardRoutes.WatcherResponse(List.of(), List.of());
         when(httpClient.get(
                         eq("https://remote.example.com"),
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/watchers"),
@@ -1657,6 +1700,13 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     @Order(224)
     void proxyRemoveTicketLabelRemote() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+        when(httpClient.post(
+                        eq("https://remote.example.com"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/labels/5/remove"),
+                        any(),
+                        any(),
+                        anyInt()))
+                .thenReturn(true);
 
         ticketDetailProxy.proxyRemoveTicketLabel(partnerId, BOARD_KEY, 1, 5, REMOTE_MEMBER_1, "Test");
         verify(httpClient)
@@ -1698,6 +1748,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         eq("https://remote.example.com"),
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
                         any(),
+                        any(),
                         anyInt()))
                 .thenReturn(true);
 
@@ -1706,6 +1757,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 .delete(
                         eq("https://remote.example.com"),
                         pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
+                        eq(new RemoteBoardRoutes.RemoteWatchRequest(REMOTE_MEMBER_1)),
                         any(),
                         anyInt());
     }
@@ -1743,7 +1795,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         anyInt()))
                 .thenReturn(true);
 
-        ticketDetailProxy.proxyDeleteChecklistItem(partnerId, BOARD_KEY, 1, 5, null, null);
+        ticketDetailProxy.proxyDeleteChecklistItem(partnerId, BOARD_KEY, 1, 5, null);
         verify(httpClient)
                 .delete(
                         eq("https://remote.example.com"),
@@ -1764,7 +1816,8 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any()))
                 .thenReturn(null);
 
-        assertThrows(NotFoundResponse.class, () -> discoveryService.proxyGetBoard(partnerId, BOARD_KEY));
+        var refused = assertThrows(RefusalResponse.class, () -> discoveryService.proxyGetBoard(partnerId, BOARD_KEY));
+        assertEquals(Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
     }
 
     @Test
@@ -1797,10 +1850,11 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any()))
                 .thenReturn(null);
 
-        assertThrows(
-                NotFoundResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> ticketProxy.proxyCreateTicket(
                         partnerId, BOARD_KEY, 1, "Title", "Desc", TicketPriority.HIGH, null, REMOTE_MEMBER_1));
+        assertEquals(Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
     }
 
     @Test
@@ -1824,9 +1878,10 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                         any()))
                 .thenReturn(null);
 
-        assertThrows(
-                NotFoundResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> ticketProxy.proxyUpdateTicket(partnerId, BOARD_KEY, 1, "X", null, null, null, null, null, null));
+        assertEquals(Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
     }
 
     @Test
@@ -1849,38 +1904,77 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
 
     @Test
     @Order(237)
-    void remotePostThrowsOnError() {
+    void remoteChangeNotTakenInIsRefused() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
-        when(httpClient.post(
+        when(httpClient.put(
                         eq("https://remote.example.com"),
-                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/reorder"),
                         any(),
                         any(),
-                        anyInt(),
-                        any()))
-                .thenThrow(new RuntimeException("Connection refused"));
+                        anyInt()))
+                .thenReturn(false);
 
-        assertThrows(
-                NotFoundResponse.class,
-                () -> ticketProxy.proxyCreateTicket(
-                        partnerId, BOARD_KEY, 1, "X", "D", TicketPriority.HIGH, null, REMOTE_1));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> ticketProxy.proxyReorderTickets(partnerId, BOARD_KEY, 1, List.of(2, 1)));
+        assertEquals(Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
     }
 
     @Test
     @Order(238)
-    void remotePutThrowsOnError() {
-        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
-        when(httpClient.put(
-                        eq("https://remote.example.com"),
-                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/move"),
-                        any(),
-                        any(),
-                        anyInt(),
-                        any()))
-                .thenThrow(new RuntimeException("Timeout"));
+    void localPartnerChangesStayOnTheSharedBoard() {
+        shareWithAskingStation(BoardShareMode.FULL);
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+        var otherBoard = boardService.createWithPreset(station2.id(), "Other", "Desc", "OTH", LanePreset.SIMPLE);
+        var otherLane = boardService.findLanes(otherBoard.id()).getFirst();
+        var otherLabel = boardService.createLabel(otherBoard.id(), "Other", "#000000");
+        var author = memberIdentityFactory.local(station1.id(), memberId);
+        var ticket =
+                ticketService.createTicket(boardId, laneId, "Guarded", null, null, TicketPriority.LOW, null, author);
+        var otherTicket = ticketService.createTicket(
+                otherBoard.id(), otherLane.id(), "Elsewhere", null, null, TicketPriority.LOW, null, author);
+        var otherItem = ticketService.addChecklistItem(otherTicket.id(), "Not yours", 0);
+        int number = ticket.ticketNumber();
 
-        assertThrows(
-                NotFoundResponse.class, () -> ticketProxy.proxyMoveTicket(partnerId, BOARD_KEY, 1, 2, 0, null, null));
+        assertRefused(
+                Refusal.REMOTE_LANE_NOT_ON_BOARD,
+                () -> ticketProxy.proxyReorderTickets(partnerId, BOARD_KEY, otherLane.id(), List.of()));
+        assertRefused(
+                Refusal.REMOTE_LANE_NOT_ON_BOARD,
+                () -> ticketProxy.proxyMoveTicket(partnerId, BOARD_KEY, number, otherLane.id(), 0, null, null));
+        assertRefused(
+                Refusal.REMOTE_CHECKLIST_ITEM_NOT_ON_TICKET,
+                () -> ticketDetailProxy.proxyUpdateChecklistItem(
+                        partnerId, BOARD_KEY, number, otherItem.id(), "Taken", true, null, null));
+        assertRefused(
+                Refusal.REMOTE_CHECKLIST_ITEM_NOT_ON_TICKET,
+                () -> ticketDetailProxy.proxyDeleteChecklistItem(partnerId, BOARD_KEY, number, otherItem.id(), null));
+        assertRefused(
+                Refusal.REMOTE_LABEL_NOT_ON_BOARD,
+                () -> ticketDetailProxy.proxyAddTicketLabel(
+                        partnerId, BOARD_KEY, number, otherLabel.id(), REMOTE_MEMBER_1, null));
+        assertEquals(
+                "Not yours",
+                ticketService.findChecklistItems(otherTicket.id()).getFirst().title());
+
+        ticketService.deleteTicket(ticket.id());
+        boardService.delete(otherBoard.id());
+    }
+
+    @Test
+    @Order(239)
+    void localPartnerCannotWriteToAReadOnlyBoard() {
+        shareWithAskingStation(BoardShareMode.READ_ONLY);
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+
+        assertRefused(
+                Refusal.REMOTE_BOARD_NOT_WRITABLE,
+                () -> structureProxy.proxyCreateLabel(partnerId, BOARD_KEY, "Nope", null));
+
+        shareWithAskingStation(BoardShareMode.FULL);
+    }
+
+    private static void assertRefused(Refusal expected, Executable call) {
+        assertEquals(expected, assertThrows(RefusalResponse.class, call).refusal());
     }
 
     @Test
@@ -2021,7 +2115,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         assertTrue(updated.getFirst().checked());
 
         ticketDetailProxy.proxyDeleteChecklistItem(
-                partnerId, BOARD_KEY, ticket.ticketNumber(), item.id(), REMOTE_MEMBER_1, "Partner Member");
+                partnerId, BOARD_KEY, ticket.ticketNumber(), item.id(), REMOTE_MEMBER_1);
         assertTrue(ticketDetailProxy
                 .proxyGetChecklist(partnerId, BOARD_KEY, ticket.ticketNumber())
                 .isEmpty());
@@ -2142,19 +2236,24 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
 
         federatedBoardService.shareBoard(
                 boardId, List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.FULL)));
+        when(federationRepository.findPartnerByStationAndRemoteUid(station2.id(), station1.uid()))
+                .thenReturn(Optional.of(servingRow()));
         reset(memberService);
     }
 
     @Test
     @Order(314)
-    void discoverBoardsMergesReverseSharedBoards() {
+    void discoverBoardsListsOnlyWhatTheOwningStationShares() {
         when(federationService.findPartners(station1.id())).thenReturn(List.of(localPartner()));
         when(federationService.hasCapability(
                         any(FederationPartner.class), eq(CapabilityType.BOARD_SHARE), eq(Direction.IMPORT)))
                 .thenReturn(true);
-        when(federationRepository.findPartnerByStationAndRemoteUid(station2.id(), station1.uid()))
-                .thenReturn(Optional.of(localPartner()));
+        federatedBoardService.shareBoard(
+                boardId, List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.FULL)));
 
+        assertTrue(discoveryService.discoverBoards(station1.id()).isEmpty());
+
+        shareWithAskingStation(BoardShareMode.FULL);
         var discovered = discoveryService.discoverBoards(station1.id());
         assertEquals(1, discovered.size());
         assertEquals(boardUid, discovered.getFirst().remoteBoardUid());
@@ -2215,6 +2314,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     @Order(323)
     void proxyCreateLinkRemote() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+        when(httpClient.post(any(), any(), any(), any(), anyInt())).thenReturn(true);
 
         ticketDetailProxy.proxyCreateLink(
                 partnerId, BOARD_KEY, 1, 2, LinkType.BLOCKS, REMOTE_MEMBER_1, "Partner Member");
@@ -2231,6 +2331,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     @Order(324)
     void proxyDeleteLinkRemote() {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+        when(httpClient.delete(any(), any(), any(), any(), anyInt())).thenReturn(true);
 
         ticketDetailProxy.proxyDeleteLink(partnerId, BOARD_KEY, 1, 2, REMOTE_MEMBER_1, "Partner Member");
         verify(httpClient)
@@ -2244,17 +2345,49 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
 
     @Test
     @Order(325)
-    void remoteGetWrapsTransportFailure() {
-        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
-        when(httpClient.get(
-                        eq("https://remote.example.com"),
-                        pathIs("/remote/boards/" + BOARD_KEY),
-                        any(),
-                        anyInt(),
-                        any()))
-                .thenThrow(new RuntimeException("Connection refused"));
+    void localPartnerCannotReadABoardNotSharedWithIt() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+        federatedBoardService.shareBoard(
+                boardId, List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.FULL)));
 
-        assertThrows(NotFoundResponse.class, () -> discoveryService.proxyGetBoard(partnerId, BOARD_KEY));
+        var refused = assertThrows(RefusalResponse.class, () -> ticketProxy.proxyListTickets(partnerId, BOARD_KEY));
+        assertEquals(Refusal.REMOTE_BOARD_NOT_SHARED, refused.refusal());
+
+        shareWithAskingStation(BoardShareMode.FULL);
+    }
+
+    @Test
+    @Order(330)
+    void boardReadsAnswerTheSameOnThisInstance() {
+        shareWithAskingStation(BoardShareMode.FULL);
+        var asking = localPartner();
+        var author = memberIdentityFactory.local(station1.id(), memberId);
+        var ticket = ticketService.createTicket(
+                boardId, laneId, "Parity", "Same both ways", null, TicketPriority.LOW, null, author);
+        ticketService.createComment(ticket.id(), null, author, "Hi");
+        int number = ticket.ticketNumber();
+        transport.assertParity(
+                asking, RemoteBoardRoutes.LIST_SHARED_BOARDS.at(), null, RemoteSharedBoardResponse.class);
+        transport.assertParity(asking, RemoteBoardRoutes.GET_BOARD.at(BOARD_KEY), null, FederatedBoardDetail.class);
+        transport.assertParity(asking, RemoteBoardRoutes.GET_LANES.at(BOARD_KEY), null, BoardLane.class);
+        transport.assertParity(asking, RemoteBoardRoutes.GET_ACCESS.at(BOARD_KEY), null, RemoteAccessResponse.class);
+        transport.assertParity(
+                asking,
+                RemoteBoardTicketRoutes.SEARCH_TICKETS.at(BOARD_KEY).query("q", "Parity"),
+                null,
+                TicketSummary.class);
+        transport.assertParity(
+                asking, RemoteBoardTicketRoutes.GET_TICKET.at(BOARD_KEY, number), null, BoardTicket.class);
+        transport.assertParity(
+                asking,
+                RemoteBoardTicketRoutes.GET_HISTORY.at(BOARD_KEY, number),
+                null,
+                BoardTicketHistoryResponse.class);
+        transport.assertParity(
+                asking, RemoteBoardTicketDetailRoutes.GET_COMMENTS.at(BOARD_KEY, number), null, CommentResponse.class);
+        transport.assertParity(
+                asking, RemoteBoardTicketDetailRoutes.GET_WATCHERS.at(BOARD_KEY, number), null, WatcherResponse.class);
+        ticketService.deleteTicket(ticket.id());
     }
 
     @Test

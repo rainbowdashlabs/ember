@@ -35,9 +35,9 @@ import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 public class LendingRepository {
     private static final String LENDING_REQUEST_COLUMNS = """
             id, requesting_station_uid, owning_station_uid, status, requested_date_from, \
-            requested_date_to, created_by, created_at, updated_at, event_id, event_date, occasion""";
+            requested_date_to, created_by, created_at, updated_at, event_id, event_date, occasion, uid""";
     private static final String LENDING_REQUEST_ITEM_COLUMNS =
-            "id, request_id, inventory_id, item_id, art_id, quantity, need_id";
+            "id, request_id, inventory_id, item_id, art_id, quantity, need_id, label";
     private static final String LENDING_MESSAGE_COLUMNS =
             "id, request_id, sender_station_uid, sender_member_id, message, is_system, created_at";
     private static final String INVENTORY_BLOCK_COLUMNS =
@@ -54,12 +54,42 @@ public class LendingRepository {
             Integer eventId,
             LocalDate eventDate,
             String occasion) {
+        return createRequest(
+                UUID.randomUUID(),
+                requestingStationUid,
+                owningStationUid,
+                dateFrom,
+                dateTo,
+                createdBy,
+                eventId,
+                eventDate,
+                occasion);
+    }
+
+    /**
+     * Writes a request down under the identity it carries between the two stations.
+     *
+     * @param uid       the identity both copies of the request share
+     * @param createdBy the member who asked, or {@code null} where that member is on another instance
+     * @return the stored request
+     */
+    public LendingRequest createRequest(
+            UUID uid,
+            UUID requestingStationUid,
+            UUID owningStationUid,
+            LocalDate dateFrom,
+            LocalDate dateTo,
+            Integer createdBy,
+            Integer eventId,
+            LocalDate eventDate,
+            String occasion) {
         return insertReturning(
                 """
-                INSERT INTO federation_lending_request(requesting_station_uid, owning_station_uid, status, requested_date_from, requested_date_to, created_by, event_id, event_date, occasion)
-                VALUES (:requesting_station_uid::uuid, :owning_station_uid::uuid, :status, :date_from, :date_to, :created_by, :event_id, :event_date, :occasion)
+                INSERT INTO federation_lending_request(uid, requesting_station_uid, owning_station_uid, status, requested_date_from, requested_date_to, created_by, event_id, event_date, occasion)
+                VALUES (:uid::uuid, :requesting_station_uid::uuid, :owning_station_uid::uuid, :status, :date_from, :date_to, :created_by, :event_id, :event_date, :occasion)
                 RETURNING %s;""",
-                call().bind("requesting_station_uid", requestingStationUid, StandardValueConverter.UUID_STRING)
+                call().bind("uid", uid, StandardValueConverter.UUID_STRING)
+                        .bind("requesting_station_uid", requestingStationUid, StandardValueConverter.UUID_STRING)
                         .bind("owning_station_uid", owningStationUid, StandardValueConverter.UUID_STRING)
                         .bind("status", LendingStatus.REQUESTED)
                         .bind("date_from", dateFrom)
@@ -90,6 +120,50 @@ public class LendingRepository {
 
     public Optional<LendingRequest> findRequestById(int id) {
         return findById("federation_lending_request", LENDING_REQUEST_COLUMNS, id, LendingRequest.map());
+    }
+
+    /**
+     * This instance's copy of a request, found by the identity both copies share.
+     *
+     * @param uid the request's identity between the two stations
+     * @return the request, if this instance holds a copy
+     */
+    public Optional<LendingRequest> findRequestByUid(UUID uid) {
+        return query("""
+                SELECT %s FROM federation_lending_request
+                WHERE uid = :uid::uuid;""", LENDING_REQUEST_COLUMNS)
+                .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING))
+                .map(LendingRequest.map())
+                .first();
+    }
+
+    /**
+     * Removes a request this instance wrote down and could not deliver.
+     *
+     * @param uid the request's identity between the two stations
+     * @return true when a row went
+     */
+    public boolean deleteRequest(UUID uid) {
+        return query("DELETE FROM federation_lending_request WHERE uid = :uid::uuid;")
+                .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING))
+                .delete()
+                .changed();
+    }
+
+    /**
+     * Names the lines of a request, in the order they were written, with what the lending station
+     * calls them.
+     *
+     * @param requestId the request
+     * @param labels    one name per line, in line order
+     */
+    public void labelItems(int requestId, List<String> labels) {
+        var items = findItemsByRequest(requestId);
+        for (int i = 0; i < items.size() && i < labels.size(); i++) {
+            query("UPDATE federation_lending_request_item SET label = :label WHERE id = :id;")
+                    .single(call().bind("id", items.get(i).id()).bind("label", labels.get(i)))
+                    .update();
+        }
     }
 
     public List<LendingRequest> findRequestsByStation(UUID stationUid) {

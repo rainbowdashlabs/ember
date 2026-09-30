@@ -15,9 +15,13 @@ import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteBoardRenamedWebhook;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteBoardUnsharedWebhook;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteShareModeChangedWebhook;
 import dev.chojo.ember.feature.board.route.RemoteBoardWebhookRoutes;
 import dev.chojo.ember.feature.board.service.FederatedBoardService.PartnerShareConfig;
-import dev.chojo.ember.feature.federation.service.FederationWebhookService;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.UserTagService;
@@ -57,7 +61,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
 
     private static FederatedBoardService service;
     private static FederatedBoardNotificationService notificationService;
-    private static FederationWebhookService webhookService;
+    private static FederationTransport transport;
     private static BoardTicketService ticketService;
 
     private static Station station;
@@ -75,8 +79,9 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         service = new FederatedBoardService(federatedBoardRepo);
-        webhookService = mock(FederationWebhookService.class);
-        notificationService = new FederatedBoardNotificationService(webhookService, service, boardRepo);
+        transport = mock(FederationTransport.class);
+        notificationService =
+                new FederatedBoardNotificationService(transport, new FederationRepository(), service, boardRepo);
         var fbBackend = new LocalStorageBackend();
         var fbResolver = new StorageBackendResolver(fbBackend);
         var fbStorage = new StorageService(fbResolver, fbBackend);
@@ -466,110 +471,54 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 TicketPriority.LOW,
                 null,
                 memberIdentityFactory.local(station.id(), member.id()));
-        reset(webhookService);
-        // notifyFederatedWatchers was a no-op placeholder and has been removed; federated watcher
-        // notifications now flow through the domain event system.
-        verifyNoInteractions(webhookService);
+        reset(transport);
+        verifyNoInteractions(transport);
         ticketService.deleteTicket(ticket2.id());
-    }
-
-    @Test
-    @Order(110)
-    void notifyMentionOnlyForFullMode() {
-        reset(webhookService);
-        // partnerId is FULL
-        notificationService.notifyMention(partnerId, boardId, ticketId, "FTB-1", REMOTE_MEMBER_1);
-        verify(webhookService)
-                .notifyPartner(
-                        eq(partnerId),
-                        eq(RemoteBoardWebhookRoutes.MENTION.at()),
-                        eq(new FederatedBoardNotificationService.TicketMemberPayload(
-                                boardUid, "FTB-1", REMOTE_MEMBER_1)));
-
-        reset(webhookService);
-        // partner2Id is READ_ONLY
-        notificationService.notifyMention(partner2Id, boardId, ticketId, "FTB-1", REMOTE_MEMBER_2);
-        verifyNoInteractions(webhookService);
-    }
-
-    @Test
-    @Order(120)
-    void notifyAssignment() {
-        reset(webhookService);
-        notificationService.notifyAssignment(partnerId, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
-        verify(webhookService)
-                .notifyPartner(
-                        eq(partnerId),
-                        eq(RemoteBoardWebhookRoutes.ASSIGNMENT.at()),
-                        eq(new FederatedBoardNotificationService.TicketMemberPayload(
-                                boardUid, "FTB-1", REMOTE_ASSIGNEE)));
-    }
-
-    @Test
-    @Order(121)
-    void notifyAssignmentReadOnlySkipped() {
-        reset(webhookService);
-        notificationService.notifyAssignment(partner2Id, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
-        verifyNoInteractions(webhookService);
-    }
-
-    @Test
-    @Order(130)
-    void notifyUnassignment() {
-        reset(webhookService);
-        notificationService.notifyUnassignment(partnerId, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
-        verify(webhookService)
-                .notifyPartner(
-                        eq(partnerId),
-                        eq(RemoteBoardWebhookRoutes.UNASSIGNMENT.at()),
-                        eq(new FederatedBoardNotificationService.TicketMemberPayload(
-                                boardUid, "FTB-1", REMOTE_ASSIGNEE)));
-    }
-
-    @Test
-    @Order(131)
-    void notifyUnassignmentReadOnlySkipped() {
-        reset(webhookService);
-        notificationService.notifyUnassignment(partner2Id, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
-        verifyNoInteractions(webhookService);
     }
 
     @Test
     @Order(140)
     void notifyBoardRenamed() {
-        reset(webhookService);
+        reset(transport);
         notificationService.notifyBoardRenamed(partnerId, boardId, "New Name", "NN");
-        verify(webhookService)
-                .notifyPartner(
-                        eq(partnerId),
+        verify(transport)
+                .notify(
+                        argThat(partner -> partner.id() == partnerId),
                         eq(RemoteBoardWebhookRoutes.BOARD_RENAMED.at()),
-                        eq(new FederatedBoardNotificationService.BoardRenamedPayload(boardUid, "New Name", "NN")));
-        verifyNoMoreInteractions(webhookService);
+                        eq(new RemoteBoardRenamedWebhook(boardUid, "New Name", "NN")));
+        verifyNoMoreInteractions(transport);
     }
 
     @Test
     @Order(150)
     void notifyBoardUnshared() {
-        reset(webhookService);
+        reset(transport);
         notificationService.notifyBoardUnshared(partnerId, boardId);
-        verify(webhookService)
-                .notifyPartner(
-                        eq(partnerId),
+        verify(transport)
+                .notify(
+                        argThat(partner -> partner.id() == partnerId),
                         eq(RemoteBoardWebhookRoutes.BOARD_UNSHARED.at()),
-                        eq(new FederatedBoardNotificationService.BoardUnsharedPayload(boardUid)));
-        verifyNoMoreInteractions(webhookService);
+                        eq(new RemoteBoardUnsharedWebhook(boardUid)));
+        verifyNoMoreInteractions(transport);
     }
 
     @Test
     @Order(160)
     void notifyShareModeChanged() {
-        reset(webhookService);
+        reset(transport);
         notificationService.notifyShareModeChanged(partnerId, boardId, BoardShareMode.READ_ONLY);
-        verify(webhookService)
-                .notifyPartner(
-                        eq(partnerId),
+        verify(transport)
+                .notify(
+                        argThat(partner -> partner.id() == partnerId),
                         eq(RemoteBoardWebhookRoutes.SHARE_MODE_CHANGED.at()),
-                        eq(new FederatedBoardNotificationService.ShareModeChangedPayload(
-                                boardUid, BoardShareMode.READ_ONLY)));
+                        eq(new RemoteShareModeChangedWebhook(boardUid, BoardShareMode.READ_ONLY)));
+    }
+
+    @Test
+    @Order(170)
+    void aMissingBoardTellsNobody() {
+        reset(transport);
+        notificationService.notifyBoardUnshared(partnerId, -1);
+        verifyNoInteractions(transport);
     }
 }

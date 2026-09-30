@@ -6,39 +6,50 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
+import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
 import dev.chojo.ember.feature.board.entity.BoardTicketTransitionResponse;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteCreateTicketRequest;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteMoveTicketRequest;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteReorderRequest;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteUpdateTicketRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketRoutes;
+import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
+import dev.chojo.ember.feature.federation.transport.FederationServer;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
+import dev.chojo.ember.feature.federation.transport.PathParams;
+import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
 /**
- * Proxies the ticket lifecycle of a federated board - listing, searching, creating, editing,
- * moving and deleting tickets, plus their transition and history trails.
+ * The ticket lifecycle of a federated board - listing, searching, creating, editing, moving and
+ * deleting tickets, plus their transition and history trails: asks the owning station for it, and
+ * answers partners asking about the tickets of this station's shared boards.
  */
 @Singleton
-public class FederatedTicketProxy {
+public class FederatedTicketProxy implements FederationServer {
     private static final Logger log = LoggerFactory.getLogger(FederatedTicketProxy.class);
 
     private final BoardService boardService;
     private final BoardTicketService ticketService;
     private final MemberNameResolver memberNameResolver;
     private final MemberIdentityFactory memberIdentityFactory;
-    private final FederatedBoardRemoteGateway gateway;
     private final FederatedBoardLocator locator;
+    private final FederationTransport transport;
+    private final FederatedBoardGuards guards;
 
     @Inject
     public FederatedTicketProxy(
@@ -46,14 +57,216 @@ public class FederatedTicketProxy {
             BoardTicketService ticketService,
             MemberNameResolver memberNameResolver,
             MemberIdentityFactory memberIdentityFactory,
-            FederatedBoardRemoteGateway gateway,
-            FederatedBoardLocator locator) {
+            FederatedBoardLocator locator,
+            FederationTransport transport,
+            FederatedBoardGuards guards) {
         this.boardService = boardService;
         this.ticketService = ticketService;
         this.memberNameResolver = memberNameResolver;
         this.memberIdentityFactory = memberIdentityFactory;
-        this.gateway = gateway;
         this.locator = locator;
+        this.transport = transport;
+        this.guards = guards;
+    }
+
+    @Override
+    public void serveOn(FederationEndpoints endpoints) {
+        endpoints.serve(RemoteBoardTicketRoutes.LIST_TICKETS, (partner, params, body) -> serveTickets(partner, params));
+        endpoints.serve(
+                RemoteBoardTicketRoutes.SEARCH_TICKETS, (partner, params, body) -> serveSearch(partner, params));
+        endpoints.<RemoteCreateTicketRequest, BoardTicket>serve(
+                RemoteBoardTicketRoutes.CREATE_TICKET, this::serveNewTicket);
+        endpoints.<RemoteReorderRequest, Void>serve(RemoteBoardTicketRoutes.REORDER_TICKETS, this::serveReorder);
+        endpoints.serve(RemoteBoardTicketRoutes.GET_TICKET, (partner, params, body) -> serveTicket(partner, params));
+        endpoints.<RemoteUpdateTicketRequest, BoardTicket>serve(
+                RemoteBoardTicketRoutes.UPDATE_TICKET, this::serveTicketUpdate);
+        endpoints.serve(
+                RemoteBoardTicketRoutes.DELETE_TICKET, (partner, params, body) -> serveDeletion(partner, params));
+        endpoints.<RemoteMoveTicketRequest, BoardTicket>serve(RemoteBoardTicketRoutes.MOVE_TICKET, this::serveMove);
+        endpoints.serve(
+                RemoteBoardTicketRoutes.GET_TRANSITIONS, (partner, params, body) -> serveTransitions(partner, params));
+        endpoints.serve(RemoteBoardTicketRoutes.GET_HISTORY, (partner, params, body) -> serveHistory(partner, params));
+        endpoints.serve(
+                RemoteBoardTicketRoutes.GET_ATTACHMENTS, (partner, params, body) -> serveAttachments(partner, params));
+    }
+
+    /**
+     * The tickets of a board this station shares with the partner.
+     *
+     * @param partner the partnership the request arrived on
+     * @param params  names the board
+     * @return a summary per ticket
+     */
+    public List<TicketSummary> serveTickets(ServingPartner partner, PathParams params) {
+        return summarize(ticketService.findByBoard(guards.viewableBoardId(partner, params)));
+    }
+
+    /**
+     * The tickets of a shared board matching the {@code q} query parameter, every ticket without one.
+     *
+     * @param partner the partnership the request arrived on
+     * @param params  names the board and carries the query
+     * @return a summary per matching ticket
+     */
+    public List<TicketSummary> serveSearch(ServingPartner partner, PathParams params) {
+        int boardId = guards.viewableBoardId(partner, params);
+        return summarize(params.query("q")
+                .filter(query -> !query.isBlank())
+                .map(query -> ticketService.search(boardId, query))
+                .orElseGet(() -> ticketService.findByBoard(boardId)));
+    }
+
+    /**
+     * One ticket of a shared board, with the names of its assignee and creator.
+     *
+     * @param partner the partnership the request arrived on
+     * @param params  names the board and the ticket number
+     * @return the ticket
+     */
+    public BoardTicket serveTicket(ServingPartner partner, PathParams params) {
+        return enrichTicket(ticketService
+                .findById(guards.viewableTicketId(partner, params))
+                .orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_ON_READ::raise));
+    }
+
+    /**
+     * The lane transitions of a ticket on a shared board.
+     *
+     * @param partner the partnership the request arrived on
+     * @param params  names the board and the ticket number
+     * @return the transitions with resolved actors
+     */
+    public List<BoardTicketTransitionResponse> serveTransitions(ServingPartner partner, PathParams params) {
+        return ticketService.findTransitions(guards.viewableTicketId(partner, params)).stream()
+                .map(transition -> {
+                    var resolved = memberNameResolver.resolveDisplay(transition.actor());
+                    return BoardTicketTransitionResponse.from(transition, resolved.identity(), resolved.name());
+                })
+                .toList();
+    }
+
+    /**
+     * The change history of a ticket on a shared board.
+     *
+     * @param partner the partnership the request arrived on
+     * @param params  names the board and the ticket number
+     * @return the history entries with resolved actors
+     */
+    public List<BoardTicketHistoryResponse> serveHistory(ServingPartner partner, PathParams params) {
+        return ticketService.findHistory(guards.viewableTicketId(partner, params)).stream()
+                .map(entry -> {
+                    var resolved = memberNameResolver.resolveDisplay(entry.actor());
+                    return BoardTicketHistoryResponse.from(entry, resolved.identity(), resolved.name());
+                })
+                .toList();
+    }
+
+    /**
+     * The attachments of a ticket on a shared board.
+     *
+     * @param partner the partnership the request arrived on
+     * @param params  names the board and the ticket number
+     * @return the attachments
+     */
+    public List<BoardTicketAttachment> serveAttachments(ServingPartner partner, PathParams params) {
+        return ticketService.findAttachments(guards.viewableTicketId(partner, params));
+    }
+
+    /**
+     * Opens a ticket on a board the partner may write to, in the lane it names or the board's first.
+     *
+     * @param partner the partnership the request arrived on
+     * @param params  names the board
+     * @param request the ticket and the partner's member opening it
+     * @return the new ticket
+     */
+    public BoardTicket serveNewTicket(ServingPartner partner, PathParams params, RemoteCreateTicketRequest request) {
+        int boardId = guards.writableBoardId(partner, params);
+        int laneId = request.laneId() != null
+                ? guards.laneOnBoard(boardId, request.laneId())
+                : boardService.findLanes(boardId).getFirst().id();
+        return ticketService.createTicket(
+                boardId,
+                laneId,
+                request.title(),
+                request.description(),
+                null,
+                request.priority() != null ? TicketPriority.valueOf(request.priority()) : TicketPriority.MEDIUM,
+                request.dueDate() != null ? LocalDate.parse(request.dueDate()) : null,
+                new MemberIdentity(partner.askingStationUid(), request.remoteMemberId()));
+    }
+
+    /**
+     * Changes the fields of a ticket on a board the partner may write to. Fields left out stay.
+     *
+     * @param partner the partnership the request arrived on
+     * @param params  names the board and the ticket number
+     * @param request the changed fields and the partner's member making the change
+     * @return the ticket as it is now
+     */
+    public BoardTicket serveTicketUpdate(ServingPartner partner, PathParams params, RemoteUpdateTicketRequest request) {
+        int ticketId = guards.writableTicketId(partner, params);
+        MemberIdentity assignee = request.assignedMemberId() != null
+                ? memberIdentityFactory.local(partner.servingStationId(), request.assignedMemberId())
+                : null;
+        guards.cacheName(partner, request.remoteMemberUid(), request.displayName());
+        ticketService.updateTicket(
+                ticketId,
+                request.title(),
+                request.description(),
+                assignee,
+                request.priority() != null ? TicketPriority.valueOf(request.priority()) : null,
+                request.dueDate() != null ? LocalDate.parse(request.dueDate()) : null,
+                guards.actor(partner, request.remoteMemberUid()));
+        return ticketService.findById(ticketId).orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_AFTER_UPDATE::raise);
+    }
+
+    /**
+     * Moves a ticket to a lane of its own board.
+     *
+     * @param partner the partnership the request arrived on
+     * @param params  names the board and the ticket number
+     * @param request the target lane and position and the partner's member moving it
+     * @return the ticket as it is now
+     */
+    public BoardTicket serveMove(ServingPartner partner, PathParams params, RemoteMoveTicketRequest request) {
+        int ticketId = guards.writableTicketId(partner, params);
+        var ticket = ticketService.findById(ticketId).orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_ON_MOVE::raise);
+        int toLaneId = guards.laneOnBoard(ticket.boardId(), request.toLaneId());
+        guards.cacheName(partner, request.remoteMemberUid(), request.displayName());
+        ticketService.moveTicket(
+                ticketId,
+                ticket.laneId(),
+                toLaneId,
+                request.position(),
+                guards.actor(partner, request.remoteMemberUid()));
+        return ticketService.findById(ticketId).orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_AFTER_MOVE::raise);
+    }
+
+    /**
+     * Puts the tickets of one lane of a board the partner may write to in a new order.
+     *
+     * @param partner the partnership the request arrived on
+     * @param params  names the board
+     * @param request the lane and its tickets in their new order
+     * @return nothing
+     */
+    public Void serveReorder(ServingPartner partner, PathParams params, RemoteReorderRequest request) {
+        int boardId = guards.writableBoardId(partner, params);
+        ticketService.reorderTickets(guards.laneOnBoard(boardId, request.laneId()), request.orderedIds());
+        return null;
+    }
+
+    /**
+     * Deletes a ticket of a board the partner may write to.
+     *
+     * @param partner the partnership the request arrived on
+     * @param params  names the board and the ticket number
+     * @return nothing
+     */
+    public Void serveDeletion(ServingPartner partner, PathParams params) {
+        ticketService.deleteTicket(guards.writableTicketId(partner, params));
+        return null;
     }
 
     /**
@@ -64,11 +277,10 @@ public class FederatedTicketProxy {
      * @return the ticket summaries
      */
     public List<TicketSummary> proxyListTickets(int partnerId, String boardKey) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.getList(partner, RemoteBoardTicketRoutes.LIST_TICKETS.at(boardKey), TicketSummary.class);
-        }
-        return summarize(ticketService.findByBoard(locator.resolveBoardId(boardKey, partner)));
+        return transport.getList(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketRoutes.LIST_TICKETS.at(boardKey),
+                TicketSummary.class);
     }
 
     /**
@@ -80,17 +292,11 @@ public class FederatedTicketProxy {
      * @return the matching ticket summaries
      */
     public List<TicketSummary> proxySearchTickets(int partnerId, String boardKey, String query) {
-        var partner = locator.requirePartner(partnerId);
-        boolean blankQuery = query == null || query.isBlank();
-        if (partner.isRemote()) {
-            var request = RemoteBoardTicketRoutes.SEARCH_TICKETS.at(boardKey);
-            if (!blankQuery) {
-                request = request.query("q", query);
-            }
-            return gateway.getList(partner, request, TicketSummary.class);
+        var request = RemoteBoardTicketRoutes.SEARCH_TICKETS.at(boardKey);
+        if (query != null && !query.isBlank()) {
+            request = request.query("q", query);
         }
-        int boardId = locator.resolveBoardId(boardKey, partner);
-        return summarize(blankQuery ? ticketService.findByBoard(boardId) : ticketService.search(boardId, query));
+        return transport.getList(locator.requirePartner(partnerId), request, TicketSummary.class);
     }
 
     /**
@@ -102,13 +308,10 @@ public class FederatedTicketProxy {
      * @return the ticket
      */
     public BoardTicket proxyGetTicket(int partnerId, String boardKey, int ticketNumber) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.get(
-                    partner, RemoteBoardTicketRoutes.GET_TICKET.at(boardKey, ticketNumber), BoardTicket.class);
-        }
-        int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
-        return enrichTicket(ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new));
+        return transport.get(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketRoutes.GET_TICKET.at(boardKey, ticketNumber),
+                BoardTicket.class);
     }
 
     /**
@@ -120,20 +323,10 @@ public class FederatedTicketProxy {
      * @return the transitions with resolved actors
      */
     public List<BoardTicketTransitionResponse> proxyGetTransitions(int partnerId, String boardKey, int ticketNumber) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.getList(
-                    partner,
-                    RemoteBoardTicketRoutes.GET_TRANSITIONS.at(boardKey, ticketNumber),
-                    BoardTicketTransitionResponse.class);
-        }
-        int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
-        return ticketService.findTransitions(ticketId).stream()
-                .map(tr -> {
-                    var resolved = memberNameResolver.resolveDisplay(tr.actor());
-                    return BoardTicketTransitionResponse.from(tr, resolved.identity(), resolved.name());
-                })
-                .toList();
+        return transport.getList(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketRoutes.GET_TRANSITIONS.at(boardKey, ticketNumber),
+                BoardTicketTransitionResponse.class);
     }
 
     /**
@@ -145,20 +338,10 @@ public class FederatedTicketProxy {
      * @return the history entries with resolved actors
      */
     public List<BoardTicketHistoryResponse> proxyGetHistory(int partnerId, String boardKey, int ticketNumber) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.getList(
-                    partner,
-                    RemoteBoardTicketRoutes.GET_HISTORY.at(boardKey, ticketNumber),
-                    BoardTicketHistoryResponse.class);
-        }
-        int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
-        return ticketService.findHistory(ticketId).stream()
-                .map(h -> {
-                    var resolved = memberNameResolver.resolveDisplay(h.actor());
-                    return BoardTicketHistoryResponse.from(h, resolved.identity(), resolved.name());
-                })
-                .toList();
+        return transport.getList(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketRoutes.GET_HISTORY.at(boardKey, ticketNumber),
+                BoardTicketHistoryResponse.class);
     }
 
     /**
@@ -183,32 +366,14 @@ public class FederatedTicketProxy {
             TicketPriority priority,
             LocalDate dueDate,
             UUID remoteMemberId) {
-        var partner = locator.requirePartner(partnerId);
         log.info("Federated ticket creation on partner {} board {} by member {}", partnerId, boardKey, remoteMemberId);
-        if (partner.isRemote()) {
-            var body = new CreateTicketBody(
-                    remoteMemberId,
-                    laneId != null ? String.valueOf(laneId) : "",
-                    title != null ? title : "",
-                    description != null ? description : "",
-                    priority,
-                    dueDate);
-            return gateway.post(partner, RemoteBoardTicketRoutes.CREATE_TICKET.at(boardKey), body, BoardTicket.class);
-        }
-        int boardId = locator.resolveBoardId(boardKey, partner);
-        int effectiveLaneId = laneId != null
-                ? laneId
-                : boardService.findLanes(boardId).getFirst().id();
-        var creatorIdentity = new MemberIdentity(partner.partnerStationId(), remoteMemberId);
-        return ticketService.createTicket(
-                boardId,
-                effectiveLaneId,
-                title,
-                description,
-                null,
-                priority != null ? priority : TicketPriority.MEDIUM,
-                dueDate,
-                creatorIdentity);
+        var body = new RemoteCreateTicketRequest(
+                remoteMemberId, laneId, title, description, nameOf(priority), textOf(dueDate));
+        return transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketRoutes.CREATE_TICKET.at(boardKey),
+                body,
+                BoardTicket.class);
     }
 
     /**
@@ -237,34 +402,19 @@ public class FederatedTicketProxy {
             LocalDate dueDate,
             UUID remoteMemberUid,
             String displayName) {
-        var partner = locator.requirePartner(partnerId);
         log.info(
                 "Federated ticket update on partner {} board {} ticket {} by member {}",
                 partnerId,
                 boardKey,
                 ticketNumber,
                 remoteMemberUid);
-        if (partner.isRemote()) {
-            var body = new HashMap<String, Object>();
-            if (title != null) body.put("title", title);
-            if (description != null) body.put("description", description);
-            if (assignedMemberId != null) body.put("assignedMemberId", assignedMemberId);
-            if (priority != null) body.put("priority", priority);
-            if (dueDate != null) body.put("dueDate", dueDate);
-            if (remoteMemberUid != null) body.put("remoteMemberUid", remoteMemberUid.toString());
-            if (displayName != null) body.put("displayName", displayName);
-            return gateway.put(
-                    partner, RemoteBoardTicketRoutes.UPDATE_TICKET.at(boardKey, ticketNumber), body, BoardTicket.class);
-        }
-        int boardId = locator.resolveBoardId(boardKey, partner);
-        int ticketId = locator.resolveTicketId(boardId, ticketNumber);
-        var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
-        MemberIdentity assigneeIdentity =
-                assignedMemberId != null ? memberIdentityFactory.local(board.stationId(), assignedMemberId) : null;
-        MemberIdentity actorIdentity = locator.remoteIdentity(partner, remoteMemberUid);
-        locator.cacheNameIfPresent(partnerId, remoteMemberUid, displayName);
-        ticketService.updateTicket(ticketId, title, description, assigneeIdentity, priority, dueDate, actorIdentity);
-        return ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
+        var body = new RemoteUpdateTicketRequest(
+                title, description, assignedMemberId, nameOf(priority), textOf(dueDate), remoteMemberUid, displayName);
+        return transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketRoutes.UPDATE_TICKET.at(boardKey, ticketNumber),
+                body,
+                BoardTicket.class);
     }
 
     /**
@@ -287,7 +437,6 @@ public class FederatedTicketProxy {
             int position,
             UUID remoteMemberUid,
             String displayName) {
-        var partner = locator.requirePartner(partnerId);
         log.info(
                 "Federated ticket move on partner {} board {} ticket {} to lane {} by member {}",
                 partnerId,
@@ -295,21 +444,11 @@ public class FederatedTicketProxy {
                 ticketNumber,
                 toLaneId,
                 remoteMemberUid);
-        if (partner.isRemote()) {
-            var body = new HashMap<String, Object>();
-            body.put("toLaneId", toLaneId);
-            body.put("position", position);
-            if (remoteMemberUid != null) body.put("remoteMemberUid", remoteMemberUid.toString());
-            if (displayName != null) body.put("displayName", displayName);
-            return gateway.put(
-                    partner, RemoteBoardTicketRoutes.MOVE_TICKET.at(boardKey, ticketNumber), body, BoardTicket.class);
-        }
-        int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
-        var ticket = ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
-        MemberIdentity actorIdentity = locator.remoteIdentity(partner, remoteMemberUid);
-        locator.cacheNameIfPresent(partnerId, remoteMemberUid, displayName);
-        ticketService.moveTicket(ticketId, ticket.laneId(), toLaneId, position, actorIdentity);
-        return ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
+        return transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketRoutes.MOVE_TICKET.at(boardKey, ticketNumber),
+                new RemoteMoveTicketRequest(toLaneId, position, remoteMemberUid, displayName),
+                BoardTicket.class);
     }
 
     /**
@@ -321,13 +460,11 @@ public class FederatedTicketProxy {
      * @param orderedIds the ticket ids in their new order
      */
     public void proxyReorderTickets(int partnerId, String boardKey, int laneId, List<Integer> orderedIds) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            gateway.put(
-                    partner, RemoteBoardTicketRoutes.REORDER_TICKETS.at(boardKey), new ReorderBody(laneId, orderedIds));
-            return;
-        }
-        ticketService.reorderTickets(laneId, orderedIds);
+        transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketRoutes.REORDER_TICKETS.at(boardKey),
+                new RemoteReorderRequest(laneId, orderedIds),
+                Void.class);
     }
 
     /**
@@ -338,13 +475,12 @@ public class FederatedTicketProxy {
      * @param ticketNumber the board relative ticket number
      */
     public void proxyDeleteTicket(int partnerId, String boardKey, int ticketNumber) {
-        var partner = locator.requirePartner(partnerId);
         log.info("Federated ticket deletion on partner {} board {} ticket {}", partnerId, boardKey, ticketNumber);
-        if (partner.isRemote()) {
-            gateway.delete(partner, RemoteBoardTicketRoutes.DELETE_TICKET.at(boardKey, ticketNumber));
-            return;
-        }
-        ticketService.deleteTicket(locator.resolveTicketId(partner, boardKey, ticketNumber));
+        transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketRoutes.DELETE_TICKET.at(boardKey, ticketNumber),
+                null,
+                Void.class);
     }
 
     private List<TicketSummary> summarize(List<BoardTicket> tickets) {
@@ -361,13 +497,11 @@ public class FederatedTicketProxy {
         return ticket.withIdentities(assignee, creator);
     }
 
-    record CreateTicketBody(
-            UUID remoteMemberId,
-            String laneId,
-            String title,
-            String description,
-            TicketPriority priority,
-            LocalDate dueDate) {}
+    private static String nameOf(TicketPriority priority) {
+        return priority != null ? priority.name() : null;
+    }
 
-    record ReorderBody(int laneId, List<Integer> orderedIds) {}
+    private static String textOf(LocalDate date) {
+        return date != null ? date.toString() : null;
+    }
 }

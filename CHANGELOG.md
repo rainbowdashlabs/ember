@@ -13,6 +13,7 @@
 
 - **Preview, duplicate and a message after sending.** The form editor shows the form as it will be filled in, including the path through its pages, and forms and questions can be duplicated. A form can show its own message and a link once it is sent.
 - **Reorder questions and pages by dragging.** Questions are dragged within a page and between pages, and pages as a whole. Changed questions are no longer lost when the editor is left before saving: leaving asks first, and reopening offers them back.
+- **Lending reaches partner stations on other instances.** Gear can be browsed, requested, lent and given back between partner stations on different instances just as between stations of one instance. Both instances need this version, and a partner shows up among the offers once it has updated.
 - **Errors point at the question.** When answers cannot be sent, the form opens the page with the problem and marks each question it is about.
 - **Cancelled dates are marked everywhere.** The list of upcoming appointments, the month calendar and the personal calendar feed show a cancelled date crossed out and marked as cancelled instead of as taking place. Registering for such a date is no longer offered.
 - **SFTP and SMB storage serve several requests at once.** Pages with many pictures no longer wait for one file after another, and stations on the same cluster storage share their connections; in a test, 32 reads beside a large upload took half a second instead of four. The limits and timeouts are described in the help center's storage page.
@@ -26,6 +27,8 @@
 
 - **Entries meant for named people only were visible to the whole station.** A form, appointment, blog entry or quiz restricted to a list of named members was shown to every member of the station. It is now shown only to the people named, and to those who manage it.
 - **Hidden appointments could be read by their address.** A member could open the details, fields, registrations, comments and equipment of an appointment hidden from them by asking for it directly by its number, and the registration counts included hidden appointments. Such requests are now answered as though the appointment did not exist, unless the member may see it or edit appointments.
+- **Partner stations on the same instance could open what was not shared with them.** A partner station running on the same instance could open quizzes, test protocols and wiki articles, and read and write comments on news entries, appointments and wiki articles, that were never shared with it. It now sees exactly what a partner station on another instance sees.
+- **Partner stations could change more than the board shared with them.** A partner station allowed to edit one shared board could change checklist items, move tickets and attach labels of other boards on the same instance. Its changes now stay on the board shared with it.
 - **Notices about restricted entries reached people who could not open them.** In some cases the notice about a new form, appointment or blog entry went to members outside its audience and showed its title. It now reaches only the members who may open the entry.
 
 ### Changes
@@ -69,6 +72,11 @@
 - **Association mail in the right language and at the right time.** The association's notification mail was always written in English and its send times were read in UTC instead of local time. It now follows the language and time zone of the association's home station.
 - **No duplicate notifications.** In some cases the same notification could appear twice when two people did the same thing at the same moment. It now appears once.
 - **Former guardians were still notified.** People who had left a station could still receive notifications and mails about the members they used to look after. They no longer do.
+- **Quizzes from partner stations on other instances did not open.** A quiz shared by a partner station on another instance could not be opened as soon as it held any questions. It now opens with all of them.
+- **News and appointments shared with named partners missed partners on the same instance.** A news entry or an appointment shared with named partner stations never reached a named partner running on the same instance. It now reaches every partner it names.
+- **Comments at partner stations on other instances failed.** A member could not delete their own comment on a news entry or an appointment of a partner station on another instance, and in some cases could not start a new comment on such an appointment either. Both now work.
+- **Own boards appeared among a partner's boards.** In some cases a board a station shared with a partner on the same instance showed up in its own list of boards from that partner. The list now shows only the boards the partner shares.
+- **Tickets of partners on other instances could not be unwatched.** A member watching a ticket on a board shared by a partner station on another instance could not stop watching it. Unwatching now works.
 
 ## v26.19.5
 

@@ -8,8 +8,8 @@ package dev.chojo.ember.feature.federation.service;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpServer;
 import dev.chojo.ember.api.FederationHeaders;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteBoardRenamedWebhook;
 import dev.chojo.ember.feature.board.route.RemoteBoardWebhookRoutes;
-import dev.chojo.ember.feature.board.service.FederatedBoardNotificationService.BoardRenamedPayload;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -142,7 +142,7 @@ class FederationWebhookServiceTest {
                     .notifyPartner(
                             PARTNER_ID,
                             RemoteBoardWebhookRoutes.BOARD_RENAMED.at(),
-                            new BoardRenamedPayload(boardUid, "Renamed", "RN"));
+                            new RemoteBoardRenamedWebhook(boardUid, "Renamed", "RN"));
 
             var request = received.get();
             assertNotNull(request, "the partner was reached");

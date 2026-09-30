@@ -22,11 +22,9 @@ import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import dev.chojo.ember.feature.board.service.FederatedBoardStructureProxy;
 import dev.chojo.ember.feature.board.service.FederatedTicketDetailProxy;
 import dev.chojo.ember.feature.board.service.FederatedTicketProxy;
-import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -63,7 +61,6 @@ public class FederatedBoardRoutes implements Routes {
     private final FederatedTicketDetailProxy ticketDetailProxy;
     private final FederatedBoardLocator locator;
     private final FederationRepository federationRepository;
-    private final MemberNameResolver memberNameResolver;
 
     @Inject
     public FederatedBoardRoutes(
@@ -74,8 +71,7 @@ public class FederatedBoardRoutes implements Routes {
             FederatedTicketProxy ticketProxy,
             FederatedTicketDetailProxy ticketDetailProxy,
             FederatedBoardLocator locator,
-            FederationRepository federationRepository,
-            MemberNameResolver memberNameResolver) {
+            FederationRepository federationRepository) {
         this.federatedBoardService = federatedBoardService;
         this.accessService = accessService;
         this.discoveryService = discoveryService;
@@ -84,7 +80,6 @@ public class FederatedBoardRoutes implements Routes {
         this.ticketDetailProxy = ticketDetailProxy;
         this.locator = locator;
         this.federationRepository = federationRepository;
-        this.memberNameResolver = memberNameResolver;
     }
 
     @Override
@@ -528,9 +523,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        ctx.json(ticketDetailProxy.proxyGetComments(partnerId, boardKey, ticketNumber).stream()
-                .map(comment -> CommentResponseMapper.fromBoard(memberNameResolver, comment))
-                .toList());
+        ctx.json(ticketDetailProxy.proxyGetComments(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
@@ -916,7 +909,7 @@ public class FederatedBoardRoutes implements Routes {
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         int itemId = ctx.pathParamAsClass("itemId", Integer.class).get();
         ticketDetailProxy.proxyDeleteChecklistItem(
-                partnerId, boardKey, ticketNumber, itemId, session.member().uid(), resolveDisplayName(session));
+                partnerId, boardKey, ticketNumber, itemId, session.member().uid());
         ctx.status(204);
     }
 

@@ -178,12 +178,11 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
 
     private void deleteComment(Context ctx) {
         var session = UserSession.from(ctx);
-        boolean deleted = federationService.deleteFederatedComment(
+        federationService.deleteFederatedComment(
                 session.stationId(),
                 pathUuid(ctx, "stationuid"),
                 pathInt(ctx, "commentId"),
                 session.member().uid());
-        if (!deleted) throw Refusal.PARTNER_KB_COMMENT_NOT_DELETED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 }

@@ -148,12 +148,18 @@ class RouteConventionsTest {
      * own class it calls, is either a hole or an endpoint that genuinely belongs to no station, and
      * the second kind says so with {@link StationFree}. An instance-admin route answers for the
      * instance rather than for a station, which is the whole of its scope.
+     *
+     * <p>A {@code /remote} route the federation contract binder serves has no body in its route class:
+     * the binder resolves the partner from the signature and hands the feature's serving function the
+     * serving station's partner row, so the station is fixed before any id is read. Whether the
+     * serving function then checks the share is what each feature's parity and share tests prove.
      */
     @Test
     void everyHandlerTakingAnIdChecksTheStation() {
         List<String> unchecked = new ArrayList<>();
         for (Route route : application.routes()) {
             if (!route.takesAnId()) continue;
+            if (route.served()) continue;
             if (route.roles().stream().anyMatch(InstancePermission.class::isInstance)) continue;
             if (addressesAStationItself(route)) continue;
             if (isStationFree(route)) continue;

@@ -291,3 +291,18 @@ COMMENT ON COLUMN ember_schema.attendance_session_audience.group_id
     IS 'Group whose members the sheet expects. Exactly one of user_type and group_id is set.';
 COMMENT ON COLUMN ember_schema.attendance_session_audience.position
     IS 'Order the groups were chosen in, which is the order the sheet is written in.';
+
+ALTER TABLE ember_schema.federation_lending_request
+    ADD COLUMN uid UUID NOT NULL DEFAULT gen_random_uuid();
+
+CREATE UNIQUE INDEX idx_federation_lending_request_uid
+    ON ember_schema.federation_lending_request (uid);
+
+COMMENT ON COLUMN ember_schema.federation_lending_request.uid
+    IS 'The identity the request carries between the two stations. A request to a station on another instance is kept on both instances under the same uid; between stations of one instance it is the one row both of them share.';
+
+ALTER TABLE ember_schema.federation_lending_request_item
+    ADD COLUMN label TEXT NOT NULL DEFAULT '';
+
+COMMENT ON COLUMN ember_schema.federation_lending_request_item.label
+    IS 'What the line asks for, in words, as the lending station named it. Kept on the borrowing station''s copy of a request to a station on another instance, whose inventories are not here to name it. Empty where the line names gear of this instance.';

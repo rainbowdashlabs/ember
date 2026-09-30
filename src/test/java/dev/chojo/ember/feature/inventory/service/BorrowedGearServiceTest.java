@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
+import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
@@ -67,9 +68,10 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
     static void setup() {
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
+        var transport = new FederationTestTransport(mock(FederationHttpClient.class), federationRepo, stationRepo);
         lending = new LendingService(
                 new LendingRepository(),
-                mock(FederationHttpClient.class),
+                transport.transport(),
                 federationService,
                 new FederationFanout(new TaskScheduler()),
                 stationRepo,
@@ -86,6 +88,7 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
                         eventRepo,
                         occurrenceCalendar),
                 new DomainEventBus(Set.of()));
+        transport.serve(lending);
 
         owner = stationRepo.create("BorrowedGearOwner");
         borrower = stationRepo.create("BorrowedGearBorrower");

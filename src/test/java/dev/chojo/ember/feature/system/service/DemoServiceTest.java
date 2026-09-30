@@ -53,6 +53,7 @@ import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
@@ -186,7 +187,8 @@ class DemoServiceTest extends RepositoryTestBase {
         contractRefreshRef.set(
                 new FederationContractRefreshService(federationRepo, federationHttpClient, new TaskScheduler()));
         var federationFanout = new FederationFanout(new TaskScheduler());
-        var federationEntityResolver = new FederationEntityResolver(federationRepo, federationHttpClient);
+        var federationEntityResolver = new FederationEntityResolver(federationRepo);
+        var federationTransport = mock(FederationTransport.class);
 
         var eventServices = newEventServices(noOpBus);
         var newsService = new NewsService(
@@ -263,9 +265,10 @@ class DemoServiceTest extends RepositoryTestBase {
                 kbSearchService,
                 federationService,
                 federationRepo,
-                federationHttpClient,
+                federationTransport,
                 stationRepo,
                 kbCommentRepo,
+                kbCommentService,
                 eventFederationRepo,
                 memberNameResolver,
                 federationFanout,
@@ -283,10 +286,10 @@ class DemoServiceTest extends RepositoryTestBase {
                 testProtocolRepo,
                 federationService,
                 federationRepo,
-                federationHttpClient,
                 stationRepo,
                 federationFanout,
-                federationEntityResolver);
+                federationEntityResolver,
+                federationTransport);
         var imageVariantStorage = new StorageService(new StorageBackendResolver(kbBackend), kbBackend);
         var imageVariantWriter = new ImageVariants(imageVariantStorage);
         var avatarService = new AvatarService(imageVariantWriter);
@@ -315,7 +318,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var eventFederationService = new EventFederationService(
                 eventFederationRepo,
                 federationService,
-                federationHttpClient,
+                federationTransport,
                 federationRepo,
                 stationRepo,
                 eventServices.crud(),
@@ -340,7 +343,6 @@ class DemoServiceTest extends RepositoryTestBase {
                 newsFederationRepo,
                 federationService,
                 federationRepo,
-                federationHttpClient,
                 stationRepo,
                 newsService,
                 new NewsAttachmentService(
@@ -352,10 +354,11 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventFederationRepo,
                 memberNameResolver,
                 federationFanout,
-                federationEntityResolver);
+                federationEntityResolver,
+                federationTransport);
         var lendingService = new LendingService(
                 lendingRepo,
-                federationHttpClient,
+                federationTransport,
                 federationService,
                 federationFanout,
                 stationRepo,

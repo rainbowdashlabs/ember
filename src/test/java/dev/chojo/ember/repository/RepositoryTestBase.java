@@ -78,6 +78,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
+import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
@@ -804,14 +805,17 @@ public abstract class RepositoryTestBase {
 
     /**
      * The lending service with a remote half the caller can drive, for the tests that walk the
-     * server-to-server path.
+     * server-to-server path. Partners on this instance are answered by the service's own serving
+     * functions, as in the application.
      */
     protected static LendingService newLendingService(
             DomainEventBus eventBus, EquipmentAvailabilityService availability, FederationHttpClient httpClient) {
-        return new LendingService(
+        var federationRepo = new FederationRepository();
+        var transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
+        var lending = new LendingService(
                 new LendingRepository(),
-                httpClient,
-                new FederationService(new FederationRepository(), stationRepo, TestStationKeys.store(), new Api()),
+                transport.transport(),
+                new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api()),
                 new FederationFanout(new TaskScheduler()),
                 stationRepo,
                 inventoryRepo,
@@ -823,6 +827,8 @@ public abstract class RepositoryTestBase {
                 lineTargetService,
                 availability,
                 eventBus);
+        transport.serve(lending);
+        return lending;
     }
 
     /**

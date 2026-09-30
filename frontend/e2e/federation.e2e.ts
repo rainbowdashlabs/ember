@@ -3,7 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, stopAnsweringStepUpPrompts} from './fixtures/auth'
+import {proveFreshly, stopAnsweringStepUpPrompts} from './fixtures/auth'
+import {expect, homeBaseUrl, instanceRequestAs, stationManagerOf, test} from './fixtures/peer'
+import {unique} from './fixtures/unique'
+import {must} from './fixtures/must'
+import type {APIRequestContext} from '@playwright/test'
 
 /**
  * The station's own side of federation. Connecting two stations and reading a partner's content
@@ -100,4 +104,69 @@ test.describe('Federation', () => {
 
         await expect(page.getByRole('button', {name: /Speichern/})).toHaveCount(0)
     })
+
+    /**
+     * An entry shared with named partners reaches a named partner on the same instance.
+     *
+     * <p>Named partners are the sharing station's own partner rows. A partner beside it in the same
+     * database used to be looked up by its own row instead, so an entry meant for it never arrived,
+     * while a partner on another instance received it. The entry shared with nobody is there to
+     * show that the list is not simply everything the station wrote.
+     */
+    test('an entry shared with named partners reaches a partner on the same instance', async ({
+        homeAdminApi,
+        homeManagerApi,
+    }) => {
+        const manager = await stationManagerOf(homeBaseUrl())
+        const created = await homeAdminApi.post('/api/v1/stations', {
+            data: {name: unique('E2E-Nachbarwache'), managerEmail: manager.email},
+        })
+        expect(created.status()).toBe(201)
+        const {id: sharingStation} = await created.json()
+
+        const sharing = await instanceRequestAs(homeBaseUrl(), {email: manager.email, stationId: sharingStation})
+        try {
+            await proveFreshly(sharing)
+            const invited = await sharing.post('/api/v1/federation/invite')
+            expect(invited.ok()).toBe(true)
+            const {inviteCode} = await invited.json()
+
+            await proveFreshly(homeManagerApi)
+            const accepted = await homeManagerApi.post('/api/v1/federation/accept', {data: {inviteCode}})
+            expect(accepted.status(), await accepted.text()).toBe(201)
+
+            const partners = await sharing.get('/api/v1/federation/partners')
+            expect(partners.ok()).toBe(true)
+            const rows: {partner: {id: number}}[] = await partners.json()
+            const named = must(rows[0], 'the sharing station holds the partner it just gained').partner.id
+
+            const meant = unique('Für die Nachbarn')
+            const kept = unique('Nur für uns')
+            const meantId = await publishedEntry(sharing, meant)
+            await publishedEntry(sharing, kept)
+            const shared = await sharing.put(`/api/v1/news/${meantId}/federation`, {
+                data: {scope: 'SPECIFIC', visibilityRole: 'MEMBER', partnerIds: [named]},
+            })
+            expect(shared.ok(), await shared.text()).toBe(true)
+
+            const browsed = await homeManagerApi.get('/api/v1/federated/news')
+            expect(browsed.ok(), await browsed.text()).toBe(true)
+            const titles = ((await browsed.json()) as {news: {title: string}}[]).map(item => item.news.title)
+            expect(titles).toContain(meant)
+            expect(titles).not.toContain(kept)
+
+            const read = await homeManagerApi.get(`/api/v1/federated/${sharingStation}/news/${meantId}`)
+            expect(read.ok(), await read.text()).toBe(true)
+            expect((await read.json()).title).toBe(meant)
+        } finally {
+            await sharing.dispose()
+        }
+    })
 })
+
+/** A published entry of the station, with the title given. */
+async function publishedEntry(api: APIRequestContext, title: string): Promise<number> {
+    const created = await api.post('/api/v1/news', {data: {title, contentMarkdown: 'Hallo Nachbarn'}})
+    expect(created.status(), await created.text()).toBe(201)
+    return (await created.json()).id
+}

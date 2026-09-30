@@ -18,12 +18,10 @@ import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.LendingService;
-import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -152,7 +150,7 @@ public class LendingRoutes implements Routes {
     private void createRequest(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CreateLendingRequest.class);
-        if (req.owningStationId() == session.stationId()) {
+        if (stationRepository.resolveUid(session.stationId()).equals(req.owningStationId())) {
             throw Refusal.LENDING_FROM_OWN_STATION.raise();
         }
         if (req.dateFrom() == null) {
@@ -160,6 +158,12 @@ public class LendingRoutes implements Routes {
         }
 
         LocalDate dateTo = req.dateTo() != null ? req.dateTo() : req.dateFrom();
+        var lines = req.items() == null
+                ? List.<LendingService.RequestLine>of()
+                : req.items().stream()
+                        .map(item -> new LendingService.RequestLine(
+                                item.inventoryId(), item.itemId(), item.artId(), item.quantity(), item.needId()))
+                        .toList();
         var request = service.createRequest(
                 session.stationId(),
                 req.owningStationId(),
@@ -168,14 +172,8 @@ public class LendingRoutes implements Routes {
                 session.member().id(),
                 req.eventId(),
                 req.eventDate(),
-                occasionOf(session.stationId(), req.eventId()));
-
-        if (req.items() != null) {
-            for (var item : req.items()) {
-                service.addRequestItem(
-                        request.id(), item.inventoryId(), item.itemId(), item.artId(), item.quantity(), item.needId());
-            }
-        }
+                occasionOf(session.stationId(), req.eventId()),
+                lines);
 
         ctx.status(HttpStatus.CREATED).json(enrichRequest(request, session.stationId()));
     }
@@ -306,12 +304,20 @@ public class LendingRoutes implements Routes {
         var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         verifyAccess(request, session.stationId());
         var messages = service.getMessages(id, session.stationId());
-        ctx.json(messages.stream().map(this::enrichMessage).toList());
+        ctx.json(messages.stream()
+                .map(message -> enrichMessage(message, session.stationId()))
+                .toList());
     }
 
-    private EnrichedMessage enrichMessage(LendingMessage msg) {
+    /**
+     * A message with who wrote it. The member is looked up only where the station that wrote it is on
+     * this instance: a member number written on another instance names somebody else here.
+     */
+    private EnrichedMessage enrichMessage(LendingMessage msg, int viewingStationId) {
         String senderName = null;
-        if (!msg.isSystem() && msg.senderMemberId() != null) {
+        boolean writtenHere =
+                stationRepository.findByUid(msg.senderStationUid()).isPresent();
+        if (!msg.isSystem() && msg.senderMemberId() != null && writtenHere) {
             senderName = stationMemberRepository
                     .findById(msg.senderMemberId())
                     .map(m -> {
@@ -326,11 +332,7 @@ public class LendingRoutes implements Routes {
                     })
                     .orElse(null);
         }
-        String stationName = stationRepository
-                .findByUid(msg.senderStationUid())
-                .map(Station::name)
-                .orElse("Unknown");
-        return new EnrichedMessage(msg, senderName, stationName);
+        return new EnrichedMessage(msg, senderName, service.stationName(msg.senderStationUid(), viewingStationId));
     }
 
     private void sendMessage(Context ctx) {
@@ -390,14 +392,8 @@ public class LendingRoutes implements Routes {
     }
 
     private LendingRequestResponse enrichRequest(LendingRequest request, int currentStationId) {
-        String requestingName = stationRepository
-                .findByUid(request.requestingStationUid())
-                .map(Station::name)
-                .orElse("Unknown");
-        String owningName = stationRepository
-                .findByUid(request.owningStationUid())
-                .map(Station::name)
-                .orElse("Unknown");
+        String requestingName = service.stationName(request.requestingStationUid(), currentStationId);
+        String owningName = service.stationName(request.owningStationUid(), currentStationId);
         UUID currentStationUid = stationRepository.resolveUid(currentStationId);
         boolean isOwner = Objects.equals(request.owningStationUid(), currentStationUid);
 
@@ -431,15 +427,7 @@ public class LendingRoutes implements Routes {
 
     private List<EnrichedItem> enrichItems(List<LendingRequestItem> items) {
         return items.stream()
-                .map(item -> {
-                    String name = item.inventoryId() != null
-                            ? inventoryRepository
-                                    .findById(item.inventoryId())
-                                    .map(Inventory::name)
-                                    .orElse("Unbekannt")
-                            : "Unbekannt";
-                    return new EnrichedItem(item, name);
-                })
+                .map(item -> new EnrichedItem(item, service.inventoryName(item)))
                 .toList();
     }
 
@@ -456,7 +444,7 @@ public class LendingRoutes implements Routes {
      * @param eventDate the date of that appointment, or {@code null}
      */
     public record CreateLendingRequest(
-            int owningStationId,
+            UUID owningStationId,
             LocalDate dateFrom,
             LocalDate dateTo,
             Integer eventId,

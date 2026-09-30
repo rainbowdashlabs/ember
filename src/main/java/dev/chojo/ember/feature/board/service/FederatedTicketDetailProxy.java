@@ -13,46 +13,228 @@ import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.entity.BoardTicketLink;
 import dev.chojo.ember.feature.board.entity.LinkType;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteChecklistItemRequest;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteCommentRequest;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteDeleteLinkRequest;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteEditCommentRequest;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteLabelActionRequest;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteLinkRequest;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteUpdateChecklistItemRequest;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteWatchRequest;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.WatcherResponse;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketDetailRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketLinkRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketRoutes;
-import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
+import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
+import dev.chojo.ember.feature.federation.transport.FederationServer;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
+import dev.chojo.ember.feature.federation.transport.PathParams;
+import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
 /**
- * Proxies everything that hangs off a single ticket of a federated board: comments, checklist
- * items, links, label assignments, watchers and attachments.
+ * Everything that hangs off a single ticket of a federated board: comments, checklist items, links,
+ * label assignments, watchers and attachments. Asks the owning station for it, and answers partners
+ * asking about the tickets of this station's shared boards.
  */
 @Singleton
-public class FederatedTicketDetailProxy {
+public class FederatedTicketDetailProxy implements FederationServer {
     private static final Logger log = LoggerFactory.getLogger(FederatedTicketDetailProxy.class);
 
     private final BoardService boardService;
     private final BoardTicketService ticketService;
     private final MemberNameResolver memberNameResolver;
-    private final FederatedBoardRemoteGateway gateway;
     private final FederatedBoardLocator locator;
+    private final FederationTransport transport;
+    private final FederatedBoardGuards guards;
 
     @Inject
     public FederatedTicketDetailProxy(
             BoardService boardService,
             BoardTicketService ticketService,
             MemberNameResolver memberNameResolver,
-            FederatedBoardRemoteGateway gateway,
-            FederatedBoardLocator locator) {
+            FederatedBoardLocator locator,
+            FederationTransport transport,
+            FederatedBoardGuards guards) {
         this.boardService = boardService;
         this.ticketService = ticketService;
         this.memberNameResolver = memberNameResolver;
-        this.gateway = gateway;
         this.locator = locator;
+        this.transport = transport;
+        this.guards = guards;
+    }
+
+    @Override
+    public void serveOn(FederationEndpoints endpoints) {
+        serveComments(endpoints);
+        serveChecklist(endpoints);
+        serveWatchers(endpoints);
+        serveLinks(endpoints);
+        serveLabels(endpoints);
+    }
+
+    private void serveComments(FederationEndpoints endpoints) {
+        endpoints.serve(
+                RemoteBoardTicketDetailRoutes.GET_COMMENTS,
+                (partner, params, body) -> ticketService.findComments(guards.viewableTicketId(partner, params)).stream()
+                        .map(comment -> CommentResponseMapper.fromBoard(memberNameResolver, comment))
+                        .toList());
+        endpoints.<RemoteCommentRequest, BoardComment>serve(
+                RemoteBoardTicketDetailRoutes.ADD_COMMENT, this::serveNewComment);
+        endpoints.<RemoteEditCommentRequest, Void>serve(
+                RemoteBoardTicketDetailRoutes.EDIT_COMMENT, (partner, params, body) -> {
+                    int ticketId = guards.writableTicketId(partner, params);
+                    ticketService.updateComment(
+                            ticketId, guards.commentOnTicket(ticketId, params.integer("commentId")), body.content());
+                    return null;
+                });
+        endpoints.serve(RemoteBoardTicketDetailRoutes.DELETE_COMMENT, (partner, params, body) -> {
+            int ticketId = guards.writableTicketId(partner, params);
+            ticketService.deleteComment(ticketId, guards.commentOnTicket(ticketId, params.integer("commentId")));
+            return null;
+        });
+    }
+
+    private void serveChecklist(FederationEndpoints endpoints) {
+        endpoints.serve(
+                RemoteBoardTicketDetailRoutes.GET_CHECKLIST,
+                (partner, params, body) -> ticketService.findChecklistItems(guards.viewableTicketId(partner, params)));
+        endpoints.<RemoteChecklistItemRequest, BoardChecklistItem>serve(
+                RemoteBoardTicketDetailRoutes.ADD_CHECKLIST_ITEM, (partner, params, body) -> {
+                    int ticketId = guards.writableTicketId(partner, params);
+                    guards.cacheName(partner, body.remoteMemberUid(), body.displayName());
+                    return ticketService.addChecklistItem(ticketId, body.title(), 0);
+                });
+        endpoints.<RemoteUpdateChecklistItemRequest, Void>serve(
+                RemoteBoardTicketDetailRoutes.UPDATE_CHECKLIST_ITEM, (partner, params, body) -> {
+                    int ticketId = guards.writableTicketId(partner, params);
+                    int itemId = guards.checklistItemOnTicket(ticketId, params.integer("itemId"));
+                    guards.cacheName(partner, body.remoteMemberUid(), body.displayName());
+                    ticketService.updateChecklistItem(itemId, ticketId, body.title(), body.checked(), 0);
+                    return null;
+                });
+        endpoints.serve(RemoteBoardTicketDetailRoutes.DELETE_CHECKLIST_ITEM, (partner, params, body) -> {
+            int ticketId = guards.writableTicketId(partner, params);
+            ticketService.deleteChecklistItem(
+                    guards.checklistItemOnTicket(ticketId, params.integer("itemId")), ticketId, 0);
+            return null;
+        });
+    }
+
+    private void serveWatchers(FederationEndpoints endpoints) {
+        endpoints.serve(
+                RemoteBoardTicketDetailRoutes.GET_WATCHERS,
+                (partner, params, body) -> new WatcherResponse(
+                        ticketService.findWatchers(guards.viewableTicketId(partner, params)), List.of()));
+        endpoints.<RemoteWatchRequest, Void>serve(
+                RemoteBoardTicketDetailRoutes.WATCH_TICKET, (partner, params, body) -> {
+                    ticketService.addWatcher(
+                            guards.writableTicketId(partner, params),
+                            new MemberIdentity(partner.askingStationUid(), body.remoteMemberId()));
+                    return null;
+                });
+        endpoints.<RemoteWatchRequest, Void>serve(
+                RemoteBoardTicketDetailRoutes.UNWATCH_TICKET, (partner, params, body) -> {
+                    ticketService.removeWatcher(
+                            guards.writableTicketId(partner, params),
+                            new MemberIdentity(partner.askingStationUid(), body.remoteMemberId()));
+                    return null;
+                });
+    }
+
+    private void serveLinks(FederationEndpoints endpoints) {
+        endpoints.serve(
+                RemoteBoardTicketLinkRoutes.GET_LINKS,
+                (partner, params, body) -> ticketService.findLinks(guards.viewableTicketId(partner, params)));
+        endpoints.<RemoteLinkRequest, Void>serve(RemoteBoardTicketLinkRoutes.CREATE_LINK, (partner, params, body) -> {
+            int boardId = guards.writableBoardId(partner, params);
+            guards.cacheName(partner, body.remoteMemberUid(), body.displayName());
+            ticketService.linkTickets(
+                    guards.ticketId(boardId, params.integer("ticketNumber")),
+                    guards.linkedTicketId(boardId, body.linkedTicketNumber()),
+                    body.linkType(),
+                    guards.actor(partner, body.remoteMemberUid()));
+            return null;
+        });
+        endpoints.<RemoteDeleteLinkRequest, Void>serve(
+                RemoteBoardTicketLinkRoutes.DELETE_LINK, (partner, params, body) -> {
+                    int boardId = guards.writableBoardId(partner, params);
+                    UUID actor = body != null ? body.remoteMemberUid() : null;
+                    guards.cacheName(partner, actor, body != null ? body.displayName() : null);
+                    ticketService.unlinkTickets(
+                            guards.ticketId(boardId, params.integer("ticketNumber")),
+                            guards.linkedTicketId(boardId, params.integer("linkedNumber")),
+                            guards.actor(partner, actor));
+                    return null;
+                });
+    }
+
+    private void serveLabels(FederationEndpoints endpoints) {
+        endpoints.serve(
+                RemoteBoardTicketLinkRoutes.GET_TICKET_LABELS,
+                (partner, params, body) -> boardService.findLabelsForTicket(guards.viewableTicketId(partner, params)));
+        endpoints.<RemoteLabelActionRequest, List<BoardLabel>>serve(
+                RemoteBoardTicketLinkRoutes.ADD_TICKET_LABEL, (partner, params, body) -> {
+                    int ticketId = labelTicket(partner, params, body, BoardTicketHistoryAction.LABEL_ADDED);
+                    return boardService.findLabelsForTicket(ticketId);
+                });
+        endpoints.<RemoteLabelActionRequest, Void>serve(
+                RemoteBoardTicketLinkRoutes.REMOVE_TICKET_LABEL, (partner, params, body) -> {
+                    labelTicket(partner, params, body, BoardTicketHistoryAction.LABEL_REMOVED);
+                    return null;
+                });
+    }
+
+    /**
+     * Adds a comment by one of the partner's members to a ticket of a board the partner may write to.
+     * A reply names a parent comment, which has to be on the same ticket.
+     *
+     * @param partner the partnership the request arrived on
+     * @param params  names the board and the ticket number
+     * @param request the comment and its author
+     * @return the new comment
+     */
+    public BoardComment serveNewComment(ServingPartner partner, PathParams params, RemoteCommentRequest request) {
+        int ticketId = guards.writableTicketId(partner, params);
+        Integer parentId = request.parentId() != null ? guards.commentOnTicket(ticketId, request.parentId()) : null;
+        var comment = ticketService.createComment(
+                ticketId,
+                parentId,
+                new MemberIdentity(partner.askingStationUid(), request.remoteMemberId()),
+                request.content());
+        guards.cacheName(partner, request.remoteMemberId(), request.displayName());
+        return comment;
+    }
+
+    private int labelTicket(
+            ServingPartner partner,
+            PathParams params,
+            RemoteLabelActionRequest request,
+            BoardTicketHistoryAction action) {
+        int boardId = guards.writableBoardId(partner, params);
+        int ticketId = guards.ticketId(boardId, params.integer("ticketNumber"));
+        var label = guards.labelOnBoard(boardId, params.integer("labelId"));
+        if (action == BoardTicketHistoryAction.LABEL_ADDED) {
+            boardService.addLabelToTicket(ticketId, label.id());
+        } else {
+            boardService.removeLabelFromTicket(ticketId, label.id());
+        }
+        ticketService.logHistory(
+                ticketId,
+                action,
+                label.name(),
+                new MemberIdentity(partner.askingStationUid(), request.remoteMemberId()));
+        guards.cacheName(partner, request.remoteMemberId(), request.displayName());
+        return ticketId;
     }
 
     /**
@@ -63,16 +245,11 @@ public class FederatedTicketDetailProxy {
      * @param ticketNumber the board relative ticket number
      * @return the comments with resolved authors
      */
-    public List<BoardComment> proxyGetComments(int partnerId, String boardKey, int ticketNumber) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.getList(
-                    partner, RemoteBoardTicketDetailRoutes.GET_COMMENTS.at(boardKey, ticketNumber), BoardComment.class);
-        }
-        int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
-        return ticketService.findComments(ticketId).stream()
-                .map(c -> c.author() != null ? c.withAuthor(memberNameResolver.enrichDisplay(c.author())) : c)
-                .toList();
+    public List<CommentResponse> proxyGetComments(int partnerId, String boardKey, int ticketNumber) {
+        return transport.getList(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketDetailRoutes.GET_COMMENTS.at(boardKey, ticketNumber),
+                CommentResponse.class);
     }
 
     /**
@@ -95,30 +272,17 @@ public class FederatedTicketDetailProxy {
             String content,
             UUID remoteMemberId,
             String displayName) {
-        var partner = locator.requirePartner(partnerId);
         log.info(
                 "Federated comment added on partner {} board {} ticket {} by member {}",
                 partnerId,
                 boardKey,
                 ticketNumber,
                 remoteMemberId);
-        if (partner.isRemote()) {
-            var body = new HashMap<String, Object>();
-            body.put("remoteMemberId", remoteMemberId);
-            body.put("displayName", displayName != null ? displayName : "");
-            body.put("parentId", parentId != null ? parentId : "");
-            body.put("content", content != null ? content : "");
-            return gateway.post(
-                    partner,
-                    RemoteBoardTicketDetailRoutes.ADD_COMMENT.at(boardKey, ticketNumber),
-                    body,
-                    BoardComment.class);
-        }
-        int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
-        var authorIdentity = new MemberIdentity(partner.partnerStationId(), remoteMemberId);
-        var comment = ticketService.createComment(ticketId, parentId, authorIdentity, content);
-        locator.cacheName(partnerId, remoteMemberId, displayName);
-        return comment;
+        return transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketDetailRoutes.ADD_COMMENT.at(boardKey, ticketNumber),
+                new RemoteCommentRequest(remoteMemberId, displayName, parentId, content),
+                BoardComment.class);
     }
 
     /**
@@ -130,14 +294,10 @@ public class FederatedTicketDetailProxy {
      * @return the checklist items
      */
     public List<BoardChecklistItem> proxyGetChecklist(int partnerId, String boardKey, int ticketNumber) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.getList(
-                    partner,
-                    RemoteBoardTicketDetailRoutes.GET_CHECKLIST.at(boardKey, ticketNumber),
-                    BoardChecklistItem.class);
-        }
-        return ticketService.findChecklistItems(locator.resolveTicketId(partner, boardKey, ticketNumber));
+        return transport.getList(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketDetailRoutes.GET_CHECKLIST.at(boardKey, ticketNumber),
+                BoardChecklistItem.class);
     }
 
     /**
@@ -153,26 +313,17 @@ public class FederatedTicketDetailProxy {
      */
     public BoardChecklistItem proxyAddChecklistItem(
             int partnerId, String boardKey, int ticketNumber, String title, UUID remoteMemberUid, String displayName) {
-        var partner = locator.requirePartner(partnerId);
         log.info(
                 "Federated checklist item added on partner {} board {} ticket {} by member {}",
                 partnerId,
                 boardKey,
                 ticketNumber,
                 remoteMemberUid);
-        if (partner.isRemote()) {
-            var body = new HashMap<String, Object>();
-            body.put("title", title);
-            putActor(body, remoteMemberUid, displayName);
-            return gateway.post(
-                    partner,
-                    RemoteBoardTicketDetailRoutes.ADD_CHECKLIST_ITEM.at(boardKey, ticketNumber),
-                    body,
-                    BoardChecklistItem.class);
-        }
-        int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
-        locator.cacheNameIfPresent(partnerId, remoteMemberUid, displayName);
-        return ticketService.addChecklistItem(ticketId, title, 0);
+        return transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketDetailRoutes.ADD_CHECKLIST_ITEM.at(boardKey, ticketNumber),
+                new RemoteChecklistItemRequest(title, remoteMemberUid, displayName),
+                BoardChecklistItem.class);
     }
 
     /**
@@ -196,7 +347,6 @@ public class FederatedTicketDetailProxy {
             boolean checked,
             UUID remoteMemberUid,
             String displayName) {
-        var partner = locator.requirePartner(partnerId);
         log.info(
                 "Federated checklist item {} updated on partner {} board {} ticket {} by member {}",
                 itemId,
@@ -204,20 +354,11 @@ public class FederatedTicketDetailProxy {
                 boardKey,
                 ticketNumber,
                 remoteMemberUid);
-        if (partner.isRemote()) {
-            var body = new HashMap<String, Object>();
-            body.put("title", title);
-            body.put("checked", checked);
-            putActor(body, remoteMemberUid, displayName);
-            gateway.put(
-                    partner,
-                    RemoteBoardTicketDetailRoutes.UPDATE_CHECKLIST_ITEM.at(boardKey, ticketNumber, itemId),
-                    body);
-            return;
-        }
-        int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
-        locator.cacheNameIfPresent(partnerId, remoteMemberUid, displayName);
-        ticketService.updateChecklistItem(itemId, ticketId, title, checked, 0);
+        transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketDetailRoutes.UPDATE_CHECKLIST_ITEM.at(boardKey, ticketNumber, itemId),
+                new RemoteUpdateChecklistItemRequest(title, checked, remoteMemberUid, displayName),
+                Void.class);
     }
 
     /**
@@ -228,11 +369,9 @@ public class FederatedTicketDetailProxy {
      * @param ticketNumber    the board relative ticket number
      * @param itemId          the checklist item id
      * @param remoteMemberUid the acting member on the partner station
-     * @param displayName     the display name of the acting member
      */
     public void proxyDeleteChecklistItem(
-            int partnerId, String boardKey, int ticketNumber, int itemId, UUID remoteMemberUid, String displayName) {
-        var partner = locator.requirePartner(partnerId);
+            int partnerId, String boardKey, int ticketNumber, int itemId, UUID remoteMemberUid) {
         log.info(
                 "Federated checklist item {} deleted on partner {} board {} ticket {} by member {}",
                 itemId,
@@ -240,14 +379,11 @@ public class FederatedTicketDetailProxy {
                 boardKey,
                 ticketNumber,
                 remoteMemberUid);
-        if (partner.isRemote()) {
-            gateway.delete(
-                    partner, RemoteBoardTicketDetailRoutes.DELETE_CHECKLIST_ITEM.at(boardKey, ticketNumber, itemId));
-            return;
-        }
-        int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
-        locator.cacheNameIfPresent(partnerId, remoteMemberUid, displayName);
-        ticketService.deleteChecklistItem(itemId, ticketId, 0);
+        transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketDetailRoutes.DELETE_CHECKLIST_ITEM.at(boardKey, ticketNumber, itemId),
+                null,
+                Void.class);
     }
 
     /**
@@ -259,12 +395,10 @@ public class FederatedTicketDetailProxy {
      * @return the links
      */
     public List<BoardTicketLink> proxyGetLinks(int partnerId, String boardKey, int ticketNumber) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.getList(
-                    partner, RemoteBoardTicketLinkRoutes.GET_LINKS.at(boardKey, ticketNumber), BoardTicketLink.class);
-        }
-        return ticketService.findLinks(locator.resolveTicketId(partner, boardKey, ticketNumber));
+        return transport.getList(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketLinkRoutes.GET_LINKS.at(boardKey, ticketNumber),
+                BoardTicketLink.class);
     }
 
     /**
@@ -286,7 +420,6 @@ public class FederatedTicketDetailProxy {
             LinkType linkType,
             UUID remoteMemberUid,
             String displayName) {
-        var partner = locator.requirePartner(partnerId);
         log.info(
                 "Federated ticket link on partner {} board {} from ticket {} to ticket {} by member {}",
                 partnerId,
@@ -294,17 +427,11 @@ public class FederatedTicketDetailProxy {
                 ticketNumber,
                 linkedTicketNumber,
                 remoteMemberUid);
-        if (partner.isRemote()) {
-            var body = new HashMap<String, Object>();
-            body.put("linkedTicketNumber", linkedTicketNumber);
-            body.put("linkType", linkType);
-            putActor(body, remoteMemberUid, displayName);
-            gateway.post(partner, RemoteBoardTicketLinkRoutes.CREATE_LINK.at(boardKey, ticketNumber), body);
-            return;
-        }
-        var link = resolveLinkContext(
-                partnerId, partner, boardKey, ticketNumber, linkedTicketNumber, remoteMemberUid, displayName);
-        ticketService.linkTickets(link.ticketId(), link.linkedTicketId(), linkType, link.actorIdentity());
+        transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketLinkRoutes.CREATE_LINK.at(boardKey, ticketNumber),
+                new RemoteLinkRequest(linkedTicketNumber, linkType, remoteMemberUid, displayName),
+                Void.class);
     }
 
     /**
@@ -324,7 +451,6 @@ public class FederatedTicketDetailProxy {
             int linkedTicketNumber,
             UUID remoteMemberUid,
             String displayName) {
-        var partner = locator.requirePartner(partnerId);
         log.info(
                 "Federated ticket unlink on partner {} board {} from ticket {} to ticket {} by member {}",
                 partnerId,
@@ -332,18 +458,11 @@ public class FederatedTicketDetailProxy {
                 ticketNumber,
                 linkedTicketNumber,
                 remoteMemberUid);
-        if (partner.isRemote()) {
-            var body = new HashMap<String, Object>();
-            putActor(body, remoteMemberUid, displayName);
-            gateway.delete(
-                    partner,
-                    RemoteBoardTicketLinkRoutes.DELETE_LINK.at(boardKey, ticketNumber, linkedTicketNumber),
-                    body);
-            return;
-        }
-        var link = resolveLinkContext(
-                partnerId, partner, boardKey, ticketNumber, linkedTicketNumber, remoteMemberUid, displayName);
-        ticketService.unlinkTickets(link.ticketId(), link.linkedTicketId(), link.actorIdentity());
+        transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketLinkRoutes.DELETE_LINK.at(boardKey, ticketNumber, linkedTicketNumber),
+                new RemoteDeleteLinkRequest(remoteMemberUid, displayName),
+                Void.class);
     }
 
     /**
@@ -355,14 +474,10 @@ public class FederatedTicketDetailProxy {
      * @return the assigned labels
      */
     public List<BoardLabel> proxyGetTicketLabels(int partnerId, String boardKey, int ticketNumber) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.getList(
-                    partner,
-                    RemoteBoardTicketLinkRoutes.GET_TICKET_LABELS.at(boardKey, ticketNumber),
-                    BoardLabel.class);
-        }
-        return boardService.findLabelsForTicket(locator.resolveTicketId(partner, boardKey, ticketNumber));
+        return transport.getList(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketLinkRoutes.GET_TICKET_LABELS.at(boardKey, ticketNumber),
+                BoardLabel.class);
     }
 
     /**
@@ -378,7 +493,6 @@ public class FederatedTicketDetailProxy {
      */
     public List<BoardLabel> proxyAddTicketLabel(
             int partnerId, String boardKey, int ticketNumber, int labelId, UUID remoteMemberId, String displayName) {
-        var partner = locator.requirePartner(partnerId);
         log.info(
                 "Federated label {} added to ticket {} on partner {} board {} by member {}",
                 labelId,
@@ -386,23 +500,11 @@ public class FederatedTicketDetailProxy {
                 partnerId,
                 boardKey,
                 remoteMemberId);
-        if (partner.isRemote()) {
-            return gateway.postList(
-                    partner,
-                    RemoteBoardTicketLinkRoutes.ADD_TICKET_LABEL.at(boardKey, ticketNumber, labelId),
-                    new LabelActionBody(remoteMemberId, displayName),
-                    BoardLabel.class);
-        }
-        int boardId = locator.resolveBoardId(boardKey, partner);
-        int ticketId = locator.resolveTicketId(boardId, ticketNumber);
-        boardService.addLabelToTicket(ticketId, labelId);
-        ticketService.logHistory(
-                ticketId,
-                BoardTicketHistoryAction.LABEL_ADDED,
-                labelName(boardId, labelId),
-                new MemberIdentity(partner.partnerStationId(), remoteMemberId));
-        if (displayName != null) locator.cacheName(partnerId, remoteMemberId, displayName);
-        return boardService.findLabelsForTicket(ticketId);
+        return transport.sendList(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketLinkRoutes.ADD_TICKET_LABEL.at(boardKey, ticketNumber, labelId),
+                new RemoteLabelActionRequest(remoteMemberId, displayName),
+                BoardLabel.class);
     }
 
     /**
@@ -417,7 +519,6 @@ public class FederatedTicketDetailProxy {
      */
     public void proxyRemoveTicketLabel(
             int partnerId, String boardKey, int ticketNumber, int labelId, UUID remoteMemberId, String displayName) {
-        var partner = locator.requirePartner(partnerId);
         log.info(
                 "Federated label {} removed from ticket {} on partner {} board {} by member {}",
                 labelId,
@@ -425,23 +526,11 @@ public class FederatedTicketDetailProxy {
                 partnerId,
                 boardKey,
                 remoteMemberId);
-        if (partner.isRemote()) {
-            gateway.post(
-                    partner,
-                    RemoteBoardTicketLinkRoutes.REMOVE_TICKET_LABEL.at(boardKey, ticketNumber, labelId),
-                    new LabelActionBody(remoteMemberId, displayName));
-            return;
-        }
-        int boardId = locator.resolveBoardId(boardKey, partner);
-        int ticketId = locator.resolveTicketId(boardId, ticketNumber);
-        String labelName = labelName(boardId, labelId);
-        boardService.removeLabelFromTicket(ticketId, labelId);
-        ticketService.logHistory(
-                ticketId,
-                BoardTicketHistoryAction.LABEL_REMOVED,
-                labelName,
-                new MemberIdentity(partner.partnerStationId(), remoteMemberId));
-        if (displayName != null) locator.cacheName(partnerId, remoteMemberId, displayName);
+        transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketLinkRoutes.REMOVE_TICKET_LABEL.at(boardKey, ticketNumber, labelId),
+                new RemoteLabelActionRequest(remoteMemberId, displayName),
+                Void.class);
     }
 
     /**
@@ -452,16 +541,11 @@ public class FederatedTicketDetailProxy {
      * @param ticketNumber the board relative ticket number
      * @return the local and federated watchers
      */
-    public FederatedWatcherData proxyGetWatchers(int partnerId, String boardKey, int ticketNumber) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.get(
-                    partner,
-                    RemoteBoardTicketDetailRoutes.GET_WATCHERS.at(boardKey, ticketNumber),
-                    FederatedWatcherData.class);
-        }
-        int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
-        return new FederatedWatcherData(ticketService.findWatchers(ticketId), List.of());
+    public WatcherResponse proxyGetWatchers(int partnerId, String boardKey, int ticketNumber) {
+        return transport.get(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketDetailRoutes.GET_WATCHERS.at(boardKey, ticketNumber),
+                WatcherResponse.class);
     }
 
     /**
@@ -473,16 +557,11 @@ public class FederatedTicketDetailProxy {
      * @param remoteMemberId the member on the partner station
      */
     public void proxyWatchTicket(int partnerId, String boardKey, int ticketNumber, UUID remoteMemberId) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            gateway.post(
-                    partner,
-                    RemoteBoardTicketDetailRoutes.WATCH_TICKET.at(boardKey, ticketNumber),
-                    new RemoteMemberBody(remoteMemberId));
-            return;
-        }
-        int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
-        ticketService.addWatcher(ticketId, new MemberIdentity(partner.partnerStationId(), remoteMemberId));
+        transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketDetailRoutes.WATCH_TICKET.at(boardKey, ticketNumber),
+                new RemoteWatchRequest(remoteMemberId),
+                Void.class);
     }
 
     /**
@@ -494,13 +573,11 @@ public class FederatedTicketDetailProxy {
      * @param remoteMemberId the member on the partner station
      */
     public void proxyUnwatchTicket(int partnerId, String boardKey, int ticketNumber, UUID remoteMemberId) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            gateway.delete(partner, RemoteBoardTicketDetailRoutes.UNWATCH_TICKET.at(boardKey, ticketNumber));
-            return;
-        }
-        int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
-        ticketService.removeWatcher(ticketId, new MemberIdentity(partner.partnerStationId(), remoteMemberId));
+        transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketDetailRoutes.UNWATCH_TICKET.at(boardKey, ticketNumber),
+                new RemoteWatchRequest(remoteMemberId),
+                Void.class);
     }
 
     /**
@@ -512,53 +589,9 @@ public class FederatedTicketDetailProxy {
      * @return the attachments
      */
     public List<BoardTicketAttachment> proxyGetAttachments(int partnerId, String boardKey, int ticketNumber) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.getList(
-                    partner,
-                    RemoteBoardTicketRoutes.GET_ATTACHMENTS.at(boardKey, ticketNumber),
-                    BoardTicketAttachment.class);
-        }
-        return ticketService.findAttachments(locator.resolveTicketId(partner, boardKey, ticketNumber));
+        return transport.getList(
+                locator.requirePartner(partnerId),
+                RemoteBoardTicketRoutes.GET_ATTACHMENTS.at(boardKey, ticketNumber),
+                BoardTicketAttachment.class);
     }
-
-    private String labelName(int boardId, int labelId) {
-        return boardService.findLabels(boardId).stream()
-                .filter(l -> l.id() == labelId)
-                .findFirst()
-                .map(BoardLabel::name)
-                .orElse("?");
-    }
-
-    private LinkContext resolveLinkContext(
-            int partnerId,
-            FederationPartner partner,
-            String boardKey,
-            int ticketNumber,
-            int linkedTicketNumber,
-            UUID remoteMemberUid,
-            String displayName) {
-        int boardId = locator.resolveBoardId(boardKey, partner);
-        int ticketId = locator.resolveTicketId(boardId, ticketNumber);
-        int linkedTicketId = locator.resolveTicketId(boardId, linkedTicketNumber);
-        var actorIdentity = locator.remoteIdentity(partner, remoteMemberUid);
-        locator.cacheNameIfPresent(partnerId, remoteMemberUid, displayName);
-        return new LinkContext(ticketId, linkedTicketId, actorIdentity);
-    }
-
-    private void putActor(HashMap<String, Object> body, UUID remoteMemberUid, String displayName) {
-        if (remoteMemberUid != null) body.put("remoteMemberUid", remoteMemberUid.toString());
-        if (displayName != null) body.put("displayName", displayName);
-    }
-
-    private record LinkContext(int ticketId, int linkedTicketId, MemberIdentity actorIdentity) {}
-
-    record LabelActionBody(UUID remoteMemberId, String displayName) {}
-
-    record RemoteMemberBody(UUID remoteMemberId) {}
-
-    /**
-     * The watchers of a federated ticket, split into this station's members and the partner's.
-     */
-    public record FederatedWatcherData(List<Integer> local, List<Object> federated) {}
 }

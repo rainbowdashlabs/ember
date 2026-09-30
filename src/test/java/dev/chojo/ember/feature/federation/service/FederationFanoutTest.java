@@ -55,20 +55,20 @@ class FederationFanoutTest {
     void aStalledPartnerDoesNotHoldBackTheOthers() {
         var never = new CountDownLatch(1);
         var fanout = new FederationFanout(Executors.newVirtualThreadPerTaskExecutor(), Duration.ofMillis(200));
-        var local = partner(1, null);
+        var first = partner(1, null);
         var stalled = partner(2, "https://stalled.example");
-        var remote = partner(3, "https://remote.example");
+        var last = partner(3, "https://remote.example");
 
         var result = assertTimeoutPreemptively(
                 Duration.ofSeconds(5),
-                () -> fanout.fanOut(List.of(local, stalled, remote), partner -> List.of("local-" + partner.id()), p -> {
+                () -> fanout.fanOut(List.of(first, stalled, last), p -> {
                     if (p == stalled) {
                         awaitQuietly(never);
                     }
-                    return List.of("remote-" + p.id());
+                    return List.of("answer-" + p.id());
                 }));
 
-        assertEquals(List.of("local-1", "remote-3"), result.items());
+        assertEquals(List.of("answer-1", "answer-3"), result.items());
         assertEquals(
                 List.of(PartnerOutcome.ANSWERED, PartnerOutcome.TIMED_OUT, PartnerOutcome.ANSWERED),
                 result.answers().stream()

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -16,8 +17,11 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
-import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
+import dev.chojo.ember.feature.federation.transport.FederationServer;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
+import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
@@ -25,33 +29,39 @@ import dev.chojo.ember.feature.news.entity.NewsFederationShare;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.route.RemoteNewsRoutes;
-import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.news.route.RemoteNewsRoutes.RemoteNewsCommentDeleteRequest;
+import dev.chojo.ember.feature.news.route.RemoteNewsRoutes.RemoteNewsCommentRequest;
+import dev.chojo.ember.feature.news.route.RemoteNewsRoutes.RemoteNewsCommentUpdateRequest;
+import dev.chojo.ember.feature.news.route.RemoteNewsRoutes.RemoteNewsDetail;
+import dev.chojo.ember.feature.news.route.RemoteNewsRoutes.RemoteNewsSummary;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Service providing business logic for federated news sharing.
+ * Federated news sharing: which articles a station shares, what it serves a partner, and how it
+ * reads and comments on what partners share with it.
+ *
+ * <p>What a partner may see and write is decided in one place, the serving functions registered in
+ * {@link #serveOn}. A partner on another instance reaches them through the {@code /remote} routes,
+ * a partner on this instance through the local transport, and both are held to the share targets of
+ * the serving station.
  */
 @Singleton
-public class NewsFederationService {
+public class NewsFederationService implements FederationServer {
     private static final Logger log = LoggerFactory.getLogger(NewsFederationService.class);
 
     private final NewsFederationRepository federationRepository;
     private final FederationService federationService;
     private final FederationRepository partnerRepository;
-    private final FederationHttpClient httpClient;
     private final StationRepository stationRepository;
     private final NewsService newsService;
     private final NewsAttachmentService attachmentService;
@@ -59,24 +69,24 @@ public class NewsFederationService {
     private final MemberNameResolver memberNameResolver;
     private final FederationFanout fanout;
     private final FederationEntityResolver entityResolver;
+    private final FederationTransport transport;
 
     @Inject
     public NewsFederationService(
             NewsFederationRepository federationRepository,
             FederationService federationService,
             FederationRepository partnerRepository,
-            FederationHttpClient httpClient,
             StationRepository stationRepository,
             NewsService newsService,
             NewsAttachmentService attachmentService,
             EventFederationRepository eventFederationRepository,
             MemberNameResolver memberNameResolver,
             FederationFanout fanout,
-            FederationEntityResolver entityResolver) {
+            FederationEntityResolver entityResolver,
+            FederationTransport transport) {
         this.federationRepository = federationRepository;
         this.federationService = federationService;
         this.partnerRepository = partnerRepository;
-        this.httpClient = httpClient;
         this.stationRepository = stationRepository;
         this.newsService = newsService;
         this.attachmentService = attachmentService;
@@ -84,6 +94,28 @@ public class NewsFederationService {
         this.memberNameResolver = memberNameResolver;
         this.fanout = fanout;
         this.entityResolver = entityResolver;
+        this.transport = transport;
+    }
+
+    @Override
+    public void serveOn(FederationEndpoints endpoints) {
+        endpoints.serve(RemoteNewsRoutes.LIST_NEWS, (partner, params, body) -> serveNewsList(partner));
+        endpoints.serve(
+                RemoteNewsRoutes.GET_NEWS, (partner, params, body) -> serveNews(partner, params.integer("newsId")));
+        endpoints.serve(
+                RemoteNewsRoutes.LIST_COMMENTS,
+                (partner, params, body) -> serveComments(partner, params.integer("newsId")));
+        endpoints.<RemoteNewsCommentRequest, CommentResponse>serve(
+                RemoteNewsRoutes.CREATE_COMMENT,
+                (partner, params, body) -> serveNewComment(partner, params.integer("newsId"), body));
+        endpoints.<RemoteNewsCommentUpdateRequest, CommentResponse>serve(
+                RemoteNewsRoutes.UPDATE_COMMENT,
+                (partner, params, body) -> serveCommentEdit(partner, params.integer("commentId"), body));
+        endpoints.<RemoteNewsCommentDeleteRequest, Void>serve(
+                RemoteNewsRoutes.DELETE_COMMENT, (partner, params, body) -> {
+                    serveCommentDeletion(partner, params.integer("commentId"), body);
+                    return null;
+                });
     }
 
     // -- Share management --
@@ -143,8 +175,8 @@ public class NewsFederationService {
     /**
      * Finds news IDs shared with a partner for a given station.
      *
-     * @param partnerId the federation partner ID
-     * @param stationId the station ID
+     * @param partnerId the serving station's own partner row, which is what share targets name
+     * @param stationId the serving station
      * @return the list of shared news IDs
      */
     public List<Integer> findSharedNewsIds(int partnerId, int stationId) {
@@ -159,6 +191,151 @@ public class NewsFederationService {
      */
     public Optional<NewsVisibilityRole> findVisibilityRole(int newsId) {
         return federationRepository.findVisibilityRole(newsId);
+    }
+
+    // -- Serving partners --
+
+    /**
+     * The articles this station shares with a partner.
+     *
+     * @param partner the partnership the request arrived on
+     * @return a summary per shared article
+     */
+    public List<RemoteNewsSummary> serveNewsList(ServingPartner partner) {
+        return sharedWith(partner).stream()
+                .map(newsService::findById)
+                .flatMap(Optional::stream)
+                .map(news -> new RemoteNewsSummary(
+                        news.id(),
+                        news.title(),
+                        attachmentService.withAttachmentLinksHtml(
+                                Objects.requireNonNullElse(news.contentHtml(), ""), news.id(), news.stationId()),
+                        authorName(news),
+                        publishedAt(news),
+                        newsService.countComments(news.id()),
+                        visibilityOf(news.id())))
+                .toList();
+    }
+
+    /**
+     * One article this station shares with a partner.
+     *
+     * @param partner the partnership the request arrived on
+     * @param newsId  the article asked for
+     * @return the article
+     */
+    public RemoteNewsDetail serveNews(ServingPartner partner, int newsId) {
+        requireShared(partner, newsId);
+        var news = newsService.findById(newsId).orElseThrow(Refusal.REMOTE_NEWS_NOT_HERE::raise);
+        return new RemoteNewsDetail(
+                news.id(),
+                news.title(),
+                attachmentService.withAttachmentLinks(
+                        Objects.requireNonNullElse(news.contentMarkdown(), ""), news.id(), news.stationId()),
+                attachmentService.withAttachmentLinksHtml(
+                        Objects.requireNonNullElse(news.contentHtml(), ""), news.id(), news.stationId()),
+                authorName(news),
+                publishedAt(news),
+                newsService.countComments(newsId),
+                visibilityOf(newsId));
+    }
+
+    /**
+     * The comments on an article this station shares with a partner.
+     *
+     * @param partner the partnership the request arrived on
+     * @param newsId  the article
+     * @return its comments
+     */
+    public List<CommentResponse> serveComments(ServingPartner partner, int newsId) {
+        requireShared(partner, newsId);
+        return newsService.findComments(newsId).stream()
+                .map(this::toCommentResponse)
+                .toList();
+    }
+
+    /**
+     * A partner's member commenting on an article this station shares with the partner.
+     *
+     * @param partner the partnership the request arrived on
+     * @param newsId  the article
+     * @param request who writes and what
+     * @return the stored comment
+     */
+    public CommentResponse serveNewComment(ServingPartner partner, int newsId, RemoteNewsCommentRequest request) {
+        requireShared(partner, newsId);
+        if (request.content() == null || request.content().isBlank()) {
+            throw Refusal.REMOTE_NEWS_COMMENT_NEEDS_TEXT.raise();
+        }
+        var author = new MemberIdentity(partner.askingStationUid(), request.remoteMemberUid());
+        var comment = newsService.createComment(
+                partner.servingStationId(),
+                newsId,
+                request.parentId(),
+                author,
+                request.displayName(),
+                request.content());
+        eventFederationRepository.cacheName(partner.partnerId(), request.remoteMemberUid(), request.displayName());
+        return toCommentResponse(comment);
+    }
+
+    /**
+     * A partner's member editing a comment of their own.
+     *
+     * @param partner   the partnership the request arrived on
+     * @param commentId the comment
+     * @param request   who edits and the new text
+     * @return the updated comment
+     */
+    public CommentResponse serveCommentEdit(
+            ServingPartner partner, int commentId, RemoteNewsCommentUpdateRequest request) {
+        if (request.content() == null || request.content().isBlank()) {
+            throw Refusal.REMOTE_NEWS_COMMENT_NEEDS_TEXT_ON_UPDATE.raise();
+        }
+        var comment = newsService
+                .findCommentById(commentId)
+                .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_ON_UPDATE::raise);
+        if (!new MemberIdentity(partner.askingStationUid(), request.remoteMemberUid()).sameMember(comment.author())) {
+            throw Refusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_EDIT.raise();
+        }
+        newsService.updateComment(commentId, request.content());
+        return toCommentResponse(newsService
+                .findCommentById(commentId)
+                .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_AFTER_UPDATE::raise));
+    }
+
+    /**
+     * A partner's member deleting a comment of their own.
+     *
+     * @param partner   the partnership the request arrived on
+     * @param commentId the comment
+     * @param request   who deletes
+     */
+    public void serveCommentDeletion(ServingPartner partner, int commentId, RemoteNewsCommentDeleteRequest request) {
+        var comment = newsService
+                .findCommentById(commentId)
+                .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_ON_DELETE::raise);
+        if (!new MemberIdentity(partner.askingStationUid(), request.remoteMemberUid()).sameMember(comment.author())) {
+            throw Refusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_DELETE.raise();
+        }
+        if (!newsService.deleteComment(partner.servingStationId(), commentId)) {
+            throw Refusal.REMOTE_NEWS_COMMENT_NOT_DELETED.raise();
+        }
+    }
+
+    /**
+     * Confirms the partner is allowed to see the given article, i.e. it is in the set this station
+     * shares with that partner. Guards every read and write so a partner cannot address
+     * never-federated news by enumerating ids.
+     */
+    private void requireShared(ServingPartner partner, int newsId) {
+        if (!sharedWith(partner).contains(newsId)) {
+            throw Refusal.NEWS_NOT_SHARED_WITH_PARTNER.raise();
+        }
+    }
+
+    private List<Integer> sharedWith(ServingPartner partner) {
+        return findSharedNewsIds(partner.partnerId(), partner.servingStationId());
     }
 
     // -- Federated comment author tracking --
@@ -186,56 +363,35 @@ public class NewsFederationService {
         return comment;
     }
 
-    // -- Federated browsing (parallel fetch from all partners) --
-
     /**
-     * Browses federated news from all active partners with parallel fetching.
-     * Local partners are queried via direct DB, remote partners via HTTP.
+     * Browses the news every active partner shares with this station, asking them in parallel.
      */
     public List<FederatedNewsItem> browseFederatedNews(int stationId) {
-        var station = stationRepository.findById(stationId).orElseThrow();
         var partners = federationService.findPartners(stationId).stream()
                 .filter(p -> p.status() == FederationStatus.ACTIVE)
                 .toList();
-        return fanout.fanOut(partners, this::browseNewsDirect, partner -> browseNewsViaHttp(station, partner))
-                .items();
+        return fanout.fanOut(partners, this::browsePartner).items();
     }
 
     /**
-     * Fetches a single federated news article by partner station UUID and news ID.
-     * Transparently handles local and remote partners.
+     * Fetches a single article a partner shares with this station.
      */
     public FederatedNewsData getFederatedNews(int localStationId, UUID partnerStationUid, int newsId) {
-        return entityResolver.resolve(
-                localStationId,
-                partnerStationUid,
-                RemoteNewsRoutes.GET_NEWS.at(newsId),
-                FederatedNewsData.class,
-                "news",
-                partner -> {
-                    int partnerStationId = stationRepository
-                            .findByUid(partner.partnerStationId())
-                            .map(Station::id)
-                            .orElseThrow();
-                    var newsIds = findSharedNewsIds(partner.id(), partnerStationId);
-                    if (!newsIds.contains(newsId)) {
-                        throw new BadRequestResponse("News not shared with this partner");
-                    }
-                    return newsService
-                            .findById(newsId)
-                            .map(n -> {
-                                NewsVisibilityRole visibilityRole =
-                                        findVisibilityRole(newsId).orElse(NewsVisibilityRole.MEMBER);
-                                return toNewsData(n, visibilityRole);
-                            })
-                            .orElseThrow();
-                });
+        var partner = entityResolver.requireActivePartner(localStationId, partnerStationUid);
+        var detail = transport.get(partner, RemoteNewsRoutes.GET_NEWS.at(newsId), RemoteNewsDetail.class);
+        return new FederatedNewsData(
+                detail.id(),
+                detail.title(),
+                detail.contentMarkdown(),
+                detail.contentHtml(),
+                detail.authorName(),
+                detail.publishedAt(),
+                detail.commentCount(),
+                detail.visibilityRole());
     }
 
     /**
-     * Lists the comments of a news article owned by a federation partner. Partners on this
-     * instance are read from the database, partners on another instance over the signed
-     * federation endpoint.
+     * Lists the comments of a news article owned by a federation partner.
      *
      * @param stationId         the requesting station ID
      * @param partnerStationUid the owning partner station UUID
@@ -244,18 +400,7 @@ public class NewsFederationService {
      */
     public List<CommentResponse> listFederatedComments(int stationId, UUID partnerStationUid, int newsId) {
         var partner = requirePartner(stationId, partnerStationUid);
-        if (!partner.isRemote()) {
-            return newsService.findComments(newsId).stream()
-                    .map(this::toCommentResponse)
-                    .toList();
-        }
-        var station = localStation(stationId);
-        return httpClient.getList(
-                partner.remoteHost(),
-                RemoteNewsRoutes.LIST_COMMENTS.at(newsId),
-                partner.partnerStationId(),
-                station.id(),
-                CommentResponse.class);
+        return transport.getList(partner, RemoteNewsRoutes.LIST_COMMENTS.at(newsId), CommentResponse.class);
     }
 
     /**
@@ -277,33 +422,10 @@ public class NewsFederationService {
             Integer parentId,
             String content) {
         var partner = requirePartner(stationId, partnerStationUid);
-        if (!partner.isRemote()) {
-            var comment = newsService.createComment(
-                    owningStationId(partnerStationUid),
-                    newsId,
-                    parentId,
-                    author.identity(),
-                    author.displayName(),
-                    content);
-            eventFederationRepository.cacheName(partner.id(), author.memberUid(), author.displayName());
-            return toCommentResponse(comment);
-        }
-        var station = localStation(stationId);
-        var body = new RemoteNewsRoutes.RemoteNewsCommentRequest(
-                author.memberUid(), author.displayName(), parentId, content);
-        var result = httpClient.post(
-                partner.remoteHost(),
-                RemoteNewsRoutes.CREATE_COMMENT.at(newsId),
-                body,
-                partner.partnerStationId(),
-                station.id(),
-                CommentResponse.class);
-        if (result == null) {
-            log.warn("Partner {} refused a comment on its news article {}", partner.id(), newsId);
-            throw new InternalServerErrorResponse("Failed to create comment on partner");
-        }
+        var body = new RemoteNewsCommentRequest(author.memberUid(), author.displayName(), parentId, content);
+        var created = transport.send(partner, RemoteNewsRoutes.CREATE_COMMENT.at(newsId), body, CommentResponse.class);
         log.info("Station {} commented on news article {} at partner {}", stationId, newsId, partner.id());
-        return result;
+        return created;
     }
 
     /**
@@ -319,27 +441,11 @@ public class NewsFederationService {
     public CommentResponse updateFederatedComment(
             int stationId, UUID partnerStationUid, int commentId, FederatedCommentAuthor author, String content) {
         var partner = requirePartner(stationId, partnerStationUid);
-        if (!partner.isRemote()) {
-            requireOwnComment(commentId, author, "You can only edit your own comments");
-            newsService.updateComment(commentId, content);
-            var updated = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
-            return toCommentResponse(updated);
-        }
-        var station = localStation(stationId);
-        var body = new RemoteNewsRoutes.RemoteNewsCommentUpdateRequest(author.memberUid(), content);
-        var result = httpClient.put(
-                partner.remoteHost(),
-                RemoteNewsRoutes.UPDATE_COMMENT.at(commentId),
-                body,
-                partner.partnerStationId(),
-                station.id(),
-                CommentResponse.class);
-        if (result == null) {
-            log.warn("Partner {} refused an edit of its comment {}", partner.id(), commentId);
-            throw new InternalServerErrorResponse("Failed to update comment on partner");
-        }
+        var body = new RemoteNewsCommentUpdateRequest(author.memberUid(), content);
+        var updated =
+                transport.send(partner, RemoteNewsRoutes.UPDATE_COMMENT.at(commentId), body, CommentResponse.class);
         log.info("Station {} edited its comment {} at partner {}", stationId, commentId, partner.id());
-        return result;
+        return updated;
     }
 
     /**
@@ -353,23 +459,11 @@ public class NewsFederationService {
     public void deleteFederatedComment(
             int stationId, UUID partnerStationUid, int commentId, FederatedCommentAuthor author) {
         var partner = requirePartner(stationId, partnerStationUid);
-        if (!partner.isRemote()) {
-            requireOwnComment(commentId, author, "You can only delete your own comments");
-            if (!newsService.deleteComment(owningStationId(partnerStationUid), commentId)) {
-                throw new NotFoundResponse();
-            }
-            return;
-        }
-        var station = localStation(stationId);
-        boolean deleted = httpClient.delete(
-                partner.remoteHost(),
+        transport.send(
+                partner,
                 RemoteNewsRoutes.DELETE_COMMENT.at(commentId),
-                partner.partnerStationId(),
-                station.id());
-        if (!deleted) {
-            log.warn("Partner {} refused a deletion of its comment {}", partner.id(), commentId);
-            throw new InternalServerErrorResponse("Failed to delete comment on partner");
-        }
+                new RemoteNewsCommentDeleteRequest(author.memberUid()),
+                Void.class);
         log.info("Station {} deleted its comment {} at partner {}", stationId, commentId, partner.id());
     }
 
@@ -379,109 +473,48 @@ public class NewsFederationService {
                 .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
     }
 
-    /**
-     * The station that owns the article, for partners hosted on this instance.
-     *
-     * <p>A partner row belongs to the station that requested the partnership, so its
-     * {@code stationId} is the <em>commenting</em> station, not the one holding the article.
-     * Comment notifications and member lookups have to run against the owner, which is what the
-     * {@code /remote/} handlers do - there the row belongs to the serving station and its
-     * {@code stationId} is already the owner. This keeps the same-instance path consistent with that.
-     */
-    private int owningStationId(UUID partnerStationUid) {
-        return stationRepository
-                .resolveId(partnerStationUid)
-                .orElseThrow(() -> new NotFoundResponse("Unknown partner station"));
-    }
-
-    private Station localStation(int stationId) {
-        return stationRepository.findById(stationId).orElseThrow();
-    }
-
-    private void requireOwnComment(int commentId, FederatedCommentAuthor author, String message) {
-        var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
-        if (!author.identity().sameMember(comment.author())) {
-            throw new ForbiddenResponse(message);
-        }
-    }
-
     private CommentResponse toCommentResponse(NewsComment comment) {
         return CommentResponseMapper.fromNews(memberNameResolver, comment);
     }
 
-    private List<FederatedNewsItem> browseNewsDirect(FederationPartner partner) {
-        int partnerStationId = stationRepository
-                .findByUid(partner.partnerStationId())
-                .map(Station::id)
-                .orElse(0);
-        var newsIds = findSharedNewsIds(partner.id(), partnerStationId);
-        var items = new ArrayList<FederatedNewsItem>();
-        for (int newsId : newsIds) {
-            newsService.findById(newsId).ifPresent(n -> {
-                NewsVisibilityRole visibilityRole = findVisibilityRole(newsId).orElse(NewsVisibilityRole.MEMBER);
-                items.add(new FederatedNewsItem(
+    private List<FederatedNewsItem> browsePartner(FederationPartner partner) {
+        String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "?");
+        return transport.getList(partner, RemoteNewsRoutes.LIST_NEWS.at(), RemoteNewsSummary.class).stream()
+                .map(entry -> new FederatedNewsItem(
                         partner.id(),
-                        partnerStationName(partner),
+                        stationName,
                         partner.partnerStationId().toString(),
-                        toNewsData(n, visibilityRole)));
-            });
-        }
-        return items;
-    }
-
-    private List<FederatedNewsItem> browseNewsViaHttp(Station localStation, FederationPartner partner) {
-        var remoteNews = httpClient.getList(
-                partner.remoteHost(),
-                RemoteNewsRoutes.LIST_NEWS.at(),
-                partner.partnerStationId(),
-                localStation.id(),
-                RemoteNewsListEntry.class);
-        return remoteNews.stream()
-                .map(entry -> {
-                    var data = new FederatedNewsData(
-                            entry.id(),
-                            entry.title(),
-                            "",
-                            entry.contentHtml() != null ? entry.contentHtml() : "",
-                            entry.authorName() != null ? entry.authorName() : "",
-                            entry.publishedAt(),
-                            entry.commentCount(),
-                            entry.visibilityRole());
-                    return new FederatedNewsItem(
-                            partner.id(),
-                            partnerStationName(partner),
-                            partner.partnerStationId().toString(),
-                            data);
-                })
+                        new FederatedNewsData(
+                                entry.id(),
+                                entry.title(),
+                                "",
+                                Objects.requireNonNullElse(entry.contentHtml(), ""),
+                                Objects.requireNonNullElse(entry.authorName(), ""),
+                                entry.publishedAt(),
+                                entry.commentCount(),
+                                entry.visibilityRole())))
                 .toList();
     }
 
-    private String partnerStationName(FederationPartner partner) {
-        return FederationDisplayNames.partnerName(stationRepository, partner, "?");
+    private String authorName(News news) {
+        var resolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
+        return resolved != null && resolved.name() != null ? resolved.name() : "";
     }
 
-    private FederatedNewsData toNewsData(News n, NewsVisibilityRole visibilityRole) {
-        var authorResolved = n.author() != null ? memberNameResolver.resolveDisplay(n.author()) : null;
-        String authorName = authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
-        return new FederatedNewsData(
-                n.id(),
-                n.title(),
-                attachmentService.withAttachmentLinks(
-                        n.contentMarkdown() != null ? n.contentMarkdown() : "", n.id(), n.stationId()),
-                attachmentService.withAttachmentLinksHtml(
-                        n.contentHtml() != null ? n.contentHtml() : "", n.id(), n.stationId()),
-                authorName,
-                n.publishedAt() != null ? n.publishedAt().toString() : "",
-                newsService.countComments(n.id()),
-                visibilityRole);
+    private static String publishedAt(News news) {
+        return news.publishedAt() != null ? news.publishedAt().toString() : "";
+    }
+
+    private NewsVisibilityRole visibilityOf(int newsId) {
+        return findVisibilityRole(newsId).orElse(NewsVisibilityRole.MEMBER);
     }
 
     /**
      * The member writing on a partner station, in both the shape the local database stores and
      * the shape a partner instance expects.
      *
-     * @param identity    the local author identity used when the partner lives on this instance
-     * @param memberUid   the member UUID sent to a partner on another instance
+     * @param identity    the member's own identity
+     * @param memberUid   the member UUID sent to the partner
      * @param displayName the name shown next to the comment
      */
     public record FederatedCommentAuthor(MemberIdentity identity, UUID memberUid, String displayName) {}
@@ -496,15 +529,6 @@ public class NewsFederationService {
             int id,
             String title,
             String contentMarkdown,
-            String contentHtml,
-            String authorName,
-            String publishedAt,
-            int commentCount,
-            NewsVisibilityRole visibilityRole) {}
-
-    private record RemoteNewsListEntry(
-            int id,
-            String title,
             String contentHtml,
             String authorName,
             String publishedAt,

@@ -20,9 +20,18 @@ import dev.chojo.ember.feature.inventory.entity.LineTarget;
  * @param itemId      the piece the line names, or {@code null}
  * @param artId       the kind of thing the line asks for, or {@code null}
  * @param needId      the line of an appointment's needs this fills, or {@code null}
+ * @param label       what the line asks for as the lending station named it, kept where that
+ *                    station's gear is on another instance; empty otherwise
  */
 public record LendingRequestItem(
-        int id, int requestId, Integer inventoryId, Integer itemId, Integer artId, int quantity, Integer needId) {
+        int id,
+        int requestId,
+        Integer inventoryId,
+        Integer itemId,
+        Integer artId,
+        int quantity,
+        Integer needId,
+        String label) {
 
     /**
      * What this line points at, where it points at anything.
@@ -44,6 +53,7 @@ public record LendingRequestItem(
                 row.getObject("item_id", Integer.class),
                 row.getObject("art_id", Integer.class),
                 row.getInt("quantity"),
-                row.getObject("need_id", Integer.class));
+                row.getObject("need_id", Integer.class),
+                row.getString("label"));
     }
 }

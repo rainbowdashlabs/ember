@@ -28,9 +28,13 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * and the description, is no business of another station and may be restricted in the first place.
  * The appointment itself is named only at the requesting station, for counting what a need has.
  *
+ * <p>A request between stations on two instances is kept on both of them, and the two copies know
+ * each other by {@code uid}. Between two stations of one instance there is one row, which both read.
+ *
  * @param eventId   the appointment at the requesting station, or {@code null}
  * @param eventDate the date of that appointment, or {@code null}
  * @param occasion  what the request is for, as the owning station reads it
+ * @param uid       the identity the request carries between the two stations
  */
 public record LendingRequest(
         int id,
@@ -44,7 +48,60 @@ public record LendingRequest(
         Instant updatedAt,
         Integer eventId,
         LocalDate eventDate,
-        String occasion) {
+        String occasion,
+        UUID uid) {
+
+    /**
+     * A request whose identity between the stations does not matter to the caller.
+     */
+    public LendingRequest(
+            int id,
+            UUID requestingStationUid,
+            UUID owningStationUid,
+            LendingStatus status,
+            LocalDate requestedDateFrom,
+            LocalDate requestedDateTo,
+            Integer createdBy,
+            Instant createdAt,
+            Instant updatedAt,
+            Integer eventId,
+            LocalDate eventDate,
+            String occasion) {
+        this(
+                id,
+                requestingStationUid,
+                owningStationUid,
+                status,
+                requestedDateFrom,
+                requestedDateTo,
+                createdBy,
+                createdAt,
+                updatedAt,
+                eventId,
+                eventDate,
+                occasion,
+                null);
+    }
+
+    /**
+     * Whether the given station is one of the two the request is between.
+     *
+     * @param stationUid the station
+     * @return true for the borrowing and the lending station
+     */
+    public boolean isParty(UUID stationUid) {
+        return requestingStationUid.equals(stationUid) || owningStationUid.equals(stationUid);
+    }
+
+    /**
+     * The station on the other side of the request from the given one.
+     *
+     * @param stationUid one of the two stations
+     * @return the other one
+     */
+    public UUID otherParty(UUID stationUid) {
+        return requestingStationUid.equals(stationUid) ? owningStationUid : requestingStationUid;
+    }
 
     public static RowMapping<LendingRequest> map() {
         return row -> new LendingRequest(
@@ -59,6 +116,7 @@ public record LendingRequest(
                 row.get("updated_at", INSTANT_TIMESTAMP),
                 row.getObject("event_id", Integer.class),
                 row.getObject("event_date", LocalDate.class),
-                row.getString("occasion"));
+                row.getString("occasion"),
+                row.get("uid", StandardValueConverter.UUID_STRING));
     }
 }

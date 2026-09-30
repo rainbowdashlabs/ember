@@ -24,7 +24,9 @@ import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
+import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -52,6 +54,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.function.Executable;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -79,6 +82,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     private static FederationService federationService;
     private static FederationRepository federationRepo;
     private static FederationHttpClient httpClient;
+    private static FederationTestTransport transport;
     private static CommentService commentService;
 
     private static Station stationA;
@@ -105,10 +109,12 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
         commentService = new CommentService(
                 eventCommentRepo, eventBus, memberSvc, stationRepo, new CommentMentions(memberLookupService, eventBus));
+        when(httpClient.canSign(anyInt())).thenReturn(true);
+        transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
         service = new EventFederationService(
                 eventFederationRepo,
                 federationService,
-                httpClient,
+                transport.transport(),
                 federationRepo,
                 stationRepo,
                 crudService,
@@ -123,7 +129,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         mock(MemberGroupService.class),
                         mock(UserTagService.class)),
                 new FederationFanout(new TaskScheduler()),
-                new FederationEntityResolver(federationRepo, httpClient),
+                new FederationEntityResolver(federationRepo),
                 attachmentService,
                 new EventFieldService(
                         eventFieldRepo,
@@ -136,6 +142,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 occurrenceCalendar,
                 media,
                 new Api());
+        transport.serve(service);
 
         stationA = stationRepo.create("EventFedSvcStationA");
         stationB = stationRepo.create("EventFedSvcStationB");
@@ -675,6 +682,34 @@ class EventFederationServiceTest extends RepositoryTestBase {
         assertEquals(eventId, result.event().id());
         assertEquals("Federated Event", result.event().name());
         assertNull(result.places(), "nothing was set aside, so the holder decides as it always did");
+        transport.assertParity(
+                partnerOf(stationB, stationA),
+                RemoteEventRoutes.GET_EVENT.at(eventId),
+                null,
+                RemoteEventRoutes.RemoteEventDetail.class);
+        transport.assertParity(
+                partnerOf(stationB, stationA), RemoteEventRoutes.LIST_EVENTS.at(), null, SharedEvent.class);
+    }
+
+    /**
+     * An appointment shared with named partners names the holder's own partner rows. A partner on
+     * this instance used to be looked up by its own row instead and never saw such an appointment.
+     */
+    @Test
+    @Order(32)
+    void anAppointmentSharedWithNamedPartnersReachesAPartnerHere() {
+        service.setShare(
+                eventId,
+                ShareScope.SPECIFIC,
+                List.of(partnerOf(stationA, stationB).id()));
+        assertEquals(
+                eventId,
+                service.getFederatedEvent(stationB.id(), stationA.uid(), eventId)
+                        .event()
+                        .id());
+        assertTrue(service.browseFederatedEvents(stationB.id()).stream()
+                .anyMatch(item -> ((SharedEvent) item.event()).id() == eventId));
+        service.setShare(eventId, ShareScope.ALL_PARTNERS, List.of());
     }
 
     @Test
@@ -800,8 +835,9 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any()))
                 .thenReturn(null);
 
-        assertThrows(
-                IllegalStateException.class, () -> service.getFederatedEvent(stationA.id(), stationC.uid(), eventId));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.getFederatedEvent(stationA.id(), stationC.uid(), eventId));
+        assertEquals(Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
     }
 
     @Test
@@ -1005,9 +1041,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
         service.setShare(eventId, ShareScope.ALL_PARTNERS, List.of());
         var result = service.listFederatedComments(stationB.id(), stationA.uid(), eventId);
         assertNotNull(result);
-        assertInstanceOf(EventFederationService.FederatedCommentResult.ListResult.class, result);
-        var listResult = (EventFederationService.FederatedCommentResult.ListResult) result;
-        assertNotNull(listResult.comments());
+        transport.assertParity(
+                partnerOf(stationB, stationA),
+                RemoteEventRoutes.LIST_COMMENTS.at(eventId),
+                null,
+                CommentResponse.class);
     }
 
     @Test
@@ -1035,11 +1073,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 .thenReturn(mockResponses);
 
         var result = service.listFederatedComments(stationA.id(), stationC.uid(), eventId);
-        assertNotNull(result);
-        assertInstanceOf(EventFederationService.FederatedCommentResult.ListResult.class, result);
-        var listResult = (EventFederationService.FederatedCommentResult.ListResult) result;
-        assertEquals(1, listResult.comments().size());
-        assertEquals("Remote comment", listResult.comments().getFirst().content());
+        assertEquals(1, result.size());
+        assertEquals("Remote comment", result.getFirst().content());
     }
 
     @Test
@@ -1057,10 +1092,43 @@ class EventFederationServiceTest extends RepositoryTestBase {
     void createFederatedCommentLocal() {
         var result = service.createFederatedComment(
                 stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Local federated create", null);
-        assertNotNull(result);
-        assertInstanceOf(EventFederationService.FederatedCommentResult.SingleResult.class, result);
-        var single = (EventFederationService.FederatedCommentResult.SingleResult) result;
-        assertEquals("Local federated create", single.comment().content());
+        assertEquals("Local federated create", result.content());
+    }
+
+    /**
+     * A partner on this instance used to comment on any appointment of the station it is paired
+     * with, shared or not, while a partner on another instance was refused. Both are refused now.
+     */
+    @Test
+    @Order(73)
+    void commentsOnAnAppointmentNotSharedWithAPartnerHereAreRefused() {
+        var unshared = eventRepo.create(
+                stationA.id(),
+                "Unshared Event",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(3, ChronoUnit.DAYS),
+                Instant.now().plus(3, ChronoUnit.DAYS),
+                null,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.createFederatedComment(
+                        stationB.id(), stationA.uid(), unshared.id(), REMOTE_MEMBER_1, "Alice", null, "No", null));
+        assertEquals(Refusal.EVENT_NOT_SHARED_WITH_PARTNER, refused.refusal());
+        assertThrows(
+                RefusalResponse.class,
+                () -> service.listFederatedComments(stationB.id(), stationA.uid(), unshared.id()));
+        assertThrows(
+                RefusalResponse.class, () -> service.getFederatedEvent(stationB.id(), stationA.uid(), unshared.id()));
     }
 
     @Test
@@ -1090,10 +1158,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
 
         var result = service.createFederatedComment(
                 stationA.id(), stationC.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Remote content", null);
-        assertNotNull(result);
-        assertInstanceOf(EventFederationService.FederatedCommentResult.SingleResult.class, result);
-        var single = (EventFederationService.FederatedCommentResult.SingleResult) result;
-        assertEquals("Remote created", single.comment().content());
+        assertEquals("Remote created", result.content());
     }
 
     @Test
@@ -1109,7 +1174,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 .thenReturn(null);
 
         assertThrows(
-                IllegalStateException.class,
+                RefusalResponse.class,
                 () -> service.createFederatedComment(
                         stationA.id(), stationC.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Will fail", null));
     }
@@ -1121,15 +1186,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
     void updateFederatedCommentLocal() {
         var createResult = service.createFederatedComment(
                 stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "To update locally", null);
-        var single = (EventFederationService.FederatedCommentResult.SingleResult) createResult;
-        int commentId = single.comment().id();
+        int commentId = createResult.id();
 
         var result = service.updateFederatedComment(
                 stationB.id(), stationA.uid(), commentId, REMOTE_MEMBER_1, "Updated locally");
-        assertNotNull(result);
-        assertInstanceOf(EventFederationService.FederatedCommentResult.SingleResult.class, result);
-        var updatedSingle = (EventFederationService.FederatedCommentResult.SingleResult) result;
-        assertEquals("Updated locally", updatedSingle.comment().content());
+        assertEquals("Updated locally", result.content());
     }
 
     @Test
@@ -1137,8 +1198,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     void updateFederatedCommentLocalWrongOwner() {
         var createResult = service.createFederatedComment(
                 stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Owner check", null);
-        var single = (EventFederationService.FederatedCommentResult.SingleResult) createResult;
-        int commentId = single.comment().id();
+        int commentId = createResult.id();
 
         assertThrows(
                 ForbiddenResponse.class,
@@ -1173,8 +1233,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
 
         var result =
                 service.updateFederatedComment(stationA.id(), stationC.uid(), 100, REMOTE_MEMBER_1, "Updated remote");
-        assertNotNull(result);
-        assertInstanceOf(EventFederationService.FederatedCommentResult.SingleResult.class, result);
+        assertEquals("Updated remote", result.content());
     }
 
     @Test
@@ -1190,7 +1249,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 .thenReturn(null);
 
         assertThrows(
-                IllegalStateException.class,
+                RefusalResponse.class,
                 () -> service.updateFederatedComment(stationA.id(), stationC.uid(), 200, REMOTE_MEMBER_1, "Will fail"));
     }
 
@@ -1201,11 +1260,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
     void deleteFederatedCommentLocal() {
         var createResult = service.createFederatedComment(
                 stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_3, "Charlie", null, "Delete me locally", null);
-        var single = (EventFederationService.FederatedCommentResult.SingleResult) createResult;
-        int commentId = single.comment().id();
+        int commentId = createResult.id();
 
-        boolean deleted = service.deleteFederatedComment(stationB.id(), stationA.uid(), commentId, REMOTE_MEMBER_3);
-        assertTrue(deleted);
+        service.deleteFederatedComment(stationB.id(), stationA.uid(), commentId, REMOTE_MEMBER_3);
+        assertTrue(commentService.findById(commentId).map(Comment::deleted).orElse(true));
     }
 
     @Test
@@ -1213,8 +1271,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     void deleteFederatedCommentLocalWrongOwner() {
         var createResult = service.createFederatedComment(
                 stationB.id(), stationA.uid(), eventId, REMOTE_MEMBER_1, "Alice", null, "Delete check", null);
-        var single = (EventFederationService.FederatedCommentResult.SingleResult) createResult;
-        int commentId = single.comment().id();
+        int commentId = createResult.id();
 
         assertThrows(
                 ForbiddenResponse.class,
@@ -1227,12 +1284,12 @@ class EventFederationServiceTest extends RepositoryTestBase {
         when(httpClient.delete(
                         eq("https://remote-event.example.com"),
                         pathIs("/remote/events/comments/300"),
+                        eq(new RemoteEventRoutes.RemoteCommentDeleteRequest(REMOTE_MEMBER_1)),
                         any(),
                         eq(stationA.id())))
                 .thenReturn(true);
 
-        boolean deleted = service.deleteFederatedComment(stationA.id(), stationC.uid(), 300, REMOTE_MEMBER_1);
-        assertTrue(deleted);
+        assertDoesNotThrow(() -> service.deleteFederatedComment(stationA.id(), stationC.uid(), 300, REMOTE_MEMBER_1));
     }
 
     @Test
@@ -1242,11 +1299,12 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         eq("https://remote-event.example.com"),
                         pathIs("/remote/events/comments/301"),
                         any(),
+                        any(),
                         eq(stationA.id())))
                 .thenReturn(false);
 
         assertThrows(
-                IllegalStateException.class,
+                RefusalResponse.class,
                 () -> service.deleteFederatedComment(stationA.id(), stationC.uid(), 301, REMOTE_MEMBER_1));
     }
 
@@ -1281,28 +1339,19 @@ class EventFederationServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(90)
-    void fetchFederatedEvents() {
+    void browseFederatedEventsAsksAPartnerElsewhere() {
         var remoteEvent = new SharedEvent(
                 1, "Test Event", "desc", StationEvent.EventType.ONE_TIME, 0, "10:00", "12:00", true, false, null, null);
-        UUID partnerUid = UUID.randomUUID();
         when(httpClient.getList(
-                        eq("https://example.com"),
+                        eq("https://remote-event.example.com"),
                         pathIs("/remote/events"),
-                        eq(partnerUid),
-                        eq(1),
+                        eq(stationC.uid()),
+                        eq(stationA.id()),
                         eq(SharedEvent.class)))
                 .thenReturn(List.of(remoteEvent));
 
-        var result = service.fetchFederatedEvents("https://example.com", partnerUid, 1);
-        assertEquals(1, result.size());
-        assertEquals("Test Event", result.getFirst().name());
-        assertEquals("desc", result.getFirst().description());
-        assertEquals(StationEvent.EventType.ONE_TIME, result.getFirst().eventType());
-        assertEquals(0, result.getFirst().dayOfWeek());
-        assertEquals("10:00", result.getFirst().startTime());
-        assertEquals("12:00", result.getFirst().endTime());
-        assertTrue(result.getFirst().requiresRegistration());
-        assertFalse(result.getFirst().requiresConfirmation());
+        var result = service.browseFederatedEvents(stationA.id());
+        assertTrue(result.stream().anyMatch(item -> item.event().equals(remoteEvent)));
     }
 
     /**
@@ -1313,86 +1362,59 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(91)
     void registerForFederatedEvent() {
-        UUID partnerUid = UUID.randomUUID();
         var accepted = new EventFederationRegistration(
                 1, 1, 1, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1), RegistrationStatus.ACCEPTED, Instant.now());
         when(httpClient.post(
-                        eq("https://example.com"),
+                        eq("https://remote-event.example.com"),
                         pathIs("/remote/events/1/register"),
                         any(),
-                        eq(partnerUid),
-                        eq(1),
+                        eq(stationC.uid()),
+                        eq(stationA.id()),
                         eq(EventFederationRegistration.class)))
                 .thenReturn(accepted);
 
         var status = service.registerForFederatedEvent(
-                "https://example.com", partnerUid, 1, REMOTE_MEMBER_1, "2026-07-01", 1);
-        assertEquals(RegistrationStatus.ACCEPTED, status.orElseThrow());
+                stationA.id(), stationC.uid(), 1, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1));
+        assertEquals(RegistrationStatus.ACCEPTED, status);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.registerForFederatedEvent(
+                        stationA.id(), stationC.uid(), 2, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1)));
+        assertEquals(Refusal.FEDERATED_REGISTRATION_NOT_TAKEN, refused.refusal());
     }
 
     @Test
     @Order(92)
     void withdrawFederatedRegistration() {
-        UUID partnerUid = UUID.randomUUID();
         when(httpClient.delete(
-                        eq("https://example.com"), pathIs("/remote/events/1/register"), any(), eq(partnerUid), eq(1)))
+                        eq("https://remote-event.example.com"),
+                        pathIs("/remote/events/1/register"),
+                        any(),
+                        eq(stationC.uid()),
+                        eq(stationA.id())))
                 .thenReturn(true);
 
-        boolean success = service.withdrawFederatedRegistration(
-                "https://example.com", partnerUid, 1, REMOTE_MEMBER_1, "2026-07-01", 1);
-        assertTrue(success);
+        assertDoesNotThrow(() -> service.withdrawFederatedRegistration(
+                stationA.id(), stationC.uid(), 1, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1)));
+        assertDoesNotThrow(() -> service.withdrawFederatedRegistration(
+                stationA.id(), stationC.uid(), 2, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1)));
     }
 
-    // -- FederatedCommentResult record types --
-
+    /** A partner elsewhere that does not answer a confirmation or an undo is told in this station's words. */
     @Test
-    @Order(95)
-    void federatedCommentResultOfList() {
-        var comments = List.of(new CommentResponse(
-                1,
-                null,
-                null,
-                null,
-                null,
-                new MemberIdentity(stationA.uid(), REMOTE_MEMBER_1),
-                "Name",
-                "Content",
-                false,
-                Instant.now(),
-                null,
-                null));
-        var result = EventFederationService.FederatedCommentResult.ofList(comments);
-        assertInstanceOf(EventFederationService.FederatedCommentResult.ListResult.class, result);
-        assertEquals(
-                1,
-                ((EventFederationService.FederatedCommentResult.ListResult) result)
-                        .comments()
-                        .size());
-    }
-
-    @Test
-    @Order(96)
-    void federatedCommentResultOfSingle() {
-        var comment = new CommentResponse(
-                1,
-                null,
-                null,
-                null,
-                null,
-                new MemberIdentity(stationA.uid(), REMOTE_MEMBER_1),
-                "Name",
-                "Content",
-                false,
-                Instant.now(),
-                null,
-                null);
-        var result = EventFederationService.FederatedCommentResult.ofSingle(comment);
-        assertInstanceOf(EventFederationService.FederatedCommentResult.SingleResult.class, result);
-        assertEquals(
-                "Content",
-                ((EventFederationService.FederatedCommentResult.SingleResult) result)
-                        .comment()
-                        .content());
+    @Order(93)
+    void aPartnerElsewhereThatDoesNotAnswerIsNamedInTheFeaturesWords() {
+        var confirm = assertThrows(
+                RefusalResponse.class,
+                () -> service.confirmOwnFederatedMember(
+                        stationA.id(), stationC.uid(), 1, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1)));
+        assertEquals(Refusal.NO_PLACES_LEFT_AT_HOLDER, confirm.refusal());
+        var undo = assertThrows(
+                RefusalResponse.class,
+                () -> service.undoFederatedWithdrawal(
+                        stationA.id(), stationC.uid(), 1, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1)));
+        assertEquals(Refusal.FEDERATED_WITHDRAWAL_NO_LONGER_UNDONE, undo.refusal());
     }
 
     @Test
@@ -1492,5 +1514,104 @@ class EventFederationServiceTest extends RepositoryTestBase {
             attachmentService.detach(open.id());
             attachmentService.detach(internal.id());
         }
+    }
+
+    /**
+     * A partner on this instance goes through the same doors as one elsewhere: it signs up, gives the
+     * place back, takes the withdrawal back and confirms its own member only where it was handed that
+     * decision, and every refusal names what was refused.
+     */
+    @Test
+    @Order(94)
+    void aPartnerHereSignsUpAndChangesItsMindThroughTheSameDoors() {
+        service.setShare(eventId, ShareScope.ALL_PARTNERS, List.of());
+        var member = UUID.randomUUID();
+        var day = LocalDate.now().plusDays(1);
+        var asking = partnerOf(stationB, stationA);
+        int serving = partnerOf(stationA, stationB).id();
+
+        assertNotNull(service.registerForFederatedEvent(stationB.id(), stationA.uid(), eventId, member, day));
+        transport.assertParity(
+                asking, RemoteEventRoutes.LIST_REGISTRATIONS.at(eventId), null, EventFederationRegistration.class);
+        transport.assertParity(
+                asking,
+                RemoteEventRoutes.LIST_MEMBER_REGISTRATIONS.at(member),
+                null,
+                RemoteEventRoutes.RemoteMemberRegistration.class);
+
+        service.withdrawFederatedRegistration(stationB.id(), stationA.uid(), eventId, member, day);
+        service.undoFederatedWithdrawal(stationB.id(), stationA.uid(), eventId, member, day);
+        assertTrue(service.findRegistration(eventId, serving, member, day)
+                .orElseThrow()
+                .isStanding());
+
+        assertRefused(
+                Refusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN,
+                () -> service.confirmOwnFederatedMember(stationB.id(), stationA.uid(), eventId, member, day));
+        service.setPartnerPlaces(eventId, serving, 1, true);
+        var second = UUID.randomUUID();
+        assertEquals(
+                RegistrationStatus.PENDING,
+                service.registerForFederatedEvent(stationB.id(), stationA.uid(), eventId, second, day));
+        assertRefused(
+                Refusal.NO_PLACES_LEFT_FOR_PARTNER,
+                () -> service.confirmOwnFederatedMember(stationB.id(), stationA.uid(), eventId, second, day));
+        service.setPartnerPlaces(eventId, serving, 2, true);
+        assertDoesNotThrow(
+                () -> service.confirmOwnFederatedMember(stationB.id(), stationA.uid(), eventId, second, day));
+        service.setPartnerPlaces(eventId, serving, null, false);
+
+        var stranger = UUID.randomUUID();
+        service.withdrawFederatedRegistration(stationB.id(), stationA.uid(), eventId, stranger, day);
+        assertRefused(
+                Refusal.PARTNER_WITHDRAWAL_NO_LONGER_UNDONE,
+                () -> service.undoFederatedWithdrawal(stationB.id(), stationA.uid(), eventId, stranger, day));
+    }
+
+    /** What a partner here sends that cannot be taken is refused in the words of what went wrong. */
+    @Test
+    @Order(95)
+    void aPartnerHereIsToldWhatWasWrongWithItsComment() {
+        service.setShare(eventId, ShareScope.ALL_PARTNERS, List.of());
+        var asking = partnerOf(stationB, stationA);
+        var member = UUID.randomUUID();
+
+        assertRefused(
+                Refusal.PARTNER_COMMENT_NEEDS_TEXT,
+                () -> service.createFederatedComment(
+                        stationB.id(), stationA.uid(), eventId, member, "Visitor", null, " ", null));
+        assertRefused(Refusal.PARTNER_COMMENT_DAY_NOT_A_DATE, () -> transport
+                .transport()
+                .send(
+                        asking,
+                        RemoteEventRoutes.CREATE_COMMENT.at(eventId),
+                        new RemoteEventRoutes.RemoteCommentRequest(member, "Visitor", null, "Hi", "someday"),
+                        CommentResponse.class));
+        var comment = service.createFederatedComment(
+                stationB.id(), stationA.uid(), eventId, member, "Visitor", null, "Hi", null);
+        assertRefused(
+                Refusal.PARTNER_COMMENT_CHANGE_NEEDS_TEXT,
+                () -> service.updateFederatedComment(stationB.id(), stationA.uid(), comment.id(), member, " "));
+        assertEquals(
+                "ok",
+                transport
+                        .transport()
+                        .send(
+                                asking,
+                                RemoteEventRoutes.REGISTRATION_STATUS_WEBHOOK.at(),
+                                null,
+                                FederatedEventRoutes.StatusResponse.class)
+                        .status());
+    }
+
+    private static void assertRefused(Refusal expected, Executable call) {
+        assertEquals(expected, assertThrows(RefusalResponse.class, call).refusal());
+    }
+
+    /** The given station's own partner row for the other one. */
+    private static FederationPartner partnerOf(Station station, Station other) {
+        return federationRepo
+                .findPartnerByStationAndRemoteUid(station.id(), other.uid())
+                .orElseThrow();
     }
 }

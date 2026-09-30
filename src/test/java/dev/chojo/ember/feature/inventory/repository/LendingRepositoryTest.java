@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -352,5 +354,36 @@ class LendingRepositoryTest extends RepositoryTestBase {
         int count = lendingRepo.countActionableRequests(stationA.uid());
         // Returns count of REQUESTED/APPROVED-but-pending requests for this station; at least 0
         assertTrue(count >= 0);
+    }
+
+    /**
+     * A copy of a request from a station on another instance: found by the identity both copies
+     * carry, its lines named in the lending station's words, and gone again when it could not be
+     * delivered.
+     */
+    @Test
+    @Order(60)
+    void aRequestCopyIsFoundByItsSharedIdentity() {
+        UUID uid = UUID.randomUUID();
+        UUID elsewhere = UUID.randomUUID();
+        var copy = lendingRepo.createRequest(
+                uid, stationA.uid(), elsewhere, LocalDate.now(), null, null, null, null, "Übung");
+        assertEquals(uid, copy.uid());
+        assertNull(copy.createdBy());
+        assertEquals(copy.id(), lendingRepo.findRequestByUid(uid).orElseThrow().id());
+        assertTrue(lendingRepo.findRequestByUid(UUID.randomUUID()).isEmpty());
+
+        lendingRepo.addRequestItem(copy.id(), null, null, null, 2, null);
+        lendingRepo.addRequestItem(copy.id(), null, null, null, 1, null);
+        lendingRepo.labelItems(copy.id(), List.of("Funkgeräte", "Zelt", "ignored"));
+        assertEquals(
+                List.of("Funkgeräte", "Zelt"),
+                lendingRepo.findItemsByRequest(copy.id()).stream()
+                        .map(LendingRequestItem::label)
+                        .toList());
+
+        assertTrue(lendingRepo.deleteRequest(uid));
+        assertFalse(lendingRepo.deleteRequest(uid));
+        assertTrue(lendingRepo.findRequestByUid(uid).isEmpty());
     }
 }

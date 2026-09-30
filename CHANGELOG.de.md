@@ -13,6 +13,7 @@
 
 - **Vorschau, Duplizieren und eine Nachricht nach dem Absenden.** Der Formular-Editor zeigt das Formular so, wie es ausgefüllt wird, samt Weg durch die Seiten, und Formulare und Fragen lassen sich duplizieren. Ein Formular kann nach dem Absenden eine eigene Nachricht und einen Link zeigen.
 - **Fragen und Seiten per Ziehen sortieren.** Fragen werden innerhalb einer Seite und zwischen Seiten gezogen, Seiten als Ganzes. Geänderte Fragen gehen nicht mehr verloren, wenn der Editor vor dem Speichern verlassen wird: Ember fragt vorher nach und bietet sie beim nächsten Öffnen wieder an.
+- **Die Ausleihe erreicht Partnerwachen auf anderen Instanzen.** Ausrüstung lässt sich zwischen Partnerwachen auf verschiedenen Instanzen genauso ansehen, anfragen, verleihen und zurückgeben wie zwischen Wachen einer Instanz. Beide Instanzen brauchen diese Version, und eine Partnerwache erscheint in den Angeboten, sobald sie aktualisiert hat.
 - **Fehler zeigen auf die Frage.** Lassen sich Antworten nicht absenden, öffnet das Formular die Seite mit dem Problem und markiert jede betroffene Frage.
 - **Abgesagte Termine sind überall gekennzeichnet.** Die Liste der kommenden Termine, der Monatskalender und der persönliche Kalender-Feed zeigen einen abgesagten Termin durchgestrichen und als abgesagt statt als stattfindend. Eine Anmeldung zu einem solchen Termin wird nicht mehr angeboten.
 - **SFTP- und SMB-Speicher bedienen mehrere Anfragen gleichzeitig.** Seiten mit vielen Bildern warten nicht mehr auf eine Datei nach der anderen, und Wachen auf demselben Verbund-Speicher teilen sich ihre Verbindungen; im Test dauerten 32 Lesezugriffe neben einem großen Upload eine halbe statt vier Sekunden. Grenzen und Wartezeiten beschreibt die Speicher-Seite der Hilfe.
@@ -26,6 +27,8 @@
 
 - **Einträge nur für benannte Personen waren für die ganze Wache sichtbar.** Ein Formular, ein Termin, ein Blog-Beitrag oder ein Quiz, das auf eine Liste benannter Mitglieder beschränkt war, wurde jedem Mitglied der Wache angezeigt. Jetzt sehen es nur die benannten Personen und diejenigen, die es verwalten.
 - **Verborgene Termine ließen sich über ihre Adresse lesen.** Ein Mitglied konnte Angaben, Felder, Anmeldungen, Kommentare und Material eines Termins, der vor ihm verborgen war, direkt über seine Nummer abrufen, und die Anmeldezahlen enthielten auch verborgene Termine. Solche Anfragen werden jetzt beantwortet, als gäbe es den Termin nicht, außer das Mitglied darf ihn sehen oder Termine bearbeiten.
+- **Partnerwachen auf derselben Instanz konnten öffnen, was nicht mit ihnen geteilt war.** Eine Partnerwache auf derselben Instanz konnte Quizze, Prüfprotokolle und Wiki-Artikel öffnen und Kommentare zu Neuigkeiten, Terminen und Wiki-Artikeln lesen und schreiben, die nie mit ihr geteilt wurden. Sie sieht jetzt genau das, was eine Partnerwache auf einer anderen Instanz sieht.
+- **Partnerwachen konnten mehr ändern als das mit ihnen geteilte Board.** Eine Partnerwache, die ein geteiltes Board bearbeiten durfte, konnte Checklisten ändern, Tickets verschieben und Labels anderer Boards auf derselben Instanz vergeben. Ihre Änderungen bleiben jetzt auf dem Board, das mit ihr geteilt ist.
 - **Benachrichtigungen über beschränkte Einträge erreichten Personen ohne Zugriff.** In manchen Fällen ging die Benachrichtigung über ein neues Formular, einen neuen Termin oder einen neuen Blog-Beitrag an Mitglieder außerhalb des Kreises, für den er bestimmt war, und zeigte seinen Titel. Jetzt erreicht sie nur die Mitglieder, die den Eintrag öffnen dürfen.
 
 ### Änderungen
@@ -69,6 +72,11 @@
 - **Die E-Mail des Verbands in der richtigen Sprache und zur richtigen Zeit.** Die Benachrichtigungs-E-Mail des Verbands war immer auf Englisch geschrieben, und ihre Versandzeiten wurden in UTC statt in Ortszeit gelesen. Sie richtet sich jetzt nach Sprache und Zeitzone der Heimat-Wache des Verbands.
 - **Keine doppelten Benachrichtigungen.** In manchen Fällen konnte dieselbe Benachrichtigung zweimal erscheinen, wenn zwei Personen im selben Moment dasselbe taten. Sie erscheint jetzt einmal.
 - **Frühere Betreuende wurden weiter benachrichtigt.** Wer eine Wache verlassen hatte, konnte weiter Benachrichtigungen und E-Mails über die Mitglieder bekommen, die er früher betreut hat. Das ist nicht mehr so.
+- **Quizze von Partnerwachen auf anderen Instanzen ließen sich nicht öffnen.** Ein Quiz, das eine Partnerwache auf einer anderen Instanz geteilt hat, ließ sich nicht öffnen, sobald es Fragen enthielt. Es öffnet sich jetzt mit allen Fragen.
+- **Mit benannten Partnern geteilte Neuigkeiten und Termine fehlten bei Partnern auf derselben Instanz.** Eine Neuigkeit oder ein Termin, die mit benannten Partnerwachen geteilt waren, erreichten eine benannte Partnerwache auf derselben Instanz nie. Sie erreichen jetzt jede Partnerwache, die sie nennen.
+- **Kommentare bei Partnerwachen auf anderen Instanzen schlugen fehl.** Ein Mitglied konnte seinen eigenen Kommentar zu einer Neuigkeit oder einem Termin einer Partnerwache auf einer anderen Instanz nicht löschen und in manchen Fällen auch keinen neuen Kommentar zu einem solchen Termin schreiben. Beides funktioniert jetzt.
+- **Eigene Boards erschienen unter den Boards eines Partners.** In manchen Fällen tauchte ein Board, das eine Wache mit einer Partnerwache auf derselben Instanz geteilt hat, in ihrer eigenen Liste der Boards dieses Partners auf. Die Liste zeigt jetzt nur die Boards, die der Partner teilt.
+- **Tickets von Partnern auf anderen Instanzen ließen sich nicht abbestellen.** Ein Mitglied, das ein Ticket auf einem Board einer Partnerwache auf einer anderen Instanz beobachtete, konnte das Beobachten nicht beenden. Das funktioniert jetzt.
 
 ## v26.19.5
 

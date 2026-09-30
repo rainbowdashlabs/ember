@@ -55,24 +55,8 @@ public class FederationFanout {
     }
 
     /**
-     * Queries all given partners in parallel, each through the fetcher matching where it lives.
-     *
-     * @param partners      the partners to query
-     * @param localFetcher  fetcher for partners living on this instance
-     * @param remoteFetcher fetcher for partners living on another instance
-     * @param <T>           the result element type
-     * @return every partner's answer, in partner order
-     */
-    public <T> FanoutResult<T> fanOut(
-            List<FederationPartner> partners,
-            Function<FederationPartner, List<T>> localFetcher,
-            Function<FederationPartner, List<T>> remoteFetcher) {
-        return fanOut(
-                partners, partner -> partner.isRemote() ? remoteFetcher.apply(partner) : localFetcher.apply(partner));
-    }
-
-    /**
-     * Queries all given partners in parallel through one fetcher that serves both kinds of partner.
+     * Queries all given partners in parallel through one fetcher that serves every partner, wherever
+     * it lives.
      *
      * @param partners the partners to query
      * @param fetcher  fetcher for any partner

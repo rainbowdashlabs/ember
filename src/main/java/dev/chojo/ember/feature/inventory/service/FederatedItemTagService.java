@@ -8,18 +8,16 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
-import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
+import dev.chojo.ember.feature.federation.transport.FederationServer;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.inventory.entity.TaggedItemSummary;
 import dev.chojo.ember.feature.inventory.repository.InventoryTagRepository;
 import dev.chojo.ember.feature.inventory.route.RemoteInventoryTagRoutes;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -35,33 +33,33 @@ import java.util.List;
  * decision about who may see what.
  */
 @Singleton
-public class FederatedItemTagService {
-    private static final Logger log = LoggerFactory.getLogger(FederatedItemTagService.class);
-
+public class FederatedItemTagService implements FederationServer {
     private final InventoryTagRepository tagRepository;
     private final InventoryTagService tagService;
     private final FederationService federationService;
-    private final FederationRepository federationRepository;
     private final FederationFanout fanout;
-    private final FederationHttpClient httpClient;
-    private final StationRepository stationRepository;
+    private final FederationTransport transport;
 
     @Inject
     public FederatedItemTagService(
             InventoryTagRepository tagRepository,
             InventoryTagService tagService,
             FederationService federationService,
-            FederationRepository federationRepository,
             FederationFanout fanout,
-            FederationHttpClient httpClient,
-            StationRepository stationRepository) {
+            FederationTransport transport) {
         this.tagRepository = tagRepository;
         this.tagService = tagService;
         this.federationService = federationService;
-        this.federationRepository = federationRepository;
         this.fanout = fanout;
-        this.httpClient = httpClient;
-        this.stationRepository = stationRepository;
+        this.transport = transport;
+    }
+
+    @Override
+    public void serveOn(FederationEndpoints endpoints) {
+        endpoints.serve(
+                RemoteInventoryTagRoutes.GET_TAGGED_ITEMS,
+                (partner, params, body) ->
+                        serveToPartner(partner.servingStationId(), partner.partnerId(), params.text("tag")));
     }
 
     /**
@@ -81,10 +79,8 @@ public class FederatedItemTagService {
                 .filter(partner -> partner.status() == FederationPartner.FederationStatus.ACTIVE)
                 .filter(this::lendsWith)
                 .toList();
-        found.addAll(fanout.fanOut(
-                        partners,
-                        partner -> fromLocalPartner(partner, name),
-                        partner -> fromRemotePartner(partner, stationId, name))
+        var request = RemoteInventoryTagRoutes.GET_TAGGED_ITEMS.at(URLEncoder.encode(name, StandardCharsets.UTF_8));
+        found.addAll(fanout.fanOut(partners, partner -> transport.getList(partner, request, TaggedItemSummary.class))
                 .items());
         return found;
     }
@@ -104,29 +100,5 @@ public class FederatedItemTagService {
 
     private boolean lendsWith(FederationPartner partner) {
         return federationService.hasCapability(partner, CapabilityType.INVENTORY_LEND, Direction.IMPORT);
-    }
-
-    private List<TaggedItemSummary> fromLocalPartner(FederationPartner partner, String name) {
-        var holding = stationRepository.findByUid(partner.partnerStationId()).orElse(null);
-        if (holding == null) return List.of();
-        var asking = stationRepository.resolveUid(partner.stationId());
-        var reciprocal = federationRepository
-                .findPartnerByStationAndRemoteUid(holding.id(), asking)
-                .orElse(null);
-        if (reciprocal == null) return List.of();
-        return tagService.findSharedItemsByTag(holding.id(), reciprocal.id(), name);
-    }
-
-    private List<TaggedItemSummary> fromRemotePartner(FederationPartner partner, int stationId, String name) {
-        if (!httpClient.canSign(stationId)) {
-            log.warn("No private key found for station {}, cannot ask partners for tagged items", stationId);
-            return List.of();
-        }
-        return httpClient.getList(
-                partner.remoteHost(),
-                RemoteInventoryTagRoutes.GET_TAGGED_ITEMS.at(URLEncoder.encode(name, StandardCharsets.UTF_8)),
-                partner.partnerStationId(),
-                stationId,
-                TaggedItemSummary.class);
     }
 }

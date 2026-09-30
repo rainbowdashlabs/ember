@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:77b9eb0ddf867080f6b9666ccf42046a9c39134e004af7ac36be8236bbf20e83",
-  "generatedAt": "2026-09-30T21:14:22Z",
+  "schemaHash": "sha256:480dbb5b53ad61ec643cf3a2bb316f6e3757ac4d9ffeee54012bb2196a7fdefd",
+  "generatedAt": "2026-09-30T21:47:59Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -9828,7 +9828,7 @@
     "federation_lending_request": {
       "feature": "federation",
       "scope": "STATION",
-      "tableHash": "sha256:36aecc9a73ac4eba94258863cffb141fa0357abb37afcd8e6a0d9172bdc3e26d",
+      "tableHash": "sha256:f2606d891b36b7232ba7e810332447e87e11d8eee60d7aa8de362c18587db6b0",
       "columns": [
         {
           "name": "id",
@@ -9911,6 +9911,13 @@
           "nullable": false,
           "verified": true,
           "description": "What the request is for, in words, as the owning station reads it. A copy of the appointment's name taken when the request was sent, so nothing else about the appointment ever travels and a later rename does not rewrite what was asked for. Empty where the request names no occasion."
+        },
+        {
+          "name": "uid",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The identity the request carries between the two stations. A request to a station on another instance is kept on both instances under the same uid; between stations of one instance it is the one row both of them share."
         }
       ],
       "foreignKeys": [
@@ -9955,7 +9962,7 @@
     "federation_lending_request_item": {
       "feature": "federation",
       "scope": "STATION",
-      "tableHash": "sha256:68fb6131ad053928e65472f1748f631bcdb3c6728178af2fce006e97c45f4597",
+      "tableHash": "sha256:61ea65ea40bec79713a69427e141d0ada29fdabd97b3a1a61935f6f543f2504f",
       "columns": [
         {
           "name": "id",
@@ -10005,6 +10012,13 @@
           "nullable": true,
           "verified": true,
           "description": "The line of an appointment's needs this request was sent to fill, at the requesting station, or null where the request answers no need. What comes back on it counts towards that need like the station's own gear does."
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the line asks for, in words, as the lending station named it. Kept on the borrowing station's copy of a request to a station on another instance, whose inventories are not here to name it. Empty where the line names gear of this instance."
         }
       ],
       "foreignKeys": [

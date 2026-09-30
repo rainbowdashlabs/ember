@@ -5,9 +5,12 @@
  */
 package dev.chojo.ember.feature.protocol.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.FederationTestContracts;
+import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -16,6 +19,7 @@ import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
+import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -41,6 +45,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     private static FederationRepository federationRepo;
     private static FederationService federationService;
     private static FederationHttpClient httpClient;
+    private static FederationTestTransport transport;
     private static Station station;
     private static Station stationB;
     private static Station stationC;
@@ -56,14 +61,17 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         httpClient = mock(FederationHttpClient.class);
+        when(httpClient.canSign(anyInt())).thenReturn(true);
+        transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
         service = new TestProtocolService(
                 testProtocolRepo,
                 federationService,
                 federationRepo,
-                httpClient,
                 stationRepo,
                 new FederationFanout(new TaskScheduler()),
-                new FederationEntityResolver(federationRepo, httpClient));
+                new FederationEntityResolver(federationRepo),
+                transport.transport());
+        transport.serve(service);
         station = stationRepo.create("ProtocolSvcStation");
         stationB = stationRepo.create("ProtocolSvcStationB");
         stationC = stationRepo.create("ProtocolSvcStationC");
@@ -413,12 +421,52 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         var fedProto = testProtocolRepo.createProtocol(stationB.id(), "FedDetailProto", "detail desc", 80);
         var sec = testProtocolRepo.createSection(fedProto.id(), null, "FedSection", "sec desc", 100, 50, 0);
         testProtocolRepo.createItem(sec.id(), "FedItem", "item desc", 10.0, 0);
+        var share = federationRepo.createProtocolShare(stationB.id(), fedProto.id(), ShareScope.ALL_PARTNERS);
         var result = service.getFederatedProtocol(station.id(), stationB.uid(), fedProto.id());
         assertNotNull(result);
         assertNotNull(result.protocol());
-        assertNotNull(result.sections());
-        assertNotNull(result.items());
+        assertEquals(1, result.sections().size());
+        assertEquals(1, result.items().size());
+        var asking = federationRepo
+                .findPartnerByStationAndRemoteUid(station.id(), stationB.uid())
+                .orElseThrow();
+        transport.assertParity(
+                asking,
+                RemoteTestProtocolRoutes.GET_PROTOCOL.at(fedProto.id()),
+                null,
+                RemoteTestProtocolRoutes.RemoteProtocolDetail.class);
+        transport.assertParity(
+                asking,
+                RemoteTestProtocolRoutes.BROWSE_PROTOCOLS.at(),
+                null,
+                RemoteTestProtocolRoutes.RemoteProtocolSummary.class);
+        federationRepo.deleteProtocolShare(share.id(), stationB.id());
         testProtocolRepo.deleteProtocol(fedProto.id(), stationB.id());
+    }
+
+    /**
+     * A partner on this instance used to read any protocol of the station it is paired with, shared
+     * or not. It is refused now, as a partner on another instance always was.
+     */
+    @Test
+    @Order(212)
+    void anUnsharedProtocolOfAPartnerHereIsRefused() {
+        var unshared = testProtocolRepo.createProtocol(stationB.id(), "Unshared", "never shared", 60);
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.getFederatedProtocol(station.id(), stationB.uid(), unshared.id()));
+        assertEquals(Refusal.REMOTE_PROTOCOL_NOT_SHARED, refused.refusal());
+        testProtocolRepo.deleteProtocol(unshared.id(), stationB.id());
+    }
+
+    /** A share naming another station's protocol shows nothing at a partner on this instance either. */
+    @Test
+    @Order(213)
+    void aShareNamingAnotherStationsProtocolShowsNothing() {
+        var foreign = testProtocolRepo.createProtocol(station.id(), "Foreign", "the asker's own", 60);
+        var share = federationRepo.createProtocolShare(stationB.id(), foreign.id(), ShareScope.ALL_PARTNERS);
+        assertTrue(service.browseSharedProtocols(station.id()).stream().noneMatch(p -> p.id() == foreign.id()));
+        federationRepo.deleteProtocolShare(share.id(), stationB.id());
+        testProtocolRepo.deleteProtocol(foreign.id(), station.id());
     }
 
     // -- Federation: getFederatedProtocol --
@@ -491,8 +539,9 @@ class TestProtocolServiceTest extends RepositoryTestBase {
                         pathIs("/remote/protocols"),
                         any(),
                         eq(station.id()),
-                        eq(TestProtocolService.RemoteProtocol.class)))
-                .thenReturn(List.of(new TestProtocolService.RemoteProtocol(99, "RemoteProto", "remote desc")));
+                        eq(RemoteTestProtocolRoutes.RemoteProtocolSummary.class)))
+                .thenReturn(List.of(new RemoteTestProtocolRoutes.RemoteProtocolSummary(
+                        99, "RemoteProto", "remote desc", "2026-01-01")));
         var items = service.browseSharedProtocols(station.id());
         assertTrue(items.stream().anyMatch(i -> i.name().equals("RemoteProto")));
     }
@@ -500,7 +549,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Test
     @Order(241)
     void getFederatedProtocolRemote() {
-        var remoteResult = new TestProtocolService.FederatedProtocolDetail(
+        var remoteResult = new RemoteTestProtocolRoutes.RemoteProtocolDetail(
                 new TestProtocol(77, 0, "RemoteProto", "desc", 80, null, null), List.of(), List.of());
         when(httpClient.get(
                         eq("https://remote-proto.example.com"),

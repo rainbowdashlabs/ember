@@ -13,19 +13,18 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.FederationBoardBookmark;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteBoardRenamedWebhook;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteBoardUnsharedWebhook;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteShareModeChangedWebhook;
 import dev.chojo.ember.feature.board.route.RemoteBoardWebhookRoutes;
-import dev.chojo.ember.feature.board.service.FederatedBoardNotificationService.BoardRenamedPayload;
-import dev.chojo.ember.feature.board.service.FederatedBoardNotificationService.BoardUnsharedPayload;
-import dev.chojo.ember.feature.board.service.FederatedBoardNotificationService.ShareModeChangedPayload;
 import dev.chojo.ember.feature.board.service.FederatedBoardService.PartnerShareConfig;
+import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
-import dev.chojo.ember.feature.federation.service.FederationWebhookService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -83,7 +82,8 @@ class SharedBoardChangeServiceTest extends RepositoryTestBase {
                 stationMemberRepo.create(localPartnerStation.id(), account.id()).id();
 
         httpClient = mock(FederationHttpClient.class);
-        var webhooks = new FederationWebhookService(new FederationRepository(), httpClient, new TaskScheduler());
+        var federationRepository = new FederationRepository();
+        var transport = new FederationTestTransport(httpClient, federationRepository, stationRepo);
 
         federatedBoards = new FederatedBoardService(federatedBoardRepo);
         var boardService = new BoardService(
@@ -91,12 +91,10 @@ class SharedBoardChangeServiceTest extends RepositoryTestBase {
                 newStationMemberService(null, null),
                 mock(MemberGroupService.class),
                 mock(UserTagService.class));
-        changes = new SharedBoardChangeService(
-                boardService,
-                federatedBoards,
-                new FederatedBoardNotificationService(webhooks, federatedBoards, boardRepo),
-                new FederationRepository(),
-                stationRepo);
+        var notifications = new FederatedBoardNotificationService(
+                transport.transport(), federationRepository, federatedBoards, boardRepo);
+        transport.serve(notifications);
+        changes = new SharedBoardChangeService(boardService, federatedBoards, notifications);
     }
 
     private static int partner(int stationId, UUID partnerStationUid, String remoteHost) {
@@ -160,7 +158,7 @@ class SharedBoardChangeServiceTest extends RepositoryTestBase {
         changes.updateBoard(board.id(), name, "Desc", 0);
 
         verifyOnlyDelivery(
-                RemoteBoardWebhookRoutes.BOARD_RENAMED.at(), new BoardRenamedPayload(board.uid(), name, "SHB"));
+                RemoteBoardWebhookRoutes.BOARD_RENAMED.at(), new RemoteBoardRenamedWebhook(board.uid(), name, "SHB"));
         assertEquals(name, localBookmark().orElseThrow().remoteBoardName());
     }
 
@@ -184,7 +182,7 @@ class SharedBoardChangeServiceTest extends RepositoryTestBase {
 
         verifyOnlyDelivery(
                 RemoteBoardWebhookRoutes.SHARE_MODE_CHANGED.at(),
-                new ShareModeChangedPayload(board.uid(), BoardShareMode.READ_ONLY));
+                new RemoteShareModeChangedWebhook(board.uid(), BoardShareMode.READ_ONLY));
         assertEquals(BoardShareMode.READ_ONLY, localBookmark().orElseThrow().shareMode());
     }
 
@@ -193,7 +191,7 @@ class SharedBoardChangeServiceTest extends RepositoryTestBase {
         changes.configureSharing(
                 board.id(), List.of(new PartnerShareConfig(localPartnerId, BoardShareMode.FULL)), List.of());
 
-        verifyOnlyDelivery(RemoteBoardWebhookRoutes.BOARD_UNSHARED.at(), new BoardUnsharedPayload(board.uid()));
+        verifyOnlyDelivery(RemoteBoardWebhookRoutes.BOARD_UNSHARED.at(), new RemoteBoardUnsharedWebhook(board.uid()));
         assertTrue(localBookmark().isPresent());
     }
 
@@ -201,7 +199,7 @@ class SharedBoardChangeServiceTest extends RepositoryTestBase {
     void endingTheShareTellsTheRemotePartnerOnceAndRemovesTheLocalBookmark() {
         changes.configureSharing(board.id(), List.of(), List.of());
 
-        verifyOnlyDelivery(RemoteBoardWebhookRoutes.BOARD_UNSHARED.at(), new BoardUnsharedPayload(board.uid()));
+        verifyOnlyDelivery(RemoteBoardWebhookRoutes.BOARD_UNSHARED.at(), new RemoteBoardUnsharedWebhook(board.uid()));
         assertTrue(localBookmark().isEmpty());
     }
 

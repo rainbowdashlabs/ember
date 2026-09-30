@@ -21,6 +21,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryLending.whatIsText2') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryLending.otherInstanceTitle')">
+      <p>{{ t('helpCenter.inventoryLending.otherInstanceText') }}</p>
+      <p>{{ t('helpCenter.inventoryLending.otherInstanceText2') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.inventoryLending.tabsTitle')">
       <p>{{ t('helpCenter.inventoryLending.tabsOffersText') }}</p>
       <p>{{ t('helpCenter.inventoryLending.tabsRequestsText') }}</p>
