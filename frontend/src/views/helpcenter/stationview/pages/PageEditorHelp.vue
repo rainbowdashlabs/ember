@@ -94,6 +94,7 @@ const {t} = useI18n()
         <li><strong>{{ t('stationPages.contentType.markdown') }}</strong>: {{ t('helpCenter.pages.contentTypeMarkdown') }}</li>
         <li><strong>{{ t('stationPages.contentType.image') }}</strong>: {{ t('helpCenter.pages.contentTypeImage') }}</li>
         <li><strong>{{ t('stationPages.contentType.video') }}</strong>: {{ t('helpCenter.pages.contentTypeVideo') }}</li>
+        <li><strong>{{ t('stationPages.editor.chooseNewsTeaser') }}</strong>: {{ t('helpCenter.pages.contentTypeNewsTeaser') }}</li>
       </BulletList>
     </HelpSection>
 

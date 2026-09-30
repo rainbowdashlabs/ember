@@ -5033,6 +5033,7 @@ volumes:
             contentTypeMarkdown: 'Formatierter Text mit Überschriften, Listen und Links.',
             contentTypeImage: 'Ein Bild, das du hochladen kannst.',
             contentTypeVideo: 'Ein YouTube-Video oder eine andere Video-URL.',
+            contentTypeNewsTeaser: 'Verweist auf eine Neuigkeit aus dem öffentlichen Blog der Wache und zeigt sie immer mit ihrem aktuellen Titel, Datum und Anfang. Gesucht wird nach dem Titel, die neuesten zuerst, mit „Mehr anzeigen" kommen ältere dazu. Angeboten werden nur Neuigkeiten aus dem öffentlichen Blog, denn nur die kann der Block allen zeigen. Nimmst du eine Neuigkeit aus dem Blog, zeigt der Block, dass sie hier nicht verfügbar ist.',
             previewTitle: 'Vorschau',
             previewText: 'Klicke auf den Vorschau-Button oben rechts, um zu sehen, wie die Seite für Besucher aussieht.',
             saveTitle: 'Speichern',

@@ -38,6 +38,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.newsEdit.eventBlockText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('stationPages.editor.chooseNewsTeaser')">
+      <p>{{ t('helpCenter.pages.contentTypeNewsTeaser') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.newsEdit.contentTitle')">
       <p>{{ t('helpCenter.newsEdit.contentText') }}</p>
       <p>{{ t('helpCenter.newsEdit.markdownEditorText') }}</p>

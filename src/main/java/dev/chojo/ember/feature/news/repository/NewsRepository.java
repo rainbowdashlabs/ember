@@ -269,14 +269,13 @@ public class NewsRepository {
     }
 
     /**
-     * Lists published, unrestricted news for the public blog, optionally filtered by a
-     * case-insensitive substring match on title or markdown body. Used by the public news
-     * search endpoint that backs the page-editor {@code NEWS_TEASER} picker. A blank or
-     * {@code null} search term returns the most recent entries.
+     * Lists published, unrestricted news for the public blog, newest first, optionally filtered by a
+     * case-insensitive substring match on the title. Used by the search that backs the news block
+     * picker, which looks for an entry by what it is called. A blank or {@code null} search term
+     * returns the most recent entries.
      */
     public List<News> findPublicBlogEntries(int stationId, String search, int offset, int limit) {
-        var where = WhereBuilder.create()
-                .like("AND (LOWER(n.title) LIKE :q OR LOWER(n.content_markdown) LIKE :q)", "q", search);
+        var where = WhereBuilder.create().like("AND LOWER(n.title) LIKE :q", "q", search);
         return query("""
                 SELECT
                     %s, %s

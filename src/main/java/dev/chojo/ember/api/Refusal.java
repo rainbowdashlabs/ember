@@ -804,6 +804,19 @@ public enum Refusal {
     /** A comment sent on to a partner instance with nothing written in it. */
     FEDERATED_NEWS_COMMENT_NEEDS_TEXT(Area.NEWS, 52, HttpStatus.BAD_REQUEST, Sentences.COMMENT_NEEDS_TEXT),
 
+    /** A news block on a page of a station that is not here. */
+    STATION_NOT_HERE_BEHIND_NEWS_BLOCK(Area.NEWS, 53, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
+
+    /** A news block on a page of a station that keeps no public blog, so no entry is shown. */
+    PUBLIC_BLOG_SWITCHED_OFF_FOR_NEWS_BLOCK(Area.NEWS, 54, HttpStatus.NOT_FOUND, Sentences.PUBLIC_BLOG_NOT_HERE),
+
+    /**
+     * A news block naming an entry that is gone, belongs to another station, is not published yet,
+     * is kept to part of the station or was never put on the public blog. All of them answer alike,
+     * so a block cannot tell a withheld entry from a missing one.
+     */
+    NEWS_BLOCK_ENTRY_NOT_HERE(Area.NEWS, 55, HttpStatus.NOT_FOUND, "That news entry is not available here"),
+
     /**
      * A board that is not here, or one the reader may not see.
      *

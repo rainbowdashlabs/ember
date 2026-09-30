@@ -7,29 +7,23 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import NewsTeaserCell from './NewsTeaserCell.vue'
-import type {PublicBlogEntry} from '@/api/news'
+import type {PublicNewsTeaser} from '@/api/news'
 
-const listPublicBlog = vi.fn()
+const getPublicNewsTeaser = vi.fn()
 
 vi.mock('@/api/news', () => ({
-    listPublicBlog: (stationUid: string, offset: number, limit: number) => listPublicBlog(stationUid, offset, limit),
+    getPublicNewsTeaser: (apiBase: string, stationUid: string, newsUid: string) =>
+        getPublicNewsTeaser(apiBase, stationUid, newsUid),
 }))
 
-const NEWS_UID = '3f2b8c4e-1a6d-4e7f-9b0c-5d8e2f1a7c33'
-
-function entry(over: Partial<PublicBlogEntry> = {}): PublicBlogEntry {
+function entry(newsUid: string): PublicNewsTeaser {
     return {
         id: 7,
-        publicUid: NEWS_UID,
+        publicUid: newsUid,
         title: 'Neue Drehleiter eingeweiht',
-        contentHtml: '<p>Seit Samstag</p><p>steht sie im Gerätehaus.</p>',
-        authorName: 'Paula',
+        summary: 'Seit Samstag steht sie im Gerätehaus.',
         publishedAt: '2026-09-12T10:00:00Z',
-        attachments: [],
-        contentMode: 'SIMPLE',
-        rows: [],
-        ...over,
-    } as PublicBlogEntry
+    }
 }
 
 async function shown(newsUid: string | null) {
@@ -41,38 +35,47 @@ async function shown(newsUid: string | null) {
 }
 
 /**
- * A news block shows the entry it names as the entry is now, and nothing about one the reader may
- * not see: only what the station has published on its public blog is ever drawn.
+ * A news block shows the entry it names as the entry is now, read by its id from the station's
+ * public blog, and calls it unavailable only when the blog says there is no such entry.
  */
 describe('NewsTeaserCell', () => {
     beforeEach(() => {
-        listPublicBlog.mockReset()
+        getPublicNewsTeaser.mockReset()
     })
 
-    it('draws the entry it names and links to it on the public blog', async () => {
-        listPublicBlog.mockResolvedValue([entry({publicUid: 'another', id: 3, title: 'Anderes'}), entry()])
+    it('reads the entry it names and links to it on the public blog', async () => {
+        const uid = '3f2b8c4e-1a6d-4e7f-9b0c-5d8e2f1a7c01'
+        getPublicNewsTeaser.mockResolvedValue(entry(uid))
 
-        const view = await shown(NEWS_UID)
+        const view = await shown(uid)
 
+        expect(getPublicNewsTeaser).toHaveBeenCalledWith(expect.any(String), 'station-a', uid)
         expect(view.text()).toContain('Neue Drehleiter eingeweiht')
         expect(view.text()).toContain('Seit Samstag steht sie im Gerätehaus.')
-        expect(view.text()).not.toContain('Anderes')
         expect(view.get('a').attributes('href')).toBe('/public/station/station-a/blog/7')
     })
 
-    it('says the entry is not available where it is not on the public blog', async () => {
-        listPublicBlog.mockResolvedValue([entry({publicUid: 'another'})])
+    it('says the entry is not available where the blog does not show it', async () => {
+        getPublicNewsTeaser.mockRejectedValue({statusCode: 404, statusMessage: 'Not Found'})
 
-        const view = await shown(NEWS_UID)
+        const view = await shown('3f2b8c4e-1a6d-4e7f-9b0c-5d8e2f1a7c02')
 
         expect(view.text()).toContain('Diese Neuigkeit ist hier nicht verfügbar.')
         expect(view.find('a').exists()).toBe(false)
     })
 
-    it('does not call the entry gone while it is still looking', async () => {
-        listPublicBlog.mockReturnValue(new Promise(() => {}))
+    it('does not call the entry gone when reading it failed for another reason', async () => {
+        getPublicNewsTeaser.mockRejectedValue({statusCode: 502, statusMessage: 'Bad Gateway'})
 
-        const view = await shown(NEWS_UID)
+        const view = await shown('3f2b8c4e-1a6d-4e7f-9b0c-5d8e2f1a7c03')
+
+        expect(view.text()).toBe('')
+    })
+
+    it('does not call the entry gone while it is still looking', async () => {
+        getPublicNewsTeaser.mockReturnValue(new Promise(() => {}))
+
+        const view = await shown('3f2b8c4e-1a6d-4e7f-9b0c-5d8e2f1a7c04')
 
         expect(view.text()).toBe('')
     })
@@ -80,7 +83,7 @@ describe('NewsTeaserCell', () => {
     it('asks for nothing where no entry is named', async () => {
         const view = await shown(null)
 
-        expect(listPublicBlog).not.toHaveBeenCalled()
+        expect(getPublicNewsTeaser).not.toHaveBeenCalled()
         expect(view.text()).toContain('Diese Neuigkeit ist hier nicht verfügbar.')
     })
 })

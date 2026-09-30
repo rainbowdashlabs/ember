@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
+import dev.chojo.ember.feature.content.service.ContentProjection;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -64,6 +65,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
@@ -76,6 +78,8 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class NewsRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(NewsRoutes.class);
+    private static final int SUMMARY_LENGTH = 200;
+    private static final int SEARCH_LIMIT = 50;
 
     private final NewsService newsService;
     private final NewsAttachmentService attachmentService;
@@ -104,15 +108,26 @@ public class NewsRoutes implements Routes {
     }
 
     private static NewsSearchResult toSearchResult(News news) {
-        String md = news.contentMarkdown() != null ? news.contentMarkdown() : "";
-        String summary = md.length() > 200 ? md.substring(0, 200).trim() + "…" : md.trim();
-        return new NewsSearchResult(news.publicUid(), news.title(), summary, news.publishedAt());
+        return new NewsSearchResult(news.publicUid(), news.title(), summaryOf(news), news.publishedAt());
+    }
+
+    /** The opening words of an entry, its markup taken off, for a picker row or a news block. */
+    private static String summaryOf(News news) {
+        String text = ContentProjection.stripMarkup(news.contentMarkdown() != null ? news.contentMarkdown() : "");
+        return text.length() > SUMMARY_LENGTH
+                ? text.substring(0, SUMMARY_LENGTH).trim() + "…"
+                : text.trim();
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/news", this::list, StationPermission.LOGIN);
-        routes.get(prefix + "/news/search", this::search, StationPermission.PAGE_EDIT);
+        routes.get(
+                prefix + "/news/search",
+                this::search,
+                StationPermission.PAGE_EDIT,
+                StationPermission.NEWS_EDIT,
+                StationPermission.KNOWLEDGE_EDIT);
         routes.get(prefix + "/news/{id}", this::get, StationPermission.LOGIN);
         routes.post(prefix + "/news", this::create, StationPermission.NEWS_EDIT);
         routes.put(prefix + "/news/{id}", this::update, StationPermission.NEWS_EDIT);
@@ -143,6 +158,7 @@ public class NewsRoutes implements Routes {
 
         routes.get(prefix + "/public/station/{stationUid}/blog", this::publicBlogList);
         routes.get(prefix + "/public/station/{stationUid}/blog/{blogId}", this::publicBlogDetail);
+        routes.get(prefix + "/public/station/{stationUid}/news-teaser/{newsUid}", this::publicNewsTeaser);
         routes.get(prefix + "/public/station/{stationUid}/blog.rss", ctx -> publicBlogFeed(ctx, "rss_2.0"));
         routes.get(prefix + "/public/station/{stationUid}/blog.atom", ctx -> publicBlogFeed(ctx, "atom_1.0"));
     }
@@ -442,23 +458,23 @@ public class NewsRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/news/search",
             methods = HttpMethod.GET,
-            summary = "Search published, unrestricted news entries for the page-editor picker",
-            description = "Returns a lightweight result shape (publicUid, title, summary, publishedAt)"
-                    + " scoped to the caller's station. Backs the NEWS_TEASER cell picker. Empty"
-                    + " query returns the most recent entries so the picker has something to show"
-                    + " on first focus.",
+            summary = "Search the station's public blog entries for the news block picker",
+            description = "Published, unrestricted entries on the caller's station's public blog, newest first,"
+                    + " whose title contains the query, case-insensitive. An empty query returns the newest"
+                    + " entries. At most limit entries are returned, and more says whether there are further"
+                    + " ones to ask for with a larger limit.",
             tags = {"News"},
             queryParams = {@OpenApiParam(name = "q"), @OpenApiParam(name = "limit", type = Integer.class)},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = NewsSearchResult[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = NewsSearchPage.class)))
     private void search(Context ctx) {
         UserSession session = UserSession.from(ctx);
         String q = ctx.queryParam("q");
         int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(5);
-        int limit = Math.clamp(requested, 1, 20);
-        var results = newsService.findPublicBlogEntries(session.stationId(), q, 0, limit).stream()
-                .map(NewsRoutes::toSearchResult)
-                .toList();
-        ctx.json(results);
+        int limit = Math.clamp(requested, 1, SEARCH_LIMIT);
+        var found = newsService.findPublicBlogEntries(session.stationId(), q, 0, limit + 1);
+        var entries =
+                found.stream().limit(limit).map(NewsRoutes::toSearchResult).toList();
+        ctx.json(new NewsSearchPage(entries, found.size() > limit));
     }
 
     @OpenApi(
@@ -815,6 +831,33 @@ public class NewsRoutes implements Routes {
                 newsService.describedBlocks(news)));
     }
 
+    @OpenApi(
+            path = "/api/v1/public/station/{stationUid}/news-teaser/{newsUid}",
+            methods = HttpMethod.GET,
+            summary = "The news entry a news block names, as the block shows it",
+            description = "Answers only an entry of that station that is published, not kept to part of the"
+                    + " station and on its public blog. Anything else is the same 404, so a withheld entry"
+                    + " cannot be told from a missing one.",
+            tags = {"News"},
+            pathParams = {
+                @OpenApiParam(name = "stationUid", required = true),
+                @OpenApiParam(name = "newsUid", required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicNewsTeaser.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void publicNewsTeaser(Context ctx) {
+        int stationId = resolvePublicStation(ctx);
+        var station =
+                stationRepository.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_NEWS_BLOCK::raise);
+        if (!station.publicBlogEnabled()) throw Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_NEWS_BLOCK.raise();
+        var news = newsService
+                .findPublicByUid(stationId, pathUuid(ctx, "newsUid"))
+                .orElseThrow(Refusal.NEWS_BLOCK_ENTRY_NOT_HERE::raise);
+        ctx.json(new PublicNewsTeaser(news.id(), news.publicUid(), news.title(), summaryOf(news), news.publishedAt()));
+    }
+
     /**
      * Request body for creating or updating a news article.
      */
@@ -972,4 +1015,23 @@ public class NewsRoutes implements Routes {
      * station-transfer renumbering.
      */
     public record NewsSearchResult(UUID publicUid, String title, String summary, Instant publishedAt) {}
+
+    /**
+     * One page of the news block picker's search.
+     *
+     * @param entries the entries found, newest first
+     * @param more    whether a larger limit would find further entries
+     */
+    public record NewsSearchPage(List<NewsSearchResult> entries, boolean more) {}
+
+    /**
+     * A public blog entry as a news block shows it.
+     *
+     * @param id          the entry's id, which its public blog address is built from
+     * @param publicUid   the public id the block names it by
+     * @param title       what the entry is called now
+     * @param summary     the opening words of the entry, markup taken off
+     * @param publishedAt when it was published
+     */
+    public record PublicNewsTeaser(int id, UUID publicUid, String title, String summary, Instant publishedAt) {}
 }

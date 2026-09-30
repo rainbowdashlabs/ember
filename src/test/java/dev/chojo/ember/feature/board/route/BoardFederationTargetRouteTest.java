@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.board.route;
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
-import dev.chojo.ember.api.ApiServer;
+import dev.chojo.ember.api.LocalRouteServer;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -23,17 +23,12 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.Javalin;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Set;
 
@@ -49,15 +44,14 @@ import static org.mockito.Mockito.mock;
  */
 class BoardFederationTargetRouteTest extends RepositoryTestBase {
     private static final String BOARD_KEY = "FTR";
-    private static final JsonMapper READER = JsonMapper.builder().build();
+    private static final String FEDERATION_PATH = "/boards/" + BOARD_KEY + "/federation";
 
     private static Station station;
     private static Station partnerStation;
     private static Account account;
     private static StationMember member;
     private static FederatedBoardService federatedBoardService;
-    private static Javalin app;
-    private static HttpClient client;
+    private static LocalRouteServer server;
     private static int boardId;
     private static int partnerId;
 
@@ -100,19 +94,12 @@ class BoardFederationTargetRouteTest extends RepositoryTestBase {
                 Set.of(StationPermission.BOARD_FEDERATE),
                 Set.of(),
                 null);
-        app = Javalin.create(config -> {
-                    config.jsonMapper(ApiServer.jacksonMapper(stationRepo, clusterRepo));
-                    config.routes.before(ctx -> ctx.attribute(ApiServer.ATTR_SESSION, session));
-                    routes.register(config.routes, "/api/v1");
-                })
-                .start(0);
-        client = HttpClient.newHttpClient();
+        server = LocalRouteServer.serving(stationRepo, clusterRepo, session, routes);
     }
 
     @AfterAll
     static void cleanupClass() {
-        app.stop();
-        client.close();
+        server.close();
         stationRepo.delete(station.id());
         stationRepo.delete(partnerStation.id());
         accountRepo.delete(account.id());
@@ -130,7 +117,7 @@ class BoardFederationTargetRouteTest extends RepositoryTestBase {
                  "editUserTypes": ["MANAGER"]}""".formatted(partnerId));
 
         assertEquals(200, saved.statusCode(), saved.body());
-        var config = READER.readTree(get().body());
+        var config = LocalRouteServer.json(get());
         var target = config.get("targets").get(0);
         assertEquals(partnerId, target.get("partnerId").asInt());
         assertEquals(BoardShareMode.FULL.name(), target.get("shareMode").asString());
@@ -144,7 +131,7 @@ class BoardFederationTargetRouteTest extends RepositoryTestBase {
                 {"targets": [{"partnerId": %d, "shareMode": "READ_ONLY"}], "editUserTypes": []}""".formatted(partnerId));
 
         assertEquals(200, saved.statusCode(), saved.body());
-        JsonNode target = READER.readTree(get().body()).get("targets").get(0);
+        JsonNode target = LocalRouteServer.json(get()).get("targets").get(0);
         assertEquals(
                 StationUserType.MEMBER.name(), target.get("requiredUserType").asString());
     }
@@ -160,19 +147,10 @@ class BoardFederationTargetRouteTest extends RepositoryTestBase {
     }
 
     private static HttpResponse<String> put(String body) throws Exception {
-        return client.send(
-                HttpRequest.newBuilder(federationUri())
-                        .header("Content-Type", "application/json")
-                        .PUT(HttpRequest.BodyPublishers.ofString(body))
-                        .build(),
-                HttpResponse.BodyHandlers.ofString());
+        return server.put(FEDERATION_PATH, body);
     }
 
     private static HttpResponse<String> get() throws Exception {
-        return client.send(HttpRequest.newBuilder(federationUri()).GET().build(), HttpResponse.BodyHandlers.ofString());
-    }
-
-    private static URI federationUri() {
-        return URI.create("http://localhost:%d/api/v1/boards/%s/federation".formatted(app.port(), BOARD_KEY));
+        return server.get(FEDERATION_PATH);
     }
 }

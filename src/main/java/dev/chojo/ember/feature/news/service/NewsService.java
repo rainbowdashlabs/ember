@@ -322,11 +322,23 @@ public class NewsService {
     }
 
     /**
-     * Lists published, unrestricted public news with optional case-insensitive search on title or
-     * body. Backs the public news search endpoint used by the {@code NEWS_TEASER} cell picker.
+     * Lists published, unrestricted public news, newest first, with an optional case-insensitive
+     * search on the title. Backs the search of the news block picker.
      */
     public List<News> findPublicBlogEntries(int stationId, String search, int offset, int limit) {
         return newsRepository.findPublicBlogEntries(stationId, search, offset, limit);
+    }
+
+    /**
+     * The entry a news block names, when it is one the station's public blog shows: published, not
+     * kept to part of the station and put on the blog. Anything else is empty, never told apart.
+     *
+     * @param stationId the station the block belongs to
+     * @param publicUid the public id the block names
+     * @return the entry, or empty where the public blog does not show it
+     */
+    public Optional<News> findPublicByUid(int stationId, UUID publicUid) {
+        return newsRepository.findPublicByUid(stationId, publicUid);
     }
 
     public boolean hasPublicBlogEntries(int stationId) {

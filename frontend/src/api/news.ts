@@ -126,8 +126,6 @@ const newsComments = createScopedCrudResource<NewsComment, CommentRequest>(
 
 const comments = createCrudResource<NewsComment, CommentRequest>('/news/comments')
 
-// -- Page-editor picker. PAGE_EDIT-gated. --
-
 export interface NewsSearchResult {
     publicUid: string
     title: string
@@ -135,11 +133,43 @@ export interface NewsSearchResult {
     publishedAt: string | null
 }
 
-export async function searchNews(query?: string, limit = 5): Promise<NewsSearchResult[]> {
+/** One page of the news block picker's search, and whether a larger limit finds more. */
+export interface NewsSearchPage {
+    entries: NewsSearchResult[]
+    more: boolean
+}
+
+/**
+ * Searches the station's public blog entries by title, newest first. Only those, because they are
+ * all a news block can show to its readers.
+ */
+export async function searchNews(query: string, limit: number): Promise<NewsSearchPage> {
     const params: Record<string, string | number> = {limit}
     if (query) params.q = query
-    const res = await client.get<NewsSearchResult[]>('/news/search', {params})
+    const res = await client.get<NewsSearchPage>('/news/search', {params})
     return res.data
+}
+
+/** A public blog entry as a news block shows it. */
+export interface PublicNewsTeaser {
+    id: number
+    publicUid: string
+    title: string
+    summary: string
+    publishedAt: string | null
+}
+
+/**
+ * The entry a news block names, read the same way during a server render and in the browser. It
+ * answers only an entry on the station's public blog; anything else rejects with a 404.
+ *
+ * @param apiBase the API root from `apiUrl('')`, resolved by the caller while it still has the Nuxt
+ *                instance
+ */
+export function getPublicNewsTeaser(apiBase: string, stationUid: string, newsUid: string): Promise<PublicNewsTeaser> {
+    return $fetch<PublicNewsTeaser>(
+        `${apiBase}/public/station/${encodeURIComponent(stationUid)}/news-teaser/${encodeURIComponent(newsUid)}`,
+    )
 }
 
 // -- Federation share management --

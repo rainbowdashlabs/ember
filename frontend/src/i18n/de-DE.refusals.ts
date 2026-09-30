@@ -424,6 +424,9 @@ export default {
     'NW-050': COMMENT_NOT_HERE,
     'NW-051': NEWS_NOT_HERE,
     'NW-052': COMMENT_NEEDS_TEXT,
+    'NW-053': STATION_NOT_HERE,
+    'NW-054': PUBLIC_BLOG_NOT_HERE,
+    'NW-055': 'Diese Neuigkeit ist hier nicht verfügbar',
 
     'BO-001': 'Dieses Board gibt es nicht, oder du darfst es nicht öffnen',
     'BO-002': BOARD_TICKET_NOT_HERE,
