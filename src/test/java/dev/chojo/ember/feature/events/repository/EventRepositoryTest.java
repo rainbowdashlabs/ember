@@ -347,7 +347,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    void findAutoCancel() {
+    void findThresholdCandidates() {
         var event = eventRepo.create(
                 station.id(),
                 "Auto Cancel Event",
@@ -366,7 +366,11 @@ class EventRepositoryTest extends RepositoryTestBase {
                 1000,
                 null);
         try {
-            assertTrue(eventRepo.findAutoCancel().stream().anyMatch(e -> e.id() == event.id()));
+            assertTrue(eventRepo.findThresholdCandidates().stream().anyMatch(e -> e.id() == event.id()));
+            eventRepo.cancelEvent(event.id(), null);
+            assertFalse(
+                    eventRepo.findThresholdCandidates().stream().anyMatch(e -> e.id() == event.id()),
+                    "a series called off as a whole has no date left to check");
         } finally {
             eventRepo.delete(event.id());
         }

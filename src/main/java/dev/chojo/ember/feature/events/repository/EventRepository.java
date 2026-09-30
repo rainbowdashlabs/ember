@@ -552,21 +552,22 @@ public class EventRepository {
     }
 
     /**
-     * Finds events that should be auto-cancelled because the days before their start in which the
-     * minimum had to be reached have begun, and they have not reached it.
+     * Finds the events whose dates are called off when too few registrations were accepted for them
+     * in time: the ones with a minimum and a number of days before each date, whose series is not
+     * called off as a whole.
      *
-     * @return the list of events to auto-cancel
+     * <p>Which of their dates fall short is the calendar's and the registrations' question, asked per
+     * date by the caller.
+     *
+     * @return those events
      */
-    public List<StationEvent> findAutoCancel() {
+    public List<StationEvent> findThresholdCandidates() {
         return query("""
                 SELECT %s, %s
                 FROM station_event e
                 WHERE e.cancelled = FALSE
                   AND e.min_registrations IS NOT NULL
-                  AND e.threshold_days IS NOT NULL
-                  AND e.start_time - make_interval(days => e.threshold_days) <= now()
-                  AND (SELECT count(*) FROM event_registration er
-                       WHERE er.event_id = e.id AND er.status = 'ACCEPTED') < e.min_registrations;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN)
+                  AND e.threshold_days IS NOT NULL;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN)
                 .single(call())
                 .map(StationEvent.map())
                 .all();
