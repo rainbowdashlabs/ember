@@ -61,7 +61,7 @@ watch(open, isOpen => {
   userType.value = StationUserType.MEMBER
 })
 
-const {running, error, failure, run: save} = useAsyncAction(async () => {
+const {running, failure, run: save} = useAsyncAction(async () => {
   await clusterMembers.createManagedMember(stationUid.value, {
     firstName: firstName.value.trim(),
     lastName: lastName.value.trim(),

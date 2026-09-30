@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import { createCrudResource } from './crud'
+import { createCrudResource, type NoContent } from './crud'
 import type { StationMember, UserTag } from './types'
 
 interface TagRequest {
@@ -14,7 +14,7 @@ interface TagRequest {
     position?: number
 }
 
-const tags = createCrudResource<UserTag, TagRequest, TagRequest, UserTag, UserTag, void>('/tags')
+const tags = createCrudResource<UserTag, TagRequest, TagRequest, UserTag, UserTag, NoContent>('/tags')
 
 export const listTags = tags.list
 export const createTag = tags.create

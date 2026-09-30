@@ -52,7 +52,7 @@ export function newOptionKey(taken: readonly FormOption[]): string {
  * its own: an option, a statement, a page.
  */
 export function freshKey(used: ReadonlySet<string>): string {
-    let key = ''
+    let key: string
     do {
         const bytes = crypto.getRandomValues(new Uint8Array(KEY_LENGTH))
         key = Array.from(bytes, byte => KEY_ALPHABET[byte % KEY_ALPHABET.length]).join('')

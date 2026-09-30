@@ -22,7 +22,7 @@ import { formatDateTime } from '@/util/format'
 import type { Failure } from '@/util/failure'
 
 
-const props = defineProps<{
+defineProps<{
     ticket: BoardTicket
     lanes: BoardLane[]
     members: MemberCompletion[]

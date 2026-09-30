@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {APIRequestContext, Page} from '@playwright/test'
+import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
 
 /**

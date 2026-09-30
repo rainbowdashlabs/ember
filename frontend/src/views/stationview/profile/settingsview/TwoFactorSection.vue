@@ -77,7 +77,7 @@ async function confirmSetup() {
     // extra password field this form used to carry is gone with the rule that needed it.
     await confirmTotpSetup(setupData.value.secret, confirmCode.value, setupData.value.recoveryCodes)
     setupStep.value = 'backup-display'
-  } catch (e) {
+  } catch {
     confirmError.value = t('twoFactor.setup.invalidCode')
   } finally {
     confirmLoading.value = false

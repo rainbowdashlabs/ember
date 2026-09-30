@@ -36,7 +36,7 @@ const points = defineModel<number>('points', {required: true})
 const autoPoints = defineModel<boolean>('autoPoints', {required: true})
 const config = defineModel<Record<string, unknown>>('config', {required: true})
 
-const props = defineProps<{
+defineProps<{
   imagePreview: string | null
   authImageSrc?: string | null
   hasImage: boolean

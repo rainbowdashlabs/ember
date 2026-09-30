@@ -14,7 +14,7 @@ import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
 
-const props = defineProps<{
+defineProps<{
   item: ProcedureItem
   canEdit: boolean
   canCheck: boolean

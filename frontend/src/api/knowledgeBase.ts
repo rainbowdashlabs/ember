@@ -6,7 +6,7 @@
 import client from './client'
 import {ContentMode, type ContentModeName} from './news'
 import type {PageRow, SaveRowRequest} from './pageManage'
-import {createCrudResource, createScopedCrudResource} from './crud'
+import {createCrudResource, createScopedCrudResource, type NoContent} from './crud'
 import {uploadFile as uploadMultipart} from './upload'
 import type {MemberIdentity} from './types'
 
@@ -885,7 +885,7 @@ const comments = createCrudResource<
     CommentUpdateRequest,
     KbComment,
     KbComment,
-    void
+    NoContent
 >('/kb/comments')
 
 export const listComments = fileComments.list

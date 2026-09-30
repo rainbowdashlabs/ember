@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders, accountWithout, pageAsThrowaway} from './fixtures/auth'
+import {test, expect, apiHeaders, pageAsThrowaway} from './fixtures/auth'
 import {cast} from './fixtures/cast'
 
 /**
@@ -171,7 +171,7 @@ test.describe('Item ownership', () => {
      * piece into the station's free stock whatever it said about its owner. The story exists to keep that
      * dead.
      */
-    test('exchanging gear the station does not own leaves the owner alone', async ({managerPage: page, request}) => {
+    test('exchanging gear the station does not own leaves the owner alone', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
         const inventories = await page.request.get('/api/v1/inventories', {headers}).then(r => r.json())
         const mixed = inventories.find((i: {inventoryType: string}) => i.inventoryType === 'MIXED')

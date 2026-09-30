@@ -20,7 +20,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import {apiErrorStatus, errorMessage} from '@/util/apiError'
+import {errorMessage} from '@/util/apiError'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 const props = defineProps<{

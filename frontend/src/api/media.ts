@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import {createCrudResource} from './crud'
+import {createCrudResource, type NoContent} from './crud'
 import {uploadFile} from './upload'
 
 /**
@@ -75,7 +75,7 @@ const files = createCrudResource<
     FileMetaRequest,
     StationFileListing,
     StationFileListing,
-    void
+    NoContent
 >('/media/files')
 
 const folders = createCrudResource<
@@ -84,7 +84,7 @@ const folders = createCrudResource<
     FolderRequest,
     StationFileFolder,
     StationFileFolder,
-    void
+    NoContent
 >('/media/folders')
 
 const tags = createCrudResource<
@@ -93,7 +93,7 @@ const tags = createCrudResource<
     TagRequest,
     StationFileTag,
     StationFileTag,
-    void
+    NoContent
 >('/media/tags')
 
 /**
@@ -141,7 +141,7 @@ export async function uploadPageMediaFile(pageId: number, file: File): Promise<S
 
 export async function updateMediaFileMeta(
     fileId: number, altText: string | null, description: string | null): Promise<void> {
-    return files.update(fileId, {altText, description})
+    await files.update(fileId, {altText, description})
 }
 
 export async function pruneMediaFiles(): Promise<{removed: number}> {
@@ -162,7 +162,7 @@ export async function createMediaFolder(
 
 export async function updateMediaFolder(
     id: number, name: string, parentId: number | null, sortOrder: number): Promise<void> {
-    return folders.update(id, {name, parentId, sortOrder})
+    await folders.update(id, {name, parentId, sortOrder})
 }
 
 export const deleteMediaFolder = folders.remove
@@ -174,7 +174,7 @@ export async function createMediaTag(name: string, color: string | null = null):
 }
 
 export async function updateMediaTag(id: number, name: string, color: string | null): Promise<void> {
-    return tags.update(id, {name, color})
+    await tags.update(id, {name, color})
 }
 
 export const deleteMediaTag = tags.remove

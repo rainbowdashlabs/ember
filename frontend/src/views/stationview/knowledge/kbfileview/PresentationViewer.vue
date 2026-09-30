@@ -100,7 +100,9 @@ function handleTouchEnd(e: TouchEvent) {
   const endX = e.changedTouches[0]?.clientX
   if (endX === undefined) return
   const dx = endX - touchStartX
-  if (Math.abs(dx) > 50) { dx < 0 ? nextPage() : prevPage() }
+  if (Math.abs(dx) <= 50) return
+  if (dx < 0) nextPage()
+  else prevPage()
 }
 
 onMounted(fetchDocument)

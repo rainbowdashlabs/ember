@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {statSync} from 'node:fs'
-import {test, expect, accountWithout, pageAsThrowaway} from './fixtures/auth'
+import {test, expect, pageAsThrowaway} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 import {createMember} from './fixtures/member'
 import {pickMemberByName} from './fixtures/memberMenu'

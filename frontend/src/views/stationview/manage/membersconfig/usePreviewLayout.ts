@@ -94,7 +94,7 @@ export function usePreviewLayout(
         return Number.isNaN(index) ? null : index
     }
 
-    function startMove(field: AskedField, event: PointerEvent) {
+    function startMove(field: AskedField) {
         if (resizingId.value !== null) return
         release()
         movingId.value = field.id

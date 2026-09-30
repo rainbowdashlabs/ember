@@ -60,7 +60,7 @@ const arts = ref<InventoryArt[]>([])
 const tags = ref<InventoryTag[]>([])
 const tagNames = ref<string[]>([])
 const fieldDefs = ref<InventoryFieldDefinition[]>([])
-const fieldValues = ref<Record<string, any>>({})
+const fieldValues = ref<Record<string, unknown>>({})
 const containers = ref<InventoryContainer[]>([])
 
 const sortedContainers = computed(() => [...containers.value].sort((a, b) => a.name.localeCompare(b.name)))
@@ -108,7 +108,7 @@ async function reloadFields() {
   const typed = fieldValues.value
   await loadForItem(item)
   const parsed = parseItemMetadata(item.metadata)
-  const values: Record<string, any> = {}
+  const values: Record<string, unknown> = {}
   for (const def of fieldDefs.value) {
     values[def.key] = def.key in typed ? typed[def.key] : parsed.fields[def.key]?.value ?? null
   }

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Page} from '@playwright/test'
-import {test, expect, apiHeaders, accountWithout, pageAsThrowaway} from './fixtures/auth'
+import {test, expect, apiHeaders, pageAsThrowaway} from './fixtures/auth'
 import {cast} from './fixtures/cast'
 
 /**

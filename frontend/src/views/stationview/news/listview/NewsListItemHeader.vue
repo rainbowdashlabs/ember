@@ -21,8 +21,6 @@ import type {NewsEntry} from '@/api/news'
 import type {MemberIdentity} from '@/api/types'
 import {formatDateTime} from '@/util/format'
 
-interface BadgeHandle {refresh: () => Promise<void>}
-
 const props = defineProps<{
   kind: 'local' | 'federated' | 'system'
   id: number

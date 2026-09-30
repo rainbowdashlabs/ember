@@ -4,10 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 // @vitest-environment happy-dom
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi, type MockInstance} from 'vitest'
 import {SAVED_BLOB_LIFETIME_MS, SAVED_BLOB_TYPE, SaveResult, saveBlob} from './saveBlob'
 
 vi.mock('@/api/client', () => ({default: {}}))
+
+/** Holds every link click, which stays on the page instead of navigating away. */
+function holdClicks(): MockInstance {
+    return vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
+}
+
+/** The link the code under test clicked last, or null where it clicked none. */
+function lastClicked(clicks: MockInstance): HTMLAnchorElement | null {
+    return (clicks.mock.contexts.at(-1) as HTMLAnchorElement | undefined) ?? null
+}
 
 function pointer(kind: 'fine' | 'coarse') {
     window.matchMedia = vi.fn((query: string) => ({matches: kind === 'fine' && query.includes('fine')})) as never
@@ -60,14 +70,11 @@ describe('saveBlob', () => {
     })
 
     it('names the file and leaves no link behind', async () => {
-        let clicked: HTMLAnchorElement | null = null
-        vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
-            clicked = this
-        })
+        const clicks = holdClicks()
 
         await saveBlob(new Blob(['pdf']), 'handout.pdf')
 
-        expect(clicked!.download).toBe('handout.pdf')
+        expect(lastClicked(clicks)!.download).toBe('handout.pdf')
         expect(document.querySelector('a[download]')).toBeNull()
     })
 
@@ -188,13 +195,10 @@ describe('saveBlob', () => {
     })
 
     describe('where a service worker is in charge', () => {
-        let clicked: HTMLAnchorElement | null
+        let clicks: MockInstance
 
         beforeEach(() => {
-            clicked = null
-            vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
-                clicked = this
-            })
+            clicks = holdClicks()
             const controller = {
                 postMessage: (_message: unknown, transfer: Transferable[]) =>
                     (transfer[0] as MessagePort).postMessage({held: true}),
@@ -212,8 +216,8 @@ describe('saveBlob', () => {
         it('fetches the file from the worker rather than from a blob address', async () => {
             await saveBlob(new Blob(['pdf'], {type: 'application/pdf'}), 'handout.pdf')
 
-            expect(clicked!.getAttribute('href')).toMatch(/^\/save-file\/.+/)
-            expect(clicked!.download).toBe('handout.pdf')
+            expect(lastClicked(clicks)!.getAttribute('href')).toMatch(/^\/save-file\/.+/)
+            expect(lastClicked(clicks)!.download).toBe('handout.pdf')
             expect(URL.createObjectURL).not.toHaveBeenCalled()
         })
 
@@ -234,7 +238,7 @@ describe('saveBlob', () => {
 
             await saveBlob(new Blob(['pdf']), 'handout.pdf')
 
-            expect(clicked!.getAttribute('href')).toMatch(/^\/save-file\/.+/)
+            expect(lastClicked(clicks)!.getAttribute('href')).toMatch(/^\/save-file\/.+/)
         })
 
         it('falls back to the blob address when the worker does not answer', async () => {
@@ -247,23 +251,20 @@ describe('saveBlob', () => {
             await vi.runAllTimersAsync()
 
             expect(await saving).toBe(SaveResult.DONE)
-            expect(clicked!.getAttribute('href')).toBe('blob:saved')
+            expect(lastClicked(clicks)!.getAttribute('href')).toBe('blob:saved')
         })
     })
 
     describe('on Firefox for Android', () => {
         const ANDROID_GECKO = 'Mozilla/5.0 (Android 17; Mobile; rv:156.0) Gecko/156.0 Firefox/156.0'
         let opened: string | null
-        let clicked: HTMLAnchorElement | null
+        let clicks: MockInstance
         let handed: {contentType: string; disposition: string} | null = null
 
         beforeEach(() => {
             opened = null
-            clicked = null
             vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(ANDROID_GECKO)
-            vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
-                clicked = this
-            })
+            clicks = holdClicks()
             window.open = vi.fn((address?: string | URL) => {
                 opened = String(address)
                 return {} as Window
@@ -290,7 +291,7 @@ describe('saveBlob', () => {
 
             expect(opened).toMatch(/^\/save-file\/.+/)
             expect(handed).toMatchObject({contentType: 'application/pdf', disposition: 'inline'})
-            expect(clicked).toBeNull()
+            expect(lastClicked(clicks)).toBeNull()
         })
 
         /** The name is how Firefox decides, so a PDF served as something else is still a PDF to it. */
@@ -304,7 +305,7 @@ describe('saveBlob', () => {
             await saveBlob(new Blob(['csv'], {type: 'text/csv'}), 'list.csv')
 
             expect(window.open).not.toHaveBeenCalled()
-            expect(clicked!.getAttribute('href')).toMatch(/^\/save-file\/.+/)
+            expect(lastClicked(clicks)!.getAttribute('href')).toMatch(/^\/save-file\/.+/)
             expect(handed).toMatchObject({disposition: 'attachment'})
         })
 
@@ -312,7 +313,7 @@ describe('saveBlob', () => {
             window.open = vi.fn(() => null) as never
 
             expect(await saveBlob(new Blob(['pdf'], {type: 'application/pdf'}), 'handout.pdf')).toBe(SaveResult.DONE)
-            expect(clicked!.getAttribute('href')).toMatch(/^\/save-file\/.+/)
+            expect(lastClicked(clicks)!.getAttribute('href')).toMatch(/^\/save-file\/.+/)
         })
     })
 

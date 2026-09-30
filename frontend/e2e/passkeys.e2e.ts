@@ -6,15 +6,12 @@
 import {
     answerStepUpPrompts,
     apiHeaders,
-    demoAccounts,
     DEMO_PASSWORD,
     expect,
     freshStepUpProof,
     pageAs,
     pageAsThrowaway,
-    pinnedRole,
     test,
-    type DemoAccount,
 } from './fixtures/auth'
 import type {APIRequestContext, Browser, CDPSession, Page} from '@playwright/test'
 import {cast, passkeySlot, spokenForMemberIds, type CastMember} from './fixtures/cast'
@@ -464,7 +461,7 @@ test.describe('Passkeys', () => {
         await guardian.context().close()
     })
 
-    test('a manager onboards a member again and gets a passkey code for an addressless one', async ({browser, request}) => {
+    test('a manager onboards a member again and gets a passkey code for an addressless one', async ({browser}) => {
         // The shared manager session acts here; a fresh login as the manager would replace it
         // under every other story. The target is a slot of its own, because onboarding again
         // ends the target's sessions.

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders, pageAsThrowaway, stationPeers, type Page} from './fixtures/auth'
+import {test, expect, apiHeaders, pageAsThrowaway, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 import {cast} from './fixtures/cast'
 

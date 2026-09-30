@@ -7,11 +7,9 @@ import type {APIRequestContext} from '@playwright/test'
 import {
     test,
     expect,
-    accountWithout,
     demoAccounts,
     demoStationGroups,
     pageAsThrowaway,
-    stationPeers,
     type DemoAccount,
     type DemoStationGroup,
 } from './fixtures/auth'
@@ -84,7 +82,7 @@ test.describe('Account & session', () => {
      * The consent gate comes first on a fresh browser and the one-click accounts only appear behind
      * it, which is the order a real first visit meets them too.
      */
-    test('logging in reaches the station', async ({page, request}) => {
+    test('logging in reaches the station', async ({page}) => {
         const account = (await cast()).plainMember
 
         await page.goto('/login')

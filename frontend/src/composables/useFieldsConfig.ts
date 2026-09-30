@@ -17,6 +17,7 @@ import type {StationGroup} from '@/api/clusterStationGroups'
 import type {MemberGroup} from '@/api/types'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure} from '@/util/failure'
+import {withoutKey} from '@/util/record'
 
 /**
  * Where a set of profile fields lives, and which choices whoever owns them may make.
@@ -399,9 +400,8 @@ export function useFieldsConfig(port: FieldsPort) {
     }
 
     async function toggleFieldConfig(field: ProfileField, key: string, value: boolean) {
-        const config = {...parseFieldConfig(field.config)}
-        if (value) config[key] = true
-        else delete config[key]
+        const current = parseFieldConfig(field.config)
+        const config = value ? {...current, [key]: true} : withoutKey(current, key)
         await writeField(field, {config})
     }
 

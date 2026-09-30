@@ -29,7 +29,7 @@ import {describeFailure, type Failure} from '@/util/failure'
 import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useSession} from '@/composables/useSession'
-import {formatDate, formatTime, toIsoDate, todayIsoDate, weekdayName} from '@/util/format'
+import {toIsoDate, todayIsoDate, weekdayName} from '@/util/format'
 import {answerableMembers, isStandingAnswer} from '@/util/eventAnswers'
 
 const {t} = useI18n()

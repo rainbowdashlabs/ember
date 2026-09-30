@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import {createCrudResource} from './crud'
+import {createCrudResource, type NoContent} from './crud'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import {toIsoDate} from '@/util/format'
 import type {MemberIdentity, RestrictionSelection} from './types'
@@ -416,7 +416,7 @@ const templates = createCrudResource<
     TemplateUpdateRequest,
     EventTemplateDetail,
     EventTemplate,
-    void
+    NoContent
 >('/event-templates')
 
 /** The occurrences from today on, earliest first, a page at a time. */

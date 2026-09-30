@@ -5,6 +5,7 @@
  */
 import {getItem, setItem} from '@/api/storage'
 import type {AnswerValue} from '@/util/formAnswers'
+import {withoutKey} from '@/util/record'
 
 /** Where every half-filled public form lives, as one value, so the disclosure names one key. */
 const STORAGE_KEY = 'form_drafts'
@@ -78,6 +79,5 @@ export function saveFormDraft(key: string, draft: Omit<FormDraft, 'savedAt'>): v
 export function clearFormDraft(key: string): void {
     const store = pruned(read(), Date.now())
     if (!(key in store)) return
-    delete store[key]
-    write(store)
+    write(withoutKey(store, key))
 }

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, ref} from 'vue'
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {federation, knowledgeBase} from '@/api'
 import type {KbAccessLevelName, KbFileSummary, KbFolder, SharedFileEntry, SharedFolderEntry} from '@/api/knowledgeBase'

@@ -20,7 +20,7 @@ export interface RoleOption {
     label: string
 }
 
-const props = defineProps<{
+defineProps<{
     canFederate: boolean
     targets: FederationTarget[]
     availablePartners: PartnerResponse[]

@@ -9,8 +9,8 @@ import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MediaGrid from './MediaGrid.vue'
 import MediaPagination from './MediaPagination.vue'
-import Toolbar from './Toolbar.vue'
-import Breadcrumbs from './Breadcrumbs.vue'
+import MediaToolbar from './MediaToolbar.vue'
+import MediaBreadcrumbs from './MediaBreadcrumbs.vue'
 import BulkActionsBar from './BulkActionsBar.vue'
 import type {StationFile, StationFileFolder, StationFileListing, StationFileTag} from '@/api/media'
 
@@ -60,7 +60,7 @@ const {t} = useI18n()
 
 <template>
   <div class="space-y-4">
-    <Toolbar
+    <MediaToolbar
         v-model:search="search"
         :multi-select="props.multiSelect"
         :uploading="props.uploading"
@@ -71,7 +71,7 @@ const {t} = useI18n()
         @prune="emit('prune')"
     />
 
-    <Breadcrumbs
+    <MediaBreadcrumbs
         :breadcrumbs="props.breadcrumbs"
         :active-folder="props.activeFolder"
         @navigate="(id: number | null) => emit('navigate', id)"

@@ -7,7 +7,7 @@
 import {ref} from 'vue'
 import BaseBadge from './BaseBadge.vue'
 
-const props = defineProps<{
+defineProps<{
   stationName: string
   compact?: boolean
 }>()

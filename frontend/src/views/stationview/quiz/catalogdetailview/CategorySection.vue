@@ -22,7 +22,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import type { QuizCategory } from '@/api/quiz'
 import { quiz } from '@/api'
 
-const props = defineProps<{
+defineProps<{
   categories: QuizCategory[]
 }>()
 

@@ -24,7 +24,7 @@ export interface RowEditData {
 
 const row = defineModel<RowEditData>('row', {required: true})
 
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
     stationUid: string
     preview: boolean
     isFirst: boolean

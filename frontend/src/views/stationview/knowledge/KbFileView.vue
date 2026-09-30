@@ -441,8 +441,8 @@ watch(() => [props.fileId, props.stationUid], () => {
             <KbFileContent
                 v-else
                 v-model:edit-content="editContent"
-                :file="file"
                 v-model:block-rows="blockRows"
+                :file="file"
                 :editing="editing"
                 :content-url="contentUrl"
                 :text-content="textContent"

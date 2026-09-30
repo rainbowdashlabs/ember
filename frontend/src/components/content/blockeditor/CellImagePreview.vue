@@ -156,7 +156,7 @@ const responsiveSizes = computed(() => {
 
 /** Image style: uniform scale + translate when cropped, object-fit otherwise. */
 const imageStyle = computed<CSSProperties>(() => {
-    const {T, R, B, L} = cropPercents.value
+    const {T, R, L} = cropPercents.value
     if (hasCrop.value) {
         const scale = 100 / Math.max(1, 100 - L - R)
         return {

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onBeforeUnmount, onMounted, ref} from 'vue'
+import {onBeforeUnmount, onMounted, ref} from 'vue'
 import {useRoute} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import PageHeader from '@/components/typography/PageHeader.vue'
@@ -12,7 +12,6 @@ import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import DeviceIdentifierForm from './deviceunlockview/DeviceIdentifierForm.vue'
 import DeviceHandshakeWaiting from './deviceunlockview/DeviceHandshakeWaiting.vue'

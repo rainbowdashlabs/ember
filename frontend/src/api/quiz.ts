@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import {createCrudResource, createScopedCrudResource} from './crud'
+import {createCrudResource, createScopedCrudResource, type NoContent} from './crud'
 import type {MemberIdentity} from './types'
 import {uploadFile} from './upload'
 import {downloadAuthed} from '@/util/downloadAuthed'
@@ -306,7 +306,7 @@ const categories = createCrudResource<
     CategoryRequest,
     QuizCategory,
     QuizCategory,
-    void
+    NoContent
 >('/quiz/categories')
 
 const catalogQuestions = createScopedCrudResource<

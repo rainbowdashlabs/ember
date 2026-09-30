@@ -5,7 +5,7 @@
  */
 import type {APIRequestContext, Page} from '@playwright/test'
 import type {DemoAccount} from './fixtures/auth'
-import {test, expect, apiHeaders, demoAccounts, otherStationManager, pageAsThrowaway, stationPeers} from './fixtures/auth'
+import {test, expect, apiHeaders, demoAccounts, otherStationManager, pageAsThrowaway} from './fixtures/auth'
 import {sidebarEntry} from './fixtures/sidebar'
 import {unique} from './fixtures/unique'
 import {pickMemberByName} from './fixtures/memberMenu'

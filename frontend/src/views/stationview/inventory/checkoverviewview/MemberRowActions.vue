@@ -11,7 +11,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 
-const props = defineProps<{
+defineProps<{
   member: MemberCheckSummary
   lockedByMe: boolean
   lockedByOther: boolean

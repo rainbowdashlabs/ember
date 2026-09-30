@@ -14,7 +14,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {ChecklistCellDto, ChecklistColumnDto, ChecklistEntryDto} from '@/api/checklists'
 import ChecklistCellToggle from './ChecklistCellToggle.vue'
 
-const props = defineProps<{
+defineProps<{
   checklistId: number
   entries: ChecklistEntryDto[]
   columns: ChecklistColumnDto[]

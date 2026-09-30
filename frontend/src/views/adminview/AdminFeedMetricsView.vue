@@ -98,10 +98,6 @@ const totalCacheHits = computed(() =>
     daily.value.filter(r => r.status === 304).reduce((sum, r) => sum + r.count, 0),
 )
 
-const totalErrors = computed(() =>
-    daily.value.filter(r => r.status >= 500).reduce((sum, r) => sum + r.count, 0),
-)
-
 /** Status-code breakdown across the window - sparkline-style. */
 const statusBreakdown = computed(() => {
   const map = new Map<number, number>()

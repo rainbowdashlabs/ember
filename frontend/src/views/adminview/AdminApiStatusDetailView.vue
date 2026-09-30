@@ -25,7 +25,7 @@ import * as apiStatus from '@/api/apiStatus'
 import type {EndpointDetail} from '@/api/apiStatus'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {darkThemeActive as isDark} from '@/util/themeState'
-import {formatMs, methodColor} from './adminapistatusview/apiStatusFormat'
+import {formatMs} from './adminapistatusview/apiStatusFormat'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent])
 

@@ -260,13 +260,14 @@ watch(loaded, (isLoaded) => { if (isLoaded) reload() })
       <FailureAlert :failure="failure"/>
 
       <TestDetailBody
-          v-if="!loading && test" :test="test" :detail="detail" :sections="sections"
+          v-if="!loading && test"
+          v-model:active-tab="activeTab" v-model:edit-start-at="editStartAt" v-model:edit-end-at="editEndAt"
+          v-model:show-pick-modal="showPickModal" v-model:pick-search="pickSearch"
+          :test="test" :detail="detail" :sections="sections"
           :attempts="attempts" :members="members" :frozen-questions="frozenQuestions"
           :frozen-loading="frozenLoading" :filtered-available-questions="filteredAvailableQuestions"
-          v-model:active-tab="activeTab" :all-groups="allGroups" v-model:edit-start-at="editStartAt"
-          :all-tags="allTags" v-model:edit-end-at="editEndAt" :restrictions-dirty="restrictionsDirty"
-          v-model:show-pick-modal="showPickModal" :detail-tabs="detailTabs"
-          v-model:pick-search="pickSearch" :times-dirty="timesDirty"
+          :all-groups="allGroups" :all-tags="allTags" :restrictions-dirty="restrictionsDirty"
+          :detail-tabs="detailTabs" :times-dirty="timesDirty"
           :can-configure="canConfigure()" :can-read-results="canReadResults()"
           :catalog-name="catalogName" :question-type-name="questionTypeName"
           :save-times="saveTimes" :selected-user-types="selectedUserTypes"

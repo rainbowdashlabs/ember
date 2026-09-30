@@ -5,6 +5,7 @@
  */
 import {computed, type WritableComputedRef} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
+import {withoutKey} from '@/util/record'
 
 /**
  * One query parameter of the current address, read and written as a ref.
@@ -32,10 +33,8 @@ export function useRouteQueryRef(key: string, fallback = ''): WritableComputedRe
             return typeof value === 'string' && value !== '' ? value : fallback
         },
         set(value) {
-            const query = {...route.query}
-            if (value === '' || value === fallback) delete query[key]
-            else query[key] = value
-            router.replace({query})
+            const others = withoutKey(route.query, key)
+            router.replace({query: value === '' || value === fallback ? others : {...others, [key]: value}})
         },
     })
 }

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {InventoryItem, InventorySize, ItemMetadata, ItemOwnerName, RequiredInventoryItem} from './inventory'
+import type {InventoryItem, ItemMetadata, ItemOwnerName, RequiredInventoryItem} from './inventory'
 import type {MemberIdentity} from './types'
 
 export interface MemberCheckSummary {

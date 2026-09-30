@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import { createCrudResource, createScopedCrudResource } from './crud'
+import { createCrudResource, createScopedCrudResource, type NoContent } from './crud'
 import { uploadFile } from './upload'
 import { downloadAuthed } from '@/util/downloadAuthed'
 import type { MemberIdentity } from './types'
@@ -227,7 +227,7 @@ const labels = createScopedCrudResource<
     LabelUpdateRequest,
     BoardLabel,
     BoardLabel,
-    void,
+    NoContent,
     number,
     string
 >((boardKey: string) => `/boards/${boardKey}/labels`)

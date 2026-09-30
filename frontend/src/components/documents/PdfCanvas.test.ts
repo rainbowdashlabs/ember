@@ -138,7 +138,7 @@ describe('PdfCanvas', () => {
      * win, or the canvas ends on a page the pager is no longer showing.
      */
     it('leaves the last page asked for on the canvas when an earlier one answers late', async () => {
-        const slowPage = deferred<void>()
+        const slowPage = deferred()
         getDocument.mockReturnValue({
             promise: Promise.resolve(documentDelaying(2, 2, slowPage.promise)),
             destroy: vi.fn(),
@@ -173,9 +173,9 @@ describe('PdfCanvas', () => {
     })
 })
 
-function deferred<T>() {
-    let resolve: (value: T | PromiseLike<T>) => void = () => undefined
-    const promise = new Promise<T>(done => {
+function deferred() {
+    let resolve: () => void = () => undefined
+    const promise = new Promise<void>(done => {
         resolve = done
     })
     return {promise, resolve}

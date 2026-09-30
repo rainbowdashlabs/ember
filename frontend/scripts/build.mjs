@@ -52,11 +52,21 @@ const interval = setInterval(() => {
   if (existsSync('.output/server/index.mjs')) {
     clearInterval(interval)
     done = true
-    setTimeout(() => {
-      try { process.kill(-child.pid, 'SIGKILL') } catch {}
-    }, 2000)
+    setTimeout(() => killGroup(child.pid), 2000)
   }
 }, 1000)
+
+/**
+ * Kills the build's process group. A group that has already exited on its own is what the kill
+ * was for, so the "no such process" it answers with is not a failure.
+ */
+function killGroup(pid) {
+  try {
+    process.kill(-pid, 'SIGKILL')
+  } catch (error) {
+    if (error.code !== 'ESRCH') throw error
+  }
+}
 
 child.on('exit', () => {
   clearInterval(interval)

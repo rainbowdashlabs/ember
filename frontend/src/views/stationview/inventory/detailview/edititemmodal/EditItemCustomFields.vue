@@ -13,7 +13,7 @@ defineProps<{
   defs: InventoryFieldDefinition[]
 }>()
 
-const values = defineModel<Record<string, any>>({default: () => ({})})
+const values = defineModel<Record<string, unknown>>({default: () => ({})})
 
 const {t} = useI18n()
 </script>

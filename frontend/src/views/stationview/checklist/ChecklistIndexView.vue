@@ -29,7 +29,7 @@ const tags = ref<UserTag[]>([])
 const members = ref<StationMember[]>([])
 const showCreate = ref(false)
 
-const {loading, failure, reload} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [list, g, ts, m] = await Promise.all([
     checklists.listChecklists(),
     memberGroups.listGroups(),

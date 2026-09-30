@@ -27,7 +27,7 @@ const available = ref<boolean | null>(known)
 const stage = ref<HTMLElement | null>(null)
 
 const column = ref(clampColumn(props.column ?? 1))
-const row = ref(0)
+const currentRow = ref(0)
 
 function clampColumn(value: number): number {
   return Math.min(Math.max(value - 1, 0), PITCH_TRACKS.length - 1)
@@ -35,15 +35,15 @@ function clampColumn(value: number): number {
 
 const track = computed(() => PITCH_TRACKS[column.value]!)
 const slides = computed(() => trackSlides(track.value))
-const slide = computed(() => slides.value[row.value] ?? track.value.overview)
+const slide = computed(() => slides.value[currentRow.value] ?? track.value.overview)
 
 function moveColumn(delta: number) {
   column.value = Math.min(Math.max(column.value + delta, 0), PITCH_TRACKS.length - 1)
-  row.value = 0
+  currentRow.value = 0
 }
 
 function moveRow(delta: number) {
-  row.value = Math.min(Math.max(row.value + delta, 0), slides.value.length - 1)
+  currentRow.value = Math.min(Math.max(currentRow.value + delta, 0), slides.value.length - 1)
 }
 
 /** The controls fade out while nothing happens, so the slide stands alone during a talk. */
@@ -66,8 +66,8 @@ function onKeydown(event: KeyboardEvent) {
   else if (BACKWARD.has(event.key)) moveColumn(-1)
   else if (event.key === 'ArrowDown') moveRow(1)
   else if (event.key === 'ArrowUp') moveRow(-1)
-  else if (event.key === 'Home') { column.value = 0; row.value = 0 }
-  else if (event.key === 'End') { column.value = PITCH_TRACKS.length - 1; row.value = 0 }
+  else if (event.key === 'Home') { column.value = 0; currentRow.value = 0 }
+  else if (event.key === 'End') { column.value = PITCH_TRACKS.length - 1; currentRow.value = 0 }
   else if (event.key.toLowerCase() === 'f') toggleFullscreen()
   else return
   event.preventDefault()
@@ -82,13 +82,13 @@ async function toggleFullscreen() {
  * The address follows the position without going through the router: a navigation would tear the
  * page down and build it up again between two slides, which is visible as a flash.
  */
-watch([column, row], ([nextColumn, nextRow]) => {
+watch([column, currentRow],([nextColumn, nextRow]) => {
   history.replaceState(history.state, '', `/pitch/${nextColumn + 1}/${nextRow + 1}`)
 })
 
 watch(() => [props.column, props.row], ([nextColumn, nextRow]) => {
   column.value = clampColumn(nextColumn ?? 1)
-  row.value = Math.min(Math.max((nextRow ?? 1) - 1, 0), slides.value.length - 1)
+  currentRow.value = Math.min(Math.max((nextRow ?? 1) - 1, 0), slides.value.length - 1)
 }, {immediate: true})
 
 onMounted(async () => {
@@ -132,7 +132,7 @@ onBeforeUnmount(() => {
     <PitchControls
         :idle="idle"
         :column="column + 1" :columns="PITCH_TRACKS.length"
-        :row="row + 1" :rows="slides.length"
+        :row="currentRow + 1" :rows="slides.length"
         @left="moveColumn(-1)" @right="moveColumn(1)"
         @up="moveRow(-1)" @down="moveRow(1)"
         @fullscreen="toggleFullscreen"/>

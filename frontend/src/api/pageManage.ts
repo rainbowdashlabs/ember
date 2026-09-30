@@ -74,7 +74,8 @@ export const ImageFit = {
 } as const
 export type ImageFitName = (typeof ImageFit)[keyof typeof ImageFit]
 
-export interface MarkdownConfig {}
+/** A markdown cell carries no settings of its own, so its configuration is any object at all. */
+export type MarkdownConfig = Record<string, unknown>
 
 export interface ImageConfig {
     imageFit?: ImageFitName | null

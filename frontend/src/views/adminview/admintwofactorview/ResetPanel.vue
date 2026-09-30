@@ -52,7 +52,7 @@ function openResetModal() {
   resetConfirmOpen.value = true
 }
 
-const {running: resetLoading, error, failure, run: confirmReset} = useAsyncAction(async () => {
+const {running: resetLoading, failure, run: confirmReset} = useAsyncAction(async () => {
   if (!resetAccountId.value) return
   await twoFactorAdmin.resetAccount2FAByInstanceAdmin(resetAccountId.value)
   resetSuccess.value = t('twoFactor.admin.resetSuccess', {name: resetAccountName.value ?? resetAccountId.value})

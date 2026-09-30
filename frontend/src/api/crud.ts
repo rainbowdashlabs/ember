@@ -44,6 +44,9 @@ export function pageParams(query: PageQuery = {}, defaults: PageQuery = {}): Rec
     })
 }
 
+/** What an endpoint answers that sends no body back: whatever it is, no caller reads it. */
+export type NoContent = unknown
+
 /** Runtime behaviour of a generated resource. */
 export interface CrudOptions {
     /** Verb used by `update`; `put` unless the endpoint expects a partial update. */

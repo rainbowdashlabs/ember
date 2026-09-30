@@ -11,7 +11,7 @@ import InfoButton from '@/components/button/InfoButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
 
-const props = defineProps<{
+defineProps<{
   req: RequiredInventoryItem
   slotIndex: number
   isNotInPossession: boolean

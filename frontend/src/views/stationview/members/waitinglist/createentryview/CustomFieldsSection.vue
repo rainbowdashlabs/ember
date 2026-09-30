@@ -10,7 +10,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { WaitingListField } from '@/api/waitingList'
 import CustomFieldInput from './CustomFieldInput.vue'
 
-const props = defineProps<{
+defineProps<{
   fields: WaitingListField[]
   values: Record<number, string>
 }>()

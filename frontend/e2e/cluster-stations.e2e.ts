@@ -90,7 +90,6 @@ test.describe('Cluster stations', () => {
     test('an owner withdraws an application before it is answered', async ({adminPage: page, request}) => {
         await page.goto('/cross-station')
         const cluster = await enterCluster(page)
-        const headers = await apiHeaders(page)
 
         await page.goto('/cluster/applications')
         await expect(page.getByTestId('app-shell')).toBeVisible()

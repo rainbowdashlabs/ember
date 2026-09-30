@@ -11,6 +11,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageAfterSelect from './PageAfterSelect.vue'
 import { PageTargetKind, type PageTarget } from '@/api/forms'
 import { optionsOf } from '@/util/formOptions'
+import { withoutKey } from '@/util/record'
 import { canDecide, type FormLayoutEditor } from '../useFormLayout'
 import type { PageChoice } from '../pageChoice'
 
@@ -57,10 +58,10 @@ function targetOf(optionKey: string): PageTarget {
 }
 
 function setTarget(optionKey: string, target: PageTarget) {
-  const branch = deciding.value?.branch
-  if (!branch) return
-  if (target.kind === PageTargetKind.NEXT) delete branch[optionKey]
-  else branch[optionKey] = target
+  const question = deciding.value
+  if (!question?.branch) return
+  if (target.kind === PageTargetKind.NEXT) question.branch = withoutKey(question.branch, optionKey)
+  else question.branch[optionKey] = target
 }
 </script>
 

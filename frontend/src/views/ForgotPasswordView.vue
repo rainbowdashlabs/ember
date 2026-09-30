@@ -21,7 +21,7 @@ const {t} = useI18n()
 const email = ref('')
 const success = ref('')
 
-const {running: loading, error, failure, run: handleReset} = useAsyncAction(async () => {
+const {running: loading, failure, run: handleReset} = useAsyncAction(async () => {
   success.value = ''
   await auth.forgotPassword({email: email.value})
   success.value = t('forgotPassword.sent')

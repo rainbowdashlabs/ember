@@ -26,6 +26,7 @@ import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { moveWithin } from '@/util/reorder'
 import { describeFailure, type Failure } from '@/util/failure'
 import { priorityColor, priorityIcon, priorityOptions } from '@/util/ticketPriority'
+import { withoutKey } from '@/util/record'
 import type { PriorityOption } from './ticketdetailview/types'
 
 const { t } = useI18n()
@@ -225,8 +226,7 @@ async function saveFieldValue(fieldId: number, fieldType: boards.BoardFieldTypeN
     await act(
         () => (empty ? api.deleteFieldValue(fieldId) : api.setFieldValue(fieldId, fieldType, value)),
         () => {
-            if (empty) delete fieldValues.value[fieldId]
-            else fieldValues.value[fieldId] = value
+            fieldValues.value = empty ? withoutKey(fieldValues.value, fieldId) : {...fieldValues.value, [fieldId]: value}
             return Promise.resolve()
         },
     )

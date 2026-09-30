@@ -85,7 +85,7 @@ const WHAT_TO_SHARE: DisplayMediaStreamOptions = {
  */
 export async function captureScreen(): Promise<Capture> {
     if (!canCaptureScreen()) return {picture: null, refused: false}
-    let stream: MediaStream | null = null
+    let stream: MediaStream
     try {
         stream = await navigator.mediaDevices.getDisplayMedia(WHAT_TO_SHARE)
     } catch (e) {

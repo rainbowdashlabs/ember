@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {APIRequestContext, Browser, Page} from '@playwright/test'
-import {test, expect, apiHeaders, demoAccounts, pageAsThrowaway, stationPeers} from './fixtures/auth'
+import {test, expect, apiHeaders, demoAccounts, pageAsThrowaway} from './fixtures/auth'
 import {cast, spokenForMemberIds} from './fixtures/cast'
 
 /**

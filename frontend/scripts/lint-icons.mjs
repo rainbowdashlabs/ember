@@ -12,7 +12,7 @@
  */
 
 import {readFileSync} from 'fs'
-import {SRC, walk, rel, extractTemplate, RED, GREEN, YELLOW, RESET, BOLD, createReporter} from './lint-utils.mjs'
+import {SRC, walk, rel, extractTemplate, GREEN, RESET, BOLD, createReporter} from './lint-utils.mjs'
 import {join} from 'path'
 
 const reporter = createReporter()
@@ -48,12 +48,8 @@ function faVarToIconName(varName) {
 const registeredIcons = new Map() // iconName → {prefix: 'fas'|'fab'}
 
 // Determine prefix from import source
-const solidImportMatch = pluginContent.match(/import\s*\{([^}]+)\}\s*from\s*'@fortawesome\/free-solid-svg-icons'/)
 const brandsImportMatch = pluginContent.match(/import\s*\{([^}]+)\}\s*from\s*'@fortawesome\/free-brands-svg-icons'/)
 
-const solidVars = solidImportMatch
-    ? new Set(solidImportMatch[1].split(',').map(s => s.trim()).filter(Boolean))
-    : new Set()
 const brandsVars = brandsImportMatch
     ? new Set(brandsImportMatch[1].split(',').map(s => s.trim()).filter(Boolean))
     : new Set()

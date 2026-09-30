@@ -127,7 +127,6 @@ const {
     shown: showPreview,
     index: previewIndex,
     isImage,
-    isPdf,
     canPreview,
     fileIcon,
     open: openPreview,

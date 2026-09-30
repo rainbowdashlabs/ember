@@ -183,7 +183,7 @@ export function useBarcodeScanner() {
             throw new Error(insecure ? 'barcode-scanner-insecure-context' : 'barcode-scanner-unsupported')
         }
 
-        const stream = await openCameraStream(options)
+        const stream = await openCameraStream()
         await attachStreamToVideo(stream, options)
 
         const session = makeSession(stream, options)
@@ -199,7 +199,7 @@ export function useBarcodeScanner() {
         return {stop: session.stop}
     }
 
-    async function openCameraStream(options: StartScanOptions): Promise<MediaStream> {
+    async function openCameraStream(): Promise<MediaStream> {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {

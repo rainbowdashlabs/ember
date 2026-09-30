@@ -60,7 +60,7 @@ const {shown, startMove, startResize, widthOf, movingId, resizingId} = usePrevie
           :width="widthOf(field)"
           :moving="movingId === field.id"
           :resizing="resizingId === field.id"
-          @move-start="(f, event) => startMove(f, event)"
+          @move-start="f => startMove(f)"
           @resize-start="(f, event) => startResize(f, event, grid)"/>
     </div>
   </NeutralContainer>

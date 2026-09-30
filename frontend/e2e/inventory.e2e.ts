@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders, stationPeers} from './fixtures/auth'
+import {test, expect, apiHeaders} from './fixtures/auth'
 import {MovementFilterColumn, setMovementFilter} from './fixtures/movementFilter'
 import {movementRow} from './fixtures/movementRow'
 import {pickMemberByName} from './fixtures/memberMenu'
@@ -158,7 +158,7 @@ test.describe('Inventory', () => {
      * back to hand it in: the same button then reads as assigning rather than taking back, so the
      * story pressed it and waited for a word that was never going to appear.
      */
-    test('an item is assigned to a member and handed back', async ({managerPage: page, request}) => {
+    test('an item is assigned to a member and handed back', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
         const code = await pieceOfItsOwn(page, headers)
         const member = (await cast()).member

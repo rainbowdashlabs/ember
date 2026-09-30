@@ -121,7 +121,7 @@ test.describe('Cluster members and fields', () => {
      * One form of two origins. What the cluster asks and what the station asks are answered side by side,
      * each marked with who asked, and both survive being read back.
      */
-    test('a member is edited from the cluster', async ({adminPage: page, browser, request}) => {
+    test('a member is edited from the cluster', async ({adminPage: page}) => {
         const cluster = await enterCluster(page)
         const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
 

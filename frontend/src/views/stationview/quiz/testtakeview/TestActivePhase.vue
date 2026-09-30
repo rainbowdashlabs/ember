@@ -6,7 +6,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'

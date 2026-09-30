@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import { createCrudResource, createScopedCrudResource } from './crud'
+import { createCrudResource, createScopedCrudResource, type NoContent } from './crud'
 import type { MemberIdentity } from './types'
 import { apiErrorStatus } from '@/util/apiError'
 
@@ -61,7 +61,7 @@ const comments = createCrudResource<
     CommentUpdateRequest,
     Comment,
     Comment,
-    void
+    NoContent
 >('/events/comments')
 
 /**

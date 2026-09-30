@@ -15,7 +15,7 @@ defineProps<{
   position: { top: number; left: number }
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   apply: [url: string]
   cancel: []
 }>()

@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {MergedProfileField} from '@/util/profileFields'
-import type {ProfileField} from '@/api/profileFields'
 import type {MyInventoryItem} from '@/api/inventory'
 import type {MemberGroup, PermissionGrant, StationMember, UserTag} from '@/api/types'
 

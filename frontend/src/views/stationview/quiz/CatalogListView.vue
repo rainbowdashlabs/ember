@@ -88,7 +88,6 @@ const createTrainingEnabled = ref(false)
 
 const {
   show: showDeleteModal,
-  target: catalogToDelete,
   requestDelete: confirmDelete,
   confirm: deleteCatalog,
 } = useConfirmDelete<QuizCatalog>({

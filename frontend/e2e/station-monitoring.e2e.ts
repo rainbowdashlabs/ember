@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, accountWith, demoAccounts, pageAsThrowaway} from './fixtures/auth'
+import {test, expect, pageAsThrowaway} from './fixtures/auth'
 import {cast} from './fixtures/cast'
 
 test.describe('Station monitoring', () => {

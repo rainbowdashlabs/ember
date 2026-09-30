@@ -21,14 +21,6 @@ import {putSomething, readBack, sftpTarget, unreachableTarget} from './fixtures/
  * reading at that moment.
  */
 test.describe('Cluster storage backend', () => {
-    /** The association's backend screen, entered the way the switcher enters it. */
-    async function backendScreen(page: Page, own: OwnCluster) {
-        await page.goto('/cluster/storage/backend')
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
-        await page.goto('/cluster/storage/backend')
-        await expect(page.getByTestId('app-shell')).toBeVisible()
-    }
-
     /** Saves the association's storage and says what it is for, which is two acts and not one. */
     async function pointAt(page: Page, own: OwnCluster, reach: string, locked = false) {
         const saved = await page.request.post('/api/v1/cluster/storage/backend/apply',

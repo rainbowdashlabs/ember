@@ -63,12 +63,12 @@ export function useEventEditDeps(options: UseEventEditDepsOptions = {}): EventEd
         templates.value = results[1] as AttendanceTemplate[]
         groups.value = results[2] as MemberGroup[]
         tags.value = results[3] as UserTag[]
-        let idx = 4
+        const optional = results.slice(4)
         if (options.withMembers) {
-            members.value = results[idx++] as StationMember[]
+            members.value = optional.shift() as StationMember[]
         }
         if (options.withCounts) {
-            registrationCounts.value = results[idx++] as RegistrationCount[]
+            registrationCounts.value = optional.shift() as RegistrationCount[]
         }
     }, {autoLoad: options.autoLoad})
 

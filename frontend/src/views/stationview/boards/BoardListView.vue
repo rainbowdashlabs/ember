@@ -43,7 +43,6 @@ const createValidationError = ref('')
 
 const {
     show: showDeleteModal,
-    target: deleteTarget,
     requestDelete: confirmDelete,
     confirm: handleDelete,
 } = useConfirmDelete<Board>({

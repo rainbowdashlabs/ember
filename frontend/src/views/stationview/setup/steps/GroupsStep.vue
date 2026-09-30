@@ -31,7 +31,7 @@ const loading = ref(true)
 const failure = ref<Failure | null>(null)
 
 const allRoles = ref<PermissionGrant[]>([])
-const permissionsByGroup = reactive<Record<number, Set<number>>>({})
+const permissionsByGroup = reactive(new Map<number, Set<number>>())
 const permissionLoading = reactive<Record<number, boolean>>({})
 const selectedId = ref<number | null>(null)
 const colorDraft = ref<string>('')
@@ -63,7 +63,7 @@ const {running: adding, failure: addFailure, run: runAddGroup} = useAsyncAction(
     const nextPosition = (groups.value[groups.value.length - 1]?.position ?? -1) + 1
     const created = await memberGroups.createGroup({name: draft.value.trim(), position: nextPosition})
     groups.value = sortByPosition([...groups.value, created])
-    permissionsByGroup[created.id] = new Set()
+    permissionsByGroup.set(created.id, new Set())
     draft.value = ''
     await selectGroup(created.id)
 })
@@ -80,7 +80,7 @@ async function removeGroup(id: number) {
     try {
         await memberGroups.deleteGroup(id)
         groups.value = groups.value.filter((g) => g.id !== id)
-        delete permissionsByGroup[id]
+        permissionsByGroup.delete(id)
         if (selectedId.value === id) {
             selectedId.value = groups.value[0]?.id ?? null
             if (selectedId.value) await selectGroup(selectedId.value)
@@ -93,14 +93,14 @@ async function removeGroup(id: number) {
 async function selectGroup(id: number) {
     selectedId.value = id
     colorDraft.value = selectedGroup.value?.color ?? ''
-    if (!(id in permissionsByGroup)) {
+    if (!permissionsByGroup.has(id)) {
         permissionLoading[id] = true
         try {
             const grants = await memberGroups.getGroupPermissions(id)
-            permissionsByGroup[id] = new Set(grants.map((g) => g.id))
+            permissionsByGroup.set(id, new Set(grants.map((g) => g.id)))
         } catch (e) {
             failure.value = {...describeFailure(e, t), message: t('setup.steps.groups.permissionsLoadFailed')}
-            permissionsByGroup[id] = new Set()
+            permissionsByGroup.set(id, new Set())
         } finally {
             permissionLoading[id] = false
         }
@@ -139,7 +139,7 @@ async function moveGroup(id: number, delta: -1 | 1) {
 }
 
 async function onPermissionsChange(groupId: number, newIds: Set<number>) {
-    permissionsByGroup[groupId] = newIds
+    permissionsByGroup.set(groupId, newIds)
     try {
         await memberGroups.setGroupPermissions(groupId, {permissionIds: [...newIds]})
     } catch (e: unknown) {
@@ -186,7 +186,7 @@ const {running: saving, run: save} = useAsyncAction(async () => {
           :group="selectedGroup"
           :color="colorDraft"
           :all-roles="allRoles"
-          :permissions="permissionsByGroup[selectedGroup.id] ?? new Set()"
+          :permissions="permissionsByGroup.get(selectedGroup.id) ?? new Set()"
           :permissions-loading="permissionLoading[selectedGroup.id] ?? false"
           @color-change="onColorChange"
           @permissions-change="ids => onPermissionsChange(selectedGroup!.id, ids)"

@@ -19,7 +19,7 @@
 
 import {readFileSync, statSync} from 'fs'
 import {join} from 'path'
-import {SRC, walk, rel, RED, GREEN, YELLOW, RESET, BOLD, createReporter} from './lint-utils.mjs'
+import {SRC, walk, GREEN, RESET, BOLD, createReporter} from './lint-utils.mjs'
 
 const reporter = createReporter()
 

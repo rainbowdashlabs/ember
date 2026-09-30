@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import {createCrudResource} from './crud'
+import {createCrudResource, type NoContent} from './crud'
 import type {MemberIdentity} from './types'
 import {uploadFile} from './upload'
 
@@ -435,7 +435,7 @@ const requirements = createCrudResource<
     RequirementQuantityRequest,
     InventoryRequirement,
     InventoryRequirement,
-    void
+    NoContent
 >('/inventory-requirements')
 
 // -- Inventories --

@@ -5,7 +5,6 @@
  */
 import {createHmac} from 'node:crypto'
 import {cast, type CastMember} from './cast'
-import {readFile} from 'node:fs/promises'
 import {MADE_BY_A_STORY} from './cluster'
 import {removeMade} from './createdMembers'
 import {test as base, type APIRequestContext, type Browser, type Page} from '@playwright/test'
@@ -658,7 +657,7 @@ interface Fixtures {
      * <p>Nothing asks for this one: it runs for every story, because the stories that make somebody
      * are exactly the ones that would not think to clear them away. See {@code createdMembers}.
      */
-    tidyUp: void
+    tidyUp: undefined
     managerPage: Page
     memberPage: Page
     adminPage: Page
@@ -673,7 +672,7 @@ interface Fixtures {
 
 export const test = base.extend<Fixtures>({
     tidyUp: [async ({request}, use) => {
-        await use()
+        await use(undefined)
         await removeMade(request)
     }, {auto: true}],
 

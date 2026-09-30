@@ -7,7 +7,7 @@
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
-import {getCrossStationDashboard, type CrossStationDashboard, type CrossStationNotification} from '@/api/session'
+import {getCrossStationDashboard, type CrossStationDashboard} from '@/api/session'
 import {useStations} from '@/composables/useStations'
 import {useCluster} from '@/composables/useCluster'
 import {useSession} from '@/composables/useSession'

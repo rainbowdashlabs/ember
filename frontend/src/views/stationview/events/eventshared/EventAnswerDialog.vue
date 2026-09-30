@@ -17,7 +17,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import {useAnswerMembers} from './useAnswerMembers'
-import type {EventRegistrationField, RegistrationFieldValue} from '@/api/events'
+import type {EventRegistrationField} from '@/api/events'
 import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
 
 /**
