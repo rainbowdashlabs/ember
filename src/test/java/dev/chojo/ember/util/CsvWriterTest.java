@@ -84,6 +84,28 @@ class CsvWriterTest {
         assertEquals("A\n\"eins\nzwei\"\n", csv);
     }
 
+    /** An empty first cell stays empty rather than becoming a pair of quotes. */
+    @Test
+    void anEmptyFirstCellIsWrittenAsNothing() {
+        String csv = CsvWriter.write(List.of("A", "B"), List.of(List.of("", "2")), CsvWriter.Separator.SEMICOLON);
+
+        assertEquals("A;B\n;2\n", csv);
+    }
+
+    @Test
+    void aCellThatCouldStartAFormulaIsTurnedIntoText() {
+        String csv = CsvWriter.write(List.of("A"), List.of(List.of("=1+1")), CsvWriter.Separator.SEMICOLON);
+
+        assertEquals("A\n'=1+1\n", csv);
+    }
+
+    @Test
+    void aCellStartingWithAHashIsQuoted() {
+        String csv = CsvWriter.write(List.of("A"), List.of(List.of("#1")), CsvWriter.Separator.SEMICOLON);
+
+        assertEquals("A\n\"#1\"\n", csv);
+    }
+
     @Test
     void whatTheRequestAskedForDecidesTheSeparator() {
         assertEquals(CsvWriter.Separator.COMMA, CsvWriter.Separator.of("comma"));

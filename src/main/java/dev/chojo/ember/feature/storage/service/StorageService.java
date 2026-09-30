@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.StoredObject;
 import dev.chojo.ember.feature.storage.entity.Variant;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -25,7 +26,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
@@ -337,15 +337,10 @@ public class StorageService {
      */
     private static final class DigestingInputStream extends InputStream {
         private final InputStream delegate;
-        private final MessageDigest digest;
+        private final MessageDigest digest = Sha256.digest();
 
         DigestingInputStream(InputStream delegate) {
             this.delegate = delegate;
-            try {
-                this.digest = MessageDigest.getInstance("SHA-256");
-            } catch (NoSuchAlgorithmException e) {
-                throw new IllegalStateException("SHA-256 unavailable", e);
-            }
         }
 
         @Override

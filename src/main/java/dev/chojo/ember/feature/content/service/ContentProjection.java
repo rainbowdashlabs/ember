@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.util.Markdown;
 import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
@@ -72,27 +73,7 @@ public final class ContentProjection {
      * formatting: a search index, a summary, a preview line.
      */
     public static String toPlainText(List<ContentRow> rows, Function<String, String> fileUrl) {
-        return stripMarkup(toMarkdown(rows, fileUrl));
-    }
-
-    /**
-     * Removes the markdown syntax and leaves the words. Deliberately blunt: this feeds a search
-     * index and a preview, both of which care about what was written rather than how.
-     */
-    public static String stripMarkup(String markdown) {
-        if (markdown == null || markdown.isBlank()) return "";
-        return markdown.replaceAll("!\\[[^\\]]*]\\([^)]*\\)", "")
-                .replaceAll("\\[([^\\]]*)]\\([^)]*\\)", "$1")
-                .replaceAll("(?m)^\\s{0,3}#{1,6}\\s*", "")
-                .replaceAll("(?m)^\\s{0,3}>\\s?", "")
-                .replaceAll("(?m)^\\s{0,3}[-*+]\\s+", "")
-                .replaceAll("(?m)^\\s{0,3}```.*$", "")
-                .replaceAll("(?m)^\\s*---\\s*$", "")
-                .replace("**", "")
-                .replace("__", "")
-                .replaceAll("[ \\t]+", " ")
-                .replaceAll("\n{3,}", "\n\n")
-                .strip();
+        return Markdown.toPlainText(toMarkdown(rows, fileUrl));
     }
 
     private static String cellToMarkdown(ContentCell cell, Target target) {

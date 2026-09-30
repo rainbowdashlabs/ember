@@ -23,12 +23,12 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnCeremonies.CeremonyStart;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.EnumSet;
@@ -44,11 +44,6 @@ import java.util.Set;
 @Singleton
 public class PasskeyEnrollmentService {
     private static final Logger log = LoggerFactory.getLogger(PasskeyEnrollmentService.class);
-    private static final SecureRandom RANDOM = new SecureRandom();
-
-    /** No 0/O, 1/I/L or U, so a code typed from a screen survives the typing. */
-    private static final char[] CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTVWXYZ".toCharArray();
-
     private static final int CODE_LENGTH = 8;
 
     /** Five minutes for the QR in the room: both people are standing there. */
@@ -100,11 +95,7 @@ public class PasskeyEnrollmentService {
     }
 
     private static String newCode() {
-        var code = new StringBuilder(CODE_LENGTH);
-        for (int i = 0; i < CODE_LENGTH; i++) {
-            code.append(CODE_ALPHABET[RANDOM.nextInt(CODE_ALPHABET.length)]);
-        }
-        return code.toString();
+        return RandomTokens.readableCode(CODE_LENGTH);
     }
 
     private static String normalize(String token) {

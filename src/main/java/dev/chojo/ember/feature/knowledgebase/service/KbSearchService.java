@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.Markdown;
 import dev.chojo.ember.util.sql.FullTextSearch;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -57,13 +58,10 @@ public class KbSearchService {
     }
 
     /**
-     * Strips HTML tags and markdown punctuation so the index holds plain words only.
+     * Takes the markup off so the index holds plain words only, on a single line.
      */
     private static String toPlainText(String text) {
-        return text.replaceAll("<[^>]+>", " ")
-                .replaceAll("[#*_\\[\\]()>`~]", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
+        return Markdown.toPlainText(text).replaceAll("\\s+", " ");
     }
 
     /**

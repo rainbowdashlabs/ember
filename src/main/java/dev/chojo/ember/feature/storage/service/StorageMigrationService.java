@@ -19,16 +19,14 @@ import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.migration.MigrationLockRegistry;
 import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 
@@ -71,20 +69,6 @@ public class StorageMigrationService {
         this.factory = factory;
         this.resolver = resolver;
         this.locks = locks;
-    }
-
-    private static String computeSha256(StoredStream stream) throws IOException {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] buffer = new byte[8 * 1024];
-            int read;
-            while ((read = stream.body().read(buffer)) != -1) {
-                digest.update(buffer, 0, read);
-            }
-            return HexFormat.of().formatHex(digest.digest());
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
     }
 
     /**
@@ -270,7 +254,7 @@ public class StorageMigrationService {
         try (StoredStream stream = backend.read(key).orElseThrow(() -> new MigrationException("Missing key: " + key))) {
             String stored = stream.metadata().sha256();
             if (stored != null && !stored.isBlank()) return stored;
-            return computeSha256(stream);
+            return Sha256.hex(stream.body());
         } catch (IOException e) {
             throw new MigrationException("Failed to read key for verification " + key, e);
         }

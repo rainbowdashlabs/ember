@@ -36,6 +36,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.HtmlSanitizer.Policy;
 import dev.chojo.ember.util.Markdown;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
@@ -99,45 +100,13 @@ public class NewsService {
     }
 
     /**
-     * Derives a plain-text preview from a Markdown article body. Strips the most common
-     * formatting (headings, emphasis, lists, code fences, links → label) but preserves
-     * paragraph structure (single newlines kept, runs of 3+ newlines collapsed to a single
-     * paragraph break) so the feed renderer can re-flow it as multi-line HTML. Markdown
-     * tables are converted to {@code "col · col · col"} lines so they read as structured
-     * key/value pairs instead of dumping raw {@code |} characters. The renderer applies its
-     * own length cap on top - we just hand it readable plain text. Returns {@code null}
-     * when the input is blank.
+     * Derives a plain-text preview from a Markdown article body, keeping the paragraph and line
+     * structure so the feed renderer can re-flow it as multi-line HTML. The renderer applies its
+     * own length cap on top. Returns {@code null} when nothing readable is left.
      */
     static String previewOf(String markdown) {
-        if (markdown == null || markdown.isBlank()) return null;
-        String stripped = markdown
-                // Fenced code blocks add nothing useful in plain text - drop them entirely.
-                .replaceAll("(?s)```.*?```", "")
-                // `[label](url)` → keep the label.
-                .replaceAll("\\[([^\\]]+)]\\([^)]+\\)", "$1")
-                // Markdown table separator rows (|---|---|---|, with optional spaces / colons
-                // for alignment) carry no content; strip the whole line.
-                .replaceAll("(?m)^\\s*\\|?[\\s:|-]+\\|?\\s*$\\n?", "")
-                // Trim leading / trailing pipes from each table data row.
-                .replaceAll("(?m)^\\s*\\|", "")
-                .replaceAll("(?m)\\|\\s*$", "")
-                // Cell separator: convert " | " into a middle-dot so columns stay visually
-                // grouped without dumping bare pipes into the body.
-                .replace(" | ", " · ")
-                // Heading markers and blockquote arrows at line start.
-                .replaceAll("(?m)^\\s*#{1,6}\\s+", "")
-                .replaceAll("(?m)^\\s*>\\s+", "")
-                // Inline emphasis / inline-code markers.
-                .replaceAll("[*_`]+", "")
-                // Bullet / numbered list markers at line start - keep a bullet glyph so the
-                // structure survives the strip.
-                .replaceAll("(?m)^\\s*[-+]\\s+", "• ")
-                .replaceAll("(?m)^\\s*\\d+\\.\\s+", "")
-                // Collapse runs of 3+ newlines into a single paragraph break, but keep
-                // single newlines so the source's line structure flows into the body.
-                .replaceAll("\\n{3,}", "\n\n")
-                .trim();
-        return stripped.isBlank() ? null : stripped;
+        String preview = Markdown.toPlainText(markdown);
+        return preview.isEmpty() ? null : preview;
     }
 
     /**
@@ -159,7 +128,8 @@ public class NewsService {
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
-        var news = newsRepository.create(stationId, title, contentMarkdown, Markdown.toHtml(contentMarkdown), author);
+        var news = newsRepository.create(
+                stationId, title, contentMarkdown, Markdown.toHtml(contentMarkdown, Policy.RICH), author);
         setRestrictions(news.id(), new RestrictionSelection(userTypes, groupIds, tagIds, memberIds, null));
         String authorName = resolveAuthorName(stationId, author);
         eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName, previewOf(contentMarkdown)));
@@ -187,7 +157,8 @@ public class NewsService {
      */
     public News createSystem(
             String title, String contentMarkdown, List<StationUserType> userTypes, boolean publish, boolean notify) {
-        var news = newsRepository.createSystem(title, contentMarkdown, Markdown.toHtml(contentMarkdown), publish);
+        var news = newsRepository.createSystem(
+                title, contentMarkdown, Markdown.toHtml(contentMarkdown, Policy.RICH), publish);
         setRestrictions(news.id(), new RestrictionSelection(userTypes, List.of(), List.of(), List.of(), null));
         if (publish && notify) {
             notifySystemEntry(news, title, contentMarkdown);
@@ -300,7 +271,7 @@ public class NewsService {
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
-        if (newsRepository.update(id, title, contentMarkdown, Markdown.toHtml(contentMarkdown))) {
+        if (newsRepository.update(id, title, contentMarkdown, Markdown.toHtml(contentMarkdown, Policy.RICH))) {
             setRestrictions(id, new RestrictionSelection(userTypes, groupIds, tagIds, memberIds, null));
             log.info("Updated news {}", id);
             return newsRepository.findById(id);
@@ -413,7 +384,7 @@ public class NewsService {
                 : String.valueOf(stationRepository.resolveUid(news.stationId()));
         String markdown = ContentProjection.toMarkdown(
                 describedBlocks(news), hash -> "/api/v1/public/media/" + mediaScope + "/" + hash);
-        newsRepository.update(id, news.title(), markdown, Markdown.toHtml(markdown));
+        newsRepository.update(id, news.title(), markdown, Markdown.toHtml(markdown, Policy.RICH));
         log.info("News {} blocks saved and projected ({} rows)", id, rows.size());
         return newsRepository.findById(id);
     }

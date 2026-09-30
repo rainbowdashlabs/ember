@@ -275,7 +275,6 @@ class ContentProjectionTest {
 
     @Test
     void strippingNothingGivesNothing() {
-        assertEquals("", ContentProjection.stripMarkup(null));
-        assertEquals("", ContentProjection.stripMarkup("   "));
+        assertEquals("", ContentProjection.toPlainText(List.of(), FILE_URL));
     }
 }

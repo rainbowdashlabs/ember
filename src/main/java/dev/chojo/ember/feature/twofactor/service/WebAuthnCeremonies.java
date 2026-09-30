@@ -32,14 +32,13 @@ import dev.chojo.ember.feature.twofactor.entity.WebAuthnChallenge;
 import dev.chojo.ember.feature.twofactor.entity.WebAuthnCredential;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
+import dev.chojo.ember.util.RandomTokens;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -59,7 +58,6 @@ import java.util.UUID;
 public final class WebAuthnCeremonies {
     private static final Logger log = LoggerFactory.getLogger(WebAuthnCeremonies.class);
     private static final Duration CHALLENGE_TTL = Duration.ofMinutes(5);
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final RelyingParties relyingParties;
     private final TwoFactorRepository repository;
@@ -299,15 +297,11 @@ public final class WebAuthnCeremonies {
     }
 
     static String newChallengeToken() {
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        return HexFormat.of().formatHex(bytes);
+        return RandomTokens.hex(32);
     }
 
     private static byte[] newUserHandle() {
-        byte[] bytes = new byte[64];
-        RANDOM.nextBytes(bytes);
-        return bytes;
+        return RandomTokens.bytes(64);
     }
 
     /**

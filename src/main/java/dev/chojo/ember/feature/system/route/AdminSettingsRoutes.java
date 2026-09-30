@@ -47,6 +47,7 @@ import dev.chojo.ember.feature.system.service.DatabaseLogAppender;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import dev.chojo.ember.util.MailAddress;
 import dev.chojo.ember.util.PandocConverter;
+import dev.chojo.ember.util.RandomTokens;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -69,10 +70,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -530,9 +529,7 @@ public class AdminSettingsRoutes implements Routes {
         if (auth.tokenPepper() != null && !auth.tokenPepper().isBlank()) {
             throw Refusal.TOKEN_PEPPER_ALREADY_SET.raise();
         }
-        byte[] random = new byte[48];
-        new SecureRandom().nextBytes(random);
-        String pepper = Base64.getUrlEncoder().withoutPadding().encodeToString(random);
+        String pepper = RandomTokens.urlSafe(48);
         try {
             setField(Auth.class, auth, "tokenPepper", pepper);
             conf.save();
@@ -617,9 +614,7 @@ public class AdminSettingsRoutes implements Routes {
         if (twoFactor.secretKey() != null && !twoFactor.secretKey().isBlank()) {
             throw Refusal.TWO_FACTOR_SECRET_KEY_ALREADY_SET.raise();
         }
-        byte[] random = new byte[32];
-        new SecureRandom().nextBytes(random);
-        String key = Base64.getEncoder().encodeToString(random);
+        String key = RandomTokens.base64(32);
         try {
             setField(TwoFactorSettings.class, twoFactor, "secretKey", key);
             conf.save();

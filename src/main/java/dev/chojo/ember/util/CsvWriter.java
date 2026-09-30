@@ -5,6 +5,13 @@
  */
 package dev.chojo.ember.util;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.QuoteMode;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -14,9 +21,12 @@ import java.util.List;
  * mark, and headers in the station's language in one and hardcoded English in another. A reader
  * opening two exports from the same product got two different files.
  *
- * <p>A cell is quoted where it needs to be and left alone where it does not, which keeps a file
- * readable to a person opening it in anything but a spreadsheet. What needs it is a cell holding the
- * separator, a quote, a line break, or space at either end that would otherwise be eaten.
+ * <p>The writing itself is Commons CSV's: lines end in a bare line feed, and a cell is quoted only
+ * where it needs to be, which keeps a file readable to a person opening it in anything but a
+ * spreadsheet. What needs it is a cell holding the separator, a quote or a line break, or one that
+ * starts or ends in a space. Commons CSV also quotes a cell that starts with {@code !} or {@code #};
+ * every reader takes that cell back unchanged, and it is the only place the files differ from the
+ * ones written before.
  */
 public final class CsvWriter {
 
@@ -32,10 +42,14 @@ public final class CsvWriter {
         SEMICOLON(';'),
         COMMA(',');
 
-        private final char character;
+        private final CSVFormat format;
 
         Separator(char character) {
-            this.character = character;
+            this.format = CSVFormat.Builder.create()
+                    .setDelimiter(character)
+                    .setRecordSeparator('\n')
+                    .setQuoteMode(QuoteMode.MINIMAL)
+                    .get();
         }
 
         /**
@@ -48,6 +62,8 @@ public final class CsvWriter {
             return "comma".equalsIgnoreCase(asked) ? COMMA : SEMICOLON;
         }
     }
+
+    private static final String FORMULA_STARTS = "=+-@\t\r";
 
     private CsvWriter() {}
 
@@ -63,27 +79,27 @@ public final class CsvWriter {
      */
     public static String write(List<String> headers, List<List<String>> rows, Separator separator) {
         var out = new StringBuilder();
-        line(out, headers, headers.size(), separator);
-        for (var row : rows) {
-            line(out, row, headers.size(), separator);
+        try (var printer = new CSVPrinter(out, separator.format)) {
+            printer.printRecord(line(headers, headers.size()));
+            for (var row : rows) {
+                printer.printRecord(line(row, headers.size()));
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Writing to memory failed", e);
         }
         return out.toString();
     }
 
-    private static void line(StringBuilder out, List<String> cells, int width, Separator separator) {
+    /**
+     * The cells of one line, padded to the header's width. An empty cell is handed over as
+     * {@code null}, which Commons CSV writes as nothing at all rather than as a pair of quotes.
+     */
+    private static List<String> line(List<String> cells, int width) {
+        var line = new ArrayList<String>(width);
         for (int i = 0; i < width; i++) {
-            if (i > 0) out.append(separator.character);
-            out.append(cell(i < cells.size() ? cells.get(i) : null, separator));
+            line.add(defused(i < cells.size() ? cells.get(i) : null));
         }
-        out.append('\n');
-    }
-
-    /** A doubled quote is how a quote is written inside a quoted cell, which is all the escaping there is. */
-    private static String cell(String rawValue, Separator separator) {
-        if (rawValue == null || rawValue.isEmpty()) return "";
-        String value = defused(rawValue);
-        if (!needsQuoting(value, separator)) return value;
-        return "\"" + value.replace("\"", "\"\"") + "\"";
+        return line;
     }
 
     /**
@@ -95,16 +111,7 @@ public final class CsvWriter {
      * there for the same reason.
      */
     private static String defused(String value) {
+        if (value == null || value.isEmpty()) return null;
         return FORMULA_STARTS.indexOf(value.charAt(0)) >= 0 ? "'" + value : value;
-    }
-
-    private static final String FORMULA_STARTS = "=+-@\t\r";
-
-    private static boolean needsQuoting(String value, Separator separator) {
-        return value.indexOf(separator.character) >= 0
-                || value.indexOf('"') >= 0
-                || value.indexOf('\n') >= 0
-                || value.indexOf('\r') >= 0
-                || !value.equals(value.strip());
     }
 }

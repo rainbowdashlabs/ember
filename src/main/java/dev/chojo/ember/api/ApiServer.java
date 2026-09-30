@@ -44,6 +44,7 @@ import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.util.ClientIp;
 import dev.chojo.ember.util.DevErrorWriter;
 import dev.chojo.ember.util.LogRedaction;
+import dev.chojo.ember.util.Sha256;
 import io.javalin.Javalin;
 import io.javalin.compression.CompressionStrategy;
 import io.javalin.compression.Gzip;
@@ -81,11 +82,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -315,15 +313,6 @@ public class ApiServer {
             }
         }
         return -1;
-    }
-
-    private static String bodyDigest(String body) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(body.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest, 0, 8);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
     }
 
     /**
@@ -1297,7 +1286,7 @@ public class ApiServer {
         String body = ctx.result();
         if (body == null || body.isEmpty()) return;
 
-        String etag = "\"" + bodyDigest(body) + "\"";
+        String etag = "\"" + Sha256.hexPrefix(body, 16) + "\"";
         ctx.header("ETag", etag);
 
         String ifNoneMatch = ctx.header("If-None-Match");

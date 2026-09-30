@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -16,9 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.Optional;
 
 /**
@@ -45,20 +43,12 @@ public class LogoFragmentService {
         this.storage = storage;
     }
 
-    private static String sha256(byte[] data) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
-        } catch (NoSuchAlgorithmException e) {
-            throw new AssertionError("SHA-256 not available", e);
-        }
-    }
-
     /**
      * Persists the fragment when its source hash differs from what is already stored. Returns
      * {@code true} when the bytes were written, {@code false} when the stored marker matched.
      */
     public void storeIfChanged(String name, byte[] data, String declaredMime) throws IOException {
-        String sourceHash = sha256(data);
+        String sourceHash = Sha256.hex(data);
         if (storedMarker(name)
                 .map(stored -> stored.equalsIgnoreCase(sourceHash))
                 .orElse(false)) {

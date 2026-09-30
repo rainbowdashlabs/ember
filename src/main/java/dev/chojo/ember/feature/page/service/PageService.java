@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.repository.PageRepository;
+import dev.chojo.ember.util.HtmlSanitizer.Policy;
 import dev.chojo.ember.util.Markdown;
 import dev.chojo.ember.util.ShareTokens;
 import io.javalin.http.BadRequestResponse;
@@ -452,7 +453,7 @@ public class PageService {
 
     private ContentCell renderCell(int stationId, ContentCell cell) {
         if (cell.contentType() == CellContentType.MARKDOWN) {
-            return cell.withContent(Markdown.toHtml(cell.content()));
+            return cell.withContent(Markdown.toHtml(cell.content(), Policy.RICH));
         }
         if (cell.contentType() == CellContentType.MEMBER_LIST_SPOTLIGHT
                 && cell.config() instanceof CellConfig.MemberListConfig officers) {

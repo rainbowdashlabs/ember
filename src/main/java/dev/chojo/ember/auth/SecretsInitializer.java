@@ -10,12 +10,11 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.storage.credential.EncryptionKeyFile;
+import dev.chojo.ember.util.RandomTokens;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
-import java.security.SecureRandom;
-import java.util.Base64;
 
 /**
  * Ensures that boot-critical secrets are populated in {@code config.yaml} before
@@ -54,13 +53,13 @@ public final class SecretsInitializer {
         }
         boolean dirty = false;
         if (auth.tokenPepper() == null || auth.tokenPepper().isBlank()) {
-            setField(Auth.class, auth, "tokenPepper", generateUrlSafeBase64(48));
+            setField(Auth.class, auth, "tokenPepper", RandomTokens.urlSafe(48));
             log.warn("auth.tokenPepper was empty - generated a fresh value and persisted it to config.yaml.");
             dirty = true;
         }
         TwoFactorSettings twoFactor = auth.twoFactor();
         if (twoFactor.secretKey() == null || twoFactor.secretKey().isBlank()) {
-            setField(TwoFactorSettings.class, twoFactor, "secretKey", generateBase64(32));
+            setField(TwoFactorSettings.class, twoFactor, "secretKey", RandomTokens.base64(32));
             log.warn(
                     "auth.twoFactor.secretKey was empty - generated a fresh 32-byte value and persisted it to config.yaml.");
             dirty = true;
@@ -68,18 +67,6 @@ public final class SecretsInitializer {
         if (dirty) {
             conf.save();
         }
-    }
-
-    private static String generateUrlSafeBase64(int bytes) {
-        byte[] buf = new byte[bytes];
-        new SecureRandom().nextBytes(buf);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(buf);
-    }
-
-    private static String generateBase64(int bytes) {
-        byte[] buf = new byte[bytes];
-        new SecureRandom().nextBytes(buf);
-        return Base64.getEncoder().encodeToString(buf);
     }
 
     private static void setField(Class<?> clazz, Object target, String fieldName, Object value) {

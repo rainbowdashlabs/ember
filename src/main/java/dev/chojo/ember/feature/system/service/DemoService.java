@@ -15,6 +15,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -24,8 +25,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
@@ -236,7 +235,7 @@ public class DemoService {
 
     private String computeSchemaHash() {
         try {
-            var digest = MessageDigest.getInstance("SHA-256");
+            var digest = Sha256.digest();
             try (InputStream is = getClass().getResourceAsStream("/database/version")) {
                 if (is != null) digest.update(is.readAllBytes());
             }
@@ -247,7 +246,7 @@ public class DemoService {
                 }
             }
             return HexFormat.of().formatHex(digest.digest());
-        } catch (NoSuchAlgorithmException | IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException("Failed to compute schema hash", e);
         }
     }

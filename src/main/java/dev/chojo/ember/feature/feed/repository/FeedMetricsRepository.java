@@ -5,11 +5,9 @@
  */
 package dev.chojo.ember.feature.feed.repository;
 
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Singleton;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -40,18 +38,6 @@ public class FeedMetricsRepository {
     private static final int UA_MAX_LENGTH = 512;
 
     // -- daily histogram --
-
-    private static String shortHash(String ua) {
-        try {
-            var md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(ua.getBytes(StandardCharsets.UTF_8));
-            var sb = new StringBuilder(16);
-            for (int i = 0; i < 8; i++) sb.append(String.format("%02x", digest[i]));
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
-    }
 
     /**
      * Upserts a single feed render into the daily aggregate. {@code durationMs} is bucketed
@@ -134,7 +120,7 @@ public class FeedMetricsRepository {
     public void recordRequest(String userAgent) {
         if (userAgent == null || userAgent.isBlank()) return;
         String truncated = userAgent.length() > UA_MAX_LENGTH ? userAgent.substring(0, UA_MAX_LENGTH) : userAgent;
-        String hash = shortHash(truncated);
+        String hash = Sha256.hexPrefix(truncated, 16);
         query("""
                 INSERT INTO feed_user_agent_stat(ua_hash, ua_string, request_count, first_seen, last_seen)
                 VALUES (:ua_hash, :ua_string, 1, now(), now())

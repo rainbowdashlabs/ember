@@ -24,17 +24,15 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnCeremonies.CeremonyStart;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -61,11 +59,6 @@ import java.util.Set;
 @Singleton
 public class DeviceRequestService {
     private static final Logger log = LoggerFactory.getLogger(DeviceRequestService.class);
-    private static final SecureRandom RANDOM = new SecureRandom();
-
-    /** No 0/O, 1/I/L or U (confusable with V), so the code survives being read from a screen. */
-    private static final char[] CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTVWXYZ".toCharArray();
-
     private static final int CODE_LENGTH = 8;
 
     /** Ten minutes, because somebody has to walk to another machine. */
@@ -122,16 +115,12 @@ public class DeviceRequestService {
     }
 
     private static String newCode() {
-        var code = new StringBuilder(CODE_LENGTH);
-        for (int i = 0; i < CODE_LENGTH; i++) {
-            code.append(CODE_ALPHABET[RANDOM.nextInt(CODE_ALPHABET.length)]);
-        }
-        return code.toString();
+        return RandomTokens.readableCode(CODE_LENGTH);
     }
 
     /** Two digits, so it is read off a screen and said out loud without being written down. */
     private static int newMatchNumber() {
-        return MATCH_LOWEST + RANDOM.nextInt(MATCH_HIGHEST - MATCH_LOWEST + 1);
+        return MATCH_LOWEST + RandomTokens.number(MATCH_HIGHEST - MATCH_LOWEST + 1);
     }
 
     /**
@@ -150,14 +139,12 @@ public class DeviceRequestService {
             boolean tooClose = choices.stream().anyMatch(taken -> Math.abs(taken - candidate) < MATCH_MIN_DISTANCE);
             if (!tooClose) choices.add(candidate);
         }
-        Collections.shuffle(choices, RANDOM);
+        RandomTokens.shuffle(choices);
         return List.copyOf(choices);
     }
 
     private static String newSecret() {
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return RandomTokens.urlSafe(32);
     }
 
     /** Strips the display grouping and the easy mistakes before hashing a typed code. */

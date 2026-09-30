@@ -7,19 +7,17 @@ package dev.chojo.ember.feature.feed.service;
 
 import dev.chojo.ember.feature.feed.entity.FeedToken;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.Optional;
 
 @Singleton
 public class FeedTokenService {
     private static final Logger log = LoggerFactory.getLogger(FeedTokenService.class);
-    private static final SecureRandom RANDOM = new SecureRandom();
     private final FeedTokenRepository tokenRepository;
 
     @Inject
@@ -83,8 +81,6 @@ public class FeedTokenService {
     }
 
     private String generateToken() {
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return RandomTokens.urlSafe(32);
     }
 }

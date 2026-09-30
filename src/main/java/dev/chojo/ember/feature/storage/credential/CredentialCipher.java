@@ -6,13 +6,12 @@
 package dev.chojo.ember.feature.storage.credential;
 
 import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.util.RandomTokens;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
 
@@ -54,7 +53,6 @@ public class CredentialCipher {
     private static final int KEY_BYTES = 32;
 
     private final SecretKeySpec key;
-    private final SecureRandom random = new SecureRandom();
 
     @Inject
     public CredentialCipher(Storage storageConfig) {
@@ -73,15 +71,7 @@ public class CredentialCipher {
      * @return a cipher keyed by {@code SHA-256(purpose, secret)}
      */
     public static CredentialCipher derivedFrom(String purpose, String secret) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-256");
-            digest.update(purpose.getBytes(StandardCharsets.UTF_8));
-            digest.update((byte) 0);
-            digest.update(secret.getBytes(StandardCharsets.UTF_8));
-            return new CredentialCipher(Base64.getEncoder().encodeToString(digest.digest()));
-        } catch (NoSuchAlgorithmException e) {
-            throw new CredentialCipherException("SHA-256 is not available", e);
-        }
+        return new CredentialCipher(Base64.getEncoder().encodeToString(Sha256.bytes(purpose + '\0' + secret)));
     }
 
     /**
@@ -128,8 +118,7 @@ public class CredentialCipher {
      */
     public EncryptedBlob encrypt(byte[] plaintext) {
         requireKey();
-        byte[] iv = new byte[IV_BYTES];
-        random.nextBytes(iv);
+        byte[] iv = RandomTokens.bytes(IV_BYTES);
         try {
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, iv));

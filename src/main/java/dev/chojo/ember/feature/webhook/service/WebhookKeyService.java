@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.webhook.service;
 
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.feature.webhook.repository.WebhookKeyRepository;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -14,8 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.Optional;
 
 /**
@@ -35,7 +34,6 @@ public class WebhookKeyService {
     private static final Logger log = LoggerFactory.getLogger(WebhookKeyService.class);
 
     private static final int KEY_BYTES = 32;
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final Conf conf;
     private final WebhookKeyRepository repository;
@@ -142,8 +140,6 @@ public class WebhookKeyService {
     }
 
     private static String generate() {
-        byte[] bytes = new byte[KEY_BYTES];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return RandomTokens.urlSafe(KEY_BYTES);
     }
 }

@@ -10,9 +10,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
+import dev.chojo.ember.util.Sha256;
 
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
 /**
@@ -89,14 +89,9 @@ public sealed interface RedactedStationConfig {
     }
 
     private static String fingerprint(EncryptedBlob blob) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            digest.update(blob.iv());
-            byte[] hash = digest.digest(blob.ciphertext());
-            return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
+        MessageDigest digest = Sha256.digest();
+        digest.update(blob.iv());
+        return HexFormat.of().formatHex(digest.digest(blob.ciphertext()));
     }
 
     StorageBackendType type();

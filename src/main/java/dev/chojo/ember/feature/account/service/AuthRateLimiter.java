@@ -9,15 +9,12 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.DeviceHandshakeSettings;
 import dev.chojo.ember.util.LeakyBucket;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.HexFormat;
 import java.util.Optional;
 
 /**
@@ -148,7 +145,7 @@ public class AuthRateLimiter {
 
     /** An address as a key: folded to one case first, because that is how addresses are compared. */
     private static String hashEmail(String email) {
-        return sha256(email == null ? "" : email.trim().toLowerCase());
+        return Sha256.hex(email == null ? "" : email.trim().toLowerCase());
     }
 
     /**
@@ -158,17 +155,7 @@ public class AuthRateLimiter {
      * different secrets share one bucket.
      */
     private static String hashSecret(String secret) {
-        return sha256(secret == null ? "" : secret);
-    }
-
-    private static String sha256(String value) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-256");
-            byte[] bytes = digest.digest(value.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(bytes);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
+        return Sha256.hex(secret == null ? "" : secret);
     }
 
     public Optional<Long> tryLogin(String ip, String email) {

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.discovery.service;
 
 import dev.chojo.ember.auth.signing.Ed25519Keys;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,13 +18,10 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
-import java.util.HexFormat;
 import java.util.Set;
 
 /**
@@ -77,12 +75,7 @@ public class DiscoveryKeyService {
      * Computes the 16-character hex fingerprint of {@code sha256(publicKey)}.
      */
     public static String computeInstanceId(byte[] rawPublicKey) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-256").digest(rawPublicKey);
-            return HexFormat.of().formatHex(digest).substring(0, 16);
-        } catch (NoSuchAlgorithmException e) {
-            throw new AssertionError("SHA-256 not available", e);
-        }
+        return Sha256.hex(rawPublicKey).substring(0, 16);
     }
 
     /**

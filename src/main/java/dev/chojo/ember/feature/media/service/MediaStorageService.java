@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -19,9 +20,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -57,12 +55,7 @@ public class MediaStorageService {
      * Hex SHA-256 of the given bytes (lowercase).
      */
     public static String hash(byte[] data) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-256").digest(data);
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
+        return Sha256.hex(data);
     }
 
     private static String mimeForExtension(String ext) {

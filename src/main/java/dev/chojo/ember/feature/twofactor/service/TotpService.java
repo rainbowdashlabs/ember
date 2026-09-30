@@ -12,6 +12,7 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.qrcode.QRCodeWriter;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.apache.commons.codec.binary.Base32;
@@ -25,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -60,7 +60,6 @@ public class TotpService {
     private final TwoFactorSettings.TotpConfig config;
     private final byte[] encryptionKey;
     private final TimeBasedOneTimePasswordGenerator generator;
-    private final SecureRandom random = new SecureRandom();
     private final Clock clock;
 
     @Inject
@@ -155,16 +154,13 @@ public class TotpService {
      * apps expect.
      */
     public String generateSecret() {
-        byte[] bytes = new byte[SECRET_BYTES];
-        random.nextBytes(bytes);
-        return BASE32.encodeToString(bytes);
+        return BASE32.encodeToString(RandomTokens.bytes(SECRET_BYTES));
     }
 
     public byte[] encryptSecret(String secretBase32) {
         try {
             var cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            byte[] iv = new byte[GCM_IV_BYTES];
-            new SecureRandom().nextBytes(iv);
+            byte[] iv = RandomTokens.bytes(GCM_IV_BYTES);
             cipher.init(
                     Cipher.ENCRYPT_MODE,
                     new SecretKeySpec(encryptionKey, "AES"),

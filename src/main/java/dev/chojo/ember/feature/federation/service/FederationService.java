@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.RandomTokens;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -29,7 +30,6 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
@@ -39,6 +39,7 @@ import java.util.UUID;
 @Singleton
 public class FederationService {
     private static final Logger log = LoggerFactory.getLogger(FederationService.class);
+    private static final String PAIRING_TOKEN_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
     private final FederationRepository repository;
     private final StationRepository stationRepository;
     private final StationKeyStore stationKeys;
@@ -713,11 +714,7 @@ public class FederationService {
     // -- Change Tracking --
 
     private String generateRandomToken() {
-        var random = new SecureRandom();
-        var chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-        var sb = new StringBuilder();
-        for (int i = 0; i < 12; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
-        return sb.toString();
+        return RandomTokens.code(PAIRING_TOKEN_ALPHABET, 12);
     }
 
     /**

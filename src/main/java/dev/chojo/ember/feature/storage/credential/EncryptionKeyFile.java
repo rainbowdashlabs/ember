@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.credential;
 
+import dev.chojo.ember.util.RandomTokens;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,8 +18,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.Set;
 
 /**
@@ -82,9 +81,7 @@ public final class EncryptionKeyFile {
         Path directory = path.toAbsolutePath().getParent();
         Files.createDirectories(directory);
         restrict(directory, OWNER_ONLY_DIRECTORY);
-        byte[] key = new byte[KEY_BYTES];
-        new SecureRandom().nextBytes(key);
-        String encoded = Base64.getEncoder().encodeToString(key);
+        String encoded = RandomTokens.base64(KEY_BYTES);
         Files.writeString(path, encoded, StandardCharsets.US_ASCII, StandardOpenOption.CREATE_NEW);
         restrict(path, OWNER_ONLY_FILE);
         log.warn(

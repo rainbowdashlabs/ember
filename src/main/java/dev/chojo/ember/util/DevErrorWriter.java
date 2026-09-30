@@ -14,13 +14,10 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.HexFormat;
 
 public final class DevErrorWriter {
     private static final Logger log = LoggerFactory.getLogger(DevErrorWriter.class);
@@ -33,7 +30,7 @@ public final class DevErrorWriter {
         try {
             ensureDir();
             String traceKey = buildTraceKey(throwable);
-            String hash = sha256(traceKey);
+            String hash = Sha256.hexPrefix(traceKey, 16);
             String time = LocalTime.now(ZoneId.systemDefault()).format(TIME_FMT);
             Path file = ERROR_DIR.resolve(time + " - backend - " + hash + ".txt");
 
@@ -57,7 +54,7 @@ public final class DevErrorWriter {
         try {
             ensureDir();
             String traceKey = stripMessages(stack);
-            String hash = sha256(traceKey);
+            String hash = Sha256.hexPrefix(traceKey, 16);
             String time = LocalTime.now(ZoneId.systemDefault()).format(TIME_FMT);
             Path file = ERROR_DIR.resolve(time + " - frontend - " + hash + ".txt");
 
@@ -126,16 +123,6 @@ public final class DevErrorWriter {
             }
         }
         return sb.toString();
-    }
-
-    private static String sha256(String input) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-256");
-            var hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash).substring(0, 16);
-        } catch (NoSuchAlgorithmException e) {
-            return String.valueOf(input.hashCode());
-        }
     }
 
     private static void ensureDir() throws IOException {

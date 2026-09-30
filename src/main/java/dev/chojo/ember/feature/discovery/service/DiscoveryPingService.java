@@ -20,16 +20,15 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -52,7 +51,6 @@ import java.util.concurrent.TimeUnit;
 @Singleton
 public class DiscoveryPingService {
     private static final Logger log = LoggerFactory.getLogger(DiscoveryPingService.class);
-    private static final SecureRandom RANDOM = new SecureRandom();
     private static final Duration CALLBACK_WINDOW = Duration.ofSeconds(60);
     private static final Duration MAX_DRIFT = Duration.ofMinutes(5);
     private static final Duration NONCE_TTL = Duration.ofMinutes(30);
@@ -111,9 +109,7 @@ public class DiscoveryPingService {
     }
 
     private static String randomNonce() {
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return RandomTokens.urlSafe(32);
     }
 
     /**

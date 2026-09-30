@@ -32,15 +32,14 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -53,7 +52,6 @@ import java.util.function.BiFunction;
 @Singleton
 public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
      * How long the token handed out in place of a session lasts when a login has to do something
@@ -1435,9 +1433,7 @@ public class AuthService {
         if (local != null) return local;
         synchronized (this) {
             if (dummyPasswordHash == null) {
-                byte[] random = new byte[32];
-                RANDOM.nextBytes(random);
-                dummyPasswordHash = passwordHasher.hash(Base64.getEncoder().encodeToString(random));
+                dummyPasswordHash = passwordHasher.hash(RandomTokens.base64(32));
             }
             return dummyPasswordHash;
         }
@@ -1536,9 +1532,7 @@ public class AuthService {
      * @return the generated token string
      */
     private String generateToken() {
-        byte[] bytes = new byte[authConfig.tokenBytes()];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return RandomTokens.urlSafe(authConfig.tokenBytes());
     }
 
     /**

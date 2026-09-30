@@ -8,13 +8,9 @@ package dev.chojo.ember.feature.legal.service;
 import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.util.HtmlSanitizer;
+import dev.chojo.ember.util.Markdown;
+import dev.chojo.ember.util.Sha256;
 import dev.chojo.ember.util.TextDiff;
-import org.commonmark.Extension;
-import org.commonmark.ext.autolink.AutolinkExtension;
-import org.commonmark.ext.gfm.tables.TablesExtension;
-import org.commonmark.ext.heading.anchor.HeadingAnchorExtension;
-import org.commonmark.parser.Parser;
-import org.commonmark.renderer.html.HtmlRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,11 +19,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -58,8 +51,6 @@ public class LegalDocumentService {
     private static final String DEFAULT_PLACEHOLDER_FILE = "data/documents/placeholders.json";
     private static final Pattern ORDER_PREFIX = Pattern.compile("^_?(\\d+)-");
 
-    private final Parser parser;
-    private final HtmlRenderer renderer;
     private final BrowserStorageService browserStorage;
     private final PlaceholderService placeholders;
 
@@ -72,11 +63,6 @@ public class LegalDocumentService {
      *                        {@value #DEFAULT_PLACEHOLDER_FILE} when null or blank
      */
     public LegalDocumentService(String placeholderFile) {
-        List<Extension> extensions =
-                List.of(TablesExtension.create(), HeadingAnchorExtension.create(), AutolinkExtension.create());
-        this.parser = Parser.builder().extensions(extensions).build();
-        this.renderer =
-                HtmlRenderer.builder().extensions(extensions).sanitizeUrls(true).build();
         this.browserStorage = new BrowserStorageService();
         this.placeholders = new PlaceholderService(Path.of(
                 placeholderFile == null || placeholderFile.isBlank() ? DEFAULT_PLACEHOLDER_FILE : placeholderFile));
@@ -261,7 +247,7 @@ public class LegalDocumentService {
             }
         }
         var numbered = LegalNumbering.apply(markdown, styleFor(typeSlug), paragraphSign(locale));
-        String html = renderMarkdown(numbered.markdown());
+        String html = Markdown.toHtml(numbered.markdown(), HtmlSanitizer.Policy.STRICT);
         String version = hash(markdown);
         if (!numbered.unresolved().isEmpty()) {
             log.warn("Legal document {} refers to sections that do not exist: {}", baseDir, numbered.unresolved());
@@ -397,20 +383,7 @@ public class LegalDocumentService {
      * @return a 16-character hex string identifying the content version
      */
     String hash(String content) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(content.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash).substring(0, 16);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private String renderMarkdown(String markdown) {
-        if (markdown.isEmpty()) return "";
-        var document = parser.parse(markdown);
-        String html = renderer.render(document);
-        return HtmlSanitizer.sanitize(html, HtmlSanitizer.Policy.STRICT);
+        return Sha256.hexPrefix(content, 16);
     }
 
     /**

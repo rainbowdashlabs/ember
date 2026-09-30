@@ -14,6 +14,7 @@ import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.engine.GenericTableExporter;
 import dev.chojo.ember.tracking.engine.TableOrder;
+import dev.chojo.ember.util.RandomTokens;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -25,7 +26,6 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
@@ -55,7 +55,6 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class StationExportService {
 
     private static final Logger log = LoggerFactory.getLogger(StationExportService.class);
-    private static final SecureRandom RANDOM = new SecureRandom();
     private static final ObjectMapper TOKEN_MAPPER = JsonMapper.builder().build();
 
     private final GenericTableExporter engine;
@@ -136,9 +135,7 @@ public class StationExportService {
      */
     public String createTransferToken(int stationId) {
         requireTransferable(stationId);
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        String randomPart = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        String randomPart = RandomTokens.urlSafe(32);
         Instant expiresAt = Instant.now().plus(24, ChronoUnit.HOURS);
 
         query("INSERT INTO transfer_token(station_id, token, expires_at) VALUES(:station_id, :token, :expires_at);")

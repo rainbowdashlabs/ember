@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.HtmlSanitizer.Policy;
 import dev.chojo.ember.util.Markdown;
 import dev.chojo.ember.util.TextDiff;
 import io.javalin.http.BadRequestResponse;
@@ -136,7 +137,7 @@ public class KbContentService {
      * @return the rendered HTML
      */
     public String renderMarkdown(String markdown) {
-        return Markdown.toHtml(markdown);
+        return Markdown.toHtml(markdown, Policy.RICH);
     }
 
     /**

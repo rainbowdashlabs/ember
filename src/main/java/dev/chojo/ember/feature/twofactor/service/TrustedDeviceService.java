@@ -9,15 +9,14 @@ import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.twofactor.entity.TrustedDevice;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,7 +29,6 @@ import java.util.Optional;
 public class TrustedDeviceService {
     public static final String COOKIE_NAME = "ember_2fa_trust";
     private static final Logger log = LoggerFactory.getLogger(TrustedDeviceService.class);
-    private static final SecureRandom RANDOM = new SecureRandom();
     private static final int TOKEN_BYTES = 32;
 
     private final TwoFactorRepository repository;
@@ -45,9 +43,7 @@ public class TrustedDeviceService {
     }
 
     private static String newToken() {
-        byte[] bytes = new byte[TOKEN_BYTES];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return RandomTokens.urlSafe(TOKEN_BYTES);
     }
 
     /**

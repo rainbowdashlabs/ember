@@ -36,12 +36,10 @@ import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.system.service.SearchIndexRebuildService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
+import dev.chojo.ember.util.RandomTokens;
 import dev.chojo.ember.util.service.CloudflareRangesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.security.SecureRandom;
-import java.util.Base64;
 
 /**
  * Application entry point that initializes the Guice injector, runs database migrations,
@@ -147,10 +145,9 @@ public class Bootstrapper {
      */
     private static String freeLoginName(AccountRepository accountRepository) {
         if (!accountRepository.usernameTaken(ADMIN_LOGIN_NAME, null)) return ADMIN_LOGIN_NAME;
-        var random = new SecureRandom();
         String name;
         do {
-            name = ADMIN_LOGIN_NAME + "-" + Integer.toString(random.nextInt(0x10000), 16);
+            name = ADMIN_LOGIN_NAME + "-" + Integer.toString(RandomTokens.number(0x10000), 16);
         } while (accountRepository.usernameTaken(name, null));
         return name;
     }
@@ -159,9 +156,7 @@ public class Bootstrapper {
      * Generates a cryptographically secure random password encoded as a URL-safe Base64 string.
      */
     private static String generatePassword() {
-        byte[] bytes = new byte[24];
-        new SecureRandom().nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return RandomTokens.urlSafe(24);
     }
 
     void main() {
