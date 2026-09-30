@@ -306,6 +306,9 @@ import dev.chojo.ember.feature.twofactor.service.WebAuthnCredentialStore;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnRelyingPartyFactory;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListFeedDetails;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.ShutdownFlush;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -600,6 +603,9 @@ public class EmberModule extends AbstractModule {
         feedDetailsBinder.addBinding().to(FormFeedDetails.class);
         feedDetailsBinder.addBinding().to(ProcedureFeedDetails.class);
 
+        bindScheduledTasks(Multibinder.newSetBinder(binder(), ScheduledTask.class));
+        bindShutdownFlushes(Multibinder.newSetBinder(binder(), ShutdownFlush.class));
+
         // Eager singletons - started on boot
         bind(EventThresholdChecker.class).asEagerSingleton();
         bind(EventReminderChecker.class).asEagerSingleton();
@@ -618,6 +624,16 @@ public class EmberModule extends AbstractModule {
         bind(DiscoveryStationRefreshScheduler.class).asEagerSingleton();
         bind(DiscoveryMaintenanceScheduler.class).asEagerSingleton();
     }
+
+    /**
+     * The periodic background work, started by the {@link TaskScheduler} once the instance has booted.
+     */
+    private void bindScheduledTasks(Multibinder<ScheduledTask> tasks) {}
+
+    /**
+     * The buffers the shutdown writes to the database before the connection pool closes.
+     */
+    private void bindShutdownFlushes(Multibinder<ShutdownFlush> flushes) {}
 
     @Provides
     @Singleton

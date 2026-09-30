@@ -6,6 +6,8 @@
 package dev.chojo.ember;
 
 import com.google.inject.Guice;
+import com.google.inject.Key;
+import com.google.inject.TypeLiteral;
 import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.auth.InstanceUserType;
@@ -36,10 +38,16 @@ import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.system.service.SearchIndexRebuildService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
+import dev.chojo.ember.lifecycle.Lifecycle;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.RandomTokens;
 import dev.chojo.ember.util.service.CloudflareRangesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Set;
+
 
 /**
  * Application entry point that initializes the Guice injector, runs database migrations,
@@ -50,6 +58,7 @@ public class Bootstrapper {
     private static final String ADMIN_LOGIN_NAME = "admin";
     private static final String ADMIN_FIRST_NAME = "Admin";
     private static final String ADMIN_LAST_NAME = "Admin";
+    private static final Key<Set<ScheduledTask>> SCHEDULED_TASKS = Key.get(new TypeLiteral<>() {});
 
     /**
      * Creates the account that administers a brand new instance and a default station, unless
@@ -225,5 +234,8 @@ public class Bootstrapper {
 
         var apiServer = injector.getInstance(ApiServer.class);
         apiServer.start();
+
+        injector.getInstance(Lifecycle.class).installShutdownHook();
+        injector.getInstance(TaskScheduler.class).start(injector.getInstance(SCHEDULED_TASKS));
     }
 }

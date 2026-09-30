@@ -69,6 +69,7 @@ import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
+import org.eclipse.jetty.server.handler.GracefulHandler;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,6 +84,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -103,6 +105,10 @@ import static java.util.Objects.requireNonNullElse;
 @Singleton
 public class ApiServer {
     public static final String ATTR_SESSION = "session";
+
+    /** How long requests that are already running may take to finish once the server stops. */
+    public static final Duration STOP_TIMEOUT = Duration.ofSeconds(10);
+
     private static final Logger log = LoggerFactory.getLogger(ApiServer.class);
     private static final String API_PREFIX = "/api/v1";
     // Note on the transfer endpoints: /station/transfer/create-token and
@@ -172,6 +178,7 @@ public class ApiServer {
     private final StepUpGuard stepUpGuard;
     private final Network network;
     private final GlobalRateLimiter globalRateLimiter;
+    private volatile Javalin app;
 
     @Inject
     public ApiServer(
@@ -418,7 +425,7 @@ public class ApiServer {
         if (demoConfig.dev()) {
             DevErrorWriter.clearOnStartup();
         }
-        create().start(apiConfig.host(), apiConfig.port());
+        app = create().start(apiConfig.host(), apiConfig.port());
         log.info("API server started on {}:{}", apiConfig.host(), apiConfig.port());
     }
 
@@ -435,6 +442,10 @@ public class ApiServer {
     public Javalin create() {
         return Javalin.create(config -> {
             config.http.defaultContentType = "application/json";
+            config.jetty.modifyServer(server -> {
+                server.setStopTimeout(STOP_TIMEOUT.toMillis());
+                server.insertHandler(new GracefulHandler());
+            });
             config.jsonMapper(jacksonMapper());
             configureCompression(config);
             ClientIp.installOn(config.contextResolver, network);
@@ -534,6 +545,16 @@ public class ApiServer {
                 route.register(config.routes, API_PREFIX);
             }
         });
+    }
+
+    /**
+     * Stops accepting connections and lets the requests already running finish within
+     * {@link #STOP_TIMEOUT}. Does nothing when the server was never started.
+     */
+    public void stop() {
+        var running = app;
+        if (running == null) return;
+        running.stop();
     }
 
     /**
