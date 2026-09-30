@@ -15,6 +15,7 @@
 - **Reorder questions and pages by dragging.** Questions are dragged within a page and between pages, and pages as a whole. Changed questions are no longer lost when the editor is left before saving: leaving asks first, and reopening offers them back.
 - **Errors point at the question.** When answers cannot be sent, the form opens the page with the problem and marks each question it is about.
 - **Cancelled dates are marked everywhere.** The list of upcoming appointments, the month calendar and the personal calendar feed show a cancelled date crossed out and marked as cancelled instead of as taking place. Registering for such a date is no longer offered.
+- **Pictures take less space and load faster.** The smaller sizes of avatars, logos, wiki pictures and quiz and lost and found pictures are stored as WebP, and no size is kept that is as large as the picture itself. Pictures uploaded before stay as they are.
 
 ### Security
 
@@ -44,6 +45,8 @@
 - **Cancelling one date cancelled the whole series.** Cancelling a repeating appointment, by hand or automatically for too few registrations, called off every date and told everybody registered for any of them. Only the date concerned is cancelled now, and the automatic check counts the registrations of that date alone.
 - **The public calendar showed cancelled appointments as taking place.** The station's public page and its public calendar feed listed cancelled appointments as if nothing had changed. They now mark them as cancelled.
 - **Statistics dipped after every restart.** Each restart lost the page visits of up to the last hour, the latest traffic counts, request timings and log lines. They are now saved before the server stops, as long as it is given its time to shut down.
+- **WebP pictures could not be uploaded everywhere.** Uploading a WebP picture as a station logo or as a wiki folder icon or image failed, and in some cases removed the picture that was there before. WebP pictures are now taken like any other.
+- **Animated logos stood still.** An animated GIF uploaded as a station logo, and the tile of a GIF in the wiki, showed only its first frame. They now keep moving.
 
 ## v26.19.5
 

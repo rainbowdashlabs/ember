@@ -81,6 +81,15 @@ public final class MediaLayoutFixtures {
         return bytesOf("media/fixtures/" + name);
     }
 
+    /**
+     * A PNG of 256 by 256 pixels to upload: the original of the fixture's avatar.
+     *
+     * @return the picture's bytes
+     */
+    public static byte[] samplePng() {
+        return stored("account/%s/images/avatars/%s/original.png".formatted(ACCOUNT_UID, ACCOUNT_UID));
+    }
+
     private static byte[] bytesOf(String resource) {
         try (InputStream in = MediaLayoutFixtures.class.getClassLoader().getResourceAsStream(resource)) {
             if (in == null) throw new IllegalArgumentException("No fixture " + resource);

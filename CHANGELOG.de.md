@@ -15,6 +15,7 @@
 - **Fragen und Seiten per Ziehen sortieren.** Fragen werden innerhalb einer Seite und zwischen Seiten gezogen, Seiten als Ganzes. Geänderte Fragen gehen nicht mehr verloren, wenn der Editor vor dem Speichern verlassen wird: Ember fragt vorher nach und bietet sie beim nächsten Öffnen wieder an.
 - **Fehler zeigen auf die Frage.** Lassen sich Antworten nicht absenden, öffnet das Formular die Seite mit dem Problem und markiert jede betroffene Frage.
 - **Abgesagte Termine sind überall gekennzeichnet.** Die Liste der kommenden Termine, der Monatskalender und der persönliche Kalender-Feed zeigen einen abgesagten Termin durchgestrichen und als abgesagt statt als stattfindend. Eine Anmeldung zu einem solchen Termin wird nicht mehr angeboten.
+- **Bilder brauchen weniger Platz und laden schneller.** Die kleineren Größen von Profilbildern, Logos, Wiki-Bildern sowie Bildern in Quiz und Fundsachen werden als WebP gespeichert, und keine Größe wird mehr abgelegt, die so groß ist wie das Bild selbst. Bereits hochgeladene Bilder bleiben, wie sie sind.
 
 ### Sicherheit
 
@@ -44,6 +45,8 @@
 - **Das Absagen eines Termins sagte die ganze Serie ab.** Wurde ein wiederkehrender Termin abgesagt, von Hand oder automatisch wegen zu weniger Anmeldungen, fielen alle Termine aus, und alle, die für irgendeinen davon angemeldet waren, wurden benachrichtigt. Jetzt fällt nur der betroffene Termin aus, und die automatische Prüfung zählt allein die Anmeldungen dieses Termins.
 - **Der öffentliche Kalender zeigte abgesagte Termine als stattfindend.** Die öffentliche Seite der Wache und ihr öffentlicher Kalender-Feed führten abgesagte Termine auf, als hätte sich nichts geändert. Jetzt sind sie als abgesagt gekennzeichnet.
 - **Statistiken brachen nach jedem Neustart ein.** Bei jedem Neustart gingen die Seitenaufrufe bis zur letzten Stunde, die jüngsten Zahlen zum Datenverkehr, Antwortzeiten und Protokollzeilen verloren. Sie werden jetzt gespeichert, bevor der Server anhält, sofern ihm die Zeit zum Herunterfahren gelassen wird.
+- **WebP-Bilder ließen sich nicht überall hochladen.** Ein WebP-Bild als Logo einer Wache oder als Ordnersymbol oder Bild im Wiki hochzuladen schlug fehl und entfernte in manchen Fällen das Bild, das vorher da war. WebP-Bilder werden jetzt wie alle anderen angenommen.
+- **Animierte Logos standen still.** Ein animiertes GIF als Logo einer Wache und die Kachel eines GIFs im Wiki zeigten nur das erste Bild. Sie bewegen sich jetzt.
 
 ## v26.19.5
 
