@@ -85,6 +85,7 @@ public class EventRoutes implements Routes {
     private final EventRegistrationFieldService registrationFieldService;
     private final EventFieldRegistrationService fieldRegistrationService;
     private final OccurrenceCalendar occurrenceCalendar;
+    private final EventVisibility visibility;
 
     @Inject
     public EventRoutes(
@@ -97,8 +98,10 @@ public class EventRoutes implements Routes {
             EventExportService eventExportService,
             EventRegistrationFieldService registrationFieldService,
             EventFieldRegistrationService fieldRegistrationService,
-            OccurrenceCalendar occurrenceCalendar) {
+            OccurrenceCalendar occurrenceCalendar,
+            EventVisibility visibility) {
         this.occurrenceCalendar = occurrenceCalendar;
+        this.visibility = visibility;
         this.crudService = crudService;
         this.fieldRegistrationService = fieldRegistrationService;
         this.occurrenceService = occurrenceService;
@@ -113,7 +116,12 @@ public class EventRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/events", this::list, StationPermission.USER);
-        routes.get(prefix + "/events/search", this::searchPicker, StationPermission.PAGE_EDIT);
+        routes.get(
+                prefix + "/events/search",
+                this::searchPicker,
+                StationPermission.PAGE_EDIT,
+                StationPermission.NEWS_EDIT,
+                StationPermission.KNOWLEDGE_EDIT);
         routes.get(prefix + "/events/upcoming", this::listUpcoming, StationPermission.USER);
         routes.get(prefix + "/events/past", this::listPast, StationPermission.USER);
         routes.get(prefix + "/events/paged", this::listPaged, StationPermission.USER);
@@ -173,13 +181,33 @@ public class EventRoutes implements Routes {
         return new CategoryFilter(categoryId, requiresRegistration);
     }
 
+    /**
+     * The event picker of the content blocks.
+     *
+     * <p>A station page is read by anybody, so its blocks are offered public events only. A news
+     * entry is written inside the station and may announce an event the station keeps to itself,
+     * so a news author asking for {@code scope=VISIBLE} is offered every event they may see, which
+     * for somebody who edits events is every event of the station. The scope is only honoured for
+     * that right: a page or knowledge-base editor asking for it still gets public events.
+     */
     private void searchPicker(Context ctx) {
         UserSession session = UserSession.from(ctx);
         String q = ctx.queryParam("q");
         var mode = parsePickerMode(ctx.queryParam("mode"));
         int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
         int limit = Math.clamp(requested, 1, 20);
-        ctx.json(crudService.searchEventPicker(session.stationId(), q, mode, limit));
+        boolean visibleScope = "VISIBLE".equalsIgnoreCase(ctx.queryParam("scope"))
+                && session.hasPermission(StationPermission.NEWS_EDIT)
+                && session.member() != null;
+        if (!visibleScope) {
+            ctx.json(crudService.searchEventPicker(session.stationId(), q, mode, limit));
+        } else if (session.hasPermission(StationPermission.EVENT_EDIT)
+                || session.hasPermission(StationPermission.EVENT_MANAGER)) {
+            ctx.json(crudService.searchStationEventPicker(session.stationId(), q, mode, limit));
+        } else {
+            ctx.json(crudService.searchVisibleEventPicker(
+                    session.stationId(), session.member().id(), q, mode, limit));
+        }
     }
 
     /**
@@ -405,7 +433,7 @@ public class EventRoutes implements Routes {
     private void get(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        ctx.json(requireOwnedEvent(crudService, id, session));
+        ctx.json(visibility.requireVisibleEvent(session, id));
     }
 
     /**
@@ -430,7 +458,7 @@ public class EventRoutes implements Routes {
     private void getNextDate(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var event = requireOwnedEvent(crudService, id, session);
+        var event = visibility.requireVisibleEvent(session, id);
         ctx.json(new NextDate(occurrenceCalendar.dateInView(event).orElse(null)));
     }
 
@@ -573,7 +601,7 @@ public class EventRoutes implements Routes {
     private void getRestrictions(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(crudService, id, session);
+        visibility.requireVisibleEvent(session, id);
         ctx.json(audiencesOf(id));
     }
 
@@ -638,7 +666,7 @@ public class EventRoutes implements Routes {
     private void getReminders(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(crudService, id, session);
+        visibility.requireVisibleEvent(session, id);
         ctx.json(reminderService.findDays(id));
     }
 

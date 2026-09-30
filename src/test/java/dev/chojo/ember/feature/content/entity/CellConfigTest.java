@@ -47,6 +47,56 @@ class CellConfigTest {
                 CellConfig.parse(CellContentType.VIDEO, node("{\"autoplay\":\"not a flag\"}")));
     }
 
+    /** The event blocks keep what their editor writes, so a saved block still names its event. */
+    @Test
+    void theEventBlocksKeepTheEventTheyName() {
+        var featured = assertInstanceOf(
+                CellConfig.FeaturedEventConfig.class,
+                CellConfig.parse(
+                        CellContentType.FEATURED_EVENT,
+                        node("{\"eventUid\":\"7d7c1d5e-4e3a-4f9b-9d0e-2a4f6c1b8e11\",\"date\":\"2027-07-01\","
+                                + "\"descriptionOverride\":\"Komm vorbei\"}")));
+        assertEquals("7d7c1d5e-4e3a-4f9b-9d0e-2a4f6c1b8e11", featured.eventUid());
+        assertEquals("2027-07-01", featured.date());
+        assertEquals("Komm vorbei", featured.descriptionOverride());
+
+        var upcoming = assertInstanceOf(
+                CellConfig.UpcomingEventsConfig.class,
+                CellConfig.parse(
+                        CellContentType.UPCOMING_EVENTS,
+                        node("{\"categoryIds\":[3,4],\"limit\":8,\"includeFederated\":false}")));
+        assertEquals(java.util.List.of(3, 4), upcoming.categoryIds());
+        assertEquals(8, upcoming.limit());
+        assertEquals(false, upcoming.includeFederated());
+
+        var recap = assertInstanceOf(
+                CellConfig.PastEventRecapConfig.class,
+                CellConfig.parse(
+                        CellContentType.PAST_EVENT_RECAP,
+                        node("{\"eventUid\":\"e-2\",\"recapDescription\":\"Schön war's\"}")));
+        assertEquals("e-2", recap.eventUid());
+        assertEquals("Schön war's", recap.recapDescription());
+    }
+
+    /** What an author writes into an event block names an event only when it is well formed. */
+    @Test
+    void anEventBlockDropsWhatIsNotAnEventOrADay() {
+        var malformed = assertInstanceOf(
+                CellConfig.FeaturedEventConfig.class,
+                CellConfig.parse(
+                        CellContentType.FEATURED_EVENT,
+                        node("{\"eventUid\":\"javascript:alert(1)\",\"date\":\"../../x\"}")));
+        assertEquals(null, malformed.eventUid());
+        assertEquals("../../x", malformed.date(), "without an event the date is the old hand-written text");
+
+        var badDay = assertInstanceOf(
+                CellConfig.FeaturedEventConfig.class,
+                CellConfig.parse(
+                        CellContentType.FEATURED_EVENT,
+                        node("{\"eventUid\":\"7d7c1d5e-4e3a-4f9b-9d0e-2a4f6c1b8e11\",\"date\":\"../../x\"}")));
+        assertEquals(null, badDay.date());
+    }
+
     /** Reading a cell back out of the database still starts from the text the column holds. */
     @Test
     void stillReadsTheTextTheColumnHolds() {

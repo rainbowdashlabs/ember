@@ -48,13 +48,18 @@ public class EventCancellationRoutes implements Routes {
     private final EventCrudService crudService;
     private final EventCancellationService cancellationService;
     private final GuardianPolicy guardianPolicy;
+    private final EventVisibility visibility;
 
     @Inject
     public EventCancellationRoutes(
-            EventCrudService crudService, EventCancellationService cancellationService, GuardianPolicy guardianPolicy) {
+            EventCrudService crudService,
+            EventCancellationService cancellationService,
+            GuardianPolicy guardianPolicy,
+            EventVisibility visibility) {
         this.crudService = crudService;
         this.cancellationService = cancellationService;
         this.guardianPolicy = guardianPolicy;
+        this.visibility = visibility;
     }
 
     @Override
@@ -149,7 +154,7 @@ public class EventCancellationRoutes implements Routes {
             })
     private void listCancelledDates(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var event = requireOwnedEvent(crudService, pathInt(ctx, "id"), session);
+        var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
         ctx.json(cancellationService.findCancelledDates(event.id()));
     }
 

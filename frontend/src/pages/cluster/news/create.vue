@@ -17,8 +17,6 @@ definePageMeta({
 })
 
 provideNewsRoutes(CLUSTER_NEWS_ROUTES)
-// An entry written from an appointment links back to it, and the association's calendar lives at
-// its own addresses. Without this the link would point into the station panel.
 provideEventRoutes(CLUSTER_EVENT_ROUTES)
 
 const {homeStationId} = useClusterHomeStation()

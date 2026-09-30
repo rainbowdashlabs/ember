@@ -105,7 +105,8 @@ class RegistrationAnswerAuthorTest {
                 mock(MemberTableService.class),
                 mock(MemberTableRenderer.class),
                 mock(StationRepository.class),
-                mock(OccurrenceCalendar.class));
+                mock(OccurrenceCalendar.class),
+                mock(EventVisibility.class));
     }
 
     /** Runs the check the way the route does, unwrapping what reflection wraps a refusal in. */

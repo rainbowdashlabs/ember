@@ -2054,8 +2054,11 @@ public enum Refusal {
     /** A file that was already off the appointment when its removal was asked for. */
     EVENT_FILE_NOT_REMOVED(Area.EVENTS, 81, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
 
-    /** An appointment this reader is not among the people it was meant for. */
-    EVENT_NOT_YOURS_TO_SEE(Area.EVENTS, 82, HttpStatus.FORBIDDEN, "This appointment is not yours to see"),
+    /**
+     * An appointment this reader is not among the people it was meant for. Answered exactly like one
+     * that does not exist, so its id cannot be used to learn that a hidden appointment is there.
+     */
+    EVENT_NOT_YOURS_TO_SEE(Area.EVENTS, 82, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
 
     /** A file being written or taken off that is gone, or hangs on another appointment. */
     EVENT_FILE_NOT_HERE_ON_WRITE(Area.EVENTS, 83, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
@@ -2097,19 +2100,14 @@ public enum Refusal {
             HttpStatus.INTERNAL_SERVER_ERROR,
             "Your sign-in could not be matched to a station, so nothing was done. Sign in again"),
 
-    /** A registration or a decline for a day a break of the station takes out of the series. */
-    REGISTRATION_DAY_IN_A_BREAK(
-            Area.EVENTS,
-            92,
-            HttpStatus.BAD_REQUEST,
-            "The station takes a break on that day, so the appointment does not take place"),
-
     /**
-     * A registration or a decline, local or from a partner station, for a date that was called off,
-     * on its own or with the whole series.
+     * An event block naming an appointment that is gone, belongs to another station or is hidden
+     * from the reader. All three answer alike, so a block cannot tell a hidden one from a missing one.
      */
-    REGISTRATION_DAY_CANCELLED(
-            Area.EVENTS, 93, HttpStatus.BAD_REQUEST, "That date was cancelled, so it takes no registrations"),
+    EVENT_BLOCK_APPOINTMENT_NOT_HERE(Area.EVENTS, 92, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
+
+    /** An appointment an event block could not name, because it has no public id to be named by. */
+    EVENT_BLOCK_REFERENCE_NOT_HERE(Area.EVENTS, 93, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
 
     /** A whole series called off for an appointment that is not a series and is called off by its date. */
     ONE_TIME_EVENT_CANCELLED_AS_SERIES(
@@ -2159,6 +2157,20 @@ public enum Refusal {
             103,
             HttpStatus.BAD_REQUEST,
             "That date of the appointment was cancelled, so no attendance is taken for it"),
+
+    /** A registration or a decline for a day a break of the station takes out of the series. */
+    REGISTRATION_DAY_IN_A_BREAK(
+            Area.EVENTS,
+            104,
+            HttpStatus.BAD_REQUEST,
+            "The station takes a break on that day, so the appointment does not take place"),
+
+    /**
+     * A registration or a decline, local or from a partner station, for a date that was called off,
+     * on its own or with the whole series.
+     */
+    REGISTRATION_DAY_CANCELLED(
+            Area.EVENTS, 105, HttpStatus.BAD_REQUEST, "That date was cancelled, so it takes no registrations"),
 
     /** A list of comments asked for on a day that is not a date. */
     COMMENT_DAY_NOT_A_DATE(Area.COMMENTS, 1, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),

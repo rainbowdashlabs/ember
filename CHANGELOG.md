@@ -18,10 +18,13 @@
 - **SFTP and SMB storage serve several requests at once.** Pages with many pictures no longer wait for one file after another, and stations on the same cluster storage share their connections; in a test, 32 reads beside a large upload took half a second instead of four. The limits and timeouts are described in the help center's storage page.
 - **A clear message when storage cannot be reached.** When the storage of a station does not answer, readers are told that it cannot be reached right now, with `503 Service Unavailable`, instead of seeing a general error.
 - **Pictures take less space and load faster.** The smaller sizes of avatars, logos, wiki pictures and quiz and lost and found pictures are stored as WebP, and no size is kept that is as large as the picture itself. Pictures uploaded before stay as they are.
+- **Announcing an appointment builds a ready entry.** "Announce as news" now opens the entry with an event block for the chosen day, the appointment's description, and a short text on what the block does not show, such as the registration deadline, the number of places and whether sign-ups are confirmed. Every part can still be changed before saving.
+- **Event blocks in news entries.** A news entry can show an appointment as an event block, including appointments the station keeps to itself, and pick which day of a repeating one it is about. Readers who may not see the appointment, such as partner stations or the public blog, see a short note instead.
 
 ### Security
 
 - **Entries meant for named people only were visible to the whole station.** A form, appointment, blog entry or quiz restricted to a list of named members was shown to every member of the station. It is now shown only to the people named, and to those who manage it.
+- **Hidden appointments could be read by their address.** A member could open the details, fields, registrations, comments and equipment of an appointment hidden from them by asking for it directly by its number, and the registration counts included hidden appointments. Such requests are now answered as though the appointment did not exist, unless the member may see it or edit appointments.
 - **Notices about restricted entries reached people who could not open them.** In some cases the notice about a new form, appointment or blog entry went to members outside its audience and showed its title. It now reaches only the members who may open the entry.
 
 ### Changes
@@ -41,6 +44,8 @@
 - **Members who withdrew could not be added again.** After somebody withdrew or declined, the list for adding members to an appointment no longer offered them, so not even its managers could put them back on. They are offered again.
 - **Members who withdrew could not sign up again everywhere.** In some cases a member who had given their place back was still shown as withdrawn in the list of upcoming appointments and on the appointment's page, with no way to sign up again there. They can now sign up again from both.
 - **Registrations of a repeating appointment mixed up its dates.** On an appointment that repeats, the registrations tab could show a member's answer, the waiting and confirmed lists and their counts from another date than the one open, and signing off could give up the place on that other date. The tab now shows and acts on the date that is open.
+- **Event links on pages led nowhere.** The button of a featured event, upcoming events or recap block on a station page led to a page that does not exist. It now opens the station's public calendar.
+- **Event blocks on pages forgot their appointment.** Saving a station page could drop the appointment chosen in a featured event, upcoming events or recap block, which then showed as no longer available. The blocks now keep what was chosen.
 - **The profile field list was cramped on medium screens.** On screens between phone and wide desktop, the list of profile fields in the member settings squeezed its names until the rows overlapped. It now switches to tiles as soon as the table no longer fits.
 - **Signing up was offered where it was not allowed.** A member could be offered to sign up for an appointment open only to part of the station, and was only told it was not open to them after pressing it. The sign-up is now offered only to those who may register, and everybody else sees a short note saying why.
 - **Every repeating appointment was called weekly.** The page of a monthly, quarterly or yearly appointment labelled it as weekly. It now names how often it repeats, the same way the list of appointments does.
@@ -54,6 +59,7 @@
 - **Deleting a file on SFTP storage could fail.** In some cases removing a file from SFTP storage that was already gone was answered with an error. It now succeeds quietly, as it does on every other storage.
 - **Animated logos stood still.** An animated GIF uploaded as a station logo, and the tile of a GIF in the wiki, showed only its first frame. They now keep moving.
 - **The page at `/pitch` opened in the desktop layout on phones.** In some cases the attendance buttons of its example stayed at desktop width on a phone until the screen was turned or resized. The page now switches to the phone layout as soon as it has loaded.
+- **One unreadable message could stop a mailbox import.** In some cases a mailbox failed to import on every visit because of a single message the mail server could not hand over, such as one another mail program had just deleted, until the mailbox was suspended. Such a message is now skipped and the rest of the mailbox is imported.
 
 ## v26.19.5
 

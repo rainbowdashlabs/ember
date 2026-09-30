@@ -61,8 +61,8 @@ class RouteConventionsTest {
      * cluster route answers for, or the transfer token that names the station it was issued for.
      */
     private static final Pattern STATION_EVIDENCE =
-            Pattern.compile("stationId|requireOwned|requireSameStation|requireShared|requirePartner|ForPartner|isShared"
-                    + "|resolve\\w*Station|accountId|requireManaged|clusterId|validateToken");
+            Pattern.compile("stationId|requireOwned|requireVisibleEvent|requireSameStation|requireShared|requirePartner"
+                    + "|ForPartner|isShared|resolve\\w*Station|accountId|requireManaged|clusterId|validateToken");
 
     /** A path parameter that names a station, which makes the station itself the row addressed. */
     private static final Pattern STATION_PARAMETER = Pattern.compile("\\{station(Id|Uid)?}", Pattern.CASE_INSENSITIVE);
@@ -141,7 +141,8 @@ class RouteConventionsTest {
      * missing control repeated nine times rather than nine mistakes.
      *
      * <p>Saying it can be done in any of the ways the codebase already uses: reading
-     * {@code session.stationId()}, calling a {@code RouteSupport.requireOwned*} helper, going
+     * {@code session.stationId()}, calling a {@code RouteSupport.requireOwned*} helper or
+     * {@code EventVisibility.requireVisibleEvent}, which checks the station before the audience, going
      * through a {@code *Guards} class, or resolving the federation partner whose station scopes a
      * {@code /remote} lookup. A handler that does none of them, directly or through a method of its
      * own class it calls, is either a hole or an endpoint that genuinely belongs to no station, and

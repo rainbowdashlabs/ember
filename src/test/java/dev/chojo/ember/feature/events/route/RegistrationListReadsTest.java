@@ -159,7 +159,8 @@ class RegistrationListReadsTest {
                 mock(MemberTableService.class),
                 mock(MemberTableRenderer.class),
                 mock(StationRepository.class),
-                mock(OccurrenceCalendar.class));
+                mock(OccurrenceCalendar.class),
+                mock(EventVisibility.class));
     }
 
     private void placed(List<Integer> memberIds) {

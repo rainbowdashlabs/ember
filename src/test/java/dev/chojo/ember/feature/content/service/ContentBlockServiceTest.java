@@ -83,6 +83,33 @@ class ContentBlockServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void anArticleMayAnnounceAnEventWithABlock() {
+        var container = blocks.create(station.id());
+        try {
+            var announced = CellConfig.parse(
+                    CellContentType.FEATURED_EVENT,
+                    CellConfig.MAPPER.readTree(
+                            "{\"eventUid\":\"7d7c1d5e-4e3a-4f9b-9d0e-2a4f6c1b8e11\",\"date\":\"2027-07-01\"}"));
+            blocks.save(
+                    container.id(),
+                    List.of(row(CellContentType.FEATURED_EVENT, "", announced)),
+                    ContentBlockService.Scope.ARTICLE);
+
+            var stored = assertInstanceOf(
+                    CellConfig.FeaturedEventConfig.class,
+                    blocks.loadRows(container.id())
+                            .getFirst()
+                            .cells()
+                            .getFirst()
+                            .config());
+            assertEquals("7d7c1d5e-4e3a-4f9b-9d0e-2a4f6c1b8e11", stored.eventUid());
+            assertEquals("2027-07-01", stored.date());
+        } finally {
+            blocks.delete(container.id());
+        }
+    }
+
+    @Test
     void theAllowlistRecursesIntoNestedRows() {
         var container = blocks.create(station.id());
         try {

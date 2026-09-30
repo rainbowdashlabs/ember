@@ -8,9 +8,12 @@ package dev.chojo.ember.feature.mailimport.service;
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
 import dev.chojo.ember.feature.mailimport.entity.MailSecurity;
+import jakarta.mail.FolderClosedException;
 import jakarta.mail.Message;
+import jakarta.mail.MessageRemovedException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
+import jakarta.mail.StoreClosedException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
@@ -21,8 +24,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 
@@ -32,6 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Reading a mailbox, against a server that really speaks IMAP.
@@ -213,6 +222,100 @@ class MailboxReaderTest {
             reader.open("INBOX", false);
             assertEquals(1, reader.since(Instant.now().minusSeconds(600), 1).size());
         }
+    }
+
+    /**
+     * Another client removing a message while this one is reading, which is ordinary on a shared
+     * mailbox. The server then answers for the removed message without anything in it. Reading it fails,
+     * and it fails as that one message rather than as a lost connection, which is what lets a cycle skip
+     * it and keep what it read before.
+     *
+     * <p>The last message is the one removed because the test server renumbers the others at once, where
+     * a real one waits until it has told this session. Removing one from the middle would have the test
+     * server hand the next message over under the removed one's number.
+     */
+    @Test
+    void aMessageAnotherClientExpungedAfterTheSearchFailsAloneAndTheRestAreRead() throws Exception {
+        deliver("eins.pdf", pdf(), "application/pdf");
+        deliver("zwei.pdf", pdf(), "application/pdf");
+        deliver("drei.pdf", pdf(), "application/pdf");
+
+        try (var reader = reader()) {
+            reader.open("INBOX", false);
+            var found = reader.since(Instant.now().minusSeconds(600), 10);
+            assertEquals(3, found.size());
+
+            AnotherClient.expunge(greenMail, USER, PASSWORD, 3);
+            var names = new ArrayList<String>();
+            names.add(firstFileName(reader, found.get(0)));
+            names.add(firstFileName(reader, found.get(1)));
+            var failure = assertThrows(MessagingException.class, () -> firstFileName(reader, found.get(2)));
+
+            assertFalse(MailboxReader.lostTheConnection(failure), "the connection is still there");
+            assertEquals(List.of("eins.pdf", "zwei.pdf"), names);
+        }
+    }
+
+    private static String firstFileName(MailboxReader reader, Message message) throws Exception {
+        return reader.read(message, false, PDF_ONLY, 1_000_000)
+                .attachments()
+                .getFirst()
+                .fileName();
+    }
+
+    /**
+     * What a server answers for a message it holds no envelope for, whether another client expunged it
+     * between the search and the fetch or the server cannot build one for a damaged message. The message
+     * is left out and the others are kept, rather than one message failing every cycle until the mailbox
+     * is suspended.
+     */
+    @Test
+    void aMessageWhoseEnvelopeCannotBeLoadedIsLeftOutAndTheOthersAreKept() throws Exception {
+        var before = message(1, Instant.now());
+        var unreadable = unreadable(2, new MessagingException("Failed to load IMAP envelope"));
+        var expunged = unreadable(3, new MessageRemovedException());
+        var after = message(4, Instant.now());
+
+        var kept = MailboxReader.arrivedSince(
+                new Message[] {before, unreadable, expunged, after},
+                Instant.now().minusSeconds(600),
+                10);
+
+        assertEquals(List.of(before, after), kept);
+    }
+
+    /** A lost connection is not one message: everything after it fails the same way. */
+    @Test
+    void aLostConnectionWhileLookingAtTheDatesIsThrown() throws Exception {
+        var lost = unreadable(1, new FolderClosedException(null, "gone"));
+
+        assertThrows(
+                FolderClosedException.class,
+                () -> MailboxReader.arrivedSince(
+                        new Message[] {lost}, Instant.now().minusSeconds(600), 10));
+    }
+
+    @Test
+    void aClosedFolderAStoreOrABrokenSocketAnywhereInTheCauseIsALostConnection() {
+        assertTrue(MailboxReader.lostTheConnection(new IOException(new FolderClosedException(null, "gone"))));
+        assertTrue(MailboxReader.lostTheConnection(new StoreClosedException(null, "gone")));
+        assertTrue(MailboxReader.lostTheConnection(new MessagingException("read", new SocketException("reset"))));
+        assertFalse(MailboxReader.lostTheConnection(new MessagingException("Failed to load IMAP envelope")));
+        assertFalse(MailboxReader.lostTheConnection(new MessageRemovedException()));
+    }
+
+    private static Message message(int number, Instant received) throws MessagingException {
+        var message = mock(Message.class);
+        when(message.getMessageNumber()).thenReturn(number);
+        when(message.getReceivedDate()).thenReturn(Date.from(received));
+        return message;
+    }
+
+    private static Message unreadable(int number, MessagingException failure) throws MessagingException {
+        var message = mock(Message.class);
+        when(message.getMessageNumber()).thenReturn(number);
+        when(message.getReceivedDate()).thenThrow(failure);
+        return message;
     }
 
     @Test

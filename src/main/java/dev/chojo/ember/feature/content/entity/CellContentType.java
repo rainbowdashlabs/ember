@@ -71,7 +71,6 @@ public enum CellContentType {
             QUIZ_TEASER,
             FORMS_CTA,
             UPCOMING_EVENTS,
-            FEATURED_EVENT,
             PAST_EVENT_RECAP);
 
     private final Class<? extends CellConfig> configClass;

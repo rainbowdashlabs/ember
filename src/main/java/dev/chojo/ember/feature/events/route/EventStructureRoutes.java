@@ -64,6 +64,7 @@ public class EventStructureRoutes implements Routes {
     private final EventFieldDefaultService fieldDefaultService;
     private final EventFieldService eventFieldService;
     private final OccurrenceCalendar occurrenceCalendar;
+    private final EventVisibility visibility;
 
     @Inject
     public EventStructureRoutes(
@@ -72,8 +73,10 @@ public class EventStructureRoutes implements Routes {
             EventBreakService breakService,
             EventFieldDefaultService fieldDefaultService,
             EventFieldService eventFieldService,
-            OccurrenceCalendar occurrenceCalendar) {
+            OccurrenceCalendar occurrenceCalendar,
+            EventVisibility visibility) {
         this.crudService = crudService;
+        this.visibility = visibility;
         this.categoryService = categoryService;
         this.breakService = breakService;
         this.fieldDefaultService = fieldDefaultService;
@@ -281,7 +284,7 @@ public class EventStructureRoutes implements Routes {
     private void getFieldDefaults(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(crudService, id, session);
+        visibility.requireVisibleEvent(session, id);
         ctx.json(fieldDefaultService.findByEvent(id));
     }
 
@@ -316,7 +319,7 @@ public class EventStructureRoutes implements Routes {
     private void getFields(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(crudService, id, session);
+        visibility.requireVisibleEvent(session, id);
         ctx.json(eventFieldService.findByEvent(id, askedDate(ctx)));
     }
 
@@ -406,7 +409,7 @@ public class EventStructureRoutes implements Routes {
         var session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         int fieldId = pathInt(ctx, "fieldId");
-        requireOwnedEvent(crudService, eventId, session);
+        visibility.requireVisibleEvent(session, eventId);
         ctx.json(eventFieldService.toggleSelfRegistration(
                 eventId,
                 fieldId,

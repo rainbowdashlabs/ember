@@ -139,6 +139,8 @@ export interface CountdownConfig {
 export interface FeaturedEventConfig {
     /** Public UUID of the referenced event. All other display fields come live. */
     eventUid?: string | null
+    /** The one occurrence the block is about, as `YYYY-MM-DD`. Unset shows the event's own start. */
+    date?: string | null
     /** Optional editor-supplied teaser blurb above the auto-rendered location row. */
     descriptionOverride?: string | null
 }

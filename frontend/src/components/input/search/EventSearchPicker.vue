@@ -8,7 +8,8 @@ import {onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
 import {searchEvents, type EventPickerMode, type EventSearchResult} from '@/api/events'
-import {listPublicEvents} from '@/api/publicEvents'
+import {findEmbeddedEvent} from '@/components/content/blockeditor/embeddedEventLookup'
+import {useEventEmbedScope} from '@/composables/useEventEmbedScope'
 import {formatDateTime} from '@/util/format'
 
 const model = defineModel<string | null>()
@@ -34,7 +35,8 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const searchFn = (q: string) => searchEvents(q, props.mode, 10)
+const scope = useEventEmbedScope()
+const searchFn = (q: string) => searchEvents(q, props.mode, 10, scope)
 const displayFn = (item: EventSearchResult) => item.name
 const subtitleFn = (item: EventSearchResult) => {
     const parts = [
@@ -49,11 +51,7 @@ const iconFn = (): string[] => ['fas', 'calendar-days']
 const resolvedTitle = ref<string | null>(null)
 async function resolve() {
     if (!props.stationUid || !model.value) { resolvedTitle.value = null; return }
-    try {
-        const events = await listPublicEvents(props.stationUid)
-        const match = events.find(e => e.publicUid === model.value)
-        resolvedTitle.value = match?.name ?? null
-    } catch { resolvedTitle.value = null }
+    resolvedTitle.value = (await findEmbeddedEvent(props.stationUid, model.value))?.name ?? null
 }
 onMounted(resolve)
 watch(() => [props.stationUid, model.value], resolve)

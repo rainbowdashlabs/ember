@@ -115,6 +115,33 @@ public class EventRepository {
      * inherited from a public category).
      */
     public List<PickerEvent> searchForPicker(int stationId, String search, PickerMode mode, int limit) {
+        var audience = WhereBuilder.create().add("AND (e.public = TRUE OR (e.public IS NULL AND c.public = TRUE))");
+        return searchForPicker(stationId, audience, search, mode, limit);
+    }
+
+    /**
+     * The picker for an author writing inside the station, where a block may also name an event
+     * the station keeps to itself. Offers every event the member may see themselves, public or not;
+     * an event they only see through somebody they look after is not offered, since the block is
+     * theirs and not their ward's.
+     */
+    public List<PickerEvent> searchVisibleForPicker(
+            int stationId, int memberId, String search, PickerMode mode, int limit) {
+        var audience = WhereBuilder.create().add(EVENT_ADMITS_MEMBER_PREDICATE, "member_id", memberId);
+        return searchForPicker(stationId, audience, search, mode, limit);
+    }
+
+    /**
+     * The picker for an author who edits the station's events, and so may open every one of them
+     * whatever its audience. Offers all of them.
+     */
+    public List<PickerEvent> searchStationForPicker(int stationId, String search, PickerMode mode, int limit) {
+        return searchForPicker(stationId, WhereBuilder.create(), search, mode, limit);
+    }
+
+    private List<PickerEvent> searchForPicker(
+            int stationId, WhereBuilder audience, String search, PickerMode mode, int limit) {
+
         String timePredicate =
                 switch (mode) {
                     case FUTURE -> "AND e.start_time > NOW()";
@@ -122,15 +149,12 @@ public class EventRepository {
                     case ALL -> "";
                 };
         String order = mode == PickerMode.PAST ? "e.start_time DESC" : "e.start_time ASC";
-        var where = WhereBuilder.create()
-                .like("AND LOWER(e.name) LIKE :q", "q", search)
-                .add(timePredicate);
+        var where = audience.like("AND LOWER(e.name) LIKE :q", "q", search).add(timePredicate);
         return query("""
                 SELECT e.public_uid, e.name, e.start_time, c.name AS category_name
                 FROM station_event e
                 LEFT JOIN event_category c ON c.id = e.category_id
                 WHERE e.station_id = :station_id
-                  AND (e.public = TRUE OR (e.public IS NULL AND c.public = TRUE))
                   %s
                 ORDER BY %s
                 LIMIT :limit;""", where.fragment(), order)

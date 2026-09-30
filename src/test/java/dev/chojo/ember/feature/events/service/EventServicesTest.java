@@ -2796,6 +2796,28 @@ class EventServicesTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(1301)
+    void searchVisibleEventPickerOffersInternalEventsTheMemberMaySee() {
+        var start = Instant.now().plus(36, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var internal = createPickerEvent("ScopeInternal", start, end);
+        var hidden = createPickerEvent("ScopeHidden", start, end);
+        markPublic(internal.id(), false);
+        markPublic(hidden.id(), false);
+        eventRestrictionService.setViewRestrictions(hidden.id(), onlyType(StationUserType.GUARDIAN));
+
+        var results = crudService.searchVisibleEventPicker(
+                station.id(), member.id(), "scope", EventRepository.PickerMode.FUTURE, 10);
+
+        assertTrue(results.stream().anyMatch(e -> "ScopeInternal".equals(e.name())));
+        assertTrue(results.stream().noneMatch(e -> "ScopeHidden".equals(e.name())));
+
+        var forAnEditor =
+                crudService.searchStationEventPicker(station.id(), "scope", EventRepository.PickerMode.FUTURE, 10);
+        assertTrue(forAnEditor.stream().anyMatch(e -> "ScopeHidden".equals(e.name())));
+    }
+
+    @Test
     @Order(212)
     void findFilteredForMembersUnionsWithoutDuplicates() {
         var start = Instant.now().plus(35, ChronoUnit.DAYS);

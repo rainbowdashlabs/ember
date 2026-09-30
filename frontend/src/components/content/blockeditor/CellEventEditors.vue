@@ -13,8 +13,9 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventSearchPicker from '@/components/input/search/EventSearchPicker.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import * as publicEvents from '@/api/publicEvents'
+import DateInput from '@/components/input/datetime/DateInput.vue'
 import * as events from '@/api/events'
+import {findEmbeddedEvent} from './embeddedEventLookup'
 import type {EventCategory} from '@/api/events'
 import {useConfigPatch} from '@/composables/useConfigPatch'
 
@@ -56,22 +57,21 @@ function isCategorySelected(id: number): boolean {
     return ((config.value.categoryIds as number[] | undefined) ?? []).includes(id)
 }
 
-/** Pre-fills descriptionOverride from the picked event's own description when still empty. */
+/**
+ * Takes the picked event and pre-fills the description from the event's own while it is still
+ * empty. A different event is a different occurrence, so the chosen day is let go.
+ */
 async function onFeaturedEventPick(eventUid: string) {
-    const updates: Record<string, unknown> = {eventUid}
+    const updates: Record<string, unknown> = {eventUid, date: null}
     if (!config.value.descriptionOverride && props.stationUid) {
-        try {
-            const list = await publicEvents.listPublicEvents(props.stationUid)
-            const match = list.find(e => e.publicUid === eventUid)
-            if (match?.description) updates.descriptionOverride = match.description
-        } catch { /* leave override empty on lookup failure */ }
+        const found = await findEmbeddedEvent(props.stationUid, eventUid)
+        if (found?.description) updates.descriptionOverride = found.description
     }
     patch(updates)
 }
 </script>
 
 <template>
-    <!-- FEATURED_EVENT - pick one public event; title/date/location/CTA all come live from it. -->
     <template v-if="kind === 'FEATURED_EVENT'">
         <FieldLabel hint class="mb-1">{{ TS('chooseFeaturedEvent') }}</FieldLabel>
         <EventSearchPicker
@@ -80,6 +80,11 @@ async function onFeaturedEventPick(eventUid: string) {
             :station-uid="stationUid"
             @pick="(item: {eventUid: string}) => onFeaturedEventPick(item.eventUid)"
             @update:model-value="(v: string | null | undefined) => patch({eventUid: v ?? null})"
+        />
+        <FieldLabel hint class="mb-1">{{ TS('featuredEventDate') }}</FieldLabel>
+        <DateInput
+            :model-value="(config.date as string) ?? ''"
+            @update:model-value="patch({date: $event || null})"
         />
         <FieldLabel hint class="mb-1">{{ TS('eventDescription') }}</FieldLabel>
         <MarkdownFieldInput
