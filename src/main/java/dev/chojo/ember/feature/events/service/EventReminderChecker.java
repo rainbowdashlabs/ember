@@ -200,15 +200,16 @@ public class EventReminderChecker {
     /**
      * Who a reminder about one date goes to.
      *
-     * <p>Where the appointment is signed up for, that is whoever holds a place, and holding one
-     * already means they were allowed to take it. Where it is not, it is everybody who may know the
+     * <p>Where the appointment is signed up for, that is whoever holds a place on that very date, and
+     * holding one already means they were allowed to take it. A place on another date of a repeating
+     * appointment is not a reason to be reminded of this one. Where it is not, it is everybody who may know the
      * appointment exists, minus whoever has said they are not coming. Nobody is reminded of something
      * they cannot see, and visibility is asked without permissions so that being able to override the
      * restriction is not itself a reason to hear about it.
      */
     private List<Integer> resolveTargetMembers(StationEvent event, LocalDate eventDate) {
         if (event.requiresRegistration()) {
-            return registrationRepository.findRegisteredMemberIds(event.id());
+            return registrationRepository.findRegisteredMemberIds(event.id(), eventDate);
         }
         var allMembers = stationMemberRepository.findByStation(event.stationId());
         var declinedIds = new HashSet<>(registrationRepository.findNotAttendingMemberIds(event.id(), eventDate));

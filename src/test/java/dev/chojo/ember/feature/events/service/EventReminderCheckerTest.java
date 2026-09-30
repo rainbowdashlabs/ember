@@ -352,7 +352,7 @@ class EventReminderCheckerTest {
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
         when(reminderRepository.findDays(42)).thenReturn(List.of(2));
         when(reminderRepository.isSent(42, eventDate, 2)).thenReturn(false);
-        when(registrationRepository.findRegisteredMemberIds(42)).thenReturn(List.of(20, 21));
+        when(registrationRepository.findRegisteredMemberIds(42, eventDate)).thenReturn(List.of(20, 21));
 
         invokeCheck();
 
@@ -371,7 +371,7 @@ class EventReminderCheckerTest {
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
         when(reminderRepository.findDays(42)).thenReturn(List.of(1));
         when(reminderRepository.isSent(42, eventDate, 1)).thenReturn(false);
-        when(registrationRepository.findRegisteredMemberIds(42)).thenReturn(List.of());
+        when(registrationRepository.findRegisteredMemberIds(42, eventDate)).thenReturn(List.of());
 
         invokeCheck();
 

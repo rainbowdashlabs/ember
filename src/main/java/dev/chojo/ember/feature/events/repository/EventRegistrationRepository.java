@@ -507,6 +507,25 @@ public class EventRegistrationRepository {
     }
 
     /**
+     * Finds the members holding a place, pending or accepted, on one date of an event.
+     *
+     * @param eventId   the event ID
+     * @param eventDate the date the place is held for
+     * @return the member IDs, each once
+     */
+    public List<Integer> findRegisteredMemberIds(int eventId, LocalDate eventDate) {
+        return query("""
+                SELECT DISTINCT member_id
+                FROM event_registration
+                WHERE event_id = :id
+                  AND event_date = :event_date
+                  AND status IN ('PENDING', 'ACCEPTED');""")
+                .single(call().bind("id", eventId).bind("event_date", eventDate))
+                .map(row -> row.getInt("member_id"))
+                .all();
+    }
+
+    /**
      * The members of a station who have said nothing about an event.
      *
      * <p>Saying nothing means having no answer on record, or having taken one back: a withdrawn

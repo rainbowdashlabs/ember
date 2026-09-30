@@ -196,6 +196,12 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
             assertEquals(1, eventRegistrationRepo.countAccepted(created.id()));
             assertTrue(
                     eventRegistrationRepo.findRegisteredMemberIds(created.id()).contains(member.id()));
+            assertEquals(List.of(member.id()), eventRegistrationRepo.findRegisteredMemberIds(created.id(), date));
+            assertTrue(
+                    eventRegistrationRepo
+                            .findRegisteredMemberIds(created.id(), date.plusWeeks(1))
+                            .isEmpty(),
+                    "a place on one date is no place on another");
 
             assertTrue(eventRegistrationRepo.delete(registration.id()));
             assertTrue(eventRegistrationRepo.findById(registration.id()).isEmpty());
