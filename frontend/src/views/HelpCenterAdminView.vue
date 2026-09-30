@@ -117,6 +117,10 @@ watch(
                      to="/helpcenter/admin/monitoring/feed-metrics" @navigate="close">
           {{ t('sidebar.feedMetrics') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'list-check']" name="help-admin-tasks"
+                     to="/helpcenter/admin/monitoring/tasks" @navigate="close">
+          {{ t('sidebar.backgroundTasks') }}
+        </SidebarLink>
         <SidebarLink :icon="['fas', 'tower-broadcast']" name="help-admin-traffic"
                      to="/helpcenter/admin/monitoring/traffic" @navigate="close">
           {{ t('sidebar.adminTraffic') }}

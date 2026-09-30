@@ -97,6 +97,29 @@ class TaskSchedulerTest {
     }
 
     @Test
+    void statusesRecordRunsAndFailures() throws InterruptedException {
+        var runs = new CountDownLatch(2);
+        scheduler.start(List.of(
+                task("fine", Schedule.once(Duration.ZERO), runs::countDown),
+                task("broken", Schedule.once(Duration.ZERO), () -> {
+                    runs.countDown();
+                    throw new IllegalStateException("expected by the test");
+                })));
+        assertTrue(runs.await(1, TimeUnit.SECONDS));
+        Thread.sleep(50);
+
+        var statuses = scheduler.statuses();
+
+        assertEquals(
+                List.of("broken", "fine"),
+                statuses.stream().map(TaskStatus::name).toList());
+        assertEquals(TaskOutcome.FAILED, statuses.get(0).outcome());
+        assertEquals(
+                "IllegalStateException: expected by the test", statuses.get(0).lastFailureMessage());
+        assertEquals(TaskOutcome.SUCCEEDED, statuses.get(1).outcome());
+    }
+
+    @Test
     void runsUnderTheTaskName() throws InterruptedException {
         var name = new String[1];
         var ran = new CountDownLatch(1);

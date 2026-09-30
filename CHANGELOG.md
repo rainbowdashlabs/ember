@@ -8,7 +8,7 @@
 - **Forms with pages and branching.** A form can be split into pages, each leading on to the next page, to a chosen page further down or straight to sending. A single-answer question can decide which page comes next, and the results say how many readers were shown each question.
 - **Continue a form later.** A form that is started and not sent is kept, and opens again on the page where it was left, for station forms on any device and for public forms on the same device. Only the person filling it in, and whoever looks after them, can see it, and it ends when the form closes.
 - **Cancel and restore single dates.** Managers can cancel just the date of an appointment they are looking at, while cancelling a whole series stays a separate, final action. A cancelled date can be restored as long as it lies ahead, and everybody still registered for it is told.
-
+- **Background tasks at a glance.** A new page under Monitoring lists every job the server runs on its own, such as sending mail, reminders and clean-ups, with how often it runs, when it last ran, how long that took and what its last failure said. The figures cover the time since the last restart.
 ### Improvements
 
 - **Preview, duplicate and a message after sending.** The form editor shows the form as it will be filled in, including the path through its pages, and forms and questions can be duplicated. A form can show its own message and a link once it is sent.

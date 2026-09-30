@@ -8,7 +8,7 @@
 - **Formulare mit Seiten und Verzweigungen.** Ein Formular lässt sich in Seiten aufteilen, die zur nächsten Seite, zu einer gewählten Seite weiter unten oder direkt zum Absenden führen. Eine Frage mit einer Antwort kann entscheiden, welche Seite als Nächstes kommt, und die Auswertung zeigt, wie viele eine Frage überhaupt gesehen haben.
 - **Ein Formular später fertig ausfüllen.** Ein begonnenes, nicht abgesendetes Formular bleibt erhalten und öffnet sich wieder auf der Seite, auf der es verlassen wurde, bei Formularen der Wache auf jedem Gerät, bei öffentlichen Formularen auf demselben Gerät. Sehen kann es nur, wer es ausfüllt, und wer diese Person betreut, und es endet, wenn das Formular schließt.
 - **Einzelne Termine absagen und wiederherstellen.** Verantwortliche können gezielt den Termin absagen, den sie gerade ansehen, während das Absagen einer ganzen Serie eine eigene, endgültige Aktion bleibt. Ein abgesagter Termin lässt sich wiederherstellen, solange er noch bevorsteht, und alle, die dafür angemeldet sind, erfahren davon.
-
+- **Hintergrundaufgaben auf einen Blick.** Eine neue Seite unter Monitoring listet jede Arbeit, die der Server von selbst erledigt, etwa Mailversand, Erinnerungen und Aufräumen, mit Rhythmus, letztem Lauf, dessen Dauer und der letzten Fehlermeldung. Die Angaben gelten seit dem letzten Neustart.
 ### Verbesserungen
 
 - **Vorschau, Duplizieren und eine Nachricht nach dem Absenden.** Der Formular-Editor zeigt das Formular so, wie es ausgefüllt wird, samt Weg durch die Seiten, und Formulare und Fragen lassen sich duplizieren. Ein Formular kann nach dem Absenden eine eigene Nachricht und einen Link zeigen.

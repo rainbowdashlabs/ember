@@ -128,6 +128,9 @@ onMounted(() => {
         <SidebarLink :icon="['fas', 'rss']" name="admin-feed-metrics" to="/admin/monitoring/feed-metrics" @navigate="close">
           {{ t('sidebar.feedMetrics') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'list-check']" name="admin-tasks" to="/admin/monitoring/tasks" @navigate="close">
+          {{ t('sidebar.backgroundTasks') }}
+        </SidebarLink>
         <SidebarLink :icon="['fas', 'tower-broadcast']" name="admin-traffic" to="/admin/monitoring/traffic" @navigate="close">
           {{ t('sidebar.adminTraffic') }}
         </SidebarLink>

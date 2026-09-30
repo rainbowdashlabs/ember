@@ -10,9 +10,12 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,6 +45,7 @@ public final class TaskScheduler {
 
     private final ScheduledThreadPoolExecutor timer;
     private final ExecutorService workers;
+    private final TaskStatusBoard board;
     private final AtomicBoolean started = new AtomicBoolean();
     private volatile boolean stopping;
 
@@ -50,6 +54,11 @@ public final class TaskScheduler {
      */
     @Inject
     public TaskScheduler() {
+        this(Clock.systemUTC());
+    }
+
+    TaskScheduler(Clock clock) {
+        board = new TaskStatusBoard(clock);
         timer = new ScheduledThreadPoolExecutor(
                 1, Thread.ofPlatform().daemon().name("task-timer").factory());
         timer.setRemoveOnCancelPolicy(true);
@@ -74,6 +83,16 @@ public final class TaskScheduler {
                 .map(TaskRunner::new)
                 .forEach(TaskRunner::arm);
         log.info("Started {} scheduled tasks", tasks.size());
+    }
+
+    /**
+     * What is known about every scheduled task since the start: when it last ran, how long that took
+     * and how it ended.
+     *
+     * @return one status per task, by name
+     */
+    public List<TaskStatus> statuses() {
+        return board.snapshot();
     }
 
     /**
@@ -220,6 +239,7 @@ public final class TaskScheduler {
         private TaskRunner(ScheduledTask task) {
             this.task = task;
             this.schedule = task.schedule();
+            board.register(task);
         }
 
         private void arm() {
@@ -245,8 +265,13 @@ public final class TaskScheduler {
         }
 
         private void runOnce() {
+            Instant startedAt = board.started(task.name());
             try {
                 task.run();
+                board.succeeded(task.name(), startedAt);
+            } catch (RuntimeException e) {
+                board.failed(task.name(), startedAt, e);
+                throw e;
             } finally {
                 busy.set(false);
                 if (schedule.mode() == Schedule.Mode.FIXED_DELAY && !stopping) {

@@ -32,6 +32,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-admin-storage', path: '/helpcenter/admin/monitoring/storage', i18nPrefix: 'helpCenter.adminStorage'},
     {route: 'help-admin-storage-audit', path: '/helpcenter/admin/monitoring/storage/audit', i18nPrefix: ['helpCenter.adminStorageAudit', 'helpCenter.adminStorageAudit.what']},
     {route: 'help-admin-storage-backend', path: '/helpcenter/admin/monitoring/storage/backend', i18nPrefix: ['helpCenter.adminStorageBackend', 'helpCenter.adminStorageBackend.locks', 'helpCenter.adminStorageBackend.migrate', 'helpCenter.adminStorageBackend.put']},
+    {route: 'help-admin-tasks', path: '/helpcenter/admin/monitoring/tasks', i18nPrefix: 'helpCenter.adminTasks'},
     {route: 'help-admin-traffic', path: '/helpcenter/admin/monitoring/traffic', i18nPrefix: 'helpCenter.adminTraffic'},
     {route: 'help-admin-news', path: '/helpcenter/admin/news', i18nPrefix: 'helpCenter.adminSystemNews'},
     {route: 'help-admin-settings', path: '/helpcenter/admin/settings', i18nPrefix: ['helpCenter.adminSettings', 'helpCenter.sample.admin']},
