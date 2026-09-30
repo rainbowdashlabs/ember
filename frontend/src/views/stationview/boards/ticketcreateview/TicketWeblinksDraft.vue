@@ -20,10 +20,10 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-    (e: 'update:newUrl', value: string): void
-    (e: 'update:newTitle', value: string): void
-    (e: 'add'): void
-    (e: 'remove', key: number): void
+    'update:newUrl': [value: string]
+    'update:newTitle': [value: string]
+    add: []
+    remove: [key: number]
 }>()
 
 const { t } = useI18n()

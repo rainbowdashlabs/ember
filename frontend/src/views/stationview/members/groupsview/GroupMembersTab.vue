@@ -26,8 +26,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'add', memberId: number): void
-  (e: 'remove', memberId: number): void
+  add: [memberId: number]
+  remove: [memberId: number]
 }>()
 
 /** Named the same way the menu names them, so somebody without a name is still somebody on the list. */

@@ -35,11 +35,11 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-    (e: 'update:newFieldName', value: string): void
-    (e: 'update:newFieldType', value: string): void
-    (e: 'add'): void
-    (e: 'remove', index: number): void
-    (e: 'move', index: number, dir: -1 | 1): void
+    'update:newFieldName': [value: string]
+    'update:newFieldType': [value: string]
+    add: []
+    remove: [index: number]
+    move: [index: number, dir: -1 | 1]
 }>()
 
 const { t } = useI18n()

@@ -19,8 +19,8 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'open-container', id: number): void
-  (e: 'open-item', id: number): void
+  'open-container': [id: number]
+  'open-item': [id: number]
 }>()
 
 const itemsByContainer = computed(() => {

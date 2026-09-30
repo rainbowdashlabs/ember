@@ -25,8 +25,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'cancel'): void
-  (e: 'confirm'): void
+  cancel: []
+  confirm: []
 }>()
 
 const { t } = useI18n()

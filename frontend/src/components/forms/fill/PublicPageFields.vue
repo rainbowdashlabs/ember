@@ -26,9 +26,9 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update-text', question: PublicFormQuestion, text: string): void
-  (e: 'update-date', question: PublicFormQuestion, date: string): void
-  (e: 'toggle-choice', question: PublicFormQuestion, optionKey: string): void
+  'update-text': [question: PublicFormQuestion, text: string]
+  'update-date': [question: PublicFormQuestion, date: string]
+  'toggle-choice': [question: PublicFormQuestion, optionKey: string]
 }>()
 </script>
 

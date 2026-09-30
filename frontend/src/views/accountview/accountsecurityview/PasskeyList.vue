@@ -21,8 +21,8 @@ const {t} = useI18n()
 defineProps<{passkeys: PasskeyEntry[]}>()
 
 const emit = defineEmits<{
-  (e: 'rename', entry: PasskeyEntry): void
-  (e: 'remove', entry: PasskeyEntry): void
+  rename: [entry: PasskeyEntry]
+  remove: [entry: PasskeyEntry]
 }>()
 
 const A_MONTH = 1000 * 60 * 60 * 24 * 30

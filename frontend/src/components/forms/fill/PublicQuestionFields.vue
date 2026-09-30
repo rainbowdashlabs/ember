@@ -40,9 +40,9 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:text', text: string): void
-  (e: 'update:date', date: string): void
-  (e: 'toggle-choice', optionKey: string): void
+  'update:text': [text: string]
+  'update:date': [date: string]
+  'toggle-choice': [optionKey: string]
 }>()
 
 /**

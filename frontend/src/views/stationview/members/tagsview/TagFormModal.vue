@@ -29,11 +29,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', v: boolean): void
-  (e: 'update:name', v: string): void
-  (e: 'update:color', v: string): void
-  (e: 'update:visible', v: boolean): void
-  (e: 'save'): void
+  'update:modelValue': [v: boolean]
+  'update:name': [v: string]
+  'update:color': [v: string]
+  'update:visible': [v: boolean]
+  save: []
 }>()
 
 const open = useModelProxy(() => props.modelValue, emit, 'modelValue')

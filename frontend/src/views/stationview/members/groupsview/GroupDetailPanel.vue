@@ -34,9 +34,9 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'add-member', memberId: number): void
-  (e: 'remove-member', memberId: number): void
-  (e: 'update:groupRoleIds', ids: Set<number>): void
+  'add-member': [memberId: number]
+  'remove-member': [memberId: number]
+  'update:groupRoleIds': [ids: Set<number>]
 }>()
 
 

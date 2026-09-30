@@ -28,11 +28,11 @@ defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'error', failure: Failure): void
-  (e: 'save-break', data: { name: string; startDate: string; endDate: string }): void
-  (e: 'import-holidays', holidays: Array<{ name: string; startDate: string; endDate: string }>): void
-  (e: 'confirm-delete-event'): void
-  (e: 'confirm-delete-break'): void
+  error: [failure: Failure]
+  'save-break': [data: { name: string; startDate: string; endDate: string }]
+  'import-holidays': [holidays: Array<{ name: string; startDate: string; endDate: string }>]
+  'confirm-delete-event': []
+  'confirm-delete-break': []
 }>()
 </script>
 

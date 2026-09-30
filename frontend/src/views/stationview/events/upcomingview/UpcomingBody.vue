@@ -52,13 +52,13 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'update:view-mode', value: ViewMode): void
-  (e: 'create'): void
-  (e: 'attendance', event: StationEvent): void
-  (e: 'register', event: StationEvent, date: string, people: AnswerablePerson[]): void
-  (e: 'decline', event: StationEvent, date: string, people: AnswerablePerson[]): void
-  (e: 'withdraw', regId: number): void
-  (e: 'load-more'): void
+  'update:view-mode': [value: ViewMode]
+  create: []
+  attendance: [event: StationEvent]
+  register: [event: StationEvent, date: string, people: AnswerablePerson[]]
+  decline: [event: StationEvent, date: string, people: AnswerablePerson[]]
+  withdraw: [regId: number]
+  'load-more': []
 }>()
 
 const tab = defineModel<string>('tab', {required: true})

@@ -34,10 +34,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:showDelete', value: boolean): void
-  (e: 'confirm-delete-list'): void
-  (e: 'update:showDeleteEntry', value: boolean): void
-  (e: 'confirm-delete-entry'): void
+  'update:showDelete': [value: boolean]
+  'confirm-delete-list': []
+  'update:showDeleteEntry': [value: boolean]
+  'confirm-delete-entry': []
 }>()
 
 const showDeleteModel = computed({

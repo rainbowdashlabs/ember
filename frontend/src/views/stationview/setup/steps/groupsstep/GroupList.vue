@@ -22,10 +22,10 @@ defineProps<{
 const draft = defineModel<string>('draft', {required: true})
 
 const emit = defineEmits<{
-  (e: 'select', id: number): void
-  (e: 'move', id: number, delta: -1 | 1): void
-  (e: 'remove', id: number): void
-  (e: 'add'): void
+  select: [id: number]
+  move: [id: number, delta: -1 | 1]
+  remove: [id: number]
+  add: []
 }>()
 
 const {t} = useI18n()

@@ -25,12 +25,12 @@ const newFieldName = defineModel<string>('newFieldName', { required: true })
 const newFieldType = defineModel<string>('newFieldType', { required: true })
 
 const emit = defineEmits<{
-    (e: 'addLane'): void
-    (e: 'removeLane', index: number): void
-    (e: 'moveLane', index: number, dir: -1 | 1): void
-    (e: 'addField'): void
-    (e: 'removeField', index: number): void
-    (e: 'moveField', index: number, dir: -1 | 1): void
+    addLane: []
+    removeLane: [index: number]
+    moveLane: [index: number, dir: -1 | 1]
+    addField: []
+    removeField: [index: number]
+    moveField: [index: number, dir: -1 | 1]
 }>()
 </script>
 

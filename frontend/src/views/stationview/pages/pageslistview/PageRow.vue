@@ -24,12 +24,12 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'edit', page: StationPage): void
-  (e: 'duplicate', page: StationPage): void
-  (e: 'change-visibility', page: StationPage): void
-  (e: 'share-link', page: StationPage): void
-  (e: 'set-landing', page: StationPage): void
-  (e: 'delete', page: StationPage): void
+  edit: [page: StationPage]
+  duplicate: [page: StationPage]
+  'change-visibility': [page: StationPage]
+  'share-link': [page: StationPage]
+  'set-landing': [page: StationPage]
+  delete: [page: StationPage]
 }>()
 
 const {t} = useI18n()

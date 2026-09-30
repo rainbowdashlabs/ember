@@ -10,8 +10,8 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 
 const props = defineProps<{ confirming: boolean }>()
 const emit = defineEmits<{
-  (e: 'confirm'): void
-  (e: 'remove'): void
+  confirm: []
+  remove: []
 }>()
 
 const { t } = useI18n()

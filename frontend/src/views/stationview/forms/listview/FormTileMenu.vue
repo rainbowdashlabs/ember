@@ -23,14 +23,14 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'publish', form: Form): void
-  (e: 'close', form: Form): void
-  (e: 'edit', form: Form): void
-  (e: 'duplicate', form: Form): void
-  (e: 'analytics', form: Form): void
-  (e: 'share', form: Form): void
-  (e: 'clear', form: Form): void
-  (e: 'delete', form: Form): void
+  publish: [form: Form]
+  close: [form: Form]
+  edit: [form: Form]
+  duplicate: [form: Form]
+  analytics: [form: Form]
+  share: [form: Form]
+  clear: [form: Form]
+  delete: [form: Form]
 }>()
 
 const {t} = useI18n()

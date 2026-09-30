@@ -20,8 +20,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'back'): void
-  (e: 'finish'): void
+  back: []
+  finish: []
 }>()
 
 const {t} = useI18n()

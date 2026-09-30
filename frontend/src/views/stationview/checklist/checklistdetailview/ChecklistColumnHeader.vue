@@ -22,10 +22,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'set-filter', value: 'any' | 'checked' | 'unchecked'): void
-  (e: 'edit'): void
-  (e: 'bulk-tick'): void
-  (e: 'bulk-clear'): void
+  'set-filter': [value: 'any' | 'checked' | 'unchecked']
+  edit: []
+  'bulk-tick': []
+  'bulk-clear': []
 }>()
 
 const {t} = useI18n()

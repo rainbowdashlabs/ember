@@ -38,21 +38,21 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle-multi-select'): void
-  (e: 'upload', files: File[]): void
-  (e: 'prune'): void
-  (e: 'navigate', id: number | null): void
-  (e: 'bulk-move'): void
-  (e: 'bulk-delete'): void
-  (e: 'clear-selection'): void
-  (e: 'open-folder', id: number): void
-  (e: 'preview-file', file: StationFile): void
-  (e: 'edit-file', file: StationFile): void
-  (e: 'delete-file', file: StationFile): void
-  (e: 'toggle-select', id: number, value: boolean, shift: boolean, index: number): void
-  (e: 'toggle-tag', fileId: number, tagId: number, currentlyAssigned: boolean): void
-  (e: 'update:current-page', v: number): void
-  (e: 'update:page-size', v: number): void
+  'toggle-multi-select': []
+  upload: [files: File[]]
+  prune: []
+  navigate: [id: number | null]
+  'bulk-move': []
+  'bulk-delete': []
+  'clear-selection': []
+  'open-folder': [id: number]
+  'preview-file': [file: StationFile]
+  'edit-file': [file: StationFile]
+  'delete-file': [file: StationFile]
+  'toggle-select': [id: number, value: boolean, shift: boolean, index: number]
+  'toggle-tag': [fileId: number, tagId: number, currentlyAssigned: boolean]
+  'update:current-page': [v: number]
+  'update:page-size': [v: number]
 }>()
 
 const {t} = useI18n()

@@ -35,10 +35,10 @@ const assignee = defineModel<string>('assignee', { required: true })
 const dueDate = defineModel<string>('dueDate', { required: true })
 
 const emit = defineEmits<{
-    (e: 'toggleLabel', id: number): void
-    (e: 'createLabel', name: string): void
-    (e: 'cancel'): void
-    (e: 'submit'): void
+    toggleLabel: [id: number]
+    createLabel: [name: string]
+    cancel: []
+    submit: []
 }>()
 
 const { t } = useI18n()

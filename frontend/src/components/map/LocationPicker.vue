@@ -30,8 +30,8 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  (e: 'update:latitude', value: number | null): void
-  (e: 'update:longitude', value: number | null): void
+  'update:latitude': [value: number | null]
+  'update:longitude': [value: number | null]
 }>()
 
 const {t} = useI18n()

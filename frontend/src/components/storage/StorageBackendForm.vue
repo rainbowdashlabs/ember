@@ -55,9 +55,9 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-    (e: 'probe-config'): void
-    (e: 'probe-live'): void
-    (e: 'apply'): void
+    'probe-config': []
+    'probe-live': []
+    apply: []
 }>()
 
 const {t} = useI18n()

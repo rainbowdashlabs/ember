@@ -30,9 +30,9 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'add', target: AssignmentTarget): void
-  (e: 'remove', target: AssignmentTarget): void
-  (e: 'set', audience: Audience, patch: Partial<AssignmentRequest>): void
+  add: [target: AssignmentTarget]
+  remove: [target: AssignmentTarget]
+  set: [audience: Audience, patch: Partial<AssignmentRequest>]
 }>()
 
 const {t} = useI18n()

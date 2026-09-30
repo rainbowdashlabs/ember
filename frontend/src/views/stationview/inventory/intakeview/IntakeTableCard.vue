@@ -44,9 +44,9 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'applyToEmpty'): void
-  (e: 'add', memberId: number): void
-  (e: 'save'): void
+  applyToEmpty: []
+  add: [memberId: number]
+  save: []
 }>()
 
 const {t} = useI18n()

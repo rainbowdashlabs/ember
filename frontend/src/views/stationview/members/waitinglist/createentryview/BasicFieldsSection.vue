@@ -14,8 +14,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:firstname', value: string): void
-  (e: 'update:lastname', value: string): void
+  'update:firstname': [value: string]
+  'update:lastname': [value: string]
 }>()
 
 const { t } = useI18n()

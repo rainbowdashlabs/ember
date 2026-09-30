@@ -27,11 +27,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'claim', itemId: number): void
-  (e: 'release', itemId: number): void
-  (e: 'provided', itemId: number): void
-  (e: 'delete', itemId: number): void
-  (e: 'addImage', itemId: number): void
+  claim: [itemId: number]
+  release: [itemId: number]
+  provided: [itemId: number]
+  delete: [itemId: number]
+  addImage: [itemId: number]
 }>()
 
 const {t} = useI18n()

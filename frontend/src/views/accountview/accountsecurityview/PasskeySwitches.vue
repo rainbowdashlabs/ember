@@ -20,8 +20,8 @@ const {t} = useI18n()
 const props = defineProps<{status: PasskeysStatus}>()
 
 const emit = defineEmits<{
-  (e: 'togglePasswordLogin', enabled: boolean): void
-  (e: 'toggleAskWithPassword', enabled: boolean): void
+  togglePasswordLogin: [enabled: boolean]
+  toggleAskWithPassword: [enabled: boolean]
 }>()
 
 const passwordSwitchVisible = computed(() =>

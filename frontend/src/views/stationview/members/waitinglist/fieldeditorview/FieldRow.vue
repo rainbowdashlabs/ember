@@ -19,9 +19,9 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'move', index: number, direction: -1 | 1): void
-  (e: 'edit', field: WaitingListField): void
-  (e: 'delete', field: WaitingListField): void
+  move: [index: number, direction: -1 | 1]
+  edit: [field: WaitingListField]
+  delete: [field: WaitingListField]
 }>()
 
 const { t } = useI18n()

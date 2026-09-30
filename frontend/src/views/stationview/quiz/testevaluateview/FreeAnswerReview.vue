@@ -16,8 +16,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'mark-correct', answerId: number, maxPoints: number): void
-  (e: 'mark-wrong', answerId: number, maxPoints: number): void
+  'mark-correct': [answerId: number, maxPoints: number]
+  'mark-wrong': [answerId: number, maxPoints: number]
 }>()
 
 const {t} = useI18n()

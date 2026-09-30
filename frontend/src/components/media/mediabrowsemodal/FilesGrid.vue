@@ -18,8 +18,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'pick', file: StationFile): void
-  (e: 'edit', file: StationFile): void
+  pick: [file: StationFile]
+  edit: [file: StationFile]
 }>()
 
 const {t} = useI18n()

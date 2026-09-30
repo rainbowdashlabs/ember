@@ -22,10 +22,10 @@ const props = defineProps<{
   fieldValueOf: (fieldId: number) => string
 }>()
 const emit = defineEmits<{
-  (e: 'add-guardian'): void
-  (e: 'remove-guardian', index: number): void
-  (e: 'set-field-value', fieldId: number, value: string): void
-  (e: 'submit'): void
+  'add-guardian': []
+  'remove-guardian': [index: number]
+  'set-field-value': [fieldId: number, value: string]
+  submit: []
 }>()
 
 const firstname = defineModel<string>('firstname', {required: true})

@@ -37,8 +37,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'cancel'): void
-  (e: 'attendance'): void
+  cancel: []
+  attendance: []
 }>()
 
 const {t} = useI18n()

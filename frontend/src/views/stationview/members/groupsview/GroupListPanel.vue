@@ -24,11 +24,11 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'create'): void
-  (e: 'select', group: MemberGroup): void
-  (e: 'edit', group: MemberGroup): void
-  (e: 'delete', group: MemberGroup): void
-  (e: 'convert', group: MemberGroup): void
+  create: []
+  select: [group: MemberGroup]
+  edit: [group: MemberGroup]
+  delete: [group: MemberGroup]
+  convert: [group: MemberGroup]
 }>()
 </script>
 

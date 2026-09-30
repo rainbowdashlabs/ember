@@ -21,8 +21,8 @@ const colors = defineModel<ThemeColors>('colors', {required: true})
 const presetKey = defineModel<string>('presetKey', {required: true})
 
 const emit = defineEmits<{
-  (e: 'load-preset'): void
-  (e: 'remove'): void
+  'load-preset': []
+  remove: []
 }>()
 
 const {t} = useI18n()

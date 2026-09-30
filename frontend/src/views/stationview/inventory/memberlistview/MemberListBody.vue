@@ -28,10 +28,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle-export-field', fieldId: number): void
-  (e: 'go-to-member', memberId: number): void
-  (e: 'toggle-export-selection', memberId: number): void
-  (e: 'toggle-select-all'): void
+  'toggle-export-field': [fieldId: number]
+  'go-to-member': [memberId: number]
+  'toggle-export-selection': [memberId: number]
+  'toggle-select-all': []
 }>()
 
 const fieldOptions = computed((): ExportFieldOption<number>[] =>

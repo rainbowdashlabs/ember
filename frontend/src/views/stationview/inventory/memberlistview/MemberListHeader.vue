@@ -20,9 +20,9 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'enter-export'): void
-  (e: 'cancel-export'): void
-  (e: 'export'): void
+  'enter-export': []
+  'cancel-export': []
+  export: []
 }>()
 </script>
 

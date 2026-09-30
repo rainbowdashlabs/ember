@@ -14,9 +14,9 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'move'): void
-  (e: 'delete'): void
-  (e: 'clear'): void
+  move: []
+  delete: []
+  clear: []
 }>()
 
 const {t} = useI18n()

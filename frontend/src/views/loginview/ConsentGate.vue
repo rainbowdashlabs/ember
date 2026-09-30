@@ -24,10 +24,10 @@ const props = defineProps<{
 const scopes = defineModel<StorageNecessityName[]>('scopes', {required: true})
 
 const emit = defineEmits<{
-  (e: 'accept'): void
-  (e: 'deny'): void
-  (e: 'showPrivacy'): void
-  (e: 'showTos'): void
+  accept: []
+  deny: []
+  showPrivacy: []
+  showTos: []
 }>()
 
 const {t} = useI18n()

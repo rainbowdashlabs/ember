@@ -35,22 +35,22 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:step', value: Step): void
-  (e: 'update:selectedUserType', value: 'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM'): void
-  (e: 'update:canLogin', value: boolean): void
-  (e: 'update:sendSetupMail', value: boolean): void
-  (e: 'update:email', value: string): void
-  (e: 'update:firstName', value: string): void
-  (e: 'update:lastName', value: string): void
-  (e: 'next-from-identity'): void
-  (e: 'next-from-groups'): void
-  (e: 'set-field-value', fieldId: number, val: string): void
-  (e: 'toggle-group', id: number): void
-  (e: 'set-managers', ids: number[]): void
-  (e: 'create-manager', data: { firstName: string; lastName: string; email: string }): void
-  (e: 'create-account'): void
-  (e: 'start-over'): void
-  (e: 'to-list'): void
+  'update:step': [value: Step]
+  'update:selectedUserType': [value: 'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM']
+  'update:canLogin': [value: boolean]
+  'update:sendSetupMail': [value: boolean]
+  'update:email': [value: string]
+  'update:firstName': [value: string]
+  'update:lastName': [value: string]
+  'next-from-identity': []
+  'next-from-groups': []
+  'set-field-value': [fieldId: number, val: string]
+  'toggle-group': [id: number]
+  'set-managers': [ids: number[]]
+  'create-manager': [data: { firstName: string; lastName: string; email: string }]
+  'create-account': []
+  'start-over': []
+  'to-list': []
 }>()
 
 const { t } = useI18n()

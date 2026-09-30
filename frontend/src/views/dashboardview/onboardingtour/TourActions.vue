@@ -16,9 +16,9 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'next'): void
-  (e: 'prev'): void
-  (e: 'skip'): void
+  next: []
+  prev: []
+  skip: []
 }>()
 
 const {t} = useI18n()

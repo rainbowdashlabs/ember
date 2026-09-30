@@ -23,13 +23,13 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:firstname', value: string): void
-  (e: 'update:lastname', value: string): void
-  (e: 'update:guardians', value: GuardianInput[]): void
-  (e: 'update:notes', value: string): void
-  (e: 'addGuardian'): void
-  (e: 'removeGuardian', index: number): void
-  (e: 'updateFieldValue', fieldId: number, value: string): void
+  'update:firstname': [value: string]
+  'update:lastname': [value: string]
+  'update:guardians': [value: GuardianInput[]]
+  'update:notes': [value: string]
+  addGuardian: []
+  removeGuardian: [index: number]
+  updateFieldValue: [fieldId: number, value: string]
 }>()
 
 const { t } = useI18n()

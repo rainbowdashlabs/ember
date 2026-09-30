@@ -22,8 +22,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'submit'): void
-  (e: 'passkey'): void
+  submit: []
+  passkey: []
 }>()
 
 const identifier = defineModel<string>('identifier', {required: true})

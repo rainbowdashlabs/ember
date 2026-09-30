@@ -31,11 +31,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'save-edit', id: number, altText: string, description: string): void
-  (e: 'save-folder'): void
-  (e: 'save-tag'): void
-  (e: 'bulk-move'): void
-  (e: 'bulk-delete'): void
+  'save-edit': [id: number, altText: string, description: string]
+  'save-folder': []
+  'save-tag': []
+  'bulk-move': []
+  'bulk-delete': []
 }>()
 </script>
 

@@ -21,9 +21,9 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle-multi-select'): void
-  (e: 'upload', files: File[]): void
-  (e: 'prune'): void
+  'toggle-multi-select': []
+  upload: [files: File[]]
+  prune: []
 }>()
 
 const {t} = useI18n()

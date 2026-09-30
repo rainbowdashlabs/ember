@@ -38,19 +38,19 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'add'): void
-  (e: 'select', field: ProfileField): void
-  (e: 'toggle-checked', field: ProfileField): void
-  (e: 'assign-checked', target: AssignmentTarget): void
-  (e: 'clear-checked'): void
-  (e: 'edit', field: ProfileField): void
-  (e: 'delete', field: ProfileField): void
-  (e: 'toggle-config', field: ProfileField, key: string, value: boolean): void
-  (e: 'toggle-keep-on-archive', field: ProfileField, value: boolean): void
-  (e: 'toggle-required', field: ProfileField, value: boolean): void
-  (e: 'toggle-readonly', field: ProfileField, value: boolean): void
-  (e: 'set-writability', field: ProfileField, level: WritabilityName): void
-  (e: 'apply-template', tpl: FieldTemplate): void
+  add: []
+  select: [field: ProfileField]
+  'toggle-checked': [field: ProfileField]
+  'assign-checked': [target: AssignmentTarget]
+  'clear-checked': []
+  edit: [field: ProfileField]
+  delete: [field: ProfileField]
+  'toggle-config': [field: ProfileField, key: string, value: boolean]
+  'toggle-keep-on-archive': [field: ProfileField, value: boolean]
+  'toggle-required': [field: ProfileField, value: boolean]
+  'toggle-readonly': [field: ProfileField, value: boolean]
+  'set-writability': [field: ProfileField, level: WritabilityName]
+  'apply-template': [tpl: FieldTemplate]
 }>()
 
 const {t} = useI18n()

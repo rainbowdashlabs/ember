@@ -22,10 +22,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'edit', item: ProcedureTemplateItem): void
-  (e: 'delete', itemId: number): void
-  (e: 'openDeps', item: ProcedureTemplateItem): void
-  (e: 'removeDep', depId: number, itemId: number): void
+  edit: [item: ProcedureTemplateItem]
+  delete: [itemId: number]
+  openDeps: [item: ProcedureTemplateItem]
+  removeDep: [depId: number, itemId: number]
 }>()
 </script>
 

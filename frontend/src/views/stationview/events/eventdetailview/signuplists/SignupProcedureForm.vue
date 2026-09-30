@@ -45,9 +45,9 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'choose', value: string | number | null | undefined): void
-  (e: 'submit'): void
-  (e: 'cancel'): void
+  choose: [value: string | number | null | undefined]
+  submit: []
+  cancel: []
 }>()
 
 const {t} = useI18n()

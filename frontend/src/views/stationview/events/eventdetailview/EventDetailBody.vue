@@ -53,12 +53,12 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'cancelled'): void
-  (e: 'answers-updated'): void
-  (e: 'field-updated', field: EventField): void
-  (e: 'register', people: AnswerablePerson[]): void
-  (e: 'decline', people: AnswerablePerson[]): void
-  (e: 'withdraw', registrationId: number): void
+  cancelled: []
+  'answers-updated': []
+  'field-updated': [field: EventField]
+  register: [people: AnswerablePerson[]]
+  decline: [people: AnswerablePerson[]]
+  withdraw: [registrationId: number]
 }>()
 
 /**

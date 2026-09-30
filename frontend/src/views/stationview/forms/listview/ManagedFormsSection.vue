@@ -42,15 +42,15 @@ const {sortKey, direction, sorted: sortedForms} = useSortable<Form, FormSortKey>
 })
 
 const emit = defineEmits<{
-  (e: 'create'): void
-  (e: 'publish', form: Form): void
-  (e: 'close', form: Form): void
-  (e: 'edit', form: Form): void
-  (e: 'analytics', form: Form): void
-  (e: 'share', form: Form): void
-  (e: 'clear', form: Form): void
-  (e: 'duplicate', form: Form): void
-  (e: 'delete', form: Form): void
+  create: []
+  publish: [form: Form]
+  close: [form: Form]
+  edit: [form: Form]
+  analytics: [form: Form]
+  share: [form: Form]
+  clear: [form: Form]
+  duplicate: [form: Form]
+  delete: [form: Form]
 }>()
 
 const { t } = useI18n()

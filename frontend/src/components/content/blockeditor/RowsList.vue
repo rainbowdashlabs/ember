@@ -17,12 +17,12 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:row', index: number, row: RowEditData): void
-  (e: 'delete', index: number): void
-  (e: 'move-up', index: number): void
-  (e: 'move-down', index: number): void
-  (e: 'add-at', index: number): void
-  (e: 'paste-at', index: number): void
+  'update:row': [index: number, row: RowEditData]
+  delete: [index: number]
+  'move-up': [index: number]
+  'move-down': [index: number]
+  'add-at': [index: number]
+  'paste-at': [index: number]
 }>()
 </script>
 

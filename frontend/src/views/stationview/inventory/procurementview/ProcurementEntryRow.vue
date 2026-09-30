@@ -23,8 +23,8 @@ defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'fulfill', id: number): void
-  (e: 'delete', id: number): void
+  fulfill: [id: number]
+  delete: [id: number]
 }>()
 
 </script>

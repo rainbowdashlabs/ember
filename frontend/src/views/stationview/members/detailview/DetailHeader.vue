@@ -20,8 +20,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'open-former-modal'): void
-  (e: 'open-delete-modal'): void
+  'open-former-modal': []
+  'open-delete-modal': []
 }>()
 
 const { t } = useI18n()

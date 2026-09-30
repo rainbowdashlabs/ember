@@ -25,14 +25,14 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:name', value: string): void
-  (e: 'add-group', groupId: number): void
-  (e: 'remove-group', groupId: number): void
-  (e: 'reorder-groups', fromIndex: number, toIndex: number): void
-  (e: 'add-field'): void
-  (e: 'edit-field', field: AttendanceTemplateField): void
-  (e: 'delete-field', field: AttendanceTemplateField): void
-  (e: 'reorder-fields', fromIndex: number, toIndex: number): void
+  'update:name': [value: string]
+  'add-group': [groupId: number]
+  'remove-group': [groupId: number]
+  'reorder-groups': [fromIndex: number, toIndex: number]
+  'add-field': []
+  'edit-field': [field: AttendanceTemplateField]
+  'delete-field': [field: AttendanceTemplateField]
+  'reorder-fields': [fromIndex: number, toIndex: number]
 }>()
 
 const {t} = useI18n()

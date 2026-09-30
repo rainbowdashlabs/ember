@@ -27,9 +27,9 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'acknowledge'): void
-  (e: 'toggle-comment'): void
-  (e: 'update:commentValue', v: string): void
+  acknowledge: []
+  'toggle-comment': []
+  'update:commentValue': [v: string]
 }>()
 
 function updateComment(v: string | undefined) {

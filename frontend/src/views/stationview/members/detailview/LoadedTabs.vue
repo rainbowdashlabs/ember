@@ -52,18 +52,18 @@ defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'reload-changes'): void
-  (e: 'link-manager', id: number): void
-  (e: 'remove-manager', id: number): void
-  (e: 'create-manager', data: { firstName: string; lastName: string; email: string }): void
-  (e: 'link-managed', id: number): void
-  (e: 'remove-managed', id: number): void
-  (e: 'assign-item'): void
-  (e: 'hand-out', itemId: number): void
-  (e: 'hand-out-new', inventoryId: number, sizeId: number | null): void
-  (e: 'request-exchange', item: MyInventoryItem): void
-  (e: 'unassign', item: MyInventoryItem): void
-  (e: 'reassign', item: MyInventoryItem): void
+  'reload-changes': []
+  'link-manager': [id: number]
+  'remove-manager': [id: number]
+  'create-manager': [data: { firstName: string; lastName: string; email: string }]
+  'link-managed': [id: number]
+  'remove-managed': [id: number]
+  'assign-item': []
+  'hand-out': [itemId: number]
+  'hand-out-new': [inventoryId: number, sizeId: number | null]
+  'request-exchange': [item: MyInventoryItem]
+  unassign: [item: MyInventoryItem]
+  reassign: [item: MyInventoryItem]
 }>()
 
 const activeTab = ref('profile')
