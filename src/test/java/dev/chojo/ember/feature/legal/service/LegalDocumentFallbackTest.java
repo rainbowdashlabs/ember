@@ -37,7 +37,7 @@ class LegalDocumentFallbackTest {
         assertTrue(
                 document.markdown().contains("Speicherung im Browser"),
                 "the generated section belongs in the fallback as much as in a document on disk");
-        assertTrue(document.markdown().contains("session_token"));
+        assertTrue(document.markdown().contains("ember_session"));
     }
 
     @Test

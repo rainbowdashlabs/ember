@@ -76,7 +76,8 @@ public class AccountAiCredentialRoutes implements Routes {
         switch (credentials.save(session.accountId(), request.provider(), request.model(), request.apiKey())) {
             case PROVIDER_UNKNOWN -> throw Refusal.AI_KEY_PROVIDER_UNKNOWN.raise();
             case KEY_MISSING -> throw Refusal.AI_KEY_MISSING.raise();
-            case SAVED -> ctx.json(credentials.summary(session.accountId()).orElseThrow());
+            case SAVED ->
+                ctx.json(credentials.summary(session.accountId()).orElseThrow(Refusal.AI_KEY_NOT_READ_BACK::raise));
         }
     }
 

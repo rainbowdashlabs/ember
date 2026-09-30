@@ -4865,6 +4865,9 @@ public enum Refusal {
      */
     AI_KEY_MISSING(Area.QUIZZES, 71, HttpStatus.BAD_REQUEST, "Enter the key for this provider, so nothing was saved"),
 
+    /** A personal AI key that was saved and then could not be read back to answer with. */
+    AI_KEY_NOT_READ_BACK(Area.QUIZZES, 72, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
+
     /** A procedure nobody but the people it was handed to may open, read by somebody else. */
     PROCEDURE_NOT_PUBLIC(Area.PROCEDURES, 1, HttpStatus.FORBIDDEN, Sentences.PROCEDURE_NOT_YOURS),
 

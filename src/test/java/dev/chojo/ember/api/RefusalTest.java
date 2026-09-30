@@ -173,7 +173,8 @@ class RefusalTest {
                         Refusal.PROTOCOL_RUN_NOT_HERE_AFTER_CLOSING,
                         Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_LOCKING,
                         Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_UNLOCKING,
-                        Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_COMPLETION),
+                        Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_COMPLETION,
+                        Refusal.AI_KEY_NOT_READ_BACK),
                 faults);
     }
 

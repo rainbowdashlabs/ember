@@ -1481,6 +1481,7 @@ export default {
     'Q-069': 'Unter dieser Nummer ist hier kein Katalog mit dir geteilt',
     'Q-070': 'Diesen KI-Anbieter kann diese Instanz nicht verwenden',
     'Q-071': 'Gib den Schlüssel für diesen Anbieter ein, es wurde nichts gespeichert',
+    'Q-072': CHANGE_SAVED_BUT_NOT_READ_BACK,
 
     'R-001': PROCEDURE_NOT_YOURS,
     'R-002': PROCEDURE_NOT_YOURS,
