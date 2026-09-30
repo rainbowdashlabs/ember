@@ -118,3 +118,83 @@ COMMENT ON TABLE ember_schema.discovery_ping
     IS 'Pings this instance sent and awaits a callback for, so the callback can be matched to its ping. Inbound ping nonces live in signed_request_nonce.';
 COMMENT ON COLUMN ember_schema.discovery_ping.direction
     IS 'OUT for pings this instance sent. Rows for received pings (IN) are no longer written.';
+
+CREATE TABLE ember_schema.event_date_cancellation
+(
+    event_id     INTEGER     NOT NULL REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    event_date   DATE        NOT NULL,
+    cause        TEXT        NOT NULL CHECK (cause IN ('MANUAL', 'THRESHOLD')),
+    reason       TEXT,
+    cancelled_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    cancelled_by INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    restored_at  TIMESTAMPTZ,
+    PRIMARY KEY (event_id, event_date)
+);
+
+COMMENT ON TABLE ember_schema.event_date_cancellation
+    IS 'One date of an appointment that was called off, a one-time appointment included. The date is cancelled while restored_at is empty. A restored row stays, so the minimum-registration check never cancels a date a manager deliberately brought back.';
+COMMENT ON COLUMN ember_schema.event_date_cancellation.event_id
+    IS 'The appointment the date belongs to.';
+COMMENT ON COLUMN ember_schema.event_date_cancellation.event_date
+    IS 'The date that was called off, on the station''s calendar.';
+COMMENT ON COLUMN ember_schema.event_date_cancellation.cause
+    IS 'Who called it off: MANUAL for a manager, THRESHOLD for the check that too few had registered.';
+COMMENT ON COLUMN ember_schema.event_date_cancellation.reason
+    IS 'The reason the manager gave. Empty for THRESHOLD, whose reason is worded in the reader''s language from the cause.';
+COMMENT ON COLUMN ember_schema.event_date_cancellation.cancelled_at
+    IS 'When the date was called off, the last time if it was called off more than once.';
+COMMENT ON COLUMN ember_schema.event_date_cancellation.cancelled_by
+    IS 'The manager who called it off. Empty for THRESHOLD and once that member is gone.';
+COMMENT ON COLUMN ember_schema.event_date_cancellation.restored_at
+    IS 'When a manager brought the date back. Empty while the date stays cancelled.';
+
+INSERT INTO ember_schema.event_date_cancellation (event_id, event_date, cause, reason, cancelled_at)
+SELECT e.id,
+       (e.start_time AT TIME ZONE zone.name)::DATE,
+       CASE WHEN e.cancel_reason LIKE 'Mindestanzahl von % Anmeldungen nicht erreicht' THEN 'THRESHOLD' ELSE 'MANUAL' END,
+       CASE WHEN e.cancel_reason LIKE 'Mindestanzahl von % Anmeldungen nicht erreicht' THEN NULL ELSE e.cancel_reason END,
+       coalesce(e.cancelled_at, now())
+FROM ember_schema.station_event e
+         JOIN ember_schema.station s ON s.id = e.station_id
+         CROSS JOIN LATERAL (SELECT CASE
+                                        WHEN EXISTS (SELECT 1 FROM pg_timezone_names tz WHERE tz.name = s.timezone)
+                                            THEN s.timezone
+                                        ELSE 'UTC' END AS name) zone
+WHERE e.event_type = 'ONE_TIME'
+  AND e.cancelled;
+
+UPDATE ember_schema.station_event
+SET cancelled     = FALSE,
+    cancelled_at  = NULL,
+    cancel_reason = NULL
+WHERE event_type = 'ONE_TIME'
+  AND cancelled;
+
+COMMENT ON COLUMN ember_schema.station_event.cancelled
+    IS 'Whether the whole series has been cancelled. A single date, and a one-time appointment, is cancelled in event_date_cancellation instead.';
+COMMENT ON COLUMN ember_schema.station_event.cancelled_at
+    IS 'When the whole series was cancelled.';
+COMMENT ON COLUMN ember_schema.station_event.cancel_reason
+    IS 'The reason given for cancelling the whole series.';
+
+ALTER TABLE ember_schema.station_event
+    ADD COLUMN threshold_days INTEGER CHECK (threshold_days >= 0);
+
+UPDATE ember_schema.station_event e
+SET threshold_days = greatest(0, (e.start_time AT TIME ZONE zone.name)::DATE
+                                     - (e.threshold_date AT TIME ZONE zone.name)::DATE)
+FROM ember_schema.station s
+         CROSS JOIN LATERAL (SELECT CASE
+                                        WHEN EXISTS (SELECT 1 FROM pg_timezone_names tz WHERE tz.name = s.timezone)
+                                            THEN s.timezone
+                                        ELSE 'UTC' END AS name) zone
+WHERE s.id = e.station_id
+  AND e.event_type = 'ONE_TIME'
+  AND e.threshold_date IS NOT NULL;
+
+ALTER TABLE ember_schema.station_event
+    DROP COLUMN threshold_date,
+    DROP COLUMN threshold_notified;
+
+COMMENT ON COLUMN ember_schema.station_event.threshold_days
+    IS 'How many days before each date min_registrations must be reached, or that date is cancelled automatically. Empty where no date is ever cancelled for too few registrations.';

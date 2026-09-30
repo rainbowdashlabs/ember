@@ -70,7 +70,7 @@ class EventThresholdCheckerTest extends RepositoryTestBase {
                 null,
                 null,
                 5,
-                Instant.now().minusSeconds(3600),
+                2,
                 null);
 
         assertFalse(event.cancelled());
@@ -108,7 +108,7 @@ class EventThresholdCheckerTest extends RepositoryTestBase {
                 null,
                 null,
                 1,
-                Instant.now().minusSeconds(3600),
+                2,
                 null);
 
         // Register a member with ACCEPTED status

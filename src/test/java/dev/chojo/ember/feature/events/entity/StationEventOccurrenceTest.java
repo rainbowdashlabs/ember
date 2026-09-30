@@ -52,7 +52,6 @@ class StationEventOccurrenceTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);

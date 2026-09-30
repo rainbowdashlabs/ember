@@ -699,7 +699,6 @@ class NotificationFeedGoldenTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);

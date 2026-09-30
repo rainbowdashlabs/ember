@@ -413,7 +413,6 @@ class IcalEventRendererTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 repeatUntil,
                 null);
@@ -444,7 +443,6 @@ class IcalEventRendererTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -475,7 +473,6 @@ class IcalEventRendererTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -506,7 +503,6 @@ class IcalEventRendererTest {
                 reason,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);

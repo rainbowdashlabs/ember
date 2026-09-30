@@ -36,7 +36,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRepository {
 
     private static final String EVENT_COLUMNS =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, view_restriction_mode, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date, threshold_notified, registration_close_days, repeat_until, repeat_count";
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, view_restriction_mode, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_days, registration_close_days, repeat_until, repeat_count";
 
     /**
      * The lock the lists draw, and what decides whether an event is handed out at all: both stand
@@ -241,12 +241,12 @@ public class EventRepository {
             Integer categoryId,
             Integer registrationLimit,
             Integer minRegistrations,
-            Instant thresholdDate,
+            Integer thresholdDays,
             Integer registrationCloseDays) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, registration_limit, min_registrations, threshold_date, registration_close_days)
-                VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, :registration_deadline, :requires_confirmation, :category_id, :registration_limit, :min_registrations, :threshold_date, :registration_close_days)
+                INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, registration_limit, min_registrations, threshold_days, registration_close_days)
+                VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, :registration_deadline, :requires_confirmation, :category_id, :registration_limit, :min_registrations, :threshold_days, :registration_close_days)
                 RETURNING %s, %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
@@ -262,7 +262,7 @@ public class EventRepository {
                         .bind("category_id", categoryId)
                         .bind("registration_limit", registrationLimit)
                         .bind("min_registrations", minRegistrations)
-                        .bind("threshold_date", thresholdDate, INSTANT_TIMESTAMP)
+                        .bind("threshold_days", thresholdDays)
                         .bind("registration_close_days", registrationCloseDays),
                 StationEvent.map(),
                 EVENT_COLUMNS,
@@ -302,7 +302,7 @@ public class EventRepository {
             Boolean isPublic,
             Integer registrationLimit,
             Integer minRegistrations,
-            Instant thresholdDate,
+            Integer thresholdDays,
             Integer registrationCloseDays) {
         return query("""
                 UPDATE station_event
@@ -321,7 +321,7 @@ public class EventRepository {
                     public                  = :public,
                     registration_limit      = :registration_limit,
                     min_registrations       = :min_registrations,
-                    threshold_date          = :threshold_date,
+                    threshold_days          = :threshold_days,
                     registration_close_days = :registration_close_days,
                     updated_at              = now()
                 WHERE id = :id;""")
@@ -339,7 +339,7 @@ public class EventRepository {
                         .bind("public", isPublic)
                         .bind("registration_limit", registrationLimit)
                         .bind("min_registrations", minRegistrations)
-                        .bind("threshold_date", thresholdDate, INSTANT_TIMESTAMP)
+                        .bind("threshold_days", thresholdDays)
                         .bind("registration_close_days", registrationCloseDays)
                         .bind("id", id))
                 .update()
@@ -552,8 +552,8 @@ public class EventRepository {
     }
 
     /**
-     * Finds events that should be auto-cancelled because their threshold date has passed
-     * and they have not reached the minimum number of accepted registrations.
+     * Finds events that should be auto-cancelled because the days before their start in which the
+     * minimum had to be reached have begun, and they have not reached it.
      *
      * @return the list of events to auto-cancel
      */
@@ -563,26 +563,13 @@ public class EventRepository {
                 FROM station_event e
                 WHERE e.cancelled = FALSE
                   AND e.min_registrations IS NOT NULL
-                  AND e.threshold_date IS NOT NULL
-                  AND e.threshold_date <= now()
+                  AND e.threshold_days IS NOT NULL
+                  AND e.start_time - make_interval(days => e.threshold_days) <= now()
                   AND (SELECT count(*) FROM event_registration er
                        WHERE er.event_id = e.id AND er.status = 'ACCEPTED') < e.min_registrations;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN)
                 .single(call())
                 .map(StationEvent.map())
                 .all();
-    }
-
-    /**
-     * Marks an event's threshold as notified, preventing duplicate warnings.
-     *
-     * @param eventId the event ID
-     * @return true if a row was updated
-     */
-    public boolean setThresholdNotified(int eventId) {
-        return query("UPDATE station_event SET threshold_notified = TRUE, updated_at = now() WHERE id = :id;")
-                .single(call().bind("id", eventId))
-                .update()
-                .changed();
     }
 
     /**

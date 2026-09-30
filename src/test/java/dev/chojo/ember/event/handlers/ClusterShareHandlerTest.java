@@ -127,7 +127,6 @@ class ClusterShareHandlerTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);

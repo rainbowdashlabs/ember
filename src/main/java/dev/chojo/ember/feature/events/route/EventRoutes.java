@@ -379,7 +379,7 @@ public class EventRoutes implements Routes {
                 req.categoryId(),
                 req.registrationLimit(),
                 req.minRegistrations(),
-                req.thresholdDate(),
+                req.thresholdDays(),
                 req.registrationCloseDays());
         applyAudiences(event.id(), req);
         if (req.templateId() != null) {
@@ -470,7 +470,7 @@ public class EventRoutes implements Routes {
                         req.isPublic(),
                         req.registrationLimit(),
                         req.minRegistrations(),
-                        req.thresholdDate(),
+                        req.thresholdDays(),
                         req.registrationCloseDays())
                 .ifPresentOrElse(
                         event -> {
@@ -768,7 +768,7 @@ public class EventRoutes implements Routes {
             Boolean isPublic,
             Integer registrationLimit,
             Integer minRegistrations,
-            Instant thresholdDate,
+            Integer thresholdDays,
             Integer registrationCloseDays,
             LocalDate repeatUntil,
             Integer repeatCount) {}

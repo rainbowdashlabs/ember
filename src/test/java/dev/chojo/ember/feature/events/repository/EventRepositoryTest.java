@@ -363,7 +363,7 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 null,
                 5,
-                Instant.now().minusSeconds(3600),
+                1000,
                 null);
         try {
             assertTrue(eventRepo.findAutoCancel().stream().anyMatch(e -> e.id() == event.id()));
@@ -373,15 +373,15 @@ class EventRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    void setThresholdNotified() {
+    void theDaysBeforeEachDateAreKept() {
         var event = eventRepo.create(
                 station.id(),
-                "Threshold Notify Event",
+                "Threshold Days Event",
                 "desc",
-                StationEvent.EventType.ONE_TIME,
-                null,
-                Instant.parse("2027-10-15T09:00:00Z"),
-                Instant.parse("2027-10-15T12:00:00Z"),
+                StationEvent.EventType.RECURRING,
+                3,
+                Instant.parse("2027-10-13T09:00:00Z"),
+                Instant.parse("2027-10-13T12:00:00Z"),
                 null,
                 false,
                 null,
@@ -389,11 +389,12 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 null,
                 3,
-                Instant.now().plusSeconds(86400),
+                2,
                 null);
         try {
-            assertTrue(eventRepo.setThresholdNotified(event.id()));
-            assertTrue(eventRepo.findById(event.id()).orElseThrow().thresholdNotified());
+            var read = eventRepo.findById(event.id()).orElseThrow();
+            assertEquals(3, read.minRegistrations());
+            assertEquals(2, read.thresholdDays());
         } finally {
             eventRepo.delete(event.id());
         }

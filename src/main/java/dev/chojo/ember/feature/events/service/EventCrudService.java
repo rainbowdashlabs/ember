@@ -187,7 +187,7 @@ public class EventCrudService {
             Integer categoryId,
             Integer registrationLimit,
             Integer minRegistrations,
-            Instant thresholdDate,
+            Integer thresholdDays,
             Integer registrationCloseDays) {
         var event = createWithoutEvent(
                 stationId,
@@ -204,7 +204,7 @@ public class EventCrudService {
                 categoryId,
                 registrationLimit,
                 minRegistrations,
-                thresholdDate,
+                thresholdDays,
                 registrationCloseDays);
         eventBus.publish(new EventCreated(stationId, event));
         return event;
@@ -242,7 +242,7 @@ public class EventCrudService {
             Integer categoryId,
             Integer registrationLimit,
             Integer minRegistrations,
-            Instant thresholdDate,
+            Integer thresholdDays,
             Integer registrationCloseDays) {
         requireUsableSpan(startTime, endTime);
         var event = eventRepository.create(
@@ -260,7 +260,7 @@ public class EventCrudService {
                 categoryId,
                 registrationLimit,
                 minRegistrations,
-                thresholdDate,
+                thresholdDays,
                 registrationCloseDays);
         log.info("Created event {} for station {} ({}, type={})", event.id(), stationId, name, eventType);
         return event;
@@ -299,7 +299,7 @@ public class EventCrudService {
             Boolean isPublic,
             Integer registrationLimit,
             Integer minRegistrations,
-            Instant thresholdDate,
+            Integer thresholdDays,
             Integer registrationCloseDays) {
         requireUsableSpan(startTime, endTime);
         var before = eventRepository.findById(id).orElse(null);
@@ -319,7 +319,7 @@ public class EventCrudService {
                 isPublic,
                 registrationLimit,
                 minRegistrations,
-                thresholdDate,
+                thresholdDays,
                 registrationCloseDays)) {
             log.info("Updated event {}", id);
             var after = eventRepository.findById(id);

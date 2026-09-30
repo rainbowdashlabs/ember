@@ -63,7 +63,6 @@ class OccurrenceRuleTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 until,
                 count);

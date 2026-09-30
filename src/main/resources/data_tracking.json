@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:c1868674b27404834f2803afea5349034605bcf353acacd9a2c87aede08bd2ed",
-  "generatedAt": "2026-09-30T07:53:22Z",
+  "schemaHash": "sha256:4b67d9a4fe3db11a830b3c9bc77d72de328041b922848fe14c52841f882869ac",
+  "generatedAt": "2026-09-30T08:14:05Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6618,6 +6618,100 @@
         ]
       },
       "description": "Comments on station events (threaded via parent_id)."
+    },
+    "event_date_cancellation": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:528d33aa9c66bef470e2e03876fa679f9a854b4e09113d1df022175d60563ff2",
+      "columns": [
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The appointment the date belongs to."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The date that was called off, on the station's calendar."
+        },
+        {
+          "name": "cause",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Who called it off: MANUAL for a manager, THRESHOLD for the check that too few had registered."
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The reason the manager gave. Empty for THRESHOLD, whose reason is worded in the reader's language from the cause."
+        },
+        {
+          "name": "cancelled_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the date was called off, the last time if it was called off more than once."
+        },
+        {
+          "name": "cancelled_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The manager who called it off. Empty for THRESHOLD and once that member is gone."
+        },
+        {
+          "name": "restored_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When a manager brought the date back. Empty while the date stays cancelled."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "cancelled_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Which dates of the station's appointments are off belongs to the appointments and moves with them."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "cancelled_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "cancelled_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL: the cancelled date stays, the manager who cancelled it is cleared"
+          }
+        ]
+      },
+      "description": "One date of an appointment that was called off, a one-time appointment included. The date is cancelled while restored_at is empty. A restored row stays, so the minimum-registration check never cancels a date a manager deliberately brought back."
     },
     "event_deadline_reminder_sent": {
       "feature": "events",
@@ -21003,7 +21097,7 @@
     "station_event": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:c2516a8ae6f955dad346a470fbf8900fb07a05aa2c31dddce0355c0b9e1c4d5f",
+      "tableHash": "sha256:a17b1bcdcff41d9f2a4694f72b2971f72f6e46c21aa9877a32e3e30088e364f4",
       "columns": [
         {
           "name": "id",
@@ -21129,21 +21223,21 @@
           "type": "bool",
           "nullable": false,
           "verified": true,
-          "description": "Whether the event has been cancelled."
+          "description": "Whether the whole series has been cancelled. A single date, and a one-time appointment, is cancelled in event_date_cancellation instead."
         },
         {
           "name": "cancelled_at",
           "type": "timestamptz",
           "nullable": true,
           "verified": true,
-          "description": "When the event was cancelled."
+          "description": "When the whole series was cancelled."
         },
         {
           "name": "cancel_reason",
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "Optional reason for cancellation."
+          "description": "The reason given for cancelling the whole series."
         },
         {
           "name": "min_registrations",
@@ -21151,20 +21245,6 @@
           "nullable": true,
           "verified": true,
           "description": "Minimum number of ACCEPTED registrations required. Null means no minimum."
-        },
-        {
-          "name": "threshold_date",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "Date by which min_registrations must be met, or the event auto-cancels."
-        },
-        {
-          "name": "threshold_notified",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Whether a warning notification was sent about threshold not being met."
         },
         {
           "name": "registration_close_days",
@@ -21207,6 +21287,13 @@
           "nullable": false,
           "verified": true,
           "description": "AND or OR, how the parts of event_view_restriction combine. Separate from restriction_mode, which governs event_restriction."
+        },
+        {
+          "name": "threshold_days",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many days before each date min_registrations must be reached, or that date is cancelled automatically. Empty where no date is ever cancelled for too few registrations."
         }
       ],
       "foreignKeys": [
@@ -21234,7 +21321,6 @@
         "ignoredColumns": [
           "station_id",
           "deadline_notified",
-          "threshold_notified",
           "registration_close_days"
         ]
       },

@@ -168,7 +168,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
                         current.isPublic(),
                         current.registrationLimit(),
                         current.minRegistrations(),
-                        current.thresholdDate(),
+                        current.thresholdDays(),
                         current.registrationCloseDays())
                 .orElseThrow();
     }

@@ -585,7 +585,6 @@ class NotificationFeedRendererTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);

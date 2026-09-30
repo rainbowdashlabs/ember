@@ -162,7 +162,6 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -193,7 +192,6 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -224,7 +222,6 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -465,7 +462,6 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -527,7 +523,6 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);

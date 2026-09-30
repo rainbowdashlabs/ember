@@ -174,7 +174,6 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -219,7 +218,6 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -259,7 +257,6 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -394,7 +391,6 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);

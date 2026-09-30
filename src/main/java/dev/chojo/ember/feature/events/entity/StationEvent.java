@@ -32,7 +32,12 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param registrationDeadline the deadline for registration, or null if no deadline
  * @param requiresConfirmation whether registrations must be confirmed by a manager
  * @param categoryId           the optional category this event is assigned to
- * @param repeatUntil          the last day a recurring event may fall on, or null where it has no end
+ * @param cancelled            whether the whole series is cancelled. A single date, and a one-time
+ *                             event, is cancelled per date instead
+ * @param minRegistrations     how many accepted registrations a date needs, or null for no minimum
+ * @param thresholdDays        how many days before each date the minimum must be reached, or the date
+ *                             is cancelled automatically; null where no date is ever cancelled for it
+ * @param repeatUntil         the last day a recurring event may fall on, or null where it has no end
  * @param repeatCount          how many times a recurring event takes place in total, counted from its
  *                             first date, or null where it has no end. Never set together with
  *                             {@code repeatUntil}: they are two ways of saying the same thing
@@ -60,8 +65,7 @@ public record StationEvent(
         Instant cancelledAt,
         String cancelReason,
         Integer minRegistrations,
-        Instant thresholdDate,
-        boolean thresholdNotified,
+        Integer thresholdDays,
         Integer registrationCloseDays,
         LocalDate repeatUntil,
         Integer repeatCount) {
@@ -93,8 +97,7 @@ public record StationEvent(
                 row.get("cancelled_at", INSTANT_TIMESTAMP),
                 row.getString("cancel_reason"),
                 row.getObject("min_registrations", Integer.class),
-                row.get("threshold_date", INSTANT_TIMESTAMP),
-                row.getBoolean("threshold_notified"),
+                row.getObject("threshold_days", Integer.class),
                 row.getObject("registration_close_days", Integer.class),
                 row.getObject("repeat_until", LocalDate.class),
                 row.getObject("repeat_count", Integer.class));
