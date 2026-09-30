@@ -58,6 +58,7 @@ import io.javalin.http.HandlerType;
 import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
+import io.javalin.json.JavalinJackson3;
 import io.javalin.openapi.plugin.OpenApiPlugin;
 import io.javalin.openapi.plugin.OpenApiPluginConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerConfiguration;
@@ -74,7 +75,6 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.exc.StreamReadException;
 import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.exc.MismatchedInputException;
 import tools.jackson.databind.exc.UnrecognizedPropertyException;
 import tools.jackson.databind.exc.ValueInstantiationException;
@@ -261,10 +261,23 @@ public class ApiServer {
      *   <li>The length of {@code ctx.result()} for legacy {@code String}-bodied routes.</li>
      * </ol>
      *
-     * <p>Adds an approximation of response header bytes on top - same precision target as
+     * <p>A {@code 304 Not Modified} carries no body, whatever the handler produced before the tag
+     * matched. Adds an approximation of response header bytes on top - same precision target as
      * ingress.
      */
     private static long estimateEgressBytes(Context ctx) {
+        long bodyBytes = ctx.status() == HttpStatus.NOT_MODIFIED ? 0 : bodyBytesOf(ctx);
+        long headerBytes = 0;
+        for (String name : ctx.res().getHeaderNames()) {
+            headerBytes += name.length();
+            String value = ctx.res().getHeader(name);
+            if (value != null) headerBytes += value.length();
+            headerBytes += 4;
+        }
+        return Math.max(0, bodyBytes) + headerBytes + 12;
+    }
+
+    private static long bodyBytesOf(Context ctx) {
         long bodyBytes = jettyContentCount(ctx);
         if (bodyBytes <= 0) {
             String contentLength = ctx.res().getHeader("Content-Length");
@@ -278,14 +291,34 @@ public class ApiServer {
         if (bodyBytes <= 0 && ctx.result() != null) {
             bodyBytes = ctx.result().length();
         }
-        long headerBytes = 0;
-        for (String name : ctx.res().getHeaderNames()) {
-            headerBytes += name.length();
-            String value = ctx.res().getHeader(name);
-            if (value != null) headerBytes += value.length();
-            headerBytes += 4;
-        }
-        return Math.max(0, bodyBytes) + headerBytes + 12;
+        return bodyBytes;
+    }
+
+    /**
+     * Records how long an API request took and how it ended. Runs as a Javalin request logger,
+     * after the response is written, so the status is the one the client received, a
+     * {@code 304} included.
+     */
+    private void recordTiming(Context ctx, Float executionTimeMs) {
+        if (!ctx.path().startsWith(API_PREFIX)) return;
+        apiRequestLogger.record(
+                ctx.method().name(),
+                ApiRequestLogger.routeTemplate(ctx),
+                ctx.statusCode(),
+                Math.round(executionTimeMs));
+    }
+
+    /**
+     * Adds a request to the per-station traffic counters. Runs as a Javalin request logger, after
+     * the response is written, so Jetty has counted what it sent.
+     */
+    private void recordTraffic(Context ctx, Float executionTimeMs) {
+        if (ctx.method() == HandlerType.OPTIONS) return;
+        trafficRecorder.record(
+                stationResolver.resolve(ctx).orElse(null),
+                authClassifier.classify(ctx),
+                estimateIngressBytes(ctx),
+                estimateEgressBytes(ctx));
     }
 
     /**
@@ -417,26 +450,8 @@ public class ApiServer {
             // Federation response headers
             config.routes.after(this::applyFederationHeaders);
 
-            // API request timing
-            config.routes.before(ctx -> ctx.attribute("_requestStart", System.currentTimeMillis()));
-            config.routes.after(ctx -> {
-                Long start = ctx.attribute("_requestStart");
-                if (start != null && ctx.path().startsWith(API_PREFIX)) {
-                    long duration = System.currentTimeMillis() - start;
-                    apiRequestLogger.record(
-                            ctx.method().name(), ApiRequestLogger.routeTemplate(ctx), ctx.statusCode(), duration);
-                }
-            });
-
-            // Per-station traffic counters. Recorded after the response is
-            // committed so Jetty has populated content-length on the response side.
-            config.routes.after(ctx -> {
-                if (ctx.method() == HandlerType.OPTIONS) return;
-                long ingress = estimateIngressBytes(ctx);
-                long egress = estimateEgressBytes(ctx);
-                trafficRecorder.record(
-                        stationResolver.resolve(ctx).orElse(null), authClassifier.classify(ctx), ingress, egress);
-            });
+            config.requestLogger.http(this::recordTiming);
+            config.requestLogger.http(this::recordTraffic);
 
             // Per-public-page hit counters. Only fires when a public page
             // handler has resolved the page row and stashed its id on the context - file
@@ -866,22 +881,22 @@ public class ApiServer {
     }
 
     /**
-     * Creates the Jackson 3 JSON mapper configured with ISO date formatting.
+     * Javalin's own Jackson 3 mapper, given the API boundary's configuration: ISO date formatting
+     * and the translation of internal station and cluster ids to their public UUIDs.
+     *
+     * <p>{@code FAIL_ON_UNKNOWN_PROPERTIES} is Jackson's default but pinned explicitly, so an inbound
+     * payload with extra fields is rejected with 400 rather than silently dropped, even if somebody
+     * copies this configuration from a lenient mapper such as the federation client's.
      */
-    private Jackson3Mapper jacksonMapper() {
-        // FAIL_ON_UNKNOWN_PROPERTIES is Jackson's default but pinned explicitly here so
-        // an inbound payload with extra fields is rejected with 400 rather than silently
-        // dropped. A future contributor copying a mapper from another site (e.g. the
-        // federation HTTP client, which intentionally tolerates unknown fields for
-        // cross-version compatibility) will not accidentally regress this.
-        ObjectMapper mapper = JsonMapper.builder()
+    private JavalinJackson3 jacksonMapper() {
+        JsonMapper mapper = JsonMapper.builder()
                 .addModule(new StationIdModule(stationRepository))
                 .addModule(new ClusterIdModule(clusterRepository))
                 .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))
                 .build();
-        return new Jackson3Mapper(mapper);
+        return new JavalinJackson3(mapper, false);
     }
 
     private void configureOpenApi(OpenApiPluginConfiguration config) {
@@ -1276,24 +1291,19 @@ public class ApiServer {
     }
 
     /**
-     * Computes an ETag from the SHA-256 of the response body (truncated to 16
-     * hex chars / 64 bits) and handles conditional 304 Not Modified responses.
-     * SHA-256 is collision-resistant for the 64-bit truncation we expose, so an
-     * attacker cannot craft a different body that produces the same ETag the way
-     * a {@code String.hashCode()}-based tag would have allowed.
+     * Tags the response with the SHA-256 of its body, truncated to 16 hex characters. Javalin
+     * compares a tag set here with {@code If-None-Match} when it writes the response and answers
+     * {@code 304 Not Modified} on a match.
+     *
+     * <p>The tag is computed here rather than by Javalin's own generator for two reasons: only the
+     * paths {@link #applyCacheHeaders} names are tagged, and Javalin's generator uses an Adler-32
+     * checksum, for which a different body with the same tag is easy to build, while a truncated
+     * SHA-256 is not.
      */
     private static void addETag(@NotNull Context ctx) {
         String body = ctx.result();
         if (body == null || body.isEmpty()) return;
-
-        String etag = "\"" + Sha256.hexPrefix(body, 16) + "\"";
-        ctx.header("ETag", etag);
-
-        String ifNoneMatch = ctx.header("If-None-Match");
-        if (etag.equals(ifNoneMatch)) {
-            ctx.status(HttpStatus.NOT_MODIFIED);
-            ctx.result("");
-        }
+        ctx.header("ETag", "\"" + Sha256.hexPrefix(body, 16) + "\"");
     }
 
     private String loadAppVersion() {

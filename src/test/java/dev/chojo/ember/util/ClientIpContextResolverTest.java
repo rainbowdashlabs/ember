@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.util;
 
-import dev.chojo.ember.api.Jackson3Mapper;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Network;
@@ -23,6 +22,7 @@ import dev.chojo.ember.feature.twofactor.service.TwoFactorService.VerifyBackupCo
 import dev.chojo.ember.feature.twofactor.service.WebAuthnService;
 import io.javalin.Javalin;
 import io.javalin.config.JavalinConfig;
+import io.javalin.json.JavalinJackson3;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
@@ -109,7 +109,7 @@ class ClientIpContextResolverTest {
                 mock(TwoFactorAttemptTracker.class));
 
         start(LOOPBACK_PROXY, config -> {
-            config.jsonMapper(new Jackson3Mapper(JsonMapper.builder().build()));
+            config.jsonMapper(new JavalinJackson3(JsonMapper.builder().build(), false));
             routes.register(config.routes, "/api/v1");
         });
         send(HttpRequest.newBuilder(uri("/api/v1/auth/2fa"))
