@@ -3169,7 +3169,7 @@ volumes:
             typeDateDesc: 'Ein Datumsfeld mit Kalender-Auswahl.',
             typeLaneAssigneeDesc: 'Eine Person, die für eine bestimmte Spalte zuständig ist.',
             federationTitle: 'Föderation',
-            federationText: 'Teile ein Board mit Partnerstationen. Für jede Partnerstation legst du den Zugriffsmodus und die mindestens benötigte Rolle fest.',
+            federationText: 'Teile ein Board mit Partnerstationen. Für jede Partnerstation legst du den Zugriffsmodus fest und für welchen Mitgliedstyp dort das Board sichtbar ist. Mit "Mitglied" sehen es alle.',
             federationText2: 'Du brauchst die Berechtigung "Board-Föderation", um diese Einstellungen zu ändern.',
             partnerExample: 'JF Musterstadt',
             partnerExample2: 'JF Nachbarstadt',

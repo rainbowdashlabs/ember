@@ -5,6 +5,7 @@
  */
 import client from './client'
 import { createCrudResource } from './crud'
+import type { StationUserTypeName } from './types'
 import type { BoardTicket, BoardLane, BoardLabel, BoardField, BoardChecklistItem, BoardComment, BoardTicketLink, BoardTicketTransition, BoardTicketHistoryEntry, BoardTicketAttachment } from './boards'
 
 // -- Types --
@@ -24,7 +25,7 @@ export interface DiscoveredBoard {
     description: string
     shareMode: BoardShareModeName
     partnerStationName: string
-    requiredRole: string
+    requiredUserType: StationUserTypeName
 }
 
 export interface FederatedBoardDetail {

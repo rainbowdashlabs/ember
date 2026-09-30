@@ -44,6 +44,7 @@
 - **Die Anmeldung wurde angeboten, wo sie nicht erlaubt war.** Einem Mitglied konnte die Anmeldung zu einem Termin angeboten werden, der nur einem Teil der Wache offensteht, und erst nach dem Drücken erfuhr es, dass er ihm nicht offensteht. Die Anmeldung wird jetzt nur denen angeboten, die sich anmelden dürfen, alle anderen sehen einen kurzen Hinweis, warum.
 - **Jeder wiederkehrende Termin hieß wöchentlich.** Die Seite eines monatlichen, vierteljährlichen oder jährlichen Termins bezeichnete ihn als wöchentlich. Sie nennt jetzt, wie oft er sich wiederholt, so wie die Liste der Termine.
 - **Eine unlesbare Nachricht konnte den Import eines Postfachs stoppen.** In manchen Fällen scheiterte der Import eines Postfachs bei jedem Durchlauf an einer einzigen Nachricht, die der Mailserver nicht herausgeben konnte, etwa einer, die ein anderes Mailprogramm gerade gelöscht hatte, bis das Postfach ausgesetzt wurde. Eine solche Nachricht wird jetzt übersprungen und der Rest des Postfachs importiert.
+- **Das Teilen eines Boards mit Partnern ließ sich nicht speichern.** Das Speichern, mit welchen Partnerwachen ein Board geteilt wird, schlug fehl, sodass sich kein Board teilen ließ. Jetzt wird gespeichert, und für jeden Partner lässt sich wählen, welcher Mitgliedstyp dort das Board sehen darf.
 
 ## v26.19.5
 
