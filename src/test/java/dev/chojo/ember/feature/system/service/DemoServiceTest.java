@@ -28,7 +28,6 @@ import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
 import dev.chojo.ember.feature.cluster.service.ClusterContentService;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
-import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
@@ -192,7 +191,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var eventServices = newEventServices(noOpBus);
         var newsService = new NewsService(
                 newsRepo,
-                new ContentBlockService(contentContainerRepo),
+                contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,
                 restrictionService,
@@ -232,12 +231,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var kbFileStorage = new KbFileStorageService(kbStorageSvc, stationRepo, kbBackend, kbCompression);
         var kbSearchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
         var kbContentService = new KbContentService(
-                knowledgeBaseRepo,
-                new ContentBlockService(contentContainerRepo),
-                noCellDescriptions(),
-                stationRepo,
-                kbFileStorage,
-                kbSearchService);
+                knowledgeBaseRepo, contentBlocks(), noCellDescriptions(), stationRepo, kbFileStorage, kbSearchService);
         var kbCommentService = new KbCommentService(
                 knowledgeBaseRepo, kbCommentRepo, memberIdentityFactory, memberSvc, noOpBus, silentCommentMentions());
         var kbService = new KnowledgeBaseService(
@@ -516,7 +510,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var pageSeeder = new DemoPageSeeder(
                 new PageService(
                         pageRepo,
-                        new ContentBlockService(contentContainerRepo),
+                        contentBlocks(),
                         demoMediaLibrary,
                         new CellDescriptions(demoMediaLibrary, (stationId, pageUid) -> Optional.empty()),
                         stationMemberRepo,

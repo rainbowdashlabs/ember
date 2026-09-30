@@ -23,6 +23,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
+import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentMode;
@@ -128,6 +129,7 @@ public class NewsRoutes implements Routes {
                 StationPermission.PAGE_EDIT,
                 StationPermission.NEWS_EDIT,
                 StationPermission.KNOWLEDGE_EDIT);
+        routes.get(prefix + "/news/embed/{newsUid}", this::memberNewsTeaser, StationPermission.LOGIN);
         routes.get(prefix + "/news/{id}", this::get, StationPermission.LOGIN);
         routes.post(prefix + "/news", this::create, StationPermission.NEWS_EDIT);
         routes.put(prefix + "/news/{id}", this::update, StationPermission.NEWS_EDIT);
@@ -458,20 +460,27 @@ public class NewsRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/news/search",
             methods = HttpMethod.GET,
-            summary = "Search the station's public blog entries for the news block picker",
-            description = "Published, unrestricted entries on the caller's station's public blog, newest first,"
-                    + " whose title contains the query, case-insensitive. An empty query returns the newest"
-                    + " entries. At most limit entries are returned, and more says whether there are further"
-                    + " ones to ask for with a larger limit.",
+            summary = "Search the station's news for the news block picker",
+            description = "The caller's station's entries that every reader of the scope may read, newest first,"
+                    + " whose title contains the query, case-insensitive. scope=PUBLIC (the default, for a page)"
+                    + " offers published, unrestricted entries on the public blog; scope=MEMBERS (for a news or"
+                    + " wiki article) offers every published, unrestricted entry. An empty query returns the"
+                    + " newest entries. At most limit entries are returned, and more says whether there are"
+                    + " further ones to ask for with a larger limit.",
             tags = {"News"},
-            queryParams = {@OpenApiParam(name = "q"), @OpenApiParam(name = "limit", type = Integer.class)},
+            queryParams = {
+                @OpenApiParam(name = "q"),
+                @OpenApiParam(name = "limit", type = Integer.class),
+                @OpenApiParam(name = "scope", type = BlockAudience.class)
+            },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = NewsSearchPage.class)))
     private void search(Context ctx) {
         UserSession session = UserSession.from(ctx);
         String q = ctx.queryParam("q");
         int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(5);
         int limit = Math.clamp(requested, 1, SEARCH_LIMIT);
-        var found = newsService.findPublicBlogEntries(session.stationId(), q, 0, limit + 1);
+        var audience = BlockAudience.named(ctx.queryParam("scope"));
+        var found = newsService.findOpenEntries(session.stationId(), audience, q, 0, limit + 1);
         var entries =
                 found.stream().limit(limit).map(NewsRoutes::toSearchResult).toList();
         ctx.json(new NewsSearchPage(entries, found.size() > limit));
@@ -844,7 +853,7 @@ public class NewsRoutes implements Routes {
                 @OpenApiParam(name = "newsUid", required = true)
             },
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicNewsTeaser.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = NewsTeaser.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void publicNewsTeaser(Context ctx) {
@@ -852,10 +861,32 @@ public class NewsRoutes implements Routes {
         var station =
                 stationRepository.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_NEWS_BLOCK::raise);
         if (!station.publicBlogEnabled()) throw Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_NEWS_BLOCK.raise();
+        ctx.json(teaserOf(stationId, BlockAudience.PUBLIC, pathUuid(ctx, "newsUid")));
+    }
+
+    @OpenApi(
+            path = "/api/v1/news/embed/{newsUid}",
+            methods = HttpMethod.GET,
+            summary = "The news entry a news block in a news or wiki article names, as the block shows it",
+            description = "Answers only an entry of the caller's station that every member may read: published"
+                    + " and not kept to part of the station, whether or not it is on the public blog. Anything"
+                    + " else is the same 404, so a withheld entry cannot be told from a missing one.",
+            tags = {"News"},
+            pathParams = @OpenApiParam(name = "newsUid", required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = NewsTeaser.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void memberNewsTeaser(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(teaserOf(session.stationId(), BlockAudience.MEMBERS, pathUuid(ctx, "newsUid")));
+    }
+
+    private NewsTeaser teaserOf(int stationId, BlockAudience audience, UUID newsUid) {
         var news = newsService
-                .findPublicByUid(stationId, pathUuid(ctx, "newsUid"))
+                .findOpenByUid(stationId, audience, newsUid)
                 .orElseThrow(Refusal.NEWS_BLOCK_ENTRY_NOT_HERE::raise);
-        ctx.json(new PublicNewsTeaser(news.id(), news.publicUid(), news.title(), summaryOf(news), news.publishedAt()));
+        return new NewsTeaser(news.id(), news.publicUid(), news.title(), summaryOf(news), news.publishedAt());
     }
 
     /**
@@ -1025,13 +1056,13 @@ public class NewsRoutes implements Routes {
     public record NewsSearchPage(List<NewsSearchResult> entries, boolean more) {}
 
     /**
-     * A public blog entry as a news block shows it.
+     * A news entry as a news block shows it.
      *
-     * @param id          the entry's id, which its public blog address is built from
+     * @param id          the entry's id, which its address on the public blog and in the station is built from
      * @param publicUid   the public id the block names it by
      * @param title       what the entry is called now
      * @param summary     the opening words of the entry, markup taken off
      * @param publishedAt when it was published
      */
-    public record PublicNewsTeaser(int id, UUID publicUid, String title, String summary, Instant publishedAt) {}
+    public record NewsTeaser(int id, UUID publicUid, String title, String summary, Instant publishedAt) {}
 }

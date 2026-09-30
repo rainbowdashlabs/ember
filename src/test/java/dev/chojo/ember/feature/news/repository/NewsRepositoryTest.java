@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.news.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
@@ -217,9 +218,9 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Order(41)
     void findPublicBlogEntriesWithSearch() {
         newsRepo.updatePublicBlog(newsId, true);
-        var hits = newsRepo.findPublicBlogEntries(station.id(), "updated", 0, 10);
+        var hits = newsRepo.findOpenEntries(station.id(), BlockAudience.PUBLIC, "updated", 0, 10);
         assertTrue(hits.stream().anyMatch(n -> n.id() == newsId));
-        var misses = newsRepo.findPublicBlogEntries(station.id(), "zzz-no-match", 0, 10);
+        var misses = newsRepo.findOpenEntries(station.id(), BlockAudience.PUBLIC, "zzz-no-match", 0, 10);
         assertTrue(misses.stream().noneMatch(n -> n.id() == newsId));
         newsRepo.updatePublicBlog(newsId, false);
     }
@@ -229,9 +230,13 @@ class NewsRepositoryTest extends RepositoryTestBase {
     void findPublicByUid() {
         newsRepo.updatePublicBlog(newsId, true);
         var uid = newsRepo.findById(newsId).orElseThrow().publicUid();
-        assertTrue(newsRepo.findPublicByUid(station.id(), uid).isPresent());
+        assertTrue(
+                newsRepo.findOpenByUid(station.id(), BlockAudience.PUBLIC, uid).isPresent());
         newsRepo.updatePublicBlog(newsId, false);
-        assertTrue(newsRepo.findPublicByUid(station.id(), uid).isEmpty());
+        assertTrue(
+                newsRepo.findOpenByUid(station.id(), BlockAudience.PUBLIC, uid).isEmpty());
+        assertTrue(
+                newsRepo.findOpenByUid(station.id(), BlockAudience.MEMBERS, uid).isPresent());
     }
 
     @Test

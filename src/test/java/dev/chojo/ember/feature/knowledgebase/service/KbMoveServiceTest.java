@@ -13,7 +13,6 @@ import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
-import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.FederationTestContracts;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
@@ -77,12 +76,7 @@ class KbMoveServiceTest extends RepositoryTestBase {
         var fileStorage = mock(KbFileStorageService.class);
         var searchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
         var contentService = new KbContentService(
-                knowledgeBaseRepo,
-                new ContentBlockService(contentContainerRepo),
-                noCellDescriptions(),
-                stationRepo,
-                fileStorage,
-                searchService);
+                knowledgeBaseRepo, contentBlocks(), noCellDescriptions(), stationRepo, fileStorage, searchService);
         accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,

@@ -18,6 +18,7 @@ import * as events from '@/api/events'
 import {findEmbeddedEvent} from './embeddedEventLookup'
 import type {EventCategory} from '@/api/events'
 import {useConfigPatch} from '@/composables/useConfigPatch'
+import {useBlockAudience} from '@/composables/useBlockAudience'
 
 /**
  * Editor block for FEATURED_EVENT / UPCOMING_EVENTS / PAST_EVENT_RECAP cells. Extracted from
@@ -33,6 +34,7 @@ const props = defineProps<{
 
 const {t} = useI18n()
 const TS = (k: string) => t(`stationPages.editor.${k}`)
+const audience = useBlockAudience()
 
 const patch = useConfigPatch(() => config.value, (_event, value) => { config.value = value })
 
@@ -64,7 +66,7 @@ function isCategorySelected(id: number): boolean {
 async function onFeaturedEventPick(eventUid: string) {
     const updates: Record<string, unknown> = {eventUid, date: null}
     if (!config.value.descriptionOverride && props.stationUid) {
-        const found = await findEmbeddedEvent(props.stationUid, eventUid)
+        const found = await findEmbeddedEvent(props.stationUid, eventUid, audience)
         if (found?.description) updates.descriptionOverride = found.description
     }
     patch(updates)

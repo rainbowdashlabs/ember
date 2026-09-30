@@ -27,7 +27,7 @@ class ContentBlockServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        blocks = new ContentBlockService(contentContainerRepo);
+        blocks = contentBlocks();
         station = stationRepo.create("ContentBlockStation");
         account = accountRepo.create("content-block@test.com", "Content", "Block");
         stationMemberRepo.create(station.id(), account.id());
@@ -79,62 +79,6 @@ class ContentBlockServiceTest extends RepositoryTestBase {
             assertDoesNotThrow(() -> blocks.save(container.id(), withheld, ContentBlockService.Scope.PAGE));
         } finally {
             blocks.delete(container.id());
-        }
-    }
-
-    @Test
-    void anArticleMayAnnounceAnEventWithABlock() {
-        var container = blocks.create(station.id());
-        try {
-            var announced = CellConfig.parse(
-                    CellContentType.FEATURED_EVENT,
-                    CellConfig.MAPPER.readTree(
-                            "{\"eventUid\":\"7d7c1d5e-4e3a-4f9b-9d0e-2a4f6c1b8e11\",\"date\":\"2027-07-01\"}"));
-            blocks.save(
-                    container.id(),
-                    List.of(row(CellContentType.FEATURED_EVENT, "", announced)),
-                    ContentBlockService.Scope.ARTICLE);
-
-            var stored = assertInstanceOf(
-                    CellConfig.FeaturedEventConfig.class,
-                    blocks.loadRows(container.id())
-                            .getFirst()
-                            .cells()
-                            .getFirst()
-                            .config());
-            assertEquals("7d7c1d5e-4e3a-4f9b-9d0e-2a4f6c1b8e11", stored.eventUid());
-            assertEquals("2027-07-01", stored.date());
-        } finally {
-            blocks.delete(container.id());
-        }
-    }
-
-    /** A news block names its entry and nothing else, and a page and an article both keep it. */
-    @Test
-    void aNewsBlockKeepsTheEntryItNames() {
-        for (var scope : ContentBlockService.Scope.values()) {
-            var container = blocks.create(station.id());
-            try {
-                var teaser = CellConfig.parse(
-                        CellContentType.NEWS_TEASER,
-                        CellConfig.MAPPER.readTree("{\"newsUid\":\"3f2b8c4e-1a6d-4e7f-9b0c-5d8e2f1a7c33\"}"));
-                blocks.save(container.id(), List.of(row(CellContentType.NEWS_TEASER, "", teaser)), scope);
-
-                var stored = blocks.loadRows(container.id())
-                        .getFirst()
-                        .cells()
-                        .getFirst()
-                        .config();
-                assertEquals(
-                        "3f2b8c4e-1a6d-4e7f-9b0c-5d8e2f1a7c33",
-                        CellConfig.MAPPER
-                                .readTree(stored.toJson())
-                                .path("newsUid")
-                                .asString(null),
-                        scope.name());
-            } finally {
-                blocks.delete(container.id());
-            }
         }
     }
 

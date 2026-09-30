@@ -20,6 +20,7 @@ import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
 import ContentBlocks from '@/components/content/ContentBlocks.vue'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {internalContentContext} from '@/util/contentContext'
+import {provideBlockAudience} from '@/composables/useBlockAudience'
 import {ContentMode, type ContentModeName} from '@/api/news'
 import type {PageRow} from '@/api/pageManage'
 import {KbFileType, type KbFile} from '@/api/knowledgeBase'
@@ -48,6 +49,8 @@ const emit = defineEmits<{
 }>()
 
 const blockContext = computed(() => internalContentContext(props.stationUid, props.file.name))
+
+provideBlockAudience('MEMBERS')
 
 const {t} = useI18n()
 

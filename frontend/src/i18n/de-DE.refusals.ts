@@ -427,6 +427,8 @@ export default {
     'NW-053': STATION_NOT_HERE,
     'NW-054': PUBLIC_BLOG_NOT_HERE,
     'NW-055': 'Diese Neuigkeit ist hier nicht verfügbar',
+    'NW-056': 'Eine Seite kann nur eine Neuigkeit aus dem öffentlichen Blog der Wache zeigen, es wurde nichts gespeichert',
+    'NW-057': 'Ein Artikel kann nur eine Neuigkeit zeigen, die alle Mitglieder lesen dürfen, es wurde nichts gespeichert',
 
     'BO-001': 'Dieses Board gibt es nicht, oder du darfst es nicht öffnen',
     'BO-002': BOARD_TICKET_NOT_HERE,
@@ -791,6 +793,8 @@ export default {
     'E-091': 'Deine Anmeldung ließ sich keiner Wache zuordnen, es wurde nichts getan. Melde dich neu an',
     'E-092': APPOINTMENT_NOT_HERE,
     'E-093': APPOINTMENT_NOT_HERE,
+    'E-094': 'Eine Seite kann in einem Terminblock nur einen öffentlichen Termin zeigen, es wurde nichts gespeichert',
+    'E-095': 'Ein Artikel kann nur einen Termin zeigen, den alle Mitglieder sehen dürfen, es wurde nichts gespeichert',
 
     'CM-001': DAY_NOT_A_DATE,
     'CM-002': COMMENT_NEEDS_TEXT,

@@ -21,9 +21,13 @@ function signedInTo(stationId: string) {
     sessionInfo.value = {stationId} as SessionInfo
 }
 
+function memberEvent(id: number, name: string, cancelled = false) {
+    return {id, name, description: null, startTime: null, endTime: null, cancelled, categoryName: null}
+}
+
 /**
- * How an event block finds its event: the public list for everybody, the member lookup only for a
- * member of the station that owns it, and nothing at all for anybody else.
+ * How an event block finds its event: the public list for everybody and on every public page, the
+ * member lookup only in a news or wiki article and only for a member of the station that owns it.
  */
 describe('findEmbeddedEvent', () => {
     beforeEach(() => {
@@ -39,56 +43,59 @@ describe('findEmbeddedEvent', () => {
     it('finds a public event for a reader outside the station through the public list', async () => {
         listPublicEvents.mockResolvedValue([{id: 1, publicUid: EVENT_UID, name: 'Sommerfest', categoryName: 'Feste'}])
 
-        const found = await findEmbeddedEvent(STATION, EVENT_UID)
+        const found = await findEmbeddedEvent(STATION, EVENT_UID, 'MEMBERS')
 
         expect(found?.name).toBe('Sommerfest')
         expect(found?.source).toEqual({kind: 'PUBLIC', stationUid: STATION})
         expect(getEmbeddedEvent).not.toHaveBeenCalled()
     })
 
-    it('asks the station itself for a member of it, even about a public event', async () => {
+    it('asks the station itself for a member reading an article, even about a public event', async () => {
         signedInTo(STATION)
         listPublicEvents.mockResolvedValue([{id: 1, publicUid: EVENT_UID, name: 'Sommerfest'}])
-        getEmbeddedEvent.mockResolvedValue({
-            id: 9, name: 'Sommerfest', description: null, startTime: null, endTime: null,
-            cancelled: false, categoryName: null,
-        })
+        getEmbeddedEvent.mockResolvedValue(memberEvent(9, 'Sommerfest'))
 
-        expect((await findEmbeddedEvent(STATION, EVENT_UID))?.source).toEqual({kind: 'MEMBER', eventId: 9})
+        expect((await findEmbeddedEvent(STATION, EVENT_UID, 'MEMBERS'))?.source).toEqual({kind: 'MEMBER', eventId: 9})
         expect(listPublicEvents).not.toHaveBeenCalled()
     })
 
-    it('asks a member of the owning station about an internal event', async () => {
+    it('asks a member reading an article about an internal event', async () => {
         signedInTo(STATION)
-        getEmbeddedEvent.mockResolvedValue({
-            id: 42, name: 'Dienstabend', description: null, startTime: null, endTime: null,
-            cancelled: true, categoryName: null,
-        })
+        getEmbeddedEvent.mockResolvedValue(memberEvent(42, 'Dienstabend', true))
 
-        const found = await findEmbeddedEvent(STATION, EVENT_UID)
+        const found = await findEmbeddedEvent(STATION, EVENT_UID, 'MEMBERS')
 
         expect(found?.name).toBe('Dienstabend')
         expect(found?.cancelled).toBe(true)
         expect(found?.source).toEqual({kind: 'MEMBER', eventId: 42})
     })
 
-    it('does not ask about another station\'s internal event', async () => {
-        signedInTo('station-b')
+    /** A page is read by anybody, so what it shows cannot depend on who happens to be signed in. */
+    it('shows a member on a public page only what the public list shows', async () => {
+        signedInTo(STATION)
+        getEmbeddedEvent.mockResolvedValue(memberEvent(42, 'Dienstabend'))
 
-        expect(await findEmbeddedEvent(STATION, EVENT_UID)).toBeNull()
+        expect(await findEmbeddedEvent(STATION, EVENT_UID, 'PUBLIC')).toBeNull()
         expect(getEmbeddedEvent).not.toHaveBeenCalled()
     })
 
-    it('finds nothing where the member may not see the event', async () => {
+    it('does not ask about another station\'s internal event', async () => {
+        signedInTo('station-b')
+
+        expect(await findEmbeddedEvent(STATION, EVENT_UID, 'MEMBERS')).toBeNull()
+        expect(getEmbeddedEvent).not.toHaveBeenCalled()
+    })
+
+    it('finds nothing where not every member may see the event', async () => {
         signedInTo(STATION)
         getEmbeddedEvent.mockRejectedValue(new Error('404'))
 
-        expect(await findEmbeddedEvent(STATION, EVENT_UID)).toBeNull()
+        expect(await findEmbeddedEvent(STATION, EVENT_UID, 'MEMBERS')).toBeNull()
     })
 
     it('finds nothing for an outside reader when the public list cannot be read', async () => {
         listPublicEvents.mockRejectedValue(new Error('offline'))
 
-        expect(await findEmbeddedEvent(STATION, EVENT_UID)).toBeNull()
+        expect(await findEmbeddedEvent(STATION, EVENT_UID, 'PUBLIC')).toBeNull()
     })
 })

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.news.repository;
 
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
@@ -265,24 +266,23 @@ public class NewsRepository {
     }
 
     public List<News> findPublicBlogEntries(int stationId, int offset, int limit) {
-        return findPublicBlogEntries(stationId, null, offset, limit);
+        return findOpenEntries(stationId, BlockAudience.PUBLIC, null, offset, limit);
     }
 
     /**
-     * Lists published, unrestricted news for the public blog, newest first, optionally filtered by a
-     * case-insensitive substring match on the title. Used by the search that backs the news block
-     * picker, which looks for an entry by what it is called. A blank or {@code null} search term
-     * returns the most recent entries.
+     * Lists the station's news every reader of the given audience may read, newest first, optionally
+     * filtered by a case-insensitive substring match on the title. Published and unrestricted in
+     * either case; for the public, also on the public blog. Backs the public blog and the search of
+     * the news block picker. A blank or {@code null} search term returns the most recent entries.
      */
-    public List<News> findPublicBlogEntries(int stationId, String search, int offset, int limit) {
-        var where = WhereBuilder.create().like("AND LOWER(n.title) LIKE :q", "q", search);
+    public List<News> findOpenEntries(int stationId, BlockAudience audience, String search, int offset, int limit) {
+        var where = openTo(audience).like("AND LOWER(n.title) LIKE :q", "q", search);
         return query("""
                 SELECT
                     %s, %s
                 FROM
                     news n
                 WHERE n.station_id = :station_id
-                  AND n.public_blog = TRUE
                   AND n.published_at IS NOT NULL
                   AND %s
                     %s
@@ -296,10 +296,12 @@ public class NewsRepository {
     }
 
     /**
-     * Resolves a published, unrestricted news entry by its public UUID. Returns empty if no row
-     * matches or the row is not eligible for public display.
+     * Resolves a news entry of the station by its public UUID, when every reader of the given
+     * audience may read it: published and unrestricted, and for the public also on the public blog.
+     * Empty for anything else, never told apart.
      */
-    public Optional<News> findPublicByUid(int stationId, UUID publicUid) {
+    public Optional<News> findOpenByUid(int stationId, BlockAudience audience, UUID publicUid) {
+        var where = openTo(audience);
         return query("""
                 SELECT
                     %s, %s
@@ -307,13 +309,18 @@ public class NewsRepository {
                     news n
                 WHERE n.station_id = :station_id
                   AND n.public_uid = :public_uid::UUID
-                  AND n.public_blog = TRUE
                   AND n.published_at IS NOT NULL
-                  AND %s;""", NEWS_ALIASED, NEWS_RESTRICTED, NEWS_UNRESTRICTED)
-                .single(call().bind("station_id", stationId)
-                        .bind("public_uid", publicUid, StandardValueConverter.UUID_STRING))
+                  AND %s
+                    %s;""", NEWS_ALIASED, NEWS_RESTRICTED, NEWS_UNRESTRICTED, where.fragment())
+                .single(where.apply(call().bind("station_id", stationId)
+                        .bind("public_uid", publicUid, StandardValueConverter.UUID_STRING)))
                 .map(News.map())
                 .first();
+    }
+
+    private static WhereBuilder openTo(BlockAudience audience) {
+        var where = WhereBuilder.create();
+        return audience == BlockAudience.PUBLIC ? where.add("AND n.public_blog = TRUE") : where;
     }
 
     public boolean hasPublicBlogEntries(int stationId) {

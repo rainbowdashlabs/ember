@@ -6,6 +6,7 @@
 import {getEmbeddedEvent} from '@/api/events'
 import {listPublicEvents} from '@/api/publicEvents'
 import {sessionInfo} from '@/util/sessionState'
+import type {BlockAudience} from '@/api/pageManage'
 
 /** Where an event block found its event, which decides where its link goes. */
 export type EmbeddedEventSource =
@@ -32,19 +33,27 @@ export interface FoundEvent {
 }
 
 /**
- * Finds the event a block names by its public id.
+ * Finds the event a block names by its public id, as far as every reader of its content may see it.
  *
- * <p>A member signed in to the station that owns the event asks the station itself, which answers
- * for public and internal events alike as long as they may see it, and links them to the event's
- * own page on the day the block names. Every other reader, the public blog and partner stations
- * included, can only ask the public list. Where neither answers, the block says the event is not
- * available here.
+ * <p>In a news or wiki article (`MEMBERS`) a member signed in to the station that owns the event asks
+ * the station itself, which answers for public and internal events alike as long as every member may
+ * see it, and links them to the event's own page on the day the block names. On a public page, and
+ * for every other reader, the public blog and partner stations included, only the public list is
+ * asked, so a page never shows an internal event even to a member. Where neither answers, the block
+ * says the event is not available here.
  *
  * @param stationUid the station the block belongs to
  * @param eventUid   the public id the block names
+ * @param audience   who reads the content the block sits in
  */
-export async function findEmbeddedEvent(stationUid: string, eventUid: string): Promise<FoundEvent | null> {
-    if (sessionInfo.value?.stationId !== stationUid) return findPublicEvent(stationUid, eventUid)
+export async function findEmbeddedEvent(
+    stationUid: string,
+    eventUid: string,
+    audience: BlockAudience,
+): Promise<FoundEvent | null> {
+    if (audience !== 'MEMBERS' || sessionInfo.value?.stationId !== stationUid) {
+        return findPublicEvent(stationUid, eventUid)
+    }
     return (await findMemberEvent(eventUid)) ?? findPublicEvent(stationUid, eventUid)
 }
 

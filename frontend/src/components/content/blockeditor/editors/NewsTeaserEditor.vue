@@ -6,7 +6,6 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import FieldHint from '@/components/typography/FieldHint.vue'
 import NewsSearchPicker from '@/components/input/search/NewsSearchPicker.vue'
 import {useConfigPatch} from '@/composables/useConfigPatch'
 import type {CellEditorEmits, CellEditorStationProps} from '../cellTypes'
@@ -28,5 +27,4 @@ const patch = useConfigPatch(() => props.config, emit)
         @pick="(item: {publicUid: string}) => patch({newsUid: item.publicUid})"
         @update:model-value="(v: string | null | undefined) => patch({newsUid: v ?? null})"
     />
-    <FieldHint class="mt-1">{{ TS('newsTeaserHint') }}</FieldHint>
 </template>

@@ -11,6 +11,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
+import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
@@ -2819,19 +2820,22 @@ class EventServicesTest extends RepositoryTestBase {
         markPublic(visible.id(), true);
         markPublic(hidden.id(), false);
 
-        var results = crudService.searchEventPicker(station.id(), "pickerv", EventRepository.PickerMode.FUTURE, 10);
+        var results = crudService.searchEventPicker(
+                station.id(), BlockAudience.PUBLIC, "pickerv", EventRepository.PickerMode.FUTURE, 10);
         assertTrue(results.stream().anyMatch(e -> "PickerVisible".equals(e.name())));
 
-        var all = crudService.searchEventPicker(station.id(), "picker", EventRepository.PickerMode.ALL, 10);
+        var all = crudService.searchEventPicker(
+                station.id(), BlockAudience.PUBLIC, "picker", EventRepository.PickerMode.ALL, 10);
         assertTrue(all.stream().noneMatch(e -> "PickerHidden".equals(e.name())));
 
-        var past = crudService.searchEventPicker(station.id(), "pickerv", EventRepository.PickerMode.PAST, 10);
+        var past = crudService.searchEventPicker(
+                station.id(), BlockAudience.PUBLIC, "pickerv", EventRepository.PickerMode.PAST, 10);
         assertTrue(past.stream().noneMatch(e -> "PickerVisible".equals(e.name())));
     }
 
     @Test
     @Order(1301)
-    void searchVisibleEventPickerOffersInternalEventsTheMemberMaySee() {
+    void searchEventPickerOffersArticlesEveryEventEveryMemberMaySee() {
         var start = Instant.now().plus(36, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
         var internal = createPickerEvent("ScopeInternal", start, end);
@@ -2840,15 +2844,11 @@ class EventServicesTest extends RepositoryTestBase {
         markPublic(hidden.id(), false);
         eventRestrictionService.setViewRestrictions(hidden.id(), onlyType(StationUserType.GUARDIAN));
 
-        var results = crudService.searchVisibleEventPicker(
-                station.id(), member.id(), "scope", EventRepository.PickerMode.FUTURE, 10);
+        var results = crudService.searchEventPicker(
+                station.id(), BlockAudience.MEMBERS, "scope", EventRepository.PickerMode.FUTURE, 10);
 
         assertTrue(results.stream().anyMatch(e -> "ScopeInternal".equals(e.name())));
         assertTrue(results.stream().noneMatch(e -> "ScopeHidden".equals(e.name())));
-
-        var forAnEditor =
-                crudService.searchStationEventPicker(station.id(), "scope", EventRepository.PickerMode.FUTURE, 10);
-        assertTrue(forAnEditor.stream().anyMatch(e -> "ScopeHidden".equals(e.name())));
     }
 
     @Test

@@ -818,6 +818,27 @@ public enum Refusal {
     NEWS_BLOCK_ENTRY_NOT_HERE(Area.NEWS, 55, HttpStatus.NOT_FOUND, "That news entry is not available here"),
 
     /**
+     * A page saved with a news block naming an entry that is not on the station's public blog. A page
+     * is read by anybody, so nothing is saved rather than a block nobody outside can see.
+     */
+    NEWS_BLOCK_ENTRY_NOT_PUBLIC(
+            Area.NEWS,
+            56,
+            HttpStatus.BAD_REQUEST,
+            "A page can only show a news entry on the station's public blog, so nothing was saved"),
+
+    /**
+     * An article saved with a news block naming an entry that is not published, is kept to part of
+     * the station or is not the station's. An article is read by every member, so it may only show
+     * what every member may read.
+     */
+    NEWS_BLOCK_ENTRY_NOT_FOR_EVERY_MEMBER(
+            Area.NEWS,
+            57,
+            HttpStatus.BAD_REQUEST,
+            "An article can only show a news entry every member may read, so nothing was saved"),
+
+    /**
      * A board that is not here, or one the reader may not see.
      *
      * <p>One code for both on purpose. An invisible board answers exactly as a missing one, so a
@@ -2102,8 +2123,32 @@ public enum Refusal {
      */
     EVENT_BLOCK_APPOINTMENT_NOT_HERE(Area.EVENTS, 92, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
 
-    /** An appointment an event block could not name, because it has no public id to be named by. */
+    /**
+     * An appointment an event block could not name: it has no public id to be named by, or it is
+     * kept to part of the station, which an article read by every member may not show.
+     */
     EVENT_BLOCK_REFERENCE_NOT_HERE(Area.EVENTS, 93, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
+
+    /**
+     * A page saved with an event block naming an appointment that is not on the public calendar. A
+     * page is read by anybody, so nothing is saved rather than a block nobody outside can see.
+     */
+    EVENT_BLOCK_APPOINTMENT_NOT_PUBLIC(
+            Area.EVENTS,
+            94,
+            HttpStatus.BAD_REQUEST,
+            "A page can only show a public appointment in an event block, so nothing was saved"),
+
+    /**
+     * An article saved with an event block naming an appointment that is kept to part of the station,
+     * or is not the station's. An article is read by every member, so it may only show what every
+     * member may see.
+     */
+    EVENT_BLOCK_APPOINTMENT_NOT_FOR_EVERY_MEMBER(
+            Area.EVENTS,
+            95,
+            HttpStatus.BAD_REQUEST,
+            "An article can only show an appointment every member may see, so nothing was saved"),
 
     /**
      * The station the caller is signed in at, taken from their session and not there, while a
