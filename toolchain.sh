@@ -120,10 +120,11 @@ Frontend
   fe-build              Full verification: formatting, unit tests, all linters, vue-tsc, build
   fe-format             Apply license headers and whitespace rules to Vue/TypeScript/locales
   fe-typecheck          vue-tsc only (silent on success)
-  fe-audit              All linters, non-gating; prints the warning backlog
+  fe-audit              All linters of the registry, non-gating; prints everything they find
   fe-help-index         Rewrite the help centre's search index from the pages that exist
-  fe-lint <name> [args] One linter of the registry in scripts/linters.mjs, e.g. `fe-lint icons`.
-                        Trailing arguments reach it, e.g. `fe-lint component-size --error=30`
+  fe-lint <name> [args] One linter of the registry in scripts/linters.mjs: eslint, duplication,
+                        icons, helpcenter, help-index, browser-storage, em-dash, comments,
+                        changelog-languages. Trailing arguments reach it, e.g. `fe-lint eslint --fix`
   fe-eslint [args]      ESLint over the frontend; arguments reach it, e.g. `fe-eslint --fix` or
                         `fe-eslint src/views`. `fe-lint eslint` runs it the way the build does
   fe-dev                Dev server
@@ -328,7 +329,7 @@ case "$cmd" in
         fe; run node scripts/generate-help-index.mjs
         ;;
     fe-lint)
-        [ $# -ge 1 ] || { echo "fe-lint needs a linter name, e.g. icons" >&2; exit 2; }
+        [ $# -ge 1 ] || { echo "fe-lint needs a linter name, e.g. eslint" >&2; exit 2; }
         fe; NODE_OPTIONS="$NODE_HEAP" run node scripts/lint.mjs "$@"
         ;;
     fe-eslint)     fe; NODE_OPTIONS="$NODE_HEAP" run npx eslint "$@" ;;

@@ -37,16 +37,6 @@ export function rel(file) {
     return relative(join(SRC, '..'), file)
 }
 
-export function isInsideDir(file, dirSegment) {
-    const r = relative(SRC, file)
-    return r.startsWith(`components${sep}${dirSegment}${sep}`)
-}
-
-export function isInsideComponents(file) {
-    const r = relative(SRC, file)
-    return r.startsWith(`components${sep}`)
-}
-
 export function extractTemplate(content) {
     const start = content.indexOf('<template>')
     const end = content.lastIndexOf('</template>')
