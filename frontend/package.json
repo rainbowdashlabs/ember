@@ -82,6 +82,7 @@
     "jscpd": "^5.3.3",
     "jsdom": "^30.0.1",
     "jsonc-eslint-parser": "^2.4.2",
+    "openapi-typescript": "^7.13.0",
     "typescript": "~6.0.2",
     "vite": "^8.0.10",
     "vitest": "^4.1.10",
@@ -89,6 +90,9 @@
     "vue-tsc": "^3.2.7"
   },
   "overrides": {
-    "@intlify/core": "$vue-i18n"
+    "@intlify/core": "$vue-i18n",
+    "openapi-typescript": {
+      "typescript": "$typescript"
+    }
   }
 }

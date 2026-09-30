@@ -152,9 +152,12 @@ function check(file) {
 
 }
 
+/** The generated API types, whose comments are the generator's and say what the backend declares. */
+const GENERATED = join(SRC, 'api', 'generated')
+
 const scanned = []
 for (const extension of FRONTEND_EXTENSIONS) {
-    scanned.push(...walk(SRC, extension))
+    scanned.push(...walk(SRC, extension).filter(file => !file.startsWith(GENERATED)))
 }
 scanned.forEach(check)
 

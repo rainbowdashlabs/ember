@@ -156,7 +156,7 @@ const UNCAPTIONED_MEDIA = [
 export default withNuxt(
     {
         name: 'ember/ignores',
-        ignores: ['e2e/report/**', 'e2e/results/**', 'e2e/.auth/**', 'public/**', 'coverage/**', 'eslint/**/fixtures/**'],
+        ignores: ['e2e/report/**', 'e2e/results/**', 'e2e/.auth/**', 'public/**', 'coverage/**', 'eslint/**/fixtures/**', 'src/api/generated/**'],
     },
     {
         name: 'ember/settings',

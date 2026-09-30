@@ -75,7 +75,7 @@ class ApiSpecTest {
     void committedSpecIsWhatAGenerationWrites() throws IOException {
         String committed = Files.readString(ApiSpecCli.SPEC_PATH);
         if (!committed.equals(ApiSpecCli.generate())) {
-            fail(ApiSpecCli.SPEC_PATH + " differs from what a generation writes. Run ./toolchain.sh be-api-spec"
+            fail(ApiSpecCli.SPEC_PATH + " differs from what a generation writes. Run ./toolchain.sh api-types"
                     + " and commit the result.");
         }
     }

@@ -124,9 +124,10 @@ Frontend
                         linters; CI's build job runs it after fe-lint
   fe-audit              All linters of the registry, non-gating; prints everything they find
   fe-help-index         Rewrite the help centre's search index from the pages that exist
+  fe-api-types          Rewrite src/api/generated/schema.ts from the committed API description
   fe-lint [name] [args] Every linter of the registry in scripts/linters.mjs, failing when one does, as
                         the build runs them. With a name only that one: eslint, duplication, icons,
-                        helpcenter, help-index, browser-storage, em-dash, comments,
+                        helpcenter, help-index, api-types, browser-storage, em-dash, comments,
                         changelog-languages. Trailing arguments reach it, e.g. `fe-lint eslint --fix`
   fe-eslint [args]      ESLint over the frontend; arguments reach it, e.g. `fe-eslint --fix` or
                         `fe-eslint src/views`. `fe-lint eslint` runs it the way the build does
@@ -234,6 +235,8 @@ Docker
 
 Combined
   verify                be-verify then fe-build
+  api-types             be-api-spec then fe-api-types: the API description and the frontend types
+                        after a change to a record the API sends or reads
   format-check          Every Spotless format checked, nothing changed: Java, the frontend sources,
                         the locales and the data tracking file
 
@@ -352,6 +355,7 @@ case "$cmd" in
     fe-help-index)
         fe; run node scripts/generate-help-index.mjs
         ;;
+    fe-api-types)  fe; run node scripts/generate-api-types.mjs ;;
     fe-lint)       fe; NODE_OPTIONS="$NODE_HEAP" run node scripts/lint.mjs "$@" ;;
     fe-bundle)     fe; NODE_OPTIONS="$NODE_HEAP" run npm run build -- --skip-lint "$@" ;;
     fe-eslint)     fe; NODE_OPTIONS="$NODE_HEAP" run npx eslint "$@" ;;
@@ -590,6 +594,10 @@ case "$cmd" in
     verify)
         "$ROOT/toolchain.sh" be-verify
         "$ROOT/toolchain.sh" fe-build
+        ;;
+    api-types)
+        "$ROOT/toolchain.sh" be-api-spec
+        "$ROOT/toolchain.sh" fe-api-types
         ;;
     format-check)  cd "$ROOT"; run ./gradlew spotlessCheck "$@" ;;
 
