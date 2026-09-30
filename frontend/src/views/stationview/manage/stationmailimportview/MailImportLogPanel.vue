@@ -10,6 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -103,11 +104,11 @@ reload()
         </li>
       </ul>
 
-      <div v-if="pages > 1" class="flex items-center justify-center gap-3">
+      <ButtonRow v-if="pages > 1" align="center">
         <SecondaryButton :disabled="page === 0" @click="page -= 1">{{ t('common.previous') }}</SecondaryButton>
-        <MutedText size="sm">{{ t('mailImport.pageOf', {page: page + 1, pages}) }}</MutedText>
+        <MutedText size="sm" class="text-center">{{ t('mailImport.pageOf', {page: page + 1, pages}) }}</MutedText>
         <SecondaryButton :disabled="page + 1 >= pages" @click="page += 1">{{ t('common.next') }}</SecondaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </NeutralContainer>
 </template>

@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import UserAvatar from './UserAvatar.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
+import DisplayTagBadge from '@/components/badge/DisplayTagBadge.vue'
 import type {MemberIdentity} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {computed} from 'vue'
@@ -36,11 +37,7 @@ const displayName = computed(() => {
   <span class="inline-flex items-center gap-1.5">
     <UserAvatar :identity="identity" :name="displayName" :size="size"/>
     <span data-testid="member-name" :style="identity?.nameColor ? { color: identity.nameColor } : {}"><slot>{{ displayName }}</slot></span>
-    <span v-if="identity?.displayTag"
-          class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none"
-          :style="{ backgroundColor: identity.displayTag.color + '20', color: identity.displayTag.color }">
-      {{ identity.displayTag.name }}
-    </span>
+    <DisplayTagBadge v-if="identity?.displayTag" :tag="identity.displayTag"/>
     <StationBadge v-if="isExternal && identity?.name" :station-name="identity?.stationName ?? ''" />
   </span>
 </template>

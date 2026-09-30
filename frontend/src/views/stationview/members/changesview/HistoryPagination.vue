@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 const {t} = useI18n()
 
@@ -24,16 +25,16 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div v-if="total > limit" class="flex items-center justify-between pt-2">
+  <ButtonRow v-if="total > limit" align="between" class="pt-2">
     <SecondaryButton :icon="['fas', 'chevron-left']" :disabled="offset === 0" @click="emit('prev')">
       {{ t('common.back') }}
     </SecondaryButton>
-    <span class="text-sm text-(--text-muted)">
+    <span class="text-sm text-(--text-muted) text-center">
       {{ t('memberChanges.page', { current: page, total: totalPages }) }}
     </span>
     <SecondaryButton :disabled="offset + limit >= total" @click="emit('next')">
       {{ t('memberChanges.next') }}
       <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1"/>
     </SecondaryButton>
-  </div>
+  </ButtonRow>
 </template>

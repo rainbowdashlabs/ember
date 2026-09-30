@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {DataTracking, TableEntry} from '@/api/dataTracking'
+import PillBadge from '@/components/badge/PillBadge.vue'
 import {isCascadeMisleading, strategyChipsOf, strategyClasses, type StrategyChip} from './strategyChips'
 
 /**
@@ -36,10 +37,10 @@ function tooltipOf(chip: StrategyChip): string {
 
 <template>
   <span class="inline-flex items-center gap-1 flex-wrap">
-    <span
+    <PillBadge
         v-for="chip in chips"
         :key="chip.strategy + ':' + chip.column"
-        class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-semibold"
+        class="gap-1 px-1.5 py-0.5 text-[10px] font-mono font-semibold"
         :class="strategyClasses(chip.strategy)"
         :title="tooltipOf(chip)"
     >
@@ -53,6 +54,6 @@ function tooltipOf(chip: StrategyChip): string {
           class="text-[#a07a00] dark:text-[#ffdd1b]"
           :title="t('adminDataTracking.cascadeMisleading')"
       />
-    </span>
+    </PillBadge>
   </span>
 </template>

@@ -11,6 +11,7 @@ import KbItemTileCorner from './KbItemTileCorner.vue'
 import KbItemActions from './KbItemActions.vue'
 import KbItemTileMedia from './KbItemTileMedia.vue'
 import KbReachEye from './KbReachEye.vue'
+import PillBadge from '@/components/badge/PillBadge.vue'
 import type {KbItem} from './useKbItems'
 
 const props = defineProps<{
@@ -57,12 +58,12 @@ function onCheckboxClick(event: MouseEvent) {
                     />
                 </div>
 
-                <span
+                <PillBadge
                     v-if="item.levelLabel"
-                    class="text-[10px] text-[var(--text-muted)] border border-[var(--border)] rounded-full px-2 py-0.5"
+                    class="text-[10px] text-[var(--text-muted)] border border-[var(--border)] px-2 py-0.5"
                 >
                     {{ item.levelLabel }}
-                </span>
+                </PillBadge>
 
                 <span v-if="item.countLabel" class="text-[10px] text-[var(--text-muted)]">{{ item.countLabel }}</span>
                 <span v-if="item.description" class="text-xs text-[var(--text-muted)] truncate w-full">

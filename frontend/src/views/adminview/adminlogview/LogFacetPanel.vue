@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import type {LogFacet} from '@/api/applicationLog'
 
 /**
@@ -57,17 +58,16 @@ function shown(): LogFacet[] {
     <TextInput v-model="term" :aria-label="label" :placeholder="t('applicationLog.facetSearch')"/>
     <MutedText v-if="shown().length === 0" size="sm" tag="p">{{ t('applicationLog.facetEmpty') }}</MutedText>
     <div class="max-h-56 overflow-y-auto space-y-1">
-      <button
+      <BareButton
           v-for="facet in shown()"
           :key="facet.value"
           :class="facet.value === selected ? 'bg-(--bg-accent) font-semibold' : 'hover:bg-(--bg-accent)'"
           class="flex w-full items-baseline justify-between gap-2 rounded px-2 py-1 text-left text-xs"
-          type="button"
           @click="emit('select', facet.value === selected ? '' : facet.value)"
       >
         <span class="truncate font-mono" :title="facet.value">{{ facet.value }}</span>
         <span class="shrink-0 text-(--text-muted)">{{ facet.count }}</span>
-      </button>
+      </BareButton>
     </div>
   </div>
 </template>

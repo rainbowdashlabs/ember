@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Popover from '@/components/feedback/Popover.vue'
@@ -63,10 +64,10 @@ function setAll(visible: boolean) {
     </template>
     <div class="flex items-center justify-between gap-3">
       <p class="text-xs font-semibold text-(--text-muted)">{{ t('tableFilter.columns') }}</p>
-      <div v-if="options.length > 1" class="flex gap-1">
+      <ButtonRow v-if="options.length > 1" pair>
         <SecondaryButton compact data-testid="column-picker-all" @click="setAll(true)">{{ t('tableFilter.selectAll') }}</SecondaryButton>
         <SecondaryButton compact data-testid="column-picker-none" @click="setAll(false)">{{ t('tableFilter.selectNone') }}</SecondaryButton>
-      </div>
+      </ButtonRow>
     </div>
     <div v-if="options.length === 0 && emptyLabel" class="text-xs text-(--text-muted)">{{ emptyLabel }}</div>
     <div class="grid grid-flow-col gap-x-4 max-h-[calc(60vh-6rem)] [grid-template-rows:repeat(auto-fill,minmax(1.75rem,auto))]" data-testid="column-picker-list">

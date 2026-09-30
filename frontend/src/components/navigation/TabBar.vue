@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, type ComponentPublicInstance} from 'vue'
+import BareButton from '@/components/button/BareButton.vue'
 
 /**
  * One entry of a tab list: the value it selects and what it says.
@@ -26,6 +27,12 @@ const props = defineProps<{
 }>()
 
 const tabElements: HTMLButtonElement[] = []
+
+/** Keeps the element of the tab at `index`, so the arrows can move the focus onto it. */
+function rememberTab(index: number, tab: Element | ComponentPublicInstance | null) {
+  const element = tab && '$el' in tab ? tab.$el : tab
+  if (element instanceof HTMLButtonElement) tabElements[index] = element
+}
 
 /**
  * The tab the keyboard reaches with Tab: the selected one, or the first while none is.
@@ -67,21 +74,20 @@ function onKeydown(event: KeyboardEvent, index: number) {
 <template>
   <div class="border-b border-bg-light-accent dark:border-bg-dark-accent">
     <div class="-mb-px flex gap-2 overflow-x-auto overflow-y-hidden" role="tablist">
-      <button
+      <BareButton
           v-for="(tab, index) in tabs"
           :key="tab.key"
-          :ref="element => tabElements[index] = element as HTMLButtonElement"
+          :ref="element => rememberTab(index, element)"
           :aria-selected="modelValue === tab.key"
           :class="modelValue === tab.key ? 'border-primary text-primary' : 'border-transparent text-(--text-muted) hover:text-(--text)'"
           :tabindex="index === focusableIndex ? 0 : -1"
           class="shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors border-b-2"
           role="tab"
-          type="button"
           @click="activate(index)"
           @keydown="onKeydown($event, index)"
       >
         {{ tab.label }}
-      </button>
+      </BareButton>
     </div>
   </div>
 </template>

@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {nextTick, onBeforeUnmount, ref, watch} from 'vue'
 import {provideSidebarFlyoutContext} from '@/composables/useSidebarFlyoutContext'
+import CountBadge from '@/components/badge/CountBadge.vue'
 
 const props = defineProps<{
   anchor: HTMLElement | null
@@ -155,10 +156,7 @@ function onHeaderClick() {
         >
           <font-awesome-icon v-if="icon" :icon="icon" class="w-4 shrink-0"/>
           <span class="flex-1 truncate">{{ label }}</span>
-          <span v-if="badge && badge > 0"
-                class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-error-text">{{
-              badge
-            }}</span>
+          <CountBadge v-if="badge && badge > 0" :count="badge"/>
         </component>
         <div class="flex flex-col gap-0.5 px-1">
           <slot/>

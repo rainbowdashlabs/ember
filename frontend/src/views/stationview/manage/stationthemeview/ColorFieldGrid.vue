@@ -7,6 +7,7 @@
 import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import ColorPickerInput from '@/components/input/ColorPickerInput.vue'
 
 defineProps<{
   fields: { key: K; label: string }[]
@@ -20,10 +21,6 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 const idPrefix = useId()
-
-function onInput(key: K, event: Event) {
-  emit('change', key, (event.target as HTMLInputElement).value)
-}
 </script>
 
 <template>
@@ -31,12 +28,11 @@ function onInput(key: K, event: Event) {
     <div v-for="field in fields" :key="keyPrefix + '-' + field.key" class="space-y-1">
       <FieldLabel :for="`${idPrefix}-${field.key}`" class="text-xs">{{ t(`theme.${field.label}`) }}</FieldLabel>
       <div class="flex items-center gap-2">
-        <input
+        <ColorPickerInput
             :id="`${idPrefix}-${field.key}`"
-            :value="values[field.key]"
-            type="color"
+            :model-value="values[field.key]"
             class="h-9 w-12 rounded-theme border border-(--border) cursor-pointer bg-transparent"
-            @input="onInput(field.key, $event)"
+            @update:model-value="value => emit('change', field.key, value)"
         />
         <span class="text-xs text-(--text-muted) font-mono">{{ values[field.key] }}</span>
       </div>

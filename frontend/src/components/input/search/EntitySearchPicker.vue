@@ -8,6 +8,7 @@ import {computed, onBeforeUnmount, ref, shallowRef, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import PillBadge from '@/components/badge/PillBadge.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 
@@ -265,17 +266,17 @@ defineExpose({highlightedItem: highlighted})
                                 >{{ subtitleFn(item) }}</span>
                             </span>
                         </slot>
-                        <span
+                        <PillBadge
                             v-if="badgeFn && badgeFn(item)"
                             :class="[
-                                'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
+                                'shrink-0 px-2 py-0.5 text-xs font-medium',
                                 badgeFn(item)?.variant === 'success' ? 'bg-success/15 text-success' : '',
                                 badgeFn(item)?.variant === 'info' ? 'bg-secondary/20 text-secondary-accent dark:text-secondary' : '',
                                 badgeFn(item)?.variant === 'error' ? 'bg-error/15 text-error' : '',
                                 badgeFn(item)?.variant === 'warning' ? 'bg-warning/15 text-warning' : '',
                                 badgeFn(item)?.variant === 'neutral' ? 'bg-(--bg-accent) text-(--text-muted)' : '',
                             ]"
-                        >{{ badgeFn(item)?.text }}</span>
+                        >{{ badgeFn(item)?.text }}</PillBadge>
                     </DropdownMenuItem>
                 </div>
             </div>

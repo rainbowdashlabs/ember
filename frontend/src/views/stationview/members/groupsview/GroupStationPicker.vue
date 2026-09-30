@@ -8,6 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import {matchesWords} from '@/util/listSearch'
 import {byMemberName} from '@/util/memberOrder'
 import type {MemberOption} from '@/components/input/select/memberOption'
@@ -43,10 +44,9 @@ const matching = computed(() => props.stations
       <MutedText v-if="matching.length === 0" tag="div" size="sm" class="px-3 py-2">
         {{ t('clusterStationGroups.nothingMatches') }}
       </MutedText>
-      <button
+      <BareButton
           v-for="station in matching"
           :key="station.value"
-          type="button"
           data-testid="station-picker-option"
           class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm
                  transition-colors hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
@@ -54,7 +54,7 @@ const matching = computed(() => props.stations
       >
         <span class="truncate font-medium">{{ station.name }}</span>
         <font-awesome-icon :icon="['fas', 'plus']" class="shrink-0 text-sm text-primary"/>
-      </button>
+      </BareButton>
     </div>
   </div>
 </template>

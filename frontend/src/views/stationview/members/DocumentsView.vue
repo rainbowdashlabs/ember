@@ -10,6 +10,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import DocumentFilterBar from './documentsview/DocumentFilterBar.vue'
 import {fromMember} from '@/components/input/select/memberOption'
@@ -191,11 +192,11 @@ async function act(action: Promise<unknown>) {
       <Spinner v-if="loading" size="md"/>
       <DocumentGrid v-else :documents="documents" @open="open"/>
 
-      <div v-if="pages > 1" class="flex items-center justify-center gap-3">
+      <ButtonRow v-if="pages > 1" align="center">
         <SecondaryButton :disabled="page === 0" @click="page -= 1">{{ t('common.previous') }}</SecondaryButton>
-        <MutedText size="sm">{{ t('documents.pageOf', {page: page + 1, pages}) }}</MutedText>
+        <MutedText size="sm" class="text-center">{{ t('documents.pageOf', {page: page + 1, pages}) }}</MutedText>
         <SecondaryButton :disabled="page + 1 >= pages" @click="page += 1">{{ t('common.next') }}</SecondaryButton>
-      </div>
+      </ButtonRow>
 
       <DocumentUploadModal
           v-model="showUpload"

@@ -11,6 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import FileThumbnail from '@/components/documents/FileThumbnail.vue'
 import FilePreviewModal from '@/components/documents/FilePreviewModal.vue'
 import {formatSize} from '@/util/format'
@@ -82,10 +83,9 @@ watch(() => props.eventId, load)
         class="flex w-full flex-wrap items-center gap-2 rounded-theme p-1 text-left hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40"
         data-testid="event-attachment-row"
     >
-      <button
+      <BareButton
           class="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left"
           data-testid="event-attachment-open"
-          type="button"
           @click="previewed = attachment"
       >
         <FileThumbnail
@@ -98,7 +98,7 @@ watch(() => props.eventId, load)
         <InfoBadge v-if="attachment.internal" data-testid="event-attachment-internal-badge">
           {{ t('events.attachments.internal') }}
         </InfoBadge>
-      </button>
+      </BareButton>
       <DownloadButton class="ms-auto" data-testid="event-attachment-download" @click="download(attachment)"/>
     </div>
 

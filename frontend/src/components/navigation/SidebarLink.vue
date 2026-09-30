@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
 import {useSidebarInFlyout} from '@/composables/useSidebarFlyoutContext'
+import CountBadge from '@/components/badge/CountBadge.vue'
 
 defineProps<{
   to: string
@@ -33,11 +34,7 @@ const labelHidden = computed(() => collapsed.value && !inFlyout)
   >
     <font-awesome-icon v-if="icon" :icon="icon" class="w-4 shrink-0"/>
     <span class="flex-1 truncate" :class="labelHidden ? 'lg:hidden' : ''"><slot/></span>
-    <span v-if="badge && badge > 0"
-          class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-error-text"
-          :class="labelHidden ? 'lg:hidden' : ''">{{
-        badge
-      }}</span>
+    <CountBadge v-if="badge && badge > 0" :count="badge" :class="labelHidden ? 'lg:hidden' : ''"/>
   </router-link>
 </template>
 

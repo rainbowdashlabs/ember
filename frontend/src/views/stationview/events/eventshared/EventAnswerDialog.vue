@@ -17,6 +17,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import {useAnswerMembers} from './useAnswerMembers'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import type {EventRegistrationField} from '@/api/events'
 import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
 
@@ -132,11 +133,10 @@ function confirm() {
                 :key="person.key"
                 class="flex items-center gap-2 text-sm"
             >
-                <input
-                    type="checkbox"
-                    :checked="chosen.includes(person.key)"
+                <CheckboxInput
+                    :model-value="chosen.includes(person.key)"
                     :data-testid="`answer-for-${person.key}`"
-                    @change="toggle(person.key)"
+                    @update:model-value="toggle(person.key)"
                 />
                 {{ person.name }}
             </label>

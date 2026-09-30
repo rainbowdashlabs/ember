@@ -8,6 +8,7 @@ import {ref, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import PillBadge from '@/components/badge/PillBadge.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import type {KbTag} from '@/api/knowledgeBase'
 
@@ -52,10 +53,10 @@ function onAddTag(name?: string) {
 <template>
     <div v-if="tags.length > 0 || canManage" class="flex flex-wrap items-center gap-2 mb-4">
         <font-awesome-icon :icon="['fas', 'tags']" class="text-xs text-[var(--text-muted)]"/>
-        <span
+        <PillBadge
             v-for="tag in tags"
             :key="tag.id"
-            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-[var(--bg-accent)] text-[var(--text)]"
+            class="gap-1 px-2 py-0.5 text-xs bg-[var(--bg-accent)] text-[var(--text)]"
         >
             {{ tag.name }}
             <IconButton
@@ -65,7 +66,7 @@ function onAddTag(name?: string) {
                 class="!p-0 text-[10px] hover:text-[var(--error)]"
                 @click="emit('removeTag', tag.name)"
             />
-        </span>
+        </PillBadge>
         <div v-if="canManage" class="relative inline-flex">
             <form @submit.prevent="onAddTag()">
                 <TextInput

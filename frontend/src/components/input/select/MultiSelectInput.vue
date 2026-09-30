@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import PillBadge from '@/components/badge/PillBadge.vue'
 import DropdownPanel from './dropdown/DropdownPanel.vue'
 import DropdownListbox from './dropdown/DropdownListbox.vue'
 import DropdownOption from './dropdown/DropdownOption.vue'
@@ -49,16 +50,16 @@ function getLabel(value: string): string {
 <template>
   <div class="space-y-2">
     <div v-if="modelValue.length > 0" class="flex flex-wrap gap-1">
-      <span
+      <PillBadge
           v-for="val in modelValue"
           :key="val"
-          class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+          class="gap-1 px-2.5 py-1 text-xs font-medium bg-primary/10 text-primary border border-primary/20"
       >
         {{ getLabel(val) }}
         <button class="hover:text-error" type="button" :aria-label="t('common.remove')" @click="remove(val)">
           <font-awesome-icon :icon="['fas', 'xmark']" class="h-3 w-3"/>
         </button>
-      </span>
+      </PillBadge>
     </div>
 
     <DropdownPanel v-if="availableOptions.length > 0" v-model:open="open" panel-class="w-64 max-h-48">

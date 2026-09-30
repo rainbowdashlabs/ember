@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import type {SortDirection} from '@/composables/useSortable'
 import {sortIconFor} from '@/composables/useSortable'
+import BareButton from '@/components/button/BareButton.vue'
 
 /**
  * The heading of the member column, which is also where the table is put in order.
@@ -32,10 +33,9 @@ const {t} = useI18n()
   <th class="py-1 pr-3 font-medium">
     <span class="inline-flex items-center gap-2">
       {{ t('inventory.intake.member') }}
-      <button
+      <BareButton
           v-for="key in (['firstName', 'lastName'] as const)"
           :key="key"
-          type="button"
           class="inline-flex items-center gap-1 text-xs font-normal"
           :class="activeKey === key ? 'text-primary' : 'text-(--text-muted) hover:text-primary'"
           :aria-pressed="activeKey === key"
@@ -44,7 +44,7 @@ const {t} = useI18n()
       >
         {{ t(`inventory.intake.sortBy.${key}`) }}
         <font-awesome-icon :icon="['fas', sortIconFor(activeKey === key, direction)]"/>
-      </button>
+      </BareButton>
     </span>
   </th>
 </template>

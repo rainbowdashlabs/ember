@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import type {TrackingStatusName} from '@/api/dataTracking'
 
@@ -48,15 +49,17 @@ const {t} = useI18n()
       <option value="IGNORED">IGNORED</option>
       <option value="UNVERIFIED">UNVERIFIED</option>
     </SelectInput>
-    <PrimaryButton :disabled="batchSaving" @click="emit('apply')">
-      <font-awesome-icon v-if="batchSaving" :icon="['fas', 'spinner']" class="animate-spin mr-1"/>
-      {{ t('adminDataTracking.batch.apply') }}
-    </PrimaryButton>
-    <SecondaryButton @click="emit('selectAll')">
-      {{ t('adminDataTracking.batch.selectAllFiltered') }}
-    </SecondaryButton>
-    <SecondaryButton @click="emit('clear')">
-      {{ t('adminDataTracking.batch.clear') }}
-    </SecondaryButton>
+    <ButtonRow>
+      <PrimaryButton :disabled="batchSaving" @click="emit('apply')">
+        <font-awesome-icon v-if="batchSaving" :icon="['fas', 'spinner']" class="animate-spin mr-1"/>
+        {{ t('adminDataTracking.batch.apply') }}
+      </PrimaryButton>
+      <SecondaryButton @click="emit('selectAll')">
+        {{ t('adminDataTracking.batch.selectAllFiltered') }}
+      </SecondaryButton>
+      <SecondaryButton @click="emit('clear')">
+        {{ t('adminDataTracking.batch.clear') }}
+      </SecondaryButton>
+    </ButtonRow>
   </div>
 </template>

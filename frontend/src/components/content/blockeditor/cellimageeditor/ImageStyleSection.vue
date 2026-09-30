@@ -8,6 +8,7 @@ import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import LabeledNumberInput from './LabeledNumberInput.vue'
+import ColorPickerInput from '@/components/input/ColorPickerInput.vue'
 import type {ImageConfig} from '@/api/pageManage'
 
 defineProps<{
@@ -42,12 +43,11 @@ const borderColorId = useId()
             />
             <div>
                 <FieldLabel :for="borderColorId" hint class="mb-1">{{ t('stationPages.editor.borderColor') }}</FieldLabel>
-                <input
+                <ColorPickerInput
                     :id="borderColorId"
-                    type="color"
-                    :value="config.borderColor ?? '#000000'"
+                    :model-value="config.borderColor ?? '#000000'"
                     class="h-10 w-full rounded-theme border border-(--border) bg-(--bg) cursor-pointer"
-                    @input="$emit('update', {borderColor: ($event.target as HTMLInputElement).value})"
+                    @update:model-value="value => $emit('update', {borderColor: value})"
                 />
             </div>
         </div>

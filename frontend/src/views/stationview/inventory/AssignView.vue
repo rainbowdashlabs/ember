@@ -302,7 +302,7 @@ async function onUnknownScanCreated(item: InventoryItem) {
       <NeutralContainer>
         <div class="flex items-center justify-between mb-2">
           <p class="text-xs text-(--text-muted)">{{ t('inventory.assign.recentHint') }}</p>
-          <SecondaryButton v-if="recent.length > 0" size="sm" :disabled="submitting" @click="undoLast">
+          <SecondaryButton v-if="recent.length > 0" :disabled="submitting" @click="undoLast">
             <font-awesome-icon :icon="['fas', 'rotate-left']" class="mr-1" />
             {{ t('inventory.assign.undo') }}
           </SecondaryButton>

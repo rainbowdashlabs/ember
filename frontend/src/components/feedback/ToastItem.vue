@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import {dismissToast, holdToast, releaseToast, type Toast, type ToastAction} from '@/util/toast'
 
 /**
@@ -71,13 +72,12 @@ function onFocusOut(event: FocusEvent) {
             class="mt-0.5 shrink-0"
         />
         <p class="text-sm text-(--text) grow">{{ toast.message }}</p>
-        <button
+        <BareButton
             v-if="toast.action"
             class="shrink-0 text-sm font-medium underline text-(--text) hover:no-underline"
             data-testid="toast-action"
-            type="button"
             @click="runAction(toast.action)"
-        >{{ toast.action.label }}</button>
+        >{{ toast.action.label }}</BareButton>
         <IconButton
             :icon="['fas', 'xmark']"
             :label="t('toast.dismiss')"

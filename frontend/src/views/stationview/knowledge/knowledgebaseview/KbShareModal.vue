@@ -18,6 +18,7 @@ import {useKbEntrySharing} from './useKbEntrySharing'
 import {useKbStationAudience} from './useKbStationAudience'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import type {KbEntryApi} from './useKbEntryEditor'
 
 const {t} = useI18n()
@@ -95,10 +96,9 @@ async function handleSave() {
                         :key="station.partnerId"
                         class="flex items-center gap-2 text-sm"
                     >
-                        <input
-                            type="checkbox"
-                            :checked="audience.chosen.value.includes(station.partnerId)"
-                            @change="audience.toggle(station.partnerId)"
+                        <CheckboxInput
+                            :model-value="audience.chosen.value.includes(station.partnerId)"
+                            @update:model-value="audience.toggle(station.partnerId)"
                         />
                         {{ station.name }}
                     </label>

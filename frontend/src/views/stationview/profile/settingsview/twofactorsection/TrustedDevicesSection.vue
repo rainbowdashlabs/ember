@@ -43,7 +43,7 @@ async function handleRevokeAll() {
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between gap-2">
       <SubHeader>{{ t('twoFactor.trustedDevices.title') }}</SubHeader>
-      <SecondaryButton v-if="devices.length > 0" size="sm" @click="handleRevokeAll">
+      <SecondaryButton v-if="devices.length > 0" @click="handleRevokeAll">
         {{ t('twoFactor.trustedDevices.revokeAll') }}
       </SecondaryButton>
     </div>

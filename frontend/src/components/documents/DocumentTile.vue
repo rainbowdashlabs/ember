@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {StationDocument} from '@/api/documents'
 import {formatDate, formatSize} from '@/util/format'
@@ -32,8 +33,7 @@ const icon = computed(() => fileKindIcon(props.document.mimeType))
 </script>
 
 <template>
-  <button
-      type="button"
+  <BareButton
       data-testid="document-tile"
       class="text-left rounded-theme border border-bg-light-accent dark:border-bg-dark-accent overflow-hidden hover:border-primary transition-colors"
       @click="emit('open', props.document)"
@@ -55,5 +55,5 @@ const icon = computed(() => fileKindIcon(props.document.mimeType))
         <span v-if="props.document.keepOnArchive">{{ t('documents.kept') }}</span>
       </div>
     </div>
-  </button>
+  </BareButton>
 </template>

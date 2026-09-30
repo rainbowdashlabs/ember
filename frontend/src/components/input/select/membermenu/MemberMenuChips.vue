@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MemberName from '@/components/avatar/MemberName.vue'
+import PillBadge from '@/components/badge/PillBadge.vue'
 import {identityOf, type MemberOption} from '../memberOption'
 
 /**
@@ -38,11 +39,11 @@ const foldedAway = computed(() => Math.max(0, props.options.length - visible.val
 
 <template>
   <div v-if="options.length > 0" class="flex flex-wrap items-center gap-1.5">
-    <span
+    <PillBadge
         v-for="option in visible"
         :key="option.value"
         data-testid="member-select-chip"
-        class="inline-flex items-center gap-1 rounded-full bg-bg-light-accent px-2 py-1 dark:bg-bg-dark-accent"
+        class="gap-1 bg-bg-light-accent px-2 py-1 dark:bg-bg-dark-accent"
     >
       <MemberName :identity="identityOf(option)" class="text-sm"/>
       <button
@@ -54,7 +55,7 @@ const foldedAway = computed(() => Math.max(0, props.options.length - visible.val
       >
         <font-awesome-icon :icon="['fas', 'xmark']" class="h-3 w-3"/>
       </button>
-    </span>
+    </PillBadge>
     <button
         v-if="foldedAway > 0 || expanded"
         type="button"

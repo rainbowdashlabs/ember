@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import BareButton from '@/components/button/BareButton.vue'
+
 /**
  * An explanation kept out of the way until it is wanted, behind a small icon beside a label.
  *
@@ -20,15 +22,14 @@ defineProps<{
 
 <template>
   <span class="group relative inline-flex align-middle">
-    <button
-        type="button"
+    <BareButton
         data-testid="hint-icon"
         :aria-label="text"
         :title="text"
         class="text-(--text-muted) transition-colors hover:text-(--text) focus-visible:text-(--text)"
     >
       <font-awesome-icon :icon="['fas', 'circle-info']" class="h-3.5 w-3.5"/>
-    </button>
+    </BareButton>
     <span
         role="tooltip"
         class="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1 hidden w-56 -translate-x-1/2

@@ -8,6 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useSession} from '@/composables/useSession'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
+import BareButton from '@/components/button/BareButton.vue'
 
 const {t} = useI18n()
 const {sessionInfo} = useSession()
@@ -31,14 +32,13 @@ function copyJson() {
 
 <template>
   <template v-if="isDev">
-    <button
-        type="button"
+    <BareButton
         class="fixed bottom-4 right-16 z-40 h-10 w-10 rounded-full bg-secondary text-secondary-text shadow-lg hover:bg-secondary/80 transition-colors flex items-center justify-center"
         :title="t('devTools.button')"
         @click="open = !open"
     >
       <font-awesome-icon :icon="['fas', open ? 'xmark' : 'code']" class="h-4 w-4"/>
-    </button>
+    </BareButton>
 
     <div
         v-if="open"

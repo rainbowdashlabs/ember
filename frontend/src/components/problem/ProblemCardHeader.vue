@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import ProblemLevelBadge from './ProblemLevelBadge.vue'
+import PillBadge from '@/components/badge/PillBadge.vue'
 import {formatDateTime} from '@/util/format'
 
 /**
@@ -39,9 +40,9 @@ const shortLogger = computed(() => props.logger?.split('.').pop() ?? '')
       <div class="flex items-center gap-2 mb-1 flex-wrap">
         <ProblemLevelBadge :level="level"/>
         <span v-if="shortLogger" class="text-xs font-mono text-(--text-muted)">{{ shortLogger }}</span>
-        <span v-if="count > 1" class="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-(--bg-accent)">
+        <PillBadge v-if="count > 1" class="text-xs font-semibold px-1.5 py-0.5 bg-(--bg-accent)">
           {{ count }}x
-        </span>
+        </PillBadge>
         <slot name="badges"/>
       </div>
       <p class="text-sm font-medium max-w-full break-words">{{ title }}</p>

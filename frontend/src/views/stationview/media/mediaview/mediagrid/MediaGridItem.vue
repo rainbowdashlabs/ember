@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import BaseButton from '@/components/button/BaseButton.vue'
+import PillBadge from '@/components/badge/PillBadge.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import {mediaPictureUrl, type StationFile, type StationFileListing, type StationFileTag} from '@/api/media'
 import FileThumbnail from '@/components/documents/FileThumbnail.vue'
@@ -74,11 +75,11 @@ function onCheckboxClick(e: MouseEvent) {
             >{{ entry.file.fileName }}</p>
             <p class="text-(--text-muted)">{{ formatSize(entry.file.fileSize) }}</p>
             <div v-if="tagsOf(entry).length" class="flex flex-wrap gap-1">
-                <span v-for="tag in tagsOf(entry)" :key="tag.id"
-                      class="rounded-full px-1.5 py-0.5 text-[10px] text-white"
-                      :style="{background: tag.color ?? '#888'}">
+                <PillBadge v-for="tag in tagsOf(entry)" :key="tag.id"
+                           class="px-1.5 py-0.5 text-[10px] text-white"
+                           :style="{background: tag.color ?? '#888'}">
                     {{ tag.name }}
-                </span>
+                </PillBadge>
             </div>
             <div class="flex flex-wrap gap-1 pt-1" @click.stop>
                 <BaseButton v-for="tag in tags" :key="tag.id" compact

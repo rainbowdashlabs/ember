@@ -7,6 +7,7 @@
 import {computed, onBeforeUnmount, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import type {Cover} from '@/composables/useScreenCapture'
 
 /**
@@ -125,14 +126,13 @@ onBeforeUnmount(stopListening)
           draggable="false"
       />
 
-      <button
+      <BareButton
           v-for="(cover, index) in props.covers"
           :key="`${cover.x}-${cover.y}-${index}`"
           :style="styleOf(cover)"
           :title="t('problemReport.coverRemove')"
           class="absolute bg-gray-900 hover:opacity-80"
           data-testid="picture-cover"
-          type="button"
           @pointerdown.stop
           @click.stop="emit('remove', index)"
       />

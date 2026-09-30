@@ -4,8 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useEditorActionsMenu} from './useEditorActionsMenu'
+import BaseInput from '@/components/input/BaseInput.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import IconButton from '@/components/button/IconButton.vue'
 
@@ -22,6 +24,7 @@ withDefaults(defineProps<{
 }>(), {
     canResize: false,
     canPaste: false,
+    label: undefined,
 })
 
 const emit = defineEmits<{
@@ -33,6 +36,7 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const widthId = useId()
 
 const {open, rootRef, triggerVisibility, toggle, close} = useEditorActionsMenu()
 
@@ -66,17 +70,20 @@ defineExpose({close})
         >
             <p v-if="label" class="px-3 py-1 text-[10px] uppercase tracking-wider text-(--text-muted)">{{ label }}</p>
             <div v-if="canResize" class="px-3 py-1.5 flex items-center justify-between gap-2 text-sm">
-                <span class="text-(--text-muted)">{{ t('stationPages.editor.width') }} %</span>
-                <input
-                    type="number"
-                    min="10"
-                    max="100"
-                    step="1"
-                    :value="Math.round(widthPercent ?? 0)"
-                    class="w-20 px-2 py-1 rounded border border-(--border) bg-(--bg) text-(--text) text-xs text-right"
-                    @click.stop
-                    @change="(e: Event) => commitWidth((e.target as HTMLInputElement).value)"
-                />
+                <label :for="widthId" class="text-(--text-muted)">{{ t('stationPages.editor.width') }} %</label>
+                <div class="w-20">
+                    <BaseInput
+                        :id="widthId"
+                        type="number"
+                        min="10"
+                        max="100"
+                        step="1"
+                        :model-value="Math.round(widthPercent ?? 0)"
+                        class="text-xs text-right"
+                        @click.stop
+                        @change="(e: Event) => commitWidth((e.target as HTMLInputElement).value)"
+                    />
+                </div>
             </div>
             <div class="border-t border-(--border) my-1"/>
             <DropdownMenuItem :icon="['fas', 'copy']" @click="emit('copy'); close()">{{ t('stationPages.editor.copyCell') }}</DropdownMenuItem>

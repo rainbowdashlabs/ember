@@ -12,6 +12,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import type {LegalFile} from '@/api/adminSettings'
 
 const {t} = useI18n()
@@ -31,10 +32,6 @@ const emit = defineEmits<{
 }>()
 
 const nameId = useId()
-
-function onInput(event: Event) {
-  emit('updateContent', (event.target as HTMLTextAreaElement).value)
-}
 </script>
 
 <template>
@@ -51,13 +48,13 @@ function onInput(event: Event) {
       <DeleteButton v-if="!file.generated" @click="emit('delete')"/>
     </div>
     <MutedText v-if="file.generated" size="sm">{{ t('adminSettings.legal.generatedHint') }}</MutedText>
-    <textarea
+    <TextAreaInput
         v-if="!file.generated"
-        :value="file.content"
+        :model-value="file.content"
         :aria-labelledby="nameId"
-        class="w-full rounded-lg border border-(--border) bg-(--bg) text-(--text) p-3 min-h-[200px] font-mono text-sm outline-none resize-y focus:ring-2 focus:ring-primary/50"
+        class="min-h-[200px] font-mono text-sm"
         :placeholder="t('adminSettings.legal.contentPlaceholder')"
-        @input="onInput"
+        @update:model-value="value => emit('updateContent', value ?? '')"
     />
     <pre
         v-else

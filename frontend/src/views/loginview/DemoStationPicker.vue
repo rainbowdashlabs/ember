@@ -5,6 +5,8 @@
  */
 <script lang="ts" setup>
 import type {StationChoice} from '@/composables/useDemoAccounts'
+import BareButton from '@/components/button/BareButton.vue'
+import PillBadge from '@/components/badge/PillBadge.vue'
 
 /**
  * Which station's people are on offer.
@@ -23,10 +25,9 @@ const active = defineModel<string>({required: true})
 
 <template>
   <div class="flex flex-wrap gap-2" data-testid="demo-station-picker">
-    <button
+    <BareButton
         v-for="choice in choices"
         :key="choice.key"
-        type="button"
         data-testid="demo-station-choice"
         :class="[
           active === choice.key
@@ -38,8 +39,8 @@ const active = defineModel<string>({required: true})
         @click="active = choice.key"
     >
       <span class="font-medium">{{ choice.label }}</span>
-      <span :class="compact ? 'text-[10px]' : 'text-xs'"
-            class="rounded-full bg-secondary/15 text-secondary-accent px-1.5">{{ choice.memberCount }}</span>
-    </button>
+      <PillBadge :class="compact ? 'text-[10px]' : 'text-xs'"
+                 class="bg-secondary/15 text-secondary-accent px-1.5">{{ choice.memberCount }}</PillBadge>
+    </BareButton>
   </div>
 </template>

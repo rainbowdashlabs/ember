@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {LogEntry} from '@/api/applicationLog'
+import BareButton from '@/components/button/BareButton.vue'
 
 /**
  * One log line.
@@ -63,16 +64,15 @@ const shortLogger = computed(() => props.entry.logger.split('.').pop() ?? props.
       <span>{{ when }}</span>
       <span :title="entry.logger">{{ shortLogger }}</span>
       <span class="font-mono">{{ entry.thread }}</span>
-      <button
+      <BareButton
           v-if="entry.throwable"
           class="flex items-center gap-1 rounded border border-error px-1.5 py-0.5 font-semibold text-error hover:bg-error/15"
-          type="button"
           @click="expanded = !expanded"
       >
         <font-awesome-icon :icon="['fas', 'triangle-exclamation']"/>
         {{ t('applicationLog.hasTrace') }}
         <font-awesome-icon :icon="['fas', expanded ? 'chevron-up' : 'chevron-down']"/>
-      </button>
+      </BareButton>
     </div>
     <div class="text-sm break-words whitespace-pre-wrap font-mono">{{ entry.message }}</div>
     <pre v-if="expanded && entry.throwable"

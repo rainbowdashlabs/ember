@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import {useI18n} from 'vue-i18n'
 import DesktopFieldToggles from './DesktopFieldToggles.vue'
 import AudienceCount from './AudienceCount.vue'
@@ -57,10 +58,8 @@ const gridClass = computed(() => fieldGrid(capabilities.writability))
       role="presentation"
       @click="emit('select', field)">
     <div class="font-medium px-2 truncate flex items-center gap-2">
-      <input
-          type="checkbox"
-          class="cursor-pointer"
-          :checked="checked"
+      <CheckboxInput
+          :model-value="checked"
           :aria-label="t('membersConfig.batch.toggleRow')"
           :data-testid="`field-check-${field.name}`"
           @click.stop="emit('toggleChecked', field)"/>

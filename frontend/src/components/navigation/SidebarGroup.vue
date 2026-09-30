@@ -10,6 +10,8 @@ import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
 import {useSidebarInFlyout} from '@/composables/useSidebarFlyoutContext'
 import {useFlyoutHover} from '@/composables/useFlyoutHover'
 import SidebarFlyoutMenu from '@/components/navigation/SidebarFlyoutMenu.vue'
+import BareButton from '@/components/button/BareButton.vue'
+import CountBadge from '@/components/badge/CountBadge.vue'
 import {collectSidebarPaths, sidebarEntryVNodes} from '@/util/sidebarEntries'
 import {
   bestSidebarMatch,
@@ -212,13 +214,9 @@ watch(() => collapsed.value, (value) => {
       >
         <font-awesome-icon v-if="icon" :icon="icon" class="w-4 shrink-0"/>
         <span class="flex-1 text-left truncate" :class="collapsed ? 'lg:hidden' : ''">{{ label }}</span>
-        <span v-if="badge && badge > 0"
-              :class="collapsed ? 'lg:hidden' : ''"
-              class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-error-text">{{
-            badge
-          }}</span>
+        <CountBadge v-if="badge && badge > 0" :count="badge" :class="collapsed ? 'lg:hidden' : ''"/>
       </component>
-      <button
+      <BareButton
           v-if="hasVisibleChildren"
           class="flex items-center justify-center w-8 h-8 rounded-theme text-[var(--text)] transition-colors duration-150"
           :class="collapsed ? 'lg:hidden' : ''"
@@ -228,7 +226,7 @@ watch(() => collapsed.value, (value) => {
             :icon="['fas', expanded ? 'chevron-down' : 'chevron-right']"
             class="h-3 w-3"
         />
-      </button>
+      </BareButton>
     </div>
 
     <div v-if="hasVisibleChildren && expanded" class="ml-4 flex flex-col gap-1 mt-1" :class="collapsed ? 'lg:hidden' : ''">

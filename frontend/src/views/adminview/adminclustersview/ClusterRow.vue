@@ -10,6 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import {searchAccounts, type AccountSearchResult} from '@/api/twoFactorAdmin'
 import type {Cluster} from '@/api/clusters'
 
@@ -75,15 +76,14 @@ function choose(account: AccountSearchResult) {
       <p class="text-sm text-(--text-muted)">{{ t('adminClusters.appointHint') }}</p>
       <TextInput v-model="query" :placeholder="t('adminClusters.appointPlaceholder')" @input="find"/>
       <div v-if="results.length" class="space-y-1">
-        <button
+        <BareButton
             v-for="account in results"
             :key="account.uid"
             class="block w-full rounded px-2 py-1 text-left hover:bg-(--surface-hover)"
-            type="button"
             @click="choose(account)"
         >
           {{ account.displayName }} <span class="text-(--text-muted)">{{ account.email }}</span>
-        </button>
+        </BareButton>
       </div>
     </div>
   </NeutralContainer>

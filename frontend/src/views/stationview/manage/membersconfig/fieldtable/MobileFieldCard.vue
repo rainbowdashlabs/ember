@@ -10,6 +10,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CompactToggle from '@/components/input/toggle/CompactToggle.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import AudienceCount from './AudienceCount.vue'
 import WritabilitySelect from './WritabilitySelect.vue'
 import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFieldsConfig'
@@ -51,10 +52,8 @@ const capabilities = useFieldsCapabilities()
       @click="emit('select', field)">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <input
-            type="checkbox"
-            class="cursor-pointer"
-            :checked="checked"
+        <CheckboxInput
+            :model-value="checked"
             :aria-label="t('membersConfig.batch.toggleRow')"
             :data-testid="`field-check-${field.name}`"
             @click.stop="emit('toggleChecked', field)"/>

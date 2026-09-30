@@ -8,6 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import {KbAccessLevel, levelCovers, type KbFolderTreeEntry} from '@/api/knowledgeBase'
 
 /**
@@ -89,8 +90,7 @@ function pick(row: Row) {
         <SearchInput v-if="rows.length > 8" v-model="query" :placeholder="t('kb.movePickerSearch')"/>
 
         <div class="max-h-64 overflow-y-auto rounded-theme border border-(--border)" data-testid="kb-folder-picker">
-            <button
-                type="button"
+            <BareButton
                 class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-(--bg-accent)"
                 :class="model === null ? 'bg-(--bg-accent) font-medium' : ''"
                 data-testid="kb-folder-picker-root"
@@ -98,12 +98,11 @@ function pick(row: Row) {
             >
                 <font-awesome-icon :icon="['fas', 'house']" class="text-xs text-(--accent)"/>
                 {{ t('kb.root') }}
-            </button>
+            </BareButton>
 
-            <button
+            <BareButton
                 v-for="row in visibleRows"
                 :key="row.id"
-                type="button"
                 class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm"
                 :class="[
                     model === row.id ? 'bg-(--bg-accent) font-medium' : '',
@@ -116,7 +115,7 @@ function pick(row: Row) {
             >
                 <font-awesome-icon :icon="['fas', 'folder']" class="text-xs text-(--accent)"/>
                 <span class="truncate">{{ row.name }}</span>
-            </button>
+            </BareButton>
 
             <MutedText v-if="visibleRows.length === 0" tag="p" size="sm" class="px-3 py-2">
                 {{ t('kb.moveNoFolders') }}
