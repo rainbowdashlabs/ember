@@ -1556,6 +1556,8 @@ export default {
         + 'vielleicht schon beantwortet, oder hier fehlt eine Rolle, die die neue Wache braucht',
     'S-044': 'Diese Bewerbung wartet nicht mehr auf eine Antwort, es wurde nichts gespeichert',
     'S-045': 'Hier gibt es nichts, was im offenen Netz zu sehen wäre',
+    'S-046': 'Diese Instanz hat bereits eine Wache, es wurde nichts angelegt. Weitere Wachen legst du unter „Wachen verwalten" an',
+    'S-047': STATION_NEEDS_A_NAME,
 
     'DC-001': CHOOSE_A_STATION,
     'DC-002': STATION_NOT_FOUND_IN_DISCOVERY,

@@ -42,6 +42,7 @@
 - **The backend gets thirty seconds to shut down.** The shipped compose files and the installer give the backend container a `stop_grace_period` of 30 seconds, which it uses to finish running requests and save buffered statistics and log lines. Setups with their own compose files should set the same on the backend.
 - **Association mail is switched on by each person.** The association's notification mail now only reaches people who switch it on under Association → Notifications, where it starts off. Until then its notifications stay in the app.
 - **New stations are listed publicly.** A station founded from now on appears on the public discovery page and to other Ember instances from the start, and can switch this off during its setup or under Federation → Settings. Existing, imported and transferred stations keep the setting they have.
+- **A fresh installation asks for its first station.** A new instance no longer creates a station named "default": after the first sign-in, the administrator names and founds the first station, becomes its manager and goes straight into its setup. Existing instances keep their stations as they are.
 ### Fixes
 
 - **Addresses in group and tag lists sat out of line.** In the member lists of groups and tags, the address of somebody with a profile picture stood beside the picture instead of under the name. It now lines up under the name for everybody.

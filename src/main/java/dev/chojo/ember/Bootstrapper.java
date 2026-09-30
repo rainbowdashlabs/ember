@@ -10,23 +10,18 @@ import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
 import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import dev.chojo.ember.api.ApiServer;
-import dev.chojo.ember.api.auth.InstanceUserType;
-import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.auth.SecretsInitializer;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.FirstAdministratorService;
 import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.StationKeyStore;
 import dev.chojo.ember.feature.legal.service.ConsentService;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
-import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.feature.quiz.service.AiCredentialService;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.system.service.ChangelogAnnouncer;
 import dev.chojo.ember.feature.system.service.DataInitializer;
@@ -36,7 +31,6 @@ import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import dev.chojo.ember.lifecycle.Lifecycle;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.lifecycle.TaskSource;
-import dev.chojo.ember.util.RandomTokens;
 import dev.chojo.ember.util.service.CloudflareRangesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,73 +47,7 @@ import java.util.Set;
  */
 public class Bootstrapper {
     private static final Logger log = LoggerFactory.getLogger(Bootstrapper.class);
-    private static final String ADMIN_LOGIN_NAME = "admin";
-    private static final String ADMIN_FIRST_NAME = "Admin";
-    private static final String ADMIN_LAST_NAME = "Admin";
     private static final Key<Set<TaskSource>> TASK_SOURCES = Key.get(new TypeLiteral<>() {});
-
-    /**
-     * Creates the account that administers a brand new instance and a default station, unless
-     * somebody already administers it. Logs what to sign in with: on an ordinary instance a
-     * random password with a forced change at first sign-in, on a passwordless one no credential
-     * row at all and a one-time enrolment link instead. Whoever can read the console is the
-     * person installing the instance, and a link that can do nothing but create one passkey is
-     * a smaller thing to leave lying in a log file than a working password.
-     *
-     * <p>The account is given a login name and no address at all. It used to be given a made-up
-     * one ending in {@code .local}, which read as an address without being one: no password reset
-     * reached it, no security notice did, and naming it as somebody's address elsewhere in the
-     * application was refused as a collision, because a made-up address that is already taken is
-     * two different people rather than one. A name is what an account signs in with when it has no
-     * address of its own, which is exactly this account's position, and it is a truthful one: it
-     * says the instance does not yet know where to write.
-     *
-     * <p>Where to write is then asked for at the first sign-in, beside the password, and there is
-     * no session until it has been answered.
-     */
-    private static void createDefaultAdmin(
-            AccountRepository accountRepository,
-            PasswordHasher passwordHasher,
-            StationRepository stationRepository,
-            StationMemberRepository stationMemberRepository,
-            PasskeyModeService passkeyModeService,
-            PasskeyEnrollmentService enrollmentService,
-            Api api) {
-        if (accountRepository.anyAdministratorExists()) {
-            return;
-        }
-        boolean passwordless = passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS;
-        String loginName = freeLoginName(accountRepository);
-
-        var account = accountRepository.create(null, ADMIN_FIRST_NAME, ADMIN_LAST_NAME, false);
-        int accountId = account.id();
-        accountRepository.updateUsername(accountId, loginName);
-        String password = null;
-        if (!passwordless) {
-            password = generatePassword();
-            accountRepository.createCredential(accountId, passwordHasher.hash(password));
-            accountRepository.setForcePasswordChange(accountId, true);
-        }
-        accountRepository.setInstanceUserType(accountId, InstanceUserType.ADMINISTRATOR);
-
-        var station = stationRepository.create("default");
-        stationMemberRepository.create(station.id(), accountId);
-
-        log.info("==========================================================");
-        log.info("  Default admin account created");
-        log.info("  Username: {}", loginName);
-        if (passwordless) {
-            String code = enrollmentService.issueCode(accountId, PasskeyEnrollmentService.LINK_TTL);
-            log.info("  This instance is passwordless. Create the admin's passkey here (link lives one hour):");
-            log.info("  {}/enroll?code={}", api.baseUrl(), code);
-        } else {
-            log.info("  Password: {}", password);
-            log.info("  You will be required to change this password and to give an email address");
-            log.info("  the instance can write to on first login.");
-        }
-        log.info("  Default station '{}' created (id={})", station.name(), station.id());
-        log.info("==========================================================");
-    }
 
     /**
      * The rescue for the one lockout nobody can staff their way out of: when the flag is set,
@@ -145,27 +73,6 @@ public class Bootstrapper {
         log.warn("==========================================================");
     }
 
-    /**
-     * The name to sign in with, moved out of the way of whoever already holds it. Nobody normally
-     * does on an instance with no administrator, but an instance whose only administrator was
-     * deleted comes through here again, with everybody else still on it.
-     */
-    private static String freeLoginName(AccountRepository accountRepository) {
-        if (!accountRepository.usernameTaken(ADMIN_LOGIN_NAME, null)) return ADMIN_LOGIN_NAME;
-        String name;
-        do {
-            name = ADMIN_LOGIN_NAME + "-" + Integer.toString(RandomTokens.number(0x10000), 16);
-        } while (accountRepository.usernameTaken(name, null));
-        return name;
-    }
-
-    /**
-     * Generates a cryptographically secure random password encoded as a URL-safe Base64 string.
-     */
-    private static String generatePassword() {
-        return RandomTokens.urlSafe(24);
-    }
-
     void main() {
         OutboundHttp.allowHostHeader();
         var conf = new Conf();
@@ -187,14 +94,7 @@ public class Bootstrapper {
         if (demoService.isEnabled()) {
             demoService.initialize();
         } else {
-            createDefaultAdmin(
-                    injector.getInstance(AccountRepository.class),
-                    injector.getInstance(PasswordHasher.class),
-                    injector.getInstance(StationRepository.class),
-                    injector.getInstance(StationMemberRepository.class),
-                    injector.getInstance(PasskeyModeService.class),
-                    injector.getInstance(PasskeyEnrollmentService.class),
-                    injector.getInstance(Api.class));
+            injector.getInstance(FirstAdministratorService.class).createIfMissing();
             printAdminEnrollmentLinkIfAsked(
                     conf,
                     injector.getInstance(AccountRepository.class),

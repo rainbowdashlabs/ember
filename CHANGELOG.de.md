@@ -42,6 +42,7 @@
 - **Das Backend bekommt dreißig Sekunden zum Herunterfahren.** Die mitgelieferten Compose-Dateien und das Installationsskript geben dem Backend-Container eine `stop_grace_period` von 30 Sekunden, in denen er laufende Anfragen beendet und gepufferte Statistiken und Protokollzeilen speichert. Eigene Compose-Dateien sollten beim Backend dasselbe setzen.
 - **Die E-Mail des Verbands schaltet jede Person selbst ein.** Die Benachrichtigungs-E-Mail des Verbands erreicht nur noch, wer sie unter Verband → Benachrichtigungen einschaltet, wo sie anfangs aus ist. Bis dahin bleiben seine Benachrichtigungen in der App.
 - **Neue Wachen sind öffentlich gelistet.** Eine ab jetzt gegründete Wache erscheint von Anfang an auf der öffentlichen Discovery-Seite und bei anderen Ember-Instanzen und kann das bei ihrer Einrichtung oder unter Föderation → Einstellungen abschalten. Bestehende, importierte und übertragene Wachen behalten ihre Einstellung.
+- **Eine frische Installation fragt nach ihrer ersten Wache.** Eine neue Instanz legt keine Wache namens „default" mehr an: Nach der ersten Anmeldung benennt und gründet der Administrator die erste Wache, wird ihr Verwalter und landet direkt in ihrer Einrichtung. Bestehende Instanzen behalten ihre Wachen unverändert.
 ### Fehlerbehebungen
 
 - **Adressen in Gruppen- und Tag-Listen standen versetzt.** In den Mitgliederlisten von Gruppen und Tags stand die Adresse von jemandem mit Profilbild neben dem Bild statt unter dem Namen. Sie steht jetzt bei allen unter dem Namen.

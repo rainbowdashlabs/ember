@@ -14,6 +14,7 @@ import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import client from '@/api/client'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import AttentionGrid from './adminoverviewview/AttentionGrid.vue'
+import FirstStationNotice from './adminoverviewview/FirstStationNotice.vue'
 import RecentActivitySection from './adminoverviewview/RecentActivitySection.vue'
 import type {AdminOverview, RecentEntry} from './adminoverviewview/types'
 
@@ -52,6 +53,7 @@ const totalAttention = computed(() => {
 <template>
   <ViewContent :title="t('pages.admin-overview.title')" :subtitle="t('pages.admin-overview.subtitle')">
     <div class="space-y-6">
+      <FirstStationNotice/>
       <OnboardingTaskCard level="INSTANCE"/>
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :failure="failure"/>

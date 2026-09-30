@@ -20,6 +20,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-admin-module-overview', path: '/helpcenter/admin/dashboard/overview', i18nPrefix: 'helpCenter.adminOverview'},
     {route: 'help-admin-statistics', path: '/helpcenter/admin/dashboard/statistics', i18nPrefix: 'helpCenter.adminStatistics'},
     {route: 'help-admin-data-tracking', path: '/helpcenter/admin/dev/data-tracking', i18nPrefix: 'helpCenter.adminDataTracking'},
+    {route: 'help-admin-first-station', path: '/helpcenter/admin/first-station', i18nPrefix: 'helpCenter.adminFirstStation'},
     {route: 'help-admin-api-status', path: '/helpcenter/admin/monitoring/api-status', i18nPrefix: ['helpCenter.adminApiStatus', 'helpCenter.sample.admin']},
     {route: 'help-admin-api-status-detail', path: '/helpcenter/admin/monitoring/api-status/detail', i18nPrefix: 'helpCenter.adminApiStatusDetail'},
     {route: 'help-admin-discovery', path: '/helpcenter/admin/monitoring/discovery', i18nPrefix: 'helpCenter.adminDiscovery'},

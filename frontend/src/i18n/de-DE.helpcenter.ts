@@ -533,7 +533,9 @@ export default {
                 installer: 'In einem Befehl installieren',
                 installerText: 'Das Installationsskript fragt die Handvoll Dinge ab, die sich zwischen '
                     + 'Installationen unterscheiden, schreibt die Compose-Datei, startet alles und zeigt am '
-                    + 'Ende die Zugangsdaten des angelegten Administrators:',
+                    + 'Ende die Zugangsdaten des angelegten Administrators. Eine Wache legt es nicht an: Die '
+                    + 'erste gründest du nach der ersten Anmeldung selbst und gibst ihr ihren Namen. So '
+                    + 'startest du es:',
                 installerPageText: 'Wer lieber klickt als tippt, stellt die Installation vorher zusammen und '
                     + 'nimmt nur einen kurzen Code mit auf den Server.',
                 installerPageTitle: 'Installation zusammenstellen',
@@ -4309,6 +4311,17 @@ volumes:
             dummyTitle: 'Wachen',
             dummyCreate: 'Neue Wache',
             tip: 'Beim Erstellen einer Wache kannst du direkt einen Manager zuweisen. Die Person erhält dann eine Einladung per E-Mail.',
+        },
+        adminFirstStation: {
+            title: 'Die erste Wache gründen',
+            subtitle: 'Der erste Schritt nach der Installation.',
+            whatIs: 'Warum diese Seite?',
+            whatIsText: 'Eine frisch installierte Instanz legt nur ihren Administrator an und keine Wache. So trägt die erste Wache von Anfang an den Namen, den ihr wählt, statt eines Platzhalters. Solange die Instanz keine Wache hat, führt die Anmeldung als Administrator hierher, und die Übersicht der Verwaltung weist darauf hin.',
+            howTo: 'Wie gründe ich die Wache?',
+            howToText: 'Gib den Namen der Wache ein und klicke auf „Wache gründen". Du wirst ihr Verwalter und Besitzer.',
+            afterTitle: 'Wie geht es weiter?',
+            afterText: 'Gleich danach öffnet sich die Einrichtung der neuen Wache: Adresse, Module, Rechte, Gruppen und die Frage, wie die Wache im Verzeichnis gelistet wird. Neu gegründete Wachen sind zunächst öffentlich gelistet; das kannst du im Schritt zur Sichtbarkeit ändern.',
+            tip: 'Diese Seite gibt es nur, solange die Instanz keine Wache hat. Weitere Wachen legst du unter „Wachen verwalten" an. Instanzen, die schon länger laufen, behalten ihre bisherigen Wachen.',
         },
         adminStations: {
             title: 'Wachen verwalten',

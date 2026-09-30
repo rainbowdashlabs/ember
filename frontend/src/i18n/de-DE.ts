@@ -1076,6 +1076,10 @@ export default {
             title: 'Wachen verwalten',
             subtitle: 'Wachen anlegen und bearbeiten',
         },
+        'admin-first-station': {
+            title: 'Die erste Wache gründen',
+            subtitle: 'Diese Instanz hat noch keine Wache',
+        },
         'admin-station-edit': {
             title: 'Wache bearbeiten',
             subtitle: 'Wache konfigurieren',
@@ -4692,6 +4696,16 @@ export default {
         title: 'Wache wechseln',
         noStation: 'Keine Wache',
         allStations: 'Alle Wachen',
+    },
+    firstStation: {
+        intro: 'Diese Instanz ist frisch eingerichtet und hat noch keine Wache. Gib ihr einen Namen, und du gründest hier die erste Wache. Du wirst ihr Verwalter und kannst danach Mitglieder einladen.',
+        afterwards: 'Gleich danach führt dich die Einrichtung der Wache durch Adresse, Module, Rechte und die Frage, wie sie im Verzeichnis gelistet wird. Weitere Wachen legst du später unter „Wachen verwalten" an.',
+        nameLabel: 'Name der Wache',
+        namePlaceholder: 'z. B. Jugendfeuerwehr Musterstadt',
+        nameHint: 'So erscheint die Wache für ihre Mitglieder und, wenn ihr das wollt, im Verzeichnis. Ändern kannst du den Namen später.',
+        found: 'Wache gründen',
+        adminNotice: 'Diese Instanz hat noch keine Wache.',
+        adminNoticeAction: 'Erste Wache gründen',
     },
     crossStation: {
         administration: 'Verwaltung',

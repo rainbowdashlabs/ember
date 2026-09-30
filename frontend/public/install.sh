@@ -574,6 +574,7 @@ if [ -n "$CREDENTIALS" ]; then
     say "    Password: ${BOLD}$ADMIN_PASSWORD${OFF}"
     say ""
     say "${DIM}  You will be asked to change it on the first login.${OFF}"
+    say "${DIM}  The instance has no station yet: after signing in you found the first one.${OFF}"
     say "${DIM}  It is written here and in the log of the first start, nowhere else.${OFF}"
     say ""
 else

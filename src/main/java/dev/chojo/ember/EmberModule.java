@@ -258,6 +258,7 @@ import dev.chojo.ember.feature.quiz.route.QuizTestRoutes;
 import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes;
 import dev.chojo.ember.feature.quiz.service.QuizFederationService;
 import dev.chojo.ember.feature.station.route.DiscoveryRoutes;
+import dev.chojo.ember.feature.station.route.FirstStationRoutes;
 import dev.chojo.ember.feature.station.route.PublicStationRoutes;
 import dev.chojo.ember.feature.station.route.SetupRoutes;
 import dev.chojo.ember.feature.station.route.StationApplicationRoutes;
@@ -389,6 +390,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(AvatarRoutes.class);
         routesBinder.addBinding().to(AccountDataRoutes.class);
         routesBinder.addBinding().to(StationRoutes.class);
+        routesBinder.addBinding().to(FirstStationRoutes.class);
         routesBinder.addBinding().to(StationMemberRoutes.class);
         routesBinder.addBinding().to(StationMemberInviteRoutes.class);
         routesBinder.addBinding().to(AttendanceRoutes.class);

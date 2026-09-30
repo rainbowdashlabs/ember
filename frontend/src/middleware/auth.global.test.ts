@@ -32,6 +32,7 @@ const state = vi.hoisted(() => ({
     sessionCleared: 0,
     remembered: [] as string[],
     forgotten: 0,
+    firstStationNeeded: false,
 }))
 
 mockNuxtImport('navigateTo', () => (target: unknown) => {
@@ -97,6 +98,10 @@ vi.mock('~/util/landingMemoryState', () => ({
     forgetLandingMemory: () => {
         state.forgotten++
     },
+}))
+
+vi.mock('~/api/stations', () => ({
+    isFirstStationNeeded: async () => state.firstStationNeeded,
 }))
 
 vi.mock('~/composables/useStations', () => ({
@@ -167,6 +172,7 @@ describe('auth route guard', () => {
         state.activeStation = null
         state.navigations = []
         state.admin = false
+        state.firstStationNeeded = false
         state.sessionLoaded = false
         state.sessionLoads = 0
         state.clusters = []
@@ -256,6 +262,28 @@ describe('auth route guard', () => {
             {path: '/cross-station', query: {redirect: '/station/dashboard/overview'}},
         ])
         expect(localStorage.getItem('ember_last_activity'), 'the stamp was not refreshed').toBe(stamp)
+    })
+
+    /**
+     * A fresh instance has no station to pick, so its administrator is led to found the first one
+     * instead of meeting an empty picker.
+     */
+    it('sends the administrator of an instance without stations to found the first one', async () => {
+        state.admin = true
+        state.firstStationNeeded = true
+
+        await run(route('/station/dashboard/overview'))
+        await run(route('/cross-station'))
+
+        expect(state.navigations).toEqual(['/admin/first-station', '/admin/first-station'])
+    })
+
+    it('keeps the picker for everybody else', async () => {
+        state.firstStationNeeded = true
+
+        await run(route('/cross-station'))
+
+        expect(state.navigations).toEqual([])
     })
 
     /**

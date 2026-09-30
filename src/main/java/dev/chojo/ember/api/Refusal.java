@@ -5185,6 +5185,13 @@ public enum Refusal {
     PUBLIC_STATION_NOTHING_TO_SHOW(
             Area.STATIONS, 45, HttpStatus.NOT_FOUND, "There is nothing here for the open web to see"),
 
+    /** A first station asked for on an instance that already has one; further stations are made elsewhere. */
+    FIRST_STATION_ALREADY_FOUNDED(
+            Area.STATIONS, 46, HttpStatus.CONFLICT, "This instance already has a station, nothing was created"),
+
+    /** A first station asked for without a name. */
+    FIRST_STATION_NEEDS_A_NAME(Area.STATIONS, 47, HttpStatus.BAD_REQUEST, Sentences.STATION_NEEDS_A_NAME),
+
     /** An invite asked for without saying which station it is for. */
     INVITE_NEEDS_A_STATION(Area.DISCOVERY, 1, HttpStatus.BAD_REQUEST, Sentences.NO_STATION_CHOSEN),
 

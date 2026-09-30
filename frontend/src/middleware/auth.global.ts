@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {demoLogin} from '~/api/auth'
+import {isFirstStationNeeded} from '~/api/stations'
+import {FIRST_STATION_PATH} from '~/util/signInLanding'
 import {getDemoStatus} from '~/api/demo'
 import {hasSessionCookie} from '~/api/sessionCookie'
 import {getItem, removeItem} from '~/api/storage'
@@ -79,6 +81,17 @@ async function switchAccount(email: string): Promise<void> {
  * then failing on each call. It is deliberately closed rather than open when the session cannot be
  * established: a panel that cannot be shown to work is not shown.
  */
+/**
+ * Whether the reader administers an instance that has no station at all yet. Such an instance has
+ * nothing to choose between and no station to open, so the reader is led to found the first one.
+ */
+async function waitsForFirstStation(): Promise<boolean> {
+    const {loaded, load, isAdmin} = useSession()
+    if (!loaded.value) await load()
+    if (!isAdmin()) return false
+    return isFirstStationNeeded().catch(() => false)
+}
+
 export default defineNuxtRouteMiddleware(async (to) => {
     if (!import.meta.client) return
 
@@ -127,8 +140,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
         if (queryStation && queryStation !== getItem('station_id')) {
             useStations().setActiveStation(queryStation)
         } else if (!queryStation && !getItem('station_id')) {
+            if (await waitsForFirstStation()) return navigateTo(FIRST_STATION_PATH)
             return navigateTo({path: '/cross-station', query: {redirect: to.fullPath}})
         }
+    }
+
+    if (to.path === '/cross-station' && await waitsForFirstStation()) {
+        return navigateTo(FIRST_STATION_PATH)
     }
 
     rememberVisitedArea(to.path)
