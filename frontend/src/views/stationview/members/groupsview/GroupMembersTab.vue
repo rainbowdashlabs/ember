@@ -64,10 +64,7 @@ const words = computed(() => capabilities.holds === 'stations'
     <div class="space-y-1">
       <div v-for="member in current" :key="member.value"
            class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
-        <div>
-          <MemberName :identity="identityOf(member)" class="text-sm font-medium"/>
-          <MutedText v-if="member.email" class="ml-2">{{ member.email }}</MutedText>
-        </div>
+        <MemberName :identity="identityOf(member)" :detail="member.email" class="text-sm font-medium"/>
         <IconButton :icon="['fas', 'xmark']" :label="words.remove" class="text-error hover:text-error/80 text-sm" @click="emit('remove', Number(member.value))"/>
       </div>
     </div>

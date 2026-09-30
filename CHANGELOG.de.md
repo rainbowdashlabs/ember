@@ -39,6 +39,7 @@
 
 ### Fehlerbehebungen
 
+- **Adressen in Gruppen- und Tag-Listen standen versetzt.** In den Mitgliederlisten von Gruppen und Tags stand die Adresse von jemandem mit Profilbild neben dem Bild statt unter dem Namen. Sie steht jetzt bei allen unter dem Namen.
 - **Das Umsortieren von Optionen verändert keine Antworten mehr.** Wurden die Optionen einer Frage, die schon Antworten hatte, umsortiert oder umbenannt, konnte sich ändern, was diese Antworten aussagten. Antworten bleiben jetzt bei der gewählten Option, und das Entfernen einer Option, die jemand gewählt hat, fragt vorher nach.
 - **Freiwillige Fragen konnten das Absenden verhindern.** In manchen Fällen wurde ein Formular abgelehnt, wenn eine freiwillige Auswahl- oder Bewertungsfrage leer blieb oder eine Auswahl nur mit einer eigenen Antwort beantwortet war. Solche Antworten werden jetzt angenommen.
 - **Das Mischen von Fragen und Optionen hatte keine Wirkung.** Die Einstellungen zum Mischen der Fragen eines Formulars oder der Optionen einer Frage wurden gespeichert, beim Ausfüllen aber nicht angewendet. Jetzt wird gemischt, Fragen jeweils innerhalb ihrer Seite.
