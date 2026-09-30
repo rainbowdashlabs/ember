@@ -14,11 +14,10 @@ import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.media.entity.StationFile;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.media.service.MediaReferenceRegistry;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
-import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -64,7 +63,7 @@ class PageImageDescriptionTest extends RepositoryTestBase {
                 mediaFileRepo,
                 mediaMetaRepo,
                 storage,
-                new MediaVariantService(storage, storageConfig),
+                new ImageVariants(storageService),
                 new MediaReferenceRegistry(contentContainerRepo),
                 new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())));
         blocks = new ContentBlockService(contentContainerRepo);
@@ -74,7 +73,7 @@ class PageImageDescriptionTest extends RepositoryTestBase {
                 media,
                 new CellDescriptions(media, (stationId, pageUid) -> Optional.empty()),
                 stationMemberRepo,
-                new AvatarService(new ImageVariantService(storageService)),
+                new AvatarService(new ImageVariants(storageService)),
                 new ShareTokens());
         station = stationRepo.create("ImageDescriptionStation");
         account = accountRepo.create("image-desc@test.com", "Image", "Author");

@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.page.service;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.content.entity.CellConfig;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -188,7 +188,7 @@ class MemberListResolverTest extends RepositoryTestBase {
     void avatarDataUrlIsBuiltFromAvatarService() {
         var imageSvc = mock(AvatarService.class);
         when(imageSvc.read(ArgumentMatchers.any(UUID.class), ArgumentMatchers.anyInt()))
-                .thenReturn(Optional.of(new ImageVariantService.ImageData(new byte[] {1, 2}, "image/png")));
+                .thenReturn(Optional.of(new MediaContent(new byte[] {1, 2}, "image/png")));
 
         var src = json("{\"kind\":\"manual\",\"memberUids\":[\"" + uid1 + "\"]}");
         var result =

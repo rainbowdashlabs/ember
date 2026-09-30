@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.image.ImageFormat;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import dev.chojo.ember.feature.media.service.MediaStorageService;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -70,7 +70,7 @@ public class ProblemReportScreenshotService {
     }
 
     /** The picture of a report, for the screen that shows it and for the delivery that carries it. */
-    public Optional<MediaStorageService.FileData> read(int fileId) {
+    public Optional<MediaContent> read(int fileId) {
         return media.readById(fileId);
     }
 

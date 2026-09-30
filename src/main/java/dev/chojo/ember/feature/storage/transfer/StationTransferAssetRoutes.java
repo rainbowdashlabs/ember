@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.storage.transfer;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.image.VariantSet;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationExportService;
@@ -259,8 +261,8 @@ public class StationTransferAssetRoutes implements Routes {
      * for direct unit tests.
      */
     static List<String> originalsOnly(StorageCategory category, List<String> keys) {
-        String origBase = originalBaseName(category);
-        if (origBase == null) return keys;
+        var profile = ImageProfile.of(category);
+        if (profile.isEmpty()) return keys;
 
         Map<String, List<String>> byDir = new LinkedHashMap<>();
         for (String key : keys) {
@@ -271,44 +273,13 @@ public class StationTransferAssetRoutes implements Routes {
 
         var out = new ArrayList<String>(byDir.size());
         for (var entry : byDir.entrySet()) {
-            String chosen = pickOriginal(entry.getValue(), origBase);
-            if (chosen != null) out.add(chosen);
+            String dir = entry.getKey();
+            VariantSet.of(profile.get().layout(), entry.getValue())
+                    .original()
+                    .ifPresent(
+                            original -> out.add(dir.isEmpty() ? original.fileName() : dir + "/" + original.fileName()));
         }
         return out;
-    }
-
-    /**
-     * Returns the variant base name that identifies the uploaded original for the given
-     * category, or {@code null} when the category never produces derived variants.
-     */
-    private static String originalBaseName(StorageCategory category) {
-        return switch (category) {
-            case MEDIA_FILES -> "orig";
-            case MEDIA_IMAGES, IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE -> "original";
-            default -> null;
-        };
-    }
-
-    /**
-     * Picks the canonical original from the files in a single hash / image-id directory.
-     * Prefers a non-WebP {@code <base>.<ext>} when present (the uploaded source-of-truth) so
-     * stations carrying a legacy {@code orig.webp} alongside an uploaded {@code orig.png} ship
-     * the PNG. Falls back to a WebP copy only when no other format exists (the uploaded-WebP
-     * case).
-     */
-    private static String pickOriginal(List<String> dirKeys, String origBase) {
-        String webpFallback = null;
-        for (String key : dirKeys) {
-            int slash = key.lastIndexOf('/');
-            String filename = slash < 0 ? key : key.substring(slash + 1);
-            int dot = filename.lastIndexOf('.');
-            String base = dot < 0 ? filename : filename.substring(0, dot);
-            if (!base.equals(origBase)) continue;
-            String ext = dot < 0 ? "" : filename.substring(dot + 1).toLowerCase(Locale.ROOT);
-            if (!ext.equals("webp")) return key;
-            webpFallback = key;
-        }
-        return webpFallback;
     }
 
     private StorageCategory parseStationFileCategory(String raw) {

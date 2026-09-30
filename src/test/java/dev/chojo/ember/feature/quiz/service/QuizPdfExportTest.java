@@ -14,7 +14,7 @@ import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.TestContainers;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
@@ -105,7 +105,7 @@ class QuizPdfExportTest {
                 testRepo, new QuizQuestionSelector(catalogRepo, testRepo), mock(RestrictionService.class));
         var backend = new LocalStorageBackend();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        var imageService = new QuizQuestionImageService(new ImageVariantService(storage), stationRepo);
+        var imageService = new QuizQuestionImageService(new ImageVariants(storage), stationRepo);
         pdfService = new QuizPdfService(testRepo, catalogRepo, imageService, stationRepo);
     }
 

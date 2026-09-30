@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.media.service;
 
+import dev.chojo.ember.feature.media.entity.MediaContent;
+import dev.chojo.ember.feature.media.image.ImageProfile;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
@@ -34,12 +36,12 @@ public class LogoFragmentService {
     private static final Logger log = LoggerFactory.getLogger(LogoFragmentService.class);
     private static final Variant MARKER = new Variant(".source-hash");
 
-    private final ImageVariantService variants;
+    private final ImageVariants images;
     private final StorageService storage;
 
     @Inject
-    public LogoFragmentService(ImageVariantService variants, StorageService storage) {
-        this.variants = variants;
+    public LogoFragmentService(ImageVariants images, StorageService storage) {
+        this.images = images;
         this.storage = storage;
     }
 
@@ -54,16 +56,16 @@ public class LogoFragmentService {
                 .orElse(false)) {
             return;
         }
-        variants.store(scope(), StorageCategory.IMAGE_LOGO_FRAGMENT, name, data, declaredMime, 0);
+        images.store(ImageProfile.ICON_SET, scope(), StorageCategory.IMAGE_LOGO_FRAGMENT, name, data, 0);
         writeMarker(name, sourceHash);
-        log.info("Logo fragment stored name={}", name);
+        log.info("Logo fragment stored name={} mime={}", name, declaredMime);
     }
 
     /**
      * Reads the requested fragment size, falling back to the original when missing.
      */
-    public Optional<ImageVariantService.ImageData> read(String name, int size) {
-        return variants.read(scope(), StorageCategory.IMAGE_LOGO_FRAGMENT, name, size);
+    public Optional<MediaContent> read(String name, int size) {
+        return images.read(ImageProfile.ICON_SET, scope(), StorageCategory.IMAGE_LOGO_FRAGMENT, name, size);
     }
 
     private Optional<String> storedMarker(String name) {

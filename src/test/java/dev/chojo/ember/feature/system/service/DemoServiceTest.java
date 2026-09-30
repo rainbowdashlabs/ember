@@ -78,11 +78,10 @@ import dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.media.MediaTestSupport;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.media.service.MediaReferenceRegistry;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
-import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
@@ -290,7 +289,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationFanout,
                 federationEntityResolver);
         var imageVariantStorage = new StorageService(new StorageBackendResolver(kbBackend), kbBackend);
-        var imageVariantWriter = new ImageVariantService(imageVariantStorage);
+        var imageVariantWriter = new ImageVariants(imageVariantStorage);
         var avatarService = new AvatarService(imageVariantWriter);
         var quizImageService = new QuizQuestionImageService(imageVariantWriter, stationRepo);
         var authService = mock(AuthService.class);
@@ -512,7 +511,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 mediaFileRepo,
                 mediaMetaRepo,
                 demoStorage,
-                new MediaVariantService(demoStorage, demoStorageConfig),
+                new ImageVariants(demoStorageSvc),
                 new MediaReferenceRegistry(contentContainerRepo),
                 new StorageQuotaService(storageUsageRepo, demoStorageConfig, noOpBus));
         var pageSeeder = new DemoPageSeeder(

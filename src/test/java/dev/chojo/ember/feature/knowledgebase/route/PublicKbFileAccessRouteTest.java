@@ -21,7 +21,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbPdfExportService;
 import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
 import dev.chojo.ember.feature.knowledgebase.service.KbTagService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
@@ -231,7 +231,7 @@ class PublicKbFileAccessRouteTest {
         when(kbService.findFile(FILE_ID)).thenReturn(Optional.of(file(STATION_ID, KbFileType.PDF)));
         published(true);
         when(pictureService.read(STATION_ID, FILE_ID, "application/pdf", 256))
-                .thenReturn(Optional.of(new ImageVariantService.ImageData(PICTURE, "image/webp")));
+                .thenReturn(Optional.of(new MediaContent(PICTURE, "image/webp")));
 
         var served = ask("picture");
 

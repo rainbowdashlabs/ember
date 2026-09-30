@@ -5,29 +5,35 @@
  */
 package dev.chojo.ember.feature.media.service;
 
+import dev.chojo.ember.feature.media.entity.MediaContent;
+import dev.chojo.ember.feature.media.image.ImageProfile;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class MediaStorageServiceTest {
-    private MediaStorageService storage;
     private final UUID stationOneUid = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private final UUID stationTwoUid = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
     @TempDir
     Path tempDir;
+
+    private MediaStorageService storage;
+    private ImageVariants images;
 
     @BeforeEach
     void setup() {
@@ -35,9 +41,9 @@ class MediaStorageServiceTest {
         Mockito.when(stationRepo.resolveUid(1)).thenReturn(stationOneUid);
         Mockito.when(stationRepo.resolveUid(2)).thenReturn(stationTwoUid);
         var backend = new LocalStorageBackend(tempDir);
-        var resolver = new StorageBackendResolver(backend);
-        var storageService = new StorageService(resolver, backend);
+        var storageService = new StorageService(new StorageBackendResolver(backend), backend);
         storage = new MediaStorageService(storageService, stationRepo, backend);
+        images = new ImageVariants(storageService);
     }
 
     @Test
@@ -47,121 +53,76 @@ class MediaStorageServiceTest {
     }
 
     @Test
-    void storeAndRead() throws IOException {
+    void aStationFileLivesInTheStationLibraryAndAnInstanceFileInTheInstances() {
+        var station = storage.locate(1, "abc");
+        assertEquals(new StorageScope.Station(1, stationOneUid), station.scope());
+        assertEquals(StorageCategory.MEDIA_FILES, station.category());
+        assertEquals("abc", station.key());
+
+        var instance = storage.locate(null, "abc");
+        assertEquals(new StorageScope.Instance(), instance.scope());
+        assertEquals(StorageCategory.INSTANCE_MEDIA_FILES, instance.category());
+    }
+
+    @Test
+    void storeAndRead() {
         byte[] data = "hello".getBytes();
         String hash = MediaStorageService.hash(data);
         storage.store(1, hash, data, "image/png");
 
-        var result = storage.read(1, hash);
-        assertTrue(result.isPresent());
-        assertArrayEquals(data, result.orElseThrow().data());
-        assertEquals("image/png", result.orElseThrow().contentType());
+        var result = original(1, hash).orElseThrow();
+        assertArrayEquals(data, result.data());
+        assertEquals("image/png", result.contentType());
+        assertTrue(Files.exists(storage.hashDir(1, hash).resolve("orig.png")));
     }
 
     @Test
-    void storeWithoutContentType() throws IOException {
+    void storeWithoutContentType() {
         byte[] data = "hello-no-ct".getBytes();
         String hash = MediaStorageService.hash(data);
         storage.store(1, hash, data, null);
 
-        var result = storage.read(1, hash);
-        assertTrue(result.isPresent());
-        assertEquals("application/octet-stream", result.orElseThrow().contentType());
+        assertEquals("application/octet-stream", original(1, hash).orElseThrow().contentType());
+        assertTrue(Files.exists(storage.hashDir(1, hash).resolve("orig.bin")));
     }
 
     @Test
-    void readNonExistent() {
-        assertTrue(storage.read(1, "deadbeef").isEmpty());
-    }
-
-    @Test
-    void deleteFile() throws IOException {
-        byte[] data = "to-delete".getBytes();
+    void anInstanceFileIsKeptApartFromEveryStation() {
+        byte[] data = "instance".getBytes();
         String hash = MediaStorageService.hash(data);
-        storage.store(2, hash, data, "image/jpeg");
+        storage.store(null, hash, data, "application/pdf");
 
-        storage.delete(2, hash);
-        assertTrue(storage.read(2, hash).isEmpty());
+        assertArrayEquals(data, original(null, hash).orElseThrow().data());
+        assertTrue(original(1, hash).isEmpty());
     }
 
     @Test
-    void deleteNonExistent() {
-        storage.delete(1, "0000");
-    }
-
-    @Test
-    void deleteRemovesEntireHashDirectory() throws IOException {
+    void deleteRemovesEntireHashDirectory() {
         byte[] data = "swallow".getBytes();
         String hash = MediaStorageService.hash(data);
         storage.store(1, hash, data, "image/png");
 
-        storage.storeVariant(1, hash, "w128", "webp", new byte[] {1, 2, 3});
         storage.delete(1, hash);
 
         assertFalse(Files.exists(storage.hashDir(1, hash)));
+        assertTrue(original(1, hash).isEmpty());
+        storage.delete(1, "0000");
     }
 
     @Test
-    void readReturnsEmptyWhenHashDirIsMissing() {
-        assertTrue(storage.read(1, "deadbeef").isEmpty());
-    }
-
-    @Test
-    void filesForDifferentStationsAreIsolated() throws IOException {
+    void filesForDifferentStationsAreIsolated() {
         byte[] data = "same-bytes".getBytes();
         String hash = MediaStorageService.hash(data);
         storage.store(1, hash, data, "image/png");
         storage.store(2, hash, data, "image/png");
 
         storage.delete(1, hash);
-        assertTrue(storage.read(1, hash).isEmpty());
-        assertTrue(storage.read(2, hash).isPresent());
+        assertTrue(original(1, hash).isEmpty());
+        assertTrue(original(2, hash).isPresent());
     }
 
     @Test
-    void readVariantByExtensionReturnsExactMatch() throws IOException {
-        byte[] data = "orig-bytes".getBytes();
-        String hash = MediaStorageService.hash(data);
-        storage.store(1, hash, data, "image/png");
-
-        byte[] webp = new byte[] {0x52, 0x49, 0x46, 0x46};
-        storage.storeVariant(1, hash, "w128", "webp", webp);
-        byte[] resized = new byte[] {1, 2, 3};
-        storage.storeVariant(1, hash, "w128", "png", resized);
-
-        var asWebp = storage.readVariant(1, hash, "w128", "webp");
-        assertTrue(asWebp.isPresent());
-        assertArrayEquals(webp, asWebp.orElseThrow().data());
-        assertEquals("image/webp", asWebp.orElseThrow().contentType());
-
-        var asPng = storage.readVariant(1, hash, "w128", "png");
-        assertTrue(asPng.isPresent());
-        assertArrayEquals(resized, asPng.orElseThrow().data());
-        assertEquals("image/png", asPng.orElseThrow().contentType());
-    }
-
-    @Test
-    void readVariantWithoutExtensionMatchesByBaseName() throws IOException {
-        byte[] data = "orig-bytes".getBytes();
-        String hash = MediaStorageService.hash(data);
-        storage.store(1, hash, data, "image/jpeg");
-
-        var any = storage.readVariant(1, hash, "orig", null);
-        assertTrue(any.isPresent());
-        assertEquals("image/jpeg", any.orElseThrow().contentType());
-    }
-
-    @Test
-    void readVariantReturnsEmptyForUnknownBase() throws IOException {
-        byte[] data = "x".getBytes();
-        String hash = MediaStorageService.hash(data);
-        storage.store(1, hash, data, "image/png");
-        assertTrue(storage.readVariant(1, hash, "w9999", null).isEmpty());
-        assertTrue(storage.readVariant(1, hash, "w9999", "webp").isEmpty());
-    }
-
-    @Test
-    void storeOverwritesPreviousOriginalExtension() throws IOException {
+    void storeOverwritesPreviousOriginalExtension() {
         byte[] data = "first".getBytes();
         String hash = MediaStorageService.hash(data);
         storage.store(1, hash, data, "image/png");
@@ -172,40 +133,8 @@ class MediaStorageServiceTest {
         assertTrue(Files.exists(dir.resolve("orig.jpg")));
     }
 
-    @Test
-    void variantContentTypeFollowsTheFileExtension() throws IOException {
-        byte[] data = "typed".getBytes();
-        String hash = MediaStorageService.hash(data);
-        storage.store(1, hash, data, "application/pdf");
-
-        storage.storeVariant(1, hash, "anim", "gif", new byte[] {1});
-        storage.storeVariant(1, hash, "vector", "svg", new byte[] {2});
-        storage.storeVariant(1, hash, "doc", "pdf", new byte[] {3});
-        storage.storeVariant(1, hash, "odd", "bin", new byte[] {4});
-
-        assertEquals(
-                "image/gif",
-                storage.readVariant(1, hash, "anim", "gif").orElseThrow().contentType());
-        assertEquals(
-                "image/svg+xml",
-                storage.readVariant(1, hash, "vector", "svg").orElseThrow().contentType());
-        assertEquals(
-                "application/pdf",
-                storage.readVariant(1, hash, "doc", "pdf").orElseThrow().contentType());
-        assertEquals(
-                "application/octet-stream",
-                storage.readVariant(1, hash, "odd", "bin").orElseThrow().contentType());
-    }
-
-    @Test
-    void aWebpOnlyVariantIsServedWhenNothingElseCarriesThatBaseName() throws IOException {
-        byte[] data = "webp-only".getBytes();
-        String hash = MediaStorageService.hash(data);
-        storage.store(1, hash, data, "image/png");
-        storage.storeVariant(1, hash, "w256", "webp", new byte[] {9});
-
-        var served = storage.readVariant(1, hash, "w256", null);
-        assertTrue(served.isPresent());
-        assertEquals("image/webp", served.orElseThrow().contentType());
+    private Optional<MediaContent> original(Integer stationId, String hash) {
+        var at = storage.locate(stationId, hash);
+        return images.read(ImageProfile.LIBRARY, at.scope(), at.category(), at.key(), 0);
     }
 }

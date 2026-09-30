@@ -7,14 +7,14 @@ package dev.chojo.ember.feature.storage.transfer;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.entity.MediaContent;
+import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
-import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationExportService;
@@ -90,7 +90,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     private static StorageService storageService;
     private static AvatarService avatarService;
     private static MediaStorageService mediaStorageService;
-    private static MediaVariantService mediaVariantService;
+    private static ImageVariants images;
     private static StationStorageConfigRepository configRepo;
     private static CredentialCipher credentialCipher;
 
@@ -106,10 +106,9 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         LocalStorageBackend sharedBackend = new LocalStorageBackend(sharedDataRoot);
         StorageBackendResolver resolver = new StorageBackendResolver(sharedBackend);
         storageService = new StorageService(resolver, sharedBackend);
-        var imageVariantService = new ImageVariantService(storageService);
-        avatarService = new AvatarService(imageVariantService);
+        images = new ImageVariants(storageService);
+        avatarService = new AvatarService(images);
         mediaStorageService = new MediaStorageService(storageService, stationRepo, sharedBackend);
-        mediaVariantService = new MediaVariantService(mediaStorageService, new Storage());
 
         configRepo = new StationStorageConfigRepository();
         credentialCipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
@@ -117,8 +116,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         var descriptorService = new TransferBackendDescriptorService(configRepo, credentialCipher);
 
         exportService = new StationExportService(stationRepo, TestStationKeys.transfer(), new Api());
-        var fileImporter = new TransferFileImporter(
-                storageService, avatarService, imageVariantService, mediaStorageService, mediaVariantService);
+        var fileImporter = new TransferFileImporter(storageService, avatarService, images, mediaStorageService);
         var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
@@ -182,7 +180,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         waitForImport(importResult.stationId());
 
         int destinationId = importResult.stationId();
-        var carried = mediaStorageService.read(destinationId, contentHash);
+        var carried = libraryOriginal(destinationId, contentHash);
         assertTrue(carried.isPresent(), "destination should carry the file");
         assertArrayEquals(fileBytes, carried.get().data(), "bytes round-trip unchanged");
 
@@ -319,7 +317,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         byte[] png = pngBytes(800, 600);
         String contentHash = MediaStorageService.hash(png);
         mediaStorageService.store(source.id(), contentHash, png, "image/png");
-        mediaVariantService.generateVariants(source.id(), contentHash, png, "image/png");
+        var at = mediaStorageService.locate(source.id(), contentHash);
+        images.addSizes(at.scope(), at.category(), at.key(), png, "image/png");
 
         var sourceScope = new StorageScope.Station(source.id(), source.uid());
         List<String> sourceKeys = storageService.listKeys(sourceScope, StorageCategory.MEDIA_FILES, "");
@@ -335,7 +334,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         waitForImport(importResult.stationId());
 
         int destinationId = importResult.stationId();
-        var carried = mediaStorageService.read(destinationId, contentHash);
+        var carried = libraryOriginal(destinationId, contentHash);
         assertTrue(carried.isPresent(), "destination should carry the original");
         assertEquals("image/png", carried.get().contentType());
 
@@ -353,6 +352,11 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
 
     private static String rawToken(String encoded) {
         return StationExportService.parseToken(encoded).orElseThrow().token();
+    }
+
+    private static Optional<MediaContent> libraryOriginal(int stationId, String contentHash) {
+        var at = mediaStorageService.locate(stationId, contentHash);
+        return images.read(ImageProfile.LIBRARY, at.scope(), at.category(), at.key(), 0);
     }
 
     private static byte[] pngBytes(int width, int height) throws IOException {

@@ -20,7 +20,7 @@ import dev.chojo.ember.feature.mailimport.repository.MailMailboxRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailOriginRepository;
 import dev.chojo.ember.feature.mailimport.service.MailboxReader.Attachment;
 import dev.chojo.ember.feature.mailimport.service.MailboxReader.Envelope;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -70,8 +70,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
     static void setup() {
         var backend = new LocalStorageBackend(storageRoot);
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        var documentService =
-                new DocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
+        var documentService = new DocumentService(memberDocumentRepo, storage, new ImageVariants(storage), stationRepo);
         quotaService = new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of()));
         originRepository = new MailOriginRepository();
         logRepository = new MailImportLogRepository();

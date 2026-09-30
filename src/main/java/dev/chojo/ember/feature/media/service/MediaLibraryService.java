@@ -5,9 +5,12 @@
  */
 package dev.chojo.ember.feature.media.service;
 
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.entity.StationFileFolder;
 import dev.chojo.ember.feature.media.entity.StationFileTag;
+import dev.chojo.ember.feature.media.image.AcceptedFormats;
+import dev.chojo.ember.feature.media.image.ImageProfile;
 import dev.chojo.ember.feature.media.repository.MediaFileRepository;
 import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
@@ -57,7 +60,7 @@ public class MediaLibraryService {
     private final MediaFileRepository fileRepository;
     private final MediaMetaRepository metaRepository;
     private final MediaStorageService storage;
-    private final MediaVariantService variantService;
+    private final ImageVariants images;
     private final MediaReferenceRegistry references;
     private final StorageQuotaService quotaService;
 
@@ -66,13 +69,13 @@ public class MediaLibraryService {
             MediaFileRepository fileRepository,
             MediaMetaRepository metaRepository,
             MediaStorageService storage,
-            MediaVariantService variantService,
+            ImageVariants images,
             MediaReferenceRegistry references,
             StorageQuotaService quotaService) {
         this.fileRepository = fileRepository;
         this.metaRepository = metaRepository;
         this.storage = storage;
-        this.variantService = variantService;
+        this.images = images;
         this.references = references;
         this.quotaService = quotaService;
     }
@@ -122,9 +125,8 @@ public class MediaLibraryService {
         }
         var file = fileRepository.create(pageId, stationId, contentHash, fileName, mimeType, data.length);
         storage.store(stationId, contentHash, data, mimeType);
-        if (MediaVariantService.canHavePicture(mimeType)) {
-            variantService.generateVariants(stationId, contentHash, data, mimeType);
-        }
+        var at = storage.locate(stationId, contentHash);
+        images.addSizes(at.scope(), at.category(), at.key(), data, mimeType);
         if (stationId != null) {
             quotaService.trackDelta(stationId, StorageCategory.MEDIA_FILES, data.length, 1);
         }
@@ -137,9 +139,17 @@ public class MediaLibraryService {
      * The best-fit variant of a file for the given requested width and {@code Accept} header.
      * Non-image files always return the original.
      */
-    public Optional<MediaStorageService.FileData> readVariant(
+    public Optional<MediaContent> readVariant(
             Integer stationId, String contentHash, Integer requestedWidth, String acceptHeader) {
-        return variantService.readBest(stationId, contentHash, requestedWidth, acceptHeader);
+        if (contentHash == null || contentHash.isBlank()) return Optional.empty();
+        var at = storage.locate(stationId, contentHash);
+        return images.read(
+                ImageProfile.LIBRARY,
+                at.scope(),
+                at.category(),
+                at.key(),
+                requestedWidth == null ? 0 : requestedWidth,
+                AcceptedFormats.fromAcceptHeader(acceptHeader));
     }
 
     /**
@@ -148,33 +158,40 @@ public class MediaLibraryService {
      * <p>An image is its own picture and a document with pages is its first one. Anything else has
      * none, and answers so rather than handing back the file under that name.
      */
-    public Optional<MediaStorageService.FileData> readPicture(
+    public Optional<MediaContent> readPicture(
             Integer stationId, String contentHash, String mimeType, Integer requestedWidth) {
-        return variantService.readPicture(stationId, contentHash, mimeType, requestedWidth);
+        if (contentHash == null || contentHash.isBlank()) return Optional.empty();
+        var at = storage.locate(stationId, contentHash);
+        return images.picture(
+                at.scope(), at.category(), at.key(), mimeType, requestedWidth == null ? 0 : requestedWidth);
     }
 
     /** The same, for a caller holding only the hash, which is how the delivery routes address a file. */
-    public Optional<MediaStorageService.FileData> readPicture(
-            Integer stationId, String contentHash, Integer requestedWidth) {
+    public Optional<MediaContent> readPicture(Integer stationId, String contentHash, Integer requestedWidth) {
         if (contentHash == null || contentHash.isBlank()) return Optional.empty();
         return fileRepository
                 .findByStationAndHash(stationId, contentHash)
-                .flatMap(file -> variantService.readPicture(stationId, contentHash, file.mimeType(), requestedWidth));
+                .flatMap(file -> readPicture(stationId, contentHash, file.mimeType(), requestedWidth));
     }
 
     /**
      * Reads a file by station and content hash, which is how the delivery routes address it.
      */
-    public Optional<MediaStorageService.FileData> read(Integer stationId, String contentHash) {
+    public Optional<MediaContent> read(Integer stationId, String contentHash) {
         if (contentHash == null || contentHash.isBlank()) return Optional.empty();
         if (fileRepository.findByStationAndHash(stationId, contentHash).isEmpty()) return Optional.empty();
-        return storage.read(stationId, contentHash);
+        return original(stationId, contentHash);
     }
 
-    public Optional<MediaStorageService.FileData> readById(int fileId) {
+    public Optional<MediaContent> readById(int fileId) {
         var file = fileRepository.findById(fileId).orElse(null);
         if (file == null || file.contentHash() == null) return Optional.empty();
-        return storage.read(file.stationId(), file.contentHash());
+        return original(file.stationId(), file.contentHash());
+    }
+
+    private Optional<MediaContent> original(Integer stationId, String contentHash) {
+        var at = storage.locate(stationId, contentHash);
+        return images.read(ImageProfile.LIBRARY, at.scope(), at.category(), at.key(), 0);
     }
 
     public Optional<StationFile> findFile(int fileId) {

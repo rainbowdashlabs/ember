@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.legal.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -36,7 +36,7 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
     static void setup() {
         var backend = new LocalStorageBackend();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        var avatars = new AvatarService(new ImageVariantService(storage));
+        var avatars = new AvatarService(new ImageVariants(storage));
         service = new GdprDeletionService(accountRepo, stationMemberRepo, memberLookupService, avatars);
         station = stationRepo.create("GdprStation");
         Account account = accountRepo.create("gdpr-del@test.com", "Delete", "Me");

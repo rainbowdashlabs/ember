@@ -22,7 +22,7 @@ import dev.chojo.ember.feature.mailimport.repository.MailImportLogRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailMailboxRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailOriginRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -102,8 +102,7 @@ class MailImportCycleTest extends RepositoryTestBase {
         storageRoot = Files.createTempDirectory("mail-import-cycle");
         var backend = new LocalStorageBackend(storageRoot);
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        var documentService =
-                new DocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
+        var documentService = new DocumentService(memberDocumentRepo, storage, new ImageVariants(storage), stationRepo);
         var quotaService = new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of()));
 
         mailboxRepository = new MailMailboxRepository();

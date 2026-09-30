@@ -11,7 +11,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -68,7 +68,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
     private static DocumentService documentService() {
         var backend = new LocalStorageBackend();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        return new DocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
+        return new DocumentService(memberDocumentRepo, storage, new ImageVariants(storage), stationRepo);
     }
 
     private int freshCluster() {

@@ -32,8 +32,8 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import dev.chojo.ember.feature.media.service.MediaStorageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -1459,8 +1459,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
         when(media.findFile(stationFile.id())).thenReturn(Optional.of(stationFile));
         when(media.findFile(kept.id())).thenReturn(Optional.of(kept));
         when(media.read(stationA.id(), stationFile.contentHash()))
-                .thenReturn(Optional.of(new MediaStorageService.FileData(
-                        "Laufzettel".getBytes(StandardCharsets.UTF_8), "application/pdf")));
+                .thenReturn(Optional.of(
+                        new MediaContent("Laufzettel".getBytes(StandardCharsets.UTF_8), "application/pdf")));
 
         var open = attachmentService.attach(eventId, stationA.id(), stationFile.id(), "Laufzettel", false);
         var internal = attachmentService.attach(eventId, stationA.id(), kept.id(), "Einsatzplan", true);

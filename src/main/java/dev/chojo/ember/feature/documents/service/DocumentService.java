@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.documents.service;
 
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.entity.MediaContent;
+import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -41,14 +43,14 @@ public class DocumentService {
 
     private final DocumentRepository repository;
     private final StorageService storage;
-    private final ImageVariantService images;
+    private final ImageVariants images;
     private final StationRepository stationRepository;
 
     @Inject
     public DocumentService(
             DocumentRepository repository,
             StorageService storage,
-            ImageVariantService images,
+            ImageVariants images,
             StationRepository stationRepository) {
         this.repository = repository;
         this.storage = storage;
@@ -96,10 +98,14 @@ public class DocumentService {
     /**
      * The picture of a document at the requested size, when one was made of it.
      */
-    public Optional<ImageVariantService.ImageData> thumbnail(Document document, int size) {
+    public Optional<MediaContent> thumbnail(Document document, int size) {
         if (!document.hasThumbnail()) return Optional.empty();
         return images.read(
-                scope(document.stationId()), StorageCategory.MEMBER_DOCUMENTS, thumbnailKey(document.id()), size);
+                ImageProfile.CONTENT,
+                scope(document.stationId()),
+                StorageCategory.MEMBER_DOCUMENTS,
+                thumbnailKey(document.id()),
+                size);
     }
 
     /**
@@ -204,7 +210,13 @@ public class DocumentService {
         try {
             var picture = FilePicture.of(mimeType, data, THUMBNAIL_DPI);
             if (picture.isEmpty()) return false;
-            images.store(scope, StorageCategory.MEMBER_DOCUMENTS, thumbnailKey(documentId), picture.get(), "image/png");
+            images.store(
+                    ImageProfile.CONTENT,
+                    scope,
+                    StorageCategory.MEMBER_DOCUMENTS,
+                    thumbnailKey(documentId),
+                    picture.get(),
+                    0);
             return true;
         } catch (Exception e) {
             log.warn("No picture could be made of document {}", documentId, e);

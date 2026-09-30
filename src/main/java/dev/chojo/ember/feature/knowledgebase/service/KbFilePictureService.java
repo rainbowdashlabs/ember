@@ -5,8 +5,10 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.image.ImageFormat;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -46,15 +48,16 @@ public class KbFilePictureService {
     private static final byte[] PDF_SIGNATURE = "%PDF-".getBytes(StandardCharsets.US_ASCII);
     private static final Set<String> UNTYPED = Set.of("application/octet-stream", "binary/octet-stream");
 
-    private final ImageVariantService variants;
+    private static final ImageProfile PROFILE = ImageProfile.CONTENT;
+
+    private final ImageVariants images;
     private final KbFileStorageService files;
     private final StationRepository stationRepository;
     private final Set<String> unmakeable = ConcurrentHashMap.newKeySet();
 
     @Inject
-    public KbFilePictureService(
-            ImageVariantService variants, KbFileStorageService files, StationRepository stationRepository) {
-        this.variants = variants;
+    public KbFilePictureService(ImageVariants images, KbFileStorageService files, StationRepository stationRepository) {
+        this.images = images;
         this.files = files;
         this.stationRepository = stationRepository;
     }
@@ -77,7 +80,7 @@ public class KbFilePictureService {
                 unmakeable.add(memo(stationId, fileId));
                 return;
             }
-            variants.store(scope(stationId), CATEGORY, key(fileId), picture.get(), type);
+            images.store(PROFILE, scope(stationId), CATEGORY, key(fileId), picture.get(), 0);
         } catch (Exception e) {
             unmakeable.add(memo(stationId, fileId));
             log.warn("No picture could be made of wiki file {} in station {}", fileId, stationId, e);
@@ -90,12 +93,12 @@ public class KbFilePictureService {
      *
      * @param size the longest side wanted, answered by the nearest size kept at or above it
      */
-    public Optional<ImageVariantService.ImageData> read(int stationId, int fileId, String mimeType, int size) {
-        var existing = variants.read(scope(stationId), CATEGORY, key(fileId), size);
+    public Optional<MediaContent> read(int stationId, int fileId, String mimeType, int size) {
+        var existing = images.read(PROFILE, scope(stationId), CATEGORY, key(fileId), size);
         if (existing.isPresent() || !mayHavePicture(mimeType)) return existing;
         if (unmakeable.contains(memo(stationId, fileId))) return Optional.empty();
         files.read(stationId, fileId).ifPresent(file -> make(stationId, fileId, mimeType, file.data()));
-        return variants.read(scope(stationId), CATEGORY, key(fileId), size);
+        return images.read(PROFILE, scope(stationId), CATEGORY, key(fileId), size);
     }
 
     /**
@@ -130,7 +133,7 @@ public class KbFilePictureService {
 
     /** Removes every size of a file's picture. */
     public void delete(int stationId, int fileId) {
-        variants.delete(scope(stationId), CATEGORY, key(fileId));
+        images.delete(scope(stationId), CATEGORY, key(fileId));
     }
 
     /**

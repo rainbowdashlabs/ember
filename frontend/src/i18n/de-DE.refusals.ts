@@ -928,6 +928,10 @@ export default {
     'G-011': NOT_HERE_OR_NOT_YOURS,
     'G-012': 'Dieses Bild hat zu viele Pixel, um verarbeitet zu werden, es wurde nichts gespeichert. '
         + 'Eine kleinere Fassung davon klappt',
+    'G-013': 'Diese Datei ist kein Bild, das sich hier ablegen lässt, es wurde nichts gespeichert. '
+        + 'Eine PNG-, JPEG-, GIF- oder WebP-Datei klappt',
+    'G-014': 'Dieses Bild ist größer, als es hier sein darf, es wurde nichts gespeichert. '
+        + 'Eine kleinere Datei klappt',
 
     'CU-001': 'Eine Reihenfolge gehört zu genau einer Zielgruppe, es wurde nichts gespeichert',
     'CU-002': CHOOSE_A_CLUSTER,

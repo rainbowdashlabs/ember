@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.documents.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -53,7 +53,7 @@ class DocumentServiceTest extends RepositoryTestBase {
     static void setup() {
         var backend = new LocalStorageBackend(storageRoot);
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        service = new DocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
+        service = new DocumentService(memberDocumentRepo, storage, new ImageVariants(storage), stationRepo);
         station = stationRepo.create("Document Service Station");
         account = accountRepo.create("doc-service@test.com", "Doc", "Service");
         memberId = stationMemberRepo.create(station.id(), account.id()).id();

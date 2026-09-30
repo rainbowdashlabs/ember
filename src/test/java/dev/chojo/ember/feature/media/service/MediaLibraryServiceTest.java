@@ -48,7 +48,7 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
                 mediaFileRepo,
                 mediaMetaRepo,
                 storage,
-                new MediaVariantService(storage, storageConfig),
+                new ImageVariants(storageService),
                 new MediaReferenceRegistry(contentContainerRepo),
                 new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())));
         station = stationRepo.create("MediaLibraryStation");

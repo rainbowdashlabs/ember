@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
@@ -48,7 +48,7 @@ class StationLogoServiceTest {
         var backend = new LocalStorageBackend(tempDir);
         var resolver = new StorageBackendResolver(backend);
         var storageService = new StorageService(resolver, backend);
-        var variants = new ImageVariantService(storageService);
+        var variants = new ImageVariants(storageService);
 
         stationRepository = Mockito.mock(StationRepository.class);
         when(stationRepository.resolveUid(STATION_ID)).thenReturn(STATION_UID);

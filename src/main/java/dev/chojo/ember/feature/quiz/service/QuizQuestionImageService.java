@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.entity.MediaContent;
+import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -28,12 +30,15 @@ import java.util.UUID;
 @Singleton
 public class QuizQuestionImageService {
     private static final Logger log = LoggerFactory.getLogger(QuizQuestionImageService.class);
-    private final ImageVariantService variants;
+    private static final ImageProfile PROFILE = ImageProfile.CONTENT;
+    private static final StorageCategory CATEGORY = StorageCategory.IMAGE_QUIZ_QUESTION;
+
+    private final ImageVariants images;
     private final StationRepository stationRepository;
 
     @Inject
-    public QuizQuestionImageService(ImageVariantService variants, StationRepository stationRepository) {
-        this.variants = variants;
+    public QuizQuestionImageService(ImageVariants images, StationRepository stationRepository) {
+        this.images = images;
         this.stationRepository = stationRepository;
     }
 
@@ -42,30 +47,34 @@ public class QuizQuestionImageService {
      */
     public void store(int stationId, int questionId, byte[] data, String declaredMime, int maxBytes)
             throws IOException {
-        variants.store(
-                scope(stationId), StorageCategory.IMAGE_QUIZ_QUESTION, key(questionId), data, declaredMime, maxBytes);
-        log.info("Stored quiz question image: station {}, question {} ({} bytes)", stationId, questionId, data.length);
+        images.store(PROFILE, scope(stationId), CATEGORY, key(questionId), data, maxBytes);
+        log.info(
+                "Stored quiz question image: station {}, question {} ({} bytes, mime={})",
+                stationId,
+                questionId,
+                data.length,
+                declaredMime);
     }
 
     /**
      * Reads the requested image size, falling back to the original when missing.
      */
-    public Optional<ImageVariantService.ImageData> read(int stationId, int questionId, int size) {
-        return variants.read(scope(stationId), StorageCategory.IMAGE_QUIZ_QUESTION, key(questionId), size);
+    public Optional<MediaContent> read(int stationId, int questionId, int size) {
+        return images.read(PROFILE, scope(stationId), CATEGORY, key(questionId), size);
     }
 
     /**
      * Whether an image exists for the given question.
      */
     public boolean exists(int stationId, int questionId) {
-        return variants.exists(scope(stationId), StorageCategory.IMAGE_QUIZ_QUESTION, key(questionId));
+        return images.exists(PROFILE, scope(stationId), CATEGORY, key(questionId));
     }
 
     /**
      * Removes every variant for the given question's image.
      */
     public void delete(int stationId, int questionId) {
-        variants.delete(scope(stationId), StorageCategory.IMAGE_QUIZ_QUESTION, key(questionId));
+        images.delete(scope(stationId), CATEGORY, key(questionId));
         log.info("Deleted quiz question image: station {}, question {}", stationId, questionId);
     }
 

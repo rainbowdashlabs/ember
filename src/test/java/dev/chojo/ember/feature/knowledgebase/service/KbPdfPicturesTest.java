@@ -5,9 +5,8 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import dev.chojo.ember.feature.media.service.MediaStorageService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,8 +48,7 @@ class KbPdfPicturesTest {
 
     @Test
     void aPicturePastedIntoAnArticleIsPlaced() {
-        when(articleImages.read(STATION, "pic1", 1024))
-                .thenReturn(Optional.of(new ImageVariantService.ImageData(PNG, "image/png")));
+        when(articleImages.read(STATION, "pic1", 1024)).thenReturn(Optional.of(new MediaContent(PNG, "image/png")));
 
         var placed = pictures.place(STATION, "Vorher\n\n![Plan](/kb/images/pic1?size=512)\n\nNachher");
 
@@ -61,7 +59,7 @@ class KbPdfPicturesTest {
     @Test
     void everyPrefixOfAnArticlePictureIsRecognised() {
         when(articleImages.read(eq(STATION), anyString(), anyInt()))
-                .thenReturn(Optional.of(new ImageVariantService.ImageData(PNG, "image/png")));
+                .thenReturn(Optional.of(new MediaContent(PNG, "image/png")));
 
         var placed = pictures.place(
                 STATION,
@@ -74,7 +72,7 @@ class KbPdfPicturesTest {
     @Test
     void aPictureOfTheMediaLibraryIsPlaced() {
         when(mediaLibrary.readVariant(STATION, "hash", 1024, "image/webp"))
-                .thenReturn(Optional.of(new MediaStorageService.FileData(WEBP, "image/webp")));
+                .thenReturn(Optional.of(new MediaContent(WEBP, "image/webp")));
 
         var placed = pictures.place(STATION, "![Wappen](/api/v1/public/media/" + STATION_UID + "/hash)");
 
@@ -84,8 +82,7 @@ class KbPdfPicturesTest {
 
     @Test
     void aPictureGivenAWidthIsPlacedToo() {
-        when(articleImages.read(STATION, "wide", 1024))
-                .thenReturn(Optional.of(new ImageVariantService.ImageData(PNG, "image/png")));
+        when(articleImages.read(STATION, "wide", 1024)).thenReturn(Optional.of(new MediaContent(PNG, "image/png")));
 
         var placed = pictures.place(
                 STATION, "<img src=\"/kb/images/wide\" alt=\"Plan\" width=\"300\" style=\"width: 300px\" />");
@@ -96,8 +93,7 @@ class KbPdfPicturesTest {
 
     @Test
     void theSamePictureTwiceIsPlacedOnce() {
-        when(articleImages.read(STATION, "pic", 1024))
-                .thenReturn(Optional.of(new ImageVariantService.ImageData(PNG, "image/png")));
+        when(articleImages.read(STATION, "pic", 1024)).thenReturn(Optional.of(new MediaContent(PNG, "image/png")));
 
         var placed = pictures.place(STATION, "![x](/kb/images/pic) ![y](/kb/images/pic)");
 
@@ -122,7 +118,7 @@ class KbPdfPicturesTest {
     @Test
     void aFileThePdfCannotShowKeepsItsUrl() {
         when(mediaLibrary.readVariant(eq(STATION), eq("doc"), any(), any()))
-                .thenReturn(Optional.of(new MediaStorageService.FileData(PNG, "application/pdf")));
+                .thenReturn(Optional.of(new MediaContent(PNG, "application/pdf")));
         String markdown = "![Handbuch](/api/v1/public/media/" + STATION_UID + "/doc)";
 
         assertEquals(markdown, pictures.place(STATION, markdown).markdown());

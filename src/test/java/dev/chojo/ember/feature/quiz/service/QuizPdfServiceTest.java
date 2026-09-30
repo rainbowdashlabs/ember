@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
@@ -52,7 +52,7 @@ class QuizPdfServiceTest extends RepositoryTestBase {
         pdfService = new QuizPdfService(
                 quizTestRepo,
                 quizCatalogRepo,
-                new QuizQuestionImageService(new ImageVariantService(storage), stationRepo),
+                new QuizQuestionImageService(new ImageVariants(storage), stationRepo),
                 stationRepo);
     }
 

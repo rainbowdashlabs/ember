@@ -2705,6 +2705,25 @@ public enum Refusal {
             "That picture has too many pixels to be worked with, so nothing was saved. "
                     + "A smaller version of it will work"),
 
+    /**
+     * An upload to a picture that is none of the formats the picture takes, read from its bytes
+     * rather than from what the browser declared. One code for every sized picture, because the one
+     * pipeline that stores them is the one that refuses them.
+     */
+    PICTURE_KIND_NOT_TAKEN(
+            Area.GENERAL,
+            13,
+            HttpStatus.BAD_REQUEST,
+            "That file is not a picture that can be kept here, so nothing was saved. "
+                    + "A PNG, JPEG, GIF or WebP file will work"),
+
+    /** An upload to a picture that weighs more than the place it is for takes. */
+    PICTURE_TOO_LARGE(
+            Area.GENERAL,
+            14,
+            HttpStatus.CONTENT_TOO_LARGE,
+            "That picture is larger than this place takes, so nothing was saved. A smaller file will work"),
+
     /** An order for a cluster's questions, sent without saying which audience the order is for. */
     CLUSTER_FIELD_ORDER_NEEDS_AN_AUDIENCE(
             Area.CLUSTERS,
