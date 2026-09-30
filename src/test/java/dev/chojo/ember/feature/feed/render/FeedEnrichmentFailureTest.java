@@ -16,7 +16,7 @@ import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
@@ -44,7 +44,7 @@ class FeedEnrichmentFailureTest {
 
     @BeforeEach
     void setup() {
-        var notificationService = mock(NotificationService.class);
+        var notificationService = mock(NotificationText.class);
         when(notificationService.resolveLocalized(any(), any(), any(), any())).thenAnswer(inv -> inv.getArgument(2));
         var failure = new IllegalStateException("the database went away");
         var crudService = mock(EventCrudService.class);

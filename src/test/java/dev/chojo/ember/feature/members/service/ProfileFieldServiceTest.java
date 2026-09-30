@@ -19,7 +19,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldTarget;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -51,7 +51,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         service = new ProfileFieldService(
                 profileFieldRepo,
                 profileFieldChangeRepo,
-                mock(NotificationService.class),
+                mock(Notifier.class),
                 stationMemberRepo,
                 accountRepo,
                 clusterProfileFieldRepo,

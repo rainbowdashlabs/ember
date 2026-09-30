@@ -9,13 +9,13 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -23,14 +23,11 @@ import java.util.Objects;
 
 @Singleton
 public class CommentCreatedHandler implements DomainEventHandler<CommentCreated> {
-    private final NotificationService notificationService;
-    private final StationMemberRepository stationMemberRepository;
+    private final Notifier notifier;
 
     @Inject
-    public CommentCreatedHandler(
-            NotificationService notificationService, StationMemberRepository stationMemberRepository) {
-        this.notificationService = notificationService;
-        this.stationMemberRepository = stationMemberRepository;
+    public CommentCreatedHandler(Notifier notifier) {
+        this.notifier = notifier;
     }
 
     @Override
@@ -46,21 +43,20 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
                 new NotificationParams.NewsComment(event.entityTitle(), event.authorName(), event.preview()), link);
 
         if (event.parentAuthorId() != null && !Objects.equals(event.parentAuthorId(), event.authorMemberId())) {
-            notificationService.notifyIfAbsent(event.parentAuthorId(), NotificationType.NEWS_COMMENT, data);
+            notifier.notify(
+                    StationAudience.member(event.parentAuthorId()),
+                    NotificationType.NEWS_COMMENT,
+                    data,
+                    Delivery.ONCE_WHILE_UNREAD);
         }
 
         if (CommentEntityType.NEWS.equals(event.entityType())) {
-            var newsMgmtIds =
-                    stationMemberRepository
-                            .findMembersWithPermission(event.stationId(), StationPermission.NEWS_MANAGER)
-                            .stream()
-                            .map(StationMember::id)
-                            .toList();
-            notificationService.notifyMembersIfAbsent(
-                    newsMgmtIds,
+            notifier.notify(
+                    StationAudience.holders(event.stationId(), StationPermission.NEWS_MANAGER)
+                            .except(event.authorMemberId()),
                     NotificationType.NEWS_COMMENT,
                     data,
-                    event.authorMemberId() != null ? event.authorMemberId() : -1);
+                    Delivery.ONCE_WHILE_UNREAD);
         }
     }
 }

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:7ed7df068c869a18b8d826612be971b61740d65be1128336c26ba1b9c586d73c",
-  "generatedAt": "2026-09-30T17:37:21Z",
+  "schemaHash": "sha256:5860159e64ebdf85bf0b48ac01576747c0d44a295f0760447f48c671fa3fe95e",
+  "generatedAt": "2026-09-30T17:53:48Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -4415,7 +4415,7 @@
     "cluster_member": {
       "feature": "cluster",
       "scope": "CLUSTER",
-      "tableHash": "sha256:7643d8ad712a16609dd8805cf80eccc2887230d26377c49813a5b49d97961c7b",
+      "tableHash": "sha256:5107fac9d3fff11b22ce586a7b1a4ea46693eae8e72632443066438e0e7b2c31",
       "columns": [
         {
           "name": "id",
@@ -4444,6 +4444,13 @@
           "nullable": false,
           "verified": true,
           "description": "Their user type, which carries a set of permissions by default."
+        },
+        {
+          "name": "email_enabled",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this person wants the association's gathered notifications by mail. Off until they switch it on, the same as a station membership's mail setting."
         }
       ],
       "foreignKeys": [
@@ -17548,7 +17555,7 @@
     "notification": {
       "feature": "notifications",
       "scope": "STATION",
-      "tableHash": "sha256:21a2cb9786c917884cc15b7795b14389cb7a740741ab4339916d83d9e1c63c0e",
+      "tableHash": "sha256:6e76efb3eccab3d9a9bd1cae45fa3126677f7cc7c198dbf35fbeef3c3834eedb",
       "columns": [
         {
           "name": "id",
@@ -17605,6 +17612,13 @@
           "nullable": true,
           "verified": true,
           "description": "The cluster member this is for, or null when it is addressed to a station member instead."
+        },
+        {
+          "name": "dedup_key",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Set on a notification meant to arrive once while unread: a hash of its type and data. Two unread notifications of one recipient never share a key, so the same news is not told twice. NULL where every sending counts."
         }
       ],
       "foreignKeys": [

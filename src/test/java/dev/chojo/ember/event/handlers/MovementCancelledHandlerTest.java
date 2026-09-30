@@ -5,12 +5,16 @@
  */
 package dev.chojo.ember.event.handlers;
 
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.events.MovementCancelled;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.Audience;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -19,11 +23,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -33,15 +34,15 @@ import static org.mockito.Mockito.verify;
  */
 class MovementCancelledHandlerTest extends RepositoryTestBase {
     private static MovementCancelledHandler handler;
-    private static NotificationService notificationService;
+    private static Notifier notificationService;
     private static Station station;
     private static Account account;
     private static StationMember member;
 
     @BeforeAll
     static void setup() {
-        notificationService = mock(NotificationService.class);
-        handler = new MovementCancelledHandler(notificationService, stationMemberRepo);
+        notificationService = mock(Notifier.class);
+        handler = new MovementCancelledHandler(notificationService);
         station = stationRepo.create("CancelHandler Station");
         account = accountRepo.create("cancel-handler@test.com", "Call", "Off");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -74,15 +75,17 @@ class MovementCancelledHandlerTest extends RepositoryTestBase {
 
         handler.handle(event);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<Integer>> recipients = ArgumentCaptor.forClass(List.class);
+        var audience = ArgumentCaptor.forClass(Audience.class);
         verify(notificationService)
-                .notifyMembersIfAbsent(
-                        recipients.capture(),
+                .notify(
+                        audience.capture(),
                         eq(NotificationType.MOVEMENT_CANCELLED),
                         any(NotificationData.class),
-                        eq(99));
-        assertTrue(recipients.getValue().contains(member.id()), "the member it was about is told");
+                        eq(Delivery.ONCE_WHILE_UNREAD));
+        var told = (StationAudience) audience.getValue();
+        assertTrue(told.memberIds().contains(member.id()), "the member it was about is told");
+        assertTrue(told.excluded().contains(99), "and whoever called it off is not");
+        assertTrue(told.permissions().contains(StationPermission.INVENTORY_MANAGER), "nor is the team left out");
     }
 
     /** A movement about no member at all still reaches whoever runs the inventory. */
@@ -92,8 +95,12 @@ class MovementCancelledHandlerTest extends RepositoryTestBase {
 
         handler.handle(event);
 
-        verify(notificationService, org.mockito.Mockito.atLeastOnce())
-                .notifyMembersIfAbsent(
-                        any(), eq(NotificationType.MOVEMENT_CANCELLED), any(NotificationData.class), anyInt());
+        verify(notificationService)
+                .notify(
+                        eq(StationAudience.holders(station.id(), StationPermission.INVENTORY_MANAGER)
+                                .except(99)),
+                        eq(NotificationType.MOVEMENT_CANCELLED),
+                        any(NotificationData.class),
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 }

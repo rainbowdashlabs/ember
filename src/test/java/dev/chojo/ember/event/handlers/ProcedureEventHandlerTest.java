@@ -12,9 +12,11 @@ import dev.chojo.ember.event.events.ProcedureReopened;
 import dev.chojo.ember.event.events.ProcedureResolved;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +29,7 @@ import static org.mockito.Mockito.*;
 
 class ProcedureEventHandlerTest {
 
-    private NotificationService notificationService;
+    private Notifier notificationService;
     private StationMemberRepository memberRepository;
 
     private static final int STATION_ID = 1;
@@ -37,7 +39,7 @@ class ProcedureEventHandlerTest {
 
     @BeforeEach
     void setUp() {
-        notificationService = mock(NotificationService.class);
+        notificationService = mock(Notifier.class);
         memberRepository = mock(StationMemberRepository.class);
     }
 
@@ -63,11 +65,11 @@ class ProcedureEventHandlerTest {
         handler.handle(event);
 
         verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(MEMBER_ID_2)),
+                .notify(
+                        eq(StationAudience.members(List.of(MEMBER_ID_2)).except(MEMBER_ID)),
                         eq(NotificationType.PROCEDURE_ASSIGNED),
                         any(NotificationData.class),
-                        eq(MEMBER_ID));
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     @Test
@@ -79,11 +81,11 @@ class ProcedureEventHandlerTest {
         handler.handle(event);
 
         verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(MEMBER_ID_2)),
+                .notify(
+                        eq(StationAudience.members(List.of(MEMBER_ID_2)).except(MEMBER_ID)),
                         eq(NotificationType.PROCEDURE_ASSIGNED),
                         any(NotificationData.class),
-                        eq(MEMBER_ID));
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     // ── ProcedureResolvedHandler ──
@@ -103,11 +105,12 @@ class ProcedureEventHandlerTest {
         handler.handle(event);
 
         verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(MEMBER_ID, MEMBER_ID_2)),
+                .notify(
+                        eq(StationAudience.members(List.of(MEMBER_ID, MEMBER_ID_2))
+                                .except(MEMBER_ID)),
                         eq(NotificationType.PROCEDURE_RESOLVED),
                         any(NotificationData.class),
-                        eq(MEMBER_ID));
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     // ── ProcedureReopenedHandler ──
@@ -126,11 +129,11 @@ class ProcedureEventHandlerTest {
         handler.handle(event);
 
         verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(MEMBER_ID_2)),
+                .notify(
+                        eq(StationAudience.members(List.of(MEMBER_ID_2)).except(MEMBER_ID)),
                         eq(NotificationType.PROCEDURE_REOPENED),
                         any(NotificationData.class),
-                        eq(MEMBER_ID));
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     // ── ProcedureItemCheckedHandler ──
@@ -151,11 +154,11 @@ class ProcedureEventHandlerTest {
         handler.handle(event);
 
         verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(MEMBER_ID_2)),
+                .notify(
+                        eq(StationAudience.members(List.of(MEMBER_ID_2)).except(MEMBER_ID)),
                         eq(NotificationType.PROCEDURE_ITEM_CHECKED),
                         any(NotificationData.class),
-                        eq(MEMBER_ID));
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     @Test
@@ -168,10 +171,10 @@ class ProcedureEventHandlerTest {
         handler.handle(event);
 
         verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(MEMBER_ID_2)),
+                .notify(
+                        eq(StationAudience.members(List.of(MEMBER_ID_2)).except(MEMBER_ID)),
                         eq(NotificationType.PROCEDURE_ITEM_CHECKED),
                         any(NotificationData.class),
-                        eq(MEMBER_ID));
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 }

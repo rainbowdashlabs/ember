@@ -25,15 +25,16 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
@@ -65,7 +66,7 @@ public class ProfileFieldService {
 
     private final ProfileFieldRepository profileFieldRepository;
     private final ProfileFieldChangeRepository changeRepository;
-    private final NotificationService notificationService;
+    private final Notifier notifier;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final ClusterProfileFieldRepository clusterFieldRepository;
@@ -76,7 +77,7 @@ public class ProfileFieldService {
     public ProfileFieldService(
             ProfileFieldRepository profileFieldRepository,
             ProfileFieldChangeRepository changeRepository,
-            NotificationService notificationService,
+            Notifier notifier,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             ClusterProfileFieldRepository clusterFieldRepository,
@@ -84,7 +85,7 @@ public class ProfileFieldService {
             MemberPermissionResolver permissionResolver) {
         this.profileFieldRepository = profileFieldRepository;
         this.changeRepository = changeRepository;
-        this.notificationService = notificationService;
+        this.notifier = notifier;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.clusterFieldRepository = clusterFieldRepository;
@@ -822,15 +823,12 @@ public class ProfileFieldService {
                 new NotificationParams.ProfileFieldChanged(memberName, fieldList),
                 new NotificationData.NotificationLink("members-detail", Map.of("id", memberId)));
 
-        var memberMgmtIds =
-                stationMemberRepository
-                        .findMembersWithPermission(member.stationId(), StationPermission.MEMBER_MANAGER)
-                        .stream()
-                        .map(StationMember::id)
-                        .toList();
-
-        notificationService.notifyMembersIfAbsent(
-                memberMgmtIds, NotificationType.PROFILE_FIELD_CHANGED, data, changedBy);
+        notifier.notify(
+                StationAudience.holders(member.stationId(), StationPermission.MEMBER_MANAGER)
+                        .except(changedBy),
+                NotificationType.PROFILE_FIELD_CHANGED,
+                data,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     /**

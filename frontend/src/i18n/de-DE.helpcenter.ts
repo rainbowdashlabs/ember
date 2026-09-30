@@ -3820,6 +3820,17 @@ volumes:
             whoText: 'Die Einstellungen sieht nur, wer im Verband das Recht für allgemeine Einstellungen hat. Ohne dieses Recht taucht der Punkt in der Seitenleiste gar nicht erst auf.',
             tip: 'Der Name wird sofort übernommen, ein erneutes Anmelden ist nicht nötig.',
         },
+        clusterNotifications: {
+            title: 'Benachrichtigungen des Verbands',
+            subtitle: 'Entscheide, ob dich der Verband per E-Mail erreicht.',
+            whatIs: 'Was ist das?',
+            whatIsText: 'Der Verband meldet dir Neues, zum Beispiel die Beitrittsanfrage einer Wache oder ein Ablaufdatum, das bald erreicht ist. Du siehst diese Meldungen immer in Ember. Hier stellst du ein, ob sie dir zusätzlich per E-Mail geschickt werden.',
+            howTo: 'Wie schalte ich die E-Mail ein?',
+            howToText: 'Öffne in der Seitenleiste unter Verband den Punkt Benachrichtigungen. Schalte den Schalter ein, und die Einstellung ist sofort gespeichert. Mit einem zweiten Klick schaltest du sie wieder aus.',
+            whenTitle: 'Wann und in welcher Sprache?',
+            whenText: 'Die Meldungen kommen nicht einzeln, sondern gesammelt in einer E-Mail. Sie richtet sich nach der Uhrzeit der Heimat-Wache des Verbands und ist in deren Sprache geschrieben.',
+            tip: 'Die E-Mail ist ausgeschaltet, bis du sie selbst einschaltest. Deine Wache hat einen eigenen Schalter, der davon nicht berührt wird.',
+        },
         clusterStations: {
             title: 'Wachen des Verbands',
             subtitle: 'Wer dazugehört, und wie eine Wache dazukommt.',

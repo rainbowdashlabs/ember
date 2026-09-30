@@ -53,6 +53,15 @@ onMounted(() => {
           {{ t('clusterSidebar.overview') }}
         </SidebarLink>
         <SidebarLink
+            v-if="hasClusterPermission(ClusterPermission.USER)"
+            :icon="['fas', 'bell']"
+            name="cluster-notifications"
+            to="/cluster/notifications"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.notifications') }}
+        </SidebarLink>
+        <SidebarLink
             v-if="hasClusterPermission(ClusterPermission.CLUSTER_GENERAL)"
             :icon="['fas', 'sliders']"
             name="cluster-settings"

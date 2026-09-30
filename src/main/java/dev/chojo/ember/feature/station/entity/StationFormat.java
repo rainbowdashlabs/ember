@@ -31,11 +31,22 @@ public final class StationFormat {
      * @return the zone to format with
      */
     public static ZoneId timezoneOf(Station station) {
-        if (station == null || station.timezone() == null) return ZoneOffset.UTC;
+        return station == null ? ZoneOffset.UTC : timezoneOf(station.id(), station.timezone());
+    }
+
+    /**
+     * The same, for a statement that read only the station's id and its timezone column.
+     *
+     * @param stationId the station, named in the warning when its timezone will not parse
+     * @param timezone  what the station stored, or {@code null}
+     * @return the zone to format with
+     */
+    public static ZoneId timezoneOf(int stationId, String timezone) {
+        if (timezone == null) return ZoneOffset.UTC;
         try {
-            return ZoneId.of(station.timezone());
+            return ZoneId.of(timezone);
         } catch (Exception e) {
-            log.warn("Station {} holds the unusable timezone '{}', UTC is used", station.id(), station.timezone(), e);
+            log.warn("Station {} holds the unusable timezone '{}', UTC is used", stationId, timezone, e);
             return ZoneOffset.UTC;
         }
     }

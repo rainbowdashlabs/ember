@@ -8,17 +8,17 @@ package dev.chojo.ember.event.handlers;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 @Singleton
 public class EventDeletedHandler implements DomainEventHandler<EventDeleted> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
-    public EventDeletedHandler(NotificationService notificationService) {
-        this.notificationService = notificationService;
+    public EventDeletedHandler(Notifier notifier) {
+        this.notifier = notifier;
     }
 
     @Override
@@ -33,7 +33,7 @@ public class EventDeletedHandler implements DomainEventHandler<EventDeleted> {
      */
     @Override
     public void handle(EventDeleted event) {
-        notificationService.deleteAllPointingAt(NotificationLinks.event(event.eventId()));
-        notificationService.deleteAllPointingAt(NotificationLinks.eventDates(event.eventId()));
+        notifier.withdrawAll(NotificationLinks.event(event.eventId()));
+        notifier.withdrawAll(NotificationLinks.eventDates(event.eventId()));
     }
 }

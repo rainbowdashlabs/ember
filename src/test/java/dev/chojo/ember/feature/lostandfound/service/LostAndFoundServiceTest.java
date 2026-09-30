@@ -6,14 +6,9 @@
 package dev.chojo.ember.feature.lostandfound.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.mail.service.EmailService;
-import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.Notification;
-import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -45,22 +40,8 @@ class LostAndFoundServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var emailService = mock(EmailService.class);
         imageService = mock(LostAndFoundImageService.class);
-        var notificationService = new NotificationService(
-                notificationRepo,
-                stationMemberRepo,
-                userSettingsRepo,
-                notificationSettingsRepo,
-                accountRepo,
-                stationRepo,
-                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
-                emailService,
-                new MailRecipientService(accountRepo, stationMemberRepo),
-                new NotificationScheduleRepository(),
-                clusterRepo,
-                new Mailing());
-        service = new LostAndFoundService(lostAndFoundRepo, notificationService, imageService);
+        service = new LostAndFoundService(lostAndFoundRepo, newNotifier(), imageService);
 
         station = stationRepo.create("LostStation");
         account = accountRepo.create("lost@test.com", "Lost", "Finder");

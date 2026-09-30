@@ -8,13 +8,13 @@ package dev.chojo.ember.event.handlers;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ClusterApplicationSubmitted;
-import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.notifications.entity.ClusterAudience;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
-import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 
 /**
@@ -22,19 +22,11 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class ClusterApplicationSubmittedHandler implements DomainEventHandler<ClusterApplicationSubmitted> {
-    private final NotificationService notificationService;
-    private final Provider<ClusterService> clusterService;
+    private final Notifier notifier;
 
-    /**
-     * A handler is built while the bus is being built, so it may not ask for anything that needs the bus in
-     * turn. The cluster service does, several steps down, which is why it arrives as a provider rather than as
-     * itself: asked for when the notification is written rather than when the handler is made.
-     */
     @Inject
-    public ClusterApplicationSubmittedHandler(
-            NotificationService notificationService, Provider<ClusterService> clusterService) {
-        this.notificationService = notificationService;
-        this.clusterService = clusterService;
+    public ClusterApplicationSubmittedHandler(Notifier notifier) {
+        this.notifier = notifier;
     }
 
     @Override
@@ -47,10 +39,10 @@ public class ClusterApplicationSubmittedHandler implements DomainEventHandler<Cl
         var data = NotificationData.of(
                 new NotificationParams.ClusterApplicationSubmitted(event.stationName()),
                 new NotificationData.NotificationLink("cluster-applications"));
-        notificationService.notifyClusterMembersIfAbsent(
-                clusterService.get().findMemberIdsWith(event.clusterId(), ClusterPermission.CLUSTER_STATIONS),
+        notifier.notify(
+                ClusterAudience.holders(event.clusterId(), ClusterPermission.CLUSTER_STATIONS),
                 NotificationType.CLUSTER_APPLICATION_SUBMITTED,
                 data,
-                null);
+                Delivery.ONCE_WHILE_UNREAD);
     }
 }

@@ -149,6 +149,27 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(19)
+    void aGuardianWhoLeftIsNoLongerFoundAsOne() {
+        var elsewhere = stationRepo.create("Guardian Leaving Station");
+        var ward = stationMemberRepo.create(
+                elsewhere.id(),
+                accountRepo.create("member-ward@test.com", "Member", "Ward").id());
+        var leaving = stationMemberRepo.create(
+                elsewhere.id(),
+                accountRepo
+                        .create("member-leaving@test.com", "Member", "Leaving")
+                        .id());
+        stationMemberRepo.addManager(leaving.id(), ward.id());
+        assertEquals(1, stationMemberRepo.findManagers(ward.id()).size());
+
+        stationMemberRepo.setFormer(leaving.id(), true);
+
+        assertTrue(stationMemberRepo.findManagers(ward.id()).isEmpty());
+        stationRepo.delete(elsewhere.id());
+    }
+
+    @Test
     @Order(21)
     void removeManager() {
         assertTrue(stationMemberRepo.removeManager(memberId1, memberId2));

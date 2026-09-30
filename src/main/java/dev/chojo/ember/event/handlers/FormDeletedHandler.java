@@ -8,17 +8,17 @@ package dev.chojo.ember.event.handlers;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.FormDeleted;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 @Singleton
 public class FormDeletedHandler implements DomainEventHandler<FormDeleted> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
-    public FormDeletedHandler(NotificationService notificationService) {
-        this.notificationService = notificationService;
+    public FormDeletedHandler(Notifier notifier) {
+        this.notifier = notifier;
     }
 
     @Override
@@ -31,6 +31,6 @@ public class FormDeletedHandler implements DomainEventHandler<FormDeleted> {
      */
     @Override
     public void handle(FormDeleted event) {
-        notificationService.deleteAllPointingAt(NotificationLinks.form(event.formId()));
+        notifier.withdrawAll(NotificationLinks.form(event.formId()));
     }
 }

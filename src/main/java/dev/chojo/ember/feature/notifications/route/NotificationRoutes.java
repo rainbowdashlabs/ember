@@ -10,7 +10,8 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.notifications.entity.Notification;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
+import dev.chojo.ember.feature.notifications.service.NotificationInbox;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -33,11 +34,11 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  */
 @Singleton
 public class NotificationRoutes implements Routes {
-    private final NotificationService notificationService;
+    private final NotificationInbox inbox;
 
     @Inject
-    public NotificationRoutes(NotificationService notificationService) {
-        this.notificationService = notificationService;
+    public NotificationRoutes(NotificationInbox inbox) {
+        this.inbox = inbox;
     }
 
     @Override
@@ -57,9 +58,8 @@ public class NotificationRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = NotificationResponse[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        ctx.json(notificationService.findAll(session.member().id()).stream()
-                .map(this::toResponse)
+        ctx.json(inbox.recent(recipient(ctx)).stream()
+                .map(NotificationResponse::of)
                 .toList());
     }
 
@@ -71,9 +71,8 @@ public class NotificationRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = NotificationResponse[].class)))
     private void listUnacknowledged(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        ctx.json(notificationService.findUnacknowledged(session.member().id()).stream()
-                .map(this::toResponse)
+        ctx.json(inbox.unread(recipient(ctx)).stream()
+                .map(NotificationResponse::of)
                 .toList());
     }
 
@@ -84,9 +83,7 @@ public class NotificationRoutes implements Routes {
             tags = {"Notifications"},
             responses = @OpenApiResponse(status = "200"))
     private void count(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        ctx.json(new CountResponse(
-                notificationService.countUnacknowledged(session.member().id())));
+        ctx.json(new CountResponse(inbox.countUnread(recipient(ctx))));
     }
 
     @OpenApi(
@@ -97,9 +94,7 @@ public class NotificationRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void acknowledge(Context ctx) {
-        int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
-        notificationService.acknowledge(id, session.member().id());
+        inbox.acknowledge(recipient(ctx), pathInt(ctx, "id"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -110,28 +105,20 @@ public class NotificationRoutes implements Routes {
             tags = {"Notifications"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void acknowledgeAll(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int count = notificationService.acknowledgeAll(session.member().id());
+        int count = inbox.acknowledgeAll(recipient(ctx));
         ctx.json(new MessageResponse(count + " notifications acknowledged"));
     }
 
-    private NotificationResponse toResponse(Notification n) {
-        return new NotificationResponse(
-                n.id(),
-                n.type().name(),
-                n.type().localeKey(),
-                n.data().paramsAsMap(),
-                n.data().link() != null
-                        ? new NotificationLinkResponse(
-                                n.data().link().route(),
-                                n.data().link().routeParams(),
-                                n.data().link().query())
-                        : null,
-                n.createdAt(),
-                n.acknowledgedAt());
+    private static Recipient recipient(Context ctx) {
+        return Recipient.stationMember(UserSession.from(ctx).member().id());
     }
 
-    record CountResponse(long count) {}
+    /**
+     * How many notifications are unread.
+     *
+     * @param count the number
+     */
+    public record CountResponse(long count) {}
 
     /**
      * The link a notification carries. The query names a place inside the page the route opens,
@@ -139,6 +126,9 @@ public class NotificationRoutes implements Routes {
      */
     public record NotificationLinkResponse(String route, Map<String, Object> routeParams, Map<String, Object> query) {}
 
+    /**
+     * One notification as the bell and the list read it, the same for station and cluster members.
+     */
     public record NotificationResponse(
             int id,
             String type,
@@ -146,5 +136,19 @@ public class NotificationRoutes implements Routes {
             Map<String, String> params,
             NotificationLinkResponse link,
             Instant createdAt,
-            Instant acknowledgedAt) {}
+            Instant acknowledgedAt) {
+
+        /** The response for a stored notification. */
+        public static NotificationResponse of(Notification n) {
+            var link = n.data().link();
+            return new NotificationResponse(
+                    n.id(),
+                    n.type().name(),
+                    n.type().localeKey(),
+                    n.data().paramsAsMap(),
+                    link != null ? new NotificationLinkResponse(link.route(), link.routeParams(), link.query()) : null,
+                    n.createdAt(),
+                    n.acknowledgedAt());
+        }
+    }
 }

@@ -17,7 +17,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
@@ -91,7 +91,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         emailService = mock(EmailService.class);
-        var notificationService = mock(NotificationService.class);
+        var notificationService = mock(Notifier.class);
         authService = mock(AuthService.class);
         service = new WaitingListService(
                 waitingListRepo,

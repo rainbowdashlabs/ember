@@ -15,11 +15,12 @@ import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterEach;
@@ -52,7 +53,7 @@ class EventCancellationServiceTest extends RepositoryTestBase {
     private static StationMember onTheDate;
     private static StationMember onTheNextDate;
 
-    private NotificationService notifications;
+    private Notifier notifications;
     private EventCancellationService service;
     private EventOccurrenceService occurrences;
     private StationEvent event;
@@ -74,11 +75,10 @@ class EventCancellationServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void wire() {
-        notifications = mock(NotificationService.class);
-        var guardians = new GuardianPolicy(stationMemberRepo);
+        notifications = mock(Notifier.class);
         var bus = new DomainEventBus(Set.of(
-                new EventCancelledHandler(notifications, eventRegistrationRepo, occurrenceCalendar, guardians),
-                new EventDateRestoredHandler(notifications, eventRegistrationRepo, guardians)));
+                new EventCancelledHandler(notifications, eventRegistrationRepo, occurrenceCalendar),
+                new EventDateRestoredHandler(notifications, eventRegistrationRepo)));
         var services = newEventServices(bus);
         service = services.cancellation();
         occurrences = services.occurrence();
@@ -164,13 +164,14 @@ class EventCancellationServiceTest extends RepositoryTestBase {
                         .status(),
                 "places on a cancelled date are kept");
         verify(notifications)
-                .notifyMembers(
-                        eq(Set.of(onTheDate.id())),
+                .notify(
+                        eq(StationAudience.household(Set.of(onTheDate.id()))),
                         eq(NotificationType.EVENT_CANCELLED),
                         argThat((NotificationData data) ->
                                 data.params() instanceof NotificationParams.EventCancelled params
                                         && "Sturm".equals(params.reason())
-                                        && firstDate().equals(params.eventDate())));
+                                        && firstDate().equals(params.eventDate())),
+                        eq(Delivery.EVERY_TIME));
         var notice = service.findCancelledDates(event.id()).getFirst();
         assertEquals(firstDate(), notice.date());
         assertEquals(CancellationCause.MANUAL, notice.cause());
@@ -220,7 +221,11 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         assertFalse(eventDateCancellationRepo.isCancelled(event.id(), firstDate()));
         assertTrue(service.findCancelledDates(event.id()).isEmpty());
         verify(notifications)
-                .notifyMembers(eq(Set.of(onTheDate.id())), eq(NotificationType.EVENT_DATE_RESTORED), any());
+                .notify(
+                        eq(StationAudience.household(Set.of(onTheDate.id()))),
+                        eq(NotificationType.EVENT_DATE_RESTORED),
+                        any(),
+                        eq(Delivery.EVERY_TIME));
         assertRefused(Refusal.DATE_TO_RESTORE_NOT_CANCELLED, () -> service.restoreDate(event, firstDate()));
     }
 
@@ -247,8 +252,11 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         assertTrue(cancelled.cancelled());
         assertEquals("Aufgelöst", cancelled.cancelReason());
         verify(notifications)
-                .notifyMembers(
-                        eq(Set.of(onTheDate.id(), onTheNextDate.id())), eq(NotificationType.EVENT_CANCELLED), any());
+                .notify(
+                        eq(StationAudience.household(Set.of(onTheDate.id(), onTheNextDate.id()))),
+                        eq(NotificationType.EVENT_CANCELLED),
+                        any(),
+                        eq(Delivery.EVERY_TIME));
         assertRefused(Refusal.SERIES_ALREADY_CANCELLED, () -> service.cancelSeries(station.id(), event.id(), null));
         assertRefused(Refusal.DATE_ALREADY_CANCELLED, () -> service.cancelDate(cancelled, firstDate(), null, null));
         assertRefused(Refusal.DATE_OF_CANCELLED_SERIES_NOT_RESTORED, () -> service.restoreDate(cancelled, firstDate()));
@@ -272,7 +280,7 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         assertFalse(service.cancelForTooFewRegistrations(event, firstDate()));
 
         assertFalse(eventDateCancellationRepo.isCancelled(event.id(), firstDate()));
-        verify(notifications, never()).notifyMembers(any(), eq(NotificationType.EVENT_DATE_DROPPED), any());
+        verify(notifications, never()).notify(any(), eq(NotificationType.EVENT_DATE_DROPPED), any(), any());
     }
 
     /** A date called off stays on the lists and says why, and the dates beside it say nothing. */

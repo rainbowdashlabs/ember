@@ -34,6 +34,8 @@
 - **Jugendflamme template offers "None".** The Jugendflamme quick template adds one choice field with "None" and the three levels, so every member holds exactly one level. The date the level was reached comes with it as before.
 - **The minimum-registration deadline counts days before each date.** An appointment with a minimum number of registrations now says how many days before each date it has to be reached, instead of naming one fixed day, and one-time appointments keep their deadline. On repeating appointments the old deadline is removed and has to be set again in the appointment's editor.
 - **The backend gets thirty seconds to shut down.** The shipped compose files and the installer give the backend container a `stop_grace_period` of 30 seconds, which it uses to finish running requests and save buffered statistics and log lines. Setups with their own compose files should set the same on the backend.
+- **Association mail is switched on by each person.** The association's notification mail now only reaches people who switch it on under Association → Notifications, where it starts off. Until then its notifications stay in the app.
+
 ### Fixes
 
 - **Reordering options no longer changes answers.** Reordering or renaming the options of a question that already had answers could change what those answers said. Answers now stay with the option that was chosen, and removing an option somebody chose asks first.
@@ -60,6 +62,9 @@
 - **Animated logos stood still.** An animated GIF uploaded as a station logo, and the tile of a GIF in the wiki, showed only its first frame. They now keep moving.
 - **The page at `/pitch` opened in the desktop layout on phones.** In some cases the attendance buttons of its example stayed at desktop width on a phone until the screen was turned or resized. The page now switches to the phone layout as soon as it has loaded.
 - **One unreadable message could stop a mailbox import.** In some cases a mailbox failed to import on every visit because of a single message the mail server could not hand over, such as one another mail program had just deleted, until the mailbox was suspended. Such a message is now skipped and the rest of the mailbox is imported.
+- **Association mail in the right language and at the right time.** The association's notification mail was always written in English and its send times were read in UTC instead of local time. It now follows the language and time zone of the association's home station.
+- **No duplicate notifications.** In some cases the same notification could appear twice when two people did the same thing at the same moment. It now appears once.
+- **Former guardians were still notified.** People who had left a station could still receive notifications and mails about the members they used to look after. They no longer do.
 
 ## v26.19.5
 

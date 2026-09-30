@@ -84,6 +84,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-cluster-news-detail', path: '/helpcenter/cluster/news/0', i18nPrefix: 'helpCenter.newsDetail'},
     {route: 'help-cluster-news-edit', path: '/helpcenter/cluster/news/0/edit', i18nPrefix: 'helpCenter.newsEdit'},
     {route: 'help-cluster-news-create', path: '/helpcenter/cluster/news/create', i18nPrefix: 'helpCenter.newsEdit'},
+    {route: 'help-cluster-notifications', path: '/helpcenter/cluster/notifications', i18nPrefix: 'helpCenter.clusterNotifications'},
     {route: 'help-cluster-settings', path: '/helpcenter/cluster/settings', i18nPrefix: 'helpCenter.clusterSettings'},
     {route: 'help-cluster-stations', path: '/helpcenter/cluster/stations', i18nPrefix: 'helpCenter.clusterStations'},
     {route: 'help-cluster-station-groups', path: '/helpcenter/cluster/stations/groups', i18nPrefix: 'helpCenter.clusterStationGroups'},

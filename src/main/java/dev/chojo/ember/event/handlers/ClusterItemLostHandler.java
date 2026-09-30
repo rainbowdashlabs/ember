@@ -8,15 +8,15 @@ package dev.chojo.ember.event.handlers;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ClusterItemLost;
-import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.notifications.entity.ClusterAudience;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
-import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 
 /**
@@ -30,18 +30,13 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class ClusterItemLostHandler implements DomainEventHandler<ClusterItemLost> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
     private final StationRepository stationRepository;
-    private final Provider<ClusterService> clusterService;
 
     @Inject
-    public ClusterItemLostHandler(
-            NotificationService notificationService,
-            StationRepository stationRepository,
-            Provider<ClusterService> clusterService) {
-        this.notificationService = notificationService;
+    public ClusterItemLostHandler(Notifier notifier, StationRepository stationRepository) {
+        this.notifier = notifier;
         this.stationRepository = stationRepository;
-        this.clusterService = clusterService;
     }
 
     @Override
@@ -56,10 +51,10 @@ public class ClusterItemLostHandler implements DomainEventHandler<ClusterItemLos
         var data = NotificationData.of(
                 new NotificationParams.ClusterItemLost(event.itemName(), stationName),
                 new NotificationData.NotificationLink("cluster-inventory"));
-        notificationService.notifyClusterMembersIfAbsent(
-                clusterService.get().findMemberIdsWith(event.clusterId(), ClusterPermission.CLUSTER_INVENTORY_MANAGER),
+        notifier.notify(
+                ClusterAudience.holders(event.clusterId(), ClusterPermission.CLUSTER_INVENTORY_MANAGER),
                 NotificationType.CLUSTER_ITEM_LOST,
                 data,
-                null);
+                Delivery.ONCE_WHILE_UNREAD);
     }
 }

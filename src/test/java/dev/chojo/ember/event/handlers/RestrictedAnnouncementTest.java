@@ -6,24 +6,19 @@
 package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.event.events.FormPublished;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
-import dev.chojo.ember.feature.mail.service.EmailService;
-import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -33,7 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
 
 /**
  * Announcements of new restricted entries reach the members who may open them, and nobody else.
@@ -41,7 +35,7 @@ import static org.mockito.Mockito.mock;
 class RestrictedAnnouncementTest extends RepositoryTestBase {
     private static final List<Account> accounts = new ArrayList<>();
 
-    private static NotificationService notifications;
+    private static Notifier notifications;
     private static Station station;
     private static MemberGroup group;
     private static UserTag tag;
@@ -53,19 +47,7 @@ class RestrictedAnnouncementTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        notifications = new NotificationService(
-                notificationRepo,
-                stationMemberRepo,
-                userSettingsRepo,
-                notificationSettingsRepo,
-                accountRepo,
-                stationRepo,
-                mock(StationLogoService.class),
-                mock(EmailService.class),
-                new MailRecipientService(accountRepo, stationMemberRepo),
-                new NotificationScheduleRepository(),
-                clusterRepo,
-                new Mailing());
+        notifications = newNotifier();
 
         station = stationRepo.create("Restricted Announcement Station");
         group = memberGroupRepo.create(station.id(), "Announced Group");

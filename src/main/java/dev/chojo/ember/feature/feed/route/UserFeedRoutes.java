@@ -33,7 +33,10 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
+import dev.chojo.ember.feature.notifications.service.NotificationInbox;
+import dev.chojo.ember.feature.notifications.service.NotificationPreferences;
+import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
@@ -94,7 +97,9 @@ public class UserFeedRoutes implements Routes {
     private final EventCrudService crudService;
     private final EventCategoryService categoryService;
     private final EventRegistrationService registrationService;
-    private final NotificationService notificationService;
+    private final NotificationText notificationText;
+    private final NotificationInbox notificationInbox;
+    private final NotificationPreferences notificationPreferences;
     private final StationMemberRepository memberRepository;
     private final StationRepository stationRepository;
     private final EmailService emailService;
@@ -114,7 +119,9 @@ public class UserFeedRoutes implements Routes {
             EventCrudService crudService,
             EventCategoryService categoryService,
             EventRegistrationService registrationService,
-            NotificationService notificationService,
+            NotificationText notificationText,
+            NotificationInbox notificationInbox,
+            NotificationPreferences notificationPreferences,
             StationMemberRepository memberRepository,
             StationRepository stationRepository,
             EmailService emailService,
@@ -132,7 +139,9 @@ public class UserFeedRoutes implements Routes {
         this.crudService = crudService;
         this.categoryService = categoryService;
         this.registrationService = registrationService;
-        this.notificationService = notificationService;
+        this.notificationText = notificationText;
+        this.notificationInbox = notificationInbox;
+        this.notificationPreferences = notificationPreferences;
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.emailService = emailService;
@@ -237,7 +246,7 @@ public class UserFeedRoutes implements Routes {
     private int doIcalFeed(Context ctx, StationMember member) {
         tokenService.recordIcalPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(Refusal.FEED_STATION_NOT_HERE::raise);
-        String locale = notificationService.resolveLocale(station.locale());
+        String locale = notificationText.resolveLocale(station.locale());
         boolean verbose = !"0".equals(ctx.queryParam("verbose"));
 
         // Conditional GET: cheaper than re-rendering an unchanged calendar. The fingerprint
@@ -440,12 +449,12 @@ public class UserFeedRoutes implements Routes {
         var station = stationRepository
                 .findById(member.stationId())
                 .orElseThrow(Refusal.FEED_STATION_NOT_HERE_FOR_NOTIFICATIONS::raise);
-        String locale = notificationService.resolveLocale(station.locale());
+        String locale = notificationText.resolveLocale(station.locale());
         String baseUrl = emailService.getBaseUrl();
         boolean verbose = !"0".equals(ctx.queryParam("verbose"));
         boolean images = !"0".equals(ctx.queryParam("images"));
 
-        var stamp = notificationService.findMaxStamp(member.id());
+        var stamp = notificationInbox.latestStamp(member.id());
         // Fingerprint discriminates rss vs atom so a reader switching feeds gets a fresh body.
         var fp = FeedFingerprint.compute(stamp.maxCreatedAt(), feedType, stamp.maxId(), locale, verbose, images);
         if (FeedFingerprint.handleConditional(ctx, fp)) return 0;
@@ -455,7 +464,7 @@ public class UserFeedRoutes implements Routes {
         SyndFeed feed = new SyndFeedImpl();
         feed.setFeedType(feedType);
         feed.setTitle(localizedFeedTitle(locale, station));
-        feed.setDescription(notificationService.resolveLocalized(locale, "feed", "description", null));
+        feed.setDescription(notificationText.resolveLocalized(locale, "feed", "description", null));
         feed.setLanguage(locale);
         feed.setLink(baseUrl + "/station/dashboard/overview?station=" + station.uid());
         // Atom requires a stable self-identifying URI per-feed; harmless for RSS.
@@ -470,7 +479,7 @@ public class UserFeedRoutes implements Routes {
     }
 
     private String localizedFeedTitle(String locale, Station station) {
-        return notificationService.resolveLocalized(locale, "feed", "title", Map.of("stationName", station.name()));
+        return notificationText.resolveLocalized(locale, "feed", "title", Map.of("stationName", station.name()));
     }
 
     // -- Helpers --
@@ -509,7 +518,7 @@ public class UserFeedRoutes implements Routes {
     }
 
     private List<Notification> getFeedNotifications(StationMember member) {
-        var settings = notificationService.getNotificationSettings(member.id());
+        var settings = notificationPreferences.settingsOf(member.id());
         var enabledTypes = Set.of(NotificationType.values()).stream()
                 .filter(t -> {
                     var s = settings.get(t);
@@ -520,7 +529,7 @@ public class UserFeedRoutes implements Routes {
         // Cap the entry count so a noisy station can't blow up the feed payload. findAll
         // already orders by created_at desc and caps at 50 today; we apply our own ceiling
         // explicitly so the cap stays correct if the underlying query loosens later.
-        return notificationService.findAll(member.id()).stream()
+        return notificationInbox.recent(Recipient.stationMember(member.id())).stream()
                 .filter(n -> enabledTypes.contains(n.type()))
                 .limit(NOTIFICATION_FEED_CAP)
                 .toList();

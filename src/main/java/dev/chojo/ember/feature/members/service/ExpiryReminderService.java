@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
-import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.ExpirySettings;
 import dev.chojo.ember.feature.members.entity.ExpiryState;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
@@ -20,18 +19,20 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ExpiryReminderRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.ClusterAudience;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.ExpiryReminderKind;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
-import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,8 +84,7 @@ public class ExpiryReminderService {
     private final StationReadOnlyGuard readOnlyGuard;
     private final MemberPermissionResolver permissionResolver;
     private final MemberNameResolver memberNameResolver;
-    private final NotificationService notificationService;
-    private final Provider<ClusterService> clusterService;
+    private final Notifier notifier;
 
     @Inject
     public ExpiryReminderService(
@@ -97,8 +97,7 @@ public class ExpiryReminderService {
             StationReadOnlyGuard readOnlyGuard,
             MemberPermissionResolver permissionResolver,
             MemberNameResolver memberNameResolver,
-            NotificationService notificationService,
-            Provider<ClusterService> clusterService) {
+            Notifier notifier) {
         this.profileFieldRepository = profileFieldRepository;
         this.clusterFieldRepository = clusterFieldRepository;
         this.reminderRepository = reminderRepository;
@@ -108,8 +107,7 @@ public class ExpiryReminderService {
         this.readOnlyGuard = readOnlyGuard;
         this.permissionResolver = permissionResolver;
         this.memberNameResolver = memberNameResolver;
-        this.notificationService = notificationService;
-        this.clusterService = clusterService;
+        this.notifier = notifier;
     }
 
     /**
@@ -274,22 +272,22 @@ public class ExpiryReminderService {
                 null,
                 null);
         if (hasLogin(member)) {
-            notificationService.notifyMembers(
-                    List.of(member.id()),
+            notifier.notify(
+                    StationAudience.member(member.id()),
                     NotificationType.EXPIRY_REMINDER,
-                    NotificationData.of(params, NotificationLinks.ownProfile()));
+                    NotificationData.of(params, NotificationLinks.ownProfile()),
+                    Delivery.EVERY_TIME);
         }
         var guardians = stationMemberRepository.findManagers(member.id()).stream()
-                .filter(guardian -> !guardian.former())
                 .filter(this::hasLogin)
                 .map(StationMember::id)
                 .toList();
-        if (!guardians.isEmpty()) {
-            notificationService.notifyMembers(
-                    guardians,
-                    NotificationType.EXPIRY_REMINDER,
-                    NotificationData.of(params, NotificationLinks.managedProfile(member.id())));
-        }
+        if (guardians.isEmpty()) return;
+        notifier.notify(
+                StationAudience.members(guardians),
+                NotificationType.EXPIRY_REMINDER,
+                NotificationData.of(params, NotificationLinks.managedProfile(member.id())),
+                Delivery.EVERY_TIME);
     }
 
     /**
@@ -311,10 +309,11 @@ public class ExpiryReminderService {
         var params = new NotificationParams.ExpiryReminder(
                 ExpiryReminderKind.MEMBERS_DUE, field.name(), null, null, null, members, due.size());
         if (field.origin() == FieldOrigin.CLUSTER) {
-            notificationService.notifyClusterMembers(
-                    clusterService.get().findMemberIdsWith(field.ownerId(), ClusterPermission.CLUSTER_MEMBER_MANAGER),
+            notifier.notify(
+                    ClusterAudience.holders(field.ownerId(), ClusterPermission.CLUSTER_MEMBER_MANAGER),
                     NotificationType.EXPIRY_REMINDER,
-                    NotificationData.of(params, NotificationLinks.clusterMembers()));
+                    NotificationData.of(params, NotificationLinks.clusterMembers()),
+                    Delivery.EVERY_TIME);
             return;
         }
         var recipients =
@@ -325,10 +324,11 @@ public class ExpiryReminderService {
                         .map(StationMember::id)
                         .toList();
         if (recipients.isEmpty()) return;
-        notificationService.notifyMembers(
-                recipients,
+        notifier.notify(
+                StationAudience.members(recipients),
                 NotificationType.EXPIRY_REMINDER,
-                NotificationData.of(params, NotificationLinks.runningOut(field.id())));
+                NotificationData.of(params, NotificationLinks.runningOut(field.id())),
+                Delivery.EVERY_TIME);
     }
 
     /** Whether somebody can sign in and read a notification at all. */

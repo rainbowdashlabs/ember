@@ -32,10 +32,12 @@ import dev.chojo.ember.feature.inventory.repository.InventoryContainerRepository
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.SelfCheckRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import io.javalin.http.ForbiddenResponse;
@@ -78,7 +80,7 @@ public class SelfCheckReviewService {
     private final AccountRepository accountRepository;
     private final ItemCustodyService custodyService;
     private final ItemMovementService movementService;
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
     public SelfCheckReviewService(
@@ -91,7 +93,7 @@ public class SelfCheckReviewService {
             AccountRepository accountRepository,
             ItemCustodyService custodyService,
             ItemMovementService movementService,
-            NotificationService notificationService) {
+            Notifier notifier) {
         this.repository = repository;
         this.checkService = checkService;
         this.checkRepository = checkRepository;
@@ -101,7 +103,7 @@ public class SelfCheckReviewService {
         this.accountRepository = accountRepository;
         this.custodyService = custodyService;
         this.movementService = movementService;
-        this.notificationService = notificationService;
+        this.notifier = notifier;
     }
 
     /**
@@ -595,10 +597,12 @@ public class SelfCheckReviewService {
         var data = NotificationData.of(
                 new NotificationParams.SelfCheckRowRefused(nameOf(task.memberId()), itemName, reason),
                 new NotificationData.NotificationLink("inventory-self-check", Map.of("id", task.id())));
-        notificationService.notifyIfAbsent(task.memberId(), NotificationType.SELF_CHECK_ROW_REFUSED, data);
-        if (row.answeredBy() != null && row.answeredBy() != task.memberId()) {
-            notificationService.notifyIfAbsent(row.answeredBy(), NotificationType.SELF_CHECK_ROW_REFUSED, data);
-        }
+        var told = row.answeredBy() != null ? List.of(task.memberId(), row.answeredBy()) : List.of(task.memberId());
+        notifier.notify(
+                StationAudience.members(told),
+                NotificationType.SELF_CHECK_ROW_REFUSED,
+                data,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     private String inventoryNameOf(int inventoryId) {

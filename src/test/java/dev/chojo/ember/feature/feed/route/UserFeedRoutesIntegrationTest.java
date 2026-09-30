@@ -26,8 +26,11 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.NotificationInbox;
+import dev.chojo.ember.feature.notifications.service.NotificationPreferences;
+import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
@@ -69,14 +72,18 @@ class UserFeedRoutesIntegrationTest {
     private static final int MEMBER_ID = 7;
     private static final int STATION_ID = 1;
 
-    private NotificationService notificationService;
+    private NotificationText notificationText;
+    private NotificationInbox notificationInbox;
+    private NotificationPreferences notificationPreferences;
     private ControllableClock clock;
     private RouteHarness harness;
 
     @BeforeEach
     void setup() {
         FeedTokenService tokenService = mock(FeedTokenService.class);
-        notificationService = mock(NotificationService.class);
+        notificationText = mock(NotificationText.class);
+        notificationInbox = mock(NotificationInbox.class);
+        notificationPreferences = mock(NotificationPreferences.class);
         StationMemberRepository memberRepository = mock(StationMemberRepository.class);
         StationRepository stationRepository = mock(StationRepository.class);
         EmailService emailService = mock(EmailService.class);
@@ -89,7 +96,9 @@ class UserFeedRoutesIntegrationTest {
                 mock(EventCrudService.class),
                 mock(EventCategoryService.class),
                 mock(EventRegistrationService.class),
-                notificationService,
+                notificationText,
+                notificationInbox,
+                notificationPreferences,
                 memberRepository,
                 stationRepository,
                 emailService,
@@ -151,13 +160,12 @@ class UserFeedRoutesIntegrationTest {
         when(tokenService.findByToken(TOKEN_VALUE)).thenReturn(Optional.of(token));
         when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member));
         when(stationRepository.findById(STATION_ID)).thenReturn(Optional.of(station));
-        when(notificationService.resolveLocale(any())).thenReturn("de");
-        when(notificationService.resolveLocalized(any(), any(), any(), any())).thenReturn("text");
+        when(notificationText.resolveLocale(any())).thenReturn("de");
+        when(notificationText.resolveLocalized(any(), any(), any(), any())).thenReturn("text");
         when(emailService.getBaseUrl()).thenReturn("https://ember.example.com");
-        when(notificationService.getNotificationSettings(MEMBER_ID)).thenReturn(Map.of());
-        when(notificationService.findAll(MEMBER_ID)).thenReturn(List.of());
-        when(notificationService.findMaxStamp(MEMBER_ID))
-                .thenReturn(new NotificationRepository.Stamp(0, Instant.EPOCH));
+        when(notificationPreferences.settingsOf(MEMBER_ID)).thenReturn(Map.of());
+        when(notificationInbox.recent(Recipient.stationMember(MEMBER_ID))).thenReturn(List.of());
+        when(notificationInbox.latestStamp(MEMBER_ID)).thenReturn(new NotificationRepository.Stamp(0, Instant.EPOCH));
     }
 
     @Test
@@ -180,10 +188,9 @@ class UserFeedRoutesIntegrationTest {
     void rssChangingFingerprintInvalidatesEtag() {
         harness.run((server, client) -> {
             String firstEtag = header(client.get(RSS), "ETag");
-            when(notificationService.findMaxStamp(MEMBER_ID))
+            when(notificationInbox.latestStamp(MEMBER_ID))
                     .thenReturn(new NotificationRepository.Stamp(99, Instant.parse("2026-06-12T11:00:00Z")));
-            when(notificationService.resolveLocalized(any(), any(), any(), any()))
-                    .thenReturn("changed");
+            when(notificationText.resolveLocalized(any(), any(), any(), any())).thenReturn("changed");
 
             clock.advanceSeconds(120);
             var second = revalidate(client, firstEtag);

@@ -22,10 +22,12 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.SelfCheckRepository;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import io.javalin.http.ForbiddenResponse;
@@ -64,7 +66,7 @@ public class SelfCheckService {
     private final InventoryRepository inventoryRepository;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
     public SelfCheckService(
@@ -73,13 +75,13 @@ public class SelfCheckService {
             InventoryRepository inventoryRepository,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
-            NotificationService notificationService) {
+            Notifier notifier) {
         this.repository = repository;
         this.checkService = checkService;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
-        this.notificationService = notificationService;
+        this.notifier = notifier;
     }
 
     /**
@@ -132,10 +134,11 @@ public class SelfCheckService {
                 task.dueOn() == null ? "" : task.dueOn().toString());
         var data = NotificationData.of(
                 params, new NotificationData.NotificationLink("inventory-self-check", Map.of("id", task.id())));
-        notificationService.notifyIfAbsent(task.memberId(), NotificationType.SELF_CHECK_ASSIGNED, data);
-        for (var manager : stationMemberRepository.findManagers(task.memberId())) {
-            notificationService.notifyIfAbsent(manager.id(), NotificationType.SELF_CHECK_ASSIGNED, data);
-        }
+        notifier.notify(
+                StationAudience.household(List.of(task.memberId())),
+                NotificationType.SELF_CHECK_ASSIGNED,
+                data,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     /**
@@ -145,12 +148,12 @@ public class SelfCheckService {
         var params = new NotificationParams.SelfCheckSubmitted(nameOf(task.memberId()), nameOf(submittedBy));
         var data = NotificationData.of(
                 params, new NotificationData.NotificationLink("inventory-self-check-review", Map.of("id", task.id())));
-        notificationService.notifyMembersWithRole(
-                task.stationId(),
-                StationPermission.INVENTORY_CHECK.name(),
+        notifier.notify(
+                StationAudience.holders(task.stationId(), StationPermission.INVENTORY_CHECK)
+                        .except(submittedBy),
                 NotificationType.SELF_CHECK_SUBMITTED,
                 data,
-                submittedBy);
+                Delivery.EVERY_TIME);
     }
 
     /**

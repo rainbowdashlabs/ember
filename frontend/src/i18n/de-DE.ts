@@ -1100,6 +1100,10 @@ export default {
             title: 'Verbands-Einstellungen',
             subtitle: 'Name und Beschreibung des Verbands',
         },
+        'cluster-notifications': {
+            title: 'Benachrichtigungen',
+            subtitle: 'Wie dich der Verband erreicht',
+        },
         'cluster-stations': {
             title: 'Wachen',
             subtitle: 'Die Wachen, die zu diesem Verband gehören',
@@ -7694,6 +7698,7 @@ export default {
     clusterSidebar: {
         cluster: 'Verband',
         overview: 'Übersicht',
+        notifications: 'Benachrichtigungen',
         settings: 'Einstellungen',
         stations: 'Wachen',
         stationList: 'Wachen',
@@ -8035,6 +8040,13 @@ export default {
         autoFederateLabel: 'Wachen untereinander verbinden',
         autoFederateHint: 'Neue Wachen des Verbands werden automatisch mit allen anderen verbunden, sodass sie Termine, Wissen und Material teilen können.',
         autoFederateOffHint: 'Beim Ausschalten bleiben bestehende Verbindungen erhalten. Es werden nur keine neuen mehr angelegt.',
+    },
+    clusterNotifications: {
+        mailTitle: 'E-Mail',
+        mailLabel: 'Benachrichtigungen per E-Mail',
+        mailHint: 'Was der Verband dir meldet, kommt zusätzlich gesammelt per E-Mail, in der Sprache des Verbands.',
+        mailUnavailable: 'Auf dieser Installation ist kein E-Mail-Versand eingerichtet. Der Schalter wird erst nutzbar, wenn das geschieht.',
+        saved: 'Deine Einstellung wurde gespeichert.',
     },
     questionValue: {
         chooseOne: 'Bitte wählen',

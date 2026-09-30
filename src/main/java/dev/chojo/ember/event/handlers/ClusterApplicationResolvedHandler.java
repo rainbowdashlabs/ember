@@ -7,10 +7,12 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ClusterApplicationResolved;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -23,13 +25,12 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class ClusterApplicationResolvedHandler implements DomainEventHandler<ClusterApplicationResolved> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
     private final StationRepository stationRepository;
 
     @Inject
-    public ClusterApplicationResolvedHandler(
-            NotificationService notificationService, StationRepository stationRepository) {
-        this.notificationService = notificationService;
+    public ClusterApplicationResolvedHandler(Notifier notifier, StationRepository stationRepository) {
+        this.notifier = notifier;
         this.stationRepository = stationRepository;
     }
 
@@ -56,6 +57,6 @@ public class ClusterApplicationResolvedHandler implements DomainEventHandler<Clu
         var type = event.approved()
                 ? NotificationType.CLUSTER_APPLICATION_APPROVED
                 : NotificationType.CLUSTER_APPLICATION_DENIED;
-        notificationService.notifyIfAbsent(owner, type, data);
+        notifier.notify(StationAudience.member(owner), type, data, Delivery.ONCE_WHILE_UNREAD);
     }
 }

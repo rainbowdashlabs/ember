@@ -13,12 +13,17 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.stream.Stream;
 
+import static com.tngtech.archunit.core.domain.JavaAccess.Predicates.target;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.assignableTo;
+import static com.tngtech.archunit.core.domain.properties.HasName.Predicates.name;
+import static com.tngtech.archunit.core.domain.properties.HasOwner.Predicates.With.owner;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
@@ -58,6 +63,24 @@ public class ArchitectureTest {
             .areTopLevelClasses()
             .should()
             .resideInAPackage("..service..");
+
+    /**
+     * Notifications are written by the notifier and marked by the digest, both in the notifications
+     * feature; everybody else asks the notifier. That keeps one place applying the audience, the
+     * preferences and "once while unread" to every row.
+     */
+    @ArchTest
+    static final ArchRule onlyTheNotificationsFeatureWritesNotifications = noClasses()
+            .that()
+            .resideOutsideOfPackage("dev.chojo.ember.feature.notifications..")
+            .should()
+            .callMethodWhere(target(owner(assignableTo(NotificationRepository.class)))
+                    .and(target(name("insertForStation")
+                            .or(name("insertForCluster"))
+                            .or(name("markEmailed"))
+                            .or(name("deleteByTypeAndLink"))
+                            .or(name("deleteAllPointingAt"))
+                            .or(name("deleteOldAcknowledged")))));
 
     @ArchTest
     static final ArchRule routesDoNotConstructJsonMappers = noClasses()

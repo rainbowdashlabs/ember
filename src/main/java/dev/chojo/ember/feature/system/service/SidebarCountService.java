@@ -15,7 +15,8 @@ import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
+import dev.chojo.ember.feature.notifications.service.NotificationInbox;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
@@ -26,7 +27,7 @@ import java.util.UUID;
 
 @Singleton
 public class SidebarCountService {
-    private final NotificationService notificationService;
+    private final NotificationInbox notificationInbox;
     private final RequirementsService requirementsService;
     private final ProfileFieldChangeRepository profileFieldChangeRepository;
     private final EventRegistrationRepository eventRegistrationRepository;
@@ -42,7 +43,7 @@ public class SidebarCountService {
 
     @Inject
     public SidebarCountService(
-            NotificationService notificationService,
+            NotificationInbox notificationInbox,
             RequirementsService requirementsService,
             ProfileFieldChangeRepository profileFieldChangeRepository,
             EventRegistrationRepository eventRegistrationRepository,
@@ -55,7 +56,7 @@ public class SidebarCountService {
             ItemMovementService movementService,
             ProcedureService procedureService,
             StationMemberService stationMemberService) {
-        this.notificationService = notificationService;
+        this.notificationInbox = notificationInbox;
         this.requirementsService = requirementsService;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
         this.eventRegistrationRepository = eventRegistrationRepository;
@@ -75,7 +76,7 @@ public class SidebarCountService {
         int memberId = session.member().id();
         var roles = session.permissions();
 
-        int notifications = notificationService.countUnacknowledged(memberId);
+        int notifications = notificationInbox.countUnread(Recipient.stationMember(memberId));
 
         int requirements = requirementsService.countPending(
                 memberId, stationId, roles.stream().map(Enum::name).toList());

@@ -220,7 +220,7 @@ import dev.chojo.ember.feature.news.route.NewsRoutes;
 import dev.chojo.ember.feature.news.route.RemoteNewsRoutes;
 import dev.chojo.ember.feature.news.service.NewsFeedDetails;
 import dev.chojo.ember.feature.notifications.route.NotificationRoutes;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.NotificationDigest;
 import dev.chojo.ember.feature.onboarding.route.OnboardingRoutes;
 import dev.chojo.ember.feature.page.route.PageRoutes;
 import dev.chojo.ember.feature.page.route.PublicPageRoutes;
@@ -651,7 +651,7 @@ public class EmberModule extends AbstractModule {
         tasks.addBinding().to(WaitingListService.ConfirmationTask.class);
         tasks.addBinding().to(EmailService.QueueTask.class);
         tasks.addBinding().to(EmailService.CleanupTask.class);
-        tasks.addBinding().to(NotificationService.SweepTask.class);
+        tasks.addBinding().to(NotificationDigest.Task.class);
         tasks.addBinding().to(MailImportPoller.TickTask.class);
         tasks.addBinding().to(MailImportPoller.PruneTask.class);
         tasks.addBinding().to(AuthCleanupSweeper.Task.class);

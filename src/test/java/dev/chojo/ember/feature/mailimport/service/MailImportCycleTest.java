@@ -23,8 +23,10 @@ import dev.chojo.ember.feature.mailimport.repository.MailMailboxRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailOriginRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
 import dev.chojo.ember.feature.media.service.ImageVariants;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -91,7 +93,7 @@ class MailImportCycleTest extends RepositoryTestBase {
     private static MailRuleRepository ruleRepository;
     private static MailImportLogRepository logRepository;
     private static CredentialCipher cipher;
-    private static NotificationService notifications;
+    private static Notifier notifications;
     private static Station station;
     private static Account account;
     private static MailMailbox mailbox;
@@ -115,7 +117,7 @@ class MailImportCycleTest extends RepositoryTestBase {
         logRepository = new MailImportLogRepository();
         var originRepository = new MailOriginRepository();
         cipher = new CredentialCipher(KEY);
-        notifications = mock(NotificationService.class);
+        notifications = mock(Notifier.class);
 
         station = stationRepo.create("Cycle Station");
         account = accountRepo.create("cycle@test.com", "Anna", "Weber");
@@ -704,11 +706,11 @@ class MailImportCycleTest extends RepositoryTestBase {
                 mailboxRepository.findById(unreachable.id()).orElseThrow().suspended(),
                 "enough failures in a row take it out of the rotation");
         verify(notifications, atLeastOnce())
-                .notifyMembersWithRole(
-                        eq(station.id()),
-                        eq(StationPermission.STATION_MAIL.name()),
+                .notify(
+                        eq(StationAudience.holders(station.id(), StationPermission.STATION_MAIL)),
                         eq(NotificationType.MAILBOX_SUSPENDED),
-                        any());
+                        any(),
+                        eq(Delivery.EVERY_TIME));
     }
 
     /**
@@ -723,11 +725,11 @@ class MailImportCycleTest extends RepositoryTestBase {
         assertEquals(1, importService.run(mailbox, Instant.now()).imported());
 
         verify(notifications, atLeastOnce())
-                .notifyMembersWithRole(
-                        eq(station.id()),
-                        eq(StationPermission.DOCUMENT_READ.name()),
+                .notify(
+                        eq(StationAudience.holders(station.id(), StationPermission.DOCUMENT_READ)),
                         eq(NotificationType.MAIL_IMPORT_UNBOUND),
-                        any());
+                        any(),
+                        eq(Delivery.EVERY_TIME));
     }
 
     /** What the setting is: the same message, refused where a signature is asked for and filed where it is not. */

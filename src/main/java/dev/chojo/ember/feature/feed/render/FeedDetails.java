@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.feed.render;
 
 import dev.chojo.ember.feature.notifications.entity.Notification;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.NotificationText;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -28,17 +28,17 @@ import java.util.function.Function;
  */
 public final class FeedDetails {
     private final Map<String, String> rows = new LinkedHashMap<>();
-    private final NotificationService notificationService;
+    private final NotificationText notificationText;
     private final Function<Integer, ZoneId> zones;
     private final Notification notification;
     private final String locale;
 
     FeedDetails(
-            NotificationService notificationService,
+            NotificationText notificationText,
             Function<Integer, ZoneId> zones,
             Notification notification,
             String locale) {
-        this.notificationService = notificationService;
+        this.notificationText = notificationText;
         this.zones = zones;
         this.notification = notification;
         this.locale = locale;
@@ -94,12 +94,12 @@ public final class FeedDetails {
 
     /** An entry of any bundle, with its placeholders filled from {@code params}. */
     public String localized(String bundle, String key, Map<String, String> params) {
-        return notificationService.resolveLocalized(locale, bundle, key, params);
+        return notificationText.resolveLocalized(locale, bundle, key, params);
     }
 
     /** A status name as the reader sees it, marked with its symbol. */
     public String statusWithSymbol(String status) {
-        return notificationService.resolveStatusWithSymbol(locale, status);
+        return notificationText.resolveStatusWithSymbol(locale, status);
     }
 
     /**
@@ -172,6 +172,6 @@ public final class FeedDetails {
      */
     public void putSnippetIfPresent(String label, String value) {
         if (!notBlank(value)) return;
-        rows.put(label, NotificationService.truncateSnippet(value, NotificationService.BODY_SNIPPET_MAX));
+        rows.put(label, NotificationText.truncateSnippet(value, NotificationText.BODY_SNIPPET_MAX));
     }
 }

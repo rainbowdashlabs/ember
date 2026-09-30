@@ -9,22 +9,23 @@ import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.MembersAddedToGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 @Singleton
 public class MembersAddedToGroupHandler implements DomainEventHandler<MembersAddedToGroup> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
     private final StationMemberRepository stationMemberRepository;
 
     @Inject
-    public MembersAddedToGroupHandler(
-            NotificationService notificationService, StationMemberRepository stationMemberRepository) {
-        this.notificationService = notificationService;
+    public MembersAddedToGroupHandler(Notifier notifier, StationMemberRepository stationMemberRepository) {
+        this.notifier = notifier;
         this.stationMemberRepository = stationMemberRepository;
     }
 
@@ -44,6 +45,10 @@ public class MembersAddedToGroupHandler implements DomainEventHandler<MembersAdd
         var data = NotificationData.of(
                 new NotificationParams.MemberAddedToGroup(event.groupName(), addedByName),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        notificationService.notifyMembers(event.memberIds(), NotificationType.MEMBER_ADDED_TO_GROUP, data);
+        notifier.notify(
+                StationAudience.members(event.memberIds()),
+                NotificationType.MEMBER_ADDED_TO_GROUP,
+                data,
+                Delivery.EVERY_TIME);
     }
 }

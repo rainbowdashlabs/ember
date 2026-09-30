@@ -525,8 +525,8 @@ public class StationManageRoutes implements Routes {
      */
     private void getNotificationSchedule(Context ctx) {
         var session = UserSession.from(ctx);
-        var schedule = scheduleRepository
-                .forStation(session.stationId())
+        var schedule = scheduleRepository.findDigestGroups(List.of(session.stationId()), List.of()).stream()
+                .findFirst()
                 .orElseThrow(Refusal.NOTIFICATION_TIMES_NOT_SET::raise);
         ctx.json(new NotificationSchedulePayload(
                 schedule.sendTimes().stream().map(LocalTime::toString).toList(),

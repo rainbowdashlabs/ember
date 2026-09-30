@@ -8,10 +8,12 @@ package dev.chojo.ember.event.handlers;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ClusterQuotaChanged;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.util.SizeParser;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -21,11 +23,11 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class ClusterQuotaChangedHandler implements DomainEventHandler<ClusterQuotaChanged> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
-    public ClusterQuotaChangedHandler(NotificationService notificationService) {
-        this.notificationService = notificationService;
+    public ClusterQuotaChangedHandler(Notifier notifier) {
+        this.notifier = notifier;
     }
 
     @Override
@@ -38,11 +40,11 @@ public class ClusterQuotaChangedHandler implements DomainEventHandler<ClusterQuo
         var data = NotificationData.of(
                 new NotificationParams.ClusterQuotaChanged(event.clusterName(), formatQuota(event.quotaBytes())),
                 new NotificationData.NotificationLink("station-storage"));
-        notificationService.notifyMembersWithRole(
-                event.stationId(),
-                StationPermission.STATION_MANAGER.name(),
+        notifier.notify(
+                StationAudience.holders(event.stationId(), StationPermission.STATION_MANAGER),
                 NotificationType.CLUSTER_QUOTA_CHANGED,
-                data);
+                data,
+                Delivery.EVERY_TIME);
     }
 
     /**

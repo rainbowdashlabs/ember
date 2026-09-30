@@ -7,10 +7,12 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ProcedureResolved;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -18,11 +20,11 @@ import java.util.Map;
 
 @Singleton
 public class ProcedureResolvedHandler implements DomainEventHandler<ProcedureResolved> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
-    public ProcedureResolvedHandler(NotificationService notificationService) {
-        this.notificationService = notificationService;
+    public ProcedureResolvedHandler(Notifier notifier) {
+        this.notifier = notifier;
     }
 
     @Override
@@ -34,9 +36,11 @@ public class ProcedureResolvedHandler implements DomainEventHandler<ProcedureRes
     public void handle(ProcedureResolved event) {
         var data = NotificationData.of(
                 new NotificationParams.ProcedureResolvedParams(event.procedureName()),
-                // procedureId rides on the link so the feed renderer can surface progress.
                 new NotificationData.NotificationLink("procedure-detail", Map.of("id", event.procedureId())));
-        notificationService.notifyMembersIfAbsent(
-                event.assigneeMemberIds(), NotificationType.PROCEDURE_RESOLVED, data, event.resolvedByMemberId());
+        notifier.notify(
+                StationAudience.members(event.assigneeMemberIds()).except(event.resolvedByMemberId()),
+                NotificationType.PROCEDURE_RESOLVED,
+                data,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 }

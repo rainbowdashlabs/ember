@@ -20,9 +20,11 @@ import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -31,18 +33,15 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 class EventReminderCheckerTest {
@@ -50,7 +49,7 @@ class EventReminderCheckerTest {
     private EventReminderRepository reminderRepository;
     private EventRegistrationRepository registrationRepository;
     private StationMemberRepository stationMemberRepository;
-    private NotificationService notificationService;
+    private Notifier notifier;
     private MemberNameResolver memberNameResolver;
     private EventRestrictionService restrictionService;
     private StationReadOnlyGuard readOnlyGuard;
@@ -67,7 +66,7 @@ class EventReminderCheckerTest {
         reminderRepository = mock(EventReminderRepository.class);
         registrationRepository = mock(EventRegistrationRepository.class);
         stationMemberRepository = mock(StationMemberRepository.class);
-        notificationService = mock(NotificationService.class);
+        notifier = mock(Notifier.class);
         memberNameResolver = mock(MemberNameResolver.class);
         restrictionService = mock(EventRestrictionService.class);
         when(restrictionService.canRegister(anyInt(), anyInt(), any())).thenReturn(true);
@@ -102,8 +101,7 @@ class EventReminderCheckerTest {
         invokeCheck();
 
         verify(reminderRepository).markSent(42, eventDate, 3);
-        verify(notificationService)
-                .notifyMembers(eq(List.of(10)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+        verifyReminded(10);
     }
 
     /** Nobody is reminded of a date that was called off, and the reminder is not spent on it either. */
@@ -123,7 +121,7 @@ class EventReminderCheckerTest {
         invokeCheck();
 
         verify(reminderRepository, never()).markSent(anyInt(), any(), anyInt());
-        verify(notificationService, never()).notifyMembers(any(), eq(NotificationType.EVENT_REMINDER), any());
+        verify(notifier, never()).notify(any(), eq(NotificationType.EVENT_REMINDER), any(), any());
     }
 
     private static Station berlinStation() {
@@ -252,6 +250,16 @@ class EventReminderCheckerTest {
                 null);
     }
 
+    /** Verifies that exactly these members were reminded of a date. */
+    private void verifyReminded(Integer... memberIds) {
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.members(List.of(memberIds))),
+                        eq(NotificationType.EVENT_REMINDER),
+                        any(NotificationData.class),
+                        eq(Delivery.EVERY_TIME));
+    }
+
     private StationMember member(int id) {
         return new StationMember(
                 id, STATION_ID, UUID.randomUUID(), id, false, null, "Member " + id, StationUserType.MEMBER, null);
@@ -269,15 +277,16 @@ class EventReminderCheckerTest {
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of());
         when(readOnlyGuard.isWritable(STATION_ID)).thenReturn(true);
         when(registrationRepository.findUnansweredMemberIds(7, STATION_ID)).thenReturn(List.of(10));
-        when(stationMemberRepository.findById(10)).thenReturn(Optional.of(member(10)));
-        when(stationMemberRepository.findManagers(10)).thenReturn(List.of(member(11)));
         when(memberNameResolver.called(10)).thenReturn("Kind");
 
         invokeCheck();
 
-        var audience = ArgumentCaptor.forClass(Collection.class);
-        verify(notificationService).notifyMembers(audience.capture(), eq(NotificationType.REGISTRATION_CLOSING), any());
-        assertTrue(audience.getValue().containsAll(List.of(10, 11)), "the member and their guardian both hear");
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.household(List.of(10))),
+                        eq(NotificationType.REGISTRATION_CLOSING),
+                        any(NotificationData.class),
+                        eq(Delivery.EVERY_TIME));
         verify(reminderRepository).markDeadlineWarningSent(7, 3);
     }
 
@@ -300,7 +309,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(any(), eq(NotificationType.REGISTRATION_CLOSING), any());
+        verify(notifier, never()).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
         verify(reminderRepository).markDeadlineWarningSent(7, 3);
     }
 
@@ -312,7 +321,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(any(), eq(NotificationType.REGISTRATION_CLOSING), any());
+        verify(notifier, never()).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
     }
 
     @Test
@@ -341,8 +350,7 @@ class EventReminderCheckerTest {
             throw new RuntimeException(e);
         }
 
-        verify(notificationService)
-                .notifyMembers(eq(List.of(10, 11)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+        verifyReminded(10, 11);
         verify(reminderRepository).markSent(42, eventDate, 3);
     }
 
@@ -359,7 +367,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(notifier, never()).notify(any(), any(), any(), any());
         verify(reminderRepository, never()).markSent(anyInt(), any(), anyInt());
     }
 
@@ -377,8 +385,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService)
-                .notifyMembers(eq(List.of(20, 21)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+        verifyReminded(20, 21);
         verify(stationMemberRepository, never()).findByStation(anyInt());
     }
 
@@ -396,7 +403,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(notifier, never()).notify(any(), any(), any(), any());
         verify(reminderRepository).markSent(42, eventDate, 1);
     }
 
@@ -414,8 +421,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService)
-                .notifyMembers(eq(List.of(10)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+        verifyReminded(10);
     }
 
     @Test
@@ -433,8 +439,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService)
-                .notifyMembers(eq(List.of(10)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+        verifyReminded(10);
     }
 
     @Test
@@ -443,7 +448,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(notifier, never()).notify(any(), any(), any(), any());
     }
 
     @Test
@@ -458,7 +463,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(notifier, never()).notify(any(), any(), any(), any());
     }
 
     @Test
@@ -495,7 +500,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(notifier, never()).notify(any(), any(), any(), any());
     }
 
     /**
@@ -516,7 +521,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(notifier, never()).notify(any(), any(), any(), any());
         verify(reminderRepository, never()).markSent(anyInt(), any(), anyInt());
     }
 
@@ -581,8 +586,7 @@ class EventReminderCheckerTest {
 
             invokeCheck();
 
-            verify(notificationService)
-                    .notifyMembers(eq(List.of(10)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+            verifyReminded(10);
         }
     }
 
@@ -595,7 +599,7 @@ class EventReminderCheckerTest {
                     reminderRepository,
                     registrationRepository,
                     stationMemberRepository,
-                    notificationService,
+                    notifier,
                     memberNameResolver,
                     restrictionService,
                     readOnlyGuard,

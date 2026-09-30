@@ -19,7 +19,7 @@ import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -59,8 +59,8 @@ class IcalEventRendererTest {
             EventField field = inv.getArgument(0);
             return field == null || field.value() == null ? "" : field.value().trim();
         });
-        NotificationService notificationService = mock(NotificationService.class);
-        // Mirror NotificationService: echo the key, but interpolate {name} placeholders from the
+        NotificationText notificationService = mock(NotificationText.class);
+        // Mirror NotificationText: echo the key, but interpolate {name} placeholders from the
         // params map when present so cancelledWithReason etc. surface their substitution values.
         when(notificationService.resolveLocalized(any(), eq("ical"), any(), any()))
                 .thenAnswer(inv -> {

@@ -14,10 +14,12 @@ import dev.chojo.ember.feature.mailimport.entity.MailRuleAction;
 import dev.chojo.ember.feature.mailimport.repository.MailImportLogRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailMailboxRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import jakarta.inject.Inject;
@@ -60,7 +62,7 @@ public class MailImportService {
     private final MailHostPolicy hostPolicy;
     private final DkimVerification dkim;
     private final MailImport settings;
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
     public MailImportService(
@@ -73,7 +75,7 @@ public class MailImportService {
             MailHostPolicy hostPolicy,
             DkimVerification dkim,
             MailImport settings,
-            NotificationService notificationService) {
+            Notifier notifier) {
         this.mailboxRepository = mailboxRepository;
         this.ruleRepository = ruleRepository;
         this.logRepository = logRepository;
@@ -83,7 +85,7 @@ public class MailImportService {
         this.hostPolicy = hostPolicy;
         this.dkim = dkim;
         this.settings = settings;
-        this.notificationService = notificationService;
+        this.notifier = notifier;
     }
 
     /**
@@ -160,13 +162,13 @@ public class MailImportService {
      */
     private void tellAboutSuspension(MailMailbox mailbox, String reason) {
         try {
-            notificationService.notifyMembersWithRole(
-                    mailbox.stationId(),
-                    StationPermission.STATION_MAIL.name(),
+            notifier.notify(
+                    StationAudience.holders(mailbox.stationId(), StationPermission.STATION_MAIL),
                     NotificationType.MAILBOX_SUSPENDED,
                     NotificationData.of(
                             new NotificationParams.MailboxSuspended(mailbox.name(), reason),
-                            new NotificationData.NotificationLink("station-mail-import", Map.of())));
+                            new NotificationData.NotificationLink("station-mail-import", Map.of())),
+                    Delivery.EVERY_TIME);
         } catch (Exception e) {
             log.warn("Could not say that mailbox {} was suspended", mailbox.id(), e);
         }
@@ -183,13 +185,13 @@ public class MailImportService {
         try {
             int unbound = logRepository.countUnboundSince(mailbox.stationId(), now.minus(Duration.ofDays(1)));
             if (unbound == 0) return;
-            notificationService.notifyMembersWithRole(
-                    mailbox.stationId(),
-                    StationPermission.DOCUMENT_READ.name(),
+            notifier.notify(
+                    StationAudience.holders(mailbox.stationId(), StationPermission.DOCUMENT_READ),
                     NotificationType.MAIL_IMPORT_UNBOUND,
                     NotificationData.of(
                             new NotificationParams.MailImportUnbound(unbound),
-                            new NotificationData.NotificationLink("station-members-documents", Map.of())));
+                            new NotificationData.NotificationLink("station-members-documents", Map.of())),
+                    Delivery.EVERY_TIME);
         } catch (Exception e) {
             log.warn("Could not say what arrived unbound for station {}", mailbox.stationId(), e);
         }

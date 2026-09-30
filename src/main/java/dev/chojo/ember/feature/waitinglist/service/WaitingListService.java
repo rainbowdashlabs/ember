@@ -18,10 +18,12 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -71,7 +73,7 @@ public class WaitingListService {
     private final MemberGroupRepository memberGroupRepository;
     private final AccountRepository accountRepository;
     private final EmailService emailService;
-    private final NotificationService notificationService;
+    private final Notifier notifier;
     private final AccountInviteService accountInviteService;
     private final WaitlistInvitationMessage invitationMessage;
     private final DomainEventBus eventBus;
@@ -84,7 +86,7 @@ public class WaitingListService {
             MemberGroupRepository memberGroupRepository,
             AccountRepository accountRepository,
             EmailService emailService,
-            NotificationService notificationService,
+            Notifier notifier,
             AccountInviteService accountInviteService,
             WaitlistInvitationMessage invitationMessage,
             DomainEventBus eventBus) {
@@ -94,7 +96,7 @@ public class WaitingListService {
         this.memberGroupRepository = memberGroupRepository;
         this.accountRepository = accountRepository;
         this.emailService = emailService;
-        this.notificationService = notificationService;
+        this.notifier = notifier;
         this.accountInviteService = accountInviteService;
         this.invitationMessage = invitationMessage;
         this.eventBus = eventBus;
@@ -342,13 +344,13 @@ public class WaitingListService {
         // Notify managers
         repository
                 .findById(invite.listId())
-                .ifPresent(list -> notificationService.notifyMembersWithRole(
-                        list.stationId(),
-                        "WAITLIST_MANAGER",
+                .ifPresent(list -> notifier.notify(
+                        StationAudience.holders(list.stationId(), StationPermission.WAITLIST_MANAGER),
                         NotificationType.WAITLIST_NEW_ENTRY,
                         NotificationData.of(
                                 new NotificationParams.WaitlistNewEntry(displayName, list.name()),
-                                new NotificationData.NotificationLink("waiting-lists", Map.of()))));
+                                new NotificationData.NotificationLink("waiting-lists", Map.of())),
+                        Delivery.EVERY_TIME));
 
         log.info(
                 "Registered waiting-list entry {} on list {} (station {}) via invite",

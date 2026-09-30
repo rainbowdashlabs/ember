@@ -7,10 +7,12 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ProcurementCreated;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -18,11 +20,11 @@ import java.util.Map;
 
 @Singleton
 public class ProcurementCreatedHandler implements DomainEventHandler<ProcurementCreated> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
-    public ProcurementCreatedHandler(NotificationService notificationService) {
-        this.notificationService = notificationService;
+    public ProcurementCreatedHandler(Notifier notifier) {
+        this.notifier = notifier;
     }
 
     @Override
@@ -32,14 +34,13 @@ public class ProcurementCreatedHandler implements DomainEventHandler<Procurement
 
     @Override
     public void handle(ProcurementCreated event) {
-        notificationService.notify(
-                event.memberId(),
+        notifier.notify(
+                StationAudience.member(event.memberId()),
                 NotificationType.PROCUREMENT_REQUESTED,
                 NotificationData.of(
                         new NotificationParams.ProcurementRequested(event.inventoryName()),
-                        // Land on the procurement page with the inventory id so the feed renderer
-                        // can enrich with the inventory's type / flow.
                         new NotificationData.NotificationLink(
-                                "inventory-procurement", Map.of("id", event.inventoryId()))));
+                                "inventory-procurement", Map.of("id", event.inventoryId()))),
+                Delivery.EVERY_TIME);
     }
 }

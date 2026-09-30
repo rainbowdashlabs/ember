@@ -33,7 +33,7 @@ import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -62,7 +62,7 @@ import static org.mockito.Mockito.when;
 
 class NotificationFeedRendererTest {
 
-    private NotificationService notificationService;
+    private NotificationText notificationService;
     private NotificationFeedRenderer renderer;
 
     private EventCrudService crudService;
@@ -77,7 +77,7 @@ class NotificationFeedRendererTest {
 
     @BeforeEach
     void setup() {
-        notificationService = mock(NotificationService.class);
+        notificationService = mock(NotificationText.class);
         crudService = mock(EventCrudService.class);
         eventFieldService = mock(EventFieldService.class);
         lostAndFoundService = mock(LostAndFoundService.class);
@@ -115,7 +115,7 @@ class NotificationFeedRendererTest {
         // Status helper: deterministic check-mark + raw status name. Lets the body assertions
         // stay simple without needing the real ical bundle wired in.
         when(notificationService.resolveStatusWithSymbol(any(), any())).thenAnswer(inv -> "✓ " + inv.getArgument(1));
-        // Mirror NotificationService: echo the key, applying {name} placeholder substitution
+        // Mirror NotificationText: echo the key, applying {name} placeholder substitution
         // when params are provided. Lets tests reason about the bundle key without setting up
         // real translation files.
         when(notificationService.resolveLocalized(any(), any(), any(), any())).thenAnswer(inv -> {

@@ -13,7 +13,8 @@ import dev.chojo.ember.feature.account.service.SessionInfoService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.notifications.entity.Notification;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
+import dev.chojo.ember.feature.notifications.service.NotificationInbox;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.system.service.RequirementsService;
 import io.javalin.http.Context;
@@ -41,7 +42,7 @@ public class SessionRoutes implements Routes {
     private final SessionInfoService sessionInfoService;
     private final StationMemberService memberService;
     private final StationService stationService;
-    private final NotificationService notificationService;
+    private final NotificationInbox notificationInbox;
     private final RequirementsService requirementsService;
     private final AccessManager accessManager;
 
@@ -50,13 +51,13 @@ public class SessionRoutes implements Routes {
             SessionInfoService sessionInfoService,
             StationMemberService memberService,
             StationService stationService,
-            NotificationService notificationService,
+            NotificationInbox notificationInbox,
             RequirementsService requirementsService,
             AccessManager accessManager) {
         this.sessionInfoService = sessionInfoService;
         this.memberService = memberService;
         this.stationService = stationService;
-        this.notificationService = notificationService;
+        this.notificationInbox = notificationInbox;
         this.requirementsService = requirementsService;
         this.accessManager = accessManager;
     }
@@ -117,7 +118,7 @@ public class SessionRoutes implements Routes {
             var station = stationService.findById(member.stationId()).orElse(null);
             if (station == null) continue;
 
-            int notificationCount = notificationService.countUnacknowledged(member.id());
+            int notificationCount = notificationInbox.countUnread(Recipient.stationMember(member.id()));
 
             var permissions = accessManager.resolveExpandedMemberPermissions(member);
             var roleNames = permissions.stream().map(Enum::name).toList();
@@ -126,7 +127,7 @@ public class SessionRoutes implements Routes {
             stationSummaries.add(
                     new CrossStationSummary(station.uid(), station.name(), notificationCount, requirementCount));
 
-            for (Notification n : notificationService.findUnacknowledged(member.id())) {
+            for (Notification n : notificationInbox.unread(Recipient.stationMember(member.id()))) {
                 allNotifications.add(new CrossStationNotification(
                         station.uid(),
                         station.name(),

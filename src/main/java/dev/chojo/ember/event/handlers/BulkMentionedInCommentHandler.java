@@ -15,11 +15,13 @@ import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
@@ -31,7 +33,7 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMentionedInComment> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
     private final MemberGroupRepository memberGroupRepository;
     private final EventRepository eventRepository;
     private final EventRegistrationRepository registrationRepository;
@@ -40,13 +42,13 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
 
     @Inject
     public BulkMentionedInCommentHandler(
-            NotificationService notificationService,
+            Notifier notifier,
             MemberGroupRepository memberGroupRepository,
             EventRepository eventRepository,
             EventRegistrationRepository registrationRepository,
             StationMemberRepository stationMemberRepository,
             RestrictionService restrictionService) {
-        this.notificationService = notificationService;
+        this.notifier = notifier;
         this.memberGroupRepository = memberGroupRepository;
         this.eventRepository = eventRepository;
         this.registrationRepository = registrationRepository;
@@ -69,9 +71,9 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
                     case DECLINED -> resolveRegistrationsByStatus(event, RegistrationStatus.DECLINED);
                 };
 
-        if (event.mentionType() != MentionType.GROUP) {
-            addGuardians(memberIds);
-        }
+        var audience = event.mentionType() == MentionType.GROUP
+                ? StationAudience.members(memberIds)
+                : StationAudience.household(memberIds);
 
         var link = NotificationLinks.comment(
                 event.entityType(), event.entityId(), event.ticketAddress(), event.commentId());
@@ -79,11 +81,11 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
         var data = NotificationData.of(
                 new NotificationParams.CommentMention(event.entityTitle(), event.authorName(), event.preview()), link);
 
-        for (int memberId : memberIds) {
-            if (event.authorMemberId() == null || memberId != event.authorMemberId()) {
-                notificationService.notifyIfAbsent(memberId, NotificationType.COMMENT_MENTION, data);
-            }
-        }
+        notifier.notify(
+                audience.except(event.authorMemberId()),
+                NotificationType.COMMENT_MENTION,
+                data,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     /**
@@ -148,15 +150,5 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
                 .filter(registration -> registration.status() == status)
                 .map(EventRegistration::memberId)
                 .collect(Collectors.toCollection(HashSet::new));
-    }
-
-    private void addGuardians(Set<Integer> memberIds) {
-        var guardianIds = new HashSet<Integer>();
-        for (int memberId : memberIds) {
-            stationMemberRepository.findManagers(memberId).stream()
-                    .map(StationMember::id)
-                    .forEach(guardianIds::add);
-        }
-        memberIds.addAll(guardianIds);
     }
 }

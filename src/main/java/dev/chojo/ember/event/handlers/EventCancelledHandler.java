@@ -9,12 +9,13 @@ import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventCancelled;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
-import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -30,21 +31,18 @@ import java.util.List;
  */
 @Singleton
 public class EventCancelledHandler implements DomainEventHandler<EventCancelled> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
     private final EventRegistrationRepository registrationRepository;
     private final OccurrenceCalendar occurrenceCalendar;
-    private final GuardianPolicy guardianPolicy;
 
     @Inject
     public EventCancelledHandler(
-            NotificationService notificationService,
+            Notifier notifier,
             EventRegistrationRepository registrationRepository,
-            OccurrenceCalendar occurrenceCalendar,
-            GuardianPolicy guardianPolicy) {
-        this.notificationService = notificationService;
+            OccurrenceCalendar occurrenceCalendar) {
+        this.notifier = notifier;
         this.registrationRepository = registrationRepository;
         this.occurrenceCalendar = occurrenceCalendar;
-        this.guardianPolicy = guardianPolicy;
     }
 
     @Override
@@ -54,18 +52,19 @@ public class EventCancelledHandler implements DomainEventHandler<EventCancelled>
 
     @Override
     public void handle(EventCancelled event) {
-        var audience = guardianPolicy.withGuardians(placeHolders(event));
-        if (audience.isEmpty()) return;
+        var placeHolders = placeHolders(event);
+        if (placeHolders.isEmpty()) return;
         var link = event.eventDate() != null
                 ? NotificationLinks.eventDate(event.eventId(), event.eventDate())
                 : NotificationLinks.event(event.eventId());
-        notificationService.notifyMembers(
-                audience,
+        notifier.notify(
+                StationAudience.household(placeHolders),
                 NotificationType.EVENT_CANCELLED,
                 NotificationData.of(
                         new NotificationParams.EventCancelled(
                                 event.eventName(), event.reason(), event.eventDate(), event.cause()),
-                        link));
+                        link),
+                Delivery.EVERY_TIME);
     }
 
     private List<Integer> placeHolders(EventCancelled event) {

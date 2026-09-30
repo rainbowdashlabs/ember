@@ -101,6 +101,22 @@ export async function updateActive(data: ClusterRequest): Promise<Cluster> {
     return res.data
 }
 
+/** Whether the caller gets the association's notifications by mail, and whether mail can be sent at all. */
+export interface ClusterMailSettings {
+    emailEnabled: boolean
+    mailAvailable: boolean
+}
+
+export async function getMailSettings(): Promise<ClusterMailSettings> {
+    const res = await client.get<ClusterMailSettings>('/cluster/notifications/settings')
+    return res.data
+}
+
+export async function updateMailSettings(emailEnabled: boolean): Promise<ClusterMailSettings> {
+    const res = await client.put<ClusterMailSettings>('/cluster/notifications/settings', {emailEnabled})
+    return res.data
+}
+
 export async function deleteCluster(uid: string): Promise<void> {
     await client.delete(`/clusters/${uid}`)
 }

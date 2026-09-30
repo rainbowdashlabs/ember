@@ -16,7 +16,7 @@ import com.rometools.rome.feed.synd.SyndContentImpl;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndEntryImpl;
 import dev.chojo.ember.feature.notifications.entity.Notification;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -52,16 +52,16 @@ import java.util.UUID;
  */
 @Singleton
 public class NotificationFeedRenderer {
-    private final NotificationService notificationService;
+    private final NotificationText notificationText;
     private final StationRepository stationRepository;
     private final Set<FeedDetailsContributor> contributors;
 
     @Inject
     public NotificationFeedRenderer(
-            NotificationService notificationService,
+            NotificationText notificationText,
             StationRepository stationRepository,
             Set<FeedDetailsContributor> contributors) {
-        this.notificationService = notificationService;
+        this.notificationText = notificationText;
         this.stationRepository = stationRepository;
         this.contributors = contributors;
     }
@@ -128,12 +128,12 @@ public class NotificationFeedRenderer {
      */
     public SyndEntry render(Notification notification, RenderContext ctx) {
         SyndEntry entry = new SyndEntryImpl();
-        entry.setTitle(notificationService.resolveFeedTitle(ctx.locale(), notification));
+        entry.setTitle(notificationText.resolveFeedTitle(ctx.locale(), notification));
         entry.setUri("urn:ember:notification:" + notification.id());
         entry.setPublishedDate(Date.from(notification.createdAt()));
         entry.setUpdatedDate(Date.from(notification.createdAt()));
 
-        String link = notificationService.resolveNotificationUrl(ctx.baseUrl(), ctx.stationUid(), notification.data());
+        String link = notificationText.resolveNotificationUrl(ctx.baseUrl(), ctx.stationUid(), notification.data());
         String fallback = ctx.baseUrl() + "/station/dashboard/overview";
         if (ctx.stationUid() != null) fallback = fallback + "?station=" + ctx.stationUid();
         entry.setLink(link != null ? link : fallback);
@@ -142,12 +142,12 @@ public class NotificationFeedRenderer {
         if (author != null) entry.setAuthor(author);
 
         entry.setCategories(List.of(
-                category(notificationService.resolveCategory(ctx.locale(), notification.type())),
+                category(notificationText.resolveCategory(ctx.locale(), notification.type())),
                 schemedCategory(notification.type().name(), "urn:ember:notification-type")));
 
         SyndContent summary = new SyndContentImpl();
         summary.setType("text/plain");
-        summary.setValue(notificationService.resolveMessage(ctx.locale(), notification));
+        summary.setValue(notificationText.resolveMessage(ctx.locale(), notification));
         entry.setDescription(summary);
 
         FeedImage image = image(notification);
@@ -208,13 +208,13 @@ public class NotificationFeedRenderer {
                 .append(
                         "\" dir=\"auto\" style=\"font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px\">");
 
-        String category = notificationService.resolveCategory(ctx.locale(), notification.type());
+        String category = notificationText.resolveCategory(ctx.locale(), notification.type());
         sb.append(
                         "<div style=\"display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600\">")
                 .append(escapeHtml(category))
                 .append("</div>");
 
-        String headline = notificationService.resolveMessage(ctx.locale(), notification);
+        String headline = notificationText.resolveMessage(ctx.locale(), notification);
         sb.append("<h2 style=\"margin:8px 0 4px;font-size:16px\">")
                 .append(escapeHtml(headline))
                 .append("</h2>");
@@ -237,7 +237,7 @@ public class NotificationFeedRenderer {
                 .append(escapeHtml(link))
                 .append(
                         "\" style=\"display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box\">")
-                .append(escapeHtml(notificationService.resolveLocalized(ctx.locale(), "ical", "label.link", null)))
+                .append(escapeHtml(notificationText.resolveLocalized(ctx.locale(), "ical", "label.link", null)))
                 .append("</a></p>");
         sb.append("</div>");
         return sb.toString();
@@ -261,7 +261,7 @@ public class NotificationFeedRenderer {
 
     /** The detail rows the notification's feature contributes. */
     private Map<String, String> collectDetails(Notification notification, RenderContext ctx) {
-        var details = new FeedDetails(notificationService, this::zoneOf, notification, ctx.locale());
+        var details = new FeedDetails(notificationText, this::zoneOf, notification, ctx.locale());
         var params = notification.data().params();
         if (params == null) return details.rows();
         for (var contributor : contributors) {

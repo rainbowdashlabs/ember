@@ -6,7 +6,6 @@
 package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.api.auth.ClusterPermission;
-import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.events.ClusterApplicationResolved;
 import dev.chojo.ember.event.events.ClusterApplicationSubmitted;
@@ -16,9 +15,12 @@ import dev.chojo.ember.event.events.ClusterMemberRoleChanged;
 import dev.chojo.ember.event.events.ClusterModuleDenied;
 import dev.chojo.ember.event.events.ClusterQuotaChanged;
 import dev.chojo.ember.event.events.ClusterStationReleased;
+import dev.chojo.ember.feature.notifications.entity.ClusterAudience;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,7 +30,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -45,163 +46,159 @@ import static org.mockito.Mockito.verify;
 class ClusterEventHandlerTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();
 
-    private static NotificationService notificationService;
+    private static Notifier notifier;
 
     @BeforeAll
     static void setup() {
-        notificationService = mock(NotificationService.class);
-    }
-
-    private int clusterWithAdmin() {
-        int n = NAMES.incrementAndGet();
-        var cluster = clusterService.create("Kreisverband Ereignis " + n, null);
-        var account = accountRepo.create("clusterevent" + n + "@test.com", "Clus", "Event" + n);
-        clusterService.addMember(cluster.id(), account.id(), ClusterUserType.CLUSTER_ADMIN);
-        return cluster.id();
+        notifier = mock(Notifier.class);
     }
 
     @Test
     void aRequestArrivingReachesThePeopleWhoDecideAboutStations() {
-        reset(notificationService);
-        int clusterId = clusterWithAdmin();
-        List<Integer> expected = clusterService.findMemberIdsWith(clusterId, ClusterPermission.CLUSTER_STATIONS);
+        reset(notifier);
 
-        new ClusterApplicationSubmittedHandler(notificationService, () -> clusterService)
-                .handle(new ClusterApplicationSubmitted(clusterId, 1, "Wache Nord"));
+        new ClusterApplicationSubmittedHandler(notifier).handle(new ClusterApplicationSubmitted(4, 1, "Wache Nord"));
 
-        verify(notificationService)
-                .notifyClusterMembersIfAbsent(
-                        eq(expected),
+        verify(notifier)
+                .notify(
+                        eq(ClusterAudience.holders(4, ClusterPermission.CLUSTER_STATIONS)),
                         eq(NotificationType.CLUSTER_APPLICATION_SUBMITTED),
                         any(NotificationData.class),
-                        eq(null));
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     @Test
     void aRequestTakenBackReachesTheSamePeople() {
-        reset(notificationService);
-        int clusterId = clusterWithAdmin();
-        List<Integer> expected = clusterService.findMemberIdsWith(clusterId, ClusterPermission.CLUSTER_STATIONS);
+        reset(notifier);
 
-        new ClusterApplicationWithdrawnHandler(notificationService, () -> clusterService)
-                .handle(new ClusterApplicationWithdrawn(1, clusterId, "Wache Nord"));
+        new ClusterApplicationWithdrawnHandler(notifier).handle(new ClusterApplicationWithdrawn(1, 4, "Wache Nord"));
 
-        verify(notificationService)
-                .notifyClusterMembersIfAbsent(
-                        eq(expected),
+        verify(notifier)
+                .notify(
+                        eq(ClusterAudience.holders(4, ClusterPermission.CLUSTER_STATIONS)),
                         eq(NotificationType.CLUSTER_APPLICATION_WITHDRAWN),
                         any(NotificationData.class),
-                        eq(null));
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     @Test
     void theAnswerGoesToTheOwnerWhoAsked() {
-        reset(notificationService);
+        reset(notifier);
         int n = NAMES.incrementAndGet();
         var station = stationRepo.create("Wache Antwort " + n);
         var account = accountRepo.create("clusteranswer" + n + "@test.com", "Ant", "Wort" + n);
         var member = stationMemberRepo.create(station.id(), account.id());
         stationRepo.setOwner(station.id(), member.id());
 
-        var handler = new ClusterApplicationResolvedHandler(notificationService, stationRepo);
+        var handler = new ClusterApplicationResolvedHandler(notifier, stationRepo);
         handler.handle(new ClusterApplicationResolved(station.id(), "Kreisverband Ja", true, null));
-        verify(notificationService)
-                .notifyIfAbsent(
-                        eq(member.id()),
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.member(member.id())),
                         eq(NotificationType.CLUSTER_APPLICATION_APPROVED),
-                        any(NotificationData.class));
+                        any(NotificationData.class),
+                        eq(Delivery.ONCE_WHILE_UNREAD));
 
         handler.handle(new ClusterApplicationResolved(station.id(), "Kreisverband Nein", false, "Zu weit weg"));
-        verify(notificationService)
-                .notifyIfAbsent(
-                        eq(member.id()), eq(NotificationType.CLUSTER_APPLICATION_DENIED), any(NotificationData.class));
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.member(member.id())),
+                        eq(NotificationType.CLUSTER_APPLICATION_DENIED),
+                        any(NotificationData.class),
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     @Test
     void aReleasedStationTellsItsOwner() {
-        reset(notificationService);
+        reset(notifier);
         int n = NAMES.incrementAndGet();
         var station = stationRepo.create("Wache Entlassen " + n);
         var account = accountRepo.create("clusterreleased" + n + "@test.com", "Ent", "Lassen" + n);
         var member = stationMemberRepo.create(station.id(), account.id());
         stationRepo.setOwner(station.id(), member.id());
 
-        new ClusterStationReleasedHandler(notificationService, stationRepo)
+        new ClusterStationReleasedHandler(notifier, stationRepo)
                 .handle(new ClusterStationReleased(station.id(), "Kreisverband Weg"));
 
-        verify(notificationService)
-                .notifyIfAbsent(
-                        eq(member.id()), eq(NotificationType.CLUSTER_STATION_RELEASED), any(NotificationData.class));
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.member(member.id())),
+                        eq(NotificationType.CLUSTER_STATION_RELEASED),
+                        any(NotificationData.class),
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     @Test
     void aStationWithoutAnOwnerHasNobodyToTell() {
-        reset(notificationService);
+        reset(notifier);
         var station = stationRepo.create("Wache Ohne Leitung " + NAMES.incrementAndGet());
 
-        new ClusterApplicationResolvedHandler(notificationService, stationRepo)
+        new ClusterApplicationResolvedHandler(notifier, stationRepo)
                 .handle(new ClusterApplicationResolved(station.id(), "Kreisverband Egal", true, null));
-        new ClusterStationReleasedHandler(notificationService, stationRepo)
+        new ClusterStationReleasedHandler(notifier, stationRepo)
                 .handle(new ClusterStationReleased(station.id(), "Kreisverband Egal"));
 
-        verify(notificationService, never()).notifyIfAbsent(anyInt(), any(), any());
+        verify(notifier, never()).notify(any(), any(), any(), any());
     }
 
     @Test
     void aDeniedModuleReachesWhoeverManagesTheStationsModules() {
-        reset(notificationService);
+        reset(notifier);
 
-        new ClusterGovernanceHandler(notificationService)
+        new ClusterGovernanceHandler(notifier)
                 .handle(new ClusterModuleDenied(7, "Kreisverband Streng", StationModule.QUIZ));
 
-        verify(notificationService)
-                .notifyMembersWithRole(
-                        eq(7),
-                        eq(StationPermission.STATION_MODULES.name()),
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.holders(7, StationPermission.STATION_MODULES)),
                         eq(NotificationType.CLUSTER_MODULE_DENIED),
-                        any(NotificationData.class));
+                        any(NotificationData.class),
+                        eq(Delivery.EVERY_TIME));
     }
 
+    /** A quota handed back to the instance carries no figure, and still has to say something. */
     @Test
     void aChangedQuotaReachesWhoeverRunsTheStation() {
-        reset(notificationService);
-        var handler = new ClusterQuotaChangedHandler(notificationService);
+        reset(notifier);
+        var handler = new ClusterQuotaChangedHandler(notifier);
 
         handler.handle(new ClusterQuotaChanged(7, "Kreisverband Platz", 5_000_000L));
-        // A quota handed back to the instance carries no figure, and still has to say something
         handler.handle(new ClusterQuotaChanged(7, "Kreisverband Platz", null));
 
-        verify(notificationService, times(2))
-                .notifyMembersWithRole(
-                        eq(7),
-                        eq(StationPermission.STATION_MANAGER.name()),
+        verify(notifier, times(2))
+                .notify(
+                        eq(StationAudience.holders(7, StationPermission.STATION_MANAGER)),
                         eq(NotificationType.CLUSTER_QUOTA_CHANGED),
-                        any(NotificationData.class));
+                        any(NotificationData.class),
+                        eq(Delivery.EVERY_TIME));
     }
 
     @Test
     void aChangedStandingReachesTheOnePersonItConcerns() {
-        reset(notificationService);
+        reset(notifier);
 
-        new ClusterMemberRoleChangedHandler(notificationService)
-                .handle(new ClusterMemberRoleChanged(11, "Kreisverband Rolle"));
+        new ClusterMemberRoleChangedHandler(notifier).handle(new ClusterMemberRoleChanged(11, "Kreisverband Rolle"));
 
-        verify(notificationService)
-                .notifyClusterMembersIfAbsent(
-                        eq(List.of(11)),
+        verify(notifier)
+                .notify(
+                        eq(ClusterAudience.members(List.of(11))),
                         eq(NotificationType.CLUSTER_MEMBER_ROLE_CHANGED),
                         any(NotificationData.class),
-                        eq(null));
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     @Test
     void aProfileFilledInByTheClusterReachesTheMemberItIsAbout() {
-        reset(notificationService);
+        reset(notifier);
 
-        new ClusterFieldValueChangedHandler(notificationService)
+        new ClusterFieldValueChangedHandler(notifier)
                 .handle(new ClusterFieldValueChanged(3, 21, "Kreisverband Profil", "Atemschutz"));
 
-        verify(notificationService)
-                .notifyIfAbsent(eq(21), eq(NotificationType.CLUSTER_FIELD_VALUE_CHANGED), any(NotificationData.class));
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.member(21)),
+                        eq(NotificationType.CLUSTER_FIELD_VALUE_CHANGED),
+                        any(NotificationData.class),
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 }

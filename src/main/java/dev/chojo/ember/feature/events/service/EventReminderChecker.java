@@ -13,11 +13,13 @@ import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
@@ -41,7 +43,7 @@ public class EventReminderChecker {
     private final EventReminderRepository reminderRepository;
     private final EventRegistrationRepository registrationRepository;
     private final StationMemberRepository stationMemberRepository;
-    private final NotificationService notificationService;
+    private final Notifier notifier;
     private final MemberNameResolver memberNameResolver;
     private final EventRestrictionService restrictionService;
     private final StationReadOnlyGuard readOnlyGuard;
@@ -53,7 +55,7 @@ public class EventReminderChecker {
             EventReminderRepository reminderRepository,
             EventRegistrationRepository registrationRepository,
             StationMemberRepository stationMemberRepository,
-            NotificationService notificationService,
+            Notifier notifier,
             MemberNameResolver memberNameResolver,
             EventRestrictionService restrictionService,
             StationReadOnlyGuard readOnlyGuard,
@@ -62,7 +64,7 @@ public class EventReminderChecker {
         this.reminderRepository = reminderRepository;
         this.registrationRepository = registrationRepository;
         this.stationMemberRepository = stationMemberRepository;
-        this.notificationService = notificationService;
+        this.notifier = notifier;
         this.memberNameResolver = memberNameResolver;
         this.restrictionService = restrictionService;
         this.readOnlyGuard = readOnlyGuard;
@@ -100,12 +102,13 @@ public class EventReminderChecker {
 
                         var targetIds = resolveTargetMembers(event, occurrence);
                         if (!targetIds.isEmpty()) {
-                            notificationService.notifyMembers(
-                                    targetIds,
+                            notifier.notify(
+                                    StationAudience.members(targetIds),
                                     NotificationType.EVENT_REMINDER,
                                     NotificationData.of(
                                             new NotificationParams.EventReminder(event.name(), daysBefore, occurrence),
-                                            NotificationLinks.eventDate(event.id(), occurrence)));
+                                            NotificationLinks.eventDate(event.id(), occurrence)),
+                                    Delivery.EVERY_TIME);
                             log.info(
                                     "Sent {} reminder(s) for event '{}' (id={}) on {} - {} days before",
                                     targetIds.size(),
@@ -174,25 +177,21 @@ public class EventReminderChecker {
         }
     }
 
-    /** Tells one member, and everyone who answers for them, that their answer is still missing. */
+    /**
+     * Tells one member, and everyone who answers for them, that their answer is still missing.
+     *
+     * @return whether anybody was told
+     */
     private boolean warnAbout(EventRepository.ClosingEvent event, int memberId, int daysBefore) {
-        var member = stationMemberRepository.findById(memberId).orElse(null);
-        if (member == null) return false;
-
-        var audience = new HashSet<Integer>();
-        audience.add(memberId);
-        for (StationMember manager : stationMemberRepository.findManagers(memberId)) {
-            audience.add(manager.id());
-        }
-
-        notificationService.notifyMembers(
-                audience,
+        int told = notifier.notify(
+                StationAudience.household(List.of(memberId)),
                 NotificationType.REGISTRATION_CLOSING,
                 NotificationData.of(
                         new NotificationParams.RegistrationClosing(
-                                event.name(), daysBefore, memberNameResolver.called(member.id())),
-                        NotificationLinks.event(event.eventId())));
-        return true;
+                                event.name(), daysBefore, memberNameResolver.called(memberId)),
+                        NotificationLinks.event(event.eventId())),
+                Delivery.EVERY_TIME);
+        return told > 0;
     }
 
     /**

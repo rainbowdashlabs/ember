@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.account.repository;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.auth.TokenHasher;
@@ -22,6 +23,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -63,6 +65,20 @@ public class AccountRepository {
      */
     public Optional<Account> findById(int id) {
         return SqlSupport.findById("account", ACCOUNT_COLUMNS, id, Account.map());
+    }
+
+    /**
+     * Several accounts read in one statement, for work that would otherwise look them up one by one.
+     *
+     * @param ids the account identifiers
+     * @return the accounts that exist, in no particular order
+     */
+    public List<Account> findByIds(Collection<Integer> ids) {
+        if (ids.isEmpty()) return List.of();
+        return query("SELECT %s FROM account WHERE id = ANY(:ids::INT[]);", ACCOUNT_COLUMNS)
+                .single(call().bind("ids", List.copyOf(ids), PostgreSqlTypes.INTEGER))
+                .map(Account.map())
+                .all();
     }
 
     /**

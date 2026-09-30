@@ -91,7 +91,7 @@ import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
@@ -374,13 +374,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 noOpBus);
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo);
 
-        // Services consumed by DemoService for the post-seed notification showcase (read-only
-        // lookups for one entity of each type). We mock NotificationService since the demo's
-        // read paths don't depend on its behavior and constructing a real one would drag in
-        // EmailService + Mailing config that aren't relevant here.
-        var notificationServiceMock = mock(NotificationService.class);
-        var lostAndFoundService = new LostAndFoundService(
-                lostAndFoundRepo, notificationServiceMock, mock(LostAndFoundImageService.class));
+        var lostAndFoundService =
+                new LostAndFoundService(lostAndFoundRepo, mock(Notifier.class), mock(LostAndFoundImageService.class));
         var boardService = new BoardService(boardRepo, memberSvc, groupService, tagService);
         var boardAttachmentSvc = new BoardAttachmentService(kbStorageSvc, stationRepo, kbBackend);
         var boardTicketService = new BoardTicketService(
@@ -451,10 +446,10 @@ class DemoServiceTest extends RepositoryTestBase {
                 newsService,
                 eventServices.crud(),
                 eventRegistrationRepo,
-                notificationRepo);
+                newNotifier());
         var formSeeder = new DemoFormSeeder(formRepo, restrictionService);
         var notificationSeeder = new DemoNotificationSeeder(
-                notificationRepo,
+                newNotifier(),
                 inventoryRepo,
                 boardService,
                 boardTicketService,

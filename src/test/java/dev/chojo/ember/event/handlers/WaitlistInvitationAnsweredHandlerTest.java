@@ -5,11 +5,14 @@
  */
 package dev.chojo.ember.event.handlers;
 
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.events.WaitlistInvitationAnswered;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,12 +29,12 @@ import static org.mockito.Mockito.verify;
  */
 class WaitlistInvitationAnsweredHandlerTest {
 
-    private NotificationService notificationService;
+    private Notifier notificationService;
     private WaitlistInvitationAnsweredHandler handler;
 
     @BeforeEach
     void setup() {
-        notificationService = mock(NotificationService.class);
+        notificationService = mock(Notifier.class);
         handler = new WaitlistInvitationAnsweredHandler(notificationService);
     }
 
@@ -46,11 +49,11 @@ class WaitlistInvitationAnsweredHandlerTest {
 
         var captor = ArgumentCaptor.forClass(NotificationData.class);
         verify(notificationService)
-                .notifyMembersWithRole(
-                        eq(7),
-                        eq("WAITLIST_EDIT"),
+                .notify(
+                        eq(StationAudience.holders(7, StationPermission.WAITLIST_EDIT)),
                         eq(NotificationType.WAITLIST_INVITATION_ANSWERED),
-                        captor.capture());
+                        captor.capture(),
+                        eq(Delivery.EVERY_TIME));
 
         var params = (NotificationParams.WaitlistInvitationAnswered)
                 captor.getValue().params();

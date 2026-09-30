@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.event.handlers;
 
-import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.event.events.FormDeleted;
@@ -13,19 +12,17 @@ import dev.chojo.ember.event.events.NewsDeleted;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.mail.service.EmailService;
-import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,10 +31,8 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
 
 /**
  * What a deleted thing takes with it, and what it leaves standing.
@@ -46,26 +41,14 @@ import static org.mockito.Mockito.mock;
  * its notification, which is what a withdrawal reaching too far would break.
  */
 class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
-    private static NotificationService notifications;
+    private static Notifier notifications;
     private static Station station;
     private static Account account;
     private static StationMember member;
 
     @BeforeAll
     static void setup() {
-        notifications = new NotificationService(
-                notificationRepo,
-                stationMemberRepo,
-                userSettingsRepo,
-                notificationSettingsRepo,
-                accountRepo,
-                stationRepo,
-                mock(StationLogoService.class),
-                mock(EmailService.class),
-                new MailRecipientService(accountRepo, stationMemberRepo),
-                new NotificationScheduleRepository(),
-                clusterRepo,
-                new Mailing());
+        notifications = newNotifier();
 
         station = stationRepo.create("Withdrawal Station");
         account = accountRepo.create("withdrawal@test.com", "With", "Drawal");
@@ -236,9 +219,12 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
     }
 
     private static int create(NotificationType type, NotificationParams params, NotificationLink link) {
-        return notificationRepo
-                .create(member.id(), type, NotificationData.of(params, link))
-                .id();
+        notifications.notify(
+                StationAudience.member(member.id()), type, NotificationData.of(params, link), Delivery.EVERY_TIME);
+        return notificationRepo.findAll(member.id()).stream()
+                .mapToInt(Notification::id)
+                .max()
+                .orElseThrow();
     }
 
     private static void assertGone(int... ids) {
@@ -268,7 +254,7 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
                 new NotificationParams.NewNews("Nichts", null, null),
                 NotificationLinks.news(99));
 
-        assertEquals(0, notificationRepo.deleteAllPointingAt(NotificationLinks.news(98)));
+        notifications.withdrawAll(NotificationLinks.news(98));
 
         assertStanding(untouched);
     }

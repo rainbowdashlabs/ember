@@ -18,12 +18,16 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ExpiryReminderRepository;
+import dev.chojo.ember.feature.notifications.entity.Audience;
+import dev.chojo.ember.feature.notifications.entity.ClusterAudience;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.ExpiryReminderKind;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -44,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -62,7 +66,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
     private static final Instant FEBRUARY_LAST_NOON = Instant.parse("2026-02-28T12:00:00Z");
 
     private final List<Integer> accounts = new ArrayList<>();
-    private NotificationService notifications;
+    private Notifier notifications;
     private StationReadOnlyGuard readOnlyGuard;
     private ExpiryReminderRepository ledger;
     private ExpiryReminderService service;
@@ -70,7 +74,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void setUp() {
-        notifications = mock(NotificationService.class);
+        notifications = mock(Notifier.class);
         readOnlyGuard = mock(StationReadOnlyGuard.class);
         when(readOnlyGuard.isWritable(anyInt())).thenReturn(true);
         ledger = new ExpiryReminderRepository();
@@ -84,8 +88,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
                 readOnlyGuard,
                 memberPermissionResolver,
                 memberNameResolver,
-                notifications,
-                () -> clusterService);
+                notifications);
         station = stationRepo.create("Expiry Sweep " + System.nanoTime());
     }
 
@@ -140,17 +143,27 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
                 .orElseThrow();
     }
 
-    @SuppressWarnings("unchecked")
     private List<Sent> sent() {
-        var to = ArgumentCaptor.forClass(Collection.class);
+        var to = ArgumentCaptor.forClass(Audience.class);
         var data = ArgumentCaptor.forClass(NotificationData.class);
         verify(notifications, org.mockito.Mockito.atLeast(0))
-                .notifyMembers(to.capture(), eq(NotificationType.EXPIRY_REMINDER), data.capture());
+                .notify(to.capture(), eq(NotificationType.EXPIRY_REMINDER), data.capture(), eq(Delivery.EVERY_TIME));
         var all = new ArrayList<Sent>();
         for (int i = 0; i < to.getAllValues().size(); i++) {
-            all.add(new Sent(to.getAllValues().get(i), data.getAllValues().get(i)));
+            if (to.getAllValues().get(i) instanceof StationAudience station) {
+                all.add(new Sent(station.memberIds(), data.getAllValues().get(i)));
+            }
         }
         return all;
+    }
+
+    private void clusterAudienceTold(int times, ArgumentCaptor<NotificationData> data) {
+        verify(notifications, times(times))
+                .notify(
+                        org.mockito.ArgumentMatchers.isA(ClusterAudience.class),
+                        eq(NotificationType.EXPIRY_REMINDER),
+                        data.capture(),
+                        eq(Delivery.EVERY_TIME));
     }
 
     @Test
@@ -215,7 +228,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
 
         service.sweep(MARCH_FIRST);
 
-        verify(notifications, never()).notifyMembers(any(), any(), any());
+        verify(notifications, never()).notify(any(StationAudience.class), any(), any(), any());
         assertTrue(
                 ledger.findSent(FieldOrigin.STATION, field.id()).isEmpty(),
                 "their reminders stay owed, should they come back");
@@ -229,7 +242,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
 
         service.sweep(MARCH_FIRST);
 
-        verify(notifications, never()).notifyMembers(any(), any(), any());
+        verify(notifications, never()).notify(any(StationAudience.class), any(), any(), any());
         assertEquals(1, ledger.findSent(FieldOrigin.STATION, field.id()).size());
     }
 
@@ -297,7 +310,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
 
         service.sweep(MARCH_FIRST);
 
-        verify(notifications, never()).notifyMembers(any(), any(), any());
+        verify(notifications, never()).notify(any(StationAudience.class), any(), any(), any());
         assertTrue(ledger.findSent(FieldOrigin.STATION, loud.id()).isEmpty());
     }
 
@@ -327,11 +340,16 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
                     sent().stream().noneMatch(one -> one.data().link().route().equals("members-list")),
                     "the station's member management is not told about the association's question");
 
-            var to = ArgumentCaptor.forClass(Collection.class);
             var data = ArgumentCaptor.forClass(NotificationData.class);
             verify(notifications)
-                    .notifyClusterMembers(to.capture(), eq(NotificationType.EXPIRY_REMINDER), data.capture());
-            assertEquals(List.of(officeMember.id()), List.copyOf(to.getValue()));
+                    .notify(
+                            eq(ClusterAudience.holders(cluster.id(), ClusterPermission.CLUSTER_MEMBER_MANAGER)),
+                            eq(NotificationType.EXPIRY_REMINDER),
+                            data.capture(),
+                            eq(Delivery.EVERY_TIME));
+            assertEquals(
+                    List.of(officeMember.id()),
+                    clusterService.findMemberIdsWith(cluster.id(), ClusterPermission.CLUSTER_MEMBER_MANAGER));
             assertEquals(NotificationLinks.clusterMembers(), data.getValue().link());
             assertEquals(1, ((NotificationParams.ExpiryReminder) data.getValue().params()).count());
 
@@ -340,8 +358,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
 
             service.sweep(MARCH_TWENTY_FOURTH);
 
-            verify(notifications, times(2))
-                    .notifyClusterMembers(to.capture(), eq(NotificationType.EXPIRY_REMINDER), data.capture());
+            clusterAudienceTold(2, data);
             assertEquals(
                     data.getAllValues().getFirst(),
                     data.getAllValues().getLast(),
@@ -377,7 +394,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
             assertEquals(
                     List.of(anna.id()), List.copyOf(leadingTo(sent(), "profile").to()));
             var data = ArgumentCaptor.forClass(NotificationData.class);
-            verify(notifications).notifyClusterMembers(any(), eq(NotificationType.EXPIRY_REMINDER), data.capture());
+            clusterAudienceTold(1, data);
             var params = (NotificationParams.ExpiryReminder) data.getValue().params();
             assertEquals(1, params.count(), "only the station already on the first of March is due");
             assertTrue(params.members().startsWith("Anna"));
@@ -417,7 +434,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
 
         service.sweep(Instant.parse("2026-03-01T03:00:00Z"));
 
-        verify(notifications, never()).notifyMembers(any(), any(), any());
+        verify(notifications, never()).notify(any(StationAudience.class), any(), any(), any());
         assertTrue(ledger.findSent(FieldOrigin.STATION, field.id()).isEmpty(), "it is still February in New York");
     }
 
@@ -432,7 +449,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
 
         service.sweep(MARCH_FIRST);
 
-        verify(notifications, never()).notifyMembers(any(), any(), any());
+        verify(notifications, never()).notify(any(StationAudience.class), any(), any(), any());
         assertEquals(1, ledger.findSent(FieldOrigin.STATION, field.id()).size(), "Ben's reminder is still done");
     }
 
@@ -489,7 +506,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
         answer(ben, field, "2026-03-31");
         doThrow(new IllegalStateException("unreachable"))
                 .when(notifications)
-                .notifyMembers(eq(List.of(ben.id())), any(), any());
+                .notify(eq(StationAudience.member(ben.id())), any(), any(), any());
 
         service.sweep(MARCH_FIRST);
 
@@ -499,7 +516,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
         assertTrue(ledger.findSent(FieldOrigin.STATION, field.id()).stream()
                 .noneMatch(reminder -> reminder.memberId() == ben.id()));
 
-        doNothing().when(notifications).notifyMembers(eq(List.of(ben.id())), any(), any());
+        doReturn(1).when(notifications).notify(eq(StationAudience.member(ben.id())), any(), any(), any());
         service.sweep(MARCH_FIRST.plusSeconds(1800));
 
         var retried = sent().stream()

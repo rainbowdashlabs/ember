@@ -37,7 +37,7 @@ import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -100,7 +100,7 @@ class NotificationFeedGoldenTest {
             "eventType.RECURRING", "Wöchentlich",
             "progressFormat", "{checked} von {total}");
 
-    private NotificationService notificationService;
+    private NotificationText notificationService;
     private EventCrudService crudService;
     private EventFieldService eventFieldService;
     private LostAndFoundService lostAndFoundService;
@@ -114,7 +114,7 @@ class NotificationFeedGoldenTest {
 
     @BeforeEach
     void setup() {
-        notificationService = mock(NotificationService.class);
+        notificationService = mock(NotificationText.class);
         crudService = mock(EventCrudService.class);
         eventFieldService = mock(EventFieldService.class);
         lostAndFoundService = mock(LostAndFoundService.class);

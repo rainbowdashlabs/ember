@@ -7,15 +7,16 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.MovementDeclined;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -27,14 +28,11 @@ import java.util.Map;
  */
 @Singleton
 public class MovementDeclinedHandler implements DomainEventHandler<MovementDeclined> {
-    private final NotificationService notificationService;
-    private final StationMemberRepository stationMemberRepository;
+    private final Notifier notifier;
 
     @Inject
-    public MovementDeclinedHandler(
-            NotificationService notificationService, StationMemberRepository stationMemberRepository) {
-        this.notificationService = notificationService;
-        this.stationMemberRepository = stationMemberRepository;
+    public MovementDeclinedHandler(Notifier notifier) {
+        this.notifier = notifier;
     }
 
     @Override
@@ -47,10 +45,12 @@ public class MovementDeclinedHandler implements DomainEventHandler<MovementDecli
         var data = NotificationData.of(
                 new NotificationParams.MovementDeclined(event.inventoryName(), event.reason()),
                 new NotificationData.NotificationLink("inventory-movement-detail", Map.of("id", event.movementId())));
-        var recipients =
-                new ArrayList<>(MovementNotificationRouting.stationTeam(stationMemberRepository, event.stationId()));
-        if (event.memberId() != null) recipients.add(event.memberId());
-        notificationService.notifyMembersIfAbsent(
-                recipients, NotificationType.MOVEMENT_DECLINED, data, event.actorMemberId());
+        var everybody = MovementNotificationRouting.stationTeam(event.stationId())
+                .and(StationAudience.members(event.memberId() != null ? List.of(event.memberId()) : List.of()));
+        notifier.notify(
+                everybody.except(event.actorMemberId()),
+                NotificationType.MOVEMENT_DECLINED,
+                data,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 }

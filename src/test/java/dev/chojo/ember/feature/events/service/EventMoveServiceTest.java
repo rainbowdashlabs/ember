@@ -14,10 +14,12 @@ import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -34,7 +36,6 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -60,11 +61,10 @@ class EventMoveServiceTest extends RepositoryTestBase {
 
     private static Station station;
     private static StationMember child;
-    private static StationMember guardian;
     private static StationMember other;
     private static final List<Integer> accounts = new ArrayList<>();
 
-    private NotificationService notifications;
+    private Notifier notifications;
     private EventCrudService crud;
     private LocalDate today;
     private ZoneId zone;
@@ -74,9 +74,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
     static void setup() {
         station = stationRepo.create("Moved Appointment Station");
         child = memberOf("child@moved.test", "Carla");
-        guardian = memberOf("guardian@moved.test", "Gerd");
         other = memberOf("other@moved.test", "Otto");
-        stationMemberRepo.addManager(guardian.id(), child.id());
     }
 
     private static StationMember memberOf(String email, String firstName) {
@@ -93,14 +91,13 @@ class EventMoveServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void wire() {
-        notifications = mock(NotificationService.class);
+        notifications = mock(Notifier.class);
         var moveService = new EventMoveService(
                 eventRegistrationRepo,
                 eventFieldRepo,
                 eventReminderRepo,
                 eventDateCancellationRepo,
                 occurrenceCalendar,
-                stationMemberRepo,
                 memberNameResolver,
                 notifications);
         crud = newEventServices(new DomainEventBus(Set.of(new EventChangedHandler(() -> moveService))))
@@ -191,19 +188,20 @@ class EventMoveServiceTest extends RepositoryTestBase {
         return today.with(TemporalAdjusters.nextOrSame(DayOfWeek.TUESDAY));
     }
 
-    /** That this household was told a date went away, and which next date it was offered. */
-    private void verifyToldDropped(StationMember member, LocalDate date, LocalDate nextDate, StationMember... also) {
+    /**
+     * That this member's household, the member and whoever looks after them, was told a date went
+     * away, and which next date it was offered.
+     */
+    private void verifyToldDropped(StationMember member, LocalDate date, LocalDate nextDate) {
         verify(notifications)
-                .notifyMembers(
-                        argThat((Collection<Integer> audience) -> audience.contains(member.id())
-                                && audience.containsAll(List.of(also).stream()
-                                        .map(StationMember::id)
-                                        .toList())),
+                .notify(
+                        eq(StationAudience.household(List.of(member.id()))),
                         eq(NotificationType.EVENT_DATE_DROPPED),
                         argThat((NotificationData data) ->
                                 data.params() instanceof NotificationParams.EventDateDropped dropped
                                         && dropped.eventDate().equals(date)
-                                        && Objects.equals(dropped.nextDate(), nextDate)));
+                                        && Objects.equals(dropped.nextDate(), nextDate)),
+                        eq(Delivery.EVERY_TIME));
     }
 
     /**
@@ -224,7 +222,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
         assertEquals(RegistrationStatus.WITHDRAWN, reread(pending).status());
         assertEquals(RegistrationStatus.DECLINED, reread(declined).status());
         assertNull(reread(confirmed).previousStatus(), "a place the day took away is not the member's to undo");
-        verifyToldDropped(child, nextTuesday(), nextTuesday().plusDays(1), guardian);
+        verifyToldDropped(child, nextTuesday(), nextTuesday().plusDays(1));
         verifyToldDropped(
                 other, nextTuesday().plusWeeks(1), nextTuesday().plusWeeks(1).plusDays(1));
     }
@@ -255,7 +253,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
 
         assertEquals(RegistrationStatus.ACCEPTED, reread(kept).status());
         assertEquals(RegistrationStatus.WITHDRAWN, reread(dropped).status());
-        verifyToldDropped(child, nextTuesday().plusWeeks(3), null, guardian);
+        verifyToldDropped(child, nextTuesday().plusWeeks(3), null);
     }
 
     /**
@@ -279,14 +277,14 @@ class EventMoveServiceTest extends RepositoryTestBase {
         assertEquals(RegistrationStatus.ACCEPTED, moved.status());
         assertEquals("Bus", eventFieldRepo.findDateValues(event.id()).get(field).get(newDay));
         verify(notifications)
-                .notifyMembers(
-                        argThat((Collection<Integer> audience) ->
-                                audience.containsAll(List.of(child.id(), guardian.id()))),
+                .notify(
+                        eq(StationAudience.household(List.of(child.id()))),
                         eq(NotificationType.EVENT_MOVED),
                         argThat((NotificationData data) -> data.params() instanceof NotificationParams.EventMoved m
                                 && m.eventDate().equals(newDay)
-                                && m.startTime().equals("10:00")));
-        verify(notifications, never()).notifyMembers(any(), eq(NotificationType.EVENT_DATE_DROPPED), any());
+                                && m.startTime().equals("10:00")),
+                        eq(Delivery.EVERY_TIME));
+        verify(notifications, never()).notify(any(), eq(NotificationType.EVENT_DATE_DROPPED), any(), any());
     }
 
     /** A date that was called off is still a date of the series, so a change of time keeps its places. */
@@ -392,7 +390,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
         moveTo(event, DayOfWeek.WEDNESDAY);
 
         assertEquals(RegistrationStatus.ACCEPTED, reread(past).status());
-        verify(notifications, never()).notifyMembers(any(), any(), any());
+        verify(notifications, never()).notify(any(), any(), any(), any());
     }
 
     /** A question naming members that is answered per date, returning its id. */

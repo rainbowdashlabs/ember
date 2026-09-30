@@ -299,6 +299,32 @@ public class ClusterRepository {
     }
 
     /**
+     * Whether a cluster member wants the association's gathered notifications by mail.
+     *
+     * @param memberId the cluster member
+     * @return their choice, {@code false} for a member that does not exist
+     */
+    public boolean isEmailEnabled(int memberId) {
+        return query("SELECT email_enabled FROM cluster_member WHERE id = :id;")
+                .single(call().bind("id", memberId))
+                .map(row -> row.getBoolean("email_enabled"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * Switches a cluster member's mail on or off.
+     *
+     * @param memberId the cluster member
+     * @param enabled  whether they want mail
+     */
+    public void setEmailEnabled(int memberId, boolean enabled) {
+        query("UPDATE cluster_member SET email_enabled = :enabled WHERE id = :id;")
+                .single(call().bind("enabled", enabled).bind("id", memberId))
+                .update();
+    }
+
+    /**
      * The modules this cluster switches off, for one group of its stations or for all of them.
      *
      * @param clusterId      the cluster

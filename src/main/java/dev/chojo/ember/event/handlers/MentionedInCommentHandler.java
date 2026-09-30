@@ -7,11 +7,13 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.MentionedInComment;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -20,11 +22,11 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class MentionedInCommentHandler implements DomainEventHandler<MentionedInComment> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
-    public MentionedInCommentHandler(NotificationService notificationService) {
-        this.notificationService = notificationService;
+    public MentionedInCommentHandler(Notifier notifier) {
+        this.notifier = notifier;
     }
 
     @Override
@@ -38,6 +40,10 @@ public class MentionedInCommentHandler implements DomainEventHandler<MentionedIn
                 event.entityType(), event.entityId(), event.ticketAddress(), event.commentId());
         var data = NotificationData.of(
                 new NotificationParams.CommentMention(event.entityTitle(), event.authorName(), event.preview()), link);
-        notificationService.notifyIfAbsent(event.mentionedMemberId(), NotificationType.COMMENT_MENTION, data);
+        notifier.notify(
+                StationAudience.member(event.mentionedMemberId()),
+                NotificationType.COMMENT_MENTION,
+                data,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 }

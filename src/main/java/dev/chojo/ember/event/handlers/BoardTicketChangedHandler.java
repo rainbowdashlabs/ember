@@ -8,21 +8,23 @@ package dev.chojo.ember.event.handlers;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.BoardTicketChanged;
 import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 @Singleton
 public class BoardTicketChangedHandler implements DomainEventHandler<BoardTicketChanged> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
-    public BoardTicketChangedHandler(NotificationService notificationService) {
-        this.notificationService = notificationService;
+    public BoardTicketChangedHandler(Notifier notifier) {
+        this.notifier = notifier;
     }
 
     @Override
@@ -38,10 +40,10 @@ public class BoardTicketChangedHandler implements DomainEventHandler<BoardTicket
                 NotificationLinks.ticket(
                         new BoardTicketAddress(event.boardKey(), event.ticketNumber()), event.ticketId()));
 
-        notificationService.notifyMembersIfAbsent(
-                event.watcherMemberIds(),
+        notifier.notify(
+                StationAudience.members(event.watcherMemberIds()).except(event.actorMemberId()),
                 NotificationType.BOARD_TICKET_UPDATE,
                 data,
-                event.actorMemberId() != null ? event.actorMemberId() : -1);
+                Delivery.ONCE_WHILE_UNREAD);
     }
 }

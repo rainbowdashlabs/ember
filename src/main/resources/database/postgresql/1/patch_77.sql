@@ -223,3 +223,35 @@ COMMENT ON COLUMN ember_schema.account_ai_credential.updated_at
 
 COMMENT ON COLUMN ember_schema.station_ai_provider.api_key
     IS 'The station key for the provider, encrypted with the instance credential key (enc:v1: prefix). A key stored in plaintext before encryption existed is encrypted at start-up. Never sent to a browser.';
+
+ALTER TABLE ember_schema.notification
+    ADD COLUMN IF NOT EXISTS dedup_key TEXT NULL;
+
+COMMENT ON COLUMN ember_schema.notification.dedup_key
+    IS 'Set on a notification meant to arrive once while unread: a hash of its type and data. Two unread notifications of one recipient never share a key, so the same news is not told twice. NULL where every sending counts.';
+
+WITH ranked AS (SELECT id,
+                       row_number() OVER (
+                           PARTITION BY member_id, cluster_member_id, md5(type || data::TEXT)
+                           ORDER BY created_at, id) AS position
+                FROM ember_schema.notification
+                WHERE acknowledged_at IS NULL)
+UPDATE ember_schema.notification n
+SET dedup_key = md5(n.type || n.data::TEXT)
+FROM ranked
+WHERE ranked.id = n.id
+  AND ranked.position = 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_notification_unread_member
+    ON ember_schema.notification (member_id, dedup_key)
+    WHERE acknowledged_at IS NULL AND dedup_key IS NOT NULL AND member_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_notification_unread_cluster_member
+    ON ember_schema.notification (cluster_member_id, dedup_key)
+    WHERE acknowledged_at IS NULL AND dedup_key IS NOT NULL AND cluster_member_id IS NOT NULL;
+
+ALTER TABLE ember_schema.cluster_member
+    ADD COLUMN IF NOT EXISTS email_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN ember_schema.cluster_member.email_enabled
+    IS 'Whether this person wants the association''s gathered notifications by mail. Off until they switch it on, the same as a station membership''s mail setting.';

@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.notifications.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.notifications.entity.DigestGroup;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import jakarta.inject.Singleton;
 
 import java.sql.Array;
@@ -13,12 +16,13 @@ import java.sql.Time;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING;
 
 /**
  * When a station or a cluster asked to be written to, and when it last was.
@@ -31,37 +35,39 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class NotificationScheduleRepository {
 
     /**
-     * What a station or cluster asked for.
+     * The stations and clusters that have something waiting, with what the digest needs of each.
      *
-     * @param sendTimes the times of day it wants its mail, empty where it asked for none and the
-     *     operator's own number decides
-     * @param lastSent  when it was last written to, null where it never has been
-     * @param timezone  the clock its times are read on, which for a cluster is the instance's
+     * <p>One statement for both kinds. A cluster's clock and language are its home station's, which
+     * is where its people are: read on the instance's clock instead, a cluster asking for seven in
+     * the morning in Berlin was written to at nine in summer and eight in winter.
+     *
+     * @param stationIds the stations to read
+     * @param clusterIds the clusters to read
+     * @return one group for each that exists
      */
-    public record Schedule(List<LocalTime> sendTimes, Instant lastSent, String timezone) {}
-
-    public Optional<Schedule> forStation(int stationId) {
+    public List<DigestGroup> findDigestGroups(Collection<Integer> stationIds, Collection<Integer> clusterIds) {
         return query("""
-                SELECT notification_send_times, notification_last_sent, timezone
-                FROM station WHERE id = :id;""")
-                .single(call().bind("id", stationId))
-                .map(row -> new Schedule(
+                SELECT 'STATION' AS kind, s.id, s.name, s.uid AS station_uid, s.id AS clock_station_id,
+                       s.timezone, s.locale, s.notification_send_times, s.notification_last_sent
+                FROM station s
+                WHERE s.id = ANY(:station_ids::INT[])
+                UNION ALL
+                SELECT 'CLUSTER', c.id, c.name, NULL::UUID, home.id,
+                       home.timezone, home.locale, c.notification_send_times, c.notification_last_sent
+                FROM cluster c
+                JOIN station home ON home.id = c.home_station_id
+                WHERE c.id = ANY(:cluster_ids::INT[]);""")
+                .single(call().bind("station_ids", List.copyOf(stationIds), PostgreSqlTypes.INTEGER)
+                        .bind("cluster_ids", List.copyOf(clusterIds), PostgreSqlTypes.INTEGER))
+                .map(row -> new DigestGroup(
+                        new DigestGroup.Key(row.getEnum("kind", DigestGroup.Kind.class), row.getInt("id")),
+                        row.getString("name"),
+                        row.get("station_uid", UUID_STRING),
+                        StationFormat.timezoneOf(row.getInt("clock_station_id"), row.getString("timezone")),
+                        row.getString("locale"),
                         timesOf(row.getObject("notification_send_times", Array.class)),
-                        row.get("notification_last_sent", INSTANT_TIMESTAMP),
-                        row.getString("timezone")))
-                .first();
-    }
-
-    public Optional<Schedule> forCluster(int clusterId) {
-        return query("""
-                SELECT notification_send_times, notification_last_sent
-                FROM cluster WHERE id = :id;""")
-                .single(call().bind("id", clusterId))
-                .map(row -> new Schedule(
-                        timesOf(row.getObject("notification_send_times", Array.class)),
-                        row.get("notification_last_sent", INSTANT_TIMESTAMP),
-                        null))
-                .first();
+                        row.get("notification_last_sent", INSTANT_TIMESTAMP)))
+                .all();
     }
 
     public void markStationSent(int stationId, Instant sentAt) {

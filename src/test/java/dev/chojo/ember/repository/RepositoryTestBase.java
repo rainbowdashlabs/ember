@@ -147,6 +147,7 @@ import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
@@ -285,7 +286,7 @@ public abstract class RepositoryTestBase {
     protected static SelfCheckRepository selfCheckRepo;
     protected static SelfCheckService selfCheckService;
     protected static SelfCheckReviewService selfCheckReviewService;
-    protected static dev.chojo.ember.feature.notifications.service.NotificationService selfCheckNotifications;
+    protected static Notifier selfCheckNotifications;
     protected static EventFieldRepository eventFieldRepo;
     protected static FormRepository formRepo;
     protected static ProcurementRepository procurementRepo;
@@ -400,13 +401,7 @@ public abstract class RepositoryTestBase {
                 .setSchemas(SCHEMA)
                 .execute();
 
-        var config = QueryConfiguration.builder(dataSource)
-                .setThrowExceptions(true)
-                .setRowMapperRegistry(new RowMapperRegistry().register(PostgresqlMapper.getDefaultMapper()))
-                .build();
-        // The same wrapping the application installs, so a service grouping its writes in a
-        // transaction behaves here exactly as it does in production.
-        QueryConfiguration.setDefault(Transactions.threadScoped(config));
+        installQueryConfiguration(dataSource);
         accountRepo = new AccountRepository(TokenHasher.forTesting("repository-test-pepper"));
         passkeyModeService = new dev.chojo.ember.feature.passkey.service.PasskeyModeService(
                 new dev.chojo.ember.conf.file.elements.PasskeySettings(),
@@ -490,7 +485,7 @@ public abstract class RepositoryTestBase {
         profileFieldService = new ProfileFieldService(
                 profileFieldRepo,
                 profileFieldChangeRepo,
-                org.mockito.Mockito.mock(dev.chojo.ember.feature.notifications.service.NotificationService.class),
+                mock(Notifier.class),
                 stationMemberRepo,
                 accountRepo,
                 clusterProfileFieldRepo,
@@ -644,8 +639,7 @@ public abstract class RepositoryTestBase {
                 itemCustodyService,
                 inventoryService,
                 selfCheckRepo);
-        selfCheckNotifications =
-                org.mockito.Mockito.mock(dev.chojo.ember.feature.notifications.service.NotificationService.class);
+        selfCheckNotifications = mock(Notifier.class);
         selfCheckService = new SelfCheckService(
                 selfCheckRepo,
                 inventoryCheckService,
@@ -664,6 +658,44 @@ public abstract class RepositoryTestBase {
                 itemCustodyService,
                 itemMovementService,
                 selfCheckNotifications);
+    }
+
+    /**
+     * Makes the given data source the one every repository reaches, wrapped the way the application
+     * wraps it, so a service grouping its writes in a transaction behaves here exactly as it does in
+     * production.
+     */
+    private static void installQueryConfiguration(DataSource source) {
+        var config = QueryConfiguration.builder(source)
+                .setThrowExceptions(true)
+                .setRowMapperRegistry(new RowMapperRegistry().register(PostgresqlMapper.getDefaultMapper()))
+                .build();
+        QueryConfiguration.setDefault(Transactions.threadScoped(config));
+    }
+
+    /** A notifier over the shared repository, resolving cluster holders through the shared cluster service. */
+    protected static Notifier newNotifier() {
+        return new Notifier(notificationRepo, () -> clusterService);
+    }
+
+    /**
+     * How many statements the body sends to the database.
+     *
+     * <p>Every connection handed out while the body runs is watched, and each statement it prepares
+     * counts once. The shared configuration is put back afterwards, also when the body fails.
+     *
+     * @param body the work to measure
+     * @return the number of statements it prepared
+     */
+    protected static int countStatements(Runnable body) {
+        var counting = new StatementCountingDataSource(dataSource);
+        installQueryConfiguration(counting);
+        try {
+            body.run();
+        } finally {
+            installQueryConfiguration(dataSource);
+        }
+        return counting.statements();
     }
 
     /**

@@ -8,10 +8,12 @@ package dev.chojo.ember.event.handlers;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ClusterModuleDenied;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -24,11 +26,11 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class ClusterGovernanceHandler implements DomainEventHandler<ClusterModuleDenied> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
-    public ClusterGovernanceHandler(NotificationService notificationService) {
-        this.notificationService = notificationService;
+    public ClusterGovernanceHandler(Notifier notifier) {
+        this.notifier = notifier;
     }
 
     @Override
@@ -42,10 +44,10 @@ public class ClusterGovernanceHandler implements DomainEventHandler<ClusterModul
                 new NotificationParams.ClusterModuleDenied(
                         event.clusterName(), event.module().name()),
                 new NotificationData.NotificationLink("station-modules"));
-        notificationService.notifyMembersWithRole(
-                event.stationId(),
-                StationPermission.STATION_MODULES.name(),
+        notifier.notify(
+                StationAudience.holders(event.stationId(), StationPermission.STATION_MODULES),
                 NotificationType.CLUSTER_MODULE_DENIED,
-                data);
+                data,
+                Delivery.EVERY_TIME);
     }
 }

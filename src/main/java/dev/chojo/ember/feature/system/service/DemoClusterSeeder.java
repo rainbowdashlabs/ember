@@ -41,10 +41,14 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.news.service.NewsService;
+import dev.chojo.ember.feature.notifications.entity.Audience;
+import dev.chojo.ember.feature.notifications.entity.ClusterAudience;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -107,7 +111,7 @@ public class DemoClusterSeeder implements DemoSeeder {
     private final NewsService newsService;
     private final EventCrudService eventService;
     private final EventRegistrationRepository registrationRepository;
-    private final NotificationRepository notificationRepository;
+    private final Notifier notifier;
 
     @Inject
     public DemoClusterSeeder(
@@ -130,7 +134,7 @@ public class DemoClusterSeeder implements DemoSeeder {
             NewsService newsService,
             EventCrudService eventService,
             EventRegistrationRepository registrationRepository,
-            NotificationRepository notificationRepository) {
+            Notifier notifier) {
         this.accountRepository = accountRepository;
         this.passwordHasher = passwordHasher;
         this.clusterService = clusterService;
@@ -150,7 +154,7 @@ public class DemoClusterSeeder implements DemoSeeder {
         this.newsService = newsService;
         this.eventService = eventService;
         this.registrationRepository = registrationRepository;
-        this.notificationRepository = notificationRepository;
+        this.notifier = notifier;
     }
 
     /**
@@ -678,48 +682,66 @@ public class DemoClusterSeeder implements DemoSeeder {
     private void seedNotifications(Cluster cluster, DemoStationContext member, ClusterMember admin) {
         String name = cluster.name();
 
-        notificationRepository.createForClusterMember(
-                admin.id(),
+        var toAdmin = ClusterAudience.members(List.of(admin.id()));
+        tell(
+                toAdmin,
                 NotificationType.CLUSTER_APPLICATION_SUBMITTED,
-                NotificationData.of(new NotificationParams.ClusterApplicationSubmitted("Feuerwehr Nachbardorf")));
-        notificationRepository.createForClusterMember(
-                admin.id(),
+                new NotificationParams.ClusterApplicationSubmitted("Feuerwehr Nachbardorf"),
+                "cluster-applications");
+        tell(
+                toAdmin,
                 NotificationType.CLUSTER_APPLICATION_WITHDRAWN,
-                NotificationData.of(new NotificationParams.ClusterApplicationWithdrawn("Feuerwehr Süd")));
-        notificationRepository.createForClusterMember(
-                admin.id(),
+                new NotificationParams.ClusterApplicationWithdrawn("Feuerwehr Süd"),
+                "cluster-applications");
+        tell(
+                toAdmin,
                 NotificationType.CLUSTER_MEMBER_ROLE_CHANGED,
-                NotificationData.of(new NotificationParams.ClusterMemberRoleChanged(name)));
+                new NotificationParams.ClusterMemberRoleChanged(name),
+                "cluster-overview");
 
         StationMember adminMember = member.adminMember();
         if (adminMember == null) return;
-        int memberId = adminMember.id();
+        var toMember = StationAudience.member(adminMember.id());
 
-        notificationRepository.create(
-                memberId,
+        tell(
+                toMember,
                 NotificationType.CLUSTER_APPLICATION_APPROVED,
-                NotificationData.of(new NotificationParams.ClusterApplicationApproved(name)));
-        notificationRepository.create(
-                memberId,
+                new NotificationParams.ClusterApplicationApproved(name),
+                "station-manage-cluster");
+        tell(
+                toMember,
                 NotificationType.CLUSTER_APPLICATION_DENIED,
-                NotificationData.of(new NotificationParams.ClusterApplicationDenied(
-                        name, "Bitte im nächsten Jahr erneut anfragen")));
-        notificationRepository.create(
-                memberId,
+                new NotificationParams.ClusterApplicationDenied(name, "Bitte im nächsten Jahr erneut anfragen"),
+                "station-manage-cluster");
+        tell(
+                toMember,
                 NotificationType.CLUSTER_STATION_RELEASED,
-                NotificationData.of(new NotificationParams.ClusterStationReleased(name)));
-        notificationRepository.create(
-                memberId,
+                new NotificationParams.ClusterStationReleased(name),
+                "station-manage-cluster");
+        tell(
+                toMember,
                 NotificationType.CLUSTER_MODULE_DENIED,
-                NotificationData.of(new NotificationParams.ClusterModuleDenied(name, "Fundsachen")));
-        notificationRepository.create(
-                memberId,
+                new NotificationParams.ClusterModuleDenied(name, "Fundsachen"),
+                "station-modules");
+        tell(
+                toMember,
                 NotificationType.CLUSTER_QUOTA_CHANGED,
-                NotificationData.of(new NotificationParams.ClusterQuotaChanged(name, "5 GB")));
-        notificationRepository.create(
-                memberId,
+                new NotificationParams.ClusterQuotaChanged(name, "5 GB"),
+                "station-storage");
+        tell(
+                toMember,
                 NotificationType.CLUSTER_FIELD_VALUE_CHANGED,
-                NotificationData.of(new NotificationParams.ClusterFieldValueChanged(name, "Führerscheinklasse")));
+                new NotificationParams.ClusterFieldValueChanged(name, "Führerscheinklasse"),
+                "profile");
+    }
+
+    /** Writes one showcase notification, leading where the real one of its kind leads. */
+    private void tell(Audience audience, NotificationType type, NotificationParams params, String route) {
+        notifier.notify(
+                audience,
+                type,
+                NotificationData.of(params, new NotificationData.NotificationLink(route)),
+                Delivery.EVERY_TIME);
     }
 
     private static String nameOf(StationMember member) {

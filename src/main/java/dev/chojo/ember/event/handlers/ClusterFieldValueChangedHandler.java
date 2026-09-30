@@ -7,10 +7,12 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ClusterFieldValueChanged;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -23,11 +25,11 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class ClusterFieldValueChangedHandler implements DomainEventHandler<ClusterFieldValueChanged> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
-    public ClusterFieldValueChangedHandler(NotificationService notificationService) {
-        this.notificationService = notificationService;
+    public ClusterFieldValueChangedHandler(Notifier notifier) {
+        this.notifier = notifier;
     }
 
     @Override
@@ -40,6 +42,10 @@ public class ClusterFieldValueChangedHandler implements DomainEventHandler<Clust
         var data = NotificationData.of(
                 new NotificationParams.ClusterFieldValueChanged(event.clusterName(), event.fieldNames()),
                 new NotificationData.NotificationLink("profile"));
-        notificationService.notifyIfAbsent(event.memberId(), NotificationType.CLUSTER_FIELD_VALUE_CHANGED, data);
+        notifier.notify(
+                StationAudience.member(event.memberId()),
+                NotificationType.CLUSTER_FIELD_VALUE_CHANGED,
+                data,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 }

@@ -7,17 +7,11 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.MovementAdvanced;
-import dev.chojo.ember.feature.cluster.service.ClusterService;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
-import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
-
-import java.util.Map;
 
 /**
  * Tells whoever's turn it is next that a step has been acknowledged.
@@ -28,18 +22,11 @@ import java.util.Map;
  */
 @Singleton
 public class MovementAdvancedHandler implements DomainEventHandler<MovementAdvanced> {
-    private final NotificationService notificationService;
-    private final StationMemberRepository stationMemberRepository;
-    private final Provider<ClusterService> clusterService;
+    private final Notifier notifier;
 
     @Inject
-    public MovementAdvancedHandler(
-            NotificationService notificationService,
-            StationMemberRepository stationMemberRepository,
-            Provider<ClusterService> clusterService) {
-        this.notificationService = notificationService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.clusterService = clusterService;
+    public MovementAdvancedHandler(Notifier notifier) {
+        this.notifier = notifier;
     }
 
     @Override
@@ -49,26 +36,13 @@ public class MovementAdvancedHandler implements DomainEventHandler<MovementAdvan
 
     @Override
     public void handle(MovementAdvanced event) {
-        var params = new NotificationParams.MovementMoved(event.stepLabel(), event.inventoryName(), event.nextActor());
-        var recipients = MovementNotificationRouting.recipients(
-                stationMemberRepository,
-                clusterService.get(),
-                event.stationId(),
-                event.memberId(),
-                event.nextActor(),
-                event.ownerClusterId());
-        notificationService.notifyMembersIfAbsent(
-                recipients.stationMembers(),
+        MovementNotificationRouting.tell(
+                notifier,
+                MovementNotificationRouting.nextParty(
+                        event.stationId(), event.memberId(), event.nextActor(), event.ownerClusterId()),
+                event.actorMemberId(),
                 NotificationType.MOVEMENT_ADVANCED,
-                NotificationData.of(
-                        params,
-                        new NotificationData.NotificationLink(
-                                "inventory-movement-detail", Map.of("id", event.movementId()))),
-                event.actorMemberId());
-        notificationService.notifyClusterMembersIfAbsent(
-                recipients.clusterMembers(),
-                NotificationType.MOVEMENT_ADVANCED,
-                NotificationData.of(params, new NotificationData.NotificationLink("cluster-movements")),
-                null);
+                new NotificationParams.MovementMoved(event.stepLabel(), event.inventoryName(), event.nextActor()),
+                event.movementId());
     }
 }

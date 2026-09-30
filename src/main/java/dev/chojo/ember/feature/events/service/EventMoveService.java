@@ -14,14 +14,14 @@ import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
-import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.TreeSet;
@@ -64,9 +63,8 @@ public class EventMoveService {
     private final EventReminderRepository reminderRepository;
     private final EventDateCancellationRepository cancellationRepository;
     private final OccurrenceCalendar occurrenceCalendar;
-    private final StationMemberRepository memberRepository;
     private final MemberNameResolver nameResolver;
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
     public EventMoveService(
@@ -75,17 +73,15 @@ public class EventMoveService {
             EventReminderRepository reminderRepository,
             EventDateCancellationRepository cancellationRepository,
             OccurrenceCalendar occurrenceCalendar,
-            StationMemberRepository memberRepository,
             MemberNameResolver nameResolver,
-            NotificationService notificationService) {
+            Notifier notifier) {
         this.registrationRepository = registrationRepository;
         this.fieldRepository = fieldRepository;
         this.reminderRepository = reminderRepository;
         this.cancellationRepository = cancellationRepository;
         this.occurrenceCalendar = occurrenceCalendar;
-        this.memberRepository = memberRepository;
         this.nameResolver = nameResolver;
-        this.notificationService = notificationService;
+        this.notifier = notifier;
     }
 
     /**
@@ -182,9 +178,10 @@ public class EventMoveService {
      */
     private void tell(
             int memberId, NotificationType type, NotificationParams params, NotificationData.NotificationLink link) {
-        var audience = new HashSet<Integer>();
-        audience.add(memberId);
-        memberRepository.findManagers(memberId).stream().map(StationMember::id).forEach(audience::add);
-        notificationService.notifyMembers(audience, type, NotificationData.of(params, link));
+        notifier.notify(
+                StationAudience.household(List.of(memberId)),
+                type,
+                NotificationData.of(params, link),
+                Delivery.EVERY_TIME);
     }
 }

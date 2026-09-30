@@ -15,7 +15,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventFieldService;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import jakarta.inject.Inject;
@@ -53,12 +53,12 @@ import java.util.Optional;
 @Singleton
 public class IcalEventRenderer {
     private final EventFieldService eventFieldService;
-    private final NotificationService notificationService;
+    private final NotificationText notificationText;
 
     @Inject
-    public IcalEventRenderer(EventFieldService eventFieldService, NotificationService notificationService) {
+    public IcalEventRenderer(EventFieldService eventFieldService, NotificationText notificationText) {
         this.eventFieldService = eventFieldService;
-        this.notificationService = notificationService;
+        this.notificationText = notificationText;
     }
 
     /**
@@ -218,7 +218,7 @@ public class IcalEventRenderer {
             if (cat != null) appendLine(sb, ctx.locale(), "label.category", cat.name());
         }
 
-        String typeLabel = notificationService.resolveLocalized(
+        String typeLabel = notificationText.resolveLocalized(
                 ctx.locale(), "ical", "eventType." + event.eventType().name(), null);
         appendLine(sb, ctx.locale(), "label.eventType", typeLabel);
 
@@ -237,7 +237,7 @@ public class IcalEventRenderer {
                 notice -> sb.append(cancelledText(ctx.locale(), notice)).append("\n"));
 
         if (event.requiresRegistration()) {
-            sb.append(notificationService.resolveLocalized(ctx.locale(), "ical", "registrationRequired", null))
+            sb.append(notificationText.resolveLocalized(ctx.locale(), "ical", "registrationRequired", null))
                     .append("\n");
             if (event.registrationDeadline() != null) {
                 appendLine(sb, ctx.locale(), "label.deadline", formatInstant(event.registrationDeadline(), ctx));
@@ -250,7 +250,7 @@ public class IcalEventRenderer {
                         event.registrationLimit().toString());
             }
             var status = ctx.ownerStatusByEvent().get(event.id());
-            String statusLabel = notificationService.resolveLocalized(
+            String statusLabel = notificationText.resolveLocalized(
                     ctx.locale(), "ical", "status." + (status != null ? status.name() : "NONE"), null);
             appendLine(sb, ctx.locale(), "label.status", withSymbol(statusLabel, status));
 
@@ -258,7 +258,7 @@ public class IcalEventRenderer {
             var managed = ctx.managedStatusByEvent().getOrDefault(event.id(), List.of());
             int acceptedCount = 0;
             for (var m : managed) {
-                String mStatusLabel = notificationService.resolveLocalized(
+                String mStatusLabel = notificationText.resolveLocalized(
                         ctx.locale(), "ical", "status." + m.status().name(), null);
                 sb.append(m.memberName())
                         .append(": ")
@@ -267,8 +267,7 @@ public class IcalEventRenderer {
                 if (m.status() == RegistrationStatus.ACCEPTED) acceptedCount++;
             }
             if (acceptedCount > 0) {
-                String acceptedLabel =
-                        notificationService.resolveLocalized(ctx.locale(), "ical", "label.accepted", null);
+                String acceptedLabel = notificationText.resolveLocalized(ctx.locale(), "ical", "label.accepted", null);
                 String limit = event.registrationLimit() != null
                         ? event.registrationLimit().toString()
                         : "∞";
@@ -282,7 +281,7 @@ public class IcalEventRenderer {
         }
 
         // Trailing web link so users can open the source even when URL isn't shown by the client.
-        String linkLabel = notificationService.resolveLocalized(ctx.locale(), "ical", "label.link", null);
+        String linkLabel = notificationText.resolveLocalized(ctx.locale(), "ical", "label.link", null);
         sb.append("\n").append(linkLabel).append(": ").append(deepLink);
 
         return sb.toString().stripTrailing();
@@ -291,17 +290,17 @@ public class IcalEventRenderer {
     /** Why something is off, in the reader's language: the check's own sentence, or the manager's reason. */
     private String cancelledText(String locale, CancellationNotice notice) {
         if (notice.cause() == CancellationCause.THRESHOLD) {
-            return notificationService.resolveLocalized(locale, "ical", "cancelledTooFewRegistrations", null);
+            return notificationText.resolveLocalized(locale, "ical", "cancelledTooFewRegistrations", null);
         }
         if (notice.reason() != null && !notice.reason().isBlank()) {
-            return notificationService.resolveLocalized(
+            return notificationText.resolveLocalized(
                     locale, "ical", "cancelledWithReason", Map.of("reason", notice.reason()));
         }
-        return notificationService.resolveLocalized(locale, "ical", "cancelled", null);
+        return notificationText.resolveLocalized(locale, "ical", "cancelled", null);
     }
 
     private String cancelledPrefix(String locale) {
-        return notificationService.resolveLocalized(locale, "ical", "summary.cancelledPrefix", null) + " ";
+        return notificationText.resolveLocalized(locale, "ical", "summary.cancelledPrefix", null) + " ";
     }
 
     private String firstLocation(List<EventField> fields) {
@@ -316,7 +315,7 @@ public class IcalEventRenderer {
     }
 
     private void appendLine(StringBuilder sb, String locale, String labelKey, String value) {
-        String label = notificationService.resolveLocalized(locale, "ical", labelKey, null);
+        String label = notificationText.resolveLocalized(locale, "ical", labelKey, null);
         sb.append(label).append(": ").append(value).append("\n");
     }
 

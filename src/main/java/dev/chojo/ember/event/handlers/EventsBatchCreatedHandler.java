@@ -9,10 +9,12 @@ import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventsBatchCreated;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.entity.StationFormat;
@@ -39,18 +41,18 @@ import java.util.stream.IntStream;
 public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatchCreated> {
     private static final int PREVIEW_LIMIT = 3;
 
-    private final NotificationService notificationService;
+    private final Notifier notifier;
     private final StationRepository stationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final RestrictionService restrictionService;
 
     @Inject
     public EventsBatchCreatedHandler(
-            NotificationService notificationService,
+            Notifier notifier,
             StationRepository stationRepository,
             StationMemberRepository stationMemberRepository,
             RestrictionService restrictionService) {
-        this.notificationService = notificationService;
+        this.notifier = notifier;
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.restrictionService = restrictionService;
@@ -84,8 +86,11 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
                 .toList();
 
         if (audiences.stream().allMatch(Optional::isEmpty)) {
-            notificationService.notifyStation(
-                    event.stationId(), NotificationType.NEW_EVENTS_BATCH, dataFor(events, zone));
+            notifier.notify(
+                    StationAudience.wholeStation(event.stationId()),
+                    NotificationType.NEW_EVENTS_BATCH,
+                    dataFor(events, zone),
+                    Delivery.EVERY_TIME);
             return;
         }
 
@@ -101,8 +106,11 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
             if (seen.isEmpty()) continue;
             membersBySeenEvents.computeIfAbsent(seen, key -> new ArrayList<>()).add(member.id());
         }
-        membersBySeenEvents.forEach((seen, memberIds) ->
-                notificationService.notifyMembers(memberIds, NotificationType.NEW_EVENTS_BATCH, dataFor(seen, zone)));
+        membersBySeenEvents.forEach((seen, memberIds) -> notifier.notify(
+                StationAudience.members(memberIds),
+                NotificationType.NEW_EVENTS_BATCH,
+                dataFor(seen, zone),
+                Delivery.EVERY_TIME));
     }
 
     /**

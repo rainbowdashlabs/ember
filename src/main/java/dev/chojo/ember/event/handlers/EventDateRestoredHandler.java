@@ -8,12 +8,13 @@ package dev.chojo.ember.event.handlers;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventDateRestored;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
-import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -24,18 +25,13 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class EventDateRestoredHandler implements DomainEventHandler<EventDateRestored> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
     private final EventRegistrationRepository registrationRepository;
-    private final GuardianPolicy guardianPolicy;
 
     @Inject
-    public EventDateRestoredHandler(
-            NotificationService notificationService,
-            EventRegistrationRepository registrationRepository,
-            GuardianPolicy guardianPolicy) {
-        this.notificationService = notificationService;
+    public EventDateRestoredHandler(Notifier notifier, EventRegistrationRepository registrationRepository) {
+        this.notifier = notifier;
         this.registrationRepository = registrationRepository;
-        this.guardianPolicy = guardianPolicy;
     }
 
     @Override
@@ -46,13 +42,13 @@ public class EventDateRestoredHandler implements DomainEventHandler<EventDateRes
     @Override
     public void handle(EventDateRestored event) {
         var placeHolders = registrationRepository.findRegisteredMemberIds(event.eventId(), event.eventDate());
-        var audience = guardianPolicy.withGuardians(placeHolders);
-        if (audience.isEmpty()) return;
-        notificationService.notifyMembers(
-                audience,
+        if (placeHolders.isEmpty()) return;
+        notifier.notify(
+                StationAudience.household(placeHolders),
                 NotificationType.EVENT_DATE_RESTORED,
                 NotificationData.of(
                         new NotificationParams.EventDateRestored(event.eventName(), event.eventDate()),
-                        NotificationLinks.eventDate(event.eventId(), event.eventDate())));
+                        NotificationLinks.eventDate(event.eventId(), event.eventDate())),
+                Delivery.EVERY_TIME);
     }
 }

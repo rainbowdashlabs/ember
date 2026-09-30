@@ -9,10 +9,12 @@ import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ProcedureItemChecked;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -20,13 +22,12 @@ import java.util.Map;
 
 @Singleton
 public class ProcedureItemCheckedHandler implements DomainEventHandler<ProcedureItemChecked> {
-    private final NotificationService notificationService;
+    private final Notifier notifier;
     private final StationMemberRepository stationMemberRepository;
 
     @Inject
-    public ProcedureItemCheckedHandler(
-            NotificationService notificationService, StationMemberRepository stationMemberRepository) {
-        this.notificationService = notificationService;
+    public ProcedureItemCheckedHandler(Notifier notifier, StationMemberRepository stationMemberRepository) {
+        this.notifier = notifier;
         this.stationMemberRepository = stationMemberRepository;
     }
 
@@ -44,9 +45,11 @@ public class ProcedureItemCheckedHandler implements DomainEventHandler<Procedure
         var data = NotificationData.of(
                 new NotificationParams.ProcedureItemCheckedParams(
                         event.procedureName(), event.itemTitle(), checkedByName),
-                // procedureId rides on the link so the feed renderer can surface progress.
                 new NotificationData.NotificationLink("procedure-detail", Map.of("id", event.procedureId())));
-        notificationService.notifyMembersIfAbsent(
-                event.assigneeMemberIds(), NotificationType.PROCEDURE_ITEM_CHECKED, data, event.checkedByMemberId());
+        notifier.notify(
+                StationAudience.members(event.assigneeMemberIds()).except(event.checkedByMemberId()),
+                NotificationType.PROCEDURE_ITEM_CHECKED,
+                data,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 }

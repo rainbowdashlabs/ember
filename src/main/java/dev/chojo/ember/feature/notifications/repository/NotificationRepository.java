@@ -5,20 +5,26 @@
  */
 package dev.chojo.ember.feature.notifications.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
+import dev.chojo.ember.feature.notifications.entity.DigestGroup;
+import dev.chojo.ember.feature.notifications.entity.DigestItem;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.util.sql.PermissionHolderSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 import static dev.chojo.ember.util.sql.SqlSupport.count;
-import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 /**
  * Repository for persisting and querying notifications, including acknowledgement and email digest tracking.
@@ -27,43 +33,6 @@ import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 public class NotificationRepository {
     private static final String NOTIFICATION_COLUMNS =
             "id, member_id, cluster_member_id, type, data, created_at, acknowledged_at";
-
-    /**
-     * Creates a new notification for a member.
-     *
-     * @param memberId the target member ID
-     * @param type     the notification category
-     * @param data     localized message data
-     * @return the persisted notification
-     */
-    public Notification create(int memberId, NotificationType type, NotificationData data) {
-        return insertReturning(
-                """
-                INSERT INTO notification(member_id, type, data)
-                VALUES(:member_id, :type, :data::JSONB)
-                RETURNING %s;""".formatted(NOTIFICATION_COLUMNS),
-                call().bind("member_id", memberId).bind("type", type).bind("data", data.toJson()),
-                Notification.map(),
-                NOTIFICATION_COLUMNS);
-    }
-
-    /**
-     * Checks whether an unacknowledged notification with the exact same type and data already exists for a member.
-     *
-     * @param memberId the member ID
-     * @param type     the notification type
-     * @param data     the notification data that must match exactly
-     * @return {@code true} if a matching unacknowledged notification exists
-     */
-    public boolean exists(int memberId, NotificationType type, NotificationData data) {
-        return SqlSupport.exists(
-                """
-                SELECT 1 FROM notification
-                WHERE member_id = :member_id
-                  AND type = :type
-                  AND data = :data::JSONB
-                  AND acknowledged_at IS NULL;""", call().bind("member_id", memberId).bind("type", type).bind("data", data.toJson()));
-    }
 
     /**
      * Retrieves all unacknowledged notifications for a member, ordered by creation time descending.
@@ -212,29 +181,42 @@ public class NotificationRepository {
     }
 
     /**
-     * Retrieves all notifications that have not yet been included in an email digest.
+     * Every notification not yet mailed, station members' and cluster members' alike, with the group
+     * whose mail it goes out with, the account behind its reader and whether they want it by mail.
      *
-     * @return list of unemailed notifications, ordered by member and creation time
-     */
-    /**
-     * The notifications waiting to be mailed to somebody who follows a cluster.
+     * <p>One statement for the whole sweep, so the digest costs the same whether ten people or a
+     * thousand have something waiting. A station member wants a notification by mail when their mail
+     * switch is on and the mail setting of its type is too; a cluster member has one switch for
+     * everything.
      *
-     * <p>Its twin for station members has always existed; this one had not, so a cluster's
-     * notifications were written to the table and never taken out of it again. Somebody following a
-     * cluster heard nothing about the partner stations they joined it for.
+     * @return the waiting notifications, grouped by station or cluster and by reader, oldest first
      */
-    public List<Notification> findUnemailedForClusters() {
+    public List<DigestItem> findWaitingForDigest() {
         return query("""
-                SELECT %s FROM notification
-                WHERE emailed_at IS NULL AND cluster_member_id IS NOT NULL
-                ORDER BY cluster_member_id, created_at;""", NOTIFICATION_COLUMNS).single().map(Notification.map()).all();
-    }
-
-    public List<Notification> findUnemailed() {
-        return query("""
-                SELECT %s FROM notification
-                WHERE emailed_at IS NULL AND member_id IS NOT NULL
-                ORDER BY member_id, created_at;""", NOTIFICATION_COLUMNS).single().map(Notification.map()).all();
+                SELECT %s,
+                       CASE WHEN n.member_id IS NOT NULL THEN 'STATION' ELSE 'CLUSTER' END AS group_kind,
+                       coalesce(sm.station_id, cm.cluster_id) AS group_id,
+                       coalesce(n.member_id, n.cluster_member_id) AS recipient_id,
+                       coalesce(sm.account_id, cm.account_id) AS account_id,
+                       CASE WHEN n.member_id IS NOT NULL
+                            THEN coalesce(us.email_enabled, FALSE) AND coalesce(uns.email_enabled, FALSE)
+                            ELSE cm.email_enabled END AS mail_wanted
+                FROM notification n
+                LEFT JOIN station_member sm ON sm.id = n.member_id
+                LEFT JOIN user_settings us ON us.member_id = n.member_id
+                LEFT JOIN user_notification_settings uns
+                       ON uns.member_id = n.member_id AND uns.notification_type = n.type
+                LEFT JOIN cluster_member cm ON cm.id = n.cluster_member_id
+                WHERE n.emailed_at IS NULL
+                ORDER BY group_kind DESC, group_id, recipient_id, n.created_at, n.id;""", SqlSupport.alias("n", NOTIFICATION_COLUMNS))
+                .single()
+                .map(row -> new DigestItem(
+                        Notification.map().map(row),
+                        new DigestGroup.Key(row.getEnum("group_kind", DigestGroup.Kind.class), row.getInt("group_id")),
+                        row.getInt("recipient_id"),
+                        row.getObject("account_id", Integer.class),
+                        row.getBoolean("mail_wanted")))
+                .all();
     }
 
     /**
@@ -244,60 +226,115 @@ public class NotificationRepository {
      */
     public void markEmailed(List<Integer> ids) {
         if (ids.isEmpty()) return;
-        var now = Instant.now();
-        for (int id : ids) {
-            query("UPDATE notification SET emailed_at = :now WHERE id = :id;")
-                    .single(call().bind("now", now, INSTANT_TIMESTAMP).bind("id", id))
-                    .update();
-        }
-    }
-
-    // -- Cluster members --
-    //
-    // A parallel set rather than a column parameter on the ones above: the two recipients are different
-    // things, and a method that took whichever id you happened to have would let a station member's id
-    // silently read a cluster member's feed.
-
-    /**
-     * Creates a notification for a cluster member.
-     *
-     * @param clusterMemberId the target cluster member
-     * @param type            the notification category
-     * @param data            localized message data
-     * @return the persisted notification
-     */
-    public Notification createForClusterMember(int clusterMemberId, NotificationType type, NotificationData data) {
-        return insertReturning(
-                """
-                INSERT INTO notification(cluster_member_id, type, data)
-                VALUES(:cluster_member_id, :type, :data::JSONB)
-                RETURNING %s;""".formatted(NOTIFICATION_COLUMNS),
-                call().bind("cluster_member_id", clusterMemberId)
-                        .bind("type", type)
-                        .bind("data", data.toJson()),
-                Notification.map(),
-                NOTIFICATION_COLUMNS);
+        query("UPDATE notification SET emailed_at = :now WHERE id = ANY(:ids::INT[]);")
+                .single(call().bind("now", Instant.now(), INSTANT_TIMESTAMP).bind("ids", ids, PostgreSqlTypes.INTEGER))
+                .update();
     }
 
     /**
-     * Whether the same thing is already waiting unread for this cluster member.
+     * Writes one notification to every station member the audience reaches, in one statement.
      *
-     * @param clusterMemberId the cluster member
-     * @param type            the notification type
-     * @param data            the data that must match exactly
-     * @return {@code true} when one is already there
+     * <p>The parts of the audience are united in the database, so a member reached twice is told
+     * once. Members who have left are dropped, as are the guardians of a ward who has left and
+     * everybody who switched this type off in the app. With {@link Delivery#ONCE_WHILE_UNREAD} a
+     * member who already has the same notification waiting is skipped, however that one was sent,
+     * and the row carries a key that the partial unique index holds unique among a member's unread
+     * rows, so the skip also holds when two requests write it at the same moment.
+     *
+     * @param audience who is meant
+     * @param type     the notification category
+     * @param data     the message data
+     * @param delivery whether an identical unread notification suppresses this one
+     * @return how many rows were written
      */
-    public boolean existsForClusterMember(int clusterMemberId, NotificationType type, NotificationData data) {
-        return SqlSupport.exists(
-                """
-                SELECT 1 FROM notification
-                WHERE cluster_member_id = :cluster_member_id
-                  AND type = :type
-                  AND data = :data::JSONB
-                  AND acknowledged_at IS NULL;""",
-                call().bind("cluster_member_id", clusterMemberId)
+    public int insertForStation(
+            StationAudience audience, NotificationType type, NotificationData data, Delivery delivery) {
+        var call = call().bind("member_ids", List.copyOf(audience.memberIds()), PostgreSqlTypes.INTEGER)
+                .bind("whole_station_id", audience.wholeStationId())
+                .bind("holders_station_id", audience.holdersStationId())
+                .bind("ward_ids", List.copyOf(audience.wardIds()), PostgreSqlTypes.INTEGER)
+                .bind("excluded", List.copyOf(audience.excluded()), PostgreSqlTypes.INTEGER)
+                .bind("type", type)
+                .bind("data", data.toJson())
+                .bind("once", delivery == Delivery.ONCE_WHILE_UNREAD);
+        return query("""
+                WITH wanted(member_id) AS (
+                        SELECT unnest(:member_ids::INT[])
+                    UNION
+                        SELECT sm.id FROM station_member sm
+                        WHERE sm.station_id = :whole_station_id::INT
+                    UNION
+                        SELECT sm.id FROM station_member sm
+                        WHERE sm.station_id = :holders_station_id::INT AND (%s)
+                    UNION
+                        SELECT mm.manager_id FROM member_manager mm
+                        JOIN station_member ward ON ward.id = mm.managed_id AND NOT ward.former
+                        WHERE mm.managed_id = ANY(:ward_ids::INT[])
+                )
+                INSERT INTO notification (member_id, type, data, dedup_key)
+                SELECT w.member_id, :type, :data::JSONB,
+                       CASE WHEN :once THEN md5(:type::TEXT || :data::JSONB::TEXT) END
+                FROM wanted w
+                JOIN station_member sm ON sm.id = w.member_id AND NOT sm.former
+                WHERE w.member_id <> ALL(:excluded::INT[])
+                  AND NOT exists (
+                        SELECT 1 FROM user_notification_settings s
+                        WHERE s.member_id = w.member_id AND s.notification_type = :type AND NOT s.app_enabled)
+                  AND NOT (:once AND exists (
+                        SELECT 1 FROM notification waiting
+                        WHERE waiting.member_id = w.member_id AND waiting.acknowledged_at IS NULL
+                          AND waiting.type = :type AND waiting.data = :data::JSONB))
+                ON CONFLICT (member_id, dedup_key)
+                    WHERE acknowledged_at IS NULL AND dedup_key IS NOT NULL AND member_id IS NOT NULL
+                    DO NOTHING
+                RETURNING member_id;""", PermissionHolderSql.HOLDS_PERMISSION)
+                .single(PermissionHolderSql.bind(call, audience.permissions()))
+                .map(row -> row.getInt(1))
+                .all()
+                .size();
+    }
+
+    /**
+     * Writes one notification to each of the given cluster members, in one statement.
+     *
+     * <p>The cluster twin of {@link #insertForStation}. Cluster members have no per-type settings, so
+     * nobody is left out for a preference.
+     *
+     * @param clusterMemberIds the cluster members meant
+     * @param excluded         cluster members left out whatever else reaches them
+     * @param type             the notification category
+     * @param data             the message data
+     * @param delivery         whether an identical unread notification suppresses this one
+     * @return how many rows were written
+     */
+    public int insertForCluster(
+            Collection<Integer> clusterMemberIds,
+            Collection<Integer> excluded,
+            NotificationType type,
+            NotificationData data,
+            Delivery delivery) {
+        return query("""
+                INSERT INTO notification (cluster_member_id, type, data, dedup_key)
+                SELECT cm.id, :type, :data::JSONB,
+                       CASE WHEN :once THEN md5(:type::TEXT || :data::JSONB::TEXT) END
+                FROM cluster_member cm
+                WHERE cm.id = ANY(:ids::INT[]) AND cm.id <> ALL(:excluded::INT[])
+                  AND NOT (:once AND exists (
+                        SELECT 1 FROM notification waiting
+                        WHERE waiting.cluster_member_id = cm.id AND waiting.acknowledged_at IS NULL
+                          AND waiting.type = :type AND waiting.data = :data::JSONB))
+                ON CONFLICT (cluster_member_id, dedup_key)
+                    WHERE acknowledged_at IS NULL AND dedup_key IS NOT NULL AND cluster_member_id IS NOT NULL
+                    DO NOTHING
+                RETURNING cluster_member_id;""")
+                .single(call().bind("ids", List.copyOf(clusterMemberIds), PostgreSqlTypes.INTEGER)
+                        .bind("excluded", List.copyOf(excluded), PostgreSqlTypes.INTEGER)
                         .bind("type", type)
-                        .bind("data", data.toJson()));
+                        .bind("data", data.toJson())
+                        .bind("once", delivery == Delivery.ONCE_WHILE_UNREAD))
+                .map(row -> row.getInt(1))
+                .all()
+                .size();
     }
 
     /**

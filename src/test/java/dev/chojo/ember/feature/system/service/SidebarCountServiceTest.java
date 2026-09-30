@@ -20,7 +20,8 @@ import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
+import dev.chojo.ember.feature.notifications.service.NotificationInbox;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.SidebarCountService.SidebarCounts;
@@ -37,7 +38,7 @@ import static org.mockito.Mockito.*;
 
 class SidebarCountServiceTest {
 
-    private NotificationService notificationService;
+    private NotificationInbox notificationInbox;
     private RequirementsService requirementsService;
     private ProfileFieldChangeRepository profileFieldChangeRepository;
     private EventRegistrationRepository eventRegistrationRepository;
@@ -56,7 +57,7 @@ class SidebarCountServiceTest {
 
     @BeforeEach
     void setup() {
-        notificationService = mock(NotificationService.class);
+        notificationInbox = mock(NotificationInbox.class);
         requirementsService = mock(RequirementsService.class);
         profileFieldChangeRepository = mock(ProfileFieldChangeRepository.class);
         eventRegistrationRepository = mock(EventRegistrationRepository.class);
@@ -72,7 +73,7 @@ class SidebarCountServiceTest {
         when(stationRepository.resolveUid(STATION_ID)).thenReturn(STATION_UID);
 
         service = new SidebarCountService(
-                notificationService,
+                notificationInbox,
                 requirementsService,
                 profileFieldChangeRepository,
                 eventRegistrationRepository,
@@ -119,7 +120,7 @@ class SidebarCountServiceTest {
                 StationPermission.LOST_AND_FOUND_MANAGER);
         var session = sessionWithPermissions(roles);
 
-        when(notificationService.countUnacknowledged(MEMBER_ID)).thenReturn(5);
+        when(notificationInbox.countUnread(Recipient.stationMember(MEMBER_ID))).thenReturn(5);
         when(requirementsService.countPending(eq(MEMBER_ID), eq(STATION_ID), anyList()))
                 .thenReturn(3);
         when(profileFieldChangeRepository.countPendingChanges(STATION_ID, MEMBER_ID))
@@ -153,7 +154,7 @@ class SidebarCountServiceTest {
         var roles = Set.of(StationPermission.LOGIN);
         var session = sessionWithPermissions(roles);
 
-        when(notificationService.countUnacknowledged(MEMBER_ID)).thenReturn(10);
+        when(notificationInbox.countUnread(Recipient.stationMember(MEMBER_ID))).thenReturn(10);
         when(requirementsService.countPending(eq(MEMBER_ID), eq(STATION_ID), anyList()))
                 .thenReturn(2);
 
@@ -185,7 +186,7 @@ class SidebarCountServiceTest {
         var roles = Set.of(StationPermission.LOGIN, StationPermission.MEMBER_GUARDIAN);
         var session = sessionWithPermissions(roles);
 
-        when(notificationService.countUnacknowledged(MEMBER_ID)).thenReturn(0);
+        when(notificationInbox.countUnread(Recipient.stationMember(MEMBER_ID))).thenReturn(0);
         when(requirementsService.countPending(eq(MEMBER_ID), eq(STATION_ID), anyList()))
                 .thenReturn(0);
         when(profileFieldChangeRepository.countPendingChanges(STATION_ID, MEMBER_ID))
@@ -203,7 +204,7 @@ class SidebarCountServiceTest {
         var roles = Set.of(StationPermission.LOGIN, StationPermission.INVENTORY_MANAGER);
         var session = sessionWithPermissions(roles);
 
-        when(notificationService.countUnacknowledged(MEMBER_ID)).thenReturn(0);
+        when(notificationInbox.countUnread(Recipient.stationMember(MEMBER_ID))).thenReturn(0);
         when(requirementsService.countPending(eq(MEMBER_ID), eq(STATION_ID), anyList()))
                 .thenReturn(0);
 
@@ -219,7 +220,7 @@ class SidebarCountServiceTest {
         var roles = Set.of(StationPermission.LOGIN, StationPermission.STATION_FEDERATION);
         var session = sessionWithPermissions(roles);
 
-        when(notificationService.countUnacknowledged(MEMBER_ID)).thenReturn(0);
+        when(notificationInbox.countUnread(Recipient.stationMember(MEMBER_ID))).thenReturn(0);
         when(requirementsService.countPending(eq(MEMBER_ID), eq(STATION_ID), anyList()))
                 .thenReturn(0);
 

@@ -17,16 +17,17 @@ import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.util.sql.MemberNameSql;
+import dev.chojo.ember.util.sql.PermissionHolderSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -682,48 +683,14 @@ public class StationMemberRepository {
      * reached them. The same holds for a station manager whose right comes from their user type
      * and was never written down as a grant.
      *
-     * <p>Which user types and grant names count is worked out from the permission hierarchy here,
-     * so the statement only matches stored rows against lists the enums produced.
+     * <p>The rule itself is {@link PermissionHolderSql}, shared with the notifications.
      */
     public List<StationMember> findMembersWithPermission(int stationId, StationPermission permission) {
-        var defaultTypes = Arrays.stream(StationUserType.values())
-                .filter(type -> type.grantsByDefault(permission))
-                .map(StationUserType::name)
-                .toList();
-        boolean guardianGrants = permission.grantedBy().contains(StationPermission.MEMBER_GUARDIAN.name());
         return query("""
                 SELECT %s FROM station_member sm
                 WHERE sm.station_id = :station_id AND sm.former = FALSE
-                  AND (
-                    sm.user_type = ANY(:default_user_types)
-                    OR exists (
-                        SELECT 1 FROM station_user_type_permission sutp
-                        JOIN station_permission sp ON sp.id = sutp.permission_id
-                        WHERE sutp.station_id = sm.station_id
-                          AND sutp.user_type = sm.user_type
-                          AND sp.name = ANY(:permission_names)
-                    )
-                    OR exists (
-                        SELECT 1 FROM station_member_permission smp
-                        JOIN station_permission sp ON sp.id = smp.permission_id
-                        WHERE smp.member_id = sm.id AND sp.name = ANY(:permission_names)
-                    )
-                    OR exists (
-                        SELECT 1 FROM member_group_entry mge
-                        JOIN member_group_permission mgp ON mgp.group_id = mge.group_id
-                        JOIN station_permission sp ON sp.id = mgp.permission_id
-                        WHERE mge.member_id = sm.id AND sp.name = ANY(:permission_names)
-                    )
-                    OR (:guardian_grants AND exists (
-                        SELECT 1 FROM member_manager mm
-                        JOIN station_member managed ON managed.id = mm.managed_id
-                        WHERE mm.manager_id = sm.id AND managed.former = FALSE
-                    ))
-                  );""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
-                .single(call().bind("station_id", stationId)
-                        .bind("default_user_types", defaultTypes, PostgreSqlTypes.VARCHAR)
-                        .bind("permission_names", permission.grantedBy(), PostgreSqlTypes.VARCHAR)
-                        .bind("guardian_grants", guardianGrants))
+                  AND (%s);""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS), PermissionHolderSql.HOLDS_PERMISSION)
+                .single(PermissionHolderSql.bind(call().bind("station_id", stationId), Set.of(permission)))
                 .map(StationMember.map())
                 .all();
     }
@@ -799,11 +766,21 @@ public class StationMemberRepository {
                 .orElse(false);
     }
 
+    /**
+     * The guardians of a member who are still at the station.
+     *
+     * <p>A guardian who has left is nobody's guardian any more, the same as a ward who has left is
+     * nobody's ward in {@link #findManaged(int)}: they are neither told about the member nor listed
+     * as looking after them.
+     *
+     * @param managedId the member looked after
+     * @return their guardians who have not left
+     */
     public List<StationMember> findManagers(int managedId) {
         return query("""
                 SELECT %s FROM station_member sm
                 JOIN member_manager mm ON sm.id = mm.manager_id
-                WHERE mm.managed_id = :managed_id;""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
+                WHERE mm.managed_id = :managed_id AND sm.former = FALSE;""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
                 .single(call().bind("managed_id", managedId))
                 .map(StationMember.map())
                 .all();

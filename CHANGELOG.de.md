@@ -34,6 +34,8 @@
 - **Die Vorlage Jugendflamme bietet „Keine" an.** Die Schnellvorlage Jugendflamme legt ein Auswahlfeld mit „Keine" und den drei Stufen an, sodass jedes Mitglied genau eine Stufe hat. Das Datum, an dem die Stufe erreicht wurde, kommt wie bisher mit.
 - **Die Frist für die Mindestanzahl zählt Tage vor jedem Termin.** Ein Termin mit einer Mindestanzahl an Anmeldungen legt jetzt fest, wie viele Tage vor jedem Termin sie erreicht sein muss, statt einen festen Tag zu nennen, und einmalige Termine behalten ihre Frist. Bei wiederkehrenden Terminen entfällt die alte Frist und muss im Editor des Termins neu gesetzt werden.
 - **Das Backend bekommt dreißig Sekunden zum Herunterfahren.** Die mitgelieferten Compose-Dateien und das Installationsskript geben dem Backend-Container eine `stop_grace_period` von 30 Sekunden, in denen er laufende Anfragen beendet und gepufferte Statistiken und Protokollzeilen speichert. Eigene Compose-Dateien sollten beim Backend dasselbe setzen.
+- **Die E-Mail des Verbands schaltet jede Person selbst ein.** Die Benachrichtigungs-E-Mail des Verbands erreicht nur noch, wer sie unter Verband → Benachrichtigungen einschaltet, wo sie anfangs aus ist. Bis dahin bleiben seine Benachrichtigungen in der App.
+
 ### Fehlerbehebungen
 
 - **Das Umsortieren von Optionen verändert keine Antworten mehr.** Wurden die Optionen einer Frage, die schon Antworten hatte, umsortiert oder umbenannt, konnte sich ändern, was diese Antworten aussagten. Antworten bleiben jetzt bei der gewählten Option, und das Entfernen einer Option, die jemand gewählt hat, fragt vorher nach.
@@ -60,6 +62,9 @@
 - **Animierte Logos standen still.** Ein animiertes GIF als Logo einer Wache und die Kachel eines GIFs im Wiki zeigten nur das erste Bild. Sie bewegen sich jetzt.
 - **Die Seite unter `/pitch` öffnete sich auf dem Handy im Desktop-Layout.** In manchen Fällen blieben die Anwesenheitsknöpfe ihres Beispiels auf einem Handy in Desktop-Breite, bis der Bildschirm gedreht oder die Fenstergröße geändert wurde. Die Seite wechselt jetzt gleich nach dem Laden ins Handy-Layout.
 - **Eine unlesbare Nachricht konnte den Import eines Postfachs stoppen.** In manchen Fällen scheiterte der Import eines Postfachs bei jedem Durchlauf an einer einzigen Nachricht, die der Mailserver nicht herausgeben konnte, etwa einer, die ein anderes Mailprogramm gerade gelöscht hatte, bis das Postfach ausgesetzt wurde. Eine solche Nachricht wird jetzt übersprungen und der Rest des Postfachs importiert.
+- **Die E-Mail des Verbands in der richtigen Sprache und zur richtigen Zeit.** Die Benachrichtigungs-E-Mail des Verbands war immer auf Englisch geschrieben, und ihre Versandzeiten wurden in UTC statt in Ortszeit gelesen. Sie richtet sich jetzt nach Sprache und Zeitzone der Heimat-Wache des Verbands.
+- **Keine doppelten Benachrichtigungen.** In manchen Fällen konnte dieselbe Benachrichtigung zweimal erscheinen, wenn zwei Personen im selben Moment dasselbe taten. Sie erscheint jetzt einmal.
+- **Frühere Betreuende wurden weiter benachrichtigt.** Wer eine Wache verlassen hatte, konnte weiter Benachrichtigungen und E-Mails über die Mitglieder bekommen, die er früher betreut hat. Das ist nicht mehr so.
 
 ## v26.19.5
 
