@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.util.PixelBudget;
+import dev.chojo.ember.util.WebpEncoder;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -39,6 +41,10 @@ import java.util.Optional;
  *       {@code 64}), capped at the source's longest side so a small upload still produces every
  *       variant.</li>
  * </ul>
+ *
+ * <p>A GIF is kept as it came with no sizes, and a WebP original is kept as it came with its sizes
+ * made by {@code cwebp}. The whole set is encoded before the previous one is removed, so an upload
+ * that cannot be encoded leaves the previous picture in place.
  *
  * <p>The extension is derived from the sniffed MIME type - the client-supplied content-type is
  * advisory only. An off-allow-list or unidentifiable upload is rejected before any disk write
@@ -63,6 +69,7 @@ public class ImageVariantService {
     public static final String ORIGINAL_BASE = "original";
 
     private static final double COMPRESSION_QUALITY = 0.85;
+    private static final int WEBP_QUALITY = 78;
     private static final Logger log = LoggerFactory.getLogger(ImageVariantService.class);
 
     private final StorageService storage;
@@ -179,21 +186,63 @@ public class ImageVariantService {
             throw new BadRequestResponse("Unsupported image format");
         }
 
+        List<EncodedVariant> encoded = encode(original, data, sniffedMime);
+
         delete(scope, category, key);
-
-        String extension = extensionFor(sniffedMime);
-        int longestSide = Math.max(original.getWidth(), original.getHeight());
-
-        int originalTarget = Math.min(longestSide, MAX_PIXEL_SIZE);
-        byte[] originalBytes = compressTo(original, originalTarget, extension);
-        storage.store(scope, category, key, new Variant(ORIGINAL_BASE + "." + extension), originalBytes, sniffedMime);
-
-        for (int size : SIZES) {
-            int target = Math.min(size, longestSide);
-            byte[] variantBytes = compressTo(original, target, extension);
-            storage.store(scope, category, key, new Variant(size + "." + extension), variantBytes, sniffedMime);
+        for (EncodedVariant variant : encoded) {
+            storage.store(scope, category, key, new Variant(variant.name()), variant.data(), variant.mime());
         }
     }
+
+    /**
+     * Encodes the whole set in memory before anything stored is touched, so a picture that cannot be
+     * encoded leaves the previous one in place.
+     *
+     * <p>A GIF is kept as it came, since a resize keeps only its first frame. A WebP original is kept
+     * as it came as well, because nothing here writes WebP but {@code cwebp}; its sizes are made by
+     * {@code cwebp} when the host has it, and without it only the original is kept.
+     */
+    private static List<EncodedVariant> encode(BufferedImage original, byte[] data, String mime) throws IOException {
+        String extension = extensionFor(mime);
+        if ("gif".equals(extension)) {
+            return List.of(new EncodedVariant(ORIGINAL_BASE + "." + extension, data, mime));
+        }
+        int longestSide = Math.max(original.getWidth(), original.getHeight());
+        var encoded = new ArrayList<EncodedVariant>();
+        if ("webp".equals(extension)) {
+            encoded.add(new EncodedVariant(ORIGINAL_BASE + "." + extension, data, mime));
+            if (!WebpEncoder.isAvailable()) return encoded;
+            for (int size : SIZES) {
+                encoded.add(new EncodedVariant(size + ".webp", webpOf(original, Math.min(size, longestSide)), mime));
+            }
+            return encoded;
+        }
+        int originalTarget = Math.min(longestSide, MAX_PIXEL_SIZE);
+        encoded.add(new EncodedVariant(
+                ORIGINAL_BASE + "." + extension, compressTo(original, originalTarget, extension), mime));
+        for (int size : SIZES) {
+            int target = Math.min(size, longestSide);
+            encoded.add(new EncodedVariant(size + "." + extension, compressTo(original, target, extension), mime));
+        }
+        return encoded;
+    }
+
+    private static byte[] webpOf(BufferedImage source, int longestSide) throws IOException {
+        int w = source.getWidth();
+        int h = source.getHeight();
+        double scale = (double) longestSide / Math.max(w, h);
+        BufferedImage resized = Thumbnails.of(source)
+                .size(Math.max(1, (int) Math.round(w * scale)), Math.max(1, (int) Math.round(h * scale)))
+                .asBufferedImage();
+        try {
+            return WebpEncoder.encode(resized, WEBP_QUALITY);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while encoding WebP", e);
+        }
+    }
+
+    private record EncodedVariant(String name, byte[] data, String mime) {}
 
     /**
      * Convenience overload that skips the size check.

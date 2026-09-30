@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.media.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.feature.media.MediaLayoutFixtures;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -28,6 +29,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.imageio.ImageIO;
@@ -233,6 +235,30 @@ class MediaVariantServiceTest {
         assertTrue(result.isPresent());
         assertEquals("image/png", result.orElseThrow().contentType());
         assertEquals(png.length, result.orElseThrow().data().length);
+    }
+
+    @Test
+    void theStoredWidthLayoutIsReadByItsNames() {
+        MediaLayoutFixtures.copyInto(tempDir);
+        String photo = MediaLayoutFixtures.LIBRARY_PHOTO;
+        String sheet = MediaLayoutFixtures.LIBRARY_SHEET;
+        String files = "station/" + STATION_UID + "/media/files/";
+
+        assertServed(files + photo + "/w256.webp", variants.readBest(STATION_ID, photo, 200, "image/webp"));
+        assertServed(files + photo + "/orig.png", variants.readBest(STATION_ID, photo, 200, "image/png"));
+        assertServed(files + photo + "/orig.png", variants.readBest(STATION_ID, photo, null, "image/webp"));
+        assertServed(files + photo + "/orig.png", variants.readBest(STATION_ID, photo, 4000, "image/webp"));
+        assertServed(files + photo + "/w128.webp", variants.readPicture(STATION_ID, photo, "image/png", 100));
+        assertServed(files + photo + "/orig.webp", variants.readPicture(STATION_ID, photo, "image/png", null));
+        assertServed(
+                files + sheet + "/page1-w128.webp", variants.readPicture(STATION_ID, sheet, "application/pdf", 64));
+        assertServed(files + sheet + "/page1.webp", variants.readPicture(STATION_ID, sheet, "application/pdf", 300));
+        assertServed(files + sheet + "/orig.pdf", variants.readBest(STATION_ID, sheet, 128, "image/webp"));
+    }
+
+    private static void assertServed(String relative, Optional<MediaStorageService.FileData> served) {
+        assertArrayEquals(
+                MediaLayoutFixtures.stored(relative), served.orElseThrow().data(), relative);
     }
 
     @Test
