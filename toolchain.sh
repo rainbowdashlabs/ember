@@ -186,6 +186,8 @@ Backend
   be-javadoc            Build the javadoc on its own; be-verify runs it too
   be-wrapper <version>  Move the Gradle wrapper to a version, e.g. be-wrapper 9.7.1
   be-federation-version Regenerate the federation contract version
+  be-api-spec           Rewrite src/main/resources/api/openapi.json from the route annotations and the
+                        records they name, as the API's own mapper writes them
   be-data-tracking      Refresh data_tracking.json from the live DB schema (testcontainer)
   be-data-tracking-check
                         The data tracking suite CI runs, including the check that the committed file
@@ -485,6 +487,7 @@ case "$cmd" in
     be-javadoc)    cd "$ROOT"; run ./gradlew javadoc "$@" ;;
     be-wrapper)    cd "$ROOT"; run ./gradlew wrapper --gradle-version "$@" ;;
     be-federation-version) cd "$ROOT"; run ./gradlew generateFederationVersion "$@" ;;
+    be-api-spec)           cd "$ROOT"; run ./gradlew generateApiSpec "$@" ;;
     be-data-tracking)      cd "$ROOT"; run ./gradlew refreshDataTracking spotlessJsonApply "$@" ;;
     be-data-tracking-check) cd "$ROOT"; run ./gradlew testTracking "$@" ;;
     be-cloudflare-ranges)

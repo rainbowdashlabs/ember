@@ -9,6 +9,9 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
+import com.google.inject.spi.Element;
+import com.google.inject.spi.Elements;
+import com.google.inject.spi.LinkedKeyBinding;
 import dev.chojo.ember.EmberModule;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
@@ -126,6 +129,23 @@ public final class RegisteredRoutes {
         return router.unsafe.internalRouter.allHttpHandlers().stream()
                 .map(parsed -> parsed.endpoint)
                 .toList();
+    }
+
+    /**
+     * The route classes the application binds, in the order it binds them, read from the module's
+     * bindings without building anything they depend on.
+     *
+     * @return the bound route classes
+     */
+    public static List<Class<?>> boundClasses() {
+        List<Class<?>> bound = new ArrayList<>();
+        for (Element element : Elements.getElements(new EmberModule(new Conf(developmentConfig())))) {
+            if (element instanceof LinkedKeyBinding<?> binding
+                    && binding.getKey().getTypeLiteral().getRawType() == Routes.class) {
+                bound.add(binding.getLinkedKey().getTypeLiteral().getRawType());
+            }
+        }
+        return List.copyOf(bound);
     }
 
     private static RegisteredRoutes build() {

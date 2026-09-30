@@ -353,6 +353,14 @@ tasks {
         classpath = sourceSets.test.get().runtimeClasspath
     }
 
+    register<JavaExec>("generateApiSpec") {
+        group = "build"
+        description = "Writes src/main/resources/api/openapi.json from the route annotations and the wire records"
+        dependsOn("compileTestJava")
+        mainClass = "dev.chojo.ember.api.spec.ApiSpecCli"
+        classpath = sourceSets.test.get().runtimeClasspath
+    }
+
     val coverageData = fileTree("build/jacoco") { include(testSuiteNames.map { "$it.exec" }) }
 
     val coverageReport = register<JacocoReport>("jacocoFullReport") {
