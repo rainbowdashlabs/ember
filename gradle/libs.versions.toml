@@ -33,6 +33,7 @@ javalin-core = { group = "io.javalin", name = "javalin", version.ref = "javalin"
 javalin-openapi-annotation = { group = "io.javalin.community.openapi", name = "openapi-annotation-processor", version.ref = "javalin" }
 javalin-openapi-swagger = { group = "io.javalin.community.openapi", name = "javalin-swagger-plugin", version.ref = "javalin" }
 javalin-openapi-openapi = { group = "io.javalin.community.openapi", name = "javalin-openapi-plugin", version.ref = "javalin" }
+javalin-testtools = { group = "io.javalin", name = "javalin-testtools", version.ref = "javalin" }
 
 # Configuration
 ocular = { group = "dev.chojo", name = "ocular", version = "2.2.1" }

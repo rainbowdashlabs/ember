@@ -5,9 +5,8 @@
  */
 package dev.chojo.ember.feature.form.route;
 
-import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
@@ -17,7 +16,6 @@ import dev.chojo.ember.feature.form.entity.FormDraft;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
-import dev.chojo.ember.feature.form.route.FormRoutes.DraftRequest;
 import dev.chojo.ember.feature.form.route.FormRoutes.DraftResponse;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormRespondents;
@@ -34,32 +32,25 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.ShareTokens;
-import io.javalin.http.Context;
-import io.javalin.http.HttpStatus;
-import io.javalin.validation.Validator;
+import io.javalin.testtools.Response;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+import tools.jackson.databind.JsonNode;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.List;
-import java.util.Map;
+import java.util.EnumSet;
 import java.util.Set;
 
+import static dev.chojo.ember.api.RouteHarness.body;
+import static dev.chojo.ember.api.RouteHarness.read;
+import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * An unsent answer is private: only the member and whoever looks after them may read, keep or end it.
@@ -67,7 +58,7 @@ import static org.mockito.Mockito.when;
  */
 class FormDraftRouteTest extends RepositoryTestBase {
     private static FormService formService;
-    private static FormRoutes routes;
+    private static RouteHarness harness;
     private static Station station;
     private static Account guardianAccount;
     private static Account childAccount;
@@ -106,13 +97,14 @@ class FormDraftRouteTest extends RepositoryTestBase {
         manager = stationMemberRepo.create(station.id(), managerAccount.id());
 
         stationMemberRepo.addManager(guardian.id(), child.id());
-        routes = new FormRoutes(
-                formService,
-                new GuardianPolicy(stationMemberRepo),
-                assembler,
-                mock(FormResponseExportService.class),
-                mock(StationRepository.class),
-                mock(PageRepository.class));
+        harness = RouteHarness.serving(new FormRoutes(
+                        formService,
+                        new GuardianPolicy(stationMemberRepo),
+                        assembler,
+                        mock(FormResponseExportService.class),
+                        mock(StationRepository.class),
+                        mock(PageRepository.class)))
+                .withStations(stationRepo);
     }
 
     @AfterAll
@@ -141,52 +133,64 @@ class FormDraftRouteTest extends RepositoryTestBase {
     }
 
     @Test
-    void aMemberKeepsAndReadsTheirOwnDraft() throws Exception {
-        var save = request(child, Set.of(), "halb");
-        invoke("saveDraft", save);
-        verify(save).status(HttpStatus.NO_CONTENT);
+    void aMemberKeepsAndReadsTheirOwnDraft() {
+        harness.run((server, client) -> {
+            var saved = client.put(ownDraft(), draft("halb"), harness.as(sessionOf(child)));
+            assertEquals(204, saved.code());
 
-        var read = request(child, Set.of(), "");
-        invoke("getDraft", read);
+            var read = client.get(ownDraft(), harness.as(sessionOf(child)));
 
-        assertTrue(draftOf(read).answers().containsKey(questionId));
+            assertTrue(draftOf(read).answers().containsKey(questionId));
+        });
     }
 
     @Test
-    void aGuardianKeepsAndReadsTheDraftOfTheirChild() throws Exception {
-        invoke("saveDraftFor", request(guardian, Set.of(), "vom Vormund"));
+    void aGuardianKeepsAndReadsTheDraftOfTheirChild() {
+        harness.run((server, client) -> {
+            client.put(childsDraft(), draft("vom Vormund"), harness.as(sessionOf(guardian)));
 
-        var read = request(guardian, Set.of(), "");
-        invoke("getDraftFor", read);
+            var read = client.get(childsDraft(), harness.as(sessionOf(guardian)));
 
-        assertEquals(
-                new FormAnswerValue.Text("vom Vormund"), draftOf(read).answers().get(questionId));
+            assertEquals(
+                    new FormAnswerValue.Text("vom Vormund"),
+                    draftOf(read).answers().get(questionId));
+        });
     }
 
     @Test
-    void aPollManagerCannotReadTheDraftOfAMemberTheyDoNotLookAfter() throws Exception {
-        invoke("saveDraft", request(child, Set.of(), "privat"));
+    void aPollManagerCannotReadTheDraftOfAMemberTheyDoNotLookAfter() {
+        harness.run((server, client) -> {
+            client.put(ownDraft(), draft("privat"), harness.as(sessionOf(child)));
 
-        var refusal = refusalOf("getDraftFor", request(manager, Set.of(StationPermission.POLL_MANAGER), ""));
+            var read = client.get(childsDraft(), harness.as(pollManager()));
 
-        assertEquals(Refusal.FORM_DRAFT_NOT_YOURS, refusal);
+            assertEquals(Refusal.FORM_DRAFT_NOT_YOURS, refusalOf(read));
+        });
     }
 
     /** Running polls reads their results; it does not open a member's own answer to whoever runs them. */
     @Test
     void aPollManagerCannotReadTheAnswerOfAMemberTheyDoNotLookAfter() {
-        var refusal = refusalOf("getMemberResponse", request(manager, Set.of(StationPermission.POLL_MANAGER), ""));
+        harness.run((server, client) -> {
+            var read = client.get(
+                    RouteHarness.PREFIX + "/forms/%d/respond/%d".formatted(formId, child.id()),
+                    harness.as(pollManager()));
 
-        assertEquals(Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR, refusal);
+            assertEquals(Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR, refusalOf(read));
+        });
     }
 
     @Test
-    void aPollManagerCannotKeepOrEndTheDraftOfAMemberTheyDoNotLookAfter() throws Exception {
-        invoke("saveDraft", request(child, Set.of(), "privat"));
-        var managing = Set.of(StationPermission.POLL_MANAGER);
+    void aPollManagerCannotKeepOrEndTheDraftOfAMemberTheyDoNotLookAfter() {
+        harness.run((server, client) -> {
+            client.put(ownDraft(), draft("privat"), harness.as(sessionOf(child)));
 
-        assertEquals(Refusal.FORM_DRAFT_NOT_YOURS, refusalOf("saveDraftFor", request(manager, managing, "fremd")));
-        assertEquals(Refusal.FORM_DRAFT_NOT_YOURS, refusalOf("discardDraftFor", request(manager, managing, "")));
+            var kept = client.put(childsDraft(), draft("fremd"), harness.as(pollManager()));
+            var ended = client.delete(childsDraft(), null, harness.as(pollManager()));
+
+            assertEquals(Refusal.FORM_DRAFT_NOT_YOURS, refusalOf(kept));
+            assertEquals(Refusal.FORM_DRAFT_NOT_YOURS, refusalOf(ended));
+        });
         assertEquals(
                 new FormAnswerValue.Text("privat"),
                 formService
@@ -197,17 +201,38 @@ class FormDraftRouteTest extends RepositoryTestBase {
     }
 
     @Test
-    void aClosedFormKeepsNoDraftAndHandsNoneOut() throws Exception {
-        invoke("saveDraft", request(child, Set.of(), "halb"));
-        formService.close(formId);
+    void aClosedFormKeepsNoDraftAndHandsNoneOut() {
+        harness.run((server, client) -> {
+            client.put(ownDraft(), draft("halb"), harness.as(sessionOf(child)));
+            formService.close(formId);
 
-        assertEquals(Refusal.FORM_TAKES_NO_DRAFTS, refusalOf("saveDraft", request(child, Set.of(), "weiter")));
-        var read = request(child, Set.of(), "");
-        invoke("getDraft", read);
-        assertNull(responseOf(read).draft());
+            var kept = client.put(ownDraft(), draft("weiter"), harness.as(sessionOf(child)));
+            var read = client.get(ownDraft(), harness.as(sessionOf(child)));
+
+            assertEquals(Refusal.FORM_TAKES_NO_DRAFTS, refusalOf(kept));
+            assertNull(read(read, DraftResponse.class).draft());
+        });
     }
 
-    private static UserSession sessionOf(StationMember member, Set<StationPermission> permissions) {
+    private String ownDraft() {
+        return RouteHarness.PREFIX + "/forms/%d/draft".formatted(formId);
+    }
+
+    private String childsDraft() {
+        return RouteHarness.PREFIX + "/forms/%d/draft/%d".formatted(formId, child.id());
+    }
+
+    private JsonNode draft(String text) {
+        return body("""
+                {"answers": {"%d": {"type": "TEXT", "text": "%s"}}, "path": ["p0"]}""".formatted(questionId, text));
+    }
+
+    private static UserSession pollManager() {
+        return sessionOf(manager, StationPermission.POLL_MANAGER);
+    }
+
+    private static UserSession sessionOf(StationMember member, StationPermission... held) {
+        var permissions = EnumSet.of(StationPermission.USER, held);
         return new UserSession(
                 new Account(1, null, "wer@test.com", null, "Wer", "Da", true, null, "Wer Da", null, null),
                 1,
@@ -219,44 +244,8 @@ class FormDraftRouteTest extends RepositoryTestBase {
                 null);
     }
 
-    @SuppressWarnings("unchecked")
-    private Context request(StationMember caller, Set<StationPermission> permissions, String text) {
-        Context ctx = mock(Context.class);
-        Validator<Integer> formParam = mock(Validator.class);
-        when(formParam.get()).thenReturn(formId);
-        Validator<Integer> memberParam = mock(Validator.class);
-        when(memberParam.get()).thenReturn(child.id());
-        when(ctx.pathParamAsClass("id", Integer.class)).thenReturn(formParam);
-        when(ctx.pathParamAsClass("memberId", Integer.class)).thenReturn(memberParam);
-        when(ctx.attribute(ApiServer.ATTR_SESSION)).thenReturn(sessionOf(caller, permissions));
-        when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
-        when(ctx.bodyAsClass(DraftRequest.class))
-                .thenReturn(new DraftRequest(Map.of(questionId, new FormAnswerValue.Text(text)), List.of("p0")));
-        return ctx;
-    }
-
-    private static void invoke(String handler, Context ctx) throws Exception {
-        Method method = FormRoutes.class.getDeclaredMethod(handler, Context.class);
-        method.setAccessible(true);
-        try {
-            method.invoke(routes, ctx);
-        } catch (InvocationTargetException wrapped) {
-            throw assertInstanceOf(Exception.class, wrapped.getCause());
-        }
-    }
-
-    private static Refusal refusalOf(String handler, Context ctx) {
-        return assertThrows(RefusalResponse.class, () -> invoke(handler, ctx)).refusal();
-    }
-
-    private static DraftResponse responseOf(Context ctx) {
-        var captor = ArgumentCaptor.forClass(Object.class);
-        verify(ctx).json(captor.capture());
-        return assertInstanceOf(DraftResponse.class, captor.getValue());
-    }
-
-    private static FormDraft draftOf(Context ctx) {
-        var draft = responseOf(ctx).draft();
+    private static FormDraft draftOf(Response response) {
+        var draft = read(response, DraftResponse.class).draft();
         assertNotNull(draft);
         return draft;
     }

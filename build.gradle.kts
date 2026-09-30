@@ -83,6 +83,7 @@ dependencies {
     testImplementation(libs.mockito)
     testImplementation(libs.archunit)
     testImplementation(libs.greenmail)
+    testImplementation(libs.javalin.testtools)
 }
 
 /**

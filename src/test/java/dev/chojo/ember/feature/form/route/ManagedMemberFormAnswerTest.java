@@ -5,19 +5,17 @@
  */
 package dev.chojo.ember.feature.form.route;
 
-import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
-import dev.chojo.ember.feature.form.route.FormRoutes.SubmitRequest;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
-import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.ResponseDetailDto;
 import dev.chojo.ember.feature.form.service.FormRespondents;
 import dev.chojo.ember.feature.form.service.FormResponseExportService;
 import dev.chojo.ember.feature.form.service.FormResultGrouping;
@@ -32,30 +30,23 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.ShareTokens;
-import io.javalin.http.Context;
-import io.javalin.http.HttpStatus;
-import io.javalin.validation.Validator;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+import tools.jackson.databind.JsonNode;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Set;
 
+import static dev.chojo.ember.api.RouteHarness.body;
+import static dev.chojo.ember.api.RouteHarness.read;
+import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Answering a form, for oneself or for a member in one's care.
@@ -66,7 +57,7 @@ import static org.mockito.Mockito.when;
  */
 class ManagedMemberFormAnswerTest extends RepositoryTestBase {
     private static FormService formService;
-    private static FormRoutes routes;
+    private static RouteHarness harness;
     private static Station station;
     private static Account guardianAccount;
     private static Account childAccount;
@@ -107,13 +98,14 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
         stranger = stationMemberRepo.create(station.id(), strangerAccount.id());
 
         stationMemberRepo.addManager(guardian.id(), child.id());
-        routes = new FormRoutes(
-                formService,
-                new GuardianPolicy(stationMemberRepo),
-                assembler,
-                mock(FormResponseExportService.class),
-                mock(StationRepository.class),
-                mock(PageRepository.class));
+        harness = RouteHarness.serving(new FormRoutes(
+                        formService,
+                        new GuardianPolicy(stationMemberRepo),
+                        assembler,
+                        mock(FormResponseExportService.class),
+                        mock(StationRepository.class),
+                        mock(PageRepository.class)))
+                .withStations(stationRepo);
     }
 
     @AfterAll
@@ -159,6 +151,10 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
                 .id();
     }
 
+    /**
+     * A caller holding what every member holds, so the route's own gate admits them and what is
+     * tested is the handler's answer. A caller who is no member of the station is given it too.
+     */
     private static UserSession sessionOf(StationMember member) {
         return new UserSession(
                 new Account(1, null, "wer@test.com", null, "Wer", "Da", true, null, "Wer Da", null, null),
@@ -166,7 +162,7 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
                 station.id(),
                 null,
                 member,
-                Set.of(),
+                Set.of(StationPermission.USER),
                 Set.of(),
                 null);
     }
@@ -181,73 +177,50 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
         return formService.findAnswers(response.id()).getFirst().value();
     }
 
-    @SuppressWarnings("unchecked")
-    private static Context request(StationMember caller, int formId, int questionId, String colour) {
-        Context ctx = mock(Context.class);
-        Validator<Integer> formParam = mock(Validator.class);
-        when(formParam.get()).thenReturn(formId);
-        Validator<Integer> memberParam = mock(Validator.class);
-        when(memberParam.get()).thenReturn(child.id());
-        when(ctx.pathParamAsClass("id", Integer.class)).thenReturn(formParam);
-        when(ctx.pathParamAsClass("memberId", Integer.class)).thenReturn(memberParam);
-        when(ctx.attribute(ApiServer.ATTR_SESSION)).thenReturn(sessionOf(caller));
-        when(ctx.status(any(HttpStatus.class))).thenReturn(ctx);
-        when(ctx.bodyAsClass(SubmitRequest.class))
-                .thenReturn(new SubmitRequest(Map.of(questionId, new FormAnswerValue.Text(colour))));
-        return ctx;
+    private static String forChild(int formId) {
+        return RouteHarness.PREFIX + "/forms/%d/respond/%d".formatted(formId, child.id());
     }
 
-    private static void invoke(String handler, Context ctx) throws Exception {
-        Method method = FormRoutes.class.getDeclaredMethod(handler, Context.class);
-        method.setAccessible(true);
-        try {
-            method.invoke(routes, ctx);
-        } catch (InvocationTargetException wrapped) {
-            throw assertInstanceOf(Exception.class, wrapped.getCause());
-        }
+    private static JsonNode guardianReads(int formId) {
+        return read(
+                harness.request(client -> client.get(forChild(formId), harness.as(sessionOf(guardian)))),
+                JsonNode.class);
     }
 
-    private static Refusal refusalOf(String handler, Context ctx) {
-        return assertThrows(RefusalResponse.class, () -> invoke(handler, ctx)).refusal();
+    private static String own(int formId) {
+        return RouteHarness.PREFIX + "/forms/%d/respond".formatted(formId);
     }
 
-    private static ResponseDetailDto detailOf(Context ctx) {
-        var captor = ArgumentCaptor.forClass(Object.class);
-        verify(ctx).json(captor.capture());
-        return assertInstanceOf(ResponseDetailDto.class, captor.getValue());
+    private static JsonNode answer(int questionId, String colour) {
+        return body("""
+                {"answers": {"%d": {"type": "TEXT", "text": "%s"}}}""".formatted(questionId, colour));
     }
 
     @Test
-    void aGuardianReadsTheAnswerGivenForTheirChild() throws Exception {
+    void aGuardianReadsTheAnswerGivenForTheirChild() {
         seedAnswer(child, editableFormId, editableQuestionId, "Blue");
-        var ctx = request(guardian, editableFormId, editableQuestionId, "");
 
-        invoke("getMemberResponse", ctx);
+        var detail = guardianReads(editableFormId);
 
-        var detail = detailOf(ctx);
-        assertEquals(Integer.valueOf(child.id()), detail.response().memberId());
-        assertEquals(1, detail.answers().size());
-        assertTrue(detail.answers().getFirst().value().contains("Blue"));
+        assertEquals(child.id(), detail.path("response").path("memberId").asInt());
+        assertEquals(1, detail.path("answers").size());
+        assertTrue(detail.path("answers").get(0).path("value").asString().contains("Blue"));
     }
 
     @Test
-    void aChildWhoHasNotAnsweredReadsAsEmpty() throws Exception {
-        var ctx = request(guardian, editableFormId, editableQuestionId, "");
+    void aChildWhoHasNotAnsweredReadsAsEmpty() {
+        var detail = guardianReads(editableFormId);
 
-        invoke("getMemberResponse", ctx);
-
-        var detail = detailOf(ctx);
-        assertNull(detail.response());
-        assertTrue(detail.answers().isEmpty());
+        assertFalse(detail.hasNonNull("response"));
+        assertTrue(detail.path("answers").isEmpty());
     }
 
     @Test
-    void aFirstAnswerForTheChildIsSaved() throws Exception {
-        var ctx = request(guardian, editableFormId, editableQuestionId, "Green");
+    void aFirstAnswerForTheChildIsSaved() {
+        var saved = harness.request(client -> client.post(
+                forChild(editableFormId), answer(editableQuestionId, "Green"), harness.as(sessionOf(guardian))));
 
-        invoke("submitForMember", ctx);
-
-        verify(ctx).status(HttpStatus.CREATED);
+        assertEquals(201, saved.code());
         assertTrue(answerOf(child, editableFormId).contains("Green"));
     }
 
@@ -255,9 +228,10 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
     void aSecondFirstAnswerIsRefusedAndTheFirstStays() {
         seedAnswer(child, editableFormId, editableQuestionId, "Blue");
 
-        var refusal = refusalOf("submitForMember", request(guardian, editableFormId, editableQuestionId, "Red"));
+        var refused = harness.request(client -> client.post(
+                forChild(editableFormId), answer(editableQuestionId, "Red"), harness.as(sessionOf(guardian))));
 
-        assertEquals(Refusal.FORM_ANSWER_ALREADY_ON_FILE, refusal);
+        assertEquals(Refusal.FORM_ANSWER_ALREADY_ON_FILE, refusalOf(refused));
         assertTrue(answerOf(child, editableFormId).contains("Blue"));
     }
 
@@ -266,18 +240,21 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
     void aLockedAnswerCannotBeReplacedByAnotherFirstAnswer() {
         seedAnswer(child, lockedFormId, lockedQuestionId, "Blue");
 
-        var refusal = refusalOf("submitForMember", request(guardian, lockedFormId, lockedQuestionId, "Red"));
+        var refused = harness.request(client ->
+                client.post(forChild(lockedFormId), answer(lockedQuestionId, "Red"), harness.as(sessionOf(guardian))));
 
-        assertEquals(Refusal.FORM_ANSWER_ALREADY_ON_FILE, refusal);
+        assertEquals(Refusal.FORM_ANSWER_ALREADY_ON_FILE, refusalOf(refused));
         assertTrue(answerOf(child, lockedFormId).contains("Blue"));
     }
 
     @Test
-    void anEditableAnswerIsCorrected() throws Exception {
+    void anEditableAnswerIsCorrected() {
         seedAnswer(child, editableFormId, editableQuestionId, "Blue");
 
-        invoke("updateForMember", request(guardian, editableFormId, editableQuestionId, "Red"));
+        var corrected = harness.request(client -> client.put(
+                forChild(editableFormId), answer(editableQuestionId, "Red"), harness.as(sessionOf(guardian))));
 
+        assertEquals(200, corrected.code());
         assertTrue(answerOf(child, editableFormId).contains("Red"));
     }
 
@@ -285,9 +262,10 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
     void aLockedAnswerIsNotChanged() {
         seedAnswer(child, lockedFormId, lockedQuestionId, "Blue");
 
-        var refusal = refusalOf("updateForMember", request(guardian, lockedFormId, lockedQuestionId, "Red"));
+        var refused = harness.request(client ->
+                client.put(forChild(lockedFormId), answer(lockedQuestionId, "Red"), harness.as(sessionOf(guardian))));
 
-        assertEquals(Refusal.FORM_ANSWER_NOT_CHANGEABLE_FOR_MEMBER, refusal);
+        assertEquals(Refusal.FORM_ANSWER_NOT_CHANGEABLE_FOR_MEMBER, refusalOf(refused));
         assertTrue(answerOf(child, lockedFormId).contains("Blue"));
     }
 
@@ -295,33 +273,33 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
     void somebodyNotCaringForTheChildCannotReadTheirAnswer() {
         seedAnswer(child, editableFormId, editableQuestionId, "Blue");
 
-        var refusal = refusalOf("getMemberResponse", request(stranger, editableFormId, editableQuestionId, ""));
+        var refused = harness.request(client -> client.get(forChild(editableFormId), harness.as(sessionOf(stranger))));
 
-        assertEquals(Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR, refusal);
+        assertEquals(Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR, refusalOf(refused));
     }
 
     @Test
     void somebodyNotCaringForTheChildCannotAnswerForThem() {
-        var refusal = refusalOf("submitForMember", request(stranger, editableFormId, editableQuestionId, "Red"));
+        var refused = harness.request(client -> client.post(
+                forChild(editableFormId), answer(editableQuestionId, "Red"), harness.as(sessionOf(stranger))));
 
-        assertEquals(Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR, refusal);
+        assertEquals(Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR, refusalOf(refused));
         assertTrue(formService.findResponse(editableFormId, child.id()).isEmpty());
     }
 
     @Test
     void somebodyOutsideTheStationIsRefused() {
-        var refusal = refusalOf("getMemberResponse", request(null, editableFormId, editableQuestionId, ""));
+        var refused = harness.request(client -> client.get(forChild(editableFormId), harness.as(sessionOf(null))));
 
-        assertEquals(Refusal.NOT_A_MEMBER_READING_ANSWER_FOR_MEMBER, refusal);
+        assertEquals(Refusal.NOT_A_MEMBER_READING_ANSWER_FOR_MEMBER, refusalOf(refused));
     }
 
     @Test
-    void aMembersOwnFirstAnswerIsSaved() throws Exception {
-        var ctx = request(stranger, editableFormId, editableQuestionId, "Green");
+    void aMembersOwnFirstAnswerIsSaved() {
+        var saved = harness.request(client ->
+                client.post(own(editableFormId), answer(editableQuestionId, "Green"), harness.as(sessionOf(stranger))));
 
-        invoke("submitResponse", ctx);
-
-        verify(ctx).status(HttpStatus.CREATED);
+        assertEquals(201, saved.code());
         assertTrue(answerOf(stranger, editableFormId).contains("Green"));
     }
 
@@ -330,9 +308,10 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
     void aMembersOwnSecondFirstAnswerIsRefusedAndTheFirstStays() {
         seedAnswer(stranger, lockedFormId, lockedQuestionId, "Blue");
 
-        var refusal = refusalOf("submitResponse", request(stranger, lockedFormId, lockedQuestionId, "Red"));
+        var refused = harness.request(client ->
+                client.post(own(lockedFormId), answer(lockedQuestionId, "Red"), harness.as(sessionOf(stranger))));
 
-        assertEquals(Refusal.FORM_ANSWER_ALREADY_ON_FILE, refusal);
+        assertEquals(Refusal.FORM_ANSWER_ALREADY_ON_FILE, refusalOf(refused));
         assertTrue(answerOf(stranger, lockedFormId).contains("Blue"));
     }
 }

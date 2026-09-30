@@ -412,7 +412,19 @@ public class ApiServer {
     }
 
     /**
-     * Creates the Javalin application, registers all middleware, routes, and plugins, then starts the server.
+     * Builds the application and starts serving it on the configured host and port.
+     */
+    public void start() {
+        if (demoConfig.dev()) {
+            DevErrorWriter.clearOnStartup();
+        }
+        create().start(apiConfig.host(), apiConfig.port());
+        log.info("API server started on {}:{}", apiConfig.host(), apiConfig.port());
+    }
+
+    /**
+     * Creates the Javalin application with all middleware, routes and plugins registered, without
+     * starting it, so that the application a test talks to is the one production serves.
      *
      * <p>A development instance accepts every origin. A write from an origin the rule does not name is
      * answered 400 after the handler has already done the work, so the file is uploaded, the row is
@@ -420,11 +432,8 @@ public class ApiServer {
      * happens to be in front of it that afternoon, a tunnel to a phone among them, and naming the three
      * ports it used to name meant every one of those read as a broken application.
      */
-    public void start() {
-        if (demoConfig.dev()) {
-            DevErrorWriter.clearOnStartup();
-        }
-        var app = Javalin.create(config -> {
+    public Javalin create() {
+        return Javalin.create(config -> {
             config.http.defaultContentType = "application/json";
             config.jsonMapper(jacksonMapper());
             configureCompression(config);
@@ -525,8 +534,6 @@ public class ApiServer {
                 route.register(config.routes, API_PREFIX);
             }
         });
-        app.start(apiConfig.host(), apiConfig.port());
-        log.info("API server started on {}:{}", apiConfig.host(), apiConfig.port());
     }
 
     /**
