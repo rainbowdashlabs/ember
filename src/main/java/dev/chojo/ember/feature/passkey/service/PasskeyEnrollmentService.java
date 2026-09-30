@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
+import dev.chojo.ember.feature.twofactor.service.WebAuthnCeremonies.CeremonyStart;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -178,7 +179,7 @@ public class PasskeyEnrollmentService {
      * Opens the creation ceremony behind a token. The token is not spent yet; the finish
      * consumes it whatever happens.
      */
-    public Optional<PasskeyService.CeremonyStart> begin(String rawToken) {
+    public Optional<CeremonyStart> begin(String rawToken) {
         return findDoor(rawToken)
                 .flatMap(door -> accountRepository.findById(door.token().accountId()))
                 .map(account -> {

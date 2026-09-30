@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
+import dev.chojo.ember.feature.twofactor.service.WebAuthnCeremonies.CeremonyStart;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -290,7 +291,7 @@ public class DeviceRequestService {
      * Opens the creation ceremony the enrolment token is good for. The token is not spent yet:
      * a browser that fails the ceremony may try again until the finish claims it.
      */
-    public Optional<PasskeyService.CeremonyStart> beginEnrollment(String enrollToken) {
+    public Optional<CeremonyStart> beginEnrollment(String enrollToken) {
         Optional<DeviceRequest> requestOpt =
                 repository.findByClaimToken(tokenHasher.hash(enrollToken), DeviceRequestPurpose.ENROL_PASSKEY);
         if (requestOpt.isEmpty()) return Optional.empty();

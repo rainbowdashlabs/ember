@@ -84,7 +84,7 @@ public final class TestAuthenticator {
     }
 
     /** The same, without the user-verified flag: a reader who skipped the fingerprint. */
-    String register(String optionsJson, boolean userVerified) {
+    public String register(String optionsJson, boolean userVerified) {
         try {
             var options = MAPPER.readTree(optionsJson).path("publicKey");
             String challenge = options.path("challenge").asText();
@@ -134,7 +134,12 @@ public final class TestAuthenticator {
      * Answers an assertion ceremony: authenticator data flagged user-verified, a counter one
      * higher than last time, and a real signature over what the relying party will verify.
      */
-    String sign(String requestJson) {
+    public String sign(String requestJson) {
+        return sign(requestJson, true);
+    }
+
+    /** The same, with the user-verified flag as given: an unverified answer is only user present. */
+    public String sign(String requestJson, boolean userVerified) {
         try {
             var options = MAPPER.readTree(requestJson).path("publicKey");
             String challenge = options.path("challenge").asText();
@@ -143,7 +148,7 @@ public final class TestAuthenticator {
             counter++;
             var authData = new ByteArrayOutputStream();
             authData.write(MessageDigest.getInstance("SHA-256").digest(rpId.getBytes(StandardCharsets.UTF_8)));
-            authData.write(0x05); // user present, user verified
+            authData.write(userVerified ? 0x05 : 0x01);
             authData.write(ByteBuffer.allocate(4).putInt(counter).array());
 
             String clientData = MAPPER.writeValueAsString(MAPPER.createObjectNode()
