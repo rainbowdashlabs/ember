@@ -271,6 +271,29 @@ class EventRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    void searchVisibleForPickerOffersInternalEvents() {
+        var event = oneTime(
+                "Internal-Picker-Event",
+                Instant.now().plus(40, ChronoUnit.DAYS),
+                Instant.now().plus(41, ChronoUnit.DAYS));
+        try {
+            var visible = eventRepo.searchVisibleForPicker(
+                    station.id(), member.id(), "internal-picker", EventRepository.PickerMode.FUTURE, 20);
+            assertTrue(visible.stream().anyMatch(e -> "Internal-Picker-Event".equals(e.name())));
+
+            var everything = eventRepo.searchStationForPicker(
+                    station.id(), "internal-picker", EventRepository.PickerMode.FUTURE, 20);
+            assertTrue(everything.stream().anyMatch(e -> "Internal-Picker-Event".equals(e.name())));
+
+            var publicOnly =
+                    eventRepo.searchForPicker(station.id(), "internal-picker", EventRepository.PickerMode.FUTURE, 20);
+            assertTrue(publicOnly.isEmpty());
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
+    @Test
     void findFilteredWithoutFilters() {
         var event =
                 oneTime("Filtered Event", Instant.parse("2027-01-15T09:00:00Z"), Instant.parse("2027-01-15T12:00:00Z"));

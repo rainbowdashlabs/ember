@@ -13,9 +13,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.Context;
@@ -53,22 +51,19 @@ public class EventAttachmentRoutes implements Routes {
 
     private final EventAttachmentService attachmentService;
     private final EventCrudService crudService;
-    private final EventRestrictionService restrictionService;
+    private final EventVisibility visibility;
     private final MediaLibraryService media;
-    private final StationMemberService stationMemberService;
 
     @Inject
     public EventAttachmentRoutes(
             EventAttachmentService attachmentService,
             EventCrudService crudService,
-            EventRestrictionService restrictionService,
-            MediaLibraryService media,
-            StationMemberService stationMemberService) {
+            EventVisibility visibility,
+            MediaLibraryService media) {
         this.attachmentService = attachmentService;
         this.crudService = crudService;
-        this.restrictionService = restrictionService;
+        this.visibility = visibility;
         this.media = media;
-        this.stationMemberService = stationMemberService;
     }
 
     @Override
@@ -92,7 +87,7 @@ public class EventAttachmentRoutes implements Routes {
     private void list(Context ctx) {
         var session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "id");
-        requireVisibleEvent(ctx, eventId);
+        visibility.requireVisibleEvent(session, eventId);
         ctx.json(attachmentService.listFor(eventId, session.permissions()));
     }
 
@@ -112,7 +107,7 @@ public class EventAttachmentRoutes implements Routes {
     private void download(Context ctx) {
         var session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "id");
-        requireVisibleEvent(ctx, eventId);
+        visibility.requireVisibleEvent(session, eventId);
 
         var attachment = attachmentService
                 .findReadable(pathInt(ctx, "attachmentId"), session.permissions())
@@ -168,7 +163,7 @@ public class EventAttachmentRoutes implements Routes {
     private void picture(Context ctx) {
         var session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "id");
-        requireVisibleEvent(ctx, eventId);
+        visibility.requireVisibleEvent(session, eventId);
 
         var attachment = attachmentService
                 .findReadable(pathInt(ctx, "attachmentId"), session.permissions())
@@ -268,23 +263,6 @@ public class EventAttachmentRoutes implements Routes {
         var attachment = requireOwnedAttachment(ctx);
         if (!attachmentService.detach(attachment.id())) throw Refusal.EVENT_FILE_NOT_REMOVED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    /**
-     * The event, asserted to be the caller's station's and one they may see.
-     *
-     * <p>Whoever may write events is let through whatever the event says about who may see it: an
-     * editor working on an appointment they restricted to one group still has to be able to open
-     * it. A guardian sees what the members they look after see, the same as in the event list.
-     */
-    private void requireVisibleEvent(Context ctx, int eventId) {
-        var session = UserSession.from(ctx);
-        requireOwnedEvent(crudService, eventId, session);
-        if (session.permissions().contains(StationPermission.EVENT_EDIT)) return;
-        var spokenFor = stationMemberService.findSpokenForIds(session);
-        if (!restrictionService.canViewAny(eventId, spokenFor, session.permissions())) {
-            throw Refusal.EVENT_NOT_YOURS_TO_SEE.raise();
-        }
     }
 
     /**

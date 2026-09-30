@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.equipment.entity.EquipmentNeed;
 import dev.chojo.ember.feature.equipment.entity.NeedCoverage;
 import dev.chojo.ember.feature.equipment.service.EquipmentNeedService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.route.EventVisibility;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import io.javalin.http.Context;
@@ -52,11 +53,14 @@ public class EquipmentNeedRoutes implements Routes {
 
     private final EquipmentNeedService needService;
     private final EventCrudService eventService;
+    private final EventVisibility visibility;
 
     @Inject
-    public EquipmentNeedRoutes(EquipmentNeedService needService, EventCrudService eventService) {
+    public EquipmentNeedRoutes(
+            EquipmentNeedService needService, EventCrudService eventService, EventVisibility visibility) {
         this.needService = needService;
         this.eventService = eventService;
+        this.visibility = visibility;
     }
 
     /**
@@ -102,6 +106,7 @@ public class EquipmentNeedRoutes implements Routes {
                 .findById(pathInt(ctx, "eventId"))
                 .orElseThrow(Refusal.EQUIPMENT_APPOINTMENT_NOT_HERE::raise);
         RouteSupport.requireSameStation(session, event.stationId());
+        if (!visibility.canSee(session, event)) throw Refusal.EVENT_NOT_YOURS_TO_SEE.raise();
         return event;
     }
 

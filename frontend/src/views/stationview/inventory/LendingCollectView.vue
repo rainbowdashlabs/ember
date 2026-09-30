@@ -20,6 +20,7 @@ import type {LineCheck, NeedCoverage} from '@/api/equipment'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {describeFailure, type Failure} from '@/util/failure'
+import {reportCaughtError} from '@/util/devErrorReporter'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -48,11 +49,25 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
   const answer = await lending.listAvailable(date.value ? {from: date.value, to: date.value} : undefined)
   offers.value = answer.entries
   emptyReason.value = answer.emptyReason
-  if (eventId.value && date.value) {
-    open.value = (await equipment.coverage(eventId.value, date.value)).filter(line => line.missing > 0)
-    occasion.value = (await eventsApi.getEvent(eventId.value)).name ?? ''
-  }
+  if (eventId.value && date.value) await loadOccasion(eventId.value, date.value)
 })
+
+/**
+ * The appointment the equipment is collected for and what it still lacks.
+ *
+ * <p>Only the heading and the matching depend on it, so an appointment the reader may not see, or
+ * one that is gone, leaves them with the plain list of offers rather than no list at all.
+ */
+async function loadOccasion(id: number, day: string) {
+  try {
+    open.value = (await equipment.coverage(id, day)).filter(line => line.missing > 0)
+    occasion.value = (await eventsApi.getEvent(id)).name ?? ''
+  } catch (e) {
+    open.value = []
+    occasion.value = ''
+    reportCaughtError(e, 'lending appointment')
+  }
+}
 
 onMounted(reload)
 

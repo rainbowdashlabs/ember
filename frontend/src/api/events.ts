@@ -1087,9 +1087,13 @@ export async function setPartnerPlaces(eventId: number, partnerId: number, slotB
     await client.put(`/events/${eventId}/partner-places/${partnerId}`, {slotBudget, partnerConfirms})
 }
 
-// -- Page-editor picker. PAGE_EDIT-gated. --
-
 export type EventPickerMode = 'FUTURE' | 'PAST' | 'ALL'
+
+/**
+ * Which events a block may name. A station page is read by anybody and offers public events only;
+ * a news entry is written inside the station and may name every event its author can see.
+ */
+export type EventPickerScope = 'PUBLIC' | 'VISIBLE'
 
 export interface EventSearchResult {
     eventUid: string
@@ -1102,11 +1106,38 @@ export async function searchEvents(
     query?: string,
     mode: EventPickerMode = 'FUTURE',
     limit = 10,
+    scope: EventPickerScope = 'PUBLIC',
 ): Promise<EventSearchResult[]> {
-    const params: Record<string, string | number> = {mode, limit}
+    const params: Record<string, string | number> = {mode, limit, scope}
     if (query) params.q = query
     const res = await client.get<EventSearchResult[]>('/events/search', {params})
     return res.data
+}
+
+/** An event of the reader's own station, as an event block shows it. */
+export interface EmbeddedEvent {
+    id: number
+    name: string
+    description: string | null
+    startTime: string | null
+    endTime: string | null
+    cancelled: boolean
+    categoryName: string | null
+}
+
+/**
+ * An event of the reader's own station named by its public id, as far as the reader may see it.
+ * Answers 404 for an event that is missing or hidden from them.
+ */
+export async function getEmbeddedEvent(eventUid: string): Promise<EmbeddedEvent> {
+    const res = await client.get<EmbeddedEvent>(`/events/embed/${encodeURIComponent(eventUid)}`)
+    return res.data
+}
+
+/** The public id an event block names this event by. NEWS_EDIT or PAGE_EDIT gated. */
+export async function getEmbedReference(eventId: number): Promise<string> {
+    const res = await client.get<{eventUid: string}>(`/events/${eventId}/embed-reference`)
+    return res.data.eventUid
 }
 
 /**

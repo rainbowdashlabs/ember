@@ -2047,8 +2047,11 @@ public enum Refusal {
     /** A file that was already off the appointment when its removal was asked for. */
     EVENT_FILE_NOT_REMOVED(Area.EVENTS, 81, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
 
-    /** An appointment this reader is not among the people it was meant for. */
-    EVENT_NOT_YOURS_TO_SEE(Area.EVENTS, 82, HttpStatus.FORBIDDEN, "This appointment is not yours to see"),
+    /**
+     * An appointment this reader is not among the people it was meant for. Answered exactly like one
+     * that does not exist, so its id cannot be used to learn that a hidden appointment is there.
+     */
+    EVENT_NOT_YOURS_TO_SEE(Area.EVENTS, 82, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
 
     /** A file being written or taken off that is gone, or hangs on another appointment. */
     EVENT_FILE_NOT_HERE_ON_WRITE(Area.EVENTS, 83, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
@@ -2079,6 +2082,15 @@ public enum Refusal {
     /** A template that could not be read back after being changed, with the change already in. */
     EVENT_TEMPLATE_NOT_HERE_AFTER_CHANGE(
             Area.EVENTS, 90, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
+
+    /**
+     * An event block naming an appointment that is gone, belongs to another station or is hidden
+     * from the reader. All three answer alike, so a block cannot tell a hidden one from a missing one.
+     */
+    EVENT_BLOCK_APPOINTMENT_NOT_HERE(Area.EVENTS, 92, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
+
+    /** An appointment an event block could not name, because it has no public id to be named by. */
+    EVENT_BLOCK_REFERENCE_NOT_HERE(Area.EVENTS, 93, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
 
     /**
      * The station the caller is signed in at, taken from their session and not there, while a

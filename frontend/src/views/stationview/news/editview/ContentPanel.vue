@@ -13,6 +13,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {ContentMode, type ContentModeName} from '@/api/news'
+import {provideEventEmbedScope} from '@/composables/useEventEmbedScope'
 
 const title = defineModel<string>('title', {required: true})
 const contentMarkdown = defineModel<string>('contentMarkdown', {required: true})
@@ -30,6 +31,8 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+provideEventEmbedScope('VISIBLE')
 </script>
 
 <template>

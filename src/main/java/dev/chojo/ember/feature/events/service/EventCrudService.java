@@ -71,6 +71,24 @@ public class EventCrudService {
     }
 
     /**
+     * Event picker for a block written inside the station, offering every event the member may
+     * see, public or not.
+     */
+    public List<EventRepository.PickerEvent> searchVisibleEventPicker(
+            int stationId, int memberId, String search, EventRepository.PickerMode mode, int limit) {
+        return eventRepository.searchVisibleForPicker(stationId, memberId, search, mode, limit);
+    }
+
+    /**
+     * Event picker for a block written by somebody who edits the station's events, offering every
+     * event of the station.
+     */
+    public List<EventRepository.PickerEvent> searchStationEventPicker(
+            int stationId, String search, EventRepository.PickerMode mode, int limit) {
+        return eventRepository.searchStationForPicker(stationId, search, mode, limit);
+    }
+
+    /**
      * Bulk-resolves the public UUIDs for a set of event ids - see
      * {@link EventRepository#findPublicUidsByIds}.
      */

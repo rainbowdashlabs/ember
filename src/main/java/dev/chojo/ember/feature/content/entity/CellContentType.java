@@ -28,8 +28,9 @@ public enum CellContentType {
     COUNTDOWN(CellConfig.CountdownConfig.class, new CellConfig.CountdownConfig(null, null, null)),
     FEATURED_EVENT(
             CellConfig.FeaturedEventConfig.class,
-            new CellConfig.FeaturedEventConfig(null, null, null, null, null, null)),
-    UPCOMING_EVENTS(CellConfig.UpcomingEventsConfig.class, new CellConfig.UpcomingEventsConfig(null, null)),
+            new CellConfig.FeaturedEventConfig(null, null, null, null, null, null, null, null)),
+    UPCOMING_EVENTS(
+            CellConfig.UpcomingEventsConfig.class, new CellConfig.UpcomingEventsConfig(null, null, null, null, null)),
     KB_ARTICLE(CellConfig.KbArticleConfig.class, new CellConfig.KbArticleConfig(null, null)),
     NEWS_TEASER(CellConfig.NewsTeaserConfig.class, new CellConfig.NewsTeaserConfig(null, null, null, null, null)),
     PAGE_LINK(CellConfig.PageLinkConfig.class, new CellConfig.PageLinkConfig(null, null)),
@@ -46,7 +47,8 @@ public enum CellContentType {
     IMAGE_GALLERY(CellConfig.ImageGalleryConfig.class, new CellConfig.ImageGalleryConfig(null, null, null, null)),
     HERO_BANNER(CellConfig.HeroBannerConfig.class, new CellConfig.HeroBannerConfig(null, null, null, null, null)),
     PAST_EVENT_RECAP(
-            CellConfig.PastEventRecapConfig.class, new CellConfig.PastEventRecapConfig(null, null, null, null)),
+            CellConfig.PastEventRecapConfig.class,
+            new CellConfig.PastEventRecapConfig(null, null, null, null, null, null)),
     TABS(CellConfig.TabsConfig.class, new CellConfig.TabsConfig(null)),
     ACHIEVEMENTS(CellConfig.AchievementsConfig.class, new CellConfig.AchievementsConfig(null, null)),
     EXTERNAL_LINK_CARD(
@@ -78,7 +80,6 @@ public enum CellContentType {
             QUIZ_TEASER,
             FORMS_CTA,
             UPCOMING_EVENTS,
-            FEATURED_EVENT,
             PAST_EVENT_RECAP);
 
     private final Class<? extends CellConfig> configClass;

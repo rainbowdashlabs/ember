@@ -13,8 +13,11 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -191,18 +194,60 @@ public sealed interface CellConfig {
     record CountdownConfig(String targetDate, String label, String sublabel) implements CellConfig {}
 
     /**
-     * Featured event card. Admin-curated; all fields are content-driven.
+     * Featured event card.
+     *
+     * <p>The editor names a live event by {@code eventUid}, whose name, time and link are read when
+     * the block is shown, and may narrow it to one occurrence by {@code date} ({@code YYYY-MM-DD}).
+     * The remaining text fields are the older hand-written card, still read where no event is named.
+     *
+     * <p>An author writes this record as they like, so what names an event is kept only when it is
+     * well formed: an id that is not a UUID names nothing, and next to a named event a date that is
+     * not a calendar day is dropped rather than carried to every reader.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record FeaturedEventConfig(
-            String title, String date, String location, String description, String ctaText, String ctaUrl)
-            implements CellConfig {}
+            String title,
+            String date,
+            String location,
+            String description,
+            String ctaText,
+            String ctaUrl,
+            String eventUid,
+            String descriptionOverride)
+            implements CellConfig {
+
+        public FeaturedEventConfig {
+            eventUid = wellFormedUid(eventUid);
+            if (eventUid != null) date = wellFormedDay(date);
+        }
+
+        private static String wellFormedUid(String raw) {
+            if (raw == null) return null;
+            try {
+                return UUID.fromString(raw).toString();
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
+        }
+
+        private static String wellFormedDay(String raw) {
+            if (raw == null) return null;
+            try {
+                return LocalDate.parse(raw).toString();
+            } catch (DateTimeParseException e) {
+                return null;
+            }
+        }
+    }
 
     /**
-     * Curated list of upcoming events.
+     * List of upcoming events, read live from the station's public events and filtered by
+     * {@code categoryIds}, or the older hand-written {@code items}.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record UpcomingEventsConfig(String title, List<EventItem> items) implements CellConfig {}
+    record UpcomingEventsConfig(
+            String title, List<EventItem> items, List<Integer> categoryIds, Integer limit, Boolean includeFederated)
+            implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record EventItem(String title, String date, String location, String url) {}
@@ -350,10 +395,13 @@ public sealed interface CellConfig {
             implements CellConfig {}
 
     /**
-     * Past event recap.
+     * Past event recap: a live past event named by {@code eventUid} with the editor's
+     * {@code recapDescription}, or the older hand-written card.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record PastEventRecapConfig(String title, String date, String imageHash, String summary) implements CellConfig {}
+    record PastEventRecapConfig(
+            String title, String date, String imageHash, String summary, String eventUid, String recapDescription)
+            implements CellConfig {}
 
     /**
      * Tabbed sections.

@@ -13,7 +13,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.service.CommentService;
-import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.route.EventVisibility;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -33,7 +33,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEvent;
 
 /**
  * HTTP route definitions for event comments.
@@ -42,18 +41,18 @@ import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEv
 @Singleton
 public class EventCommentRoutes implements Routes {
     private final CommentService commentService;
-    private final EventCrudService crudService;
+    private final EventVisibility visibility;
     private final MemberIdentityFactory memberIdentityFactory;
     private final MemberNameResolver memberNameResolver;
 
     @Inject
     public EventCommentRoutes(
             CommentService commentService,
-            EventCrudService crudService,
+            EventVisibility visibility,
             MemberIdentityFactory memberIdentityFactory,
             MemberNameResolver memberNameResolver) {
         this.commentService = commentService;
-        this.crudService = crudService;
+        this.visibility = visibility;
         this.memberIdentityFactory = memberIdentityFactory;
         this.memberNameResolver = memberNameResolver;
     }
@@ -86,7 +85,7 @@ public class EventCommentRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void list(Context ctx) {
         int eventId = pathInt(ctx, "eventId");
-        requireOwnedEvent(crudService, eventId, UserSession.from(ctx));
+        visibility.requireVisibleEvent(UserSession.from(ctx), eventId);
         String dateParam = ctx.queryParam("date");
         String scope = ctx.queryParam("scope");
         // Default behaviour stays "everything for the event" so existing callers don't
@@ -126,7 +125,7 @@ public class EventCommentRoutes implements Routes {
         }
         var author = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
-        String eventName = requireOwnedEvent(crudService, eventId, session).name();
+        String eventName = visibility.requireVisibleEvent(session, eventId).name();
         var comment = commentService.create(
                 session.stationId(),
                 eventId,

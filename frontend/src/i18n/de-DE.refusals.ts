@@ -776,7 +776,7 @@ export default {
     'E-079': 'Sag, welche Datei der Mediathek angehängt werden soll',
     'E-080': FILE_NOT_HERE,
     'E-081': FILE_NOT_HERE,
-    'E-082': 'Diesen Termin darfst du nicht sehen',
+    'E-082': APPOINTMENT_NOT_HERE,
     'E-083': FILE_NOT_HERE,
     'E-084': STATION_NOT_HERE,
     'E-085': 'Diese Wache veröffentlicht ihre Termine nicht',
@@ -786,6 +786,8 @@ export default {
     'E-089': TEMPLATE_NOT_HERE,
     'E-090': CHANGE_SAVED_BUT_NOT_READ_BACK,
     'E-091': 'Deine Anmeldung ließ sich keiner Wache zuordnen, es wurde nichts getan. Melde dich neu an',
+    'E-092': APPOINTMENT_NOT_HERE,
+    'E-093': APPOINTMENT_NOT_HERE,
 
     'CM-001': DAY_NOT_A_DATE,
     'CM-002': COMMENT_NEEDS_TEXT,

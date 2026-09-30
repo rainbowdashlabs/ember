@@ -109,6 +109,9 @@ class EventRegistrationStatsRouteTest {
         crudService = mock(EventCrudService.class);
         registrationService = mock(EventRegistrationService.class);
         when(registrationService.findStatsByEvent(anyInt(), any(), anyInt())).thenReturn(List.of());
+        var visibility = mock(EventVisibility.class);
+        when(visibility.requireVisibleEvent(any(), anyInt()))
+                .thenAnswer(ask -> crudService.findById(ask.getArgument(1)).orElseThrow());
         routes = new EventRegistrationRoutes(
                 crudService,
                 registrationService,
@@ -125,7 +128,8 @@ class EventRegistrationStatsRouteTest {
                 mock(EventMemberTableService.class),
                 mock(MemberTableService.class),
                 mock(MemberTableRenderer.class),
-                mock(StationRepository.class));
+                mock(StationRepository.class),
+                visibility);
     }
 
     @SuppressWarnings("unchecked")

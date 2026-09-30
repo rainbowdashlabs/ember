@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
+import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
@@ -105,6 +106,7 @@ public class EventRegistrationRoutes implements Routes {
     private final MemberTableService memberTableService;
     private final MemberTableRenderer memberTableRenderer;
     private final StationRepository stationRepository;
+    private final EventVisibility visibility;
 
     @Inject
     public EventRegistrationRoutes(
@@ -123,8 +125,10 @@ public class EventRegistrationRoutes implements Routes {
             EventMemberTableService eventMemberTableService,
             MemberTableService memberTableService,
             MemberTableRenderer memberTableRenderer,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            EventVisibility visibility) {
         this.crudService = crudService;
+        this.visibility = visibility;
         this.stationRepository = stationRepository;
         this.registrationService = registrationService;
         this.restrictionService = restrictionService;
@@ -461,7 +465,7 @@ public class EventRegistrationRoutes implements Routes {
     private void getRegistrationStats(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
-        var event = requireOwnedEvent(crudService, eventId, session);
+        var event = visibility.requireVisibleEvent(session, eventId);
         String catParam = ctx.queryParam("categoryId");
         // Both sides of the choice stay boxed. An int on one of them promotes the other, which
         // unboxes the category of an event that has none and answers 500 for asking.
@@ -515,7 +519,7 @@ public class EventRegistrationRoutes implements Routes {
     private void listRegistrationFields(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
-        requireOwnedEvent(crudService, eventId, session);
+        visibility.requireVisibleEvent(session, eventId);
         ctx.json(registrationFieldService.findByEvent(eventId).stream()
                 .map(f -> new RegistrationFieldResponse(f.id(), f.name(), f.fieldType(), f.config(), f.overview()))
                 .toList());
@@ -600,7 +604,7 @@ public class EventRegistrationRoutes implements Routes {
     private void tableColumns(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
-        requireOwnedEvent(crudService, eventId, session);
+        visibility.requireVisibleEvent(session, eventId);
         var questions = eventMemberTableService.offerableQuestions(eventId, readsHiddenAnswers(session));
         ctx.json(new TableColumnsResponse(
                 memberTableService.offerableColumns(session.stationId(), session.permissions()),
@@ -666,7 +670,7 @@ public class EventRegistrationRoutes implements Routes {
     private MemberTable tableOf(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
-        var event = requireOwnedEvent(crudService, eventId, session);
+        var event = visibility.requireVisibleEvent(session, eventId);
         var station = stationRepository
                 .findById(event.stationId())
                 .orElseThrow(Refusal.STATION_NOT_HERE_FOR_REGISTRATION_TABLE::raise);
@@ -697,7 +701,7 @@ public class EventRegistrationRoutes implements Routes {
     private void listRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
-        requireOwnedEvent(crudService, eventId, session);
+        visibility.requireVisibleEvent(session, eventId);
         String dateStr = ctx.queryParam("date");
         var regs = dateStr != null
                 ? registrationService.findByEventAndDate(eventId, LocalDate.parse(dateStr))
@@ -782,7 +786,7 @@ public class EventRegistrationRoutes implements Routes {
         int eventId = pathInt(ctx, "eventId");
         var req = ctx.bodyAsClass(RegisterRequest.class);
 
-        var event = requireOwnedEvent(crudService, eventId, session);
+        var event = visibility.requireVisibleEvent(session, eventId);
         LocalDate date = resolveEventDate(req, event);
 
         int memberId = resolveTargetMemberId(session, req);
@@ -799,7 +803,8 @@ public class EventRegistrationRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void listRegistrationCounts(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(registrationService.findCountsByStation(session.stationId()));
+        ctx.json(visibility.keepVisible(
+                session, registrationService.findCountsByStation(session.stationId()), RegistrationCount::eventId));
     }
 
     @OpenApi(
