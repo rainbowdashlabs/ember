@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import DOMPurify from 'dompurify'
+import DOMPurify from 'isomorphic-dompurify'
 import {marked} from 'marked'
 import {enhancePageMarkdownImages} from '@/util/pageMarkdownImages'
 
@@ -15,13 +15,14 @@ import {enhancePageMarkdownImages} from '@/util/pageMarkdownImages'
  * ticket authors and event organisers, and some of it is shown to unauthenticated visitors, so an
  * unsanitised path is stored cross-site scripting against everyone who opens the page.
  *
- * A server render has no DOM to clean with. There the markdown is escaped instead of parsed:
- * losing the formatting is visible and recoverable, letting unsanitised HTML into the response is
- * neither.
+ * The same sanitiser runs on both sides. In the browser it cleans with the page's own DOM; in a
+ * server render `isomorphic-dompurify` hands it a jsdom window, so a public page reaches a crawler
+ * and a link preview already formatted rather than as escaped markdown source. Should rendering
+ * fail, the markdown is escaped instead: losing the formatting is visible and recoverable, letting
+ * unsanitised HTML into the response is neither.
  */
 export function renderMarkdown(markdown: string | null | undefined): string {
     if (!markdown) return ''
-    if (typeof window === 'undefined') return escape(markdown)
     try {
         return DOMPurify.sanitize(marked.parse(markdown, {async: false}))
     } catch {
@@ -69,7 +70,7 @@ export function renderPageMarkdown(markdown: string | null | undefined): string 
     return html ? enhancePageMarkdownImages(html) : html
 }
 
-/** Text a browser shows verbatim, for the paths that have no DOM to sanitise with. */
+/** Text a browser shows verbatim, for a rendering that failed. */
 function escape(text: string): string {
     return text
         .replaceAll('&', '&amp;')
