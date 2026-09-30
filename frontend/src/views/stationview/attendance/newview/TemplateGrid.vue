@@ -10,6 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {TemplateDetail} from '@/api/attendance'
+import {StationUserTypeLabels} from '@/api/types'
 
 /**
  * The templates a sheet can be started from, each saying whom it enters and what it asks, so the
@@ -31,8 +32,11 @@ function fieldNames(template: TemplateDetail): string[] {
   return (template.fields ?? []).map(field => field.name ?? '').filter(name => name.length > 0)
 }
 
-function groupNames(template: TemplateDetail): string[] {
-  return (template.groups ?? []).map(group => props.groupName(group.groupId)).filter(name => name.length > 0)
+/** Whom the template enters, groups first and then its user types, the way its sheets are written. */
+function enteredNames(template: TemplateDetail): string[] {
+  const groups = (template.groups ?? []).map(group => props.groupName(group.groupId))
+  const types = (template.userTypes ?? []).map(type => StationUserTypeLabels[type])
+  return [...groups, ...types].filter(name => name.length > 0)
 }
 </script>
 
@@ -56,8 +60,8 @@ function groupNames(template: TemplateDetail): string[] {
           </div>
 
           <MutedText tag="p" size="sm">
-            {{ groupNames(tpl).length > 0
-              ? t('attendanceNew.entersGroups', {groups: groupNames(tpl).join(', ')})
+            {{ enteredNames(tpl).length > 0
+              ? t('attendanceNew.entersGroups', {groups: enteredNames(tpl).join(', ')})
               : t('attendanceNew.entersNobody') }}
           </MutedText>
 

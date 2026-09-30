@@ -11,21 +11,24 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import GroupsEditor from './GroupsEditor.vue'
+import UserTypesEditor from './UserTypesEditor.vue'
 import FieldsList from './FieldsList.vue'
 import type {AttendanceTemplateField, TemplateGroupEntry} from '@/api/attendance'
-import type {MemberGroup} from '@/api/types'
+import type {MemberGroup, StationUserTypeName} from '@/api/types'
 
 const props = defineProps<{
   isEdit: boolean
   name: string
   fields: AttendanceTemplateField[]
   templateGroups: TemplateGroupEntry[]
+  templateUserTypes: StationUserTypeName[]
   availableGroups: MemberGroup[]
   saveTemplate: () => Promise<void>
 }>()
 
 const emit = defineEmits<{
   'update:name': [value: string]
+  'update-user-types': [userTypes: StationUserTypeName[]]
   'add-group': [groupId: number]
   'remove-group': [groupId: number]
   'reorder-groups': [fromIndex: number, toIndex: number]
@@ -56,6 +59,12 @@ const {t} = useI18n()
         {{ props.isEdit ? t('attendanceConfig.save') : t('attendanceConfig.createSubmit') }}
       </SaveButton>
     </NeutralContainer>
+
+    <UserTypesEditor
+        v-if="props.isEdit"
+        :model-value="props.templateUserTypes"
+        @update:model-value="(types: StationUserTypeName[]) => emit('update-user-types', types)"
+    />
 
     <GroupsEditor
         v-if="props.isEdit"

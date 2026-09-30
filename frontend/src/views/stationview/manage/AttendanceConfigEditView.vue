@@ -15,7 +15,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import AttendanceFieldModal from './attendanceconfigedit/FieldModal.vue'
 import EditContent from './attendanceconfigedit/EditContent.vue'
 import type {AttendanceTemplateField, TemplateGroupEntry} from '@/api/attendance'
-import type {MemberGroup} from '@/api/types'
+import type {MemberGroup, StationUserTypeName} from '@/api/types'
 import {attendance, memberGroups} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -36,6 +36,7 @@ const isEdit = computed(() => templateId.value !== null)
 const name = ref('')
 const fields = ref<AttendanceTemplateField[]>([])
 const templateGroups = ref<TemplateGroupEntry[]>([])
+const templateUserTypes = ref<StationUserTypeName[]>([])
 const availableGroups = ref<MemberGroup[]>([])
 
 const showFieldModal = ref(false)
@@ -60,6 +61,7 @@ const {loading, failure} = useAsyncLoader(async () => {
   name.value = detail.name ?? ''
   fields.value = detail.fields ?? []
   templateGroups.value = detail.groups ?? []
+  templateUserTypes.value = detail.userTypes ?? []
   availableGroups.value = groups
 })
 
@@ -101,6 +103,16 @@ async function saveGroups() {
   if (!templateId.value) return
   try {
     templateGroups.value = await attendance.setTemplateGroups(templateId.value, {groups: templateGroups.value})
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+  }
+}
+
+async function saveUserTypes(userTypes: StationUserTypeName[]) {
+  if (!templateId.value) return
+  templateUserTypes.value = userTypes
+  try {
+    templateUserTypes.value = await attendance.setTemplateUserTypes(templateId.value, {userTypes})
   } catch (e) {
     failure.value = describeFailure(e, t)
   }
@@ -187,8 +199,10 @@ function goBack() {
           :is-edit="isEdit"
           :fields="fields"
           :template-groups="templateGroups"
+          :template-user-types="templateUserTypes"
           :available-groups="availableGroups"
           :save-template="saveTemplate"
+          @update-user-types="saveUserTypes"
           @add-group="addGroup"
           @remove-group="removeGroup"
           @reorder-groups="reorderGroups"

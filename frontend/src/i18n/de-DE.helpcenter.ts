@@ -2124,7 +2124,10 @@ volumes:
             fromEventTitle: 'Aus Termin erstellen',
             fromEventText: 'Wenn es heute Termine gibt, werden sie oben angezeigt. Klicke auf den Termin, um direkt eine Anwesenheit für diesen Termin zu starten.',
             fromTemplateTitle: 'Aus Vorlage erstellen',
-            fromTemplateText: 'Du kannst auch eine Anwesenheitsvorlage wählen (z.B. „Übungsabend"). Die Vorlage bestimmt, welche Gruppen erwartet werden und welche Felder erfasst werden.',
+            fromTemplateText: 'Du kannst auch eine Anwesenheitsvorlage wählen (z.B. „Übungsabend"). Die Vorlage bestimmt, '
+                + 'welche Mitgliedstypen und Gruppen erwartet werden und welche Felder erfasst werden. Im nächsten Schritt '
+                + 'sind ihre Mitgliedstypen und Gruppen vorausgewählt: Du kannst sie so übernehmen oder für diese eine '
+                + 'Liste ändern, ohne dass sich die Vorlage ändert.',
             whatATileSaysTitle: 'Was eine Kachel verrät',
             whatATileSaysText: 'Jede Vorlage sagt auf ihrer Kachel, wen sie einträgt und wonach sie fragt. So musst '
                 + 'du nicht aus dem Gedächtnis entscheiden, welche Vorlage die Felder für den Bericht mitbringt oder '
@@ -2135,8 +2138,9 @@ volumes:
             audienceTitle: 'Wer eingetragen wird',
             audienceText: 'Im zweiten Schritt wählst du Mitgliedstypen und Gruppen. Beides ergänzt sich: Wer einem '
                 + 'davon entspricht, steht auf der Liste, und wer beidem entspricht, steht genau einmal darauf. Die '
-                + 'Liste braucht außerdem Felder, deshalb wählst du eine Vorlage, deren Felder übernommen werden; '
-                + 'deren Gruppen bleiben dabei außen vor.',
+                + 'Liste braucht außerdem Felder, deshalb wählst du eine Vorlage, deren Felder übernommen werden. '
+                + 'Die Liste merkt sich deine Auswahl: Auch beim späteren Abgleich mit dem Termin und im PDF-Export '
+                + 'zählen die gewählten Mitgliedstypen und Gruppen, nicht die der Vorlage.',
             timesTitle: 'Zeitraum festlegen',
             timesText: 'Nach der Auswahl der Vorlage fragt Ember, wann die Erfassung läuft. Beginn und Ende sind mit '
                 + 'der aktuellen Zeit und der Dauer der letzten Erfassung dieser Vorlage vorbelegt, du kannst beide '
@@ -2169,9 +2173,11 @@ volumes:
             checkModeText: 'Klicke auf Anwesenheit prüfen, um in den Prüfmodus zu wechseln. Hier gehst du Mitglied für Mitglied durch und markierst den Status - wie ein Namensaufruf. '
                 + 'Durchlaufen werden alle offenen Namen, auch die, zu denen noch nichts eingetragen ist; der Eintrag entsteht erst, wenn du den Status setzt.',
             expectedTitle: 'Wer auf der Liste steht',
-            expectedText: 'Erwartet wird, wer in einer Gruppe der Anwesenheitsvorlage steht. Wen der Termin ansprechen darf, spielt dafür keine Rolle: Zu- und Absagen zum Termin bestimmen nur, was neben einem Namen steht, nicht wer auf der Liste erscheint.',
+            expectedText: 'Erwartet wird, wer einem der Mitgliedstypen oder einer der Gruppen angehört, die beim Starten des Bogens gewählt waren. '
+                + 'Wurde dort nichts geändert, sind das die Mitgliedstypen und Gruppen der Vorlage. Die Liste zeigt erst jede Gruppe, dann je Mitgliedstyp alle, die keine Gruppe schon zeigt, und zuletzt alle Übrigen. '
+                + 'Wen der Termin ansprechen darf, spielt dafür keine Rolle: Zu- und Absagen zum Termin bestimmen nur, was neben einem Namen steht, nicht wer auf der Liste erscheint.',
             missingEntryTitle: 'Namen ohne Eintrag',
-            missingEntryText: 'Wer erst nach dem Anlegen des Bogens in eine Gruppe der Vorlage gekommen ist, steht auf der Liste, hat aber noch keine Zeile. '
+            missingEntryText: 'Wer erst nach dem Anlegen des Bogens in eine erwartete Gruppe gekommen ist oder einen erwarteten Mitgliedstyp bekommen hat, steht auf der Liste, hat aber noch keine Zeile. '
                 + 'Die Statusknöpfe stehen trotzdem an der Zeile: Beim ersten Druck entsteht der Eintrag und bekommt sofort den gewählten Status.',
             beforeJoiningText: 'Liegt das Beitrittsdatum eines Mitglieds nach dem Termin, steht dort statt der Knöpfe "Noch nicht beigetreten". '
                 + 'Diese Person war an dem Termin noch nicht dabei und kann deshalb auch nicht nachgetragen werden. Ist kein Beitrittsdatum hinterlegt, gilt keine Einschränkung.',
@@ -4526,13 +4532,19 @@ volumes:
         },
         attendanceConfigEdit: {
             title: 'Anwesenheitsvorlage bearbeiten',
-            subtitle: 'Felder und Gruppen einer Vorlage konfigurieren.',
+            subtitle: 'Felder, Mitgliedstypen und Gruppen einer Vorlage konfigurieren.',
             whatShown: 'Was kannst du hier tun?',
-            whatShownText: 'Hier bearbeitest du eine einzelne Anwesenheitsvorlage - ihren Namen, die zugehörigen Gruppen und die Felder.',
+            whatShownText: 'Hier bearbeitest du eine einzelne Anwesenheitsvorlage - ihren Namen, wen sie einträgt und die Felder.',
             nameTitle: 'Name',
             nameText: 'Gib der Vorlage einen eindeutigen Namen (z.B. „Übungsabend", „Jugenddienst").',
+            userTypesTitle: 'Mitgliedstypen',
+            userTypesText: 'Kreuze die Mitgliedstypen an, deren Mitglieder bei jeder Anwesenheit mit dieser Vorlage '
+                + 'erwartet werden, zum Beispiel das ganze Team. Sie ergänzen die Gruppen: Wer einem gewählten Typ oder '
+                + 'einer Gruppe angehört, steht auf der Liste, und wer beidem angehört, genau einmal. Ist kein Typ '
+                + 'angekreuzt, tragen nur die Gruppen jemanden ein. Jede Änderung wird sofort gespeichert.',
             groupsTitle: 'Gruppen',
-            groupsText: 'Wähle die Mitgliedergruppen aus, deren Mitglieder bei einer Anwesenheit mit dieser Vorlage erwartet werden.',
+            groupsText: 'Wähle die Mitgliedergruppen aus, deren Mitglieder bei einer Anwesenheit mit dieser Vorlage erwartet werden. '
+                + 'Wer eine Anwesenheit startet, sieht Mitgliedstypen und Gruppen der Vorlage vorausgewählt und kann sie für diese eine Liste ändern.',
             fieldsTitle: 'Felder',
             fieldsText: 'Füge Felder hinzu, die pro Mitglied in einer Anwesenheitssitzung erfasst werden. Jedes Feld hat einen Typ (Text, Zahl, Ja/Nein, Auswahl, Datum/Uhrzeit), kann ein Pflichtfeld sein und einen Standardwert haben.',
             autoAttendTitle: 'Automatische Anwesenheit',

@@ -11,23 +11,30 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
+import UserTypeCheckboxes from '@/components/input/toggle/UserTypeCheckboxes.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import {type MemberGroup, StationUserType, StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
+import type {MemberGroup, StationUserTypeName} from '@/api/types'
 import type {SessionAudience, TemplateDetail} from '@/api/attendance'
+import {templateAudience} from './templateAudience'
 
 /**
- * The second step of starting a sheet nobody kept a template for: whom to enter, and whose questions
- * the sheet borrows.
+ * The step that says whom a new sheet enters, and whose questions it borrows.
  *
  * <p>The two answers add up. Everybody of a chosen type and everybody in a chosen group stands on
  * the sheet, and somebody both of them name stands on it once.
+ *
+ * <p>Started from a template, the step arrives filled in with that template's user types and groups
+ * and may be walked past as it stands, even where the template names nobody. Started without one, it
+ * arrives empty and has to be told somebody.
  */
 const props = defineProps<{
   templates: TemplateDetail[]
   groups: MemberGroup[]
+  /** The template the sheet was started from, whose audience and questions stand ready. */
+  template?: TemplateDetail | null
   busy?: boolean
 }>()
 
@@ -38,24 +45,27 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const chosenTypes = ref<StationUserTypeName[]>([])
-const chosenGroups = ref<number[]>([])
+const prefilled = props.template ? templateAudience(props.template) : null
+const chosenTypes = ref<StationUserTypeName[]>(prefilled ? [...prefilled.userTypes] : [])
+const chosenGroups = ref<number[]>(prefilled ? [...prefilled.groupIds] : [])
 
-/** A sheet still carries questions, so one template lends its own, and the first stands ready. */
-const fieldsFrom = ref(String(props.templates[0]?.id ?? ''))
-
-const offeredTypes = Object.values(StationUserType)
+/** A sheet still carries questions, so one template lends its own, the chosen one or else the first. */
+const fieldsFrom = ref(String(props.template?.id ?? props.templates[0]?.id ?? ''))
 
 const borrowedTemplate = computed(() => Number(fieldsFrom.value || 0))
 
 const namesNobody = computed(() => chosenTypes.value.length === 0 && chosenGroups.value.length === 0)
 
-function toggle<T>(list: T[], value: T): T[] {
-  return list.includes(value) ? list.filter(entry => entry !== value) : [...list, value]
+const mayConfirm = computed(() => !!borrowedTemplate.value && (!namesNobody.value || !!props.template))
+
+function toggleGroup(groupId: number) {
+  chosenGroups.value = chosenGroups.value.includes(groupId)
+      ? chosenGroups.value.filter(entry => entry !== groupId)
+      : [...chosenGroups.value, groupId]
 }
 
 function confirm() {
-  if (namesNobody.value || !borrowedTemplate.value) return
+  if (!mayConfirm.value) return
   emit('confirm', borrowedTemplate.value, {userTypes: chosenTypes.value, groupIds: chosenGroups.value})
 }
 </script>
@@ -63,20 +73,13 @@ function confirm() {
 <template>
   <NeutralContainer class="space-y-4" data-testid="attendance-audience-step">
     <SubHeader>{{ t('attendanceNew.audienceTitle') }}</SubHeader>
-    <MutedText tag="p" size="sm">{{ t('attendanceNew.audienceHint') }}</MutedText>
+    <MutedText tag="p" size="sm">
+      {{ props.template ? t('attendanceNew.audienceFromTemplateHint') : t('attendanceNew.audienceHint') }}
+    </MutedText>
 
     <div class="space-y-2">
       <FieldLabel>{{ t('attendanceNew.userTypes') }}</FieldLabel>
-      <div class="flex flex-wrap gap-4">
-        <label v-for="type in offeredTypes" :key="type" class="flex items-center gap-2 text-sm">
-          <CheckboxInput
-              :data-testid="`attendance-type-${type}`"
-              :model-value="chosenTypes.includes(type)"
-              @update:model-value="chosenTypes = toggle(chosenTypes, type)"
-          />
-          <span>{{ StationUserTypeLabels[type] }}</span>
-        </label>
-      </div>
+      <UserTypeCheckboxes v-model="chosenTypes" test-id-prefix="attendance-type"/>
     </div>
 
     <div class="space-y-2">
@@ -89,7 +92,7 @@ function confirm() {
           <CheckboxInput
               :data-testid="`attendance-group-${group.id}`"
               :model-value="chosenGroups.includes(group.id)"
-              @update:model-value="chosenGroups = toggle(chosenGroups, group.id)"
+              @update:model-value="toggleGroup(group.id)"
           />
           <span>{{ group.name }}</span>
         </label>
@@ -107,7 +110,7 @@ function confirm() {
     <ButtonRow pair>
       <SecondaryButton :disabled="props.busy" @click="emit('back')">{{ t('common.back') }}</SecondaryButton>
       <PrimaryButton
-          :disabled="props.busy || namesNobody || !borrowedTemplate"
+          :disabled="props.busy || !mayConfirm"
           data-testid="attendance-audience-confirm"
           @click="confirm"
       >

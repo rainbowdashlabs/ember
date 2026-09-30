@@ -15,7 +15,7 @@ import type {
   AttendanceTemplateField,
   MemberNotes,
 } from '@/api/attendance'
-import type {MemberGroup, MemberIdentity, StationMember} from '@/api/types'
+import type {MemberIdentity, StationMember} from '@/api/types'
 import type {CheckRow} from './useCheckMode'
 import SessionToolbar from './SessionToolbar.vue'
 import SessionHeader from './SessionHeader.vue'
@@ -24,11 +24,7 @@ import SessionFieldsPanel from './SessionFieldsPanel.vue'
 import AttendanceSummary from './AttendanceSummary.vue'
 import MemberListPanel from './MemberListPanel.vue'
 import type {Failure} from '@/util/failure'
-
-interface MemberSection {
-  group: MemberGroup | null
-  members: StationMember[]
-}
+import type {MemberSection} from './memberSections'
 
 const {t} = useI18n()
 

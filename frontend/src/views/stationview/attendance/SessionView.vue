@@ -14,7 +14,8 @@ import type {
   AttendanceSessionField,
   AttendanceStatus,
   AttendanceTemplateField,
-  TemplateGroupEntry,SheetOptions
+  SessionAudience,
+  SheetOptions
 } from '@/api/attendance'
 import {StationPermission, type MemberGroup, type StationMember} from '@/api/types'
 import {attendance, events, memberGroups, stationMembers} from '@/api'
@@ -27,6 +28,7 @@ import {useCheckMode, type CheckRow} from './sessionview/useCheckMode'
 import {useSessionFields} from './sessionview/useSessionFields'
 import {useSessionNotes} from './sessionview/useSessionNotes'
 import SessionContent from './sessionview/SessionContent.vue'
+import {buildMemberSections, type MemberSection} from './sessionview/memberSections'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {presentFile} from '@/util/documentFile'
 import {useSessionEventLink} from './sessionview/useSessionEventLink'
@@ -63,7 +65,8 @@ const showDeleteConfirm = ref(false)
 const session = ref<AttendanceSession | null>(null)
 const sessionFields = ref<AttendanceSessionField[]>([])
 const templateFields = ref<AttendanceTemplateField[]>([])
-const templateGroups = ref<TemplateGroupEntry[]>([])
+/** Whom the sheet expects, as the backend decides it: what it was started with, or its template's. */
+const audience = ref<SessionAudience>({userTypes: [], groupIds: []})
 const entries = ref<AttendanceEntry[]>([])
 const allMembers = ref<StationMember[]>([])
 const groups = ref<MemberGroup[]>([])
@@ -109,6 +112,7 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   sessionFields.value = detail.fields ?? []
   entries.value = detail.entries ?? []
   locked.value = detail.locked ?? false
+  audience.value = detail.audience ?? {userTypes: [], groupIds: []}
   allMembers.value = members
   groups.value = allGroups
 
@@ -150,38 +154,14 @@ const openRows = computed((): CheckRow[] => {
 const {checkMode, checkIndex, currentCheckRow, startCheckMode, checkSetStatus, skipCheck} = useCheckMode(openRows, markRow)
 const {fieldValues, parseFieldConfig, onFieldUpdate, setFieldMemberIds, initFieldValues} = useSessionFields(sessionId, templateFields, entries, failure)
 
-interface MemberSection {
-  group: MemberGroup | null
-  members: StationMember[]
-}
-
-const memberSections = computed((): MemberSection[] => {
-  const sections: MemberSection[] = []
-  const assignedMemberIds = new Set<number>()
-  const sortByName = (a: StationMember, b: StationMember) =>
-      (a.name ?? '').localeCompare(b.name ?? '', locale.value)
-
-  for (const tg of templateGroups.value) {
-    const group = groups.value.find(g => g.id === tg.groupId)
-    if (!group) continue
-    const members = [...(groupMembers.value.get(tg.groupId) ?? [])].sort(sortByName)
-    if (members.length > 0) {
-      sections.push({group, members})
-      members.forEach(m => assignedMemberIds.add(m.id))
-    }
-  }
-
-  const ungroupedMembers = entries.value
-      .filter(e => !assignedMemberIds.has(e.memberId))
-      .map(e => allMembers.value.find(m => m.id === e.memberId))
-      .filter((m): m is StationMember => m != null)
-      .sort(sortByName)
-
-  if (ungroupedMembers.length > 0) {
-    sections.push({group: null, members: ungroupedMembers})
-  }
-  return sections
-})
+const memberSections = computed((): MemberSection[] => buildMemberSections({
+  audience: audience.value,
+  groups: groups.value,
+  groupMembers: groupMembers.value,
+  allMembers: allMembers.value,
+  entries: entries.value,
+  locale: locale.value,
+}))
 
 function getMemberName(memberId: number): string {
   const m = allMembers.value.find(mm => mm.id === memberId)
@@ -193,8 +173,7 @@ function getMemberIdentity(memberId: number) {
 }
 
 function referencedGroupIds(fields: AttendanceTemplateField[]): Set<number> {
-  const groupIds = new Set<number>()
-  for (const tg of templateGroups.value) groupIds.add(tg.groupId)
+  const groupIds = new Set<number>(audience.value.groupIds)
   for (const field of fields) {
     const cfg = parseFieldConfig(field.config)
     if (cfg.groupId) groupIds.add(cfg.groupId)
@@ -215,12 +194,8 @@ async function loadGroupMembers(fields: AttendanceTemplateField[]): Promise<Map<
 }
 
 async function loadTemplateContext(templateId: number) {
-  const [tplFields, tplDetail] = await Promise.all([
-    attendance.listTemplateFields(templateId),
-    attendance.getTemplate(templateId),
-  ])
+  const tplFields = await attendance.listTemplateFields(templateId)
   templateFields.value = tplFields
-  templateGroups.value = tplDetail.groups ?? []
   groupMembers.value = await loadGroupMembers(tplFields)
 }
 

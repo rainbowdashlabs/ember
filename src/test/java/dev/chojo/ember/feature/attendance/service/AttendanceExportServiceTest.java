@@ -5,9 +5,11 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -16,6 +18,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -39,7 +44,13 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         service = new AttendanceExportService(
-                attendanceRepo, accountRepo, stationMemberRepo, memberGroupRepo, stationRepo, new Api());
+                attendanceRepo,
+                accountRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                stationRepo,
+                new Api(),
+                new AttendanceAudienceService(attendanceRepo));
         station = stationRepo.create("Signing Station");
         account = accountRepo.create("signing-sheet@test.com", "Anna", "Schmidt");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -93,6 +104,59 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
         var options = new AttendanceExportService.SheetOptions(false, "Jahreshauptversammlung", 0, null);
 
         assertTrue(export(options).length > 0);
+    }
+
+    /**
+     * The printed sheet is sectioned by whom it expects: its groups first, then a section per user
+     * type named in the station's language for whoever no group took, then everybody else.
+     */
+    @Test
+    void theSheetIsSectionedByItsGroupsThenItsUserTypes() {
+        var group = memberGroupRepo.create(station.id(), "Jugendgruppe");
+        var youthAccount = accountRepo.create("sections-youth@test.com", "Jana", "Jung");
+        var youth = stationMemberRepo.create(station.id(), youthAccount.id());
+        memberGroupRepo.addMember(group.id(), youth.id());
+        stationMemberRepo.setUserType(youth.id(), StationUserType.TEAM);
+        var teamAccount = accountRepo.create("sections-team@test.com", "Tim", "Team");
+        var team = stationMemberRepo.create(station.id(), teamAccount.id());
+        stationMemberRepo.setUserType(team.id(), StationUserType.TEAM);
+        stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
+        var entries = List.of(entryOf(1, youth.id()), entryOf(2, team.id()), entryOf(3, member.id()));
+
+        var sections = service.sections(
+                new SessionAudience(Set.of(StationUserType.TEAM, StationUserType.GUARDIAN), List.of(group.id())),
+                entries,
+                station.id(),
+                "de",
+                entry -> Map.of("id", String.valueOf(entry.memberId())));
+
+        assertEquals(
+                List.of("Jugendgruppe", "Team", "Sonstige"),
+                sections.stream().map(AttendanceExportService.Section::name).toList());
+        assertEquals(
+                List.of(Map.of("id", String.valueOf(youth.id()))),
+                sections.get(0).entries());
+        assertEquals(
+                List.of(Map.of("id", String.valueOf(team.id()))),
+                sections.get(1).entries());
+        assertEquals(
+                List.of(Map.of("id", String.valueOf(member.id()))),
+                sections.get(2).entries());
+
+        memberGroupRepo.delete(group.id());
+        accountRepo.delete(youthAccount.id());
+        accountRepo.delete(teamAccount.id());
+    }
+
+    private static AttendanceEntry entryOf(int id, int memberId) {
+        return new AttendanceEntry(
+                id,
+                sessionId,
+                memberId,
+                AttendanceEntry.AttendanceStatus.PRESENT,
+                null,
+                null,
+                AttendanceEntry.EntrySource.EXPECTED);
     }
 
     /** More blank lines than fit on a page are cut back rather than refused. */

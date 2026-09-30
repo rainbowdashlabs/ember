@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
+import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.util.sql.MemberNameSql;
@@ -23,8 +24,12 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -221,6 +226,102 @@ public class AttendanceRepository {
                     .insert();
         }
     }
+
+    /**
+     * The user types a template expects on its sheets besides the members of its groups.
+     *
+     * @param templateId the template ID
+     * @return the user types, in their declared order, empty where the template names none
+     */
+    public Set<StationUserType> findTemplateUserTypes(int templateId) {
+        return query("""
+                        SELECT user_type
+                        FROM attendance_template_user_type
+                        WHERE template_id = :template_id;""")
+                .single(call().bind("template_id", templateId))
+                .map(row -> row.getEnum("user_type", StationUserType.class))
+                .all()
+                .stream()
+                .collect(Collectors.toCollection(() -> EnumSet.noneOf(StationUserType.class)));
+    }
+
+    /**
+     * Replaces the user types a template expects.
+     *
+     * @param templateId the template ID
+     * @param userTypes  the user types to expect, empty to expect nobody by type
+     */
+    public void setTemplateUserTypes(int templateId, Set<StationUserType> userTypes) {
+        query("DELETE FROM attendance_template_user_type WHERE template_id = :template_id;")
+                .single(call().bind("template_id", templateId))
+                .delete();
+        for (StationUserType userType : userTypes) {
+            query("""
+                    INSERT INTO attendance_template_user_type(template_id, user_type)
+                    VALUES(:template_id, :user_type);""")
+                    .single(call().bind("template_id", templateId).bind("user_type", userType))
+                    .insert();
+        }
+    }
+
+    /**
+     * Whom a sheet was told to expect when it was started.
+     *
+     * @param sessionId the session ID
+     * @return the user types and groups, the groups in the order they were chosen; naming nobody
+     *     where the sheet was left to its template
+     */
+    public SessionAudience findSessionAudience(int sessionId) {
+        var rows = query("""
+                        SELECT user_type, group_id
+                        FROM attendance_session_audience
+                        WHERE session_id = :session_id
+                        ORDER BY position;""")
+                .single(call().bind("session_id", sessionId))
+                .map(row -> new AudienceRow(
+                        row.getString("user_type") == null ? null : row.getEnum("user_type", StationUserType.class),
+                        row.getObject("group_id", Integer.class)))
+                .all();
+        return new SessionAudience(
+                rows.stream()
+                        .map(AudienceRow::userType)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet()),
+                rows.stream().map(AudienceRow::groupId).filter(Objects::nonNull).toList());
+    }
+
+    /**
+     * Records whom a sheet was told to expect, replacing what it was told before.
+     *
+     * @param sessionId the session ID
+     * @param audience  the user types and groups, the groups in the order they were chosen
+     */
+    public void setSessionAudience(int sessionId, SessionAudience audience) {
+        query("DELETE FROM attendance_session_audience WHERE session_id = :session_id;")
+                .single(call().bind("session_id", sessionId))
+                .delete();
+        for (StationUserType userType : audience.userTypes()) {
+            query("""
+                    INSERT INTO attendance_session_audience(session_id, user_type)
+                    VALUES(:session_id, :user_type);""")
+                    .single(call().bind("session_id", sessionId).bind("user_type", userType))
+                    .insert();
+        }
+        int position = 0;
+        for (int groupId : audience.groupIds()) {
+            query("""
+                    INSERT INTO attendance_session_audience(session_id, group_id, position)
+                    VALUES(:session_id, :group_id, :position)
+                    ON CONFLICT DO NOTHING;""")
+                    .single(call().bind("session_id", sessionId)
+                            .bind("group_id", groupId)
+                            .bind("position", position++))
+                    .insert();
+        }
+    }
+
+    /** One row of a sheet's audience, which names either a user type or a group. */
+    private record AudienceRow(StationUserType userType, Integer groupId) {}
 
     /**
      * Finds an attendance session by its ID.

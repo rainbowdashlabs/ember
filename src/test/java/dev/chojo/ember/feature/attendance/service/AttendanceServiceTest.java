@@ -46,6 +46,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -74,7 +75,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 memberGroupRepo,
                 new Attendance(),
                 stationRepo,
-                eventDateCancellationRepo);
+                eventDateCancellationRepo,
+                new AttendanceAudienceService(attendanceRepo));
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -1950,6 +1952,122 @@ class AttendanceServiceTest extends RepositoryTestBase {
         service.deleteTemplate(template.id());
         stationRepo.delete(elsewhere.id());
         accountRepo.delete(foreignAccount.id());
+    }
+
+    /**
+     * A template's user types add up with its groups the way a sheet's do: the members of its groups
+     * and everybody of its types, whether the sheet was told nothing or was not told anything at all.
+     */
+    @Test
+    @Order(64)
+    void aTemplatesUserTypesAddUpWithItsGroups() {
+        var group = memberGroupRepo.create(station.id(), "Vorlage mit Typen");
+        var inGroupAccount = accountRepo.create("attend-tpl-types-group@test.com", "Grup", "Pen");
+        var inGroup = stationMemberRepo.create(station.id(), inGroupAccount.id());
+        memberGroupRepo.addMember(group.id(), inGroup.id());
+        stationMemberRepo.setUserType(inGroup.id(), StationUserType.TRIAL);
+        var managerAccount = accountRepo.create("attend-tpl-types-manager@test.com", "Lei", "Tung");
+        var manager = stationMemberRepo.create(station.id(), managerAccount.id());
+        stationMemberRepo.setUserType(manager.id(), StationUserType.MANAGER);
+        var guardianAccount = accountRepo.create("attend-tpl-types-guardian@test.com", "Vor", "Mund");
+        var guardian = stationMemberRepo.create(station.id(), guardianAccount.id());
+        stationMemberRepo.setUserType(guardian.id(), StationUserType.GUARDIAN);
+
+        var template = service.createTemplate(station.id(), "Leitung und Gruppe");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+        assertEquals(
+                Set.of(StationUserType.MANAGER),
+                service.setTemplateUserTypes(template.id(), List.of(StationUserType.MANAGER)));
+
+        for (var audience : Arrays.asList(null, new SessionAudience(Set.of(), List.of()))) {
+            var session = service.createSession(
+                    template.id(),
+                    Instant.now(),
+                    Instant.now().plus(2, ChronoUnit.HOURS),
+                    null,
+                    "Nach Vorlage",
+                    null,
+                    audience);
+            var entered = service.findEntries(session.id()).stream()
+                    .map(AttendanceEntry::memberId)
+                    .toList();
+            assertTrue(entered.contains(inGroup.id()), "the template's group is on the sheet");
+            assertTrue(entered.contains(manager.id()), "and so is everybody of the template's type");
+            assertFalse(entered.contains(guardian.id()), "nobody else is");
+            assertEquals(
+                    new SessionAudience(Set.of(StationUserType.MANAGER), List.of(group.id())),
+                    service.audienceOf(session),
+                    "a sheet told nothing follows its template");
+            service.deleteSession(session.id());
+        }
+
+        service.deleteTemplate(template.id());
+        memberGroupRepo.delete(group.id());
+        stationMemberRepo.setUserType(manager.id(), StationUserType.GUARDIAN);
+    }
+
+    /** Clearing a template's user types, or sending none at all, leaves it expecting nobody by type. */
+    @Test
+    @Order(65)
+    void aTemplateCanBeToldNoUserTypes() {
+        var template = service.createTemplate(station.id(), "Ohne Typen");
+        service.setTemplateUserTypes(template.id(), List.of(StationUserType.TEAM, StationUserType.TEAM));
+        assertEquals(Set.of(StationUserType.TEAM), service.findTemplateUserTypes(template.id()));
+
+        assertTrue(service.setTemplateUserTypes(template.id(), null).isEmpty());
+        assertTrue(service.findTemplateUserTypes(template.id()).isEmpty());
+
+        service.deleteTemplate(template.id());
+    }
+
+    /**
+     * A sheet started for somebody else than its template keeps that audience: filling it in again
+     * brings in whoever of its own audience joined since, and none of the template's people.
+     */
+    @Test
+    @Order(66)
+    void aSheetKeepsItsOwnAudienceWhenFilledInAgain() {
+        var templateGroup = memberGroupRepo.create(station.id(), "Nur Vorlage");
+        var templateOnlyAccount = accountRepo.create("attend-keep-template@test.com", "Vor", "Lage");
+        var templateOnly = stationMemberRepo.create(station.id(), templateOnlyAccount.id());
+        memberGroupRepo.addMember(templateGroup.id(), templateOnly.id());
+        stationMemberRepo.setUserType(templateOnly.id(), StationUserType.TRIAL);
+        var template = service.createTemplate(station.id(), "Vorlage mit eigener Gruppe");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(templateGroup.id(), 0)));
+        var chosenGroup = memberGroupRepo.create(station.id(), "Gewaehlt");
+        var foreignStation = stationRepo.create("AttendanceSvc Andere Wache");
+        var foreignGroup = memberGroupRepo.create(foreignStation.id(), "Andere Gruppe");
+
+        var chosen = new SessionAudience(Set.of(StationUserType.TEAM), List.of(chosenGroup.id(), foreignGroup.id()));
+        var session = service.createSession(
+                template.id(),
+                Instant.now(),
+                Instant.now().plus(2, ChronoUnit.HOURS),
+                null,
+                "Eigenes Publikum",
+                null,
+                chosen);
+        assertEquals(
+                new SessionAudience(Set.of(StationUserType.TEAM), List.of(chosenGroup.id())),
+                service.audienceOf(session),
+                "the sheet keeps what it was told, without another station's group");
+
+        var latecomerAccount = accountRepo.create("attend-keep-late@test.com", "Spae", "Ter");
+        var latecomer = stationMemberRepo.create(station.id(), latecomerAccount.id());
+        stationMemberRepo.setUserType(latecomer.id(), StationUserType.TEAM);
+
+        var entered = service.syncFromEvent(session.id()).stream()
+                .map(AttendanceEntry::memberId)
+                .toList();
+        assertTrue(entered.contains(latecomer.id()), "whoever of the sheet's type joined since is added");
+        assertFalse(entered.contains(templateOnly.id()), "the template's group stays off the sheet");
+
+        service.deleteSession(session.id());
+        service.deleteTemplate(template.id());
+        memberGroupRepo.delete(templateGroup.id());
+        memberGroupRepo.delete(chosenGroup.id());
+        stationRepo.delete(foreignStation.id());
+        stationMemberRepo.setUserType(latecomer.id(), StationUserType.GUARDIAN);
     }
 
     // -- Cleanup --

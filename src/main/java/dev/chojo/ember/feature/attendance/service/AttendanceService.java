@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -51,6 +52,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -86,6 +89,7 @@ public class AttendanceService {
     private final Attendance attendanceConfig;
     private final StationRepository stationRepository;
     private final EventDateCancellationRepository cancellationRepository;
+    private final AttendanceAudienceService audienceService;
 
     @Inject
     public AttendanceService(
@@ -98,8 +102,10 @@ public class AttendanceService {
             MemberGroupRepository memberGroupRepository,
             Attendance attendanceConfig,
             StationRepository stationRepository,
-            EventDateCancellationRepository cancellationRepository) {
+            EventDateCancellationRepository cancellationRepository,
+            AttendanceAudienceService audienceService) {
         this.cancellationRepository = cancellationRepository;
+        this.audienceService = audienceService;
         this.attendanceRepository = attendanceRepository;
         this.eventRepository = eventRepository;
         this.eventFieldRepository = eventFieldRepository;
@@ -195,6 +201,30 @@ public class AttendanceService {
     public void setTemplateGroups(int templateId, List<TemplateGroup> groups) {
         attendanceRepository.setTemplateGroups(templateId, groups);
         log.info("Set {} template groups for attendance template {}", groups.size(), templateId);
+    }
+
+    public Set<StationUserType> findTemplateUserTypes(int templateId) {
+        return attendanceRepository.findTemplateUserTypes(templateId);
+    }
+
+    /**
+     * Replaces the user types a template expects besides the members of its groups.
+     *
+     * @param templateId the template
+     * @param userTypes  the user types, null or empty to expect nobody by type
+     * @return the user types the template now expects
+     */
+    public Set<StationUserType> setTemplateUserTypes(int templateId, Collection<StationUserType> userTypes) {
+        Set<StationUserType> chosen = EnumSet.noneOf(StationUserType.class);
+        if (userTypes != null) chosen.addAll(userTypes);
+        attendanceRepository.setTemplateUserTypes(templateId, chosen);
+        log.info("Set {} template user types for attendance template {}", chosen.size(), templateId);
+        return attendanceRepository.findTemplateUserTypes(templateId);
+    }
+
+    /** Whom a sheet expects, as {@link AttendanceAudienceService#audienceOf} answers it. */
+    public SessionAudience audienceOf(AttendanceSession session) {
+        return audienceService.audienceOf(session);
     }
 
     // -- Template Fields --
@@ -334,8 +364,8 @@ public class AttendanceService {
     }
 
     /**
-     * @param audience whom to enter instead of the template's own groups, null or naming nobody
-     *     where the template decides as it always has
+     * @param audience whom to enter instead of the template's own user types and groups, kept with the
+     *     sheet; null or naming nobody where the template decides
      * @param eventDate which day of a repeating appointment the sheet is for, null where the sheet
      *     stands on its own or the caller already worked the times out. A series is one row that
      *     comes round again and again, so without this a sheet taken for next Tuesday would be
@@ -432,6 +462,7 @@ public class AttendanceService {
         // The appointment's own answers stand above the defaults the sheet and the appointment carry
         if (eventId != null) takeEventFieldValues(session.id(), eventId, dayOf(session), false);
 
+        keepAudience(session, audience);
         var expected = expectedFor(templateId, audience);
         enterExpectedMembers(session.id(), expected, new HashSet<>());
         if (eventId != null) applyRegistrations(session.id(), eventId, expected);
@@ -501,32 +532,46 @@ public class AttendanceService {
     }
 
     /**
-     * Everybody the template expects: the members of the groups it names.
+     * Whom a new sheet expects: what it was told, or its template's user types and groups when it was
+     * told nothing.
      *
-     * <p>The template is the only thing that decides who belongs on a sheet. An event the sheet was
-     * made from asks its own question of its own people, and whom it was open to says nothing about
-     * who is expected at the appointment itself.
-     *
-     * @param templateId the template the sheet was made from
-     * @return the members of the template's groups, without those who have left
+     * <p>The sheet and its template are the only things that decide who belongs on it. An event the
+     * sheet was made from asks its own question of its own people, and whom it was open to says
+     * nothing about who is expected at the appointment itself.
      */
-    private Set<Integer> expectedMembers(int templateId) {
-        Set<Integer> expected = new LinkedHashSet<>();
-        for (var group : attendanceRepository.findTemplateGroups(templateId)) {
-            for (var member : memberGroupRepository.findMembers(group.groupId())) {
-                if (!member.former()) expected.add(member.id());
-            }
-        }
-        return expected;
-    }
-
-    /** Whom a new sheet expects: what it was told, or its template's groups when it was told nothing. */
     private Set<Integer> expectedFor(int templateId, SessionAudience audience) {
-        if (audience == null || audience.namesNobody()) return expectedMembers(templateId);
+        var decisive =
+                audience == null || audience.namesNobody() ? audienceService.templateAudience(templateId) : audience;
         return attendanceRepository
                 .findTemplateById(templateId)
-                .map(template -> chosenMembers(template.stationId(), audience))
-                .orElseGet(() -> expectedMembers(templateId));
+                .map(template -> chosenMembers(template.stationId(), decisive))
+                .orElseGet(Set::of);
+    }
+
+    private Set<Integer> groupIdsOf(int stationId) {
+        return memberGroupRepository.findByStation(stationId).stream()
+                .map(MemberGroup::id)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Writes down whom a new sheet was told to expect, so that filling it in later, showing it and
+     * printing it go by the same people. Only groups of the sheet's own station are kept, the same
+     * ones {@link #chosenMembers} reads.
+     *
+     * @param session  the new sheet
+     * @param audience what it was told, null or naming nobody where its template decides
+     */
+    private void keepAudience(AttendanceSession session, SessionAudience audience) {
+        if (audience == null || audience.namesNobody()) return;
+        var stationId =
+                attendanceRepository.findTemplateById(session.templateId()).map(AttendanceTemplate::stationId);
+        if (stationId.isEmpty()) return;
+        Set<Integer> ofThisStation = groupIdsOf(stationId.get());
+        var kept = new SessionAudience(
+                audience.userTypes(),
+                audience.groupIds().stream().filter(ofThisStation::contains).toList());
+        if (!kept.namesNobody()) attendanceRepository.setSessionAudience(session.id(), kept);
     }
 
     /**
@@ -535,13 +580,11 @@ public class AttendanceService {
      * refused, since a sheet is not the place to say what another station keeps.
      *
      * @param stationId the station the sheet belongs to, which bounds both answers
-     * @param audience  the types and groups chosen for this one sheet
+     * @param audience  the types and groups chosen for the sheet, or those of its template
      * @return the members the two answers name, without those who have left
      */
     private Set<Integer> chosenMembers(int stationId, SessionAudience audience) {
-        Set<Integer> ofThisStation = memberGroupRepository.findByStation(stationId).stream()
-                .map(MemberGroup::id)
-                .collect(Collectors.toSet());
+        Set<Integer> ofThisStation = groupIdsOf(stationId);
         Set<Integer> expected = new LinkedHashSet<>();
         for (int groupId : audience.groupIds()) {
             if (!ofThisStation.contains(groupId)) continue;
@@ -944,15 +987,15 @@ public class AttendanceService {
 
     /**
      * Sync attendance entries from event registrations, absence data, and autoAttend template fields.
-     * - Members of the template's groups → put on the sheet if they are not on it yet
+     * - Whom the sheet expects (its own audience, or its template's) → put on the sheet if not on it yet
      * - Answers on the event → written into the sheet fields they are tied to, where the sheet is empty
      * - ACCEPTED registrations → on the sheet and still to be checked (or ABSENT if member has active absence)
      * - Anything else, where the event asked everybody to answer → DECLINED
      * - Members with active absence who already have PRESENT status → updated to ABSENT
      * - Members from autoAttend fields → added as PRESENT at the end
      *
-     * <p>Only the template's groups put anybody on a sheet, so whom the event was open to has no say
-     * here at all.
+     * <p>Only the sheet's audience puts anybody on it, so whom the event was open to has no say here
+     * at all.
      */
     public List<AttendanceEntry> syncFromEvent(int sessionId) {
         var session = attendanceRepository.findSessionById(sessionId);
@@ -965,7 +1008,7 @@ public class AttendanceService {
         var existingMemberIds =
                 existingEntries.stream().map(AttendanceEntry::memberId).collect(Collectors.toCollection(HashSet::new));
 
-        var expected = expectedMembers(session.get().templateId());
+        var expected = expectedFor(session.get().templateId(), audienceOf(session.get()));
         enterExpectedMembers(sessionId, expected, existingMemberIds);
 
         if (session.get().eventId() != null) {

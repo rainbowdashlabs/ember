@@ -122,6 +122,10 @@ public class AttendanceRoutes implements Routes {
                 prefix + "/attendance/templates/{templateId}/groups",
                 this::setTemplateGroups,
                 StationPermission.ATTENDANCE_CONFIGURE);
+        routes.put(
+                prefix + "/attendance/templates/{templateId}/user-types",
+                this::setTemplateUserTypes,
+                StationPermission.ATTENDANCE_CONFIGURE);
 
         routes.get(
                 prefix + "/attendance/templates/{templateId}/fields",
@@ -335,15 +339,20 @@ public class AttendanceRoutes implements Routes {
     private void listTemplateDetails(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(attendanceService.findTemplatesByStation(session.stationId()).stream()
-                .map(template -> new TemplateDetail(
-                        template.id(),
-                        template.stationId(),
-                        template.name(),
-                        attendanceService.findTemplateFields(template.id()),
-                        attendanceService.findTemplateGroups(template.id()).stream()
-                                .map(group -> new TemplateGroupEntry(group.groupId(), group.position()))
-                                .toList()))
+                .map(this::detailOf)
                 .toList());
+    }
+
+    private TemplateDetail detailOf(AttendanceTemplate template) {
+        return new TemplateDetail(
+                template.id(),
+                template.stationId(),
+                template.name(),
+                attendanceService.findTemplateFields(template.id()),
+                attendanceService.findTemplateGroups(template.id()).stream()
+                        .map(group -> new TemplateGroupEntry(group.groupId(), group.position()))
+                        .toList(),
+                attendanceService.findTemplateUserTypes(template.id()));
     }
 
     @OpenApi(
@@ -379,20 +388,9 @@ public class AttendanceRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyTemplateOwnership(id, session);
-        attendanceService
-                .findTemplateById(id)
-                .ifPresentOrElse(
-                        template -> {
-                            var fields = attendanceService.findTemplateFields(id);
-                            var groups = attendanceService.findTemplateGroups(id).stream()
-                                    .map(g -> new TemplateGroupEntry(g.groupId(), g.position()))
-                                    .toList();
-                            ctx.json(new TemplateDetail(
-                                    template.id(), template.stationId(), template.name(), fields, groups));
-                        },
-                        () -> {
-                            throw Refusal.ATTENDANCE_TEMPLATE_GONE_WHILE_READ.raise();
-                        });
+        attendanceService.findTemplateById(id).ifPresentOrElse(template -> ctx.json(detailOf(template)), () -> {
+            throw Refusal.ATTENDANCE_TEMPLATE_GONE_WHILE_READ.raise();
+        });
     }
 
     @OpenApi(
@@ -464,6 +462,21 @@ public class AttendanceRoutes implements Routes {
                 .map(g -> new TemplateGroupEntry(g.groupId(), g.position()))
                 .toList();
         ctx.json(result);
+    }
+
+    @OpenApi(
+            path = "/api/v1/attendance/templates/{templateId}/user-types",
+            methods = HttpMethod.PUT,
+            summary = "Set the user types an attendance template expects besides its groups (replace all)",
+            tags = {"Attendance"},
+            pathParams = @OpenApiParam(name = "templateId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetTemplateUserTypesRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationUserType[].class)))
+    private void setTemplateUserTypes(Context ctx) {
+        int templateId = pathInt(ctx, "templateId");
+        requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        var request = ctx.bodyAsClass(SetTemplateUserTypesRequest.class);
+        ctx.json(attendanceService.setTemplateUserTypes(templateId, request.userTypes()));
     }
 
     @OpenApi(
@@ -654,7 +667,12 @@ public class AttendanceRoutes implements Routes {
                         session -> {
                             var fields = attendanceService.findSessionFields(id);
                             var entries = attendanceService.findEntries(id);
-                            ctx.json(new SessionDetail(session, fields, entries, !attendanceService.isSessionOpen(id)));
+                            ctx.json(new SessionDetail(
+                                    session,
+                                    fields,
+                                    entries,
+                                    !attendanceService.isSessionOpen(id),
+                                    attendanceService.audienceOf(session)));
                         },
                         () -> {
                             throw Refusal.ATTENDANCE_SHEET_GONE_WHILE_READ.raise();
@@ -1380,14 +1398,25 @@ public class AttendanceRoutes implements Routes {
     public record TemplateRequest(String name) {}
 
     /**
-     * Detailed template response including fields and group associations.
+     * Detailed template response including fields, group associations and user types.
+     *
+     * @param userTypes the user types whose members the template's sheets expect besides the members
+     *     of its groups
      */
     public record TemplateDetail(
             int id,
             int stationId,
             String name,
             List<AttendanceTemplateField> fields,
-            List<TemplateGroupEntry> groups) {}
+            List<TemplateGroupEntry> groups,
+            Set<StationUserType> userTypes) {}
+
+    /**
+     * Request body for replacing the user types of a template.
+     *
+     * @param userTypes the user types to expect, empty to expect nobody by type
+     */
+    public record SetTemplateUserTypesRequest(List<StationUserType> userTypes) {}
 
     /**
      * A group association entry with position for ordering.
@@ -1410,8 +1439,8 @@ public class AttendanceRoutes implements Routes {
      *
      * @param countedMinutes what a whole presence at the sheet counts as when hours are added up,
      *     null where the sheet's own times decide
-     * @param audience whom to enter on this one sheet, null where the template's own groups decide
-     *     as they always have
+     * @param audience whom to enter on this one sheet, kept with it; null where the template's own
+     *     user types and groups decide
      * @param eventDate which day of a repeating appointment this sheet is for, null where the sheet
      *     stands on its own or the times are given outright
      */
@@ -1430,12 +1459,15 @@ public class AttendanceRoutes implements Routes {
     /**
      * @param locked whether the sheet refuses writes, decided here so the rule and the configured
      *     span are not written down a second time in the browser
+     * @param audience whom the sheet expects: what it was started with, or its template's user types
+     *     and groups where it was started with nothing
      */
     public record SessionDetail(
             AttendanceSession session,
             List<AttendanceSessionField> fields,
             List<AttendanceEntry> entries,
-            boolean locked) {}
+            boolean locked,
+            SessionAudience audience) {}
 
     /**
      * A field ID and its JSONB value for batch session field updates.

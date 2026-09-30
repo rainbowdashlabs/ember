@@ -1928,6 +1928,9 @@ export default {
         groupsHint: 'Wähle die Mitgliedergruppen aus, für die Anwesenheit erfasst werden soll.',
         noGroups: 'Noch keine Gruppen zugewiesen.',
         addGroup: 'Gruppe hinzufügen',
+        userTypes: 'Mitgliedstypen',
+        userTypesHint: 'Alle Mitglieder der gewählten Typen werden zusätzlich zu den Gruppen eingetragen. '
+            + 'Ist kein Typ gewählt, tragen nur die Gruppen jemanden ein.',
         fieldGroup: 'Gruppe',
         fieldGroupPlaceholder: 'Gruppe auswählen',
         fieldRequired: 'Pflichtfeld',
@@ -3009,11 +3012,13 @@ export default {
         emptyHint: 'Im nächsten Schritt wählst du aus, wer eingetragen wird.',
         audienceTitle: 'Wer wird eingetragen?',
         audienceHint: 'Mitgliedstypen und Gruppen ergänzen sich: Wer einem davon entspricht, steht auf der Liste.',
+        audienceFromTemplateHint: 'Vorausgewählt ist, wen die Vorlage einträgt. Mitgliedstypen und Gruppen ergänzen '
+            + 'sich: Wer einem davon entspricht, steht auf der Liste. Was du hier änderst, gilt nur für diese Liste.',
         userTypes: 'Mitgliedstypen',
         groups: 'Gruppen',
         noGroups: 'Diese Wache hat noch keine Gruppen.',
         fieldsFrom: 'Felder übernehmen von',
-        fieldsFromHint: 'Die Liste braucht Felder. Die Gruppen dieser Vorlage werden dabei nicht übernommen.',
+        fieldsFromHint: 'Die Liste übernimmt die Felder dieser Vorlage. Wer eingetragen wird, bestimmst du oben.',
     },
     membersConfig: {
         roles: {

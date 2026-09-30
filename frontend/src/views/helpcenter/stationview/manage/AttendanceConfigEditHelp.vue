@@ -17,6 +17,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import UserTypesEditor from '@/views/stationview/manage/attendanceconfigedit/UserTypesEditor.vue'
 
 const {t} = useI18n()
 </script>
@@ -40,6 +41,12 @@ const {t} = useI18n()
       </div>
       <PrimaryButton disabled>{{ t('attendanceConfig.save') }}</PrimaryButton>
     </NeutralContainer>
+
+    <HelpSection :title="t('helpCenter.attendanceConfigEdit.userTypesTitle')">
+      <p>{{ t('helpCenter.attendanceConfigEdit.userTypesText') }}</p>
+    </HelpSection>
+
+    <UserTypesEditor :model-value="['TEAM']"/>
 
     <HelpSection :title="t('helpCenter.attendanceConfigEdit.groupsTitle')">
       <p>{{ t('helpCenter.attendanceConfigEdit.groupsText') }}</p>

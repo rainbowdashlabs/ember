@@ -255,3 +255,39 @@ ALTER TABLE ember_schema.cluster_member
 
 COMMENT ON COLUMN ember_schema.cluster_member.email_enabled
     IS 'Whether this person wants the association''s gathered notifications by mail. Off until they switch it on, the same as a station membership''s mail setting.';
+
+CREATE TABLE ember_schema.attendance_template_user_type
+(
+    template_id INTEGER NOT NULL REFERENCES ember_schema.attendance_template (id) ON DELETE CASCADE,
+    user_type   TEXT    NOT NULL,
+    PRIMARY KEY (template_id, user_type)
+);
+
+COMMENT ON TABLE ember_schema.attendance_template_user_type
+    IS 'User types whose members are expected on sheets made from this template, in addition to the members of its groups. No row enters nobody by type.';
+COMMENT ON COLUMN ember_schema.attendance_template_user_type.template_id
+    IS 'References the attendance template. Deleted with the template.';
+COMMENT ON COLUMN ember_schema.attendance_template_user_type.user_type
+    IS 'StationUserType name whose members the template expects.';
+
+CREATE TABLE ember_schema.attendance_session_audience
+(
+    session_id INTEGER NOT NULL REFERENCES ember_schema.attendance_session (id) ON DELETE CASCADE,
+    user_type  TEXT    NULL,
+    group_id   INTEGER NULL REFERENCES ember_schema.member_group (id) ON DELETE CASCADE,
+    position   INTEGER NOT NULL DEFAULT 0,
+    CHECK (num_nonnulls(user_type, group_id) = 1),
+    UNIQUE (session_id, user_type),
+    UNIQUE (session_id, group_id)
+);
+
+COMMENT ON TABLE ember_schema.attendance_session_audience
+    IS 'Whom one sheet was told to expect when it was started, instead of the user types and groups of its template. A sheet without rows follows its template.';
+COMMENT ON COLUMN ember_schema.attendance_session_audience.session_id
+    IS 'References the attendance session. Deleted with the session.';
+COMMENT ON COLUMN ember_schema.attendance_session_audience.user_type
+    IS 'StationUserType name whose members the sheet expects. Exactly one of user_type and group_id is set.';
+COMMENT ON COLUMN ember_schema.attendance_session_audience.group_id
+    IS 'Group whose members the sheet expects. Exactly one of user_type and group_id is set.';
+COMMENT ON COLUMN ember_schema.attendance_session_audience.position
+    IS 'Order the groups were chosen in, which is the order the sheet is written in.';

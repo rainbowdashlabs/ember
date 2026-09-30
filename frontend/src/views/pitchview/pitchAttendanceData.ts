@@ -6,6 +6,7 @@
 import type {AttendanceEntry} from '@/api/attendance'
 import type {MemberGroup, StationMember} from '@/api/types'
 import type {PitchAttendance, PitchCheckMode} from './pitchTypes'
+import type {MemberSection} from '@/views/stationview/attendance/sessionview/memberSections'
 
 /**
  * The attendance a demonstration shows. The application's own list, summary and check panel read
@@ -26,9 +27,9 @@ const MIRA = member(5, 'Mira Sand')
 
 const MEMBERS = [ANNA, BEN, CLARA, JONAS, MIRA, member(6, 'Timo Reich')]
 
-const SECTIONS = [
-    {group: CREW, members: [ANNA, BEN, CLARA]},
-    {group: RECRUITS, members: [JONAS, MIRA]},
+const SECTIONS: MemberSection[] = [
+    {key: `group-${CREW.id}`, title: CREW.name ?? '', members: [ANNA, BEN, CLARA]},
+    {key: `group-${RECRUITS.id}`, title: RECRUITS.name ?? '', members: [JONAS, MIRA]},
 ]
 
 /** The times are read back as timestamps, so they are given as one - on the day of the session. */

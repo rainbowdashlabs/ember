@@ -41,6 +41,12 @@ export interface TemplateDetail {
     name?: string
     fields?: AttendanceTemplateField[]
     groups?: TemplateGroupEntry[]
+    /** The user types whose members the template's sheets expect besides the members of its groups. */
+    userTypes?: StationUserTypeName[]
+}
+
+export interface SetTemplateUserTypesRequest {
+    userTypes: StationUserTypeName[]
 }
 
 export interface TemplateGroupEntry {
@@ -74,7 +80,7 @@ export interface SessionRequest {
     eventId?: number | null
     title?: string
     countedMinutes?: number | null
-    /** Whom to enter on this one sheet, left out where the template's own groups decide. */
+    /** Whom to enter on this one sheet, left out where the template's own user types and groups decide. */
     audience?: SessionAudience
     /**
      * Which day of a repeating appointment the sheet is for, as an ISO date.
@@ -86,8 +92,9 @@ export interface SessionRequest {
 }
 
 /**
- * Who stands on one sheet, where the template it borrows its fields from is not the answer. The two
- * add up, and the groups keep the order they were chosen in, which the sheet is then written in.
+ * Who stands on one sheet: everybody of the user types and everybody in the groups. The two add up,
+ * and the groups keep the order they were chosen in, which the sheet is then written in. A template
+ * carries one as the default for its sheets.
  */
 export interface SessionAudience {
     userTypes: StationUserTypeName[]
@@ -115,6 +122,8 @@ export interface SessionDetail {
     entries?: AttendanceEntry[]
     /** Whether the sheet refuses writes; decided by the backend, which owns the span. */
     locked?: boolean
+    /** Whom the sheet expects: what it was started with, or its template's user types and groups. */
+    audience?: SessionAudience
 }
 
 export type AttendanceStatus = 'UNCONFIRMED' | 'PRESENT' | 'ABSENT' | 'DECLINED'
@@ -190,6 +199,14 @@ export async function deleteTemplateField(templateId: number, fieldId: number): 
 
 export async function setTemplateGroups(templateId: number, data: SetTemplateGroupsRequest): Promise<TemplateGroupEntry[]> {
     const res = await client.put<TemplateGroupEntry[]>(`/attendance/templates/${templateId}/groups`, data)
+    return res.data
+}
+
+export async function setTemplateUserTypes(
+    templateId: number,
+    data: SetTemplateUserTypesRequest,
+): Promise<StationUserTypeName[]> {
+    const res = await client.put<StationUserTypeName[]>(`/attendance/templates/${templateId}/user-types`, data)
     return res.data
 }
 

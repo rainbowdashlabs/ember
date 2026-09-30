@@ -169,7 +169,7 @@ public class AttendanceReportService {
         }
         for (var ut : userTypes) {
             rawIdSet.addAll(attendanceRepository.findMemberIdsByUserType(stationId, ut));
-            filterLabels.add(ut.name());
+            filterLabels.add(DocumentWord.forUserType(ut.name(), locale.getLanguage()));
         }
         String filterLabel = String.join(", ", filterLabels);
         var memberIds = Set.copyOf(rawIdSet);

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -14,9 +15,10 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
+import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
-import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.question.QuestionValues;
@@ -43,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -62,6 +65,7 @@ public class AttendanceExportService {
     private final MemberGroupRepository memberGroupRepository;
     private final StationRepository stationRepository;
     private final Api apiConfig;
+    private final AttendanceAudienceService audienceService;
 
     @Inject
     public AttendanceExportService(
@@ -70,7 +74,9 @@ public class AttendanceExportService {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             StationRepository stationRepository,
-            Api apiConfig) {
+            Api apiConfig,
+            AttendanceAudienceService audienceService) {
+        this.audienceService = audienceService;
         this.attendanceRepository = attendanceRepository;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -131,8 +137,7 @@ public class AttendanceExportService {
         var sessionFields = attendanceRepository.findSessionFields(sessionId);
         var templateFields =
                 attendanceRepository.findTemplateFields(session.get().templateId());
-        var templateGroups =
-                attendanceRepository.findTemplateGroups(session.get().templateId());
+        var audience = audienceService.audienceOf(session.get());
 
         // Resolve station from the template
         var template = attendanceRepository.findTemplateById(session.get().templateId());
@@ -140,7 +145,15 @@ public class AttendanceExportService {
         var station = stationRepository.findById(stationId).orElse(null);
         ZoneId zone = StationFormat.timezoneOf(station);
 
-        var data = buildExportData(session.get(), entries, sessionFields, templateFields, templateGroups, zone);
+        var data = buildExportData(session.get(), entries, sessionFields, templateFields, zone);
+        data.put(
+                "sections",
+                sections(
+                        audience,
+                        entries,
+                        stationId,
+                        StationFormat.languageOf(station),
+                        entry -> buildEntryMap(entry, session.get(), zone)));
         data.put("stationName", station != null ? station.name() : "");
         data.put("generatedBy", generatedBy != null ? generatedBy : "");
         data.put("generatedAt", DATE_TIME_FMT.format(Instant.now().atZone(zone)));
@@ -174,7 +187,6 @@ public class AttendanceExportService {
             List<AttendanceEntry> entries,
             List<AttendanceSessionField> sessionFields,
             List<AttendanceTemplateField> templateFields,
-            List<TemplateGroup> templateGroups,
             ZoneId zone) {
         var data = new LinkedHashMap<String, Object>();
         data.put("title", session.title() != null ? session.title() : "Anwesenheit");
@@ -205,45 +217,6 @@ public class AttendanceExportService {
         }
         data.put("fields", fieldList);
 
-        // Build entry lookup by memberId
-        var entryByMember = new LinkedHashMap<Integer, AttendanceEntry>();
-        for (var entry : entries) {
-            entryByMember.put(entry.memberId(), entry);
-        }
-
-        // Build grouped sections
-        var sections = new ArrayList<Section>();
-        Set<Integer> assignedMemberIds = new HashSet<>();
-
-        for (var tg : templateGroups) {
-            var group = memberGroupRepository.findById(tg.groupId());
-            if (group.isEmpty()) continue;
-            var groupMembers = memberGroupRepository.findMembers(tg.groupId());
-            var sectionEntries = new ArrayList<Map<String, String>>();
-            for (var member : groupMembers) {
-                var entry = entryByMember.get(member.id());
-                if (entry == null) continue;
-                sectionEntries.add(buildEntryMap(entry, session, zone));
-                assignedMemberIds.add(member.id());
-            }
-            if (!sectionEntries.isEmpty()) {
-                sections.add(new Section(group.get().name(), sectionEntries));
-            }
-        }
-
-        // Ungrouped members
-        var ungroupedEntries = new ArrayList<Map<String, String>>();
-        for (var entry : entries) {
-            if (!assignedMemberIds.contains(entry.memberId())) {
-                ungroupedEntries.add(buildEntryMap(entry, session, zone));
-            }
-        }
-        if (!ungroupedEntries.isEmpty()) {
-            sections.add(new Section("Sonstige", ungroupedEntries));
-        }
-
-        data.put("sections", sections);
-
         // Flat entries list for summary counts
         var allEntries = new ArrayList<StatusEntry>();
         for (var entry : entries) {
@@ -252,6 +225,80 @@ public class AttendanceExportService {
         data.put("entries", allEntries);
 
         return data;
+    }
+
+    /**
+     * The sheet's lines, sectioned by whom the sheet expects.
+     *
+     * <p>A section per group comes first, in the sheet's order, as it always has, a member of two
+     * groups standing in both. Then one per user type for whoever of that type no group has taken,
+     * and last everybody else on the sheet. Only people with an entry are printed.
+     *
+     * @param audience  whom the sheet expects, its own or its template's
+     * @param entries   the sheet's entries
+     * @param stationId the station, whose members' user types decide the type sections
+     * @param language  the station's language, which names the user types
+     * @param line      how one entry is printed
+     * @return the non-empty sections in print order
+     */
+    List<Section> sections(
+            SessionAudience audience,
+            List<AttendanceEntry> entries,
+            int stationId,
+            String language,
+            Function<AttendanceEntry, Map<String, String>> line) {
+        var entryByMember = new LinkedHashMap<Integer, AttendanceEntry>();
+        for (var entry : entries) entryByMember.put(entry.memberId(), entry);
+
+        var sections = new ArrayList<Section>();
+        Set<Integer> assigned = new HashSet<>();
+        for (int groupId : audience.groupIds()) {
+            var group = memberGroupRepository.findById(groupId);
+            if (group.isEmpty()) continue;
+            var memberIds = memberGroupRepository.findMembers(groupId).stream()
+                    .map(StationMember::id)
+                    .toList();
+            addSection(sections, group.get().name(), memberIds, entryByMember, assigned, line);
+        }
+        if (!audience.userTypes().isEmpty()) {
+            var members = stationMemberRepository.findByStation(stationId);
+            for (var type : StationUserType.values()) {
+                if (!audience.userTypes().contains(type)) continue;
+                var memberIds = members.stream()
+                        .filter(member -> member.userType() == type && !assigned.contains(member.id()))
+                        .map(StationMember::id)
+                        .toList();
+                addSection(
+                        sections,
+                        DocumentWord.forUserType(type.name(), language),
+                        memberIds,
+                        entryByMember,
+                        assigned,
+                        line);
+            }
+        }
+        var rest = entryByMember.keySet().stream()
+                .filter(memberId -> !assigned.contains(memberId))
+                .toList();
+        addSection(sections, "Sonstige", rest, entryByMember, assigned, line);
+        return sections;
+    }
+
+    private static void addSection(
+            List<Section> sections,
+            String name,
+            List<Integer> memberIds,
+            Map<Integer, AttendanceEntry> entryByMember,
+            Set<Integer> assigned,
+            Function<AttendanceEntry, Map<String, String>> line) {
+        var lines = new ArrayList<Map<String, String>>();
+        for (int memberId : memberIds) {
+            var entry = entryByMember.get(memberId);
+            if (entry == null) continue;
+            assigned.add(memberId);
+            lines.add(line.apply(entry));
+        }
+        if (!lines.isEmpty()) sections.add(new Section(name, lines));
     }
 
     /**

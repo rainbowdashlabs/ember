@@ -60,6 +60,37 @@ describe('AudienceStep', () => {
         expect(wrapper.emitted('confirm')![0]![0]).toBe(9)
     })
 
+    /** Started from a template, the step arrives with whom the template enters, and its questions. */
+    it('arrives filled in with the template it was started from', async () => {
+        const template: TemplateDetail = {
+            id: 9,
+            stationId: 's',
+            name: 'Übung',
+            fields: [],
+            groups: [{groupId: 12, position: 1}, {groupId: 11, position: 0}],
+            userTypes: ['MANAGER'],
+        }
+        const wrapper = mount(AudienceStep, {props: {templates, groups, template}, ...harness})
+
+        expect((wrapper.find('[data-testid="attendance-type-MANAGER"]').element as HTMLInputElement).checked).toBe(true)
+        expect((wrapper.find('[data-testid="attendance-type-TEAM"]').element as HTMLInputElement).checked).toBe(false)
+        expect((wrapper.find('[data-testid="attendance-group-11"]').element as HTMLInputElement).checked).toBe(true)
+        expect((wrapper.find('[data-testid="attendance-fields-from"]').element as HTMLSelectElement).value).toBe('9')
+
+        await wrapper.find('[data-testid="attendance-audience-confirm"]').trigger('click')
+
+        expect(wrapper.emitted('confirm')).toEqual([[9, {userTypes: ['MANAGER'], groupIds: [11, 12]}]])
+    })
+
+    /** A template that enters nobody still starts a sheet, to which people are then added by hand. */
+    it('lets a template that enters nobody through', async () => {
+        const wrapper = mount(AudienceStep, {props: {templates, groups, template: templates[1]}, ...harness})
+
+        await wrapper.find('[data-testid="attendance-audience-confirm"]').trigger('click')
+
+        expect(wrapper.emitted('confirm')).toEqual([[9, {userTypes: [], groupIds: []}]])
+    })
+
     it('keeps the groups in the order they were chosen', async () => {
         const wrapper = step()
 

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:5860159e64ebdf85bf0b48ac01576747c0d44a295f0760447f48c671fa3fe95e",
-  "generatedAt": "2026-09-30T17:53:48Z",
+  "schemaHash": "sha256:77b9eb0ddf867080f6b9666ccf42046a9c39134e004af7ac36be8236bbf20e83",
+  "generatedAt": "2026-09-30T21:14:22Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -1448,6 +1448,67 @@
       },
       "description": "An actual attendance session instance (created from a template for a specific date/time)."
     },
+    "attendance_session_audience": {
+      "feature": "attendance",
+      "scope": "STATION",
+      "tableHash": "sha256:d65b6680b9d1fbc50137802bea2e14e408c7a2daa1aa74229e5168ad8b8366f8",
+      "columns": [
+        {
+          "name": "session_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the attendance session. Deleted with the session."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "StationUserType name whose members the sheet expects. Exactly one of user_type and group_id is set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Group whose members the sheet expects. Exactly one of user_type and group_id is set."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Order the groups were chosen in, which is the order the sheet is written in."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "session_id",
+          "refTable": "attendance_session",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "description": "Whom one sheet was told to expect when it was started, instead of the user types and groups of its template. A sheet without rows follows its template."
+    },
     "attendance_session_field": {
       "feature": "attendance",
       "scope": "STATION",
@@ -1678,6 +1739,47 @@
         "reason": "Attendance template/session config, not per-member"
       },
       "description": "Groups whose members are expected to attend sessions using this template."
+    },
+    "attendance_template_user_type": {
+      "feature": "attendance",
+      "scope": "STATION",
+      "tableHash": "sha256:a595b09c363beb8c22f7ea369d1840e5a74131c2f0e0e8902750cd6ed17c51c5",
+      "columns": [
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the attendance template. Deleted with the template."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "StationUserType name whose members the template expects."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "template_id",
+          "refTable": "attendance_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "description": "User types whose members are expected on sheets made from this template, in addition to the members of its groups. No row enters nobody by type."
     },
     "beacon_instance": {
       "feature": "beacon",

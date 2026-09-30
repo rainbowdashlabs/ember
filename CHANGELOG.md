@@ -20,6 +20,7 @@
 - **Pictures take less space and load faster.** The smaller sizes of avatars, logos, wiki pictures and quiz and lost and found pictures are stored as WebP, and no size is kept that is as large as the picture itself. Pictures uploaded before stay as they are.
 - **Announcing an appointment builds a ready entry.** "Announce as news" now opens the entry with an event block for the chosen day, the appointment's description, and a short text on what the block does not show, such as the registration deadline, the number of places and whether sign-ups are confirmed. Every part can still be changed before saving.
 - **Event blocks in news entries.** A news entry can show an appointment as an event block, including appointments the station keeps to itself, and pick which day of a repeating one it is about. Readers who may not see the appointment, such as partner stations or the public blog, see a short note instead.
+- **Attendance templates can enter whole member types.** A template can name member types as well as groups, and everybody of a chosen type stands on its sheets beside the members of its groups. Starting a sheet from a template shows its types and groups already ticked, to keep or to change for that one sheet.
 
 ### Security
 
@@ -56,6 +57,8 @@
 - **Statistics dipped after every restart.** Each restart lost the page visits of up to the last hour, the latest traffic counts, request timings and log lines. They are now saved before the server stops, as long as it is given its time to shut down.
 - **WebP pictures could not be uploaded everywhere.** Uploading a WebP picture as a station logo or as a wiki folder icon or image failed, and in some cases removed the picture that was there before. WebP pictures are now taken like any other.
 - **The instance storage could stop after a station moved back.** When a station with storage of its own moved back to the instance storage and the instance kept its files on SFTP, SMB or S3, every file of the instance failed afterwards until Ember was restarted. The instance storage now stays open.
+- **An attendance sheet forgot whom it was started for.** A sheet started for chosen member types and groups still listed the template's groups, and filling it in from its appointment added their members. A sheet now keeps the people it was started for, on screen, when it is filled in again and in its PDF.
+- **The attendance report named member types the way the database does.** The heading of the report and its preview showed a member type as "TEAM" or "GUARDIAN". It now uses the names the rest of the page uses.
 - **SMB storage stayed unreachable after a dropped connection.** In some cases, once the connection to an SMB server had been lost, every file on it failed until Ember was restarted. Ember now signs in again on the new connection.
 - **Changed storage settings left connections open.** Every change to the storage of a station or a cluster left the connection to the old server open until Ember was restarted. Replaced connections are now closed.
 - **Deleting a file on SFTP storage could fail.** In some cases removing a file from SFTP storage that was already gone was answered with an error. It now succeeds quietly, as it does on every other storage.

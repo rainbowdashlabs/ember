@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
+import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
@@ -29,6 +30,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -346,6 +348,68 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
 
         memberGroupRepo.delete(group1.id());
         memberGroupRepo.delete(group2.id());
+    }
+
+    /** A template's user types are replaced as a whole, like its groups, and come back as a set. */
+    @Test
+    @Order(43)
+    void setAndFindTemplateUserTypes() {
+        assertTrue(attendanceRepo.findTemplateUserTypes(templateId).isEmpty());
+
+        attendanceRepo.setTemplateUserTypes(templateId, Set.of(StationUserType.TEAM, StationUserType.TRIAL));
+        assertEquals(
+                Set.of(StationUserType.TEAM, StationUserType.TRIAL), attendanceRepo.findTemplateUserTypes(templateId));
+
+        attendanceRepo.setTemplateUserTypes(templateId, Set.of(StationUserType.MEMBER));
+        assertEquals(Set.of(StationUserType.MEMBER), attendanceRepo.findTemplateUserTypes(templateId));
+
+        attendanceRepo.setTemplateUserTypes(templateId, Set.of());
+        assertTrue(attendanceRepo.findTemplateUserTypes(templateId).isEmpty());
+    }
+
+    /** Deleting a template takes its user types with it. */
+    @Test
+    @Order(44)
+    void templateUserTypesGoWithTheirTemplate() {
+        int doomed = attendanceRepo.createTemplate(station.id(), "Doomed").id();
+        attendanceRepo.setTemplateUserTypes(doomed, Set.of(StationUserType.TEAM));
+
+        attendanceRepo.deleteTemplate(doomed);
+
+        assertTrue(attendanceRepo.findTemplateUserTypes(doomed).isEmpty());
+    }
+
+    /**
+     * A sheet keeps whom it was started with: its user types and its groups, the groups in the order
+     * they were chosen, and a group named twice only once.
+     */
+    @Test
+    @Order(45)
+    void aSheetKeepsItsAudience() {
+        MemberGroup first = memberGroupRepo.create(station.id(), "Audience First");
+        MemberGroup second = memberGroupRepo.create(station.id(), "Audience Second");
+        int sheet = attendanceRepo
+                .createSession(templateId, Instant.now(), Instant.now().plusSeconds(3600), null, "Audience", null)
+                .id();
+
+        assertTrue(attendanceRepo.findSessionAudience(sheet).namesNobody());
+
+        attendanceRepo.setSessionAudience(
+                sheet,
+                new SessionAudience(Set.of(StationUserType.TEAM), List.of(second.id(), first.id(), second.id())));
+        var kept = attendanceRepo.findSessionAudience(sheet);
+        assertEquals(Set.of(StationUserType.TEAM), kept.userTypes());
+        assertEquals(List.of(second.id(), first.id()), kept.groupIds());
+
+        attendanceRepo.setSessionAudience(sheet, new SessionAudience(Set.of(StationUserType.GUARDIAN), List.of()));
+        kept = attendanceRepo.findSessionAudience(sheet);
+        assertEquals(Set.of(StationUserType.GUARDIAN), kept.userTypes());
+        assertTrue(kept.groupIds().isEmpty());
+
+        attendanceRepo.deleteSession(sheet);
+        assertTrue(attendanceRepo.findSessionAudience(sheet).namesNobody());
+        memberGroupRepo.delete(first.id());
+        memberGroupRepo.delete(second.id());
     }
 
     // -- Member IDs by user type / group --

@@ -22,6 +22,7 @@ import TemplateGrid from '@/views/stationview/attendance/newview/TemplateGrid.vu
 import EmptySessionTile from '@/views/stationview/attendance/newview/EmptySessionTile.vue'
 import AudienceStep from '@/views/stationview/attendance/newview/AudienceStep.vue'
 import NewSessionModal from '@/views/stationview/attendance/newview/NewSessionModal.vue'
+import {sameAudience} from '@/views/stationview/attendance/newview/templateAudience'
 
 /** How long a sheet runs where the template has no sheet of its own to go by yet. */
 const DEFAULT_LENGTH_MS = 2 * 60 * 60 * 1000
@@ -40,9 +41,14 @@ const suggestedStart = ref('')
 const suggestedEnd = ref('')
 const askTimes = ref(false)
 
-/** The audience for a sheet no template describes, set only by the second step and held until the times are. */
+/**
+ * The audience the second step chose, held until the times are. Null where it is exactly the
+ * template's, so that the sheet keeps following its template.
+ */
 const chosenAudience = ref<SessionAudience | null>(null)
 const askingAudience = ref(false)
+/** The template the second step was opened from, whose user types and groups it arrives with. */
+const audienceTemplate = ref<TemplateDetail | null>(null)
 
 const eventsWithTemplate = computed(() =>
     todayEvents.value.filter(ev => ev.templateId != null)
@@ -120,23 +126,27 @@ async function askForTimes(template: TemplateDetail) {
   askTimes.value = true
 }
 
+function askForAudience(template: TemplateDetail | null) {
+  loadFailure.value = null
+  chosenAudience.value = null
+  audienceTemplate.value = template
+  askingAudience.value = true
+}
+
 function createFromTemplate(templateId: number) {
   const template = templates.value.find(tpl => tpl.id === templateId)
-  chosenAudience.value = null
-  if (template) askForTimes(template)
+  if (template) askForAudience(template)
 }
 
 function startEmpty() {
-  loadFailure.value = null
-  chosenAudience.value = null
-  askingAudience.value = true
+  askForAudience(null)
 }
 
 /** The audience is answered, so the sheet is now started the way any other one is: by its times. */
 function audienceChosen(templateId: number, audience: SessionAudience) {
   const template = templates.value.find(tpl => tpl.id === templateId)
   if (!template) return
-  chosenAudience.value = audience
+  chosenAudience.value = sameAudience(audience, template) ? null : audience
   askingAudience.value = false
   askForTimes(template)
 }
@@ -177,8 +187,10 @@ watch(loaded, (isLoaded) => {
 
       <AudienceStep
           v-if="askingAudience && !creating"
+          :key="audienceTemplate?.id ?? 'without-template'"
           :busy="creating"
           :groups="groups"
+          :template="audienceTemplate"
           :templates="templates"
           @back="askingAudience = false"
           @confirm="audienceChosen"

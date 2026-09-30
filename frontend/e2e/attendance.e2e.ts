@@ -147,6 +147,7 @@ async function openExport(page: Page) {
 
 async function openSheetFromTemplate(page: Page) {
     await page.getByRole('button', {name: 'Erstellen'}).first().click()
+    await page.getByTestId('attendance-audience-confirm').click()
     await page.getByTestId('new-session-create').click()
     await page.waitForURL(/\/station\/attendance\/session\/\d+/)
 }
@@ -609,6 +610,7 @@ test.describe('Attendance', () => {
 
         await page.goto('/station/attendance/new')
         await page.getByRole('button', {name: 'Erstellen'}).first().click()
+        await page.getByTestId('attendance-audience-confirm').click()
 
         await page.getByTestId('new-session-title').fill(unique('Zeltlager'))
         await page.getByTestId('new-session-start').fill(asLocalInput(start))

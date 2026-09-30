@@ -9,6 +9,7 @@ import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryCo
 import type {CheckResult} from '@/api/inventoryCheck'
 import type {CheckEntry} from '@/composables/useMemberCheck'
 import type {CheckRow} from '@/views/stationview/attendance/sessionview/useCheckMode'
+import type {MemberSection} from '@/views/stationview/attendance/sessionview/memberSections'
 import type {EvaluationResponse, TestProtocolItem, TestProtocolSection} from '@/api/protocol'
 import type {Form, FormQuestion, FormQuestionInfo, FormResultGroup} from '@/api/forms'
 import type {PageRow, StationPage} from '@/api/pageManage'
@@ -280,7 +281,7 @@ export interface PitchProcedureTemplate {
 export interface PitchAttendance {
     entries: AttendanceEntry[]
     members: StationMember[]
-    sections: {group: MemberGroup | null; members: StationMember[]}[]
+    sections: MemberSection[]
 }
 
 /** What the application's own grading panel needs: the section, its items, and what is ticked. */

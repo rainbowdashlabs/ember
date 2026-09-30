@@ -11,11 +11,10 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Who stands on one sheet, where the template it borrows its fields from is not the answer.
+ * Who stands on one sheet: the members of its groups and everybody of its user types.
  *
- * <p>A template decides two things at once: which questions a sheet carries and whom it enters. A
- * station wanting only the first had to keep a template with no groups on it for the rest of its
- * life. This says whom to enter for this one sheet instead, and is remembered nowhere afterwards.
+ * <p>A template carries one as the default for its sheets, and a sheet started with one of its own
+ * keeps it, so filling the sheet in later and printing it go by the same people it was started with.
  *
  * @param userTypes the kinds of member to enter, empty where none was chosen
  * @param groupIds  the groups to enter, in the order they were chosen, which is the order the sheet
@@ -28,7 +27,7 @@ public record SessionAudience(Set<StationUserType> userTypes, List<Integer> grou
         groupIds = groupIds == null ? List.of() : List.copyOf(groupIds);
     }
 
-    /** Whether the sheet was told nothing, in which case the template's own groups still decide. */
+    /** Whether the sheet was told nothing, in which case the template's own user types and groups decide. */
     public boolean namesNobody() {
         return userTypes.isEmpty() && groupIds.isEmpty();
     }
