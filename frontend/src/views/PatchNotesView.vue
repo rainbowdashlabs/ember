@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -16,6 +16,7 @@ import {renderMarkdown} from '@/util/markdown'
 import {formatDateLong, formatDateTime} from '@/util/format'
 import client from '@/api/client'
 import {getChangelog, type ChangelogEntry} from '@/api/system'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
  * What every version of this instance brought.
@@ -29,28 +30,20 @@ const {t} = useI18n()
 
 const entries = ref<ChangelogEntry[]>([])
 const currentVersion = ref('')
-const loading = ref(true)
-const error = ref('')
 
 /** The numbers alone, which is what a version heading carries; a build off a branch says more. */
 function versionNumber(version: string): string {
     return version.trim().split(' ')[0]?.replace(/^v/, '') ?? ''
 }
 
-onMounted(async () => {
-    try {
-        const [changelog, config] = await Promise.all([
-            getChangelog(),
-            client.get<{version?: string}>('/public/config').then(res => res.data).catch(() => ({version: ''})),
-        ])
-        entries.value = changelog
-        currentVersion.value = versionNumber(config.version ?? '')
-    } catch {
-        error.value = t('patchNotes.fetchError')
-    } finally {
-        loading.value = false
-    }
-})
+const {loading, error} = useAsyncLoader(async () => {
+    const [changelog, config] = await Promise.all([
+        getChangelog(),
+        client.get<{version?: string}>('/public/config').then(res => res.data).catch(() => ({version: ''})),
+    ])
+    entries.value = changelog
+    currentVersion.value = versionNumber(config.version ?? '')
+}, {errorMessageKey: 'patchNotes.fetchError'})
 </script>
 
 <template>

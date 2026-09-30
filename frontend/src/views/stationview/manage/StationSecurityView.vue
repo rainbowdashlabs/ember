@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -18,7 +18,8 @@ import {twoFactorAdmin} from '@/api'
 import type {MemberStatus, TwoFactorPolicy} from '@/api/twoFactorAdmin'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const {hasPermission, loaded} = useSession()
@@ -30,8 +31,6 @@ watch(loaded, (isLoaded) => {
   }
 }, {immediate: true})
 
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 const userTypes = ref<string[]>([])
 const policies = ref<TwoFactorPolicy[]>([])
 const members = ref<MemberStatus[]>([])
@@ -45,23 +44,21 @@ const policyByUserType = computed(() => {
   return map
 })
 
+const {loading, failure, reload} = useAsyncLoader(async () => {
+  const [types, p, m] = await Promise.all([
+    twoFactorAdmin.listAssignableUserTypes(),
+    twoFactorAdmin.listStationPolicies(),
+    twoFactorAdmin.listStationMemberStatus(),
+  ])
+  userTypes.value = types
+  policies.value = p
+  members.value = m
+})
+
+/** Reads the page back, naming a failure with the sentence given where the caller has a better one. */
 async function load(staleMessage?: string) {
-  loading.value = true
-  failure.value = null
-  try {
-    const [t, p, m] = await Promise.all([
-      twoFactorAdmin.listAssignableUserTypes(),
-      twoFactorAdmin.listStationPolicies(),
-      twoFactorAdmin.listStationMemberStatus(),
-    ])
-    userTypes.value = t
-    policies.value = p
-    members.value = m
-  } catch (e) {
-    const described = describeFailure(e, t)
-    failure.value = staleMessage ? {...described, message: staleMessage} : described
-  }
-  loading.value = false
+  await reload()
+  if (staleMessage && failure.value) failure.value = {...failure.value, message: staleMessage}
 }
 
 /**
@@ -115,8 +112,6 @@ async function confirmReset() {
   resetLoading.value = false
   await load(t('failure.staleAfterAction'))
 }
-
-onMounted(load)
 </script>
 
 <template>

@@ -30,6 +30,7 @@ import EditItemCustomFields from '../detailview/edititemmodal/EditItemCustomFiel
 import {buildItemMetadata} from '../detailview/itemMetadata'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {formatDate} from '@/util/format'
 import {describeFailure, type Failure} from '@/util/failure'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -211,8 +212,13 @@ async function submitQuickAssign() {
 const showHistoryModal = ref(false)
 const historyTarget = ref<InventoryItem | null>(null)
 const historyEntries = ref<InventoryItemHistory[]>([])
-const historyLoading = ref(false)
-const historyFailure = ref<Failure | null>(null)
+const {loading: historyLoading, failure: historyFailure, reload: loadHistory} = useAsyncLoader(async (isCurrent) => {
+  const item = historyTarget.value
+  if (!item) return
+  historyEntries.value = []
+  const entries = await inventory.getItemHistory(item.id)
+  if (isCurrent()) historyEntries.value = entries
+}, {autoLoad: false})
 
 /**
  * Opens the history of one piece.
@@ -223,17 +229,8 @@ const historyFailure = ref<Failure | null>(null)
  */
 async function openHistory(item: InventoryItem) {
   historyTarget.value = item
-  historyEntries.value = []
-  historyFailure.value = null
-  historyLoading.value = true
   showHistoryModal.value = true
-  try {
-    historyEntries.value = await inventory.getItemHistory(item.id)
-  } catch (e) {
-    historyFailure.value = describeFailure(e, t)
-  } finally {
-    historyLoading.value = false
-  }
+  await loadHistory()
 }
 
 const {isOpen: showDeleteModal, target: deleteTarget, open: requestDelete} = useModalTarget<InventoryItem>()

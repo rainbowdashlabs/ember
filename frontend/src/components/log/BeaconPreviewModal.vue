@@ -18,8 +18,9 @@ import CoverablePicture from '@/components/problem/CoverablePicture.vue'
 import {beacon} from '@/api'
 import client from '@/api/client'
 import {flatten, pictureFrom, useCovers} from '@/composables/useScreenCapture'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import type {ProblemPayload, ReportPayload} from '@/api/beacon'
-import {describeFailure, FailureKind, type Failure} from '@/util/failure'
+import {describeFailure, FailureKind} from '@/util/failure'
 
 /**
  * Exactly what would leave this instance, shown before it does.
@@ -44,8 +45,6 @@ const emit = defineEmits<{sent: []}>()
 
 const {t} = useI18n()
 const payload = ref<ProblemPayload | ReportPayload | null>(null)
-const loading = ref(false)
-const failure = ref<Failure | null>(null)
 
 /**
  * The instance took nothing because its queue is full, which is a wait rather than a fault. Saying so
@@ -73,25 +72,23 @@ async function pictureOfReport(id: number): Promise<HTMLCanvasElement | null> {
   }
 }
 
-watch(open, async value => {
-  if (!value || props.entryId == null) return
-  loading.value = true
-  failure.value = null
+const {loading, failure, reload: preview} = useAsyncLoader(async (isCurrent) => {
+  const id = props.entryId
+  if (id == null) return
   payload.value = null
   picture.value = null
   clear()
-  if (props.kind === 'report' && props.hasPicture) {
-    picture.value = await pictureOfReport(props.entryId)
-  }
-  try {
-    payload.value = props.kind === 'problem'
-        ? await beacon.previewProblem(props.entryId)
-        : await beacon.previewReportPayload(props.entryId)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
+  const shot = props.kind === 'report' && props.hasPicture ? await pictureOfReport(id) : null
+  if (!isCurrent()) return
+  picture.value = shot
+  const answer = props.kind === 'problem'
+      ? await beacon.previewProblem(id)
+      : await beacon.previewReportPayload(id)
+  if (isCurrent()) payload.value = answer
+}, {autoLoad: false})
+
+watch(open, value => {
+  if (value && props.entryId != null) void preview()
 })
 
 /**

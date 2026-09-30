@@ -19,7 +19,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {mailImport} from '@/api'
 import {MailImportOutcome, wasImported, type MailImportLogEntry} from '@/api/mailImport'
 import {formatDateTime} from '@/util/format'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
  * What was looked at and what became of it.
@@ -33,8 +33,6 @@ const {t} = useI18n()
 const entries = ref<MailImportLogEntry[]>([])
 const total = ref(0)
 const page = ref(0)
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 
 const pageSize = 50
 const pages = computed(() => Math.max(Math.ceil(total.value / pageSize), 1))
@@ -46,18 +44,15 @@ const pages = computed(() => Math.max(Math.ceil(total.value / pageSize), 1))
  * nothing. The log exists to answer exactly that question, so a silent empty list is the one
  * outcome it must never show for a failure.
  */
-async function reload() {
-  loading.value = entries.value.length === 0
-  failure.value = null
-  try {
-    const result = await mailImport.log(page.value, pageSize)
-    entries.value = result.entries
-    total.value = result.total
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  }
-  loading.value = false
-}
+const {loading: fetching, failure, reload} = useAsyncLoader(async (isCurrent) => {
+  const result = await mailImport.log(page.value, pageSize)
+  if (!isCurrent()) return
+  entries.value = result.entries
+  total.value = result.total
+}, {autoLoad: false})
+
+/** The spinner stands in for an empty list only; a page already on screen stays while the next one comes. */
+const loading = computed(() => fetching.value && entries.value.length === 0)
 
 /** Only one outcome produced a document; the rest are refusals of one kind or another. */
 function badgeFor(entry: MailImportLogEntry) {
@@ -69,7 +64,7 @@ function badgeFor(entry: MailImportLogEntry) {
 }
 
 watch(page, reload)
-reload()
+void reload()
 </script>
 
 <template>

@@ -11,8 +11,9 @@ import type {MemberGroup} from '@/api/types'
 import type {MemberCompletion} from '@/api/stationMembers'
 import type {SpecialMention} from '@/components/comment/MentionInput.vue'
 import {comments as commentsApi, stationMembers, memberGroups} from '@/api'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useCommentHighlight} from '@/composables/useCommentHighlight'
-import {describeFailure, type Failure} from '@/util/failure'
+import {describeFailure} from '@/util/failure'
 import CommentThread from './CommentThread.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -35,29 +36,23 @@ const {highlightId, revealComment} = useCommentHighlight()
 const commentsList = ref<Comment[]>([])
 const members = ref<MemberCompletion[]>([])
 const groups = ref<MemberGroup[]>([])
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
+const {loading, failure, reload: loadComments} = useAsyncLoader(async () => {
+  const [c, m, g] = await Promise.all([
+    commentsApi.listEventComments(props.eventId, props.eventDate ?? undefined),
+    stationMembers.listCompletions({type: 'EVENT_VIEW', entityId: props.eventId}),
+    memberGroups.listGroups(),
+  ])
+  commentsList.value = c
+  members.value = m
+  groups.value = g
+}, {autoLoad: false})
+loading.value = true
 
 const specialMentions = computed<SpecialMention[]>(() => [
   {type: 'EVENT', entityId: props.eventId, label: t('comments.mentionEvent'), icon: ['fas', 'calendar-days']},
   {type: 'REGISTERED', entityId: props.eventId, label: t('comments.mentionRegistered'), icon: ['fas', 'user-check']},
   {type: 'DECLINED', entityId: props.eventId, label: t('comments.mentionDeclined'), icon: ['fas', 'user-slash']},
 ])
-
-async function loadComments() {
-  loading.value = true
-  try {
-    const [c, m, g] = await Promise.all([
-      commentsApi.listEventComments(props.eventId, props.eventDate ?? undefined),
-      stationMembers.listCompletions({type: 'EVENT_VIEW', entityId: props.eventId}),
-      memberGroups.listGroups(),
-    ])
-    commentsList.value = c
-    members.value = m
-    groups.value = g
-  } catch (e) { failure.value = describeFailure(e, t) }
-  finally { loading.value = false }
-}
 
 /**
  * Changing the thread and then fetching it again, which are two things and not one.

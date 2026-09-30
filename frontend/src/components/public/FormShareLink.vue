@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -16,6 +16,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ShareLinkPanel from './ShareLinkPanel.vue'
 import {forms, stationManage} from '@/api'
 import {FormVisibility, type Form} from '@/api/forms'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 /**
@@ -53,31 +54,27 @@ const stationAddress = ref<string | null>(null)
 const publicPath = computed(() => `/public/station/${stationAddress.value ?? ''}/forms/${props.form.publicUid}`)
 
 const token = ref<string | null>(null)
-const failure = ref<Failure | null>(null)
 const busy = ref(false)
-const loading = ref(true)
 
-async function load() {
-  if (openlyAddressed.value) {
-    try {
-      const station = await stationManage.getStationInfo()
-      stationAddress.value = station.publicSlug ?? station.id
-    } catch {
-      stationAddress.value = null
-    }
-    loading.value = false
-    return
-  }
-  loading.value = true
-  failure.value = null
+/** The station's public address, where the form is openly reachable, and nothing worse than none. */
+async function publicStationAddress(): Promise<string | null> {
   try {
-    token.value = await forms.getFormShareLink(props.form.id)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
+    const station = await stationManage.getStationInfo()
+    return station.publicSlug ?? station.id
+  } catch {
+    return null
   }
 }
+
+const {loading, failure, reload: load} = useAsyncLoader(async (isCurrent) => {
+  if (openlyAddressed.value) {
+    const address = await publicStationAddress()
+    if (isCurrent()) stationAddress.value = address
+    return
+  }
+  const shared = await forms.getFormShareLink(props.form.id)
+  if (isCurrent()) token.value = shared
+})
 
 /**
  * Gives the form a link, or puts a new one in place of the one it has.
@@ -110,7 +107,6 @@ function replacementWording(described: Failure, current: string | null): Failure
   return described
 }
 
-onMounted(load)
 watch(() => [props.form.id, props.form.visibility], load)
 </script>
 

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -21,6 +21,7 @@ import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import MailRecordTable from '@/components/mail/MailRecordTable.vue'
 import MailProviderStanding from '@/components/mail/MailProviderStanding.vue'
 import {useMailRecordTable} from '@/components/mail/useMailRecordTable'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
 import {describeFailure, type Failure} from '@/util/failure'
 import {MailDeliveryStatus, type MailDashboard, type ProviderBlock, type RequeuedMails} from '@/api/mailProviders'
@@ -45,23 +46,13 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const data = ref<MailDashboard | null>(null)
-const loading = ref(true)
-const loadFailure = ref<Failure | null>(null)
 const actionFailure = ref<Failure | null>(null)
 
 const statusFilter = ref('')
 
-async function reload() {
-  loading.value = true
-  loadFailure.value = null
-  try {
-    data.value = await props.load()
-  } catch (e) {
-    loadFailure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
+  data.value = await props.load()
+})
 
 /**
  * Fetching the dashboard again after something was done to it, which is not part of doing it.
@@ -112,8 +103,6 @@ async function doRequeue(id?: number) {
   }
   await catchUp()
 }
-
-onMounted(reload)
 
 /** The delivery states actually present, so the filter offers nothing that would match nothing. */
 const deliveryStates = computed(() => {

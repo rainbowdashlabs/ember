@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -18,7 +18,7 @@ import {stationManage} from '@/api'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {hasPermission, loaded, load: reloadSession} = useSession()
 const router = useRouter()
@@ -30,7 +30,6 @@ watch(loaded, (isLoaded) => {
 
 const {t} = useI18n()
 
-const loading = ref(true)
 const disabledModules = ref<Set<string>>(new Set())
 const clusterDenied = ref<Set<string>>(new Set())
 const clusterName = ref<string | null>(null)
@@ -43,8 +42,6 @@ function isModuleEnabled(key: string): boolean {
 function isLockedByCluster(key: string): boolean {
   return clusterDenied.value.has(key)
 }
-
-const loadFailure = ref<Failure | null>(null)
 
 const {running: modulesSaving, failure, run: toggleModule} = useAsyncAction(async (key: string) => {
   const next = new Set(disabledModules.value)
@@ -61,13 +58,8 @@ function apply(res: stationManage.ModulesResponse) {
   clusterName.value = res.clusterName ?? null
 }
 
-onMounted(async () => {
-  try {
-    apply(await stationManage.getDisabledModules())
-  } catch (e) {
-    loadFailure.value = describeFailure(e, t)
-  }
-  loading.value = false
+const {loading, failure: loadFailure} = useAsyncLoader(async () => {
+  apply(await stationManage.getDisabledModules())
 })
 </script>
 

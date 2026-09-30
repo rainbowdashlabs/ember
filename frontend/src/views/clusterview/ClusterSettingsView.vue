@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -18,8 +18,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {clusters} from '@/api'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useCluster} from '@/composables/useCluster'
-import {describeFailure, type Failure} from '@/util/failure'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const {load: loadClusters} = useCluster()
@@ -27,23 +28,15 @@ const {load: loadClusters} = useCluster()
 const name = ref('')
 const description = ref('')
 const autoFederate = ref(true)
-const loading = ref(true)
 const saving = ref(false)
-const failure = ref<Failure | null>(null)
 const saved = ref(false)
 
-onMounted(async () => {
-  try {
-    const cluster = await clusters.getActive()
-    name.value = cluster.name
-    description.value = cluster.description ?? ''
-    autoFederate.value = cluster.autoFederate
-  } catch (e) {
-    failure.value = {...describeFailure(e, t), message: t('clusterSettings.loadFailed')}
-  } finally {
-    loading.value = false
-  }
-})
+const {loading, failure} = useAsyncLoader(async () => {
+  const cluster = await clusters.getActive()
+  name.value = cluster.name
+  description.value = cluster.description ?? ''
+  autoFederate.value = cluster.autoFederate
+}, {errorMessageKey: 'clusterSettings.loadFailed'})
 
 /**
  * Stores the association's details, then tells the switcher, which shows the name and would

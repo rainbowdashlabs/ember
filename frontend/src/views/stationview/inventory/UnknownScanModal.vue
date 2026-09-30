@@ -19,7 +19,8 @@ import {InventoryTypes, ItemOwner, type Inventory, type InventoryItem, type Inve
 import {inventory, inventoryFields} from '@/api'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const props = defineProps<{
   scannedCode: string
@@ -35,11 +36,8 @@ const {t} = useI18n()
 
 const open = ref(true)
 const inventories = ref<Inventory[]>([])
-const loading = ref(true)
 /** What the form itself objects to, which is the reader's to put right and never a fault in Ember. */
 const validation = ref('')
-
-const loadFailure = ref<Failure | null>(null)
 
 const targetInventoryId = ref<number | 'new'>('new')
 const newInventoryName = ref('')
@@ -79,21 +77,13 @@ const showOwnerPicker = computed(() => {
 const sortedFieldDefs = computed(() =>
     [...fieldDefs.value].sort((a, b) => a.sortOrder - b.sortOrder || a.key.localeCompare(b.key)))
 
-async function load() {
-  loading.value = true
-  loadFailure.value = null
-  try {
-    inventories.value = await inventory.listInventories()
-    const first = inventories.value[0]
-    if (first) {
-      targetInventoryId.value = first.id
-    }
-  } catch (e) {
-    loadFailure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
+const {loading, failure: loadFailure, reload: load} = useAsyncLoader(async () => {
+  inventories.value = await inventory.listInventories()
+  const first = inventories.value[0]
+  if (first) {
+    targetInventoryId.value = first.id
   }
-}
+}, {autoLoad: false})
 
 watch(selectedInventory, async (inv) => {
   pickedSizeLabel.value = ''
@@ -255,7 +245,7 @@ function onClose() {
   emit('close')
 }
 
-load()
+void load()
 </script>
 
 <template>

@@ -10,8 +10,9 @@ import type {Comment} from '@/api/comments'
 import type {MemberGroup} from '@/api/types'
 import type {MemberCompletion} from '@/api/stationMembers'
 import {knowledgeBase, stationMembers, memberGroups} from '@/api'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useCommentHighlight} from '@/composables/useCommentHighlight'
-import {describeFailure, saying, type Failure} from '@/util/failure'
+import {describeFailure, saying} from '@/util/failure'
 import CommentThread from './CommentThread.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -29,35 +30,30 @@ const isFederated = computed(() => !!props.stationUid)
 const commentsList = ref<Comment[]>([])
 const members = ref<MemberCompletion[]>([])
 const groups = ref<MemberGroup[]>([])
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
-async function loadComments() {
-  loading.value = true
-  try {
-    const rawComments = isFederated.value
-      ? await knowledgeBase.listFederatedComments(props.stationUid!, props.fileId)
-      : await knowledgeBase.listComments(props.fileId)
-    commentsList.value = rawComments.map(c => ({
-      id: c.id,
-      parentId: c.parentId,
-      author: c.author,
-      authorName: c.authorName,
-      content: c.content,
-      deleted: c.deleted,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt ?? null,
-    }))
-    if (!isFederated.value) {
-      const [m, g] = await Promise.all([
-        stationMembers.listCompletions({type: 'KB_FILE', entityId: props.fileId}),
-        memberGroups.listGroups(),
-      ])
-      members.value = m
-      groups.value = g
-    }
-  } catch (e) { failure.value = describeFailure(e, t) }
-  finally { loading.value = false }
-}
+const {loading, failure, reload: loadComments} = useAsyncLoader(async () => {
+  const rawComments = isFederated.value
+    ? await knowledgeBase.listFederatedComments(props.stationUid!, props.fileId)
+    : await knowledgeBase.listComments(props.fileId)
+  commentsList.value = rawComments.map(c => ({
+    id: c.id,
+    parentId: c.parentId,
+    author: c.author,
+    authorName: c.authorName,
+    content: c.content,
+    deleted: c.deleted,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt ?? null,
+  }))
+  if (!isFederated.value) {
+    const [m, g] = await Promise.all([
+      stationMembers.listCompletions({type: 'KB_FILE', entityId: props.fileId}),
+      memberGroups.listGroups(),
+    ])
+    members.value = m
+    groups.value = g
+  }
+}, {autoLoad: false})
+loading.value = true
 
 /**
  * Changing the thread and then fetching it again, which are two things and not one.

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -47,7 +47,8 @@ import {
     sftpFormFrom,
     smbFormFrom,
 } from '@/util/storageBackendForm'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const {hasPermission, loaded} = useSession()
@@ -59,8 +60,6 @@ watch(loaded, (isLoaded) => {
     }
 }, {immediate: true})
 
-const loading = ref(true)
-const loadFailure = ref<Failure | null>(null)
 const success = ref('')
 const backend = ref<BackendOverrideResponse | null>(null)
 const auditEntries = ref<AuditEntry[]>([])
@@ -105,21 +104,11 @@ const offeredTypes = computed<('LOCAL' | 'CLUSTER' | 'S3' | 'SMB' | 'SFTP')[]>((
         : ['LOCAL', 'S3', 'SMB', 'SFTP'],
 )
 
-onMounted(loadAll)
-
-async function loadAll() {
-    loading.value = true
-    loadFailure.value = null
-    try {
-        backend.value = await getStationBackend()
-        seedFormFromBackend()
-        auditEntries.value = await getStationStorageAudit()
-    } catch (e) {
-        loadFailure.value = describeFailure(e, t)
-    } finally {
-        loading.value = false
-    }
-}
+const {loading, failure: loadFailure, reload: loadAll} = useAsyncLoader(async () => {
+    backend.value = await getStationBackend()
+    seedFormFromBackend()
+    auditEntries.value = await getStationStorageAudit()
+})
 
 function seedFormFromBackend() {
     const summary = backend.value?.override

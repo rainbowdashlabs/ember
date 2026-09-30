@@ -31,14 +31,13 @@ import {findDanglingMemberRefs} from './datatrackingview/danglingMemberRefs'
 import TableFilterBar from './datatrackingview/TableFilterBar.vue'
 import BatchToolbar from './datatrackingview/BatchToolbar.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 
 const tracking = ref<DataTracking | null>(null)
 const summary = ref<DataTrackingSummary | null>(null)
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 const selectedTable = ref<string | null>(null)
 
 const selectedForBatch = ref<Set<string>>(new Set())
@@ -62,22 +61,15 @@ const verifiedPct = computed(() => {
   return Math.round((summary.value.verifiedColumns / summary.value.totalColumns) * 100)
 })
 
-async function loadData() {
-  loading.value = true
-  failure.value = null
-  try {
-    const [tk, sm] = await Promise.all([
-      dataTracking.getDataTracking(),
-      dataTracking.getDataTrackingSummary(),
-    ])
-    tracking.value = tk
-    summary.value = sm
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
+  const [tk, sm] = await Promise.all([
+    dataTracking.getDataTracking(),
+    dataTracking.getDataTrackingSummary(),
+  ])
+  tracking.value = tk
+  summary.value = sm
+}, {autoLoad: false})
+loading.value = true
 
 function selectedEntry(): TableEntry | null {
   if (!selectedTable.value || !tracking.value) return null

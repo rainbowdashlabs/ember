@@ -20,6 +20,7 @@ import {StationPermission, type MemberGroup, type StationMember} from '@/api/typ
 import {attendance, events, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ExportSheetModal from './sessionview/ExportSheetModal.vue'
 import {useSessionMeta} from './sessionview/useSessionMeta'
 import {useCheckMode, type CheckRow} from './sessionview/useCheckMode'
@@ -31,7 +32,7 @@ import {presentFile} from '@/util/documentFile'
 import {useSessionEventLink} from './sessionview/useSessionEventLink'
 import {formatWeekdayDate, localInputToInstant, timeOnDayOf} from '@/util/format'
 import {reportCaughtError} from '@/util/devErrorReporter'
-import {describeFailure, type Failure} from '@/util/failure'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -67,8 +68,6 @@ const entries = ref<AttendanceEntry[]>([])
 const allMembers = ref<StationMember[]>([])
 const groups = ref<MemberGroup[]>([])
 const groupMembers = ref<Map<number, StationMember[]>>(new Map())
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 
 const selectedMemberId = ref('')
 
@@ -98,6 +97,29 @@ const spansDays = computed(() => {
   if (!start || !end) return false
   return new Date(start).toDateString() !== new Date(end).toDateString()
 })
+
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
+  const [detail, members, allGroups] = await Promise.all([
+    attendance.getSession(sessionId.value),
+    stationMembers.listMembers(true),
+    memberGroups.listGroups(),
+  ])
+  await loadNotes()
+  session.value = detail.session ?? null
+  sessionFields.value = detail.fields ?? []
+  entries.value = detail.entries ?? []
+  locked.value = detail.locked ?? false
+  allMembers.value = members
+  groups.value = allGroups
+
+  if (session.value) {
+    await loadTemplateContext(session.value.templateId)
+    await loadEventContext(session.value.eventId ?? null)
+  }
+
+  initFieldValues(sessionFields.value)
+}, {autoLoad: false})
+loading.value = true
 
 const {
   setSessionStartTime,
@@ -224,35 +246,6 @@ async function loadEventContext(eventId: number | null) {
   }
 }
 
-async function loadData() {
-  loading.value = true
-  failure.value = null
-  try {
-    const [detail, members, allGroups] = await Promise.all([
-      attendance.getSession(sessionId.value),
-      stationMembers.listMembers(true),
-      memberGroups.listGroups(),
-    ])
-    await loadNotes()
-    session.value = detail.session ?? null
-    sessionFields.value = detail.fields ?? []
-    entries.value = detail.entries ?? []
-    locked.value = detail.locked ?? false
-    allMembers.value = members
-    groups.value = allGroups
-
-    if (session.value) {
-      await loadTemplateContext(session.value.templateId)
-      await loadEventContext(session.value.eventId ?? null)
-    }
-
-    initFieldValues(sessionFields.value)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
 
 /**
  * Doing something to the sheet and then reading it back, which are two things and not one.

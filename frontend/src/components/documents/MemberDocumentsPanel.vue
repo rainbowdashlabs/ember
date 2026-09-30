@@ -18,6 +18,7 @@ import DocumentUploadModal from './DocumentUploadModal.vue'
 import {documents as documentsApi} from '@/api'
 import type {DocumentUpload, StationDocument} from '@/api/documents'
 import type {StationMember} from '@/api/types'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -42,23 +43,15 @@ const {t} = useI18n()
 const documents = ref<StationDocument[]>([])
 const search = ref('')
 const allTags = ref<string[]>([])
-const loading = ref(false)
-const loadFailure = ref<Failure | null>(null)
 const actionFailure = ref<Failure | null>(null)
 const showUpload = ref(false)
 const showDocument = ref(false)
 const opened = ref<StationDocument | null>(null)
 
-async function reload() {
-  loading.value = true
-  loadFailure.value = null
-  try {
-    documents.value = await documentsApi.listForMember(props.memberId)
-  } catch (e) {
-    loadFailure.value = describeFailure(e, t)
-  }
-  loading.value = false
-}
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async (isCurrent) => {
+  const found = await documentsApi.listForMember(props.memberId)
+  if (isCurrent()) documents.value = found
+}, {autoLoad: false})
 
 /**
  * Fetching the list again after something was done to it, which is not part of doing it.

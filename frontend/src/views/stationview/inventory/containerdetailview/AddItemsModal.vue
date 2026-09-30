@@ -23,7 +23,8 @@ import {inventory, inventoryContainers} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import type {InventoryItem, InventorySize} from '@/api/inventory'
 import type {InventoryContainer} from '@/api/inventoryContainers'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const props = defineProps<{
   targetContainerId: number
@@ -38,8 +39,6 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const open = ref(true)
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 
 /** What the scanner turned up that the reader has to sort out, which is no fault of Ember's. */
 const scanNote = ref('')
@@ -90,18 +89,11 @@ function toggle(item: InventoryItem) {
   else selectedIds.value.add(item.id)
 }
 
-async function loadItems() {
-  loading.value = true
-  try {
-    const [allItems, allSizes] = await Promise.all([inventory.listAllItems(), inventory.listAllSizes()])
-    items.value = allItems
-    sizes.value = allSizes
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, failure} = useAsyncLoader(async () => {
+  const [allItems, allSizes] = await Promise.all([inventory.listAllItems(), inventory.listAllSizes()])
+  items.value = allItems
+  sizes.value = allSizes
+})
 
 function onScan(value: string) {
   const term = normaliseScannedPayload(value).trim()
@@ -153,7 +145,6 @@ const searchField = ref<InstanceType<typeof SearchInput> | null>(null)
 /** The dialog opens with the one thing a reader does first, searching, already in hand. */
 onMounted(() => {
   nextTick(() => searchField.value?.focus())
-  loadItems()
 })
 </script>
 

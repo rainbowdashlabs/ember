@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -25,6 +25,7 @@ import AddItemsModal from '@/views/stationview/inventory/containerdetailview/Add
 import Modal from '@/components/feedback/Modal.vue'
 import {inventoryContainers} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 import type {
   ContainerDetail,
@@ -45,8 +46,6 @@ const contents = ref<ContainerContents | null>(null)
 const allContainers = ref<InventoryContainer[]>([])
 const kinds = ref<InventoryContainerKind[]>([])
 const history = ref<InventoryContainerHistory[]>([])
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 const recursive = ref(false)
 const editing = ref(false)
 const showNewChildModal = ref(false)
@@ -76,33 +75,25 @@ const kindById = computed(() => {
   return map
 })
 
-async function load() {
-  loading.value = true
-  failure.value = null
-  try {
-    const id = containerId.value
-    const [d, k, all] = await Promise.all([
-      inventoryContainers.getContainer(id),
-      inventoryContainers.listKinds(),
-      inventoryContainers.listContainers(),
-    ])
-    detail.value = d
-    kinds.value = k
-    allContainers.value = all
-    await Promise.all([loadContents(), loadHistory()])
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, failure, reload: load} = useAsyncLoader(async (isCurrent) => {
+  const id = containerId.value
+  const [d, k, all, c, h] = await Promise.all([
+    inventoryContainers.getContainer(id),
+    inventoryContainers.listKinds(),
+    inventoryContainers.listContainers(),
+    inventoryContainers.getContainerContents(id, recursive.value),
+    inventoryContainers.getContainerHistory(id),
+  ])
+  if (!isCurrent()) return
+  detail.value = d
+  kinds.value = k
+  allContainers.value = all
+  contents.value = c
+  history.value = h
+})
 
 async function loadContents() {
   contents.value = await inventoryContainers.getContainerContents(containerId.value, recursive.value)
-}
-
-async function loadHistory() {
-  history.value = await inventoryContainers.getContainerHistory(containerId.value)
 }
 
 async function onEditSaved() {
@@ -145,8 +136,6 @@ function onKindCreated(kind: InventoryContainerKind) {
 
 watch(recursive, loadContents)
 watch(containerId, load)
-
-onMounted(load)
 </script>
 
 <template>

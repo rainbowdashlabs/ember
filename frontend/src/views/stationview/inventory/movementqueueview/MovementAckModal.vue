@@ -18,7 +18,8 @@ import type {InventorySize} from '@/api/inventory'
 import type {MovementDetail} from '@/api/movements'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 /**
  * Acknowledging the step a movement stands on, from the queue rather than from the page about one.
@@ -44,9 +45,7 @@ const {hasPermission} = useSession()
 
 const detail = ref<MovementDetail | null>(null)
 const sizes = ref<InventorySize[]>([])
-const loading = ref(false)
 const busy = ref(false)
-const failure = ref<Failure | null>(null)
 
 const currentStep = computed(() => detail.value?.steps.find(step => step.current) ?? null)
 const mayRecord = computed(() => detail.value?.movement.ownerAnswersHere === false)
@@ -55,20 +54,12 @@ const drawnSteps = computed(() => detail.value?.steps ?? [])
 /** Whether the reader may name the arriving piece, which is whether they may read the shelf. */
 const mayPick = computed(() => hasPermission(StationPermission.INVENTORY_READ))
 
-async function load() {
-  loading.value = true
-  failure.value = null
-  try {
-    detail.value = await movements.getMovement(props.movementId)
-    const naming = mayPick.value && detail.value.steps.some(step => step.current && step.picksItem)
-    const inventoryId = detail.value.movement.inventoryId
-    sizes.value = naming && inventoryId ? await inventory.listSizes(inventoryId) : []
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, failure, reload: load} = useAsyncLoader(async () => {
+  detail.value = await movements.getMovement(props.movementId)
+  const naming = mayPick.value && detail.value.steps.some(step => step.current && step.picksItem)
+  const inventoryId = detail.value.movement.inventoryId
+  sizes.value = naming && inventoryId ? await inventory.listSizes(inventoryId) : []
+}, {autoLoad: false})
 
 watch(model, open => {
   if (open) void load()

@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {describe, expect, it, vi} from 'vitest'
-import {ref} from 'vue'
+import {defineComponent, h, ref} from 'vue'
+import {mount} from '@vue/test-utils'
 import {useAsyncLoader} from './useAsyncLoader'
 
 vi.mock('vue-i18n', () => ({useI18n: () => ({t: (key: string) => key})}))
@@ -100,5 +101,24 @@ describe('useAsyncLoader', () => {
         await reload()
 
         expect(error.value).toBe('errors.loadFailed')
+    })
+
+    it('shows the wait before the first render when it loads on mount', () => {
+        let loadingBeforeMount: boolean | undefined
+        mount(defineComponent({
+            setup() {
+                const {loading} = useAsyncLoader(() => new Promise<void>(() => {}))
+                loadingBeforeMount = loading.value
+                return () => h('div')
+            },
+        }))
+
+        expect(loadingBeforeMount).toBe(true)
+    })
+
+    it('starts idle when it waits to be asked', () => {
+        const {loading} = useAsyncLoader(() => Promise.resolve(), {autoLoad: false})
+
+        expect(loading.value).toBe(false)
     })
 })

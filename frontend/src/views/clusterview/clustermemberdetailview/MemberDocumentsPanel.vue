@@ -23,6 +23,7 @@ import FileInput from '@/components/input/FileInput.vue'
 import {clusterMembers} from '@/api'
 import type {ManagedMemberDocument} from '@/api/clusterMembers'
 import {formatDate, formatSize} from '@/util/format'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -41,24 +42,21 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const documents = ref<ManagedMemberDocument[]>([])
-const loading = ref(false)
-const loadFailure = ref<Failure | null>(null)
 const actionFailure = ref<Failure | null>(null)
 const showUpload = ref(false)
 const file = ref<File | null>(null)
 const title = ref('')
 const saving = ref(false)
 
+const {loading, failure: loadFailure, reload: fetchDocuments} = useAsyncLoader(async (isCurrent) => {
+  const found = await clusterMembers.listManagedMemberDocuments(props.memberId)
+  if (isCurrent()) documents.value = found
+}, {autoLoad: false})
+
+/** Fetches the list, naming a failure with the sentence given where the caller has a better one. */
 async function reload(staleMessage?: string) {
-  loading.value = true
-  loadFailure.value = null
-  try {
-    documents.value = await clusterMembers.listManagedMemberDocuments(props.memberId)
-  } catch (e) {
-    const described = describeFailure(e, t)
-    loadFailure.value = staleMessage ? {...described, message: staleMessage} : described
-  }
-  loading.value = false
+  await fetchDocuments()
+  if (staleMessage && loadFailure.value) loadFailure.value = {...loadFailure.value, message: staleMessage}
 }
 
 watch(() => props.memberId, () => reload(), {immediate: true})

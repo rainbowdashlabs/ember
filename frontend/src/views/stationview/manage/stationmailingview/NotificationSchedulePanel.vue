@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -19,7 +19,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {getNotificationSchedule, saveNotificationSchedule} from '@/api/mailProviders'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 /**
  * When this station's gathered notifications are mailed out.
@@ -38,10 +39,8 @@ type Mode = 'operator' | 'times' | 'hourly'
 const mode = ref<Mode>('operator')
 const times = ref<string[]>([])
 const floorMinutes = ref(60)
-const loading = ref(true)
 const saving = ref(false)
 const saved = ref(false)
-const failure = ref<Failure | null>(null)
 
 const HOURLY = Array.from({length: 24}, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
 
@@ -49,21 +48,16 @@ function isHourly(list: string[]): boolean {
     return list.length === 24 && HOURLY.every(hour => list.includes(hour))
 }
 
-onMounted(async () => {
-    try {
-        const schedule = await getNotificationSchedule()
-        floorMinutes.value = schedule.floorMinutes
-        const stored = schedule.sendTimes.map(time => time.slice(0, 5))
-        if (stored.length === 0) mode.value = 'operator'
-        else if (isHourly(stored)) mode.value = 'hourly'
-        else {
-            mode.value = 'times'
-            times.value = stored
-        }
-    } catch (e) {
-        failure.value = describeFailure(e, t)
+const {loading, failure} = useAsyncLoader(async () => {
+    const schedule = await getNotificationSchedule()
+    floorMinutes.value = schedule.floorMinutes
+    const stored = schedule.sendTimes.map(time => time.slice(0, 5))
+    if (stored.length === 0) mode.value = 'operator'
+    else if (isHourly(stored)) mode.value = 'hourly'
+    else {
+        mode.value = 'times'
+        times.value = stored
     }
-    loading.value = false
 })
 
 /**

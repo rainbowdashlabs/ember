@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -35,7 +35,8 @@ import {
     sftpFormFrom,
     smbFormFrom,
 } from '@/util/storageBackendForm'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 import StorageBackendForm from '@/components/storage/StorageBackendForm.vue'
 import BackendSummaryCard from './adminstoragebackendview/BackendSummaryCard.vue'
 import BackendApplyConfirmModal from './adminstoragebackendview/BackendApplyConfirmModal.vue'
@@ -50,8 +51,6 @@ watch(loaded, (isLoaded) => {
     }
 }, {immediate: true})
 
-const loading = ref(true)
-const loadFailure = ref<Failure | null>(null)
 const success = ref('')
 const backend = ref<InstanceBackendSummary | null>(null)
 const probeOutcome = ref<ProbeResult | null>(null)
@@ -71,21 +70,11 @@ const summaryLabel = computed(() => {
     return t('adminStorageBackend.summary.current', {type: backend.value.type})
 })
 
-onMounted(loadAll)
-
-async function loadAll() {
-    loading.value = true
-    loadFailure.value = null
-    try {
-        backend.value = await getInstanceBackend()
-        migrationStatus.value = await getInstanceMigrationStatus()
-        seedFormFromBackend()
-    } catch (e) {
-        loadFailure.value = describeFailure(e, t)
-    } finally {
-        loading.value = false
-    }
-}
+const {loading, failure: loadFailure, reload: loadAll} = useAsyncLoader(async () => {
+    backend.value = await getInstanceBackend()
+    migrationStatus.value = await getInstanceMigrationStatus()
+    seedFormFromBackend()
+})
 
 function seedFormFromBackend() {
     const summary = backend.value

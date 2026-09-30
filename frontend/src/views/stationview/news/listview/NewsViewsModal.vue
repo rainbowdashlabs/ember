@@ -15,7 +15,7 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import {news as newsApi} from '@/api'
 import type {NewsViewsResponse} from '@/api/news'
 import {formatDateTime} from '@/util/format'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const open = defineModel<boolean>({required: true})
 
@@ -27,27 +27,17 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const data = ref<NewsViewsResponse | null>(null)
-const loading = ref(false)
-const failure = ref<Failure | null>(null)
-
-watch(open, async (v) => {
-  if (v && props.newsId != null) {
-    await load(props.newsId)
-  }
-})
-
-async function load(newsId: number) {
-  loading.value = true
-  failure.value = null
+const {loading, failure, reload: load} = useAsyncLoader(async (isCurrent) => {
+  const newsId = props.newsId
+  if (newsId == null) return
   data.value = null
-  try {
-    data.value = await newsApi.listNewsViewers(newsId)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
+  const viewers = await newsApi.listNewsViewers(newsId)
+  if (isCurrent()) data.value = viewers
+}, {autoLoad: false})
+
+watch(open, (v) => {
+  if (v && props.newsId != null) void load()
+})
 
 </script>
 

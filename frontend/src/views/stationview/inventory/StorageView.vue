@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import AppIcon from '@/components/display/AppIcon.vue'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -26,7 +26,8 @@ import {inventory, inventoryContainers} from '@/api'
 import {containerPathFor} from '@/util/containerPath'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 import type {InventoryItem} from '@/api/inventory'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const routes = useInventoryRoutes()
 
@@ -36,8 +37,6 @@ const router = useRouter()
 const containers = ref<InventoryContainer[]>([])
 const items = ref<InventoryItem[]>([])
 const kinds = ref<InventoryContainerKind[]>([])
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 
 /** A barcode that matched nothing, which is the reader's to sort out and no fault of Ember's. */
 const scanMiss = ref('')
@@ -91,24 +90,16 @@ const childrenByParent = computed(() => {
   return map
 })
 
-async function load() {
-  loading.value = true
-  failure.value = null
-  try {
-    const [c, k, allItems] = await Promise.all([
-      inventoryContainers.listContainers(),
-      inventoryContainers.listKinds(),
-      inventory.listAllItems(),
-    ])
-    containers.value = c
-    kinds.value = k
-    items.value = allItems
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, failure, reload: load} = useAsyncLoader(async () => {
+  const [c, k, allItems] = await Promise.all([
+    inventoryContainers.listContainers(),
+    inventoryContainers.listKinds(),
+    inventory.listAllItems(),
+  ])
+  containers.value = c
+  kinds.value = k
+  items.value = allItems
+})
 
 /**
  * Follows a scanned code to whatever it names.
@@ -156,8 +147,6 @@ async function onCreated() {
   showNewModal.value = false
   await load()
 }
-
-onMounted(load)
 </script>
 
 <template>

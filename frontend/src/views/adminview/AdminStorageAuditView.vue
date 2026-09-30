@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -20,7 +20,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import StorageBackendAuditTable from '@/components/storage/StorageBackendAuditTable.vue'
 import {useSession} from '@/composables/useSession'
 import {type AuditEntry, getInstanceStorageAudit} from '@/api/storageBackend'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 const {isAdmin, loaded} = useSession()
@@ -32,30 +32,19 @@ watch(loaded, (isLoaded) => {
     }
 }, {immediate: true})
 
-const loading = ref(false)
-const failure = ref<Failure | null>(null)
 const entries = ref<AuditEntry[]>([])
 const stationUidFilter = ref('')
 const beforeFilter = ref('')
 const limit = ref(50)
 
-onMounted(applyFilters)
-
-async function applyFilters() {
-    loading.value = true
-    failure.value = null
-    try {
-        entries.value = await getInstanceStorageAudit({
-            stationUid: stationUidFilter.value || undefined,
-            before: beforeFilter.value || undefined,
-            limit: limit.value,
-        })
-    } catch (e) {
-        failure.value = describeFailure(e, t)
-    } finally {
-        loading.value = false
-    }
-}
+const {loading, failure, reload: applyFilters} = useAsyncLoader(async (isCurrent) => {
+    const found = await getInstanceStorageAudit({
+        stationUid: stationUidFilter.value || undefined,
+        before: beforeFilter.value || undefined,
+        limit: limit.value,
+    })
+    if (isCurrent()) entries.value = found
+})
 </script>
 
 <template>

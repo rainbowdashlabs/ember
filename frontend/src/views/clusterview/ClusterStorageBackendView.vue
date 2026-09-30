@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -18,6 +18,7 @@ import StorageBackendForm from '@/components/storage/StorageBackendForm.vue'
 import StoragePlacementTable from '@/components/storage/StoragePlacementTable.vue'
 import ClusterStoragePolicyPanel from '@/views/clusterview/clusterstoragebackendview/ClusterStoragePolicyPanel.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 import {
     ClusterBackendReach,
@@ -38,8 +39,6 @@ import {newS3, newSftp, newSmb, s3FormFrom, sftpFormFrom, smbFormFrom} from '@/u
 
 const {t} = useI18n()
 
-const loading = ref(true)
-const loadFailure = ref<Failure | null>(null)
 const actionFailure = ref<Failure | null>(null)
 const success = ref('')
 const policy = ref<ClusterBackendPolicy | null>(null)
@@ -56,23 +55,13 @@ const probeOutcome = ref<ProbeResult | null>(null)
 
 const hasBackend = computed(() => policy.value?.backend != null)
 
-onMounted(loadAll)
-
-async function loadAll() {
-    loading.value = true
-    loadFailure.value = null
-    try {
-        policy.value = await getClusterBackend()
-        reach.value = policy.value.reach
-        locked.value = policy.value.locked
-        seedForm()
-        placements.value = await getClusterPlacements()
-    } catch (e) {
-        loadFailure.value = describeFailure(e, t)
-    } finally {
-        loading.value = false
-    }
-}
+const {loading, failure: loadFailure, reload: loadAll} = useAsyncLoader(async () => {
+    policy.value = await getClusterBackend()
+    reach.value = policy.value.reach
+    locked.value = policy.value.locked
+    seedForm()
+    placements.value = await getClusterPlacements()
+})
 
 function seedForm() {
     const summary = policy.value?.backend

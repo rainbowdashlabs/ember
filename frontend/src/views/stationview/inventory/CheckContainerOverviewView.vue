@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -17,7 +17,7 @@ import SearchInput from '@/components/input/text/SearchInput.vue'
 import ContainerTree from '@/views/stationview/inventory/storageview/ContainerTree.vue'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const routes = useInventoryRoutes()
 
@@ -26,8 +26,6 @@ const router = useRouter()
 
 const containers = ref<InventoryContainer[]>([])
 const kinds = ref<InventoryContainerKind[]>([])
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 const search = ref('')
 
 const kindById = computed(() => {
@@ -54,28 +52,18 @@ const roots = computed(() => containers.value
     .filter(c => c.parentId == null)
     .sort((a, b) => a.name.localeCompare(b.name)))
 
-async function load() {
-  loading.value = true
-  failure.value = null
-  try {
-    const [c, k] = await Promise.all([
-      inventoryContainers.listContainers(),
-      inventoryContainers.listKinds(),
-    ])
-    containers.value = c
-    kinds.value = k
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, failure} = useAsyncLoader(async () => {
+  const [c, k] = await Promise.all([
+    inventoryContainers.listContainers(),
+    inventoryContainers.listKinds(),
+  ])
+  containers.value = c
+  kinds.value = k
+})
 
 function startCheck(c: InventoryContainer) {
   router.push({name: routes.checkContainerWalk, params: {id: String(c.id)}})
 }
-
-onMounted(load)
 </script>
 
 <template>

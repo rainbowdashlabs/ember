@@ -41,6 +41,9 @@ export type IsCurrentLoad = () => boolean
  * what sort of failure it was, what the reader should do about it, and whether it looks like a
  * fault in Ember worth reporting. Render that with `FailureAlert` and the reader is told all three.
  *
+ * <p>A loader that runs on mount starts out loading, so the render before the mount already shows
+ * the wait rather than an empty screen that fills a moment later.
+ *
  * <p>Every run is numbered, and only the latest one may touch `loading`, `error` and `failure`. A
  * loader that a filter, a page or a route parameter re-runs can be overtaken by its own next run
  * while the first answer is still on its way, and the slower answer must not land last. The closure
@@ -52,7 +55,7 @@ export function useAsyncLoader(
     options: UseAsyncLoaderOptions = {},
 ) {
     const {t} = useI18n()
-    const loading = ref(false)
+    const loading = ref(options.autoLoad !== false)
     const error = ref('')
     const failure = ref<Failure | null>(null)
     let latestRun = 0
