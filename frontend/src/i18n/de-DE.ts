@@ -6653,6 +6653,9 @@ export default {
             EXPIRY_REMINDER: 'Ablaufdatum',
         },
     },
+    toast: {
+        dismiss: 'Hinweis schließen',
+    },
     comments: {
         title: 'Kommentare',
         placeholder: 'Kommentar schreiben...',
