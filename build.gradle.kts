@@ -135,6 +135,23 @@ val testSuiteNames = testSuites.map { it.name }
 val suitePackages = testSuites.flatMap { it.packages }
 
 /**
+ * The line coverage of the whole backend, routes included, may not fall below this.
+ *
+ * It stands just under where the suites reach today, so it catches a tested area losing its tests
+ * without a list of classes it does not apply to. Raise it as coverage grows; it never goes down.
+ * The lines a change touches are held to the stricter patch gate in `gradle/patch-coverage.gradle.kts`.
+ */
+val coverageFloor = "0.66".toBigDecimal()
+
+/**
+ * The line coverage every repository class has to reach on its own.
+ *
+ * A repository is SQL a test can run completely against a real database, so this one gate per class
+ * stays: unlike the services, no repository needs an exception to meet it.
+ */
+val repositoryCoverage = "0.95".toBigDecimal()
+
+/**
  * Runs a git command in this checkout, or answers null where it cannot be run at all.
  *
  * A build has no business failing because the sources arrived without their history: a tarball, a
@@ -216,9 +233,16 @@ tasks.register("resolveDependencies") {
 
 tasks {
     withType<Test>().configureEach {
+        useJUnitPlatform()
+        testLogging { events("passed", "skipped", "failed") }
+        maxParallelForks = testForks()
+        maxHeapSize = "1g"
         environment("TESTCONTAINERS_RYUK_DISABLED", "true")
         systemProperty("jdk.httpclient.allowRestrictedHeaders", "host")
-        maxHeapSize = "1g"
+        systemProperty(
+            "refusal.baseline.update",
+            providers.systemProperty("refusal.baseline.update").getOrElse("false"),
+        )
     }
 
     withType<JavaCompile>().configureEach {
@@ -277,16 +301,6 @@ tasks {
         }
     }
 
-    withType<Test>().configureEach {
-        useJUnitPlatform()
-        testLogging { events("passed", "skipped", "failed") }
-        maxParallelForks = testForks()
-        systemProperty(
-            "refusal.baseline.update",
-            providers.systemProperty("refusal.baseline.update").getOrElse("false"),
-        )
-    }
-
     test {
         filter { excludeTestsMatching("dev.chojo.ember.tracking.*") }
     }
@@ -338,143 +352,41 @@ tasks {
         classpath = sourceSets.test.get().runtimeClasspath
     }
 
+    val coverageData = fileTree("build/jacoco") { include(testSuiteNames.map { "$it.exec" }) }
 
-    register<JacocoReport>("jacocoFullReport") {
+    val coverageReport = register<JacocoReport>("jacocoFullReport") {
         group = "verification"
-        description = "Merged coverage report from the four test suites"
-        dependsOn(testSuiteNames)
-        executionData(
-            fileTree("build/jacoco") { include(testSuiteNames.map { "$it.exec" }) }
-        )
+        description = "Merges the coverage the test suites recorded into one report, without running them"
+        mustRunAfter(testSuiteNames)
+        executionData(coverageData)
         sourceSets(sourceSets.main.get())
         reports {
-            xml.required.set(true)
-            csv.required.set(true)
-            html.required.set(true)
+            xml.required = true
+            csv.required = true
+            html.required = true
         }
     }
 
     register<JacocoCoverageVerification>("jacocoCoverageCheck") {
         group = "verification"
-        description = "Enforces 80% line coverage for services and repositories"
-        dependsOn(testSuiteNames)
-        executionData(
-            fileTree("build/jacoco") { include(testSuiteNames.map { "$it.exec" }) }
-        )
+        description = "Holds the line coverage of the whole backend above its floor and of every repository near complete"
+        mustRunAfter(coverageReport)
+        executionData(coverageData)
         sourceSets(sourceSets.main.get())
         violationRules {
-            // Repositories: 95% line coverage
+            rule {
+                element = "BUNDLE"
+                limit {
+                    counter = "LINE"
+                    minimum = coverageFloor
+                }
+            }
             rule {
                 element = "CLASS"
                 includes = listOf("*.repository.*")
-                excludes = listOf("*.route.*")
                 limit {
                     counter = "LINE"
-                    minimum = "0.95".toBigDecimal()
-                }
-            }
-            // Handlers: 80% line coverage
-            rule {
-                element = "CLASS"
-                includes = listOf("*.handler.*", "*.handlers.*")
-                limit {
-                    counter = "LINE"
-                    minimum = "0.80".toBigDecimal()
-                }
-            }
-            // Services: 90% line coverage
-            rule {
-                element = "CLASS"
-                includes = listOf("*.service.*")
-                excludes = listOf(
-                    // Infrastructure that calls external systems
-                    "*.mail.service.*",
-                    "*.FederationHttpClient*",
-                    "*.FederationWebhookService*",
-                    "*.ApiRequestLogger*",
-                    "*.DataInitializer",
-                    "*.ProblemLogAppender*",
-                    // Demo/seed data generators. Only the avatar seeder is exempt: it fetches
-                    // pictures from a third-party API with a hard-wired client and caches them in
-                    // a hard-wired directory, so covering it would mean two production seams for
-                    // demo data. Every other seeder is gated like any other service.
-                    "*.DemoAvatarSeeder*",
-                    "*.DemoService*",
-                    // PDF/export services requiring external binaries
-                    "*PdfService*",
-                    "*ReportService*",
-                    "*ExportService*",
-                    // External AI API calls
-                    "*.AiService*",
-                    // File I/O services
-                    "*.KbFileStorageService*",
-                    "*.PageFileStorageService*",
-                    "*.PdfCompressor*",
-                    "*.BoardAttachmentService*",
-                    // Unreachable catch: gzip() wraps a ByteArrayOutputStream, which cannot throw
-                    // the IOException the GZIP streams declare, so 2 of its 19 lines can never be
-                    // executed and it sits at 89.5%. Accepted permanently rather than restructured
-                    // - the catch is required by the checked signature.
-                    "*.TextCompressionPolicy*",
-                    // Unified storage façade - heavy I/O against the backend layer,
-                    // public-surface paths covered by StorageServiceTest
-                    "*.StorageService*",
-                    // Image variant pipeline and the thin per-domain wrappers over it -
-                    // exercised end-to-end via route tests, not unit-covered.
-                    "*.ImageVariantService*",
-                    "*.LostAndFoundImageService*",
-                    "*.QuizQuestionImageService*",
-                    "*.KbIconService*",
-                    "*.KbImageService*",
-                    "*.LogoFragmentService*",
-                    // Keeps, reads and lets go of a report's picture through the media library. What
-                    // it decides on its own - what is accepted as a picture and what is refused - is
-                    // covered by ProblemReportScreenshotServiceTest; the rest is calls into the
-                    // storage layer with nothing of its own between them.
-                    "*.ProblemReportScreenshotService*",
-                    // External binary dependent services
-                    "*.LegalDocumentService*",
-                    // Daemon/scheduler threads
-                    "*.RegistrationDeadlineChecker*",
-                    "*.DueDateReminderChecker*",
-                    "*.ExpiryReminderChecker*",
-                    "*.FieldRegistrationSweeper*",
-                    // Complex CSV parsing with many edge cases
-                    "*.MemberImportService*",
-                    // Not CSV parsing despite its name: the uncovered part is remote-transfer
-                    // orchestration on background executors against a live source instance over
-                    // HTTP. Needs an integration test, not a unit test.
-                    "*.StationImportService*",
-                    // Storage monitoring (filesystem walks, scheduled reconciliation, ZIP compression)
-                    "*.StorageReconciliationService*",
-                    "*.StorageQuotaService*",
-                    // Federation version broadcaster (daemon thread, startup-only)
-                    "*.FederationVersionBroadcaster*",
-                    // Maps tile cache (filesystem walks + outbound HTTP, exercised manually)
-                    "*.MapTileCacheService*",
-                    // Startup refresh of Cloudflare's published edge ranges - outbound HTTP to
-                    // cloudflare.com with a hard-wired client; the parsing and matching logic it
-                    // delegates to lives in ClientIp and is covered there.
-                    "*.CloudflareRangesService*",
-                    // Discovery chain (HTTP + daemon threads, exercised by integration tests)
-                    "*.DiscoveryHttpClient*",
-                    "*.DiscoveryPingScheduler*",
-                    "*.DiscoveryStationRefreshScheduler*",
-                    "*.DiscoveryMaintenanceScheduler*",
-                    "*.DiscoveryPingService*",
-                    "*.DiscoveryStationFetcher*",
-                    "*.FederationPartnerSeeder*",
-                    "*.DiscoveryKeyService*",
-                    "*.DiscoveryStationProjectionService*",
-                    // WebAuthn verification - finishRegistration/finishAssertion success paths
-                    // need a real authenticator-issued credential signature, not a unit test.
-                    "*.WebAuthnService*",
-                    // Static CIDR helper record - class-init only, not worth unit-testing
-                    "*.RemoteUrlValidator.Cidr",
-                )
-                limit {
-                    counter = "LINE"
-                    minimum = "0.90".toBigDecimal()
+                    minimum = repositoryCoverage
                 }
             }
         }
@@ -486,6 +398,8 @@ tasks {
         dependsOn("spotlessJavascriptApply", "spotlessVueApply", "spotlessFrontendLocalesApply")
     }
 }
+
+apply(from = "gradle/patch-coverage.gradle.kts")
 
 java {
     toolchain {

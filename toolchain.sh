@@ -168,8 +168,10 @@ Backend
                         layer. Never raises a count, so it only ever records progress.
   be-compile            Compile main and test sources
   be-spotless           Apply Java formatting
-  be-coverage           Coverage gate only (needs a prior test run)
-  be-report             Generate the full JaCoCo report
+  be-coverage           The coverage gates on what the last test run recorded, without running the
+                        tests: the whole-backend floor, every repository at 95 %, and the lines
+                        changed since origin/main at 80 %. Another base with -PcoverageBase=<ref>
+  be-report             Run every test suite and write the merged JaCoCo report
   be-javadoc            Build the javadoc on its own; be-verify runs it too
   be-wrapper <version>  Move the Gradle wrapper to a version, e.g. be-wrapper 9.7.1
   be-federation-version Regenerate the federation contract version
@@ -436,7 +438,7 @@ case "$cmd" in
 
     be-verify)
         cd "$ROOT"
-        run ./gradlew spotlessJavaApply testAll jacocoCoverageCheck javadoc "$@"
+        run ./gradlew spotlessJavaApply testAll jacocoFullReport jacocoCoverageCheck patchCoverageCheck javadoc "$@"
         ;;
     be-test)
         cd "$ROOT"
@@ -456,8 +458,8 @@ case "$cmd" in
         ;;
     be-compile)    cd "$ROOT"; run ./gradlew compileJava compileTestJava "$@" ;;
     be-spotless)   cd "$ROOT"; run ./gradlew spotlessJavaApply "$@" ;;
-    be-coverage)   cd "$ROOT"; run ./gradlew jacocoCoverageCheck "$@" ;;
-    be-report)     cd "$ROOT"; run ./gradlew jacocoFullReport "$@" ;;
+    be-coverage)   cd "$ROOT"; run ./gradlew jacocoFullReport jacocoCoverageCheck patchCoverageCheck "$@" ;;
+    be-report)     cd "$ROOT"; run ./gradlew testAll jacocoFullReport "$@" ;;
     be-javadoc)    cd "$ROOT"; run ./gradlew javadoc "$@" ;;
     be-wrapper)    cd "$ROOT"; run ./gradlew wrapper --gradle-version "$@" ;;
     be-federation-version) cd "$ROOT"; run ./gradlew generateFederationVersion "$@" ;;
