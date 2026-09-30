@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import { ref, computed } from 'vue'
-import { contrastTextColor } from '@/theme/contrast'
+import { contrastTextColor } from '@/util/contrastColor'
 import type { BoardLane } from '@/api/boards'
 
 const props = defineProps<{ lanes: BoardLane[]; currentLaneId: number | undefined; canEdit: boolean }>()

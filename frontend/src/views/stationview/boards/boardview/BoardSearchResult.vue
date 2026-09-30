@@ -7,7 +7,7 @@
 import { computed } from 'vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
-import { contrastTextColor } from '@/theme/contrast'
+import { contrastTextColor } from '@/util/contrastColor'
 import { priorityIcon, priorityColor } from '@/util/ticketPriority'
 import type { BoardLabel, BoardTicket } from '@/api/boards'
 

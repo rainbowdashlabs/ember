@@ -7,7 +7,7 @@
 import BaseBadge from '@/components/badge/BaseBadge.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import Td from '@/components/table/Td.vue'
-import {contrastTextColor} from '@/theme/contrast'
+import {contrastTextColor} from '@/util/contrastColor'
 
 defineProps<{
     ticketId: string

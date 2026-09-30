@@ -10,7 +10,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import BaseBadge from '@/components/badge/BaseBadge.vue'
 import ArchiveTableRow from './ArchiveTableRow.vue'
-import {contrastTextColor} from '@/theme/contrast'
+import {contrastTextColor} from '@/util/contrastColor'
 
 const {t} = useI18n()
 

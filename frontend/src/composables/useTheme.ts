@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { ref, readonly, watch } from 'vue'
-import { THEMES, DEFAULT_THEME, DarkMode, Feel, FEEL_RADIUS, type ThemeColors, type ModeColors, type DarkModeValue, type FeelValue } from '@/theme/themes'
-import { contrastTextColor, ensureContrast } from '@/theme/contrast'
+import { THEMES, DarkMode, Feel, type ThemeColors, type DarkModeValue, type FeelValue } from '@/theme/themes'
+import { activeModeVariables, applyVariables, backgroundVariables, feelVariables, resolveThemeColors } from '@/theme/palette'
 import { getItem, setItem } from '@/api/storage'
 import { userSettings } from '@/api'
 import { usePride } from '@/composables/usePride'
@@ -27,65 +27,20 @@ function isDarkActive(): boolean {
     return document.documentElement.classList.contains('dark')
 }
 
-function resolveCurrentThemeColors(): ThemeColors {
-    const key = activeTheme.value
-    if (key === 'custom' && customThemeColors.value) return customThemeColors.value
-    return THEMES[key]?.colors ?? DEFAULT_THEME.colors
-}
-
-function resolveModeColors(themeColors: ThemeColors): ModeColors {
-    return isDarkActive() ? themeColors.dark : themeColors.light
-}
-
 function applyTheme(themeKey: string) {
-    const colors =
-        themeKey === 'custom' && customThemeColors.value
-            ? customThemeColors.value
-            : (THEMES[themeKey]?.colors ?? DEFAULT_THEME.colors)
-    const root = document.documentElement.style
-    root.setProperty('--color-bg-light', colors.bgLight)
-    root.setProperty('--color-bg-light-accent', colors.bgLightAccent)
-    root.setProperty('--color-bg-dark', colors.bgDark)
-    root.setProperty('--color-bg-dark-accent', colors.bgDarkAccent)
-
+    const colors = resolveThemeColors(themeKey, customThemeColors.value)
+    applyVariables(backgroundVariables(colors))
     applyModeColors(colors)
 }
 
 function applyModeColors(themeColors?: ThemeColors) {
-    const colors = themeColors ?? resolveCurrentThemeColors()
-    const mode = resolveModeColors(colors)
-    const root = document.documentElement.style
-
-    root.setProperty('--color-primary', mode.primary)
-    root.setProperty('--color-primary-accent', mode.primaryAccent)
-    root.setProperty('--color-secondary', mode.secondary)
-    root.setProperty('--color-secondary-accent', mode.secondaryAccent)
-    root.setProperty('--color-info', mode.info)
-    root.setProperty('--color-info-accent', mode.infoAccent)
-    root.setProperty('--color-success', mode.success)
-    root.setProperty('--color-error', mode.error)
-
-    root.setProperty('--color-primary-text', contrastTextColor(mode.primary))
-    root.setProperty('--color-primary-accent-text', contrastTextColor(mode.primaryAccent))
-    root.setProperty('--color-secondary-text', contrastTextColor(mode.secondary))
-    root.setProperty('--color-secondary-accent-text', contrastTextColor(mode.secondaryAccent))
-    root.setProperty('--color-info-text', contrastTextColor(mode.info))
-    root.setProperty('--color-info-accent-text', contrastTextColor(mode.infoAccent))
-    root.setProperty('--color-success-text', contrastTextColor(mode.success))
-    root.setProperty('--color-error-text', contrastTextColor(mode.error))
-
-    const pageBg = isDarkActive() ? colors.bgDark : colors.bgLight
-    root.setProperty('--color-primary-badge', ensureContrast(mode.primaryAccent, pageBg))
-    root.setProperty('--color-secondary-badge', ensureContrast(mode.secondaryAccent, pageBg))
-    root.setProperty('--color-info-badge', ensureContrast(mode.infoAccent, pageBg))
-    root.setProperty('--color-success-badge', ensureContrast(mode.success, pageBg))
-    root.setProperty('--color-error-badge', ensureContrast(mode.error, pageBg))
-
+    const colors = themeColors ?? resolveThemeColors(activeTheme.value, customThemeColors.value)
+    applyVariables(activeModeVariables(colors, isDarkActive()))
     themeRepainted()
 }
 
 function applyFeel(feel: FeelValue) {
-    document.documentElement.style.setProperty('--radius-theme', FEEL_RADIUS[feel] ?? FEEL_RADIUS[Feel.ROUNDED])
+    applyVariables(feelVariables(feel))
 }
 
 function resolveEffectiveFeel(feel: FeelValue, themeKey: string): FeelValue {

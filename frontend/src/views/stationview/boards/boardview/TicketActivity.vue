@@ -12,7 +12,7 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import type { BoardComment, BoardTicketTransition, BoardTicketHistoryEntry, BoardLane, BoardLabel } from '@/api/boards'
 import type { Comment } from '@/api/comments'
 import type { MemberCompletion } from '@/api/stationMembers'
-import { contrastTextColor } from '@/theme/contrast'
+import { contrastTextColor } from '@/util/contrastColor'
 import { formatDateTime } from '@/util/format'
 
 const props = defineProps<{

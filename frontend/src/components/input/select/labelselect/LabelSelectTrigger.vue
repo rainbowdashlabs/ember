@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import {contrastTextColor} from '@/theme/contrast'
+import {contrastTextColor} from '@/util/contrastColor'
 import type {SelectableOption} from '../LabelSelectInput.vue'
 
 /**

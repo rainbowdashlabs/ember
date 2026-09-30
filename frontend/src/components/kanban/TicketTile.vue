@@ -7,7 +7,7 @@
 import { computed } from 'vue'
 import type { BoardTicket, BoardLabel } from '@/api/boards'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
-import { contrastTextColor } from '@/theme/contrast'
+import { contrastTextColor } from '@/util/contrastColor'
 import type { MemberIdentity } from '@/api/types'
 import { priorityIcon as toPriorityIcon, priorityColor as toPriorityColor } from '@/util/ticketPriority'
 import { formatDayMonth, todayIsoDate } from '@/util/format'
