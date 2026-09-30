@@ -23,6 +23,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -348,6 +350,44 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertTrue(accountRepo.touchSession("session-tok", "UpdatedAgent/2.0", null));
         AccountSession session = accountRepo.findSession("session-tok").orElseThrow();
         assertEquals("UpdatedAgent/2.0", session.userAgent());
+    }
+
+    @Test
+    @Order(52)
+    void touchSessionWritesOncePerMinute() {
+        accountRepo.createSession(accountId, "touch-tok", Instant.now().plus(1, ChronoUnit.HOURS), "Agent/1", "DE");
+
+        assertFalse(accountRepo.touchSession("touch-tok", "Agent/1", "DE"));
+        assertFalse(accountRepo.touchSession("touch-tok", "Agent/1", null));
+
+        backdateLastUse("touch-tok");
+        assertTrue(accountRepo.touchSession("touch-tok", "Agent/1", "DE"));
+        assertFalse(accountRepo.touchSession("touch-tok", "Agent/1", "DE"));
+
+        accountRepo.deleteSession("touch-tok");
+    }
+
+    @Test
+    @Order(52)
+    void touchSessionWritesAChangedUserAgentOrLocationAtOnce() {
+        accountRepo.createSession(accountId, "change-tok", Instant.now().plus(1, ChronoUnit.HOURS), "Agent/1", "DE");
+
+        assertTrue(accountRepo.touchSession("change-tok", "Agent/2", "DE"));
+        assertEquals(
+                "Agent/2", accountRepo.findSession("change-tok").orElseThrow().userAgent());
+
+        assertTrue(accountRepo.touchSession("change-tok", "Agent/2", "AT"));
+        assertEquals("AT", accountRepo.findSession("change-tok").orElseThrow().location());
+
+        accountRepo.deleteSession("change-tok");
+    }
+
+    private static void backdateLastUse(String token) {
+        query("UPDATE account_session SET last_used_at = now() - INTERVAL '2 minutes' WHERE token_hash = :token_hash;")
+                .single(call().bind(
+                                "token_hash",
+                                TokenHasher.forTesting("repository-test-pepper").hash(token)))
+                .update();
     }
 
     @Test

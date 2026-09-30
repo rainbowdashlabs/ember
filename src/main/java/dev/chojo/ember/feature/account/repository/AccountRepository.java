@@ -1060,10 +1060,14 @@ public class AccountRepository {
     /**
      * Updates the last-used timestamp, user agent, and location of a session.
      *
+     * <p>This runs on every authenticated request, so the row is only written when it would say
+     * something new: the last use is at least a minute old, or the user agent or location changed.
+     * The session list therefore stays accurate to the minute without a write per request.
+     *
      * @param token     the session token
      * @param userAgent the current user agent string
      * @param location  the current location, or {@code null} to keep the existing value
-     * @return {@code true} if the session was updated
+     * @return {@code true} if the session row was written
      */
     public boolean touchSession(String token, String userAgent, String location) {
         return query("""
@@ -1072,7 +1076,10 @@ public class AccountRepository {
                     last_used_at = now(),
                     user_agent   = :user_agent,
                     location     = coalesce(:location, location)
-                WHERE token_hash = :token_hash;
+                WHERE token_hash = :token_hash
+                  AND (last_used_at < now() - INTERVAL '1 minute'
+                    OR user_agent IS DISTINCT FROM :user_agent
+                    OR location IS DISTINCT FROM coalesce(:location, location));
                 """)
                 .single(call().bind("user_agent", userAgent)
                         .bind("location", location)
