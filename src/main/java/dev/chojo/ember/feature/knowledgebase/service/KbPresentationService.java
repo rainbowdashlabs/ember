@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.PdfText;
 import dev.chojo.ember.util.PresentationConverter;
 import jakarta.inject.Inject;
@@ -15,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Turns uploaded slide decks into something a browser can show. An upload is stored as-is and
@@ -32,13 +32,18 @@ public class KbPresentationService {
     private final KnowledgeBaseRepository repository;
     private final KbFileStorageService fileStorage;
     private final KbContentService contentService;
+    private final TaskScheduler scheduler;
 
     @Inject
     public KbPresentationService(
-            KnowledgeBaseRepository repository, KbFileStorageService fileStorage, KbContentService contentService) {
+            KnowledgeBaseRepository repository,
+            KbFileStorageService fileStorage,
+            KbContentService contentService,
+            TaskScheduler scheduler) {
         this.repository = repository;
         this.fileStorage = fileStorage;
         this.contentService = contentService;
+        this.scheduler = scheduler;
     }
 
     /**
@@ -51,7 +56,7 @@ public class KbPresentationService {
      */
     public void startConversion(int stationId, int fileId, byte[] data, String filename) {
         repository.updateConversionStatus(fileId, ConversionStatus.PENDING);
-        CompletableFuture.runAsync(() -> convert(stationId, fileId, data, filename));
+        scheduler.background("kb-presentation-conversion", () -> convert(stationId, fileId, data, filename));
     }
 
     /**

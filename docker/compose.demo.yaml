@@ -17,6 +17,7 @@ services:
   ember:
     container_name: ember_demo
     image: ghcr.io/rainbowdashlabs/ember-backend:${EMBER_TAG:-latest}
+    stop_grace_period: 30s
     environment:
       DB_HOST: ember_demo_db
       DB_PORT: "5432"

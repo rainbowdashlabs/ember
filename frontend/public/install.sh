@@ -441,6 +441,7 @@ YAML
     container_name: ember
     image: ghcr.io/rainbowdashlabs/ember-backend:\${EMBER_TAG:-latest}
     restart: unless-stopped
+    stop_grace_period: 30s
     environment:
       DB_HOST: $DB_HOSTNAME
       DB_PORT: "$DB_PORT"

@@ -27,7 +27,7 @@
 - **Sending a form shows a confirmation.** After sending a station form you stay on a screen that says so, with the way back to the forms and, where the form allows it, a way to change the answer.
 - **Jugendflamme template offers "None".** The Jugendflamme quick template adds one choice field with "None" and the three levels, so every member holds exactly one level. The date the level was reached comes with it as before.
 - **The minimum-registration deadline counts days before each date.** An appointment with a minimum number of registrations now says how many days before each date it has to be reached, instead of naming one fixed day, and one-time appointments keep their deadline. On repeating appointments the old deadline is removed and has to be set again in the appointment's editor.
-
+- **The backend gets thirty seconds to shut down.** The shipped compose files and the installer give the backend container a `stop_grace_period` of 30 seconds, which it uses to finish running requests and save buffered statistics and log lines. Setups with their own compose files should set the same on the backend.
 ### Fixes
 
 - **Reordering options no longer changes answers.** Reordering or renaming the options of a question that already had answers could change what those answers said. Answers now stay with the option that was chosen, and removing an option somebody chose asks first.

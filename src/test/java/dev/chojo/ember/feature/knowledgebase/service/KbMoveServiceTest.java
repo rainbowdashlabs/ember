@@ -92,7 +92,7 @@ class KbMoveServiceTest extends RepositoryTestBase {
                 fileStorage,
                 contentService,
                 accessService,
-                new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
+                new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService, new TaskScheduler()),
                 new KbLinkMetadataService(new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo()))),
                 new PresentationCompressor(storageConfig),
                 new PdfCompressor(storageConfig),

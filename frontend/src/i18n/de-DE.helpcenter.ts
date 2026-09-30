@@ -577,6 +577,7 @@ export default {
   ember:
     image: ghcr.io/rainbowdashlabs/ember-backend:latest
     restart: unless-stopped
+    stop_grace_period: 30s
     environment:
       API_BASEURL: "https://ember.example.com"
       DB_HOST: postgres
@@ -617,7 +618,7 @@ export default {
 
 volumes:
   pgdata:`,
-                dockerText2: 'Ersetze ember.example.com durch deine Domain. Der API-Router hat eine höhere Priorität, sodass /api-Anfragen ans Backend gehen und alles andere ans Frontend. Starte alles mit docker compose up -d. Beim ersten Start wird automatisch eine Konfigurationsdatei unter config/ erstellt und ein Admin-Konto mit zufälligem Passwort generiert (in der Konsole sichtbar).',
+                dockerText2: 'Ersetze ember.example.com durch deine Domain. Der API-Router hat eine höhere Priorität, sodass /api-Anfragen ans Backend gehen und alles andere ans Frontend. Starte alles mit docker compose up -d. Beim ersten Start wird automatisch eine Konfigurationsdatei unter config/ erstellt und ein Admin-Konto mit zufälligem Passwort generiert (in der Konsole sichtbar). Die 30 Sekunden bei stop_grace_period geben dem Backend Zeit, beim Anhalten Statistiken und Protokollzeilen zu speichern; ein hartes Beenden verliert die letzten davon.',
                 firstStart: 'Erster Start',
                 firstStartText: 'Beim ersten Start legt Ember ein Konto an, das die Instanz verwaltet, und '
                     + 'schreibt in die Konsole, womit du dich anmeldest: den Benutzernamen admin und ein '

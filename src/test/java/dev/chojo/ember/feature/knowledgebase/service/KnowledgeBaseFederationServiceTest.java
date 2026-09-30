@@ -112,7 +112,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 fileStorage,
                 contentService,
                 new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
-                new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
+                new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService, new TaskScheduler()),
                 new KbLinkMetadataService(new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo()))),
                 new PresentationCompressor(storageConfig),
                 new PdfCompressor(storageConfig),

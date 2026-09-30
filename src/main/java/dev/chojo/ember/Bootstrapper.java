@@ -46,6 +46,10 @@ import java.util.Set;
 /**
  * Application entry point that initializes the Guice injector, runs database migrations,
  * seeds demo data or creates a default admin account, and starts the API server.
+ *
+ * <p>Background work starts last: the scheduled tasks once the schema is certain, the demo data is in
+ * place and the HTTP port is open, then the one-shot jobs (search index rebuild, Cloudflare ranges).
+ * The shutdown hook is installed before any of it, so everything that starts is also stopped in order.
  */
 public class Bootstrapper {
     private static final Logger log = LoggerFactory.getLogger(Bootstrapper.class);
@@ -200,13 +204,8 @@ public class Bootstrapper {
         // Initialize legal document versioning (detect changes, archive old versions)
         injector.getInstance(ConsentService.class).initialize();
 
-        injector.getInstance(CloudflareRangesService.class).refreshAsync();
-
         var updateCheck = injector.getInstance(UpdateCheckService.class);
         injector.getInstance(BeaconReportService.class).startForwarding(updateCheck.currentVersion());
-
-        var searchIndexRebuild = injector.getInstance(SearchIndexRebuildService.class);
-        Thread.ofPlatform().daemon().name("search-index-rebuild").start(searchIndexRebuild::rebuildInBackground);
 
         // Whether this start is an update is a question only the previous start can answer, and the
         // answer is kept in the database, so it is asked where the schema is certain and before the
@@ -218,6 +217,10 @@ public class Bootstrapper {
         apiServer.start();
 
         injector.getInstance(Lifecycle.class).installShutdownHook();
-        injector.getInstance(TaskScheduler.class).start(tasks);
+        var scheduler = injector.getInstance(TaskScheduler.class);
+        scheduler.start(tasks);
+        scheduler.background(
+                "search-index-rebuild", injector.getInstance(SearchIndexRebuildService.class)::rebuildInBackground);
+        injector.getInstance(CloudflareRangesService.class).refreshAsync();
     }
 }

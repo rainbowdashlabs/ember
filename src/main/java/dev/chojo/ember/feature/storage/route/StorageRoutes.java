@@ -35,6 +35,7 @@ import dev.chojo.ember.feature.storage.service.InstanceStorageMigrationService;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageReconciliationService;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -72,6 +73,7 @@ public class StorageRoutes implements Routes {
     private final InstanceStorageMigrationService instanceMigrationService;
     private final StorageBackendAuditService auditService;
     private final Conf conf;
+    private final TaskScheduler scheduler;
 
     @Inject
     public StorageRoutes(
@@ -87,7 +89,9 @@ public class StorageRoutes implements Routes {
             CredentialCipher credentialCipher,
             InstanceStorageMigrationService instanceMigrationService,
             StorageBackendAuditService auditService,
-            Conf conf) {
+            Conf conf,
+            TaskScheduler scheduler) {
+        this.scheduler = scheduler;
         this.quotaService = quotaService;
         this.usageRepository = usageRepository;
         this.presetRepository = presetRepository;
@@ -259,7 +263,7 @@ public class StorageRoutes implements Routes {
     // -- Reconciliation --
 
     private void recalculateAll(Context ctx) {
-        Thread.ofVirtual().name("admin-reconcile-all").start(reconciliationService::reconcileAll);
+        scheduler.background("admin-reconcile-all", reconciliationService::reconcileAll);
         ctx.status(HttpStatus.ACCEPTED);
     }
 

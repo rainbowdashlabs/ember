@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.service.AiService;
 import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.Json;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -50,12 +51,18 @@ public class AiRoutes implements Routes {
     private final AiService aiService;
     private final QuizCatalogService catalogService;
     private final QuizQuestionService questionService;
+    private final TaskScheduler scheduler;
 
     @Inject
-    public AiRoutes(AiService aiService, QuizCatalogService catalogService, QuizQuestionService questionService) {
+    public AiRoutes(
+            AiService aiService,
+            QuizCatalogService catalogService,
+            QuizQuestionService questionService,
+            TaskScheduler scheduler) {
         this.aiService = aiService;
         this.catalogService = catalogService;
         this.questionService = questionService;
+        this.scheduler = scheduler;
     }
 
     @Override
@@ -245,7 +252,7 @@ public class AiRoutes implements Routes {
         var job = new GenerationJob(UserSession.from(ctx).stationId());
         generationJobs.put(jobId, job);
 
-        Thread.startVirtualThread(() -> {
+        scheduler.background("ai-question-generation", () -> {
             try {
                 for (var entry : req.entries()) {
                     if (entry.quizQuestionType() == null || entry.count() == null || entry.count() < 1) continue;

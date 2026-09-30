@@ -246,7 +246,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 kbFileStorage,
                 kbContentService,
                 new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
-                new KbPresentationService(knowledgeBaseRepo, kbFileStorage, kbContentService),
+                new KbPresentationService(knowledgeBaseRepo, kbFileStorage, kbContentService, new TaskScheduler()),
                 new KbLinkMetadataService(new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo()))),
                 new PresentationCompressor(kbStorageConfig),
                 new PdfCompressor(kbStorageConfig),

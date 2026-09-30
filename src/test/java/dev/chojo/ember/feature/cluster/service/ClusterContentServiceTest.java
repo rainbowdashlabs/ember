@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbTrashService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
@@ -63,7 +64,7 @@ class ClusterContentServiceTest extends RepositoryTestBase {
                 fileStorage,
                 contentService,
                 accessService,
-                new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
+                new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService, new TaskScheduler()),
                 new KbLinkMetadataService(new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo()))),
                 new PresentationCompressor(storage),
                 new PdfCompressor(storage),

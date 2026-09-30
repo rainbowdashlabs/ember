@@ -7,6 +7,7 @@ package dev.chojo.ember.util.service;
 
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.ClientIp;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -43,14 +44,16 @@ public class CloudflareRangesService {
     private final HttpClient httpClient = OutboundHttp.trustedClient(Duration.ofSeconds(5), HttpClient.Redirect.NORMAL);
 
     private final Network network;
+    private final TaskScheduler scheduler;
 
     @Inject
-    public CloudflareRangesService(Network network) {
+    public CloudflareRangesService(Network network, TaskScheduler scheduler) {
         this.network = network;
+        this.scheduler = scheduler;
     }
 
     /**
-     * Kicks off the refresh on a virtual thread so the startup sequence is
+     * Kicks off the refresh in the background so the startup sequence is
      * never blocked on outbound HTTP to {@code cloudflare.com}.
      */
     public void refreshAsync() {
@@ -58,7 +61,7 @@ public class CloudflareRangesService {
             log.debug("Cloudflare integration disabled; skipping edge range refresh");
             return;
         }
-        Thread.ofVirtual().name("cloudflare-ranges-refresh").start(this::refresh);
+        scheduler.background("cloudflare-ranges-refresh", this::refresh);
     }
 
     /**

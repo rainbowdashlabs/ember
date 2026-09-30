@@ -21,6 +21,7 @@ services:
   ember:
     container_name: ember_demo
     image: ghcr.io/rainbowdashlabs/ember-backend:latest
+    stop_grace_period: 30s
     labels:
       traefik.enable: true
       traefik.http.routers.demo_ember.rule: "Host(`demo.ember-panel.de`) && PathPrefix(`/api`)"
@@ -71,6 +72,7 @@ services:
   ember_dev:
     container_name: ember_demo_dev
     image: ghcr.io/rainbowdashlabs/ember-backend:dev
+    stop_grace_period: 30s
     labels:
       traefik.enable: true
       traefik.http.routers.demo_dev_ember.rule: "Host(`dev.ember-panel.de`) && PathPrefix(`/api`)"

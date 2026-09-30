@@ -27,7 +27,7 @@
 - **Nach dem Absenden erscheint eine Bestätigung.** Nach dem Absenden eines Formulars der Wache bleibst du auf einer Seite, die das bestätigt, mit dem Weg zurück zu den Umfragen und, wo das Formular es erlaubt, der Möglichkeit, die Antwort zu ändern.
 - **Die Vorlage Jugendflamme bietet „Keine" an.** Die Schnellvorlage Jugendflamme legt ein Auswahlfeld mit „Keine" und den drei Stufen an, sodass jedes Mitglied genau eine Stufe hat. Das Datum, an dem die Stufe erreicht wurde, kommt wie bisher mit.
 - **Die Frist für die Mindestanzahl zählt Tage vor jedem Termin.** Ein Termin mit einer Mindestanzahl an Anmeldungen legt jetzt fest, wie viele Tage vor jedem Termin sie erreicht sein muss, statt einen festen Tag zu nennen, und einmalige Termine behalten ihre Frist. Bei wiederkehrenden Terminen entfällt die alte Frist und muss im Editor des Termins neu gesetzt werden.
-
+- **Das Backend bekommt dreißig Sekunden zum Herunterfahren.** Die mitgelieferten Compose-Dateien und das Installationsskript geben dem Backend-Container eine `stop_grace_period` von 30 Sekunden, in denen er laufende Anfragen beendet und gepufferte Statistiken und Protokollzeilen speichert. Eigene Compose-Dateien sollten beim Backend dasselbe setzen.
 ### Fehlerbehebungen
 
 - **Das Umsortieren von Optionen verändert keine Antworten mehr.** Wurden die Optionen einer Frage, die schon Antworten hatte, umsortiert oder umbenannt, konnte sich ändern, was diese Antworten aussagten. Antworten bleiben jetzt bei der gewählten Option, und das Entfernen einer Option, die jemand gewählt hat, fragt vorher nach.

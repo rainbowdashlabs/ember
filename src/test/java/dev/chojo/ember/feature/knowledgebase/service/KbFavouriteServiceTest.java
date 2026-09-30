@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
@@ -74,7 +75,7 @@ class KbFavouriteServiceTest extends RepositoryTestBase {
                 fileStorage,
                 content,
                 access,
-                new KbPresentationService(knowledgeBaseRepo, fileStorage, content),
+                new KbPresentationService(knowledgeBaseRepo, fileStorage, content, new TaskScheduler()),
                 linkMetadata,
                 new PresentationCompressor(storageConfig),
                 new PdfCompressor(storageConfig),
