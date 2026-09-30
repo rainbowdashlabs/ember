@@ -25,6 +25,9 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -239,6 +242,50 @@ public class StationMemberService {
     public boolean setUserType(int memberId, StationUserType userType) {
         log.info("User type changed for member {}: {}", memberId, userType);
         return memberRepository.setUserType(memberId, userType);
+    }
+
+    public void setJoinDate(int memberId, LocalDate joinDate) {
+        memberRepository.setJoinDate(memberId, joinDate);
+    }
+
+    public List<StationMember> findFormerByStation(int stationId) {
+        return memberRepository.findFormerByStation(stationId);
+    }
+
+    /**
+     * The permissions a station grants a user type on top of what the type carries by itself.
+     */
+    public List<Permission> findUserTypePermissions(int stationId, StationUserType userType) {
+        return memberRepository.findUserTypePermissions(stationId, userType);
+    }
+
+    /**
+     * Replaces the permissions a station grants a user type on top of what the type carries.
+     *
+     * @return the permissions granted now
+     */
+    public List<Permission> setUserTypePermissions(
+            int stationId, StationUserType userType, List<Integer> permissionIds) {
+        memberRepository.setUserTypePermissions(stationId, userType, permissionIds);
+        return memberRepository.findUserTypePermissions(stationId, userType);
+    }
+
+    /**
+     * Everything a user type may do at a station: what the type carries by itself, what the
+     * station grants it on top, and everything those permissions include.
+     *
+     * @return the permission names, sorted
+     */
+    public List<String> effectiveUserTypePermissions(int stationId, StationUserType userType) {
+        Set<StationPermission> permissions = EnumSet.noneOf(StationPermission.class);
+        permissions.addAll(Arrays.asList(userType.defaultPermissions()));
+        memberRepository.findUserTypePermissions(stationId, userType).stream()
+                .map(Permission::permission)
+                .forEach(permissions::add);
+        return StationPermission.expand(permissions).stream()
+                .map(Enum::name)
+                .sorted()
+                .toList();
     }
 
     // -- Manager relations --

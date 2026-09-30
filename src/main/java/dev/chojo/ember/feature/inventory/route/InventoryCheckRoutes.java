@@ -17,13 +17,13 @@ import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
-import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
+import dev.chojo.ember.feature.inventory.entity.MemberCheckSummary;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -50,7 +50,7 @@ public class InventoryCheckRoutes implements Routes {
     private final InventoryCheckService checkService;
     private final InventoryService inventoryService;
     private final InventoryContainerService containerService;
-    private final StationMemberRepository stationMemberRepository;
+    private final StationMemberService memberService;
     private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
@@ -58,12 +58,12 @@ public class InventoryCheckRoutes implements Routes {
             InventoryCheckService checkService,
             InventoryService inventoryService,
             InventoryContainerService containerService,
-            StationMemberRepository stationMemberRepository,
+            StationMemberService memberService,
             MemberIdentityFactory memberIdentityFactory) {
         this.checkService = checkService;
         this.inventoryService = inventoryService;
         this.containerService = containerService;
-        this.stationMemberRepository = stationMemberRepository;
+        this.memberService = memberService;
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
@@ -98,7 +98,7 @@ public class InventoryCheckRoutes implements Routes {
      * Asserts the given member belongs to the caller's station.
      */
     private void verifyMemberInStation(int memberId, UserSession session) {
-        var member = stationMemberRepository.findById(memberId).orElseThrow(Refusal.MEMBER_NOT_HERE_ON_CHECK::raise);
+        var member = memberService.findById(memberId).orElseThrow(Refusal.MEMBER_NOT_HERE_ON_CHECK::raise);
         RouteSupport.requireSameStation(session, member.stationId());
     }
 

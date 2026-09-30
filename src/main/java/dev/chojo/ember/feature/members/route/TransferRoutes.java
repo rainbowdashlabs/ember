@@ -10,11 +10,10 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
-import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
+import dev.chojo.ember.feature.station.service.StationTransferService;
+import dev.chojo.ember.feature.station.service.StationTransferService.TransferStatusResponse;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -46,19 +45,16 @@ public class TransferRoutes implements Routes {
 
     private final StationExportService exportService;
     private final StationImportService importService;
-    private final StationRepository stationRepository;
-    private final FederationPartnerTransferFixupService federationFixup;
+    private final StationTransferService transferService;
 
     @Inject
     public TransferRoutes(
             StationExportService exportService,
             StationImportService importService,
-            StationRepository stationRepository,
-            FederationPartnerTransferFixupService federationFixup) {
+            StationTransferService transferService) {
         this.exportService = exportService;
         this.importService = importService;
-        this.stationRepository = stationRepository;
-        this.federationFixup = federationFixup;
+        this.transferService = transferService;
     }
 
     @Override
@@ -132,10 +128,7 @@ public class TransferRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = TransferStatusResponse.class)))
     private void transferStatus(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int stationId = session.stationId();
-        boolean readOnly = stationRepository.isReadOnlyForTransfer(stationId);
-        String target = readOnly ? exportService.findTransferTarget(stationId).orElse(null) : null;
-        ctx.json(new TransferStatusResponse(readOnly, target));
+        ctx.json(transferService.status(session.stationId()));
     }
 
     // -- Token-authenticated export --
@@ -224,20 +217,7 @@ public class TransferRoutes implements Routes {
         String token = ctx.pathParam("token");
         int stationId =
                 exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_COMPLETE::raise);
-        String header = ctx.header("X-Ember-Importing-From");
-        String destinationUrl = header != null && !header.isBlank()
-                ? header
-                : exportService.findTransferTarget(stationId).orElse(null);
-        log.info(
-                "destination signalled completion for station {} (destination url={})",
-                stationId,
-                destinationUrl == null ? "<unknown>" : destinationUrl);
-        exportService.markTransferComplete(stationId);
-        final String url = destinationUrl;
-        stationRepository
-                .findById(stationId)
-                .map(Station::uid)
-                .ifPresent(uid -> federationFixup.flipSourceSideRetainedPartners(uid, url));
+        transferService.complete(stationId, ctx.header("X-Ember-Importing-From"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -314,8 +294,6 @@ public class TransferRoutes implements Routes {
         var result = importService.retryFailedImport(stationUid);
         ctx.status(HttpStatus.CREATED).json(new ImportStartResponse(result.stationId(), result.stationName()));
     }
-
-    public record TransferStatusResponse(boolean readOnly, String targetInstanceUrl) {}
 
     public record VersionResponse(String version) {}
 

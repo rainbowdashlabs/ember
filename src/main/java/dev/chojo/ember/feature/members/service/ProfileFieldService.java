@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.members.entity.AssignedProfileField;
 import dev.chojo.ember.feature.members.entity.ExpirySettings;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.MemberChangeSummary;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.PagedChanges;
@@ -688,8 +689,7 @@ public class ProfileFieldService {
         return deleted;
     }
 
-    public List<ProfileFieldChangeRepository.MemberChangeSummary> findUnacknowledgedSummary(
-            int stationId, int acknowledgedBy) {
+    public List<MemberChangeSummary> findUnacknowledgedSummary(int stationId, int acknowledgedBy) {
         return changeRepository.findUnacknowledgedSummary(stationId, acknowledgedBy);
     }
 

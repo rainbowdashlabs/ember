@@ -14,12 +14,12 @@ import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.MemberTablePeople;
 import dev.chojo.ember.feature.members.entity.MemberTablePreset;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.MemberTablePresetRepository;
+import dev.chojo.ember.feature.members.service.MemberTablePresetService;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.util.CsvWriter;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentPeriod;
@@ -50,19 +50,19 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 public class MemberTableRoutes implements Routes {
     private final MemberTableService tableService;
     private final MemberTableRenderer renderer;
-    private final MemberTablePresetRepository presetRepository;
-    private final StationRepository stationRepository;
+    private final MemberTablePresetService presets;
+    private final StationService stationService;
 
     @Inject
     public MemberTableRoutes(
             MemberTableService tableService,
             MemberTableRenderer renderer,
-            MemberTablePresetRepository presetRepository,
-            StationRepository stationRepository) {
+            MemberTablePresetService presets,
+            StationService stationService) {
         this.tableService = tableService;
         this.renderer = renderer;
-        this.presetRepository = presetRepository;
-        this.stationRepository = stationRepository;
+        this.presets = presets;
+        this.stationService = stationService;
     }
 
     @Override
@@ -82,22 +82,19 @@ public class MemberTableRoutes implements Routes {
     }
 
     private void listPresets(Context ctx) {
-        ctx.json(presetRepository.findByStation(UserSession.from(ctx).stationId()));
+        ctx.json(presets.list(UserSession.from(ctx).stationId()));
     }
 
     private void savePreset(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(SavePresetRequest.class);
-        if (req.name() == null || req.name().isBlank()) {
-            throw Refusal.MEMBER_TABLE_PRESET_NAME_MISSING.raise();
-        }
-        ctx.json(presetRepository.save(session.stationId(), req.name().trim(), columnsOf(req.columns())));
+        ctx.json(presets.save(session.stationId(), req.name(), req.columns()));
     }
 
     private void deletePreset(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, presetRepository::findById, MemberTablePreset::stationId);
-        presetRepository.delete(id, UserSession.from(ctx).stationId());
+        requireOwnedOrNotFound(ctx, id, presets::findById, MemberTablePreset::stationId);
+        presets.delete(id, UserSession.from(ctx).stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -139,11 +136,16 @@ public class MemberTableRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(MemberTableRequest.class);
         var people = MemberTablePeople.of(req.memberIds() == null ? List.of() : req.memberIds());
-        return tableService.build(stationOf(ctx), people, columnsOf(req.columns()), session.permissions(), Map.of());
+        return tableService.build(
+                stationOf(ctx),
+                people,
+                MemberTablePresetService.wellFormed(req.columns()),
+                session.permissions(),
+                Map.of());
     }
 
     private Station stationOf(Context ctx) {
-        return stationRepository
+        return stationService
                 .findById(UserSession.from(ctx).stationId())
                 .orElseThrow(Refusal.STATION_NOT_HERE_FOR_MEMBER_TABLE::raise);
     }
@@ -151,11 +153,6 @@ public class MemberTableRoutes implements Routes {
     private String generatedBy(Context ctx) {
         var account = UserSession.from(ctx).account();
         return account == null ? "" : NameParts.of(account).official();
-    }
-
-    private List<MemberTableColumn> columnsOf(List<MemberTableColumn> columns) {
-        if (columns == null) return List.of();
-        return columns.stream().filter(MemberTableColumn::isWellFormed).toList();
     }
 
     /**

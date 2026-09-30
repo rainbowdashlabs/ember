@@ -48,6 +48,22 @@ public class HibpSettings {
         return timeoutSeconds;
     }
 
+    public void enabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public void staleAfterDays(int staleAfterDays) {
+        this.staleAfterDays = staleAfterDays;
+    }
+
+    public void endpoint(String endpoint) {
+        this.endpoint = endpoint;
+    }
+
+    public void timeoutSeconds(int timeoutSeconds) {
+        this.timeoutSeconds = timeoutSeconds;
+    }
+
     @Override
     public String toString() {
         return "HibpSettings{enabled=" + enabled

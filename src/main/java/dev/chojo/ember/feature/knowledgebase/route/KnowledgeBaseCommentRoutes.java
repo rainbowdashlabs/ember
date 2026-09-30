@@ -23,7 +23,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFile;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.requireOwnedFile;
 
 /**
  * Comments members of this station write on their own knowledge-base files.

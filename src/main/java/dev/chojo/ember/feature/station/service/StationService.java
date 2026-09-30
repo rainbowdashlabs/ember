@@ -265,14 +265,30 @@ public class StationService {
     }
 
     /**
-     * Deletes a station by its ID.
+     * Deletes a station by its ID, and forgets its identity so its address stops resolving at once.
      *
      * @param id the station ID
      * @return {@code true} if the station was deleted
      */
     public boolean delete(int id) {
         log.info("Station deleted: id={}", id);
-        return stationRepository.delete(id);
+        boolean deleted = stationRepository.delete(id);
+        if (deleted) stationRepository.invalidateUidCache(id);
+        return deleted;
+    }
+
+    /**
+     * Deletes the local copy of a station that has been moved to another instance, without the
+     * confirmation mail a deletion otherwise waits for: the data lives on the destination, and what
+     * is left here is a stale shadow. Refused for a station that was not moved.
+     *
+     * @param id the station
+     */
+    public void deleteMoved(int id) {
+        if (!stationRepository.isReadOnlyForTransfer(id)) {
+            throw Refusal.STATION_NOT_MOVED.raise();
+        }
+        delete(id);
     }
 
     /**

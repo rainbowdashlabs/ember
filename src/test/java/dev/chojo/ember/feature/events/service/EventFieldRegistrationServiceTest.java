@@ -8,11 +8,11 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.question.QuestionValues;
@@ -344,7 +344,7 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
 
         fieldService.replaceFields(
                 event.id(),
-                List.of(new EventFieldRepository.FieldEntry(
+                List.of(new EventFieldDraft(
                         field.id(),
                         "Fahrer",
                         EventFieldType.MEMBER_LIST,

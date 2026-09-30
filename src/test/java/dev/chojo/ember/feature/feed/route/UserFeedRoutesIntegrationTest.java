@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.feed.route;
 
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -19,6 +18,7 @@ import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
 import dev.chojo.ember.feature.feed.render.NotificationFeedRenderer;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
+import dev.chojo.ember.feature.feed.service.PersonalFeedService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
@@ -91,7 +91,7 @@ class UserFeedRoutesIntegrationTest {
         MemberNameResolver memberNameResolver = mock(MemberNameResolver.class);
         when(memberNameResolver.called(MEMBER_ID)).thenReturn("Max Mustermann");
 
-        harness = RouteHarness.serving(new UserFeedRoutes(
+        var feeds = new PersonalFeedService(
                 tokenService,
                 mock(EventCrudService.class),
                 mock(EventCategoryService.class),
@@ -102,15 +102,14 @@ class UserFeedRoutesIntegrationTest {
                 memberRepository,
                 stationRepository,
                 emailService,
-                mock(AccountRepository.class),
                 mock(IcalEventRenderer.class),
                 mock(LostAndFoundService.class),
                 mock(LostAndFoundImageService.class),
                 mock(NotificationFeedRenderer.class),
-                new FeedRateLimiter(clock),
-                mock(FeedMetricsService.class),
                 memberNameResolver,
-                mock(OccurrenceCalendar.class)));
+                mock(OccurrenceCalendar.class));
+        harness = RouteHarness.serving(
+                new UserFeedRoutes(feeds, new FeedRateLimiter(clock), mock(FeedMetricsService.class)));
 
         FeedToken token = new FeedToken(MEMBER_ID, TOKEN_VALUE, Instant.EPOCH, null, null);
         StationMember member = new StationMember(

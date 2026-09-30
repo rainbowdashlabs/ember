@@ -16,15 +16,14 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
-import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
-import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
+import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
@@ -187,7 +186,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Order(16)
     void setAndFindTemplateGroups() {
         var group = memberGroupRepo.create(station.id(), "Svc Group A");
-        service.setTemplateGroups(templateId, List.of(new AttendanceRepository.TemplateGroup(group.id(), 1)));
+        service.setTemplateGroups(templateId, List.of(new TemplateGroup(group.id(), 1)));
         var groups = service.findTemplateGroups(templateId);
         assertEquals(1, groups.size());
         assertEquals(group.id(), groups.getFirst().groupId());
@@ -876,7 +875,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         eventFieldRepo.replaceFields(
                 event.id(),
-                List.of(new EventFieldRepository.FieldEntry(
+                List.of(new EventFieldDraft(
                         "Thema",
                         EventFieldType.STRING,
                         EventFieldConfig.parse("{}"),
@@ -932,7 +931,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null);
         eventFieldRepo.replaceFields(
                 event.id(),
-                List.of(new EventFieldRepository.FieldEntry(
+                List.of(new EventFieldDraft(
                         "Datum",
                         EventFieldType.STRING,
                         EventFieldConfig.parse("{}"),
@@ -1541,7 +1540,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         memberGroupRepo.addMember(group.id(), member.id());
 
         var autoTemplate = service.createTemplate(station.id(), "Group Auto Template");
-        service.setTemplateGroups(autoTemplate.id(), List.of(new AttendanceRepository.TemplateGroup(group.id(), 1)));
+        service.setTemplateGroups(autoTemplate.id(), List.of(new TemplateGroup(group.id(), 1)));
 
         var session = openSheet(
                 autoTemplate.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Group Session");

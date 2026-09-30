@@ -142,6 +142,7 @@ class RefusalTest {
                         Refusal.LOST_ITEM_PICTURE_NOT_PROCESSED,
                         Refusal.FEED_NOT_BUILT,
                         Refusal.INSTANCE_STORAGE_MOVE_TAKEN_BACK,
+                        Refusal.SETTINGS_NOT_SAVED,
                         Refusal.KB_PDF_STOPPED,
                         Refusal.KB_PDF_NOT_MADE,
                         Refusal.KB_PRESENTATION_NOT_REPLACED,

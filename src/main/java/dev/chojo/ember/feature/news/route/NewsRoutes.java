@@ -39,7 +39,7 @@ import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.news.service.PublicBlogService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -77,7 +77,7 @@ public class NewsRoutes implements Routes {
     private final NewsService newsService;
     private final NewsAttachmentService attachmentService;
     private final NewsFederationService newsFederationService;
-    private final StationRepository stationRepository;
+    private final PublicBlogService publicBlogs;
     private final MemberNameResolver memberNameResolver;
     private final MemberIdentityFactory memberIdentityFactory;
     private final EmailService emailService;
@@ -87,14 +87,14 @@ public class NewsRoutes implements Routes {
             NewsService newsService,
             NewsAttachmentService attachmentService,
             NewsFederationService newsFederationService,
-            StationRepository stationRepository,
+            PublicBlogService publicBlogs,
             MemberNameResolver memberNameResolver,
             MemberIdentityFactory memberIdentityFactory,
             EmailService emailService) {
         this.newsService = newsService;
         this.attachmentService = attachmentService;
         this.newsFederationService = newsFederationService;
-        this.stationRepository = stationRepository;
+        this.publicBlogs = publicBlogs;
         this.memberNameResolver = memberNameResolver;
         this.memberIdentityFactory = memberIdentityFactory;
         this.emailService = emailService;
@@ -685,17 +685,13 @@ public class NewsRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    private int resolvePublicStation(Context ctx) {
-        return stationRepository
-                .resolveAddressedId(ctx.pathParam("stationUid"))
-                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_BLOG::raise);
-    }
-
     private void publicBlogList(Context ctx) {
-        int stationId = resolvePublicStation(ctx);
-        var station =
-                stationRepository.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_BLOG_LIST::raise);
-        if (!station.publicBlogEnabled()) throw Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_LIST.raise();
+        int stationId = publicBlogs
+                .openBlog(
+                        ctx.pathParam("stationUid"),
+                        Refusal.STATION_NOT_HERE_BEHIND_BLOG_LIST,
+                        Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_LIST)
+                .id();
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
         var entries = newsService.findPublicBlogEntries(stationId, offset, limit);
@@ -723,10 +719,11 @@ public class NewsRoutes implements Routes {
      * existing JSON endpoint when they want older posts.
      */
     private void publicBlogFeed(Context ctx, String feedType) {
-        int stationId = resolvePublicStation(ctx);
-        var station =
-                stationRepository.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_BLOG_FEED::raise);
-        if (!station.publicBlogEnabled()) throw Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_FEED.raise();
+        var station = publicBlogs.openBlog(
+                ctx.pathParam("stationUid"),
+                Refusal.STATION_NOT_HERE_BEHIND_BLOG_FEED,
+                Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_FEED);
+        int stationId = station.id();
         String stationUid = station.uid().toString();
         String baseUrl = emailService.getBaseUrl();
         String blogUrl = baseUrl + "/public/station/" + stationUid + "/blog";
@@ -789,10 +786,12 @@ public class NewsRoutes implements Routes {
     }
 
     private void publicBlogDetail(Context ctx) {
-        int stationId = resolvePublicStation(ctx);
-        var station =
-                stationRepository.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_BLOG_ENTRY::raise);
-        if (!station.publicBlogEnabled()) throw Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_ENTRY.raise();
+        int stationId = publicBlogs
+                .openBlog(
+                        ctx.pathParam("stationUid"),
+                        Refusal.STATION_NOT_HERE_BEHIND_BLOG_ENTRY,
+                        Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_ENTRY)
+                .id();
         int blogId = pathInt(ctx, "blogId");
         var news = newsService.findById(blogId).orElseThrow(Refusal.PUBLIC_BLOG_ENTRY_NOT_HERE::raise);
         if (news.stationId() != stationId || !news.publicBlog() || news.publishedAt() == null || news.restricted()) {

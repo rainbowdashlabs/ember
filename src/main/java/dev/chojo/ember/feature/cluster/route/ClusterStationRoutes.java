@@ -16,7 +16,7 @@ import dev.chojo.ember.feature.cluster.entity.ClusterApplicationStatus;
 import dev.chojo.ember.feature.cluster.service.ClusterApplicationService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -42,16 +42,16 @@ import java.util.UUID;
 public class ClusterStationRoutes implements Routes {
     private final ClusterService clusterService;
     private final ClusterApplicationService applicationService;
-    private final StationRepository stationRepository;
+    private final StationService stationService;
 
     @Inject
     public ClusterStationRoutes(
             ClusterService clusterService,
             ClusterApplicationService applicationService,
-            StationRepository stationRepository) {
+            StationService stationService) {
         this.clusterService = clusterService;
         this.applicationService = applicationService;
-        this.stationRepository = stationRepository;
+        this.stationService = stationService;
     }
 
     @Override
@@ -105,7 +105,7 @@ public class ClusterStationRoutes implements Routes {
             })
     private void releaseStation(Context ctx) {
         Cluster cluster = requireActive(ctx);
-        Station station = stationRepository
+        Station station = stationService
                 .findByUid(parseUid(ctx.pathParam("stationUid")))
                 .orElseThrow(Refusal.STATION_NOT_HERE_ON_CLUSTER_RELEASE::raise);
         clusterService.releaseStation(cluster.id(), station.id());
@@ -175,7 +175,7 @@ public class ClusterStationRoutes implements Routes {
     }
 
     private ClusterApplicationResponse toApplicationResponse(ClusterApplication application) {
-        String stationName = stationRepository
+        String stationName = stationService
                 .findById(application.stationId())
                 .map(Station::name)
                 .orElse(null);

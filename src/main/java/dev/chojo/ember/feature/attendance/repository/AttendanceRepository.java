@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
+import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
@@ -962,12 +963,4 @@ public class AttendanceRepository {
                 .single(call().bind("member_id", memberId))
                 .delete();
     }
-
-    /**
-     * Associates a member group with a template at a given position.
-     *
-     * @param groupId  the group ID
-     * @param position ordering position
-     */
-    public record TemplateGroup(int groupId, int position) {}
 }

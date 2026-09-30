@@ -9,7 +9,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
-import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
+import dev.chojo.ember.feature.mail.service.StationMailSettingsService;
 import dev.chojo.ember.feature.members.service.UserSettingsService;
 import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -34,13 +34,12 @@ import java.util.Map;
 @Singleton
 public class UserSettingsRoutes implements Routes {
     private final UserSettingsService settingsService;
-    private final StationMailProviderRepository mailProviderRepository;
+    private final StationMailSettingsService mailSettings;
 
     @Inject
-    public UserSettingsRoutes(
-            UserSettingsService settingsService, StationMailProviderRepository mailProviderRepository) {
+    public UserSettingsRoutes(UserSettingsService settingsService, StationMailSettingsService mailSettings) {
         this.settingsService = settingsService;
-        this.mailProviderRepository = mailProviderRepository;
+        this.mailSettings = mailSettings;
     }
 
     @Override
@@ -123,7 +122,7 @@ public class UserSettingsRoutes implements Routes {
             String feel,
             Map<NotificationType, NotificationSetting> notifSettings,
             int stationId) {
-        var first = mailProviderRepository.findByStation(stationId).stream().findFirst();
+        var first = mailSettings.firstEntry(stationId);
         String mailProviderName = first.map(MailChainEntry::providerName).orElse("");
         String mailProviderUrl = first.map(MailChainEntry::providerUrl).orElse("");
         boolean mailConfigured = first.isPresent();

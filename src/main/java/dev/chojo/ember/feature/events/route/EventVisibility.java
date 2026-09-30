@@ -20,7 +20,7 @@ import java.util.Set;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
-import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEvent;
+import static dev.chojo.ember.feature.events.service.EventOwnership.requireOwnedEvent;
 
 /**
  * The guard in front of everything that reads an event, and whose view restrictions narrow the

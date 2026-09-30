@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.equipment.service;
 
+import dev.chojo.ember.feature.equipment.entity.Recommendation;
 import dev.chojo.ember.feature.equipment.repository.EquipmentRecommendationRepository;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import jakarta.inject.Inject;
@@ -52,7 +53,7 @@ public class EquipmentBrowseService {
      * @param itemId    the piece that was picked
      * @return the recommendations
      */
-    public List<EquipmentRecommendationRepository.Recommendation> recommendationsFor(int stationId, int itemId) {
+    public List<Recommendation> recommendationsFor(int stationId, int itemId) {
         return recommendationRepository.forItem(stationId, itemId, RECOMMENDATION_LIMIT);
     }
 

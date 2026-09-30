@@ -18,31 +18,29 @@ import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
+import dev.chojo.ember.feature.events.service.RegistrationRowLookups;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.MemberTable;
 import dev.chojo.ember.feature.members.entity.MemberTableCellType;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
-import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.util.CsvWriter;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentWord;
@@ -76,7 +74,7 @@ import java.util.Set;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
-import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEvent;
+import static dev.chojo.ember.feature.events.service.EventOwnership.requireOwnedEvent;
 
 /**
  * Local routes for taking part in an event: signing up, declining, withdrawing, the manager-side
@@ -90,11 +88,9 @@ public class EventRegistrationRoutes implements Routes {
     private final EventRestrictionService restrictionService;
     private final MemberNameResolver memberNameResolver;
     private final GuardianPolicy guardianPolicy;
-    private final StationMemberRepository stationMemberRepository;
+    private final RegistrationRowLookups.Reader rowReader;
     private final AttendanceService attendanceService;
-    private final MemberIdentityFactory memberIdentityFactory;
     private final EventRegistrationFieldService registrationFieldService;
-    private final EventFieldService eventFieldService;
     private static final Logger log = LoggerFactory.getLogger(EventRegistrationRoutes.class);
     private static final DateTimeFormatter DAY_STAMP = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
@@ -102,7 +98,7 @@ public class EventRegistrationRoutes implements Routes {
     private final EventMemberTableService eventMemberTableService;
     private final MemberTableService memberTableService;
     private final MemberTableRenderer memberTableRenderer;
-    private final StationRepository stationRepository;
+    private final StationService stationService;
     private final OccurrenceCalendar occurrenceCalendar;
     private final EventVisibility visibility;
 
@@ -113,31 +109,27 @@ public class EventRegistrationRoutes implements Routes {
             EventRestrictionService restrictionService,
             MemberNameResolver memberNameResolver,
             GuardianPolicy guardianPolicy,
-            StationMemberRepository stationMemberRepository,
+            RegistrationRowLookups.Reader rowReader,
             AttendanceService attendanceService,
-            MemberIdentityFactory memberIdentityFactory,
             EventRegistrationFieldService registrationFieldService,
-            EventFieldService eventFieldService,
             RegistrationAnswerReminder answerReminder,
             EventMemberTableService eventMemberTableService,
             MemberTableService memberTableService,
             MemberTableRenderer memberTableRenderer,
-            StationRepository stationRepository,
+            StationService stationService,
             OccurrenceCalendar occurrenceCalendar,
             EventVisibility visibility) {
         this.occurrenceCalendar = occurrenceCalendar;
         this.crudService = crudService;
         this.visibility = visibility;
-        this.stationRepository = stationRepository;
+        this.stationService = stationService;
         this.registrationService = registrationService;
         this.restrictionService = restrictionService;
         this.memberNameResolver = memberNameResolver;
         this.guardianPolicy = guardianPolicy;
-        this.stationMemberRepository = stationMemberRepository;
+        this.rowReader = rowReader;
         this.attendanceService = attendanceService;
-        this.memberIdentityFactory = memberIdentityFactory;
         this.registrationFieldService = registrationFieldService;
-        this.eventFieldService = eventFieldService;
         this.answerReminder = answerReminder;
         this.eventMemberTableService = eventMemberTableService;
         this.memberTableService = memberTableService;
@@ -202,13 +194,7 @@ public class EventRegistrationRoutes implements Routes {
 
     /** The shared reads for a list about these members, see {@link RegistrationRowLookups}. */
     private RegistrationRowLookups lookupsFor(Collection<Integer> memberIds) {
-        return RegistrationRowLookups.forMembers(
-                memberIds,
-                stationMemberRepository,
-                crudService,
-                eventFieldService,
-                memberNameResolver,
-                memberIdentityFactory);
+        return rowReader.forMembers(memberIds);
     }
 
     /**
@@ -489,7 +475,7 @@ public class EventRegistrationRoutes implements Routes {
         answerReminder.replaceQuestions(
                 eventId,
                 fields.stream()
-                        .map(f -> new FieldEntry(
+                        .map(f -> new RegistrationFieldDraft(
                                 f.name(),
                                 f.fieldType(),
                                 f.config() != null ? f.config() : EventRegistrationFieldConfig.empty(),
@@ -568,7 +554,7 @@ public class EventRegistrationRoutes implements Routes {
     private void exportTableCsv(Context ctx) {
         var session = UserSession.from(ctx);
         var event = requireOwnedEvent(crudService, pathInt(ctx, "eventId"), session);
-        var station = stationRepository
+        var station = stationService
                 .findById(session.stationId())
                 .orElseThrow(Refusal.STATION_NOT_HERE_FOR_REGISTRATION_CSV::raise);
         ctx.contentType("text/csv");
@@ -592,7 +578,7 @@ public class EventRegistrationRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         var event = requireOwnedEvent(crudService, eventId, session);
-        var station = stationRepository
+        var station = stationService
                 .findById(session.stationId())
                 .orElseThrow(Refusal.STATION_NOT_HERE_FOR_REGISTRATION_SHEET::raise);
         var table = tableOf(ctx);
@@ -616,7 +602,7 @@ public class EventRegistrationRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         var event = visibility.requireVisibleEvent(session, eventId);
-        var station = stationRepository
+        var station = stationService
                 .findById(event.stationId())
                 .orElseThrow(Refusal.STATION_NOT_HERE_FOR_REGISTRATION_TABLE::raise);
         var req = ctx.bodyAsClass(RegistrationTableRequest.class);

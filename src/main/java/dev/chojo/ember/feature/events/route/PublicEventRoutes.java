@@ -19,7 +19,7 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -58,7 +58,7 @@ public class PublicEventRoutes implements Routes {
     private final EventCategoryService categoryService;
     private final EventFieldService eventFieldService;
     private final OccurrenceCalendar occurrenceCalendar;
-    private final StationRepository stationRepository;
+    private final StationService stationService;
 
     @Inject
     public PublicEventRoutes(
@@ -66,12 +66,12 @@ public class PublicEventRoutes implements Routes {
             EventCategoryService categoryService,
             EventFieldService eventFieldService,
             OccurrenceCalendar occurrenceCalendar,
-            StationRepository stationRepository) {
+            StationService stationService) {
         this.crudService = crudService;
         this.categoryService = categoryService;
         this.eventFieldService = eventFieldService;
         this.occurrenceCalendar = occurrenceCalendar;
-        this.stationRepository = stationRepository;
+        this.stationService = stationService;
     }
 
     @Override
@@ -85,8 +85,7 @@ public class PublicEventRoutes implements Routes {
 
     private Station resolveStation(Context ctx) {
         UUID uid = pathUuid(ctx, "stationUid");
-        var station =
-                stationRepository.findByUid(uid).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_CALENDAR::raise);
+        var station = stationService.findByUid(uid).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_CALENDAR::raise);
         if (!station.publicCalendarEnabled()) {
             throw Refusal.PUBLIC_CALENDAR_SWITCHED_OFF.raise();
         }

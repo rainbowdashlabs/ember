@@ -9,10 +9,10 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -99,16 +99,16 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
                 null);
     }
 
-    private static FieldEntry required(String name) {
-        return new FieldEntry(
+    private static RegistrationFieldDraft required(String name) {
+        return new RegistrationFieldDraft(
                 name,
                 EventFieldType.STRING,
                 new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false),
                 true);
     }
 
-    private static FieldEntry optional(String name) {
-        return new FieldEntry(
+    private static RegistrationFieldDraft optional(String name) {
+        return new RegistrationFieldDraft(
                 name,
                 EventFieldType.STRING,
                 new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, false),

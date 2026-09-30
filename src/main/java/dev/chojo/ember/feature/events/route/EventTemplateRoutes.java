@@ -16,8 +16,8 @@ import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.EventTemplateRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
@@ -161,7 +161,7 @@ public class EventTemplateRoutes implements Routes {
         registrationFieldService.replaceTemplateFields(
                 id,
                 fields.stream()
-                        .map(f -> new FieldEntry(
+                        .map(f -> new RegistrationFieldDraft(
                                 f.name(),
                                 f.fieldType(),
                                 f.config() != null ? f.config() : EventRegistrationFieldConfig.empty(),

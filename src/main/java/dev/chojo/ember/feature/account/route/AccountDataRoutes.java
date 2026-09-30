@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.account.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.SessionCookies;
@@ -13,7 +12,6 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentPeriod;
 import dev.chojo.ember.util.DocumentWord;
@@ -38,18 +36,15 @@ import java.time.ZoneOffset;
 public class AccountDataRoutes implements Routes {
     private final GdprExportService gdprExportService;
     private final GdprDeletionService gdprDeletionService;
-    private final StationMemberRepository stationMemberRepository;
     private final SessionCookies sessionCookies;
 
     @Inject
     public AccountDataRoutes(
             GdprExportService gdprExportService,
             GdprDeletionService gdprDeletionService,
-            StationMemberRepository stationMemberRepository,
             SessionCookies sessionCookies) {
         this.gdprExportService = gdprExportService;
         this.gdprDeletionService = gdprDeletionService;
-        this.stationMemberRepository = stationMemberRepository;
         this.sessionCookies = sessionCookies;
     }
 
@@ -101,16 +96,7 @@ public class AccountDataRoutes implements Routes {
             tags = {"Session"},
             responses = @OpenApiResponse(status = "204"))
     private void deleteAccount(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var memberships = stationMemberRepository.findAllByAccountId(session.accountId());
-        for (var member : memberships) {
-            var roles = stationMemberRepository.findPermissions(member.id());
-            boolean isManager = roles.stream().anyMatch(r -> r.permission() == StationPermission.STATION_ADMINISTRATOR);
-            if (isManager) {
-                throw Refusal.ACCOUNT_STILL_ADMINISTERS_STATION.raise();
-            }
-        }
-        gdprDeletionService.deleteAccount(session.accountId());
+        gdprDeletionService.deleteOwnAccount(UserSession.from(ctx).accountId());
         sessionCookies.clear(ctx);
         ctx.status(HttpStatus.NO_CONTENT);
     }

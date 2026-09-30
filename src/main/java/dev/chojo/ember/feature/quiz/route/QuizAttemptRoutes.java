@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestAttempt;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAttemptQuestion;
 import dev.chojo.ember.feature.quiz.service.QuizAttemptService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
+import dev.chojo.ember.feature.quiz.service.QuizRouteGuards;
 import dev.chojo.ember.feature.quiz.service.QuizTestAccessService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;

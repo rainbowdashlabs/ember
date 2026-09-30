@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -15,14 +14,13 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberManagementService;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberSearchService;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberSearchService.MemberPageResponse;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberSearchService.Search;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.UserTag;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.util.SafeContentDisposition;
@@ -43,7 +41,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -66,19 +63,16 @@ public class ClusterMemberManagementRoutes implements Routes {
 
     private final ClusterService clusterService;
     private final ClusterMemberManagementService managementService;
-    private final MemberGroupRepository memberGroupRepository;
-    private final UserTagRepository userTagRepository;
+    private final ClusterMemberSearchService memberSearch;
 
     @Inject
     public ClusterMemberManagementRoutes(
             ClusterService clusterService,
             ClusterMemberManagementService managementService,
-            MemberGroupRepository memberGroupRepository,
-            UserTagRepository userTagRepository) {
+            ClusterMemberSearchService memberSearch) {
         this.clusterService = clusterService;
         this.managementService = managementService;
-        this.memberGroupRepository = memberGroupRepository;
-        this.userTagRepository = userTagRepository;
+        this.memberSearch = memberSearch;
     }
 
     @Override
@@ -294,28 +288,15 @@ public class ClusterMemberManagementRoutes implements Routes {
     private void search(Context ctx) {
         Cluster cluster = requireActive(ctx);
         Integer stationId = resolveStationFilter(cluster, ctx.queryParam("stationUid"));
-        var page = managementService.search(
+        ctx.json(memberSearch.search(
                 cluster.id(),
-                ctx.queryParam("q"),
-                stationId,
-                parseUserType(ctx.queryParam("userType")),
-                Boolean.parseBoolean(ctx.queryParam("includeFormer")),
-                intParam(ctx.queryParam("page"), 0),
-                intParam(ctx.queryParam("size"), 50));
-
-        var ids = page.members().stream()
-                .map(StationMemberRepository.ClusterMemberRow::id)
-                .toList();
-        var colors = memberGroupRepository.findNameColors(ids);
-        var tags = userTagRepository.findDisplayTags(ids);
-
-        ctx.json(new MemberPageResponse(
-                page.members().stream()
-                        .map(row -> toResponse(row, colors.get(row.id()), tags.get(row.id())))
-                        .toList(),
-                page.total(),
-                page.page(),
-                page.size()));
+                new Search(
+                        ctx.queryParam("q"),
+                        stationId,
+                        parseUserType(ctx.queryParam("userType")),
+                        Boolean.parseBoolean(ctx.queryParam("includeFormer")),
+                        intParam(ctx.queryParam("page"), 0),
+                        intParam(ctx.queryParam("size"), 50))));
     }
 
     @OpenApi(
@@ -486,66 +467,11 @@ public class ClusterMemberManagementRoutes implements Routes {
         }
     }
 
-    /**
-     * One row of the search, with the identity the row is drawn from.
-     *
-     * <p>The name travelled on the row all along and nothing read it: every list in Ember draws a person
-     * through their identity, which is what carries the avatar, the colour and the display tag as well.
-     * Assembling half of one in the browser would get the name back and none of the rest, so the server
-     * sends the whole thing.
-     */
-    private static ManagedMemberResponse toResponse(
-            StationMemberRepository.ClusterMemberRow row, String nameColor, UserTag tag) {
-        return new ManagedMemberResponse(
-                row.id(),
-                row.uid(),
-                row.stationUid(),
-                row.stationName(),
-                row.name(),
-                row.email(),
-                row.userType().name(),
-                row.joinDate(),
-                row.former(),
-                row.stationOwner(),
-                new MemberIdentity(
-                        row.stationUid(),
-                        row.uid(),
-                        row.name(),
-                        row.stationName(),
-                        nameColor,
-                        tag == null ? null : new MemberIdentity.DisplayTag(tag.name(), tag.color())),
-                row.stationNames());
-    }
-
     public record StationUserTypeRequest(String userType) {}
 
     public record StationPermissionsRequest(List<String> permissions) {}
 
     public record ManagedStationResponse(UUID uid, String name) {}
-
-    /**
-     * @param stationOwner whether they are their station's owner, which the cluster may not edit
-     * @param stationNames every station of this association the person belongs to, so a row can say so
-     *                     rather than naming only the membership it came from
-     */
-    public record ManagedMemberResponse(
-            int id,
-            UUID uid,
-            UUID stationUid,
-            String stationName,
-            String name,
-            String email,
-            String userType,
-            LocalDate joinDate,
-            boolean former,
-            boolean stationOwner,
-            MemberIdentity identity,
-            String stationNames) {}
-
-    /**
-     * @param total how many the search found altogether, not how many are on this page
-     */
-    public record MemberPageResponse(List<ManagedMemberResponse> members, int total, int page, int size) {}
 
     /**
      * @param origin           which table the question lives in, so the answer goes back to the right one

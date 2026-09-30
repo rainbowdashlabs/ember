@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.equipment.repository;
 
+import dev.chojo.ember.feature.equipment.entity.Recommendation;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -74,19 +75,4 @@ public class EquipmentRecommendationRepository {
                         row.getBoolean("by_word")))
                 .all();
     }
-
-    /**
-     * One piece that goes with another.
-     *
-     * @param byWord whether it was found through a shared word rather than through the shelf it is on
-     */
-    public record Recommendation(
-            int itemId,
-            String itemName,
-            String internalId,
-            int inventoryId,
-            String inventoryName,
-            Integer artId,
-            String artName,
-            boolean byWord) {}
 }

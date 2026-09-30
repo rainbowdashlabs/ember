@@ -11,12 +11,11 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberService.ClusterMemberResponse;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
-import dev.chojo.ember.feature.members.entity.NameParts;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -32,7 +31,6 @@ import jakarta.inject.Singleton;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -46,14 +44,11 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 public class ClusterMemberRoutes implements Routes {
     private final ClusterService clusterService;
     private final ClusterMemberService memberService;
-    private final AccountRepository accountRepository;
 
     @Inject
-    public ClusterMemberRoutes(
-            ClusterService clusterService, ClusterMemberService memberService, AccountRepository accountRepository) {
+    public ClusterMemberRoutes(ClusterService clusterService, ClusterMemberService memberService) {
         this.clusterService = clusterService;
         this.memberService = memberService;
-        this.accountRepository = accountRepository;
     }
 
     @Override
@@ -313,13 +308,7 @@ public class ClusterMemberRoutes implements Routes {
     }
 
     private ClusterMemberResponse toResponse(ClusterMember member) {
-        var account = accountRepository.findById(member.accountId());
-        return new ClusterMemberResponse(
-                member.id(),
-                account.map(a -> a.uid()).map(UUID::toString).orElse(null),
-                account.map(a -> NameParts.of(a).identified()).orElse(null),
-                account.map(a -> a.email()).orElse(null),
-                member.userType().name());
+        return memberService.describe(member);
     }
 
     private static List<String> names(Set<ClusterPermission> permissions) {
@@ -366,13 +355,6 @@ public class ClusterMemberRoutes implements Routes {
      * Every field is optional: a caller renaming a group need not resend who is in it.
      */
     public record ClusterGroupUpdateRequest(String name, List<String> permissions, List<Integer> memberIds) {}
-
-    /**
-     * @param accountUid the account behind this member, which is what their picture is keyed by. An
-     *                   association's person need belong to no station, so there is no member of a
-     *                   station to draw them as: the account is the only handle every one of them has.
-     */
-    public record ClusterMemberResponse(int id, String accountUid, String name, String email, String userType) {}
 
     public record ClusterGroupResponse(int id, String name) {}
 

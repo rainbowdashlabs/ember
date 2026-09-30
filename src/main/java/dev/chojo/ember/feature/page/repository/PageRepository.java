@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.page.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.page.entity.PageUsingForm;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.util.sql.SqlSupport;
@@ -134,9 +135,6 @@ public class PageRepository {
                         row.getInt("id"), row.getString("title"), row.getEnum("visibility", PageVisibility.class)))
                 .all();
     }
-
-    /** One page holding a form, and how far that page itself reaches. */
-    public record PageUsingForm(int id, String title, PageVisibility visibility) {}
 
     /**
      * Whether the station has a page in its menu, without reading any of them.

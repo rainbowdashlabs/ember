@@ -13,6 +13,7 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.ObjectMapper;
@@ -90,6 +91,10 @@ public class ArchitectureTest {
             .callConstructor(ObjectMapper.class)
             .orShould()
             .callMethod(JsonMapper.class, "builder");
+
+    @ArchTest
+    static final ArchRule routesDoNotSaveConfiguration =
+            noClasses().that().resideInAPackage("..route..").should().callMethod(Conf.class, "save");
 
     @ArchTest
     static final ArchRule repositoriesDoNotDependOnOtherRepositories = classes()

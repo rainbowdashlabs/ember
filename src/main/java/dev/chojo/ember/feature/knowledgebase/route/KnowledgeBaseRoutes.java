@@ -17,14 +17,14 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
-import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbRefusalReason;
-import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
+import dev.chojo.ember.feature.knowledgebase.service.KbBrowseService;
 import dev.chojo.ember.feature.knowledgebase.service.KbBulkService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFilePictureService;
+import dev.chojo.ember.feature.knowledgebase.service.KbGuards;
 import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.knowledgebase.service.KbImageService;
 import dev.chojo.ember.feature.knowledgebase.service.KbMoveService;
@@ -35,8 +35,6 @@ import dev.chojo.ember.feature.knowledgebase.service.KbTrashService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.PandocConverter;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
@@ -53,15 +51,13 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireLevel;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFile;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFolder;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.requireLevel;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.requireOwnedFile;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.requireOwnedFolder;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -88,7 +84,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private final KbMoveService moveService;
     private final KbBulkService bulkService;
     private final KbTrashService trashService;
-    private final StationRepository stationRepository;
+    private final KbBrowseService browseService;
 
     @Inject
     public KnowledgeBaseRoutes(
@@ -106,7 +102,7 @@ public class KnowledgeBaseRoutes implements Routes {
             KbMoveService moveService,
             KbBulkService bulkService,
             KbTrashService trashService,
-            StationRepository stationRepository) {
+            KbBrowseService browseService) {
         this.moveService = moveService;
         this.trashService = trashService;
         this.bulkService = bulkService;
@@ -121,7 +117,7 @@ public class KnowledgeBaseRoutes implements Routes {
         this.imageService = imageService;
         this.pictureService = pictureService;
         this.pdfExportService = pdfExportService;
-        this.stationRepository = stationRepository;
+        this.browseService = browseService;
     }
 
     private static String detectPandocFormat(String filename, String mimeType) {
@@ -234,7 +230,7 @@ public class KnowledgeBaseRoutes implements Routes {
         Integer parentId = optionalFolderId(ctx, "parentId");
         var folders = service.findFolders(session.stationId(), parentId);
         var levels = accessService.childLevels(
-                KbRouteAccess.accessOf(ctx, accessService),
+                KbGuards.accessOf(ctx, accessService),
                 parentId,
                 folders.stream()
                         .map(folder -> new KbAccessService.ChildNode(folder.id(), folder.restrictionMode()))
@@ -312,7 +308,7 @@ public class KnowledgeBaseRoutes implements Routes {
      */
     private void folderTree(Context ctx) {
         var session = UserSession.from(ctx);
-        var access = KbRouteAccess.accessOf(ctx, accessService);
+        var access = KbGuards.accessOf(ctx, accessService);
         var folders = service.findAllFolders(session.stationId());
         var levels = accessService.treeLevels(
                 access,
@@ -344,7 +340,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var req = ctx.bodyAsClass(MoveFolderRequest.class);
         requireUsableTarget(ctx, req.parentId());
         ctx.json(MoveResponse.of(moveService.moveFolder(
-                KbRouteAccess.accessOf(ctx, accessService), session.stationId(), id, req.parentId())));
+                KbGuards.accessOf(ctx, accessService), session.stationId(), id, req.parentId())));
     }
 
     /**
@@ -356,8 +352,8 @@ public class KnowledgeBaseRoutes implements Routes {
         requireOwnedFile(ctx, service, id);
         var req = ctx.bodyAsClass(MoveFileRequest.class);
         requireUsableTarget(ctx, req.folderId());
-        ctx.json(MoveResponse.of(moveService.moveFile(
-                KbRouteAccess.accessOf(ctx, accessService), session.stationId(), id, req.folderId())));
+        ctx.json(MoveResponse.of(
+                moveService.moveFile(KbGuards.accessOf(ctx, accessService), session.stationId(), id, req.folderId())));
     }
 
     /**
@@ -366,8 +362,8 @@ public class KnowledgeBaseRoutes implements Routes {
      */
     private void requireUsableTarget(Context ctx, Integer targetFolderId) {
         var session = UserSession.from(ctx);
-        var problem = moveService.checkTarget(
-                KbRouteAccess.accessOf(ctx, accessService), session.stationId(), targetFolderId);
+        var problem =
+                moveService.checkTarget(KbGuards.accessOf(ctx, accessService), session.stationId(), targetFolderId);
         if (problem != null) throw Refusal.KB_MOVE_TARGET_NOT_USABLE.raise();
     }
 
@@ -390,7 +386,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var req = ctx.bodyAsClass(BulkMoveRequest.class);
         requireUsableTarget(ctx, req.targetFolderId());
         ctx.json(bulkService.move(
-                KbRouteAccess.accessOf(ctx, accessService),
+                KbGuards.accessOf(ctx, accessService),
                 session.stationId(),
                 req.folderIds() != null ? req.folderIds() : List.of(),
                 req.fileIds() != null ? req.fileIds() : List.of(),
@@ -405,7 +401,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(BulkDeleteRequest.class);
         ctx.json(bulkService.delete(
-                KbRouteAccess.accessOf(ctx, accessService),
+                KbGuards.accessOf(ctx, accessService),
                 session.stationId(),
                 session.member().id(),
                 req.folderIds() != null ? req.folderIds() : List.of(),
@@ -433,7 +429,7 @@ public class KnowledgeBaseRoutes implements Routes {
      */
     private void listTrash(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(trashService.list(KbRouteAccess.accessOf(ctx, accessService), session.stationId()));
+        ctx.json(trashService.list(KbGuards.accessOf(ctx, accessService), session.stationId()));
     }
 
     /**
@@ -441,8 +437,8 @@ public class KnowledgeBaseRoutes implements Routes {
      */
     private void emptyTrash(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(new EmptyTrashResponse(
-                trashService.empty(KbRouteAccess.accessOf(ctx, accessService), session.stationId())));
+        ctx.json(
+                new EmptyTrashResponse(trashService.empty(KbGuards.accessOf(ctx, accessService), session.stationId())));
     }
 
     private void restoreFolder(Context ctx) {
@@ -474,14 +470,14 @@ public class KnowledgeBaseRoutes implements Routes {
      */
     private int trashedFolder(Context ctx) {
         int id = pathInt(ctx, "id");
-        KbRouteAccess.requireOwnedTrashedFolder(ctx, service, id);
+        KbGuards.requireOwnedTrashedFolder(ctx, service, id);
         requireLevel(ctx, accessService, id, null, KbAccessLevel.MANAGE);
         return id;
     }
 
     private int trashedFile(Context ctx) {
         int id = pathInt(ctx, "id");
-        KbRouteAccess.requireOwnedTrashedFile(ctx, service, id);
+        KbGuards.requireOwnedTrashedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.MANAGE);
         return id;
     }
@@ -498,7 +494,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(BulkTagsRequest.class);
         ctx.json(bulkService.tag(
-                KbRouteAccess.accessOf(ctx, accessService),
+                KbGuards.accessOf(ctx, accessService),
                 session.stationId(),
                 req.folderIds() != null ? req.folderIds() : List.of(),
                 req.fileIds() != null ? req.fileIds() : List.of(),
@@ -513,7 +509,7 @@ public class KnowledgeBaseRoutes implements Routes {
      */
     private void listRecentFiles(Context ctx) {
         var session = UserSession.from(ctx);
-        var access = KbRouteAccess.accessOf(ctx, accessService);
+        var access = KbGuards.accessOf(ctx, accessService);
         int limit =
                 Math.min(Math.max(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10), 1), 50);
         var found = service.findRecentFiles(session.stationId(), limit * 4);
@@ -538,7 +534,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var session = UserSession.from(ctx);
         var files = service.findFiles(session.stationId(), optionalFolderId(ctx, "folderId"));
         var readable = accessService.readableFiles(
-                KbRouteAccess.accessOf(ctx, accessService),
+                KbGuards.accessOf(ctx, accessService),
                 files.stream().map(KbAccessService.FileNode::of).toList());
         ctx.json(files.stream()
                 .filter(file -> readable.contains(file.id()))
@@ -550,7 +546,7 @@ public class KnowledgeBaseRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
-        var level = accessService.explainLevel(KbRouteAccess.accessOf(ctx, accessService), null, id);
+        var level = accessService.explainLevel(KbGuards.accessOf(ctx, accessService), null, id);
         ctx.json(new FileResponse(
                 file, authorNameService.resolveMemberName(file.createdBy()), level.level(), level.source()));
     }
@@ -918,7 +914,7 @@ public class KnowledgeBaseRoutes implements Routes {
      * the whole of what was worth keeping from them.
      */
     private RelatedFilesResponse relatedResponse(Context ctx, int fileId) {
-        var access = KbRouteAccess.accessOf(ctx, accessService);
+        var access = KbGuards.accessOf(ctx, accessService);
         return new RelatedFilesResponse(
                 readable(access, service.findRelatedFiles(fileId)), readable(access, service.findBacklinks(fileId)));
     }
@@ -952,7 +948,7 @@ public class KnowledgeBaseRoutes implements Routes {
             return;
         }
 
-        var access = KbRouteAccess.accessOf(ctx, accessService);
+        var access = KbGuards.accessOf(ctx, accessService);
         var hits = searchService.searchWithSnippets(session.stationId(), query);
         var readable = accessService.readableFiles(
                 access,
@@ -988,75 +984,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void browse(Context ctx) {
         var session = UserSession.from(ctx);
-        Integer folderId = optionalFolderId(ctx, "folderId");
-        var folders = service.findFolders(session.stationId(), folderId);
-        var files = service.findFiles(session.stationId(), folderId);
-        KbFolder currentFolder = folderId != null ? service.findFolder(folderId).orElse(null) : null;
-
-        var access = KbRouteAccess.accessOf(ctx, accessService);
-        if (!session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
-            folders = folders.stream()
-                    .filter(folder -> accessService.canAccess(access, folder.id(), null))
-                    .toList();
-            files = files.stream()
-                    .filter(file -> accessService.canAccess(access, null, file.id()))
-                    .toList();
-        }
-
-        var levels = accessService.childLevels(
-                access,
-                folderId,
-                folders.stream()
-                        .map(folder -> new KbAccessService.ChildNode(folder.id(), folder.restrictionMode()))
-                        .toList(),
-                files.stream()
-                        .map(file -> new KbAccessService.ChildNode(file.id(), file.restrictionMode()))
-                        .toList());
-
-        var mode = stationRepository
-                .findById(session.stationId())
-                .map(Station::publicKbMode)
-                .orElse(PublicKbMode.OFF);
-        var narrowedFolders = federationService.narrowlyShared(session.stationId(), true);
-        var narrowedFiles = federationService.narrowlyShared(session.stationId(), false);
-        var openFolders = federationService.broadlyShared(session.stationId(), true);
-        var openFiles = federationService.broadlyShared(session.stationId(), false);
-
-        ctx.json(new BrowseResponse(
-                currentFolder,
-                folders,
-                files.stream().map(KbFileSummary::of).toList(),
-                accessService.effectiveLevel(access, folderId, null),
-                levels.folders(),
-                levels.files(),
-                reachOf(folders.stream().map(KbFolder::id).toList(), mode, true, narrowedFolders, openFolders),
-                reachOf(files.stream().map(KbFile::id).toList(), mode, false, narrowedFiles, openFiles)));
-    }
-
-    /**
-     * How far each entry of one level reaches: onto the public web, out to every partner station, or out
-     * to some of them only.
-     *
-     * <p>An entry restricted to certain readers here counts as the narrow case even when it is shared with
-     * every partner, because the sharper thing to know about it is that not everyone who meets it may open
-     * it.
-     */
-    private Reach reachOf(
-            List<Integer> ids, PublicKbMode mode, boolean folders, Set<Integer> narrowed, Set<Integer> opened) {
-        var publicly = ids.stream()
-                .filter(id -> accessService.isPubliclyVisible(mode, folders ? id : null, folders ? null : id))
-                .collect(Collectors.toSet());
-        var narrowly = ids.stream()
-                .filter(id -> narrowed.contains(id)
-                        || !accessService
-                                .findRestrictions(folders ? id : null, folders ? null : id)
-                                .isEmpty())
-                .collect(Collectors.toSet());
-        var federated = ids.stream()
-                .filter(opened::contains)
-                .filter(id -> !narrowly.contains(id))
-                .collect(Collectors.toSet());
-        return new Reach(publicly, federated, narrowly);
+        ctx.json(browseService.browse(
+                session.stationId(),
+                optionalFolderId(ctx, "folderId"),
+                KbGuards.accessOf(ctx, accessService),
+                session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)));
     }
 
     /**
@@ -1223,35 +1155,6 @@ public class KnowledgeBaseRoutes implements Routes {
      * the article.
      */
     public record BlocksResponse(ContentMode contentMode, List<ContentRow> rows, List<ContentRow> describedRows) {}
-
-    /**
-     * A folder's contents together with what the caller may do with each entry, so a listing can
-     * offer exactly the actions that will be accepted rather than the ones the station permission
-     * suggests. {@code currentLevel} is what the caller may do in the folder itself, which decides
-     * whether anything may be created in it.
-     */
-    public record BrowseResponse(
-            KbFolder currentFolder,
-            List<KbFolder> folders,
-            List<KbFileSummary> files,
-            KbAccessLevel currentLevel,
-            Map<Integer, KbAccessLevel> folderLevels,
-            Map<Integer, KbAccessLevel> fileLevels,
-            Reach folderReach,
-            Reach fileReach) {}
-
-    /**
-     * How far each entry of one level reaches, so the screen can mark it.
-     *
-     * <p>Two facts per entry, and only two: whether it stands on the public wiki, and whether it is shared
-     * beyond this station without being open to everyone here. Resolved once for the level rather than
-     * once per drawn tile.
-     *
-     * @param publicly  the ids that are on the public wiki
-     * @param federated the ids every partner station reads, which is not the same as nobody outside
-     * @param narrowly  the ids shared with named stations, or restricted to some of this station's readers
-     */
-    public record Reach(Set<Integer> publicly, Set<Integer> federated, Set<Integer> narrowly) {}
 
     /**
      * A file with what the reader may do with it and, when a folder decided that, which one - so

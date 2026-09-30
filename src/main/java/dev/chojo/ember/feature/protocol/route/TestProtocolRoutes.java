@@ -9,20 +9,16 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
-import dev.chojo.ember.feature.protocol.entity.TestProtocolRunCheck;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
+import dev.chojo.ember.feature.protocol.service.TestProtocolEvaluationService;
+import dev.chojo.ember.feature.protocol.service.TestProtocolGuards;
 import dev.chojo.ember.feature.protocol.service.TestProtocolPdfService;
+import dev.chojo.ember.feature.protocol.service.TestProtocolRunService;
+import dev.chojo.ember.feature.protocol.service.TestProtocolRunService.RunRequest;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService.SharedProtocolView;
 import dev.chojo.ember.util.DocumentName;
@@ -33,20 +29,10 @@ import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 /**
  * HTTP route definitions for test protocols owned by the current station. The federated consumer
@@ -55,32 +41,24 @@ import java.util.zip.ZipOutputStream;
  */
 @Singleton
 public class TestProtocolRoutes implements Routes {
-    private static final Logger log = LoggerFactory.getLogger(TestProtocolRoutes.class);
-
     private final TestProtocolService service;
     private final TestProtocolGuards guards;
     private final TestProtocolPdfService pdfService;
-    private final StationMemberRepository stationMemberRepository;
-    private final MemberGroupRepository memberGroupRepository;
-    private final UserTagRepository userTagRepository;
-    private final AccountRepository accountRepository;
+    private final TestProtocolRunService runs;
+    private final TestProtocolEvaluationService evaluations;
 
     @Inject
     public TestProtocolRoutes(
             TestProtocolService service,
             TestProtocolGuards guards,
             TestProtocolPdfService pdfService,
-            StationMemberRepository stationMemberRepository,
-            MemberGroupRepository memberGroupRepository,
-            UserTagRepository userTagRepository,
-            AccountRepository accountRepository) {
+            TestProtocolRunService runs,
+            TestProtocolEvaluationService evaluations) {
         this.service = service;
         this.guards = guards;
         this.pdfService = pdfService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.memberGroupRepository = memberGroupRepository;
-        this.userTagRepository = userTagRepository;
-        this.accountRepository = accountRepository;
+        this.runs = runs;
+        this.evaluations = evaluations;
     }
 
     @Override
@@ -271,50 +249,8 @@ public class TestProtocolRoutes implements Routes {
         var session = UserSession.from(ctx);
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireProtocol(ctx, protocolId);
-        var req = ctx.bodyAsClass(RunRequest.class);
-        var run = service.createRun(
-                protocolId,
-                session.stationId(),
-                req.name(),
-                req.testDate() != null ? req.testDate() : LocalDate.now(),
-                session.member().id());
-        var resolvedIds = new LinkedHashSet<Integer>();
-        if (req.memberIds() != null) {
-            resolvedIds.addAll(req.memberIds());
-        }
-        if (req.userTypes() != null) {
-            for (String userType : req.userTypes()) {
-                stationMemberRepository
-                        .findByStationAndUserType(session.stationId(), StationUserType.valueOf(userType))
-                        .forEach(m -> resolvedIds.add(m.id()));
-            }
-        }
-        if (req.groupIds() != null) {
-            for (int groupId : req.groupIds()) {
-                memberGroupRepository.findMembers(groupId).forEach(m -> resolvedIds.add(m.id()));
-            }
-        }
-        if (req.tagIds() != null) {
-            for (int tagId : req.tagIds()) {
-                userTagRepository.findMembers(tagId).forEach(m -> resolvedIds.add(m.id()));
-            }
-        }
-        resolvedIds.retainAll(stationMemberIds(session.stationId()));
-        if (!resolvedIds.isEmpty()) {
-            service.addRunMembers(run.id(), new ArrayList<>(resolvedIds));
-        }
+        var run = runs.start(protocolId, session.stationId(), session.member().id(), ctx.bodyAsClass(RunRequest.class));
         ctx.status(HttpStatus.CREATED).json(run);
-    }
-
-    /**
-     * The members of the station, as the set a run may be filled from. The ids in the request name
-     * members, groups and tags directly, and a group or tag of another station resolves to members
-     * of that station, so the run is filled from this set rather than from what was asked for.
-     */
-    private Set<Integer> stationMemberIds(int stationId) {
-        return stationMemberRepository.findByStation(stationId).stream()
-                .map(StationMember::id)
-                .collect(Collectors.toSet());
     }
 
     private void getRun(Context ctx) {
@@ -419,44 +355,7 @@ public class TestProtocolRoutes implements Routes {
 
     private void getEvaluation(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var run = guards.requireRun(ctx, id);
-        var proto = service.findProtocol(run.protocolId())
-                .orElseThrow(Refusal.PROTOCOL_NOT_HERE_BEHIND_RUN_TO_EVALUATE::raise);
-        var sections = service.findSections(run.protocolId());
-        var allItems = service.findAllItemsByProtocol(run.protocolId());
-        var members = service.findRunMembers(id);
-
-        var itemsBySectionId = allItems.stream().collect(Collectors.groupingBy(TestProtocolItem::sectionId));
-
-        var memberScores = new ArrayList<EvalMemberData>();
-        for (var rm : members) {
-            var checks = service.findChecks(id, rm.memberId());
-            var checkedIds = checks.stream()
-                    .filter(TestProtocolRunCheck::checked)
-                    .map(TestProtocolRunCheck::itemId)
-                    .collect(Collectors.toSet());
-
-            var sectionScores = new HashMap<Integer, Double>();
-            for (var section : sections) {
-                var sItems = itemsBySectionId.getOrDefault(section.id(), List.of());
-                var score = sItems.stream()
-                        .filter(i -> checkedIds.contains(i.id()))
-                        .map(TestProtocolItem::points)
-                        .reduce(0.0, Double::sum);
-                sectionScores.put(section.id(), score);
-            }
-            memberScores.add(new EvalMemberData(rm.memberId(), rm.totalScore(), sectionScores));
-        }
-
-        var sectionMaxPoints = new HashMap<Integer, Double>();
-        for (var section : sections) {
-            var sItems = itemsBySectionId.getOrDefault(section.id(), List.of());
-            sectionMaxPoints.put(
-                    section.id(), sItems.stream().map(TestProtocolItem::points).reduce(0.0, Double::sum));
-        }
-
-        ctx.json(new EvaluationResponse(
-                proto.name(), run.testDate(), sections, sectionMaxPoints, memberScores, proto.passThreshold()));
+        ctx.json(evaluations.evaluate(guards.requireRun(ctx, id)));
     }
 
     private void exportAllZip(Context ctx) {
@@ -464,55 +363,10 @@ public class TestProtocolRoutes implements Routes {
         var run = guards.requireRun(ctx, id);
         var proto = service.findProtocol(run.protocolId())
                 .orElseThrow(Refusal.PROTOCOL_NOT_HERE_BEHIND_RUN_TO_EXPORT::raise);
-        var members = service.findRunMembers(id);
-
-        try {
-            var baos = new ByteArrayOutputStream();
-            var zos = new ZipOutputStream(baos);
-
-            byte[] tablePdf = pdfService.exportEvaluationTable(id, proto.name(), run.testDate());
-            zos.putNextEntry(new ZipEntry("Auswertung.pdf"));
-            zos.write(tablePdf);
-            zos.closeEntry();
-
-            for (var rm : members) {
-                String memberName = resolveMemberNameForFile(rm.memberId());
-                byte[] pdf = pdfService.exportRunMember(id, rm.memberId(), proto.name(), run.testDate());
-                zos.putNextEntry(new ZipEntry(memberName + ".pdf"));
-                zos.write(pdf);
-                zos.closeEntry();
-            }
-
-            zos.finish();
-            zos.close();
-
-            ctx.contentType("application/zip");
-            ctx.header("Content-Disposition", protocolName(proto.name(), "zip", null));
-            ctx.result(baos.toByteArray());
-        } catch (Exception e) {
-            log.error("Test protocol export failed", e);
-            throw Refusal.PROTOCOL_RUN_NOT_EXPORTED.raise();
-        }
-    }
-
-    private String resolveMemberNameForFile(int memberId) {
-        return stationMemberRepository
-                .findById(memberId)
-                .map(m -> {
-                    String name = m.displayName();
-                    if (name == null || name.isBlank()) {
-                        if (m.accountId() != null) {
-                            name = accountRepository
-                                    .findById(m.accountId())
-                                    .map(a -> NameParts.of(a).official())
-                                    .orElse("Member_" + memberId);
-                        } else {
-                            name = "Member_" + memberId;
-                        }
-                    }
-                    return name.replaceAll("[^a-zA-ZäöüÄÖÜß0-9 _-]", "");
-                })
-                .orElse("Member_" + memberId);
+        byte[] archive = runs.archive(run, proto.name());
+        ctx.contentType("application/zip");
+        ctx.header("Content-Disposition", protocolName(proto.name(), "zip", null));
+        ctx.result(archive);
     }
 
     private void exportEvaluationPdf(Context ctx) {
@@ -534,7 +388,7 @@ public class TestProtocolRoutes implements Routes {
                 .orElseThrow(Refusal.PROTOCOL_NOT_HERE_BEHIND_RUN_FOR_MEMBER_SHEET::raise);
         byte[] pdf = pdfService.exportRunMember(runId, memberId, proto.name(), run.testDate());
         ctx.contentType("application/pdf");
-        ctx.header("Content-Disposition", protocolName(proto.name(), "pdf", resolveMemberNameForFile(memberId)));
+        ctx.header("Content-Disposition", protocolName(proto.name(), "pdf", runs.memberFileName(memberId)));
         ctx.result(pdf);
     }
 
@@ -565,14 +419,6 @@ public class TestProtocolRoutes implements Routes {
 
     public record ItemRequest(String label, String description, Double points, Integer position) {}
 
-    public record RunRequest(
-            String name,
-            LocalDate testDate,
-            List<Integer> memberIds,
-            List<String> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds) {}
-
     public record ChecksRequest(Map<Integer, Boolean> checks) {}
 
     public record ProtocolDetailResponse(
@@ -581,14 +427,4 @@ public class TestProtocolRoutes implements Routes {
     public record RunMemberWithProgress(TestProtocolRunMember member, int sectionsDone, int sectionsTotal) {}
 
     public record RunDetailResponse(TestProtocolRun run, List<RunMemberWithProgress> members) {}
-
-    public record EvalMemberData(int memberId, Double totalScore, Map<Integer, Double> sectionScores) {}
-
-    public record EvaluationResponse(
-            String protocolName,
-            LocalDate testDate,
-            List<TestProtocolSection> sections,
-            Map<Integer, Double> sectionMaxPoints,
-            List<EvalMemberData> members,
-            Integer passThreshold) {}
 }

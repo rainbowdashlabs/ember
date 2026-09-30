@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.route.FormRoutes.FormRequest;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
+import dev.chojo.ember.feature.form.service.FormDirectoryService;
 import dev.chojo.ember.feature.form.service.FormResponseExportService;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -21,9 +22,9 @@ import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
-import dev.chojo.ember.feature.page.repository.PageRepository;
+import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -62,11 +63,12 @@ class FormCompletionRouteTest extends RepositoryTestBase {
         member = stationMemberRepo.create(station.id(), account.id());
         harness = RouteHarness.serving(new FormRoutes(
                         formService,
+                        new FormDirectoryService(formService),
                         mock(GuardianPolicy.class),
                         mock(FormAnalyticsAssembler.class),
                         mock(FormResponseExportService.class),
-                        mock(StationRepository.class),
-                        mock(PageRepository.class)))
+                        mock(StationService.class),
+                        mock(PageService.class)))
                 .withStations(stationRepo);
     }
 

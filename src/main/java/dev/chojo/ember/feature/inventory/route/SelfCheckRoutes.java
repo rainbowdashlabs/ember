@@ -9,7 +9,6 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.entity.SelfCheck;
@@ -20,8 +19,7 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheckRaisedKind;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRow;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckState;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
-import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -38,7 +36,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -54,17 +52,12 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class SelfCheckRoutes implements Routes {
     private final SelfCheckService selfCheckService;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
+    private final MemberNameResolver names;
 
     @Inject
-    public SelfCheckRoutes(
-            SelfCheckService selfCheckService,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+    public SelfCheckRoutes(SelfCheckService selfCheckService, MemberNameResolver names) {
         this.selfCheckService = selfCheckService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
+        this.names = names;
     }
 
     @Override
@@ -203,12 +196,7 @@ public class SelfCheckRoutes implements Routes {
      * names alone tell them apart.
      */
     private SelfCheckSummary toSummary(SelfCheck task) {
-        String memberName = stationMemberRepository
-                .findById(task.memberId())
-                .flatMap(member ->
-                        member.accountId() == null ? Optional.empty() : accountRepository.findById(member.accountId()))
-                .map(account -> NameParts.of(account).called())
-                .orElse("");
+        String memberName = Objects.requireNonNullElse(names.called(task.memberId()), "");
         return new SelfCheckSummary(
                 task.id(),
                 task.memberId(),

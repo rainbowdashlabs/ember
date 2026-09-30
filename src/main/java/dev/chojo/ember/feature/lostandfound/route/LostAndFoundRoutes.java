@@ -11,13 +11,11 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
-import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -36,8 +34,8 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -54,24 +52,21 @@ public class LostAndFoundRoutes implements Routes {
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
 
     private final LostAndFoundService lostAndFoundService;
-    private final StationMemberService memberService;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
+    private final GuardianPolicy guardians;
+    private final MemberNameResolver names;
     private final LostAndFoundImageService imageService;
     private final Api apiConfig;
 
     @Inject
     public LostAndFoundRoutes(
             LostAndFoundService lostAndFoundService,
-            StationMemberService memberService,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
+            GuardianPolicy guardians,
+            MemberNameResolver names,
             LostAndFoundImageService imageService,
             Api apiConfig) {
         this.lostAndFoundService = lostAndFoundService;
-        this.memberService = memberService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
+        this.guardians = guardians;
+        this.names = names;
         this.imageService = imageService;
         this.apiConfig = apiConfig;
     }
@@ -291,21 +286,12 @@ public class LostAndFoundRoutes implements Routes {
         return requireOwnedOrNotFound(ctx, id, lostAndFoundService::findById, LostAndFoundItem::stationId);
     }
 
-    /**
-     * Everybody the caller may act as: themselves, and anybody in their care.
-     */
     private List<Integer> speaksFor(UserSession session) {
-        var members = new ArrayList<Integer>();
-        members.add(session.member().id());
-        memberService.findManaged(session.member().id()).forEach(m -> members.add(m.id()));
-        return members;
+        return guardians.household(session);
     }
 
-    /**
-     * Whether the caller may act as the given member: themselves, or somebody in their care.
-     */
     private boolean maySpeakFor(UserSession session, int memberId) {
-        return speaksFor(session).contains(memberId);
+        return guardians.mayActFor(session, memberId);
     }
 
     /**
@@ -324,18 +310,7 @@ public class LostAndFoundRoutes implements Routes {
     }
 
     private String resolveMemberName(int memberId) {
-        return stationMemberRepository
-                .findById(memberId)
-                .map(m -> {
-                    if (m.accountId() != null) {
-                        return accountRepository
-                                .findById(m.accountId())
-                                .map(a -> NameParts.of(a).called())
-                                .orElse(m.displayName());
-                    }
-                    return m.displayName();
-                })
-                .orElse("?");
+        return Objects.requireNonNullElse(names.called(memberId), "?");
     }
 
     private LostAndFoundItemResponse toResponse(LostAndFoundItem item) {

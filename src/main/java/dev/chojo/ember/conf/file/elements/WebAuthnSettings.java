@@ -83,4 +83,20 @@ public class WebAuthnSettings {
     public int timeoutSeconds() {
         return timeoutSeconds;
     }
+
+    public void rpId(String rpId) {
+        this.rpId = rpId;
+    }
+
+    public void rpName(String rpName) {
+        this.rpName = rpName;
+    }
+
+    public void attestation(String attestation) {
+        this.attestation = attestation;
+    }
+
+    public void timeoutSeconds(int timeoutSeconds) {
+        this.timeoutSeconds = timeoutSeconds;
+    }
 }

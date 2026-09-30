@@ -9,7 +9,7 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.feature.station.service.StationApplicationService;
-import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
+import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -33,13 +33,13 @@ public class StationApplicationRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(StationApplicationRoutes.class);
 
     private final StationApplicationService applicationService;
-    private final ApplicationSettingRepository settingRepository;
+    private final InstanceSettingsService instanceSettings;
 
     @Inject
     public StationApplicationRoutes(
-            StationApplicationService applicationService, ApplicationSettingRepository settingRepository) {
+            StationApplicationService applicationService, InstanceSettingsService instanceSettings) {
         this.applicationService = applicationService;
-        this.settingRepository = settingRepository;
+        this.instanceSettings = instanceSettings;
     }
 
     private static boolean isBlank(String s) {
@@ -67,7 +67,7 @@ public class StationApplicationRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ApplicationRequest.class)),
             responses = {@OpenApiResponse(status = "201"), @OpenApiResponse(status = "400")})
     private void submit(Context ctx) {
-        if (!settingRepository.getBoolean("station_registration_enabled", true)) {
+        if (!instanceSettings.stationRegistrationEnabled()) {
             throw Refusal.STATION_REGISTRATION_SWITCHED_OFF.raise();
         }
         var request = ctx.bodyAsClass(ApplicationRequest.class);

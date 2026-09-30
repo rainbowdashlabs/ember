@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.route.TransferRoutes;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
+import dev.chojo.ember.feature.station.service.StationTransferService;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
@@ -33,6 +34,7 @@ import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
+import dev.chojo.ember.feature.storage.service.StationTransferFileService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.storage.service.TransferBackendDescriptorService;
 import dev.chojo.ember.lifecycle.TaskScheduler;
@@ -141,10 +143,15 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         var transferRoutes = new TransferRoutes(
                 exportService,
                 importService,
-                stationRepo,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null));
+                new StationTransferService(
+                        stationRepo,
+                        exportService,
+                        new FederationPartnerTransferFixupService(new FederationRepository(), null)));
         var assetRoutes = new StationTransferAssetRoutes(
-                exportService, descriptorService, stationRepo, storageService, avatarService);
+                exportService,
+                descriptorService,
+                new StationTransferFileService(stationRepo, storageService),
+                avatarService);
 
         server = Javalin.create(config -> {
             for (Routes r : new Routes[] {assetRoutes, transferRoutes}) {
@@ -326,7 +333,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 sourceKeys.stream().anyMatch(k -> k.endsWith("/w128.webp")),
                 "source must have actually generated WebP variants (test precondition)");
 
-        List<String> filtered = StationTransferAssetRoutes.originalsOnly(StorageCategory.MEDIA_FILES, sourceKeys);
+        List<String> filtered = StationTransferFileService.originalsOnly(StorageCategory.MEDIA_FILES, sourceKeys);
         assertEquals(List.of(contentHash + "/orig.png"), filtered, "wire payload must be the original only");
 
         String token = rawToken(exportService.createTransferToken(source.id()));

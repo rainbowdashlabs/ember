@@ -12,22 +12,16 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.cluster.service.ClusterStationMoveService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageBackendService;
-import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
-import dev.chojo.ember.feature.storage.backend.HealthStatus;
-import dev.chojo.ember.feature.storage.backend.StorageBackend;
-import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
-import dev.chojo.ember.feature.storage.migration.MigrationException;
-import dev.chojo.ember.feature.storage.route.StorageBackendPayloads;
-import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.BackendOverrideRequest;
-import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.BackendOverrideSummary;
-import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.MigrationResponse;
-import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.ProbeResult;
-import dev.chojo.ember.feature.storage.service.StorageBackendAuditService;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
-import dev.chojo.ember.feature.storage.service.StorageMigrationService;
+import dev.chojo.ember.feature.storage.service.StorageBackendPayloads;
+import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.BackendOverrideRequest;
+import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.BackendOverrideSummary;
+import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.MigrationResponse;
+import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.ProbeResult;
+import dev.chojo.ember.feature.storage.service.StorageProbeService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -40,7 +34,6 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -55,24 +48,21 @@ public class ClusterStorageBackendRoutes implements Routes {
     private final ClusterService clusterService;
     private final ClusterStorageBackendService backendService;
     private final StorageBackendPayloads payloads;
-    private final StorageBackendFactory factory;
-    private final StationRepository stationRepository;
-    private final StorageBackendAuditService auditService;
+    private final StorageProbeService probeService;
+    private final ClusterStationMoveService moveService;
 
     @Inject
     public ClusterStorageBackendRoutes(
             ClusterService clusterService,
             ClusterStorageBackendService backendService,
             StorageBackendPayloads payloads,
-            StorageBackendFactory factory,
-            StationRepository stationRepository,
-            StorageBackendAuditService auditService) {
+            StorageProbeService probeService,
+            ClusterStationMoveService moveService) {
         this.clusterService = clusterService;
         this.backendService = backendService;
         this.payloads = payloads;
-        this.factory = factory;
-        this.stationRepository = stationRepository;
-        this.auditService = auditService;
+        this.probeService = probeService;
+        this.moveService = moveService;
     }
 
     @Override
@@ -136,7 +126,7 @@ public class ClusterStorageBackendRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var policy = backendService.findPolicy(cluster.id());
         if (policy.current() == null) throw Refusal.CLUSTER_KEEPS_NO_STORAGE.raise();
-        ctx.json(probeOf(policy.current().config()));
+        ctx.json(probeService.probe(policy.current().config()));
     }
 
     @OpenApi(
@@ -148,7 +138,7 @@ public class ClusterStorageBackendRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProbeResult.class)))
     private void probeConfig(Context ctx) {
         requireActive(ctx);
-        ctx.json(probeOf(payloads.toEntity(ctx.bodyAsClass(BackendOverrideRequest.class))));
+        ctx.json(probeService.probe(payloads.toEntity(ctx.bodyAsClass(BackendOverrideRequest.class))));
     }
 
     @OpenApi(
@@ -208,43 +198,7 @@ public class ClusterStorageBackendRoutes implements Routes {
     private void move(Context ctx) {
         Cluster cluster = requireActive(ctx);
         Actor actor = actor(ctx);
-        int stationId = stationRepository
-                .findByUid(parseUid(ctx.pathParam("stationUid")))
-                .orElseThrow(Refusal.STATION_NOT_HERE_ON_CLUSTER_STORAGE_MOVE::raise)
-                .id();
-
-        auditService.recordMigration(actor, stationId, StorageAuditAction.MIGRATION_STARTED, null, null, null);
-        StorageMigrationService.MigrationResult result;
-        try {
-            result = backendService.moveStation(cluster.id(), stationId);
-        } catch (MigrationException e) {
-            auditService.recordMigration(
-                    actor, stationId, StorageAuditAction.MIGRATION_FAILED, null, null, e.getMessage());
-            throw Refusal.CLUSTER_STORAGE_MOVE_FAILED.raise();
-        }
-        auditService.recordMigration(actor, stationId, StorageAuditAction.MIGRATION_COMPLETED, null, null, null);
-        ctx.json(new MigrationResponse(
-                result.totalKeys(), result.copied(), result.skipped(), result.deleted(), result.copiedBytes()));
-    }
-
-    private ProbeResult probeOf(StationStorageBackendConfig config) {
-        try (StorageBackend backend = factory.buildForStation(config)) {
-            HealthStatus status = backend.probe();
-            return new ProbeResult(
-                    status.healthy(),
-                    status.error().orElse(null),
-                    status.checkedAt().toString());
-        } catch (Exception e) {
-            return new ProbeResult(false, e.getMessage(), Instant.now().toString());
-        }
-    }
-
-    private static UUID parseUid(String raw) {
-        try {
-            return UUID.fromString(raw);
-        } catch (IllegalArgumentException e) {
-            throw Refusal.STATION_NOT_AN_IDENTITY_ON_CLUSTER_STORAGE_MOVE.raise();
-        }
+        ctx.json(moveService.move(actor, cluster.id(), ctx.pathParam("stationUid")));
     }
 
     private Cluster requireActive(Context ctx) {

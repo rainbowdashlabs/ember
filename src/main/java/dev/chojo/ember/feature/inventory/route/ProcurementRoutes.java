@@ -11,15 +11,14 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
-import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
-import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -33,6 +32,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -44,22 +44,22 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class ProcurementRoutes implements Routes {
     private final ProcurementService procurementService;
-    private final AccountRepository accountRepository;
-    private final StationMemberRepository stationMemberRepository;
-    private final InventoryRepository inventoryRepository;
+    private final StationMemberService memberService;
+    private final MemberNameResolver names;
+    private final InventoryService inventoryService;
     private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public ProcurementRoutes(
             ProcurementService procurementService,
-            AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository,
-            InventoryRepository inventoryRepository,
+            StationMemberService memberService,
+            MemberNameResolver names,
+            InventoryService inventoryService,
             MemberIdentityFactory memberIdentityFactory) {
         this.procurementService = procurementService;
-        this.accountRepository = accountRepository;
-        this.stationMemberRepository = stationMemberRepository;
-        this.inventoryRepository = inventoryRepository;
+        this.memberService = memberService;
+        this.names = names;
+        this.inventoryService = inventoryService;
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
@@ -114,9 +114,6 @@ public class ProcurementRoutes implements Routes {
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateProcurementRequest.class);
-        inventoryRepository
-                .findById(request.inventoryId())
-                .orElseThrow(Refusal.INVENTORY_NOT_HERE_ON_PROCUREMENT::raise);
         var procurement = procurementService.create(
                 session.stationId(), request.inventoryId(), request.memberId(), request.sizeId(), request.notes());
         ctx.status(HttpStatus.CREATED).json(toResponse(procurement));
@@ -166,21 +163,16 @@ public class ProcurementRoutes implements Routes {
         // An order a cluster places for its own store is for nobody, so there is nobody to name
         var member = procurement.memberId() == null
                 ? null
-                : stationMemberRepository.findById(procurement.memberId()).orElse(null);
-        String memberName = member != null
-                ? accountRepository
-                        .findById(member.accountId())
-                        .map(a -> NameParts.of(a).called())
-                        .orElse("")
-                : "";
+                : memberService.findById(procurement.memberId()).orElse(null);
+        String memberName = member != null ? Objects.requireNonNullElse(names.called(member.id()), "") : "";
         MemberIdentity memberIdentity =
                 member != null ? memberIdentityFactory.local(member.stationId(), procurement.memberId()) : null;
         Inventory inventory =
-                inventoryRepository.findById(procurement.inventoryId()).orElse(null);
+                inventoryService.findById(procurement.inventoryId()).orElse(null);
         String inventoryName = inventory != null ? inventory.name() : "";
         String sizeLabel = null;
         if (procurement.sizeId() != null && inventory != null) {
-            sizeLabel = inventoryRepository.findSizes(procurement.inventoryId()).stream()
+            sizeLabel = inventoryService.findSizes(procurement.inventoryId()).stream()
                     .filter(s -> s.id() == procurement.sizeId())
                     .map(InventorySize::label)
                     .findFirst()

@@ -7,10 +7,8 @@ package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
-import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
-import dev.chojo.ember.feature.beacon.service.BeaconSettings;
-import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
-import dev.chojo.ember.feature.system.service.ProblemLogAppender;
+import dev.chojo.ember.feature.system.service.MonitoringCountService;
+import dev.chojo.ember.feature.system.service.MonitoringCountService.MonitoringCounts;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -30,18 +28,11 @@ import jakarta.inject.Singleton;
 @Singleton
 public class AdminMonitoringCountRoutes implements Routes {
 
-    private final ProblemReportRepository reportRepository;
-    private final BeaconReadRepository beaconRepository;
-    private final BeaconSettings beaconSettings;
+    private final MonitoringCountService counts;
 
     @Inject
-    public AdminMonitoringCountRoutes(
-            ProblemReportRepository reportRepository,
-            BeaconReadRepository beaconRepository,
-            BeaconSettings beaconSettings) {
-        this.reportRepository = reportRepository;
-        this.beaconRepository = beaconRepository;
-        this.beaconSettings = beaconSettings;
+    public AdminMonitoringCountRoutes(MonitoringCountService counts) {
+        this.counts = counts;
     }
 
     @Override
@@ -49,12 +40,6 @@ public class AdminMonitoringCountRoutes implements Routes {
         routes.get(prefix + "/admin/monitoring-counts", this::counts, InstancePermission.ADMINISTRATOR);
     }
 
-    /**
-     * The counts, and whether this instance is a beacon at all.
-     *
-     * <p>The beacon numbers are only asked for where the instance receives, because an instance that does
-     * not has no tables worth querying and no sidebar entry to put a number on.
-     */
     @OpenApi(
             path = "/api/v1/admin/monitoring-counts",
             methods = HttpMethod.GET,
@@ -62,24 +47,6 @@ public class AdminMonitoringCountRoutes implements Routes {
             tags = {"Monitoring"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MonitoringCounts.class)))
     private void counts(Context ctx) {
-        boolean receiving = beaconSettings.receiving();
-        var waiting = receiving ? beaconRepository.countWaiting() : new BeaconReadRepository.Waiting(0, 0);
-        var log = ProblemLogAppender.instance();
-        ctx.json(new MonitoringCounts(
-                log != null ? log.countUnacknowledged() : 0,
-                reportRepository.countUnacknowledged(),
-                receiving,
-                waiting.faults(),
-                waiting.reports()));
+        ctx.json(counts.counts());
     }
-
-    /**
-     * @param problemLog     entries in the fault log nobody has acknowledged
-     * @param problemReports reports from this instance's own members that nobody has looked at
-     * @param beaconActive   whether this instance accepts what other instances report
-     * @param beaconFaults   faults gathered from other instances, unacknowledged
-     * @param beaconReports  forwarded reports from other instances, unacknowledged
-     */
-    public record MonitoringCounts(
-            int problemLog, int problemReports, boolean beaconActive, int beaconFaults, int beaconReports) {}
 }

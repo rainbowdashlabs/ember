@@ -25,7 +25,6 @@ import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.HttpStatus;
 import io.javalin.testtools.Response;
@@ -139,16 +138,15 @@ class PublicKbFileAccessRouteTest {
         accessService = mock(KbAccessService.class);
         pictureService = mock(KbFilePictureService.class);
         pdfExportService = mock(KbPdfExportService.class);
-        var stationRepository = mock(StationRepository.class);
-        when(stationRepository.findByUid(STATION_UID)).thenReturn(Optional.of(station()));
+        var stationService = mock(StationService.class);
+        when(stationService.findByUid(STATION_UID)).thenReturn(Optional.of(station()));
         routes = new PublicKnowledgeBaseRoutes(
                 kbService,
                 mock(KbContentService.class),
                 mock(KbSearchService.class),
                 accessService,
                 mock(KbTagService.class),
-                mock(StationService.class),
-                stationRepository,
+                stationService,
                 mock(KbIconService.class),
                 mock(KbImageService.class),
                 pictureService,

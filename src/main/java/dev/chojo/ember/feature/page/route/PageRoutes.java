@@ -11,7 +11,6 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
@@ -20,10 +19,8 @@ import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.entity.StationPage;
-import dev.chojo.ember.feature.page.service.MemberListResolver;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import io.javalin.http.Context;
@@ -35,8 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -51,8 +46,6 @@ public class PageRoutes implements Routes {
     private final MediaLibraryService media;
     private final FormService formService;
     private final FormAnalyticsAssembler formAnalyticsAssembler;
-    private final StationMemberRepository stationMemberRepository;
-    private final AvatarService avatarService;
     private final Api apiConfig;
 
     @Inject
@@ -61,15 +54,11 @@ public class PageRoutes implements Routes {
             MediaLibraryService media,
             FormService formService,
             FormAnalyticsAssembler formAnalyticsAssembler,
-            StationMemberRepository stationMemberRepository,
-            AvatarService avatarService,
             Api apiConfig) {
         this.pageService = pageService;
         this.media = media;
         this.formService = formService;
         this.formAnalyticsAssembler = formAnalyticsAssembler;
-        this.stationMemberRepository = stationMemberRepository;
-        this.avatarService = avatarService;
         this.apiConfig = apiConfig;
     }
 
@@ -187,10 +176,8 @@ public class PageRoutes implements Routes {
     }
 
     /**
-     * Expands an MEMBER_LIST_SPOTLIGHT (member-list) source descriptor to an ordered
-     * {@code ResolvedMember} list - the same shape baked into the public render path - so the
-     * editor preview can render the cell live. Delegates to {@link MemberListResolver} so
-     * both surfaces stay in lockstep.
+     * Expands a member-list cell to the members it shows, so the editor preview can render the
+     * cell live.
      */
     private void resolveMemberList(Context ctx) {
         var session = UserSession.from(ctx);
@@ -201,37 +188,7 @@ public class PageRoutes implements Routes {
             log.warn("Could not read the member list a page editor asked to resolve", e);
             throw Refusal.PAGE_MEMBER_LIST_NOT_READ.raise();
         }
-        var source = body.path("source");
-        CellConfig.MemberListSortBy sortBy = null;
-        if (body.path("sortBy").isString()) {
-            try {
-                sortBy = CellConfig.MemberListSortBy.valueOf(body.path("sortBy").asString());
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-        var descriptions = new HashMap<String, String>();
-        var descriptionsNode = body.path("memberDescriptions");
-        if (descriptionsNode.isObject()) {
-            for (var entry : descriptionsNode.properties()) {
-                if (entry.getValue().isString())
-                    descriptions.put(entry.getKey(), entry.getValue().asString());
-            }
-        }
-        var memberOrder = new ArrayList<String>();
-        var orderNode = body.path("memberOrder");
-        if (orderNode.isArray()) {
-            for (var n : orderNode) {
-                if (n.isString()) memberOrder.add(n.asString());
-            }
-        }
-        ctx.json(MemberListResolver.resolve(
-                stationMemberRepository,
-                avatarService,
-                session.stationId(),
-                source,
-                sortBy,
-                descriptions,
-                memberOrder));
+        ctx.json(pageService.resolveMemberList(session.stationId(), body));
     }
 
     private void create(Context ctx) {

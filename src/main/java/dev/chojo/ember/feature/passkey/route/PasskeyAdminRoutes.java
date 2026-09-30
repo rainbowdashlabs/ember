@@ -5,12 +5,14 @@
  */
 package dev.chojo.ember.feature.passkey.route;
 
+import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
-import dev.chojo.ember.feature.passkey.repository.PasskeyRepository;
 import dev.chojo.ember.feature.passkey.service.PasskeyAdminService;
 import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -19,7 +21,6 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * The operator's side of passkeys: the mode with its readiness block, and the report read before
@@ -63,31 +64,23 @@ public class PasskeyAdminRoutes implements Routes {
     }
 
     private void residue(Context ctx) {
-        ctx.json(adminService.residue().stream()
-                .map(entry -> new ResidueEntryResponse(
-                        entry.accountId(),
-                        entry.firstName(),
-                        entry.lastName(),
-                        entry.lastSignInAt(),
-                        entry.reachable(),
-                        entry.hasGuardian()))
-                .toList());
+        ctx.json(adminService.residue());
     }
 
     private void retirePassword(Context ctx) {
-        var session = dev.chojo.ember.api.UserSession.from(ctx);
-        int accountId = dev.chojo.ember.api.RouteSupport.pathInt(ctx, "id");
+        var session = UserSession.from(ctx);
+        int accountId = RouteSupport.pathInt(ctx, "id");
         var outcome = adminService.retirePassword(
                 accountId, session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         switch (outcome) {
-            case RETIRED -> ctx.json(Map.of("message", "Password retired"));
+            case RETIRED -> ctx.json(new MessageResponse("Password retired"));
             case NO_PASSWORD -> throw Refusal.ACCOUNT_HOLDS_NO_PASSWORD_ON_RETIRE.raise();
             case NO_TRIED_PASSKEY -> throw Refusal.NO_TRIED_PASSKEY_ON_RETIRE.raise();
         }
     }
 
     private void retireAll(Context ctx) {
-        var session = dev.chojo.ember.api.UserSession.from(ctx);
+        var session = UserSession.from(ctx);
         var result = adminService.retireAllEligible(session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         ctx.json(new BulkRetireResponse(result.retired(), result.passedOver()));
     }
@@ -115,12 +108,7 @@ public class PasskeyAdminRoutes implements Routes {
     }
 
     private void passwordlessReport(Context ctx) {
-        PasskeyRepository.PasswordlessReport report = adminService.passwordlessReport();
-        ctx.json(new PasswordlessReportResponse(
-                report.wouldKeepPassword(),
-                report.withoutPasskey(),
-                report.reachableOnlyByQr(),
-                report.dormantForAYear()));
+        ctx.json(adminService.passwordlessReport());
     }
 
     private static PasskeysConfigResponse toResponse(PasskeyAdminService.ModeStatus status) {
@@ -148,17 +136,6 @@ public class PasskeyAdminRoutes implements Routes {
             int accountsWithTriedPasskey,
             int accountsWithPassword,
             int accountsWithPasswordAndNoPasskey) {}
-
-    public record PasswordlessReportResponse(
-            int wouldKeepPassword, int withoutPasskey, int reachableOnlyByQr, int dormantForAYear) {}
-
-    public record ResidueEntryResponse(
-            int accountId,
-            String firstName,
-            String lastName,
-            Instant lastSignInAt,
-            boolean reachable,
-            boolean hasGuardian) {}
 
     public record BulkRetireResponse(int retired, int passedOver) {}
 }

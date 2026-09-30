@@ -19,8 +19,8 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -48,13 +48,12 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 public class ProfileFieldRoutes implements Routes {
 
     private final ProfileFieldService profileFieldService;
-    private final StationMemberRepository stationMemberRepository;
+    private final StationMemberService memberService;
 
     @Inject
-    public ProfileFieldRoutes(
-            ProfileFieldService profileFieldService, StationMemberRepository stationMemberRepository) {
+    public ProfileFieldRoutes(ProfileFieldService profileFieldService, StationMemberService memberService) {
         this.profileFieldService = profileFieldService;
-        this.stationMemberRepository = stationMemberRepository;
+        this.memberService = memberService;
     }
 
     private static boolean isBlank(String s) {
@@ -88,7 +87,7 @@ public class ProfileFieldRoutes implements Routes {
      */
     private StationMember requireOwnedMember(Context ctx, int memberId) {
         requireStation(UserSession.from(ctx));
-        return requireOwnedOrNotFound(ctx, memberId, stationMemberRepository::findById, StationMember::stationId);
+        return requireOwnedOrNotFound(ctx, memberId, memberService::findById, StationMember::stationId);
     }
 
     // -- Field Definitions --

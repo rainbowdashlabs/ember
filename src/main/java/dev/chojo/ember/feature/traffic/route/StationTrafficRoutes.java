@@ -10,9 +10,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.traffic.entity.AuthBucket;
-import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
-import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes.HourlyTrafficResponse;
-import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes.HourlyTrafficRow;
+import dev.chojo.ember.feature.traffic.service.TrafficReportService;
 import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -31,11 +29,11 @@ import java.time.Instant;
 @Singleton
 public class StationTrafficRoutes implements Routes {
 
-    private final StationTrafficRepository repository;
+    private final TrafficReportService traffic;
 
     @Inject
-    public StationTrafficRoutes(StationTrafficRepository repository) {
-        this.repository = repository;
+    public StationTrafficRoutes(TrafficReportService traffic) {
+        this.traffic = traffic;
     }
 
     private static Instant parseInstant(Context ctx, String paramName) {
@@ -75,10 +73,6 @@ public class StationTrafficRoutes implements Routes {
         if (to.isBefore(from)) {
             throw Refusal.STATION_TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS.raise();
         }
-        AuthBucket auth = parseOptionalAuth(ctx);
-
-        var rows = repository.findHourly(from, to, session.stationId(), auth);
-        ctx.json(new HourlyTrafficResponse(
-                rows.stream().map(HourlyTrafficRow::from).toList()));
+        ctx.json(traffic.hourly(from, to, session.stationId(), parseOptionalAuth(ctx)));
     }
 }

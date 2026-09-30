@@ -8,14 +8,11 @@ package dev.chojo.ember.feature.storage.transfer;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.feature.account.service.AvatarService;
-import dev.chojo.ember.feature.media.image.ImageProfile;
-import dev.chojo.ember.feature.media.image.VariantSet;
-import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
-import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.feature.storage.service.StationTransferFileService;
+import dev.chojo.ember.feature.storage.service.StationTransferFileService.ListKeysResponse;
 import dev.chojo.ember.feature.storage.service.TransferBackendDescriptorService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -34,10 +31,6 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -55,26 +48,21 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
 public class StationTransferAssetRoutes implements Routes {
 
     private static final Logger log = LoggerFactory.getLogger(StationTransferAssetRoutes.class);
-    private static final int DEFAULT_LIST_LIMIT = 500;
-    private static final int MAX_LIST_LIMIT = 2000;
 
     private final StationExportService exportService;
     private final TransferBackendDescriptorService descriptorService;
-    private final StationRepository stationRepository;
-    private final StorageService storageService;
+    private final StationTransferFileService fileService;
     private final AvatarService avatarService;
 
     @Inject
     public StationTransferAssetRoutes(
             StationExportService exportService,
             TransferBackendDescriptorService descriptorService,
-            StationRepository stationRepository,
-            StorageService storageService,
+            StationTransferFileService fileService,
             AvatarService avatarService) {
         this.exportService = exportService;
         this.descriptorService = descriptorService;
-        this.stationRepository = stationRepository;
-        this.storageService = storageService;
+        this.fileService = fileService;
         this.avatarService = avatarService;
     }
 
@@ -137,37 +125,8 @@ public class StationTransferAssetRoutes implements Routes {
         int stationId =
                 exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
         StorageCategory category = parseStationFileCategory(ctx.pathParam("category"));
-
-        Station station = stationRepository
-                .findById(stationId)
-                .orElseThrow(() -> new NotFoundResponse("Station " + stationId + " not found"));
-        StorageScope.Station scope = new StorageScope.Station(stationId, station.uid());
-
-        String after = ctx.queryParam("after");
-        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(DEFAULT_LIST_LIMIT);
-        if (limit <= 0) limit = DEFAULT_LIST_LIMIT;
-        if (limit > MAX_LIST_LIMIT) limit = MAX_LIST_LIMIT;
-
-        List<String> sorted = new ArrayList<>(originalsOnly(category, storageService.listKeys(scope, category, "")));
-        Collections.sort(sorted);
-
-        int startIndex = 0;
-        if (after != null && !after.isBlank()) {
-            int idx = Collections.binarySearch(sorted, after);
-            startIndex = idx >= 0 ? idx + 1 : -idx - 1;
-        }
-        int endIndex = Math.min(startIndex + limit, sorted.size());
-        List<String> page = sorted.subList(startIndex, endIndex);
-        String next = endIndex < sorted.size() ? page.getLast() : null;
-        log.info(
-                "[export] listing files: station {} category {} after='{}' limit={} → {} key(s), next={}",
-                stationId,
-                category,
-                after == null ? "" : after,
-                limit,
-                page.size(),
-                next == null ? "none" : "present");
-        ctx.json(new ListKeysResponse(List.copyOf(page), next, sorted.size()));
+        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(0);
+        ctx.json(fileService.page(stationId, category, ctx.queryParam("after"), limit));
     }
 
     @OpenApi(
@@ -198,20 +157,7 @@ public class StationTransferAssetRoutes implements Routes {
             throw new BadRequestResponse("key is required");
         }
 
-        Station station = stationRepository
-                .findById(stationId)
-                .orElseThrow(() -> new NotFoundResponse("Station " + stationId + " not found"));
-        StorageScope.Station scope = new StorageScope.Station(stationId, station.uid());
-
-        var stream = storageService
-                .readRelative(scope, category, key)
-                .orElseThrow(() -> new NotFoundResponse("Key not found: " + key));
-        log.info(
-                "[export] streaming file: station {} category {} key '{}' ({} bytes)",
-                stationId,
-                category,
-                key,
-                stream.contentLength());
+        var stream = fileService.open(stationId, category, key);
         ctx.contentType(stream.metadata().contentType());
         ctx.header("Content-Length", String.valueOf(stream.contentLength()));
         try {
@@ -254,34 +200,6 @@ public class StationTransferAssetRoutes implements Routes {
         ctx.result(avatar.data());
     }
 
-    /**
-     * Strips derived image variants (smaller-width resizes and re-encoded WebP copies) from a
-     * raw category listing so the destination only pulls the bytes it cannot regenerate locally.
-     * For categories that never have variants the input is returned unchanged. Package-private
-     * for direct unit tests.
-     */
-    static List<String> originalsOnly(StorageCategory category, List<String> keys) {
-        var profile = ImageProfile.of(category);
-        if (profile.isEmpty()) return keys;
-
-        Map<String, List<String>> byDir = new LinkedHashMap<>();
-        for (String key : keys) {
-            int slash = key.lastIndexOf('/');
-            String dir = slash < 0 ? "" : key.substring(0, slash);
-            byDir.computeIfAbsent(dir, _ -> new ArrayList<>()).add(key);
-        }
-
-        var out = new ArrayList<String>(byDir.size());
-        for (var entry : byDir.entrySet()) {
-            String dir = entry.getKey();
-            VariantSet.of(profile.get().layout(), entry.getValue())
-                    .original()
-                    .ifPresent(
-                            original -> out.add(dir.isEmpty() ? original.fileName() : dir + "/" + original.fileName()));
-        }
-        return out;
-    }
-
     private StorageCategory parseStationFileCategory(String raw) {
         if (raw == null || raw.isBlank()) {
             throw new BadRequestResponse("category is required");
@@ -300,11 +218,4 @@ public class StationTransferAssetRoutes implements Routes {
         }
         return category;
     }
-
-    /**
-     * Wire shape of {@code GET /files/{category}}. {@code total} is the count of original keys
-     * for the whole category, repeated identically on every page so the destination can pin its
-     * progress denominator on the first response and never see it grow as later pages arrive.
-     */
-    public record ListKeysResponse(List<String> keys, String next, int total) {}
 }

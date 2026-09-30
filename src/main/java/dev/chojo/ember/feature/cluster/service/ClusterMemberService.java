@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterMemberRoleChanged;
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AccountNameRequiredException;
@@ -17,6 +18,7 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.entity.ClusterMemberGroup;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
@@ -26,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -330,4 +333,27 @@ public class ClusterMemberService {
             Set<ClusterPermission> resolved) {}
 
     public record GroupDetail(ClusterMemberGroup group, Set<ClusterPermission> permissions, List<Integer> memberIds) {}
+
+    /**
+     * A member of a cluster as the member list shows them, named by the account behind them.
+     *
+     * @param member the member
+     * @return the row, with no account details where the account is gone
+     */
+    public ClusterMemberResponse describe(ClusterMember member) {
+        var account = accountRepository.findById(member.accountId());
+        return new ClusterMemberResponse(
+                member.id(),
+                account.map(Account::uid).map(UUID::toString).orElse(null),
+                account.map(a -> NameParts.of(a).identified()).orElse(null),
+                account.map(Account::email).orElse(null),
+                member.userType().name());
+    }
+
+    /**
+     * @param accountUid the account behind this member, which is what their picture is keyed by. An
+     *                   association's person need belong to no station, so there is no member of a
+     *                   station to draw them as: the account is the only handle every one of them has.
+     */
+    public record ClusterMemberResponse(int id, String accountUid, String name, String email, String userType) {}
 }

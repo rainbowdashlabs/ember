@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.members.entity.MemberChangeSummary;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.util.sql.MemberNameSql;
@@ -362,14 +363,4 @@ public class ProfileFieldChangeRepository {
                       WHERE ack.change_id = c.id AND ack.acknowledged_by = :acknowledged_by
                   );""", call().bind("station_id", stationId).bind("acknowledged_by", acknowledgedBy));
     }
-
-    /**
-     * Summary of unacknowledged changes for a single member.
-     *
-     * @param memberId     the member identifier
-     * @param memberName   the member's display name
-     * @param pendingCount the number of unacknowledged changes
-     * @param latestChange the timestamp of the most recent change
-     */
-    public record MemberChangeSummary(int memberId, String memberName, int pendingCount, Instant latestChange) {}
 }

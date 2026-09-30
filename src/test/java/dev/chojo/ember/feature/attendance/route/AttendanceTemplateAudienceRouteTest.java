@@ -12,7 +12,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
+import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.service.AttendanceAudienceService;
 import dev.chojo.ember.feature.attendance.service.AttendanceExportService;
 import dev.chojo.ember.feature.attendance.service.AttendanceReportService;
@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.attendance.service.MemberCheckNotesService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -74,8 +75,8 @@ class AttendanceTemplateAudienceRouteTest extends RepositoryTestBase {
                         mock(MemberCheckNotesService.class),
                         mock(AttendanceExportService.class),
                         mock(AttendanceReportService.class),
-                        stationMemberRepo,
-                        accountRepo,
+                        mock(StationMemberService.class),
+                        memberNameResolver,
                         memberIdentityFactory))
                 .withStations(stationRepo);
         station = stationRepo.create("TemplateAudienceRouteStation");

@@ -25,7 +25,6 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -48,8 +47,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -67,7 +64,6 @@ public class ChecklistRoutes implements Routes {
     private final ChecklistService checklistService;
     private final ChecklistExportService exportService;
     private final MemberNameResolver memberNameResolver;
-    private final StationMemberRepository memberRepository;
     private final EventCrudService eventCrudService;
     private final EventRestrictionService eventRestrictionService;
 
@@ -76,13 +72,11 @@ public class ChecklistRoutes implements Routes {
             ChecklistService checklistService,
             ChecklistExportService exportService,
             MemberNameResolver memberNameResolver,
-            StationMemberRepository memberRepository,
             EventCrudService eventCrudService,
             EventRestrictionService eventRestrictionService) {
         this.checklistService = checklistService;
         this.exportService = exportService;
         this.memberNameResolver = memberNameResolver;
-        this.memberRepository = memberRepository;
         this.eventCrudService = eventCrudService;
         this.eventRestrictionService = eventRestrictionService;
     }
@@ -334,7 +328,7 @@ public class ChecklistRoutes implements Routes {
         if (request.memberIds() == null || request.memberIds().isEmpty()) {
             throw Refusal.CHECKLIST_NAMES_NO_MEMBERS.raise();
         }
-        var validIds = filterToStation(request.memberIds(), checklist.stationId());
+        var validIds = checklistService.membersOfStation(request.memberIds(), checklist.stationId());
         var result = checklistService.addMembers(checklist.id(), validIds);
         ctx.json(new AddMembersResponse(result.added(), result.restored(), result.skipped()));
     }
@@ -424,7 +418,7 @@ public class ChecklistRoutes implements Routes {
         if (request.entryIds() == null) {
             throw Refusal.CHECKLIST_NAMES_NO_ROWS.raise();
         }
-        var validEntryIds = filterEntryIds(request.entryIds(), checklist.id());
+        var validEntryIds = checklistService.rowsOfChecklist(request.entryIds(), checklist.id());
         int updated = checklistService.bulkSetColumn(
                 column.id(), validEntryIds, request.checked(), session.member().id());
         ctx.json(new BulkSetResponse(updated));
@@ -493,36 +487,6 @@ public class ChecklistRoutes implements Routes {
             throw Refusal.CHECKLIST_ROW_ON_ANOTHER_LIST.raise();
         }
         return entry;
-    }
-
-    private List<Integer> filterToStation(List<Integer> memberIds, int stationId) {
-        var deduped = new HashSet<Integer>();
-        var stationMemberIds = new HashSet<Integer>();
-        for (var member : memberRepository.findByStation(stationId)) {
-            stationMemberIds.add(member.id());
-        }
-        var out = new ArrayList<Integer>();
-        for (int id : memberIds) {
-            if (deduped.add(id) && stationMemberIds.contains(id)) {
-                out.add(id);
-            }
-        }
-        return out;
-    }
-
-    private List<Integer> filterEntryIds(List<Integer> entryIds, int checklistId) {
-        var checklistEntryIds = new HashSet<Integer>();
-        for (var entry : checklistService.findEntries(checklistId, true)) {
-            checklistEntryIds.add(entry.id());
-        }
-        var deduped = new HashSet<Integer>();
-        var out = new ArrayList<Integer>();
-        for (int id : entryIds) {
-            if (deduped.add(id) && checklistEntryIds.contains(id)) {
-                out.add(id);
-            }
-        }
-        return out;
     }
 
     private ChecklistDetailResponse buildDetail(Checklist checklist) {

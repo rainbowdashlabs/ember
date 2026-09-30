@@ -5,7 +5,10 @@
  */
 package dev.chojo.ember.feature.passkey.repository;
 
+import dev.chojo.ember.feature.passkey.entity.AdoptionFigures;
 import dev.chojo.ember.feature.passkey.entity.PasskeyListEntry;
+import dev.chojo.ember.feature.passkey.entity.PasswordlessReport;
+import dev.chojo.ember.feature.passkey.entity.ResidueEntry;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -165,18 +168,6 @@ public class PasskeyRepository {
     }
 
     /**
-     * @param reachable whether mail to the member's own address can arrive
-     * @param hasGuardian whether somebody manages the member and can hold up the QR code
-     */
-    public record ResidueEntry(
-            int accountId,
-            String firstName,
-            String lastName,
-            Instant lastSignInAt,
-            boolean reachable,
-            boolean hasGuardian) {}
-
-    /**
      * The account's answer to the one-time passkey offer, or empty when it was never answered.
      */
     public Optional<OfferAnswer> findOfferAnswer(int accountId) {
@@ -289,22 +280,4 @@ public class PasskeyRepository {
                 .first()
                 .orElse(new PasswordlessReport(0, 0, 0, 0));
     }
-
-    /**
-     * @param accountsWithTriedPasskey accounts holding a passkey that has completed a sign-in
-     * @param accountsWithPassword accounts still holding a password
-     * @param accountsWithPasswordAndNoPasskey the group that cannot move yet
-     */
-    public record AdoptionFigures(
-            int accountsWithTriedPasskey, int accountsWithPassword, int accountsWithPasswordAndNoPasskey) {}
-
-    /**
-     * @param wouldKeepPassword accounts that keep their password when the mode switches
-     * @param withoutPasskey of those, how many hold no passkey at all
-     * @param reachableOnlyByQr of those, how many have neither a reachable address nor a
-     *         guardian, which the QR code in the room is the only thing that gets to
-     * @param dormantForAYear password holders who have not signed in for a year
-     */
-    public record PasswordlessReport(
-            int wouldKeepPassword, int withoutPasskey, int reachableOnlyByQr, int dormantForAYear) {}
 }

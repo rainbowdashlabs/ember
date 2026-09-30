@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ProcurementCreated;
 import dev.chojo.ember.event.events.ProcurementFulfilled;
@@ -69,10 +70,13 @@ public class ProcurementService {
      * @param memberId who it is for, or {@code null} for an order a cluster places for its own store
      */
     public Procurement create(int stationId, int inventoryId, Integer memberId, Integer sizeId, String notes) {
+        String inventoryName = inventoryRepository
+                .findById(inventoryId)
+                .filter(inventory -> inventory.stationId() == stationId)
+                .map(Inventory::name)
+                .orElseThrow(Refusal.INVENTORY_NOT_HERE_ON_PROCUREMENT::raise);
         inventoryService.requireHomogeneous(inventoryId, "ordering more");
         var procurement = procurementRepository.create(stationId, inventoryId, memberId, sizeId, notes);
-        String inventoryName =
-                inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("?");
         // Nobody is told about an order that was for nobody
         if (memberId != null) {
             eventBus.publish(new ProcurementCreated(stationId, memberId, inventoryId, inventoryName));

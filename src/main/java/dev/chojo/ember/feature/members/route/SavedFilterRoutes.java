@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.FilterTableType;
 import dev.chojo.ember.feature.members.entity.SavedFilter;
-import dev.chojo.ember.feature.members.repository.SavedFilterRepository;
+import dev.chojo.ember.feature.members.service.SavedFilterService;
+import dev.chojo.ember.feature.members.service.SavedFilterService.CreateFilterRequest;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -31,11 +31,11 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  */
 @Singleton
 public class SavedFilterRoutes implements Routes {
-    private final SavedFilterRepository repository;
+    private final SavedFilterService filters;
 
     @Inject
-    public SavedFilterRoutes(SavedFilterRepository repository) {
-        this.repository = repository;
+    public SavedFilterRoutes(SavedFilterService filters) {
+        this.filters = filters;
     }
 
     @Override
@@ -56,7 +56,7 @@ public class SavedFilterRoutes implements Routes {
         var session = UserSession.from(ctx);
         var tableType = FilterTableType.valueOf(
                 ctx.queryParamAsClass("tableType", String.class).get().toUpperCase());
-        ctx.json(repository.findByAccountAndTable(session.accountId(), tableType));
+        ctx.json(filters.list(session.accountId(), tableType));
     }
 
     @OpenApi(
@@ -72,13 +72,7 @@ public class SavedFilterRoutes implements Routes {
     private void create(Context ctx) {
         var session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateFilterRequest.class);
-        if (request.tableType() == null || request.name() == null || request.filterData() == null) {
-            throw Refusal.SAVED_FILTER_DETAILS_MISSING.raise();
-        }
-        var existing = repository.findByAccountAndTable(session.accountId(), request.tableType());
-        var filter = repository.create(
-                session.accountId(), request.tableType(), request.name(), request.filterData(), existing.size());
-        ctx.status(HttpStatus.CREATED).json(filter);
+        ctx.status(HttpStatus.CREATED).json(filters.create(session.accountId(), request));
     }
 
     @OpenApi(
@@ -91,12 +85,7 @@ public class SavedFilterRoutes implements Routes {
     private void delete(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        if (repository.delete(id, session.accountId())) {
-            ctx.status(HttpStatus.NO_CONTENT);
-        } else {
-            throw Refusal.SAVED_FILTER_NOT_HERE_ON_DELETE.raise();
-        }
+        filters.delete(session.accountId(), id);
+        ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    public record CreateFilterRequest(FilterTableType tableType, String name, String filterData) {}
 }

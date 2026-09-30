@@ -16,8 +16,8 @@ import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.PublicStationInfoService;
 import dev.chojo.ember.feature.station.service.StationLogoService;
-import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import io.javalin.http.HttpStatus;
 import io.javalin.testtools.Response;
@@ -87,14 +87,13 @@ class PublicStationReachTest {
         when(stationRepository.findByAddress(STATION_UID.toString())).thenReturn(Optional.of(withdrawnStation()));
         var formService = mock(FormService.class);
         when(formService.hasOpenlyAddressedForms(9)).thenReturn(openlyAddressedForms);
-        return new PublicStationRoutes(
+        return new PublicStationRoutes(new PublicStationInfoService(
                 stationRepository,
-                mock(StationService.class),
                 mock(StationLogoService.class),
                 mock(PageService.class),
                 mock(WaitingListService.class),
                 mock(NewsService.class),
-                formService);
+                formService));
     }
 
     private static Response askFor(PublicStationRoutes routes) {

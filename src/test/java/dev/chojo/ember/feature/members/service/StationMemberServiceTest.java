@@ -372,6 +372,48 @@ class StationMemberServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(29)
+    void setJoinDate() {
+        service.setJoinDate(member1.id(), java.time.LocalDate.of(2019, 3, 4));
+
+        assertEquals(
+                java.time.LocalDate.of(2019, 3, 4),
+                service.findById(member1.id()).orElseThrow().joinDate());
+    }
+
+    @Test
+    @Order(29)
+    void noActiveMemberIsListedAsFormer() {
+        assertTrue(service.findFormerByStation(station.id()).stream().noneMatch(m -> m.id() == member1.id()));
+    }
+
+    /**
+     * What a station grants a user type is added to what the type carries by itself, and every
+     * permission reaches the ones it includes.
+     */
+    @Test
+    @Order(29)
+    void userTypePermissionsAddToTheTypesOwnAndExpand() {
+        var administrator = service.findAllPermissions().stream()
+                .filter(p -> p.permission() == StationPermission.STATION_ADMINISTRATOR)
+                .findFirst()
+                .orElseThrow();
+
+        var granted = service.setUserTypePermissions(station.id(), StationUserType.TEAM, List.of(administrator.id()));
+        var effective = service.effectiveUserTypePermissions(station.id(), StationUserType.TEAM);
+
+        assertEquals(
+                List.of(administrator.id()), granted.stream().map(p -> p.id()).toList());
+        assertEquals(granted, service.findUserTypePermissions(station.id(), StationUserType.TEAM));
+        assertTrue(effective.contains(StationPermission.LOGIN.name()));
+        assertTrue(effective.contains(StationPermission.STATION_ADMINISTRATOR.name()));
+        assertTrue(effective.contains(StationPermission.MEMBER_EDIT.name()));
+        service.setUserTypePermissions(station.id(), StationUserType.TEAM, List.of());
+        assertFalse(service.effectiveUserTypePermissions(station.id(), StationUserType.TEAM)
+                .contains(StationPermission.STATION_ADMINISTRATOR.name()));
+    }
+
+    @Test
     @Order(30)
     void delete() {
         // Create a third member to delete

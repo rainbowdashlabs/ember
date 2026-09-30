@@ -32,17 +32,21 @@ import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalytics
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntryDto;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.ResponseDetailDto;
 import dev.chojo.ember.feature.form.service.FormAnswersRefused;
+import dev.chojo.ember.feature.form.service.FormDirectoryService;
+import dev.chojo.ember.feature.form.service.FormDirectoryService.FormListEntry;
+import dev.chojo.ember.feature.form.service.FormDirectoryService.FormSearchResult;
 import dev.chojo.ember.feature.form.service.FormResponseExportService;
 import dev.chojo.ember.feature.form.service.FormResultQuery;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
-import dev.chojo.ember.feature.page.repository.PageRepository;
+import dev.chojo.ember.feature.page.entity.PageUsingForm;
+import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.util.CsvWriter;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -60,15 +64,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -85,23 +83,26 @@ public class FormRoutes implements Routes {
     private final GuardianPolicy guardianPolicy;
     private final FormAnalyticsAssembler analyticsAssembler;
     private final FormResponseExportService exportService;
-    private final StationRepository stationRepository;
-    private final PageRepository pageRepository;
+    private final StationService stationService;
+    private final PageService pageService;
+    private final FormDirectoryService directory;
 
     @Inject
     public FormRoutes(
             FormService formService,
+            FormDirectoryService directory,
             GuardianPolicy guardianPolicy,
             FormAnalyticsAssembler analyticsAssembler,
             FormResponseExportService exportService,
-            StationRepository stationRepository,
-            PageRepository pageRepository) {
+            StationService stationService,
+            PageService pageService) {
         this.formService = formService;
+        this.directory = directory;
         this.guardianPolicy = guardianPolicy;
         this.analyticsAssembler = analyticsAssembler;
         this.exportService = exportService;
-        this.stationRepository = stationRepository;
-        this.pageRepository = pageRepository;
+        this.stationService = stationService;
+        this.pageService = pageService;
     }
 
     /**
@@ -235,38 +236,8 @@ public class FormRoutes implements Routes {
         } catch (IllegalArgumentException _) {
             throw Refusal.FORM_KIND_UNKNOWN_ON_SEARCH.raise(purposeParam);
         }
-        String uidParam = ctx.queryParam("uid");
-        if (uidParam != null && !uidParam.isBlank()) {
-            UUID lookup;
-            try {
-                lookup = UUID.fromString(uidParam);
-            } catch (IllegalArgumentException e) {
-                ctx.json(List.of());
-                return;
-            }
-            var result = formService
-                    .findByPublicUid(lookup)
-                    .filter(f -> f.stationId() == session.stationId())
-                    .filter(f -> f.purpose() == purpose)
-                    .filter(f -> f.visibility().openlyAddressed())
-                    .map(f -> List.of(new FormSearchResult(f.publicUid(), f.title(), f.purpose(), f.status())))
-                    .orElseGet(List::of);
-            ctx.json(result);
-            return;
-        }
-        String q = ctx.queryParam("q");
-        String needle = q == null ? "" : q.trim().toLowerCase(Locale.ROOT);
-        int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
-        int limit = Math.clamp(requested, 1, 20);
-
-        var results = formService.findByStationAndPurpose(session.stationId(), purpose).stream()
-                .filter(f -> f.visibility().openlyAddressed())
-                .filter(f ->
-                        needle.isEmpty() || f.title().toLowerCase(Locale.ROOT).contains(needle))
-                .limit(limit)
-                .map(f -> new FormSearchResult(f.publicUid(), f.title(), f.purpose(), f.status()))
-                .toList();
-        ctx.json(results);
+        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
+        ctx.json(directory.pickable(session.stationId(), purpose, ctx.queryParam("uid"), ctx.queryParam("q"), limit));
     }
 
     @OpenApi(
@@ -281,49 +252,10 @@ public class FormRoutes implements Routes {
             ctx.json(Collections.emptyList());
             return;
         }
-        int memberId = session.member().id();
-
         boolean manager = session.hasPermission(RestrictionType.FORM.managerPermission());
-        var accessibleForms = formService.findByStationForMember(session.stationId(), memberId, manager).stream()
-                .filter(f -> f.status() == Form.FormStatus.OPEN)
-                .filter(formService::isAcceptingResponses)
-                .toList();
-
-        // Also include forms where a managed member has access but the current member does not
-        var managed = guardianPolicy.wards(session);
-        var managedAccessible = managed.isEmpty()
-                ? Set.<Integer>of()
-                : managed.stream()
-                        .flatMap(m -> formService.findByStationOnBehalfOf(session.stationId(), m.id()).stream())
-                        .filter(f -> f.status() == Form.FormStatus.OPEN)
-                        .filter(formService::isAcceptingResponses)
-                        .map(Form::id)
-                        .collect(Collectors.toSet());
-
-        var seen = new HashSet<Integer>();
-        var combined = new ArrayList<>(accessibleForms);
-        accessibleForms.forEach(f -> seen.add(f.id()));
-        if (!managedAccessible.isEmpty()) {
-            formService.findByStation(session.stationId()).stream()
-                    .filter(f -> managedAccessible.contains(f.id()) && !seen.contains(f.id()))
-                    .filter(f -> f.status() == Form.FormStatus.OPEN)
-                    .filter(formService::isAcceptingResponses)
-                    .forEach(combined::add);
-        }
-
-        var result = combined.stream()
-                .map(f -> new FormListEntry(
-                        f.id(),
-                        f.stationId(),
-                        f.title(),
-                        f.description(),
-                        f.status(),
-                        f.startAt(),
-                        f.endAt(),
-                        formService.countResponses(f.id()),
-                        formService.hasResponded(f.id(), memberId)))
-                .toList();
-        ctx.json(result);
+        var wards =
+                guardianPolicy.wards(session).stream().map(StationMember::id).toList();
+        ctx.json(directory.available(session.stationId(), session.member().id(), manager, wards));
     }
 
     @OpenApi(
@@ -500,25 +432,15 @@ public class FormRoutes implements Routes {
         }
         ctx.json(new VisibilityResponse(
                 formService.findById(id).orElseThrow(Refusal.FORM_NOT_HERE_AFTER_VISIBILITY_CHANGE::raise),
-                stillHeldBy(form, request.visibility())));
+                pageService.pagesStrandedBy(form, request.visibility())));
     }
 
     /**
-     * The pages that put this form on themselves, where closing it to its link has just stopped it
-     * working on them.
-     *
-     * <p>Answered with the change rather than refusing it: an editor may well mean to take the form
-     * off the public site, and the cells are theirs to tidy. What they cannot do is notice by
-     * themselves, because the pages go on rendering with a poll on them that nobody can answer.
+     * @param stillHeldBy the pages that put the form on themselves and stopped offering it with the
+     *                    change, answered rather than refused so an editor can tidy them
      */
-    private List<PageRepository.PageUsingForm> stillHeldBy(Form form, FormVisibility visibility) {
-        if (visibility != FormVisibility.UNLISTED || form.publicUid() == null) return List.of();
-        return pageRepository.findPagesEmbedding(
-                form.stationId(), form.publicUid().toString());
-    }
-
     @OpenApiName("FormVisibilityResponse")
-    public record VisibilityResponse(Form form, List<PageRepository.PageUsingForm> stillHeldBy) {}
+    public record VisibilityResponse(Form form, List<PageUsingForm> stillHeldBy) {}
 
     @OpenApiName("ClearedFormResponses")
     public record ClearedResponses(int cleared) {}
@@ -1184,7 +1106,7 @@ public class FormRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, session);
-        var station = stationRepository
+        var station = stationService
                 .findById(session.stationId())
                 .orElseThrow(Refusal.STATION_NOT_HERE_FOR_FORM_EXPORT::raise);
         boolean asSpreadsheet = !"pdf".equalsIgnoreCase(ctx.queryParam("format"));
@@ -1346,23 +1268,6 @@ public class FormRoutes implements Routes {
     public record ShareLinkResponse(String token) {}
 
     public record ReplaceShareLinkRequest(String currentToken) {}
-
-    /**
-     * Lightweight picker result shape for {@code GET /api/v1/forms/search}. Used by the
-     * POLL_EMBED and FORMS_CTA cell pickers in the page editor.
-     */
-    public record FormSearchResult(UUID publicUid, String title, FormPurpose purpose, Form.FormStatus status) {}
-
-    public record FormListEntry(
-            int id,
-            int stationId,
-            String title,
-            String description,
-            Form.FormStatus status,
-            Instant startAt,
-            Instant endAt,
-            int responseCount,
-            boolean hasResponded) {}
 
     /**
      * Response indicating which members (self and managed) are eligible to respond to a form.

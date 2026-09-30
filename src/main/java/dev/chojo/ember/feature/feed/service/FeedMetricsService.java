@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.feed.service;
 
 import dev.chojo.ember.conf.file.elements.Metrics;
+import dev.chojo.ember.feature.feed.entity.FeedMetricDaily;
+import dev.chojo.ember.feature.feed.entity.FeedUserAgentStat;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
@@ -60,11 +62,11 @@ public class FeedMetricsService implements ShutdownFlush, TaskSource {
         writer.submit(this::writePending);
     }
 
-    public List<FeedMetricsRepository.FeedMetricDaily> recentDailyMetrics(int days) {
+    public List<FeedMetricDaily> recentDailyMetrics(int days) {
         return repository.findDailyMetrics(LocalDate.now().minusDays(Math.max(0, days)));
     }
 
-    public List<FeedMetricsRepository.FeedUserAgentStat> topUserAgents(int limit) {
+    public List<FeedUserAgentStat> topUserAgents(int limit) {
         return repository.findTopUserAgents(Math.max(1, limit));
     }
 

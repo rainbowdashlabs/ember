@@ -452,6 +452,33 @@ public class ChecklistService {
     public record ColumnSpec(String label, String description) {}
 
     /**
+     * The named members that belong to the station, each once, in the order they were named.
+     * A member of another station is dropped rather than refused.
+     *
+     * @param memberIds the members a request named
+     * @param stationId the station the checklist belongs to
+     */
+    public List<Integer> membersOfStation(List<Integer> memberIds, int stationId) {
+        var ofStation = memberRepository.findByStation(stationId).stream()
+                .map(StationMember::id)
+                .collect(Collectors.toSet());
+        return memberIds.stream().distinct().filter(ofStation::contains).toList();
+    }
+
+    /**
+     * The named rows that are on the checklist, removed ones included, each once, in the order
+     * they were named.
+     *
+     * @param entryIds    the rows a request named
+     * @param checklistId the checklist
+     */
+    public List<Integer> rowsOfChecklist(List<Integer> entryIds, int checklistId) {
+        var onList =
+                findEntries(checklistId, true).stream().map(ChecklistEntry::id).collect(Collectors.toSet());
+        return entryIds.stream().distinct().filter(onList::contains).toList();
+    }
+
+    /**
      * Counts of inserted vs. already-present rows returned by an additive refresh.
      */
     public record RefreshResult(int added, int alreadyPresent) {}

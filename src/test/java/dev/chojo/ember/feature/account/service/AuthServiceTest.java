@@ -1765,6 +1765,20 @@ class AuthServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(98)
+    void aSessionIsInvalidatedOnlyByItsOwnAccount() {
+        String token = "invalidate-" + UUID.randomUUID();
+        accountRepo.createSession(accountId, token, Instant.now().plusSeconds(600), "agent", null);
+        int sessionId = accountRepo.findSession(token).orElseThrow().id();
+
+        service.invalidateSession(sessionId, accountId + 1);
+        assertTrue(accountRepo.findSession(token).isPresent(), "another account cannot end the session");
+
+        service.invalidateSession(sessionId, accountId);
+        assertTrue(accountRepo.findSession(token).isEmpty());
+    }
+
+    @Test
     @Order(99)
     void cleanup() {
         accountRepo.delete(accountId);

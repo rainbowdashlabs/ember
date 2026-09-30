@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.twofactor.service.TwoFactorAttemptTracker;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService.VerifyBackupCodeResult;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorSignInService;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnService;
 import io.javalin.Javalin;
 import io.javalin.config.JavalinConfig;
@@ -97,17 +98,21 @@ class ClientIpContextResolverTest {
         when(rateLimiter.tryTwoFactor(anyString(), anyInt())).thenReturn(Optional.empty());
         when(twoFactorService.verifyBackupCode(anyInt(), anyString(), anyString()))
                 .thenReturn(new VerifyBackupCodeResult(false, 3));
+        var audit = mock(TwoFactorAuditService.class);
         TwoFactorRoutes routes = new TwoFactorRoutes(
                 twoFactorService,
-                mock(TwoFactorAuditService.class),
-                accounts,
+                audit,
+                new TwoFactorSignInService(
+                        accounts,
+                        twoFactorService,
+                        audit,
+                        mock(TwoFactorAttemptTracker.class),
+                        mock(TokenHasher.class)),
                 mock(AuthService.class),
-                mock(TokenHasher.class),
                 mock(WebAuthnService.class),
                 mock(Demo.class),
                 mock(TrustedDeviceService.class),
                 rateLimiter,
-                mock(TwoFactorAttemptTracker.class),
                 mock(SessionCookies.class));
 
         start(LOOPBACK_PROXY, config -> {

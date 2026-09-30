@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
@@ -104,5 +106,31 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         assertTrue(accountRepo.findById(acc2.id()).isEmpty());
         // The membership row is also gone (DELETE_EXPLICIT on station_member.id).
         assertTrue(stationMemberRepo.findById(member2.id()).isEmpty());
+    }
+
+    @Test
+    @Order(30)
+    void aStationAdministratorCannotDeleteTheirOwnAccount() {
+        var admin = accountRepo.create("gdpr-own-admin@test.com", "Still", "Admin");
+        var adminMember = stationMemberRepo.create(station.id(), admin.id());
+        stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .ifPresent(role -> stationMemberRepo.grantPermission(adminMember.id(), role.id()));
+
+        var refused = assertThrows(RefusalResponse.class, () -> service.deleteOwnAccount(admin.id()));
+
+        assertEquals(Refusal.ACCOUNT_STILL_ADMINISTERS_STATION, refused.refusal());
+        assertTrue(accountRepo.findById(admin.id()).isPresent());
+    }
+
+    @Test
+    @Order(31)
+    void aPlainMemberDeletesTheirOwnAccount() {
+        var own = accountRepo.create("gdpr-own@test.com", "Gone", "Soon");
+        stationMemberRepo.create(station.id(), own.id());
+
+        service.deleteOwnAccount(own.id());
+
+        assertTrue(accountRepo.findById(own.id()).isEmpty());
     }
 }

@@ -15,11 +15,12 @@ import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
+import dev.chojo.ember.feature.events.entity.PickerMode;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService.EventKind;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService.EventPageQuery;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService.EventState;
@@ -317,9 +318,7 @@ class EventServicesTest extends RepositoryTestBase {
         var fieldRepo = new EventRegistrationFieldRepository();
         var required = new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false);
         fieldRepo.replaceFields(
-                eventId,
-                List.of(new EventRegistrationFieldRepository.FieldEntry(
-                        "Allergies", EventFieldType.STRING, required, false)));
+                eventId, List.of(new RegistrationFieldDraft("Allergies", EventFieldType.STRING, required, false)));
 
         var owing = registrationService.findShortOfAnswer(List.of(member.id()));
         assertEquals(1, owing.size());
@@ -2785,13 +2784,13 @@ class EventServicesTest extends RepositoryTestBase {
         markPublic(visible.id(), true);
         markPublic(hidden.id(), false);
 
-        var results = crudService.searchEventPicker(station.id(), "pickerv", EventRepository.PickerMode.FUTURE, 10);
+        var results = crudService.searchEventPicker(station.id(), "pickerv", PickerMode.FUTURE, 10);
         assertTrue(results.stream().anyMatch(e -> "PickerVisible".equals(e.name())));
 
-        var all = crudService.searchEventPicker(station.id(), "picker", EventRepository.PickerMode.ALL, 10);
+        var all = crudService.searchEventPicker(station.id(), "picker", PickerMode.ALL, 10);
         assertTrue(all.stream().noneMatch(e -> "PickerHidden".equals(e.name())));
 
-        var past = crudService.searchEventPicker(station.id(), "pickerv", EventRepository.PickerMode.PAST, 10);
+        var past = crudService.searchEventPicker(station.id(), "pickerv", PickerMode.PAST, 10);
         assertTrue(past.stream().noneMatch(e -> "PickerVisible".equals(e.name())));
     }
 
@@ -2806,14 +2805,12 @@ class EventServicesTest extends RepositoryTestBase {
         markPublic(hidden.id(), false);
         eventRestrictionService.setViewRestrictions(hidden.id(), onlyType(StationUserType.GUARDIAN));
 
-        var results = crudService.searchVisibleEventPicker(
-                station.id(), member.id(), "scope", EventRepository.PickerMode.FUTURE, 10);
+        var results = crudService.searchVisibleEventPicker(station.id(), member.id(), "scope", PickerMode.FUTURE, 10);
 
         assertTrue(results.stream().anyMatch(e -> "ScopeInternal".equals(e.name())));
         assertTrue(results.stream().noneMatch(e -> "ScopeHidden".equals(e.name())));
 
-        var forAnEditor =
-                crudService.searchStationEventPicker(station.id(), "scope", EventRepository.PickerMode.FUTURE, 10);
+        var forAnEditor = crudService.searchStationEventPicker(station.id(), "scope", PickerMode.FUTURE, 10);
         assertTrue(forAnEditor.stream().anyMatch(e -> "ScopeHidden".equals(e.name())));
     }
 

@@ -8,14 +8,11 @@ package dev.chojo.ember.feature.inventory.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
-import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -32,19 +29,18 @@ import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
-import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.GlyphResolver;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.inventory.service.MovementExportService;
+import dev.chojo.ember.feature.inventory.service.MovementGuards;
 import dev.chojo.ember.feature.inventory.service.MovementTargeting;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
-import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.util.SafeContentDisposition;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -58,7 +54,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -76,9 +71,9 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class MovementRoutes implements Routes {
     private final ItemMovementService movementService;
-    private final InventoryRepository inventoryRepository;
-    private final AccountRepository accountRepository;
-    private final StationMemberRepository stationMemberRepository;
+    private final MovementGuards guards;
+    private final StationMemberService memberService;
+    private final MemberNameResolver names;
     private final MemberIdentityFactory memberIdentityFactory;
     private final LossReportService lossReportService;
     private final InventoryService inventoryService;
@@ -86,31 +81,28 @@ public class MovementRoutes implements Routes {
     private final GlyphResolver glyphResolver;
     private final MovementExportService exportService;
     private final SelfCheckService selfCheckService;
-    private final ClusterRepository clusterRepository;
 
     @Inject
     public MovementRoutes(
             ItemMovementService movementService,
-            InventoryRepository inventoryRepository,
-            AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository,
+            MovementGuards guards,
+            StationMemberService memberService,
+            MemberNameResolver names,
             MemberIdentityFactory memberIdentityFactory,
             LossReportService lossReportService,
             InventoryService inventoryService,
             MovementTargeting targeting,
             GlyphResolver glyphResolver,
             MovementExportService exportService,
-            SelfCheckService selfCheckService,
-            ClusterRepository clusterRepository) {
-        this.clusterRepository = clusterRepository;
+            SelfCheckService selfCheckService) {
+        this.guards = guards;
+        this.memberService = memberService;
+        this.names = names;
         this.selfCheckService = selfCheckService;
         this.targeting = targeting;
         this.glyphResolver = glyphResolver;
         this.exportService = exportService;
         this.movementService = movementService;
-        this.inventoryRepository = inventoryRepository;
-        this.accountRepository = accountRepository;
-        this.stationMemberRepository = stationMemberRepository;
         this.memberIdentityFactory = memberIdentityFactory;
         this.lossReportService = lossReportService;
         this.inventoryService = inventoryService;
@@ -165,19 +157,7 @@ public class MovementRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MovementResponse[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        List<ItemMovement> movements;
-        if (session.hasPermission(StationPermission.INVENTORY_MOVEMENTS)) {
-            movements = movementService.findByStation(session.stationId());
-        } else {
-            var visible = new HashSet<Integer>();
-            visible.add(session.member().id());
-            if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
-                stationMemberRepository.findManaged(session.member().id()).forEach(m -> visible.add(m.id()));
-            }
-            movements = movementService.findByStation(session.stationId()).stream()
-                    .filter(m -> m.memberId() != null && visible.contains(m.memberId()))
-                    .toList();
-        }
+        var movements = guards.visibleAmong(session, movementService.findByStation(session.stationId()));
         ctx.json(movements.stream()
                 .map(movement -> toResponse(movement, session))
                 .toList());
@@ -195,17 +175,7 @@ public class MovementRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MovementResponse[].class)))
     private void listAtMember(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var rows = movementService.findAtMemberByStation(session.stationId());
-        if (!session.hasPermission(StationPermission.INVENTORY_MOVEMENTS)) {
-            var visible = new HashSet<Integer>();
-            visible.add(session.member().id());
-            if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
-                stationMemberRepository.findManaged(session.member().id()).forEach(m -> visible.add(m.id()));
-            }
-            rows = rows.stream()
-                    .filter(movement -> movement.memberId() != null && visible.contains(movement.memberId()))
-                    .toList();
-        }
+        var rows = guards.visibleAmong(session, movementService.findAtMemberByStation(session.stationId()));
         ctx.json(rows.stream().map(movement -> toResponse(movement, session)).toList());
     }
 
@@ -238,9 +208,7 @@ public class MovementRoutes implements Routes {
         if (request.purpose() == null) throw Refusal.MOVEMENT_NEEDS_A_PURPOSE.raise();
 
         Integer memberId = request.memberId();
-        if (memberId != null && memberId != session.member().id() && !mayActForMember(session, memberId)) {
-            throw Refusal.MEMBER_NOT_YOURS_TO_ACT_FOR.raise();
-        }
+        guards.requireMayStartFor(session, memberId);
         ItemMovement movement = movementService.create(
                 session.stationId(),
                 request.purpose(),
@@ -329,7 +297,7 @@ public class MovementRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(ReturnEverythingRequest.class);
         if (request.memberId() == null) throw Refusal.RETURN_OF_EVERYTHING_NEEDS_A_MEMBER.raise();
-        var member = stationMemberRepository
+        var member = memberService
                 .findById(request.memberId())
                 .filter(row -> row.stationId() == session.stationId())
                 .orElseThrow(Refusal.MEMBER_NOT_AT_THIS_STATION::raise);
@@ -396,11 +364,8 @@ public class MovementRoutes implements Routes {
     private void exportPdf(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(ExportMovementsRequest.class);
-        var generatedBy = stationMemberRepository
-                .findById(session.member().id())
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> NameParts.of(a).official())
-                .orElse("?");
+        var generatedBy =
+                Optional.ofNullable(names.official(session.member().id())).orElse("?");
         var pdf = exportService.exportPdf(
                 session.stationId(),
                 request.movementIds() != null ? request.movementIds() : List.of(),
@@ -557,76 +522,12 @@ public class MovementRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    /**
-     * What the caller may act as, which is not one thing but two.
-     *
-     * <p>Somebody can be at the station, at the cluster that owns the gear, or both at once, and a step
-     * belonging to the owner reads differently depending on which of those answered it. A cluster manager
-     * pressing it has confirmed something they can see; the station pressing the same button has asserted
-     * something on the owner's behalf, and the record keeps those apart.
-     *
-     * <p>The cluster half is only true when the caller is acting for the cluster that owns this gear.
-     * Holding the permission at some other cluster says nothing about this one.
-     */
     private ItemMovementService.Actor actorOf(UserSession session, ItemMovement movement) {
-        // Somebody acting for a cluster need not be at any station, so there may be no membership to
-        // name. Member ids start at one, so zero is nobody rather than somebody.
-        return new ItemMovementService.Actor(
-                session.member() != null ? session.member().id() : 0,
-                session.hasPermission(StationPermission.INVENTORY_MOVEMENTS),
-                hasOwnerRights(session, movement));
+        return guards.actorOf(session, movement);
     }
 
-    /**
-     * Whether the caller may answer for the body that owns the gear this movement is about.
-     *
-     * @param session  who is asking
-     * @param movement the movement, or {@code null} when one is being started
-     * @return {@code true} when they act for the owning cluster and hold its exchange permission
-     */
-    private boolean hasOwnerRights(UserSession session, ItemMovement movement) {
-        if (session.clusterId() == null) return false;
-        if (!session.hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_MOVEMENTS)) return false;
-        if (movement == null) return true;
-
-        Integer owner = movement.outgoingItemId() == null
-                ? null
-                : inventoryRepository
-                        .findItemById(movement.outgoingItemId())
-                        .map(InventoryItem::ownerClusterId)
-                        .orElse(null);
-        // A movement that has not named its item yet is about the cluster the station answers to
-        if (owner == null) return true;
-        return owner.equals(session.clusterId());
-    }
-
-    private boolean mayActForMember(UserSession session, int memberId) {
-        if (session.hasPermission(StationPermission.INVENTORY_MOVEMENTS)) return true;
-        return stationMemberRepository.findManagers(memberId).stream()
-                .anyMatch(m -> m.id() == session.member().id());
-    }
-
-    /**
-     * The movement, if this caller has any business with it. Answering 404 for both absent and
-     * none-of-yours keeps the two indistinguishable from outside.
-     *
-     * <p>Three kinds of caller do. Somebody who works a station's queue sees that station's movements.
-     * The member a movement is about sees their own, and so does whoever answers for them. And somebody
-     * acting for the cluster that owns the gear sees it wherever it is: the step the movement is standing
-     * on may be theirs to answer, and a step nobody can open is a step nobody can answer.
-     */
     private ItemMovement requireVisible(int movementId, UserSession session) {
-        ItemMovement movement =
-                movementService.findById(movementId).orElseThrow(Refusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS::raise);
-        if (hasOwnerRights(session, movement)) return movement;
-
-        RouteSupport.requireSameStation(session, movement.stationId());
-        if (session.hasPermission(StationPermission.INVENTORY_MOVEMENTS)) return movement;
-        if (movement.memberId() != null
-                && (movement.memberId() == session.member().id() || mayActForMember(session, movement.memberId()))) {
-            return movement;
-        }
-        throw Refusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS.raise();
+        return guards.requireVisible(session, movementId);
     }
 
     private MovementResponse toResponse(ItemMovement movement, UserSession session) {
@@ -637,7 +538,8 @@ public class MovementRoutes implements Routes {
         // The piece a row is about: what left, or what was promised where nothing left. An issue and a
         // request have no outgoing side at all, and a row naming nothing says nothing.
         Integer subject = movement.outgoingItemId() != null ? movement.outgoingItemId() : movement.incomingItemId();
-        var target = belongsOn(movement);
+        var target = targeting.belongsOn(movement);
+        var owner = targeting.owningCluster(target);
         Glyph glyph = subject != null
                 ? glyphResolver.forItemId(subject)
                 : glyphResolver.forInventoryId(movement.inventoryId());
@@ -666,8 +568,8 @@ public class MovementRoutes implements Routes {
                 movement.closedAt(),
                 movement.closeReason(),
                 movementService.ownerAnswersHere(movement),
-                owningCluster(target).map(Cluster::name).orElse(null),
-                owningCluster(target).map(cluster -> cluster.uid().toString()).orElse(null),
+                owner.map(Cluster::name).orElse(null),
+                owner.map(cluster -> cluster.uid().toString()).orElse(null),
                 itemName(movement.outgoingItemId()),
                 movement.outgoingItemId(),
                 movementService.stillHeldBy(movement),
@@ -705,46 +607,6 @@ public class MovementRoutes implements Routes {
         if (current == null) return steps.getLast().label();
         int standing = steps.indexOf(current);
         return standing > 0 ? steps.get(standing - 1).label() : null;
-    }
-
-    /**
-     * Where this movement belongs: whose gear it is, who it is with, and the chain that combination is
-     * bound to today.
-     *
-     * <p>A station is free to unbind a combination while a movement of that kind is still walking, and
-     * a row that cannot be read is worse than one that cannot say where it ought to be. The chain it is
-     * actually on stands in for the answer then.
-     *
-     * @param movement the movement
-     * @return where it belongs, falling back to the chain it walks
-     */
-    private MovementTargeting.Target belongsOn(ItemMovement movement) {
-        try {
-            return targeting.of(movement);
-        } catch (BadRequestResponse unbound) {
-            return new MovementTargeting.Target(
-                    targeting.ownerOf(movement.outgoingItemId(), movement.incomingItemId(), movement.inventoryId()),
-                    targeting.owningClusterOf(
-                            movement.outgoingItemId() != null ? movement.outgoingItemId() : movement.incomingItemId(),
-                            movement.stationId()),
-                    movement.memberId() != null ? MovementParty.MEMBER : MovementParty.STORE,
-                    movement.flowId() != null ? movement.flowId() : 0);
-        }
-    }
-
-    /**
-     * The association that owns this movement's gear, where one on this instance does.
-     *
-     * <p>"The owner" is an abstraction on screen, and somebody holding a pair of gloves cannot tell
-     * from it whose gloves they are. A name can, and the identity tells one body's gear from another's
-     * where a replacement is being picked.
-     *
-     * @param target whose gear it is and which body that is
-     * @return the association, or empty where the station owns it or the body is not here
-     */
-    private Optional<Cluster> owningCluster(MovementTargeting.Target target) {
-        if (target.ownerKind() != ItemOwner.CLUSTER || target.ownerClusterId() == null) return Optional.empty();
-        return clusterRepository.findById(target.ownerClusterId());
     }
 
     /** What the piece that set out is called, which is how a list of movements says which jacket this is. */
@@ -787,10 +649,7 @@ public class MovementRoutes implements Routes {
     /** The size a row names, which is the one asked for where there is one and the one replaced otherwise. */
     private String sizeName(Integer sizeId) {
         if (sizeId == null) return null;
-        return inventoryRepository.findSizesByIds(List.of(sizeId)).stream()
-                .findFirst()
-                .map(InventorySize::label)
-                .orElse(null);
+        return inventoryService.findSizeById(sizeId).map(InventorySize::label).orElse(null);
     }
 
     /**
@@ -844,7 +703,7 @@ public class MovementRoutes implements Routes {
         if (!movement.lostReport()) return null;
         InventoryItem item = movement.outgoingItemId() == null
                 ? null
-                : inventoryRepository.findItemById(movement.outgoingItemId()).orElse(null);
+                : inventoryService.findItemById(movement.outgoingItemId()).orElse(null);
         var document = lossReportService.documentOf(movement.id()).orElse(null);
         return new LossReport(
                 movement.reason(),
@@ -858,22 +717,18 @@ public class MovementRoutes implements Routes {
 
     private String memberName(Integer memberId) {
         if (memberId == null) return null;
-        return stationMemberRepository
-                .findById(memberId)
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> NameParts.of(a).called())
-                .orElse(null);
+        return names.called(memberId);
     }
 
     private String inventoryName(Integer inventoryId) {
         if (inventoryId == null) return null;
-        return inventoryRepository.findById(inventoryId).map(Inventory::name).orElse(null);
+        return inventoryService.findById(inventoryId).map(Inventory::name).orElse(null);
     }
 
     /** Whose gear the inventory holds, which is the shelf a replacement is allowed to come off. */
     private InventoryType inventoryType(Integer inventoryId) {
         if (inventoryId == null) return null;
-        return inventoryRepository
+        return inventoryService
                 .findById(inventoryId)
                 .map(Inventory::inventoryType)
                 .orElse(null);

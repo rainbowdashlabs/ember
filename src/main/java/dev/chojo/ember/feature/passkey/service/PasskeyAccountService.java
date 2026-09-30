@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.passkey.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
@@ -59,6 +60,20 @@ public class PasskeyAccountService {
 
     public List<PasskeyListEntry> list(int accountId) {
         return passkeyRepository.listForAccount(accountId);
+    }
+
+    /**
+     * The password the account holds, or empty where it holds none.
+     */
+    public Optional<AccountCredential> credential(int accountId) {
+        return accountRepository.findCredential(accountId);
+    }
+
+    /**
+     * The account a passkey is being made for, which a new passkey is named after.
+     */
+    public Account account(int accountId) {
+        return accountRepository.findById(accountId).orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CREATION::raise);
     }
 
     public boolean rename(int accountId, int factorId, String label) {

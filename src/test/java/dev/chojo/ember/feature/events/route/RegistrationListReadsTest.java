@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
+import dev.chojo.ember.feature.events.service.RegistrationRowLookups;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
@@ -33,7 +34,7 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.Context;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -149,16 +150,15 @@ class RegistrationListReadsTest {
                 mock(EventRestrictionService.class),
                 nameResolver,
                 mock(GuardianPolicy.class),
-                memberRepository,
+                new RegistrationRowLookups.Reader(
+                        memberRepository, crudService, eventFieldService, nameResolver, identityFactory),
                 mock(AttendanceService.class),
-                identityFactory,
                 registrationFieldService,
-                eventFieldService,
                 mock(RegistrationAnswerReminder.class),
                 mock(EventMemberTableService.class),
                 mock(MemberTableService.class),
                 mock(MemberTableRenderer.class),
-                mock(StationRepository.class),
+                mock(StationService.class),
                 mock(OccurrenceCalendar.class),
                 mock(EventVisibility.class));
     }

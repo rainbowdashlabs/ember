@@ -1097,6 +1097,16 @@ public class AuthService {
     }
 
     /**
+     * Ends one session of an account. A session of another account is left alone.
+     *
+     * @param sessionId the session
+     * @param accountId the account it has to belong to
+     */
+    public void invalidateSession(int sessionId, int accountId) {
+        accountRepository.deleteSessionById(sessionId, accountId);
+    }
+
+    /**
      * Invalidates all sessions for an account, forcing re-authentication on all devices.
      *
      * @param accountId the account identifier

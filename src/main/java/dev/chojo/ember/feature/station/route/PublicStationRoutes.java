@@ -6,19 +6,9 @@
 package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.feature.cluster.entity.StationKind;
-import dev.chojo.ember.feature.form.service.FormService;
-import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
-import dev.chojo.ember.feature.news.service.NewsService;
-import dev.chojo.ember.feature.page.service.PageService;
-import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.entity.StationFormat;
-import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.station.service.StationLogoService;
-import dev.chojo.ember.feature.station.service.StationService;
-import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
+import dev.chojo.ember.feature.station.service.PublicStationInfoService;
+import dev.chojo.ember.feature.station.service.PublicStationInfoService.PublicStationInfo;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -32,30 +22,11 @@ import jakarta.inject.Singleton;
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class PublicStationRoutes implements Routes {
-    private final StationRepository stationRepository;
-    private final StationService stationService;
-    private final StationLogoService logoService;
-    private final PageService pageService;
-    private final WaitingListService waitingListService;
-    private final NewsService newsService;
-    private final FormService formService;
+    private final PublicStationInfoService publicInfo;
 
     @Inject
-    public PublicStationRoutes(
-            StationRepository stationRepository,
-            StationService stationService,
-            StationLogoService logoService,
-            PageService pageService,
-            WaitingListService waitingListService,
-            NewsService newsService,
-            FormService formService) {
-        this.stationRepository = stationRepository;
-        this.stationService = stationService;
-        this.logoService = logoService;
-        this.pageService = pageService;
-        this.waitingListService = waitingListService;
-        this.newsService = newsService;
-        this.formService = formService;
+    public PublicStationRoutes(PublicStationInfoService publicInfo) {
+        this.publicInfo = publicInfo;
     }
 
     @Override
@@ -77,112 +48,6 @@ public class PublicStationRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getInfo(Context ctx) {
-        var station = resolveStation(ctx, true);
-
-        boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
-
-        if (station.stationKind() == StationKind.CLUSTER_HOME) {
-            if (!hasPublicKb) throw Refusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
-            ctx.json(publicInfo(station, true, false, false, false, false, null));
-            return;
-        }
-
-        boolean hasPublicCalendar = station.publicCalendarEnabled();
-        boolean hasPublicPages = station.publicPagesEnabled() && pageService.hasListedPages(station.id());
-        boolean hasPublicWaitlist =
-                station.publicWaitlistEnabled() && waitingListService.hasPublicWaitlists(station.id());
-        boolean hasPublicBlog = station.publicBlogEnabled() && newsService.hasPublicBlogEntries(station.id());
-
-        if (!hasPublicKb
-                && !hasPublicCalendar
-                && !hasPublicPages
-                && !hasPublicWaitlist
-                && !hasPublicBlog
-                && !formService.hasOpenlyAddressedForms(station.id())) {
-            throw Refusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
-        }
-
-        String landingPageSlug =
-                hasPublicPages ? pageService.getLandingPageSlug(station.id()).orElse(null) : null;
-
-        ctx.json(publicInfo(
-                station,
-                hasPublicKb,
-                hasPublicCalendar,
-                hasPublicPages,
-                hasPublicWaitlist,
-                hasPublicBlog,
-                landingPageSlug));
+        ctx.json(publicInfo.info(ctx.pathParam("stationUid")));
     }
-
-    private PublicStationInfo publicInfo(
-            Station station,
-            boolean hasPublicKb,
-            boolean hasPublicCalendar,
-            boolean hasPublicPages,
-            boolean hasPublicWaitlist,
-            boolean hasPublicBlog,
-            String landingPageSlug) {
-        return new PublicStationInfo(
-                station.uid().toString(),
-                station.name(),
-                station.discoveryDescription(),
-                logoService.exists(station.id()),
-                hasPublicKb,
-                hasPublicCalendar,
-                hasPublicPages,
-                hasPublicWaitlist,
-                hasPublicBlog,
-                landingPageSlug,
-                station.publicSlug(),
-                station.defaultTheme(),
-                station.defaultFeel() != null ? station.defaultFeel().name() : null,
-                station.customThemeColors(),
-                StationFormat.timezoneNameOf(station));
-    }
-
-    /**
-     * The station a public address names, by uid or by the readable name it may have been given.
-     *
-     * <p>A cluster's home station is refused unless the caller says otherwise: it is not a station anybody
-     * may look at, and everything it could serve as one would be an accident. Its wiki is the exception,
-     * and only its wiki, which is why the exception is asked for rather than assumed.
-     *
-     * @param allowClusterHome whether an association's own station may answer, which only the wiki does
-     */
-    private Station resolveStation(Context ctx, boolean allowClusterHome) {
-        var station = stationRepository
-                .findByAddress(ctx.pathParam("stationUid"))
-                .orElseThrow(Refusal.PUBLIC_STATION_NOTHING_TO_SHOW::raise);
-        if (!allowClusterHome && station.stationKind() == StationKind.CLUSTER_HOME) {
-            throw Refusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
-        }
-        return station;
-    }
-
-    /**
-     * What a station tells the open web about itself.
-     *
-     * <p>The timezone is here because a public page is written twice, once by the server and once by
-     * the browser, and neither of those two machines is where the reader is. A date put on whichever
-     * clock happened to write it comes out differently in the two copies. The station's own clock is
-     * the one answer both can agree on, and the honest one besides: an appointment at seven at the
-     * station is at seven whoever is reading about it.
-     */
-    public record PublicStationInfo(
-            String stationUid,
-            String name,
-            String description,
-            boolean hasLogo,
-            boolean hasPublicKb,
-            boolean hasPublicCalendar,
-            boolean hasPublicPages,
-            boolean hasPublicWaitlist,
-            boolean hasPublicBlog,
-            String landingPageSlug,
-            String publicSlug,
-            String defaultTheme,
-            String defaultFeel,
-            String customThemeColors,
-            String timezone) {}
 }

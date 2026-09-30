@@ -5,10 +5,11 @@
  */
 package dev.chojo.ember.feature.feed.repository;
 
+import dev.chojo.ember.feature.feed.entity.FeedMetricDaily;
+import dev.chojo.ember.feature.feed.entity.FeedUserAgentStat;
 import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Singleton;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -173,26 +174,4 @@ public class FeedMetricsRepository {
                 .delete()
                 .rows();
     }
-
-    /**
-     * Aggregated per-user-agent statistics row.
-     */
-    public record FeedUserAgentStat(
-            String uaHash, String uaString, long requestCount, Instant firstSeen, Instant lastSeen) {}
-
-    /**
-     * Daily feed render histogram and totals per {@code (type, status)}.
-     */
-    public record FeedMetricDaily(
-            LocalDate day,
-            String type,
-            int status,
-            long count,
-            long totalDurationMs,
-            long totalEntries,
-            long bucketLt50,
-            long bucketLt200,
-            long bucketLt1000,
-            long bucketLt5000,
-            long bucketGte5000) {}
 }

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
@@ -637,15 +638,6 @@ public class EventRepository {
         return SqlSupport.exists(
                 "SELECT 1 FROM station_event WHERE station_id = :station_id LIMIT 1;",
                 call().bind("station_id", stationId));
-    }
-
-    /**
-     * Time-window filter for the event picker.
-     */
-    public enum PickerMode {
-        FUTURE,
-        PAST,
-        ALL
     }
 
     /**

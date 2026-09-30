@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -119,7 +120,7 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
         eventFieldRepo.replaceFields(
                 eventId,
                 List.of(
-                        new EventFieldRepository.FieldEntry(
+                        new EventFieldDraft(
                                 "Key1",
                                 EventFieldType.STRING,
                                 EventFieldConfig.parse("{}"),
@@ -127,7 +128,7 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
                                 false,
                                 null,
                                 false),
-                        new EventFieldRepository.FieldEntry(
+                        new EventFieldDraft(
                                 "Key2",
                                 EventFieldType.STRING,
                                 EventFieldConfig.parse("{}"),
@@ -147,7 +148,7 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     void locationFieldTypeRoundTrips() {
         eventFieldRepo.replaceFields(
                 eventId,
-                List.of(new EventFieldRepository.FieldEntry(
+                List.of(new EventFieldDraft(
                         "Ort",
                         EventFieldType.LOCATION,
                         EventFieldConfig.parse("{}"),
@@ -280,14 +281,14 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     void savingAgainKeepsTheRowOfAQuestionTheEditorNames() {
         eventFieldRepo.replaceFields(
                 eventId,
-                List.of(new EventFieldRepository.FieldEntry(
+                List.of(new EventFieldDraft(
                         "Fahrer", EventFieldType.STRING, EventFieldConfig.parse("{}"), "Anna", false, null, false)));
         int fieldId = eventFieldRepo.findByEvent(eventId).getFirst().id();
 
         eventFieldRepo.replaceFields(
                 eventId,
                 List.of(
-                        new EventFieldRepository.FieldEntry(
+                        new EventFieldDraft(
                                 fieldId,
                                 "Fahrerin",
                                 EventFieldType.STRING,
@@ -296,7 +297,7 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
                                 true,
                                 null,
                                 false),
-                        new EventFieldRepository.FieldEntry(
+                        new EventFieldDraft(
                                 "Beifahrer",
                                 EventFieldType.STRING,
                                 EventFieldConfig.parse("{}"),
@@ -322,7 +323,7 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     void aQuestionOfAnotherAppointmentIsNotWrittenOver() {
         eventFieldRepo.replaceFields(
                 eventId,
-                List.of(new EventFieldRepository.FieldEntry(
+                List.of(new EventFieldDraft(
                         987654,
                         "Fremd",
                         EventFieldType.STRING,

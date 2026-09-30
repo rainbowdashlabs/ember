@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
+import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -326,10 +327,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         MemberGroup group2 = memberGroupRepo.create(station.id(), "Group B");
 
         attendanceRepo.setTemplateGroups(
-                templateId,
-                List.of(
-                        new AttendanceRepository.TemplateGroup(group1.id(), 1),
-                        new AttendanceRepository.TemplateGroup(group2.id(), 2)));
+                templateId, List.of(new TemplateGroup(group1.id(), 1), new TemplateGroup(group2.id(), 2)));
 
         var groups = attendanceRepo.findTemplateGroups(templateId);
         assertEquals(2, groups.size());
@@ -339,7 +337,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertEquals(2, groups.get(1).position());
 
         // Replace with only one group
-        attendanceRepo.setTemplateGroups(templateId, List.of(new AttendanceRepository.TemplateGroup(group2.id(), 1)));
+        attendanceRepo.setTemplateGroups(templateId, List.of(new TemplateGroup(group2.id(), 1)));
         assertEquals(1, attendanceRepo.findTemplateGroups(templateId).size());
 
         // Clear all

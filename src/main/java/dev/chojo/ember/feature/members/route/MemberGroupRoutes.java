@@ -11,15 +11,13 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
-import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.MemberViewService;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -44,23 +42,15 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class MemberGroupRoutes implements Routes {
     private final MemberGroupService groupService;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
-    private final MemberNameResolver memberNameResolver;
-    private final MemberIdentityFactory memberIdentityFactory;
+    private final StationMemberService memberService;
+    private final MemberViewService memberViews;
 
     @Inject
     public MemberGroupRoutes(
-            MemberGroupService groupService,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
-            MemberIdentityFactory memberIdentityFactory,
-            MemberNameResolver memberNameResolver) {
+            MemberGroupService groupService, StationMemberService memberService, MemberViewService memberViews) {
         this.groupService = groupService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
-        this.memberIdentityFactory = memberIdentityFactory;
-        this.memberNameResolver = memberNameResolver;
+        this.memberService = memberService;
+        this.memberViews = memberViews;
     }
 
     private static boolean isBlank(String s) {
@@ -72,7 +62,7 @@ public class MemberGroupRoutes implements Routes {
      * member of another station, so the groups a stranger is in cannot be read or probed.
      */
     private void requireOwnedMember(Context ctx, int memberId) {
-        requireOwnedOrNotFound(ctx, memberId, stationMemberRepository::findById, StationMember::stationId);
+        requireOwnedOrNotFound(ctx, memberId, memberService::findById, StationMember::stationId);
     }
 
     @Override
@@ -103,10 +93,6 @@ public class MemberGroupRoutes implements Routes {
         routes.post(prefix + "/groups/{id}/convert-to-tag", this::convertToTag, StationPermission.MEMBER_MANAGE_GROUP);
 
         routes.get(prefix + "/station-members/{memberId}/groups", this::getMemberGroups, StationPermission.MEMBER_READ);
-    }
-
-    private MemberWithName toMemberWithName(StationMember m) {
-        return MemberWithName.from(m, accountRepository, memberIdentityFactory, memberNameResolver);
     }
 
     // -- Groups --
@@ -223,9 +209,7 @@ public class MemberGroupRoutes implements Routes {
     private void getMembers(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
-        ctx.json(groupService.findMembers(id).stream()
-                .map(this::toMemberWithName)
-                .toList());
+        ctx.json(groupService.findMembers(id).stream().map(memberViews::named).toList());
     }
 
     @OpenApi(
@@ -247,7 +231,7 @@ public class MemberGroupRoutes implements Routes {
 
         var result =
                 groupService.setMembers(groupId, memberIds, session.member().id());
-        ctx.json(result.stream().map(this::toMemberWithName).toList());
+        ctx.json(result.stream().map(memberViews::named).toList());
     }
 
     @OpenApi(

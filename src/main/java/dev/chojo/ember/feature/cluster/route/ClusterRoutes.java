@@ -10,11 +10,10 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
-import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.service.ClusterAppointmentService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -40,12 +39,12 @@ import java.util.UUID;
 @Singleton
 public class ClusterRoutes implements Routes {
     private final ClusterService clusterService;
-    private final AccountRepository accountRepository;
+    private final ClusterAppointmentService appointments;
 
     @Inject
-    public ClusterRoutes(ClusterService clusterService, AccountRepository accountRepository) {
+    public ClusterRoutes(ClusterService clusterService, ClusterAppointmentService appointments) {
         this.clusterService = clusterService;
-        this.accountRepository = accountRepository;
+        this.appointments = appointments;
     }
 
     @Override
@@ -162,15 +161,10 @@ public class ClusterRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AppointRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void appointAdministrator(Context ctx) {
-        Cluster cluster = clusterService
-                .findByUid(parseUid(ctx.pathParam("clusterUid")))
-                .orElseThrow(Refusal.CLUSTER_NOT_HERE_ON_APPOINTMENT::raise);
+        UUID clusterUid = parseUid(ctx.pathParam("clusterUid"));
         var request = ctx.bodyAsClass(AppointRequest.class);
         if (request.accountUid() == null) throw Refusal.CLUSTER_APPOINTMENT_NEEDS_AN_ACCOUNT.raise();
-        var account = accountRepository
-                .findByUid(parseUid(request.accountUid()))
-                .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_CLUSTER_APPOINTMENT::raise);
-        clusterService.addMember(cluster.id(), account.id(), ClusterUserType.CLUSTER_ADMIN);
+        appointments.appointAdministrator(clusterUid, parseUid(request.accountUid()));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

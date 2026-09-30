@@ -12,12 +12,14 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.documents.entity.Document;
-import dev.chojo.ember.feature.documents.entity.DocumentTag;
-import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService.DocumentPage;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService.DocumentResponse;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService.StoreQuery;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.util.SafeContentDisposition;
@@ -28,7 +30,6 @@ import io.javalin.http.UploadedFile;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -36,7 +37,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
@@ -57,22 +57,22 @@ public class DocumentRoutes implements Routes {
     private static final int PAGE_SIZE = 24;
 
     private final DocumentService documentService;
-    private final DocumentRepository documentRepository;
-    private final StationMemberRepository memberRepository;
+    private final DocumentCatalogService catalog;
+    private final StationMemberService memberService;
     private final StationService stationService;
     private final DocumentAccessService documentAccess;
 
     @Inject
     public DocumentRoutes(
             DocumentService documentService,
-            DocumentRepository documentRepository,
-            StationMemberRepository memberRepository,
+            DocumentCatalogService catalog,
+            StationMemberService memberService,
             StationService stationService,
             DocumentAccessService documentAccess) {
         this.documentAccess = documentAccess;
         this.documentService = documentService;
-        this.documentRepository = documentRepository;
-        this.memberRepository = memberRepository;
+        this.catalog = catalog;
+        this.memberService = memberService;
         this.stationService = stationService;
     }
 
@@ -104,34 +104,6 @@ public class DocumentRoutes implements Routes {
         routes.post(prefix + "/station-members/{memberId}/documents", this::upload, StationPermission.LOGIN);
     }
 
-    /**
-     * One document as a reader sees it.
-     *
-     * @param memberIds the members it is bound to, so a reader can tell whose it is
-     */
-    @OpenApiName("MemberDocumentResponse")
-    public record DocumentResponse(
-            int id,
-            String title,
-            String fileName,
-            String mimeType,
-            long sizeBytes,
-            boolean hidden,
-            boolean keepOnArchive,
-            boolean hasThumbnail,
-            Integer uploadedBy,
-            Instant createdAt,
-            List<Integer> memberIds,
-            List<String> tags) {}
-
-    /**
-     * A page of the station's documents.
-     *
-     * @param total how many the filters match in all, so the pages can be counted
-     */
-    @OpenApiName("MemberDocumentPage")
-    public record DocumentPage(List<DocumentResponse> documents, int total) {}
-
     /** Request body for the members a document is bound to. */
     public record BindRequest(List<Integer> memberIds) {}
 
@@ -150,9 +122,7 @@ public class DocumentRoutes implements Routes {
         var session = UserSession.from(ctx);
         int stationId = requireMemberStation(ctx, memberId);
         documentAccess.requireMayList(session, memberId);
-        ctx.json(documentRepository.findByMember(stationId, memberId, documentAccess.readsEveryMember(session)).stream()
-                .map(this::toResponse)
-                .toList());
+        ctx.json(catalog.forMember(stationId, memberId, documentAccess.readsEveryMember(session)));
     }
 
     @OpenApi(
@@ -171,7 +141,7 @@ public class DocumentRoutes implements Routes {
         var member = requireMemberStation(ctx, memberId);
         documentAccess.requireMayUpload(session, memberId);
 
-        ctx.status(HttpStatus.CREATED).json(toResponse(take(ctx, member, List.of(memberId), session)));
+        ctx.status(HttpStatus.CREATED).json(catalog.view(take(ctx, member, List.of(memberId), session)));
     }
 
     /**
@@ -274,19 +244,10 @@ public class DocumentRoutes implements Routes {
         if (search != null && search.isBlank()) search = null;
         int size = Math.clamp(ctx.queryParamAsClass("size", Integer.class).getOrDefault(PAGE_SIZE), 1, 100);
         int page = Math.max(ctx.queryParamAsClass("page", Integer.class).getOrDefault(0), 0);
-        String config = documentService.searchConfigOf(stationId);
         boolean unboundOnly = !readsMemberDocuments
                 || ctx.queryParamAsClass("unbound", Boolean.class).getOrDefault(false);
-
-        var documents = documentRepository
-                .findByStation(
-                        stationId, memberIds, search, readsMemberDocuments, unboundOnly, config, size, page * size)
-                .stream()
-                .map(this::toResponse)
-                .toList();
-        int total = documentRepository.countByStation(
-                stationId, memberIds, search, readsMemberDocuments, unboundOnly, config);
-        ctx.json(new DocumentPage(documents, total));
+        ctx.json(catalog.page(
+                stationId, new StoreQuery(memberIds, search, readsMemberDocuments, unboundOnly, size, page)));
     }
 
     @OpenApi(
@@ -299,7 +260,7 @@ public class DocumentRoutes implements Routes {
         var session = UserSession.from(ctx);
         int stationId = requireStation(session);
         requireModule(stationId);
-        ctx.status(HttpStatus.CREATED).json(toResponse(take(ctx, stationId, formMembers(ctx), session)));
+        ctx.status(HttpStatus.CREATED).json(catalog.view(take(ctx, stationId, formMembers(ctx), session)));
     }
 
     /**
@@ -337,9 +298,7 @@ public class DocumentRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = String[].class)))
     private void listTags(Context ctx) {
         int stationId = requireStation(UserSession.from(ctx));
-        ctx.json(documentRepository.findTagsByStation(stationId).stream()
-                .map(DocumentTag::name)
-                .toList());
+        ctx.json(catalog.tagNames(stationId));
     }
 
     @OpenApi(
@@ -354,9 +313,7 @@ public class DocumentRoutes implements Routes {
         var session = UserSession.from(ctx);
         var document = requireOwnedDocument(ctx, id);
         documentAccess.requireMayEdit(session, id);
-        var request = ctx.bodyAsClass(TagsRequest.class);
-        documentRepository.setTags(id, document.stationId(), request.tags() != null ? request.tags() : List.of());
-        ctx.json(toResponse(document));
+        ctx.json(catalog.setTags(document, ctx.bodyAsClass(TagsRequest.class).tags()));
     }
 
     @OpenApi(
@@ -408,8 +365,7 @@ public class DocumentRoutes implements Routes {
         for (int memberId : memberIds) {
             requireMemberStation(ctx, memberId);
         }
-        documentRepository.setMembers(id, memberIds);
-        ctx.json(toResponse(document));
+        ctx.json(catalog.setMembers(document, memberIds));
     }
 
     @OpenApi(
@@ -437,32 +393,14 @@ public class DocumentRoutes implements Routes {
 
     /** The station of the member named in the path, which has to be the reader's own. */
     private int requireMemberStation(Context ctx, int memberId) {
-        var member = RouteSupport.requireOwnedOrNotFound(
-                ctx, memberId, memberRepository::findById, StationMember::stationId);
+        var member =
+                RouteSupport.requireOwnedOrNotFound(ctx, memberId, memberService::findById, StationMember::stationId);
         return member.stationId();
     }
 
     /** The document behind the path, when it belongs to the reader's own station. */
     private Document requireOwnedDocument(Context ctx, int id) {
-        return RouteSupport.requireOwnedOrNotFound(ctx, id, documentRepository::findById, Document::stationId);
-    }
-
-    private DocumentResponse toResponse(Document document) {
-        return new DocumentResponse(
-                document.id(),
-                document.title(),
-                document.fileName(),
-                document.mimeType(),
-                document.sizeBytes(),
-                document.hidden(),
-                document.keepOnArchive(),
-                document.hasThumbnail(),
-                document.uploadedBy(),
-                document.createdAt(),
-                documentRepository.membersOf(document.id()),
-                documentRepository.findTags(document.id()).stream()
-                        .map(DocumentTag::name)
-                        .toList());
+        return RouteSupport.requireOwnedOrNotFound(ctx, id, catalog::find, Document::stationId);
     }
 
     private static int pathInt(Context ctx, String name) {

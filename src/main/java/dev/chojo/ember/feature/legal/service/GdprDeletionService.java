@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -60,6 +62,21 @@ public class GdprDeletionService {
             t = DataTrackingLoader.empty();
         }
         this.engine = new GenericGdprDeleter(t);
+    }
+
+    /**
+     * Deletes the account of the person asking. Refused while the account still administers a
+     * station, because the station would be left without an owner.
+     *
+     * @param accountId the account asking to be deleted
+     */
+    public void deleteOwnAccount(int accountId) {
+        for (var member : stationMemberRepository.findAllByAccountId(accountId)) {
+            boolean administers = stationMemberRepository.findPermissions(member.id()).stream()
+                    .anyMatch(role -> role.permission() == StationPermission.STATION_ADMINISTRATOR);
+            if (administers) throw Refusal.ACCOUNT_STILL_ADMINISTERS_STATION.raise();
+        }
+        deleteAccount(accountId);
     }
 
     /**

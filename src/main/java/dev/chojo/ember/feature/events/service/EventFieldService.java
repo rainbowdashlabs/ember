@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
@@ -140,7 +141,7 @@ public class EventFieldService {
      * stored. The editor only offers the right sheet's fields; what arrives here otherwise is a stale
      * value left behind when the sheet was changed, or a caller that is not the editor.
      */
-    public void replaceFields(int eventId, List<EventFieldRepository.FieldEntry> fields) {
+    public void replaceFields(int eventId, List<EventFieldDraft> fields) {
         requireAnswerable(fields);
         var sheetFieldIds = sheetFieldIds(eventId);
         var kept = fields.stream()
@@ -191,7 +192,7 @@ public class EventFieldService {
      *
      * @throws BadRequestResponse naming the field and what is wrong with what stands in it
      */
-    private void requireAnswerable(List<EventFieldRepository.FieldEntry> fields) {
+    private void requireAnswerable(List<EventFieldDraft> fields) {
         for (var field : fields) {
             var type = field.fieldType() != null ? field.fieldType() : EventFieldType.STRING;
             var config = field.config() != null ? field.config() : EventFieldConfig.empty();
@@ -213,13 +214,13 @@ public class EventFieldService {
                 .orElse(Set.of());
     }
 
-    private EventFieldRepository.FieldEntry dropTie(int eventId, EventFieldRepository.FieldEntry field) {
+    private EventFieldDraft dropTie(int eventId, EventFieldDraft field) {
         log.info(
                 "Dropped the tie of question \"{}\" to attendance field {}: it is not on the sheet event {} uses",
                 field.name(),
                 field.attendanceFieldId(),
                 eventId);
-        return new EventFieldRepository.FieldEntry(
+        return new EventFieldDraft(
                 field.id(),
                 field.name(),
                 field.fieldType(),

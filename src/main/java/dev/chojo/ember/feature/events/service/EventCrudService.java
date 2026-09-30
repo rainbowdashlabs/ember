@@ -10,6 +10,7 @@ import dev.chojo.ember.event.events.EventChanged;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
+import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionType;
@@ -72,7 +73,7 @@ public class EventCrudService {
      * to public events (per-event {@code public = TRUE} or category-default).
      */
     public List<EventRepository.PickerEvent> searchEventPicker(
-            int stationId, String search, EventRepository.PickerMode mode, int limit) {
+            int stationId, String search, PickerMode mode, int limit) {
         return eventRepository.searchForPicker(stationId, search, mode, limit);
     }
 
@@ -81,7 +82,7 @@ public class EventCrudService {
      * see, public or not.
      */
     public List<EventRepository.PickerEvent> searchVisibleEventPicker(
-            int stationId, int memberId, String search, EventRepository.PickerMode mode, int limit) {
+            int stationId, int memberId, String search, PickerMode mode, int limit) {
         return eventRepository.searchVisibleForPicker(stationId, memberId, search, mode, limit);
     }
 
@@ -90,7 +91,7 @@ public class EventCrudService {
      * event of the station.
      */
     public List<EventRepository.PickerEvent> searchStationEventPicker(
-            int stationId, String search, EventRepository.PickerMode mode, int limit) {
+            int stationId, String search, PickerMode mode, int limit) {
         return eventRepository.searchStationForPicker(stationId, search, mode, limit);
     }
 

@@ -1,0 +1,114 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.quiz.service;
+
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
+import dev.chojo.ember.feature.quiz.entity.QuizCategory;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
+import dev.chojo.ember.feature.quiz.entity.QuizTest;
+import dev.chojo.ember.feature.quiz.entity.QuizTestAttempt;
+import dev.chojo.ember.feature.quiz.entity.TestStatus;
+import io.javalin.http.Context;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
+
+/**
+ * Ownership and state preconditions shared by the quiz route classes. Keeps the
+ * blanket-404 policy for cross-station lookups in one place instead of repeating it in
+ * every handler.
+ */
+@Singleton
+public class QuizRouteGuards {
+
+    private final QuizCatalogService catalogService;
+    private final QuizQuestionService questionService;
+    private final QuizTestService testService;
+    private final QuizAttemptService attemptService;
+
+    @Inject
+    public QuizRouteGuards(
+            QuizCatalogService catalogService,
+            QuizQuestionService questionService,
+            QuizTestService testService,
+            QuizAttemptService attemptService) {
+        this.catalogService = catalogService;
+        this.questionService = questionService;
+        this.testService = testService;
+        this.attemptService = attemptService;
+    }
+
+    /**
+     * Loads a quiz catalog and asserts it belongs to the caller's station, returning it. Answers
+     * 404 when absent or owned by another station.
+     */
+    public QuizCatalog requireOwnedCatalog(Context ctx, int catalogId) {
+        return requireOwnedOrNotFound(ctx, catalogId, catalogService::findCatalog, QuizCatalog::stationId);
+    }
+
+    /**
+     * Loads a quiz category and asserts it belongs to the caller's station, returning it. Answers
+     * 404 when absent or owned by another station.
+     */
+    public QuizCategory requireOwnedCategory(Context ctx, int categoryId) {
+        return requireOwnedOrNotFound(ctx, categoryId, catalogService::findCategory, QuizCategory::stationId);
+    }
+
+    /**
+     * Loads a question and asserts its catalog belongs to the caller's station, returning it.
+     */
+    public QuizQuestion requireOwnedQuestion(Context ctx, int questionId) {
+        var question = questionService.findQuestion(questionId).orElseThrow(Refusal.QUIZ_QUESTION_NOT_HERE::raise);
+        requireOwnedCatalog(ctx, question.catalogId());
+        return question;
+    }
+
+    /**
+     * Loads a test and asserts it belongs to the caller's station, returning it. Answers 404
+     * when absent or owned by another station.
+     */
+    public QuizTest requireOwnedTest(Context ctx, int testId) {
+        return requireOwnedOrNotFound(ctx, testId, testService::findTest, QuizTest::stationId);
+    }
+
+    /**
+     * Loads an attempt and asserts its test belongs to the caller's station, returning it.
+     */
+    public QuizTestAttempt requireOwnedAttempt(Context ctx, int attemptId) {
+        var attempt = attemptService.findAttemptById(attemptId).orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE::raise);
+        requireOwnedTest(ctx, attempt.testId());
+        return attempt;
+    }
+
+    /**
+     * Loads the test named by the {@code id} path parameter, asserts it belongs to the caller's
+     * station and is not active, returning it. Answers 404 when absent or owned by another
+     * station and 400 when the test is active.
+     */
+    public QuizTest requireModifiableTest(Context ctx) {
+        var test = requireOwnedTest(ctx, pathInt(ctx, "id"));
+        if (test.status() == TestStatus.ACTIVE) throw Refusal.QUIZ_TEST_RUNNING_CANNOT_CHANGE.raise();
+        return test;
+    }
+
+    /**
+     * Loads the attempt named by the {@code id} path parameter and asserts it belongs to the
+     * calling member, returning it. Answers 400 when the caller is not a station member, 404 when
+     * absent and 403 when the attempt belongs to another member.
+     */
+    public QuizTestAttempt requireMemberAttempt(Context ctx, UserSession session) {
+        int attemptId = pathInt(ctx, "id");
+        if (session.member() == null) throw Refusal.QUIZ_ATTEMPT_NEEDS_MEMBERSHIP.raise();
+        var attempt =
+                attemptService.findAttemptById(attemptId).orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE_FOR_MEMBER::raise);
+        if (attempt.memberId() != session.member().id()) throw Refusal.QUIZ_ATTEMPT_NOT_YOURS.raise();
+        return attempt;
+    }
+}

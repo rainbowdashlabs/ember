@@ -7,7 +7,8 @@ package dev.chojo.ember.feature.feed.route;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
-import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
+import dev.chojo.ember.feature.feed.entity.FeedMetricDaily;
+import dev.chojo.ember.feature.feed.entity.FeedUserAgentStat;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
@@ -54,10 +55,7 @@ public class FeedMetricsRoutes implements Routes {
                             name = "days",
                             type = Integer.class,
                             description = "Lookback window in days, default 30"),
-            responses =
-                    @OpenApiResponse(
-                            status = "200",
-                            content = @OpenApiContent(from = FeedMetricsRepository.FeedMetricDaily[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FeedMetricDaily[].class)))
     private void dailyMetrics(Context ctx) {
         int days = ctx.queryParamAsClass("days", Integer.class).getOrDefault(30);
         ctx.json(service.recentDailyMetrics(days));
@@ -73,18 +71,14 @@ public class FeedMetricsRoutes implements Routes {
                             name = "limit",
                             type = Integer.class,
                             description = "Maximum number of rows, default 50"),
-            responses =
-                    @OpenApiResponse(
-                            status = "200",
-                            content = @OpenApiContent(from = FeedMetricsRepository.FeedUserAgentStat[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FeedUserAgentStat[].class)))
     private void topUserAgents(Context ctx) {
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50);
-        List<FeedMetricsRepository.FeedUserAgentStat> stats = service.topUserAgents(limit);
-        ctx.json(new UserAgentsResponse(service.totalRequests(), stats));
+        ctx.json(new UserAgentsResponse(service.totalRequests(), service.topUserAgents(limit)));
     }
 
     /**
      * Wrapper for the user-agent endpoint so the response carries the global total too.
      */
-    public record UserAgentsResponse(long totalRequests, List<FeedMetricsRepository.FeedUserAgentStat> userAgents) {}
+    public record UserAgentsResponse(long totalRequests, List<FeedUserAgentStat> userAgents) {}
 }

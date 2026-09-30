@@ -1745,7 +1745,7 @@ public enum Refusal {
     /** A kind of gear that was already gone when its deletion was asked for. */
     ITEM_KIND_NOT_DELETED(Area.INVENTORY, 109, HttpStatus.NOT_FOUND, Sentences.ITEM_KIND_NOT_HERE),
 
-    /** The inventory something was to be ordered for, which is gone. */
+    /** The inventory something was to be ordered for, which is gone or belongs to another station. */
     INVENTORY_NOT_HERE_ON_PROCUREMENT(Area.INVENTORY, 110, HttpStatus.NOT_FOUND, Sentences.INVENTORY_NOT_HERE),
 
     /** An order that went before it could be marked as delivered. */
@@ -2171,6 +2171,9 @@ public enum Refusal {
      */
     REGISTRATION_DAY_CANCELLED(
             Area.EVENTS, 105, HttpStatus.BAD_REQUEST, "That date was cancelled, so it takes no registrations"),
+
+    /** An appointment that is gone, or belongs to another station. */
+    EVENT_NOT_HERE(Area.EVENTS, 106, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
 
     /** A list of comments asked for on a day that is not a date. */
     COMMENT_DAY_NOT_A_DATE(Area.COMMENTS, 1, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),
@@ -2784,11 +2787,7 @@ public enum Refusal {
     CLUSTER_NOT_HERE_FOR_GOVERNANCE(Area.CLUSTERS, 10, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
 
     /** A look the cluster wants to hand its stations that is not one of the looks on offer. */
-    CLUSTER_THEME_FEEL_UNKNOWN(
-            Area.CLUSTERS,
-            11,
-            HttpStatus.BAD_REQUEST,
-            "That is not a look a station can be given, so nothing was saved"),
+    CLUSTER_THEME_FEEL_UNKNOWN(Area.CLUSTERS, 11, HttpStatus.BAD_REQUEST, Sentences.LOOK_NOT_OFFERED),
 
     /** A new order for the steps of a chain that names no steps at all. */
     CLUSTER_CHAIN_ORDER_NEEDS_STEPS(
@@ -4009,6 +4008,19 @@ public enum Refusal {
     CSV_NOT_READ(Area.SYSTEM, 33, HttpStatus.BAD_REQUEST, "That file could not be read as a table of rows and columns"),
 
     /**
+     * A settings change whose configuration file could not be written. The change is taken back,
+     * so the instance keeps running on what the file says.
+     */
+    SETTINGS_NOT_SAVED(
+            Area.SYSTEM,
+            34,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "The configuration file could not be written, so the settings were left as they were"),
+
+    /** A look the instance is to start every station from that is not one of the looks on offer. */
+    THEME_FEEL_UNKNOWN(Area.SYSTEM, 35, HttpStatus.BAD_REQUEST, Sentences.LOOK_NOT_OFFERED),
+
+    /**
      * A station's files that could not be carried to the storage it asked for.
      *
      * <p>The cause is deliberately kept out of the sentence and left in the log. Carrying files
@@ -4119,6 +4131,26 @@ public enum Refusal {
             18,
             HttpStatus.SERVICE_UNAVAILABLE,
             "The storage of this station cannot be reached right now. Trying again in a moment may work"),
+
+    /** A station named on the storage administration that is not here. */
+    STATION_NOT_HERE_FOR_STORAGE_ADMIN(Area.STORAGE, 19, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
+
+    /** Something named as a station on the storage administration that does not read as one. */
+    STATION_NOT_AN_IDENTITY_FOR_STORAGE_ADMIN(
+            Area.STORAGE, 20, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_AN_IDENTITY),
+
+    /** The storage history asked for from before something that does not read as a point in time. */
+    STORAGE_AUDIT_BEFORE_NOT_A_TIME(
+            Area.STORAGE,
+            21,
+            HttpStatus.BAD_REQUEST,
+            "The point in time to list the changes before is not a point in time"),
+
+    /** Files asked for on behalf of a station moving away that is not here any more. */
+    STATION_NOT_HERE_FOR_TRANSFER(Area.STORAGE, 22, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
+
+    /** A file asked for on behalf of a station moving away that is not here any more. */
+    TRANSFER_FILE_NOT_HERE(Area.STORAGE, 23, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
 
     /** Traffic figures for the whole instance asked for without one end of the stretch of time. */
     TRAFFIC_SPAN_MISSING(Area.TRAFFIC, 1, HttpStatus.BAD_REQUEST, Sentences.TRAFFIC_SPAN_MISSING),
@@ -4910,6 +4942,9 @@ public enum Refusal {
     /** A personal AI key that was saved and then could not be read back to answer with. */
     AI_KEY_NOT_READ_BACK(Area.QUIZZES, 72, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
 
+    /** A catalog to generate questions or answers for that is gone or belongs to another station. */
+    AI_GENERATION_CATALOG_NOT_HERE(Area.QUIZZES, 73, HttpStatus.NOT_FOUND, Sentences.QUIZ_CATALOG_NOT_HERE),
+
     /** A procedure nobody but the people it was handed to may open, read by somebody else. */
     PROCEDURE_NOT_PUBLIC(Area.PROCEDURES, 1, HttpStatus.FORBIDDEN, Sentences.PROCEDURE_NOT_YOURS),
 
@@ -5583,6 +5618,8 @@ public enum Refusal {
         private static final String TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS =
                 "The stretch of time cannot end before it starts";
         private static final String MAP_TILE_NOT_A_NUMBER = "A piece of the map is named by whole numbers";
+        private static final String LOOK_NOT_OFFERED =
+                "That is not a look a station can be given, so nothing was saved";
         private static final String REQUEST_INCOMPLETE =
                 "That request arrived without everything it needs, so nothing was done";
         private static final String PASSKEY_ENROLMENT_REFUSED = "That passkey could not be set up, so none was saved";

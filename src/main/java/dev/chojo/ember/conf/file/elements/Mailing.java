@@ -202,6 +202,66 @@ public class Mailing {
         return notificationDigestIntervalMinutes;
     }
 
+    public void notificationDigestIntervalMinutes(int notificationDigestIntervalMinutes) {
+        this.notificationDigestIntervalMinutes = notificationDigestIntervalMinutes;
+    }
+
+    /**
+     * Where mail goes, exactly as written here: the provider list and the fields the first
+     * provider lived in before the providers became one list.
+     */
+    public Senders senders() {
+        return new Senders(provider, smtp.host(), user, password, apiKey, senderAddress, providers, fallbacks);
+    }
+
+    /**
+     * Replaces where mail goes, all of it at once.
+     */
+    public void senders(Senders senders) {
+        provider = senders.provider();
+        smtp.host(senders.host());
+        user = senders.user();
+        password = senders.password();
+        apiKey = senders.apiKey();
+        senderAddress = senders.senderAddress();
+        providers = senders.providers();
+        fallbacks = senders.fallbacks();
+    }
+
+    /**
+     * Where mail goes, as one value, so a change to it is made and taken back in one piece.
+     *
+     * @param provider      the first provider in the shape written before the list
+     * @param host          its host
+     * @param user          its user
+     * @param password      its password
+     * @param apiKey        its API key
+     * @param senderAddress its sender address, which also says whether it was ever filled in
+     * @param providers     the provider list
+     * @param fallbacks     the providers after the first in the shape written before the list
+     */
+    public record Senders(
+            MailProviderType provider,
+            String host,
+            String user,
+            String password,
+            String apiKey,
+            String senderAddress,
+            List<MailProviderEntry> providers,
+            List<MailProviderEntry> fallbacks) {
+
+        /** Nowhere: the instance sends no mail. */
+        public static final Senders NONE = new Senders(MailProviderType.NONE, "", "", "", "", "", List.of(), List.of());
+
+        /**
+         * These senders with the given provider list, which from then on says everything: the
+         * providers written before the list are dropped with it.
+         */
+        public Senders withProviders(List<MailProviderEntry> list) {
+            return new Senders(provider, host, user, password, apiKey, senderAddress, List.copyOf(list), List.of());
+        }
+    }
+
     /**
      * Builds a {@link Properties} object combining SMTP settings with any additional custom properties.
      *

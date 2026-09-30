@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
+import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -316,15 +317,13 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.now().plus(41, ChronoUnit.DAYS));
         try {
             var visible = eventRepo.searchVisibleForPicker(
-                    station.id(), member.id(), "internal-picker", EventRepository.PickerMode.FUTURE, 20);
+                    station.id(), member.id(), "internal-picker", PickerMode.FUTURE, 20);
             assertTrue(visible.stream().anyMatch(e -> "Internal-Picker-Event".equals(e.name())));
 
-            var everything = eventRepo.searchStationForPicker(
-                    station.id(), "internal-picker", EventRepository.PickerMode.FUTURE, 20);
+            var everything = eventRepo.searchStationForPicker(station.id(), "internal-picker", PickerMode.FUTURE, 20);
             assertTrue(everything.stream().anyMatch(e -> "Internal-Picker-Event".equals(e.name())));
 
-            var publicOnly =
-                    eventRepo.searchForPicker(station.id(), "internal-picker", EventRepository.PickerMode.FUTURE, 20);
+            var publicOnly = eventRepo.searchForPicker(station.id(), "internal-picker", PickerMode.FUTURE, 20);
             assertTrue(publicOnly.isEmpty());
         } finally {
             eventRepo.delete(event.id());
@@ -626,8 +625,7 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 null);
         try {
-            var futureMatches =
-                    eventRepo.searchForPicker(station.id(), "Future", EventRepository.PickerMode.FUTURE, 20);
+            var futureMatches = eventRepo.searchForPicker(station.id(), "Future", PickerMode.FUTURE, 20);
             var match = futureMatches.stream()
                     .filter(e -> "Future-Picker-Event".equals(e.name()))
                     .findFirst()
@@ -636,10 +634,10 @@ class EventRepositoryTest extends RepositoryTestBase {
             assertNotNull(match.startTime());
             assertEquals("PickerCat", match.categoryName());
 
-            var pastMatches = eventRepo.searchForPicker(station.id(), null, EventRepository.PickerMode.PAST, 20);
+            var pastMatches = eventRepo.searchForPicker(station.id(), null, PickerMode.PAST, 20);
             assertTrue(pastMatches.stream().anyMatch(e -> "Past-Picker-Event".equals(e.name())));
 
-            var all = eventRepo.searchForPicker(station.id(), "  ", EventRepository.PickerMode.ALL, 20);
+            var all = eventRepo.searchForPicker(station.id(), "  ", PickerMode.ALL, 20);
             assertTrue(all.stream().anyMatch(e -> "Future-Picker-Event".equals(e.name())));
             assertTrue(all.stream().anyMatch(e -> "Past-Picker-Event".equals(e.name())));
         } finally {

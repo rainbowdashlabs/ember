@@ -16,9 +16,9 @@ import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -45,7 +45,7 @@ import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
-import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEvent;
+import static dev.chojo.ember.feature.events.service.EventOwnership.requireOwnedEvent;
 
 /**
  * Local routes for the structures an event is filed under and described by: categories, break
@@ -357,7 +357,7 @@ public class EventStructureRoutes implements Routes {
         eventFieldService.replaceFields(
                 id,
                 req.fields().stream()
-                        .map(e -> new EventFieldRepository.FieldEntry(
+                        .map(e -> new EventFieldDraft(
                                 e.id(),
                                 e.name(),
                                 e.fieldType(),

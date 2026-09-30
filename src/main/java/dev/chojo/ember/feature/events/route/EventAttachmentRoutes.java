@@ -32,7 +32,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEvent;
+import static dev.chojo.ember.feature.events.service.EventOwnership.requireOwnedEvent;
 
 /**
  * The files an event hands over.

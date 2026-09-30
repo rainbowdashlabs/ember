@@ -14,8 +14,6 @@ import dev.chojo.ember.util.RandomTokens;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Field;
-
 /**
  * Ensures that boot-critical secrets are populated in {@code config.yaml} before
  * the Guice singletons that consume them are constructed.
@@ -53,29 +51,19 @@ public final class SecretsInitializer {
         }
         boolean dirty = false;
         if (auth.tokenPepper() == null || auth.tokenPepper().isBlank()) {
-            setField(Auth.class, auth, "tokenPepper", RandomTokens.urlSafe(48));
+            auth.tokenPepper(RandomTokens.urlSafe(48));
             log.warn("auth.tokenPepper was empty - generated a fresh value and persisted it to config.yaml.");
             dirty = true;
         }
         TwoFactorSettings twoFactor = auth.twoFactor();
         if (twoFactor.secretKey() == null || twoFactor.secretKey().isBlank()) {
-            setField(TwoFactorSettings.class, twoFactor, "secretKey", RandomTokens.base64(32));
+            twoFactor.secretKey(RandomTokens.base64(32));
             log.warn(
                     "auth.twoFactor.secretKey was empty - generated a fresh 32-byte value and persisted it to config.yaml.");
             dirty = true;
         }
         if (dirty) {
             conf.save();
-        }
-    }
-
-    private static void setField(Class<?> clazz, Object target, String fieldName, Object value) {
-        try {
-            Field field = clazz.getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(target, value);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Failed to set " + clazz.getSimpleName() + "." + fieldName, e);
         }
     }
 }

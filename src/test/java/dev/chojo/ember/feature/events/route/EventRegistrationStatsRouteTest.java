@@ -12,21 +12,19 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.events.service.RegistrationRowLookups;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
-import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -116,16 +114,14 @@ class EventRegistrationStatsRouteTest {
                 mock(EventRestrictionService.class),
                 mock(MemberNameResolver.class),
                 mock(GuardianPolicy.class),
-                mock(StationMemberRepository.class),
+                mock(RegistrationRowLookups.Reader.class),
                 mock(AttendanceService.class),
-                mock(MemberIdentityFactory.class),
                 mock(EventRegistrationFieldService.class),
-                mock(EventFieldService.class),
                 mock(RegistrationAnswerReminder.class),
                 mock(EventMemberTableService.class),
                 mock(MemberTableService.class),
                 mock(MemberTableRenderer.class),
-                mock(StationRepository.class),
+                mock(StationService.class),
                 mock(OccurrenceCalendar.class),
                 visibility);
     }

@@ -9,15 +9,13 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.feature.traffic.entity.AuthBucket;
-import dev.chojo.ember.feature.traffic.entity.TrafficBucket;
-import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
+import dev.chojo.ember.feature.traffic.service.TrafficReportService;
 import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
-import java.util.List;
 
 /**
  * Instance-admin traffic monitoring routes. Returns pre-aggregated hourly rows from
@@ -30,11 +28,11 @@ import java.util.List;
 @Singleton
 public class AdminTrafficRoutes implements Routes {
 
-    private final StationTrafficRepository repository;
+    private final TrafficReportService traffic;
 
     @Inject
-    public AdminTrafficRoutes(StationTrafficRepository repository) {
-        this.repository = repository;
+    public AdminTrafficRoutes(TrafficReportService traffic) {
+        this.traffic = traffic;
     }
 
     private static Instant parseInstant(Context ctx, String paramName) {
@@ -80,28 +78,6 @@ public class AdminTrafficRoutes implements Routes {
         if (to.isBefore(from)) {
             throw Refusal.TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS.raise();
         }
-        Integer stationId = parseOptionalInt(ctx, "stationId");
-        AuthBucket auth = parseOptionalAuth(ctx);
-
-        List<TrafficBucket> buckets = repository.findHourly(from, to, stationId, auth);
-        ctx.json(new HourlyTrafficResponse(
-                buckets.stream().map(HourlyTrafficRow::from).toList()));
+        ctx.json(traffic.hourly(from, to, parseOptionalInt(ctx, "stationId"), parseOptionalAuth(ctx)));
     }
-
-    /**
-     * Wire-shape response payload for the hourly endpoint.
-     */
-    public record HourlyTrafficRow(
-            Instant hour, Integer stationId, AuthBucket auth, long ingressBytes, long egressBytes, long requests) {
-        static HourlyTrafficRow from(TrafficBucket b) {
-            return new HourlyTrafficRow(
-                    b.hour(), b.stationId(), b.auth(), b.ingressBytes(), b.egressBytes(), b.requests());
-        }
-    }
-
-    /**
-     * Container response so additional aggregations can be added without bumping the API
-     * version (e.g. summary totals once phase 14 introduces the egress cap).
-     */
-    public record HourlyTrafficResponse(List<HourlyTrafficRow> rows) {}
 }

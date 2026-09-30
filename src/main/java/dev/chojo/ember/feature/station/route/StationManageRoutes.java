@@ -11,38 +11,33 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Mailing;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
-import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
-import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
-import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
-import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
-import dev.chojo.ember.feature.mail.route.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService.MailDashboard;
 import dev.chojo.ember.feature.mail.service.MailDashboardService.RequeuedMails;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
-import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
+import dev.chojo.ember.feature.mail.service.StationMailSettingsService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.feature.station.service.StationLocationService;
 import dev.chojo.ember.feature.station.service.StationLogoService;
+import dev.chojo.ember.feature.station.service.StationNotificationTimesService;
+import dev.chojo.ember.feature.station.service.StationNotificationTimesService.NotificationSchedulePayload;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.feature.station.service.StationSettingsService;
+import dev.chojo.ember.feature.station.service.StationSettingsService.UpdateStationRequest;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
-import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import dev.chojo.ember.util.MailAddress;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -61,10 +56,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.zone.ZoneRulesException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -81,60 +72,42 @@ public class StationManageRoutes implements Routes {
             Set.of("image/png", "image/jpeg", "image/webp", "image/gif");
 
     private final StationService stationService;
-    private final AccountRepository accountRepository;
+    private final StationSettingsService settingsService;
     private final MailLocaleService mailLocaleService;
-    private final StationMailProviderRepository mailProviderRepository;
-    private final WebhookKeyService webhookKeyService;
-    private final ProviderSecretRepository providerSecretRepository;
-    private final Api apiConfig;
+    private final StationMailSettingsService mailSettings;
     private final EmailService emailService;
     private final MailDashboardService dashboardService;
-    private final MailProviderBlockRepository blockRepository;
     private final AuthService authService;
     private final StationImportService importService;
     private final StationLocationService locationService;
-    private final StationRepository stationRepository;
-    private final NotificationScheduleRepository scheduleRepository;
-    private final Mailing mailing;
+    private final StationNotificationTimesService notificationTimes;
     private final StationLogoService logoService;
     private final ClusterService clusterService;
 
     @Inject
     public StationManageRoutes(
             StationService stationService,
-            AccountRepository accountRepository,
+            StationSettingsService settingsService,
             MailLocaleService mailLocaleService,
-            StationMailProviderRepository mailProviderRepository,
-            WebhookKeyService webhookKeyService,
-            ProviderSecretRepository providerSecretRepository,
-            Api apiConfig,
+            StationMailSettingsService mailSettings,
             EmailService emailService,
             MailDashboardService dashboardService,
-            MailProviderBlockRepository blockRepository,
             AuthService authService,
             StationImportService importService,
             StationLocationService locationService,
-            StationRepository stationRepository,
             StationLogoService logoService,
             ClusterService clusterService,
-            NotificationScheduleRepository scheduleRepository,
-            Mailing mailing) {
+            StationNotificationTimesService notificationTimes) {
         this.stationService = stationService;
-        this.scheduleRepository = scheduleRepository;
-        this.mailing = mailing;
-        this.accountRepository = accountRepository;
+        this.settingsService = settingsService;
+        this.notificationTimes = notificationTimes;
         this.mailLocaleService = mailLocaleService;
-        this.mailProviderRepository = mailProviderRepository;
-        this.webhookKeyService = webhookKeyService;
-        this.providerSecretRepository = providerSecretRepository;
-        this.apiConfig = apiConfig;
+        this.mailSettings = mailSettings;
         this.emailService = emailService;
         this.dashboardService = dashboardService;
-        this.blockRepository = blockRepository;
         this.authService = authService;
         this.importService = importService;
         this.locationService = locationService;
-        this.stationRepository = stationRepository;
         this.logoService = logoService;
         this.clusterService = clusterService;
     }
@@ -291,73 +264,8 @@ public class StationManageRoutes implements Routes {
             })
     private void updateStation(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var request = ctx.bodyAsClass(UpdateStationRequest.class);
-        if (request.name() == null || request.name().isBlank()) {
-            throw Refusal.STATION_NEEDS_A_NAME_ON_CHANGE.raise();
-        }
-        if (request.timezone() != null && !request.timezone().isBlank()) {
-            try {
-                ZoneId.of(request.timezone());
-            } catch (ZoneRulesException e) {
-                log.warn("Invalid timezone: {}", request.timezone(), e);
-                throw Refusal.STATION_TIME_ZONE_NOT_KNOWN.raise();
-            }
-            stationService.updateTimezone(session.stationId(), request.timezone());
-        }
-        if (request.locale() != null && !request.locale().isBlank()) {
-            stationService.updateLocale(session.stationId(), request.locale());
-        }
-        if (request.defaultTheme() != null) {
-            stationService.updateThemeSettings(
-                    session.stationId(),
-                    request.defaultTheme(),
-                    request.allowUserTheme() != null ? request.allowUserTheme() : true,
-                    request.customThemeColors(),
-                    request.defaultFeel() != null ? request.defaultFeel() : ThemeFeel.ROUNDED,
-                    request.allowUserFeel() != null ? request.allowUserFeel() : true);
-        }
-        if (request.publicKbMode() != null) {
-            stationService.updatePublicKbMode(session.stationId(), PublicKbMode.valueOf(request.publicKbMode()));
-        }
-        if (request.discoveryVisibility() != null) {
-            stationService.updateDiscoverySettings(
-                    session.stationId(),
-                    request.discoveryVisibility(),
-                    request.discoveryDescription(),
-                    request.discoveryShowKb() != null ? request.discoveryShowKb() : false);
-        }
-        if (request.publicCalendarEnabled() != null) {
-            stationService.updatePublicCalendarEnabled(session.stationId(), request.publicCalendarEnabled());
-        }
-        if (request.publicPagesEnabled() != null) {
-            stationService.updatePublicPagesEnabled(session.stationId(), request.publicPagesEnabled());
-        }
-        if (request.publicWaitlistEnabled() != null) {
-            stationService.updatePublicWaitlistEnabled(session.stationId(), request.publicWaitlistEnabled());
-        }
-        if (request.publicBlogEnabled() != null) {
-            stationService.updatePublicBlogEnabled(session.stationId(), request.publicBlogEnabled());
-        }
-        if (request.pdfHidesInstanceUrl() != null) {
-            stationService.updatePdfHidesInstanceUrl(session.stationId(), request.pdfHidesInstanceUrl());
-        }
-        if (request.nicknamesEnabled() != null) {
-            stationService.updateNicknamesEnabled(session.stationId(), request.nicknamesEnabled());
-        }
-        if (request.publicSlug() != null) {
-            try {
-                stationService.updatePublicSlug(
-                        session.stationId(), request.publicSlug().isBlank() ? null : request.publicSlug());
-            } catch (IllegalArgumentException e) {
-                log.warn("Station {} could not be given the public address it asked for", session.stationId(), e);
-                throw Refusal.STATION_ADDRESS_NOT_USABLE.raise();
-            }
-        }
-        stationService
-                .update(session.stationId(), request.name())
-                .ifPresentOrElse(station -> ctx.json(buildStationInfo(station, session)), () -> {
-                    throw Refusal.STATION_NOT_HERE_AFTER_CHANGE.raise();
-                });
+        var station = settingsService.update(session.stationId(), ctx.bodyAsClass(UpdateStationRequest.class));
+        ctx.json(buildStationInfo(station, session));
     }
 
     @OpenApi(
@@ -465,30 +373,12 @@ public class StationManageRoutes implements Routes {
      * provider can only ever touch its own post.
      */
     private void getMailWebhook(Context ctx) {
-        var session = UserSession.from(ctx);
-        var provider = mailProviderRepository.findByStation(session.stationId()).stream()
-                .findFirst()
-                .map(MailChainEntry::provider)
-                .orElse(MailProviderType.NONE);
-        ctx.json(new WebhookUrl(
-                webhookKeyService.webhookUrl(apiConfig.baseUrl(), session.stationId(), provider.webhookPath()),
-                providerSecretRepository.find(session.stationId(), provider).isPresent()));
+        ctx.json(mailSettings.webhook(UserSession.from(ctx).stationId()));
     }
 
-    /**
-     * Stores the signing secret a provider issued, so its reports can be checked against it rather
-     * than trusted for knowing the address. An empty value switches the check back off.
-     */
     private void updateSigningSecret(Context ctx) {
-        var session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(SigningSecretRequest.class);
-        var provider = mailProviderRepository.findByStation(session.stationId()).stream()
-                .findFirst()
-                .map(MailChainEntry::provider)
-                .orElse(MailProviderType.NONE);
-        providerSecretRepository.store(session.stationId(), provider, request.secret());
-        log.info("Station {} set the signing secret of {}", session.stationId(), provider);
-        getMailWebhook(ctx);
+        ctx.json(mailSettings.updateSigningSecret(UserSession.from(ctx).stationId(), request.secret()));
     }
 
     /**
@@ -500,133 +390,26 @@ public class StationManageRoutes implements Routes {
      * Replaces this station's webhook key, which takes its old address out of service at once.
      */
     private void regenerateMailWebhook(Context ctx) {
-        var session = UserSession.from(ctx);
-        webhookKeyService.regenerate(session.stationId());
-        log.info("Station {} replaced its webhook key", session.stationId());
-        getMailWebhook(ctx);
+        ctx.json(mailSettings.regenerateWebhook(UserSession.from(ctx).stationId()));
     }
 
-    /**
-     * @param deliveryWebhookUrl the address to paste into the provider's settings
-     * @param signingSecretSet   whether a signing secret is stored, without revealing it
-     */
-    public record WebhookUrl(String deliveryWebhookUrl, boolean signingSecretSet) {}
-
-    /**
-     * The providers this station falls back to, after the one in its own mail configuration.
-     */
-    /**
-     * When this station's gathered notifications go out.
-     *
-     * <p>Empty times mean the station has asked for nothing and the operator's own number decides,
-     * which is what every station did before it could choose. The floor is sent along so the screen
-     * can say plainly where a station is asking for more often than the installation allows, rather
-     * than letting it believe it got what it asked for.
-     */
     private void getNotificationSchedule(Context ctx) {
-        var session = UserSession.from(ctx);
-        var schedule = scheduleRepository.findDigestGroups(List.of(session.stationId()), List.of()).stream()
-                .findFirst()
-                .orElseThrow(Refusal.NOTIFICATION_TIMES_NOT_SET::raise);
-        ctx.json(new NotificationSchedulePayload(
-                schedule.sendTimes().stream().map(LocalTime::toString).toList(),
-                mailing.notificationDigestIntervalMinutes()));
+        ctx.json(notificationTimes.times(UserSession.from(ctx).stationId()));
     }
 
-    /**
-     * Sets the times, or gives them back so the operator's number decides again.
-     *
-     * <p>A time nobody could mean is refused rather than quietly dropped: a station that typed one
-     * and was answered with success would believe it had asked for something it had not.
-     */
     private void updateNotificationSchedule(Context ctx) {
-        var session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(NotificationSchedulePayload.class);
-        var times = new ArrayList<LocalTime>();
-        for (String raw : request.sendTimes() == null ? List.<String>of() : request.sendTimes()) {
-            try {
-                times.add(LocalTime.parse(raw));
-            } catch (Exception e) {
-                throw Refusal.NOTIFICATION_TIME_NOT_A_TIME.raise();
-            }
-        }
-        scheduleRepository.setStationSendTimes(session.stationId(), times);
+        notificationTimes.update(UserSession.from(ctx).stationId(), request.sendTimes());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    /**
-     * @param sendTimes the times of day, empty where the operator's number decides
-     * @param floorMinutes the shortest gap between two mails the installation allows
-     */
-    public record NotificationSchedulePayload(List<String> sendTimes, int floorMinutes) {}
-
     private void getMailFallbacks(Context ctx) {
-        var session = UserSession.from(ctx);
-        ctx.json(mailProviderRepository.findByStation(session.stationId()).stream()
-                .map(entry -> new MailFallbackPayload(
-                                entry.provider(),
-                                entry.smtpHost(),
-                                entry.smtpPort(),
-                                entry.smtpEncryption(),
-                                entry.smtpUser(),
-                                entry.smtpPassword(),
-                                entry.apiKey(),
-                                entry.senderAddress(),
-                                entry.senderName(),
-                                entry.attempts(),
-                                entry.dailySendLimit(),
-                                entry.providerName(),
-                                entry.providerUrl(),
-                                null)
-                        .masked()
-                        .withWebhookUrl(webhookKeyService.webhookUrl(
-                                apiConfig.baseUrl(),
-                                session.stationId(),
-                                entry.provider().webhookPath())))
-                .toList());
+        ctx.json(mailSettings.providers(UserSession.from(ctx).stationId()));
     }
 
-    /**
-     * Replaces the order this station falls back through.
-     *
-     * <p>A station's chain is its own and never runs into the instance's: a station that has taken
-     * its outgoing mail into its own hands keeps it there, rather than having its post leave under
-     * a sender it did not choose.
-     */
     private void updateMailFallbacks(Context ctx) {
-        var session = UserSession.from(ctx);
         var incoming = List.of(ctx.bodyAsClass(MailFallbackPayload[].class));
-        var stored = mailProviderRepository.findByStation(session.stationId());
-        List<MailChainEntry> next = new ArrayList<>();
-        for (int i = 0; i < incoming.size(); i++) {
-            var entry = incoming.get(i);
-            if (entry.provider() == null || entry.provider() == MailProviderType.NONE) continue;
-            var previous = i < stored.size() ? stored.get(i) : null;
-            next.add(new MailChainEntry(
-                    next.size() + 1,
-                    entry.provider(),
-                    entry.smtpHost(),
-                    entry.smtpPort(),
-                    entry.smtpEncryption(),
-                    entry.smtpUser(),
-                    MailFallbackPayload.keepOrReplace(
-                            entry.smtpPassword(), previous == null ? "" : previous.smtpPassword()),
-                    MailFallbackPayload.keepOrReplace(entry.apiKey(), previous == null ? "" : previous.apiKey()),
-                    entry.senderAddress(),
-                    entry.senderName(),
-                    Math.max(1, entry.attempts()),
-                    Math.max(0, entry.dailySendLimit()),
-                    entry.providerName(),
-                    entry.providerUrl()));
-        }
-        // Emptying the list is what the delete route is for. A save that arrives empty is far more
-        // often a client that failed to load it than a station meaning to stop sending.
-        if (next.isEmpty() && !stored.isEmpty()) {
-            throw Refusal.MAIL_PROVIDER_LIST_EMPTY.raise();
-        }
-        mailProviderRepository.replace(session.stationId(), next);
-        log.info("Station {} set {} mail fallback(s)", session.stationId(), next.size());
-        getMailFallbacks(ctx);
+        ctx.json(mailSettings.updateProviders(UserSession.from(ctx).stationId(), incoming));
     }
 
     /**
@@ -664,8 +447,7 @@ public class StationManageRoutes implements Routes {
             tags = {"Station Manage"},
             responses = @OpenApiResponse(status = "204"))
     private void clearMailConfig(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        mailProviderRepository.replace(session.stationId(), List.of());
+        mailSettings.clear(UserSession.from(ctx).stationId());
         throw new NoContentResponse();
     }
 
@@ -692,9 +474,7 @@ public class StationManageRoutes implements Routes {
             })
     private void sendTestMail(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        if (mailProviderRepository.findByStation(session.stationId()).isEmpty()) {
-            throw Refusal.NO_MAIL_PROVIDER_SET.raise();
-        }
+        mailSettings.requireProvider(session.stationId());
         var account = session.account();
         emailService.sendTestEmail(
                 account.email(), account.firstName(), mailLocaleService.forAccount(account.id()), session.stationId());
@@ -770,12 +550,7 @@ public class StationManageRoutes implements Routes {
                 @OpenApiResponse(status = "409")
             })
     private void deleteMoved(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int stationId = session.stationId();
-        if (!stationRepository.isReadOnlyForTransfer(stationId)) {
-            throw Refusal.STATION_NOT_MOVED.raise();
-        }
-        stationService.delete(stationId);
+        stationService.deleteMoved(UserSession.from(ctx).stationId());
         ctx.json(new MessageResponse("Station deleted"));
     }
 
@@ -885,36 +660,6 @@ public class StationManageRoutes implements Routes {
      *                clicked in the owner's mail
      */
     public record DeleteRequestResponse(String message, boolean deleted) {}
-
-    /**
-     * Request body for updating station settings.
-     *
-     * @param name     the station name
-     * @param timezone the IANA timezone identifier
-     * @param locale   the locale string (e.g., "de-DE")
-     */
-    public record UpdateStationRequest(
-            String name,
-            String timezone,
-            String locale,
-            String defaultTheme,
-            Boolean allowUserTheme,
-            String customThemeColors,
-            ThemeFeel defaultFeel,
-            Boolean allowUserFeel,
-            String publicKbMode,
-            DiscoveryVisibility discoveryVisibility,
-            String discoveryDescription,
-            Boolean discoveryShowKb,
-            Boolean publicCalendarEnabled,
-            Boolean publicPagesEnabled,
-            String publicSlug,
-            Boolean publicWaitlistEnabled,
-            Boolean publicBlogEnabled,
-            Boolean pdfHidesInstanceUrl,
-            Boolean nicknamesEnabled) {}
-
-    // -- Station deletion --
 
     /**
      * Response containing station management information.
@@ -1052,7 +797,7 @@ public class StationManageRoutes implements Routes {
     private void liftMailBlock(Context ctx) {
         var provider = MailProviderType.fromName(ctx.queryParam("provider"))
                 .orElseThrow(Refusal.MAIL_PROVIDER_NOT_KNOWN::raise);
-        blockRepository.lift(UserSession.from(ctx).stationId(), provider, ctx.queryParam("domain"));
+        dashboardService.liftBlock(UserSession.from(ctx).stationId(), provider, ctx.queryParam("domain"));
         throw new NoContentResponse();
     }
 

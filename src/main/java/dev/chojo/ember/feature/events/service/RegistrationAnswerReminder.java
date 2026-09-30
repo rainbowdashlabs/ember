@@ -6,8 +6,8 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -69,7 +69,7 @@ public class RegistrationAnswerReminder {
      * @param eventId the appointment whose questions are being replaced
      * @param fields  the questions it asks from now on
      */
-    public void replaceQuestions(int eventId, List<FieldEntry> fields) {
+    public void replaceQuestions(int eventId, List<RegistrationFieldDraft> fields) {
         var owedBefore = owing(eventId).stream().map(EventRegistration::id).collect(Collectors.toSet());
         fieldService.replaceFields(eventId, fields);
         var newlyOwing = owing(eventId).stream()

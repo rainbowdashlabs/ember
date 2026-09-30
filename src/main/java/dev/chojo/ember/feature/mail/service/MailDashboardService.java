@@ -216,6 +216,18 @@ public class MailDashboardService {
     }
 
     /**
+     * Lifts a block by hand, for when an operator knows the relay has been taken off the list and
+     * does not want to wait out the week.
+     *
+     * @param stationId the station whose post is meant, or null for the instance's
+     * @param provider  the provider the block was put on
+     * @param domain    the recipient domain it was put on
+     */
+    public void liftBlock(Integer stationId, MailProviderType provider, String domain) {
+        blockRepository.lift(stationId, provider, domain);
+    }
+
+    /**
      * @param requeued how many left-behind mails went back into the queue
      */
     public record RequeuedMails(int requeued) {}

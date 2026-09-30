@@ -9,7 +9,7 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.equipment.repository.EquipmentRecommendationRepository;
+import dev.chojo.ember.feature.equipment.entity.Recommendation;
 import dev.chojo.ember.feature.equipment.service.EquipmentBrowseService;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
@@ -59,10 +59,7 @@ public class EquipmentBrowseRoutes implements Routes {
                     "Everything carrying a word the picked piece carries, across the inventories, then the other pieces filed beside it. Words win where both apply.",
             tags = {"Inventory"},
             queryParams = @OpenApiParam(name = "itemId", type = Integer.class, required = true),
-            responses =
-                    @OpenApiResponse(
-                            status = "200",
-                            content = @OpenApiContent(from = EquipmentRecommendationRepository.Recommendation[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Recommendation[].class)))
     private void recommendations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         String raw = ctx.queryParam("itemId");

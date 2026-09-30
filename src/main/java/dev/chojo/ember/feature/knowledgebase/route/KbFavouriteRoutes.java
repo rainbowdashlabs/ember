@@ -23,8 +23,8 @@ import jakarta.inject.Singleton;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.accessOf;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.readerUserType;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.accessOf;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.readerUserType;
 
 /**
  * The reader's own favourites in the wiki: listing them, marking something, and taking a mark off.

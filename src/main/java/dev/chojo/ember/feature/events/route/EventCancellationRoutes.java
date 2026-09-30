@@ -32,7 +32,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEvent;
+import static dev.chojo.ember.feature.events.service.EventOwnership.requireOwnedEvent;
 
 /**
  * Calling appointments off: one date at a time, a whole series in one go, and bringing a date back.

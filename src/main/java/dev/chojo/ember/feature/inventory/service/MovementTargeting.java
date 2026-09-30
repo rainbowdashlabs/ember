@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -172,6 +173,46 @@ public class MovementTargeting {
             if (item.isPresent()) return item.get().ownerClusterId();
         }
         return clusterRepository.findByStation(stationId).map(Cluster::id).orElse(null);
+    }
+
+    /**
+     * Where a movement belongs: whose gear it is, who it is with, and the chain that combination is
+     * bound to today.
+     *
+     * <p>A station is free to unbind a combination while a movement of that kind is still walking,
+     * and a row that cannot be read is worse than one that cannot say where it ought to be. The chain
+     * it is actually on stands in for the answer then.
+     *
+     * @param movement the movement
+     * @return where it belongs, falling back to the chain it walks
+     */
+    public Target belongsOn(ItemMovement movement) {
+        try {
+            return of(movement);
+        } catch (BadRequestResponse unbound) {
+            return new Target(
+                    ownerOf(movement.outgoingItemId(), movement.incomingItemId(), movement.inventoryId()),
+                    owningClusterOf(
+                            movement.outgoingItemId() != null ? movement.outgoingItemId() : movement.incomingItemId(),
+                            movement.stationId()),
+                    movement.memberId() != null ? MovementParty.MEMBER : MovementParty.STORE,
+                    movement.flowId() != null ? movement.flowId() : 0);
+        }
+    }
+
+    /**
+     * The association that owns the gear of a target, where one on this instance does.
+     *
+     * <p>"The owner" is an abstraction on screen, and somebody holding a pair of gloves cannot tell
+     * from it whose gloves they are. A name can, and the identity tells one body's gear from
+     * another's where a replacement is being picked.
+     *
+     * @param target whose gear it is and which body that is
+     * @return the association, or empty where the station owns it or the body is not here
+     */
+    public Optional<Cluster> owningCluster(Target target) {
+        if (target.ownerKind() != ItemOwner.CLUSTER || target.ownerClusterId() == null) return Optional.empty();
+        return clusterRepository.findById(target.ownerClusterId());
     }
 
     private ItemOwner ownerOfItem(Integer itemId) {

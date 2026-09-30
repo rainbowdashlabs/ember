@@ -27,7 +27,7 @@ import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.pathUuid;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.readerUserType;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.readerUserType;
 
 /**
  * User-facing routes over content held by federation partners: browsing and reading their

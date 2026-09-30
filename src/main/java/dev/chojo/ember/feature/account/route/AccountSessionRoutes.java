@@ -13,7 +13,6 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.AccountSession;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -38,18 +37,12 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class AccountSessionRoutes implements Routes {
     private final AuthService authService;
-    private final AccountRepository accountRepository;
     private final TokenHasher tokenHasher;
     private final SessionCookies sessionCookies;
 
     @Inject
-    public AccountSessionRoutes(
-            AuthService authService,
-            AccountRepository accountRepository,
-            TokenHasher tokenHasher,
-            SessionCookies sessionCookies) {
+    public AccountSessionRoutes(AuthService authService, TokenHasher tokenHasher, SessionCookies sessionCookies) {
         this.authService = authService;
-        this.accountRepository = accountRepository;
         this.tokenHasher = tokenHasher;
         this.sessionCookies = sessionCookies;
     }
@@ -99,7 +92,7 @@ public class AccountSessionRoutes implements Routes {
     private void invalidateSession(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        accountRepository.deleteSessionById(id, session.accountId());
+        authService.invalidateSession(id, session.accountId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

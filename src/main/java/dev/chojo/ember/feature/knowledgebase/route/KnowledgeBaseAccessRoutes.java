@@ -27,9 +27,9 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireLevel;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFile;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFolder;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.requireLevel;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.requireOwnedFile;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.requireOwnedFolder;
 
 /**
  * Who may see a knowledge-base folder or file: the member-facing access restrictions and the

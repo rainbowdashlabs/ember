@@ -12,7 +12,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.statistics.entity.AdminOverview;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics;
-import dev.chojo.ember.feature.statistics.repository.StatisticsRepository;
+import dev.chojo.ember.feature.statistics.service.StatisticsService;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -29,10 +29,10 @@ import jakarta.inject.Singleton;
 @Singleton
 public class StatisticsRoutes implements Routes {
 
-    private final StatisticsRepository statistics;
+    private final StatisticsService statistics;
 
     @Inject
-    public StatisticsRoutes(StatisticsRepository statistics) {
+    public StatisticsRoutes(StatisticsService statistics) {
         this.statistics = statistics;
     }
 
@@ -50,7 +50,7 @@ public class StatisticsRoutes implements Routes {
             tags = {"Statistics"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationStatistics.class)))
     private void getStatistics(Context ctx) {
-        ctx.json(statistics.stationStatistics(UserSession.from(ctx).stationId()));
+        ctx.json(statistics.forStation(UserSession.from(ctx).stationId()));
     }
 
     @OpenApi(
@@ -60,7 +60,7 @@ public class StatisticsRoutes implements Routes {
             tags = {"Statistics"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AdminStatistics.class)))
     private void getAdminStatistics(Context ctx) {
-        ctx.json(statistics.adminStatistics());
+        ctx.json(statistics.forInstance());
     }
 
     @OpenApi(
@@ -70,6 +70,6 @@ public class StatisticsRoutes implements Routes {
             tags = {"Statistics"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AdminOverview.class)))
     private void getAdminOverview(Context ctx) {
-        ctx.json(statistics.adminOverview());
+        ctx.json(statistics.overview());
     }
 }

@@ -14,7 +14,6 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.legal.service.ConsentService;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
@@ -27,9 +26,9 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListRateLimiter;
+import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListService;
 import dev.chojo.ember.feature.waitinglist.service.ScoreEvaluator;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
-import dev.chojo.ember.feature.waitinglist.service.WaitlistInvitationMessage;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -56,7 +55,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -66,29 +64,26 @@ public class WaitingListRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(WaitingListRoutes.class);
 
     private final WaitingListService service;
-    private final StationRepository stationRepository;
+    private final PublicWaitingListService publicLists;
     private final ConsentService consentService;
     private final PublicWaitingListRateLimiter rateLimiter;
     private final EventCrudService eventCrudService;
     private final EventRestrictionService eventRestrictionService;
-    private final WaitlistInvitationMessage invitationMessage;
 
     @Inject
     public WaitingListRoutes(
             WaitingListService service,
-            StationRepository stationRepository,
+            PublicWaitingListService publicLists,
             ConsentService consentService,
             PublicWaitingListRateLimiter rateLimiter,
             EventCrudService eventCrudService,
-            EventRestrictionService eventRestrictionService,
-            WaitlistInvitationMessage invitationMessage) {
+            EventRestrictionService eventRestrictionService) {
         this.service = service;
-        this.stationRepository = stationRepository;
+        this.publicLists = publicLists;
         this.consentService = consentService;
         this.rateLimiter = rateLimiter;
         this.eventCrudService = eventCrudService;
         this.eventRestrictionService = eventRestrictionService;
-        this.invitationMessage = invitationMessage;
     }
 
     private static String toJson(List<Integer> fieldIds) {
@@ -335,9 +330,7 @@ public class WaitingListRoutes implements Routes {
     private PublicInvitationResponse describeInvitation(int stationId, WaitingListEntry entry) {
         var invitation = entry.invitation();
         if (invitation == null) return null;
-        var station =
-                stationRepository.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_INVITATION::raise);
-        var details = invitationMessage.describe(station, invitation);
+        var details = publicLists.invitationDetails(stationId, invitation);
         return new PublicInvitationResponse(
                 invitation.eventId(),
                 invitation.date().toString(),
@@ -871,19 +864,18 @@ public class WaitingListRoutes implements Routes {
     }
 
     private int resolveStation(Context ctx) {
-        String stationUid = ctx.pathParam("stationUid");
-        var station = stationRepository
-                .findBySlug(stationUid)
-                .or(() -> {
-                    try {
-                        return stationRepository.findByUid(UUID.fromString(stationUid));
-                    } catch (IllegalArgumentException e) {
-                        return Optional.empty();
-                    }
-                })
-                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_LIST::raise);
-        if (!station.publicWaitlistEnabled()) throw Refusal.PUBLIC_WAITING_LISTS_SWITCHED_OFF.raise();
-        return station.id();
+        return publicLists.stationIdFor(ctx.pathParam("stationUid"));
+    }
+
+    private static List<GuardianInput> guardianInputs(PublicRegistrationRequest request) {
+        if (request.guardians() == null) return List.of();
+        return request.guardians().stream()
+                .map(g -> new GuardianInput(
+                        g.firstname() != null ? g.firstname() : "",
+                        g.lastname() != null ? g.lastname() : "",
+                        g.email() != null ? g.email() : "",
+                        g.phone() != null ? g.phone() : ""))
+                .toList();
     }
 
     private void listPublicWaitlists(Context ctx) {
@@ -897,8 +889,7 @@ public class WaitingListRoutes implements Routes {
     private void getPublicForm(Context ctx) {
         int stationId = resolveStation(ctx);
         int wid = pathInt(ctx, "wid");
-        var list = service.findById(wid).orElseThrow(Refusal.PUBLIC_WAITING_LIST_NOT_HERE::raise);
-        if (list.stationId() != stationId || !list.isPublic()) throw Refusal.PUBLIC_WAITING_LIST_NOT_HERE.raise();
+        var list = publicLists.publicList(stationId, wid, Refusal.PUBLIC_WAITING_LIST_NOT_HERE);
         var fields = service.findPublicFieldsByList(wid);
         ctx.json(new PublicFormResponse(list.name(), list.description(), list.sendsMail(), fields));
     }
@@ -906,10 +897,7 @@ public class WaitingListRoutes implements Routes {
     private void submitPublicRegistration(Context ctx) {
         int stationId = resolveStation(ctx);
         int wid = pathInt(ctx, "wid");
-        var list = service.findById(wid).orElseThrow(Refusal.PUBLIC_WAITING_LIST_NOT_HERE_ON_REGISTRATION::raise);
-        if (list.stationId() != stationId || !list.isPublic()) {
-            throw Refusal.PUBLIC_WAITING_LIST_NOT_HERE_ON_REGISTRATION.raise();
-        }
+        var list = publicLists.publicList(stationId, wid, Refusal.PUBLIC_WAITING_LIST_NOT_HERE_ON_REGISTRATION);
         var request = ctx.bodyAsClass(PublicRegistrationRequest.class);
         if (request.firstname() == null || request.firstname().isBlank()) {
             throw Refusal.PUBLIC_REGISTRATION_NEEDS_A_FIRST_NAME.raise();
@@ -923,21 +911,12 @@ public class WaitingListRoutes implements Routes {
         service.requireOldEnoughToRegister(list, request.values() != null ? request.values() : Map.of());
         var consent = consentService.requireAcceptance(
                 ctx, request.consentVersion(), request.privacyVersion(), request.tosVersion());
-        var guardianInputs = request.guardians() != null
-                ? request.guardians().stream()
-                        .map(g -> new GuardianInput(
-                                g.firstname() != null ? g.firstname() : "",
-                                g.lastname() != null ? g.lastname() : "",
-                                g.email() != null ? g.email() : "",
-                                g.phone() != null ? g.phone() : ""))
-                        .toList()
-                : List.<GuardianInput>of();
         service.submitPublicRegistration(
                 wid,
                 request.firstname(),
                 request.lastname() != null ? request.lastname() : "",
                 request.email() != null ? request.email() : "",
-                guardianInputs,
+                guardianInputs(request),
                 request.values() != null ? request.values() : Map.of(),
                 request.notes(),
                 consent);

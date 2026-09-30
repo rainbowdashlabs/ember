@@ -9,11 +9,11 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -93,13 +93,13 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 event.id(),
                 List.of(
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Shirtgröße",
                                 EventFieldType.ENUM,
                                 new EventRegistrationFieldConfig(
                                         true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
                                 true),
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Begleitpersonen",
                                 EventFieldType.NUMBER,
                                 new EventRegistrationFieldConfig(false, "0", null, 0, 5, null, null, null, false),
@@ -164,7 +164,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
     void requiredQuestionWithoutDefaultIsRefused() {
         service.replaceFields(
                 event.id(),
-                List.of(new FieldEntry(
+                List.of(new RegistrationFieldDraft(
                         "Startnummer",
                         EventFieldType.STRING,
                         new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false),
@@ -274,13 +274,13 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 event.id(),
                 List.of(
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Shirtgröße",
                                 EventFieldType.ENUM,
                                 new EventRegistrationFieldConfig(
                                         true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
                                 true),
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Startnummer",
                                 EventFieldType.STRING,
                                 new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, true),
@@ -316,13 +316,13 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 event.id(),
                 List.of(
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Shirtgröße",
                                 EventFieldType.ENUM,
                                 new EventRegistrationFieldConfig(
                                         true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
                                 true),
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Startnummer",
                                 EventFieldType.STRING,
                                 new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, true),
@@ -399,7 +399,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
 
         service.replaceFields(
                 event.id(),
-                List.of(new FieldEntry(
+                List.of(new RegistrationFieldDraft(
                         "Verpflegung",
                         EventFieldType.STRING,
                         new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false),
@@ -429,18 +429,18 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 event.id(),
                 List.of(
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Begleitpersonen",
                                 EventFieldType.NUMBER,
                                 new EventRegistrationFieldConfig(false, "0", null, 0, 9, null, null, null, false),
                                 true),
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Shirtgröße",
                                 EventFieldType.ENUM,
                                 new EventRegistrationFieldConfig(
                                         true, "M", List.of("S", "M", "L", "XL"), null, null, null, null, null, false),
                                 true),
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Verpflegung",
                                 EventFieldType.STRING,
                                 new EventRegistrationFieldConfig(
@@ -455,7 +455,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
 
         service.replaceFields(
                 event.id(),
-                List.of(new FieldEntry(
+                List.of(new RegistrationFieldDraft(
                         "Verpflegung",
                         EventFieldType.STRING,
                         new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, false),
@@ -472,7 +472,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         var template = templateRepository.create(station.id(), "Marathon-Vorlage");
         service.replaceTemplateFields(
                 template.id(),
-                List.of(new FieldEntry(
+                List.of(new RegistrationFieldDraft(
                         "Shirtgröße",
                         EventFieldType.ENUM,
                         new EventRegistrationFieldConfig(

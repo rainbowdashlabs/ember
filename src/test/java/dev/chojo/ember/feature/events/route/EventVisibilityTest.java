@@ -13,7 +13,6 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -102,7 +101,9 @@ class EventVisibilityTest {
     void aMissingEventIsNotFound() {
         var session = sessionWith(Set.of(StationPermission.USER), STATION_ID);
 
-        assertThrows(NotFoundResponse.class, () -> visibility.requireVisibleEvent(session, EVENT_ID + 1));
+        var refusal =
+                assertThrows(RefusalResponse.class, () -> visibility.requireVisibleEvent(session, EVENT_ID + 1));
+        assertEquals(Refusal.EVENT_NOT_HERE, refusal.refusal());
     }
 
     private record Row(int eventId) {}

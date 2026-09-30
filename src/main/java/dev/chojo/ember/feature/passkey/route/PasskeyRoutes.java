@@ -15,14 +15,13 @@ import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
-import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.route.AuthRoutes.LoginResponse;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.devicerequest.entity.DeviceRequest;
 import dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose;
+import dev.chojo.ember.feature.devicerequest.service.DeviceApprovalGuards;
 import dev.chojo.ember.feature.devicerequest.service.DeviceRequestService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.ManagedAccessService;
@@ -66,7 +65,7 @@ public class PasskeyRoutes implements Routes {
     private final PasskeyAccountService accountService;
     private final PasskeyModeService modeService;
     private final AuthService authService;
-    private final AccountRepository accountRepository;
+    private final DeviceApprovalGuards approvalGuards;
     private final AuthRateLimiter rateLimiter;
     private final RelyingParties relyingParties;
     private final DeviceRequestService deviceService;
@@ -84,7 +83,7 @@ public class PasskeyRoutes implements Routes {
             PasskeyAccountService accountService,
             PasskeyModeService modeService,
             AuthService authService,
-            AccountRepository accountRepository,
+            DeviceApprovalGuards approvalGuards,
             AuthRateLimiter rateLimiter,
             RelyingParties relyingParties,
             DeviceRequestService deviceService,
@@ -99,7 +98,7 @@ public class PasskeyRoutes implements Routes {
         this.accountService = accountService;
         this.modeService = modeService;
         this.authService = authService;
-        this.accountRepository = accountRepository;
+        this.approvalGuards = approvalGuards;
         this.rateLimiter = rateLimiter;
         this.relyingParties = relyingParties;
         this.deviceService = deviceService;
@@ -333,7 +332,7 @@ public class PasskeyRoutes implements Routes {
             throw Refusal.DEVICE_CODE_MISSING_ON_LOOKUP.raise();
         }
         var open = deviceService.lookup(request.code()).orElseThrow(Refusal.DEVICE_CODE_NOT_YOURS_ON_LOOKUP::raise);
-        if (!mayConfirm(session, open)) {
+        if (!approvalGuards.mayConfirm(session.accountId(), open)) {
             throw Refusal.DEVICE_CODE_NOT_YOURS_ON_LOOKUP.raise();
         }
         ctx.json(new DeviceLookupResponse(
@@ -342,52 +341,9 @@ public class PasskeyRoutes implements Routes {
                 open.createdAt(),
                 open.purpose().name(),
                 open.stepUpCategory() == null ? null : open.stepUpCategory().name(),
-                stepUpSubject(session, open),
+                approvalGuards.stepUpSubject(session.accountId(), open),
                 open.matchChoices(),
                 managedCandidates(session, open)));
-    }
-
-    /**
-     * Whose step-up this is, where it is not the reader's own.
-     *
-     * <p>A guardian may be answering for themselves or for a child, and the two look identical
-     * otherwise: same screen, same category, and a browser and country that are the child's. Naming
-     * them is what lets a guardian refuse a code that is not the one somebody beside them just asked
-     * for. Their own request says nothing, because there is nothing to tell apart.
-     */
-    private String stepUpSubject(UserSession session, DeviceRequest open) {
-        if (!open.is(DeviceRequestPurpose.STEP_UP)) return null;
-        Integer requester = open.requestingAccountId();
-        if (requester == null || requester == session.accountId()) return null;
-        return accountRepository.findById(requester).map(Account::fullName).orElse(null);
-    }
-
-    /**
-     * Whether this reader is allowed to see the request at all, let alone answer it.
-     *
-     * <p>Their own, or one raised by somebody in their care: a member signed in by their guardian has
-     * no password and no passkey, so the guardian is the only one who can answer a demand made of
-     * them. Everybody else is told nothing, which is exactly what a wrong code already earns, so the
-     * answer cannot be read as "this code exists".
-     *
-     * <p>A sign-in and an enrolment are read against the account the requesting device named, a
-     * step-up against the one whose session raised it. The first two used to be waved through,
-     * because a request named nobody until it was approved: a code could then be handed to a crowd
-     * and whoever answered it gave away their own account, without whoever raised it ever having to
-     * know whose it would be.
-     *
-     * <p>A request whose identifier matched no account names nobody and so passes for nobody, which
-     * is how an address that does not exist here comes to be answered like one that does.
-     */
-    private boolean mayConfirm(UserSession session, DeviceRequest open) {
-        if (!open.is(DeviceRequestPurpose.STEP_UP)) {
-            if (open.namesAccount(session.accountId())) return true;
-            return open.namedAccountId() != null
-                    && accountRepository.isGuardianOf(session.accountId(), open.namedAccountId());
-        }
-        if (Integer.valueOf(session.accountId()).equals(open.requestingAccountId())) return true;
-        return open.requestingAccountId() != null
-                && accountRepository.isGuardianOf(session.accountId(), open.requestingAccountId());
     }
 
     private boolean manages(UserSession session, Integer accountId) {
@@ -423,12 +379,7 @@ public class PasskeyRoutes implements Routes {
 
     private List<ApprovalCandidate> managedCandidates(UserSession session, DeviceRequest open) {
         if (!open.is(DeviceRequestPurpose.SIGN_IN)) return List.of();
-        var self = new ApprovalCandidate(
-                session.accountId(),
-                accountRepository
-                        .findById(session.accountId())
-                        .map(Account::fullName)
-                        .orElse(""));
+        var self = new ApprovalCandidate(session.accountId(), approvalGuards.nameOf(session.accountId()));
         if (session.memberOpt().isEmpty()) return List.of(self);
         var managed = managedAccessService
                 .signInCandidates(session.memberOpt().get().id())
@@ -457,7 +408,7 @@ public class PasskeyRoutes implements Routes {
             throw Refusal.DEVICE_CODE_MISSING_ON_APPROVAL.raise();
         }
         var open = deviceService.lookup(request.code()).orElseThrow(Refusal.DEVICE_CODE_NOT_YOURS_ON_APPROVAL::raise);
-        if (!mayConfirm(session, open)) {
+        if (!approvalGuards.mayConfirm(session.accountId(), open)) {
             throw Refusal.DEVICE_CODE_NOT_YOURS_ON_APPROVAL.raise();
         }
         if (request.pickedNumber() == null) {
@@ -548,7 +499,7 @@ public class PasskeyRoutes implements Routes {
     private void status(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var entries = accountService.list(session.accountId());
-        Optional<AccountCredential> credential = accountRepository.findCredential(session.accountId());
+        Optional<AccountCredential> credential = accountService.credential(session.accountId());
         var b64 = Base64.getUrlEncoder().withoutPadding();
         ctx.json(new PasskeysStatusResponse(
                 entries.stream()
@@ -573,9 +524,7 @@ public class PasskeyRoutes implements Routes {
     private void beginCreation(Context ctx) {
         requirePasskeysOn();
         UserSession session = UserSession.from(ctx);
-        var account = accountRepository
-                .findById(session.accountId())
-                .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CREATION::raise);
+        var account = accountService.account(session.accountId());
         String displayName = NameParts.of(account).official();
         var start = passkeyService.startCreation(
                 session.accountId(), account.email(), displayName.isBlank() ? account.email() : displayName);

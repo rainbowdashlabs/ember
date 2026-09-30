@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionReportService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionSanitizer;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
+import dev.chojo.ember.feature.quiz.service.QuizRouteGuards;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;

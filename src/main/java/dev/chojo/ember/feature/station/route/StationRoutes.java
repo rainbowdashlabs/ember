@@ -10,7 +10,6 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -36,12 +35,10 @@ public class StationRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(StationRoutes.class);
 
     private final StationService stationService;
-    private final StationRepository stationRepository;
 
     @Inject
-    public StationRoutes(StationService stationService, StationRepository stationRepository) {
+    public StationRoutes(StationService stationService) {
         this.stationService = stationService;
-        this.stationRepository = stationRepository;
     }
 
     private static boolean isBlank(String s) {
@@ -150,7 +147,6 @@ public class StationRoutes implements Routes {
     private void delete(Context ctx) {
         var station = resolveStation(ctx);
         if (stationService.delete(station.id())) {
-            stationRepository.invalidateUidCache(station.id());
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw Refusal.STATION_NOT_DELETED.raise();

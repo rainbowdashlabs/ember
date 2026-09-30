@@ -24,7 +24,6 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.entity.StationModule;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.Context;
@@ -61,7 +60,6 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     private final KbAccessService accessService;
     private final KbTagService tagService;
     private final StationService stationService;
-    private final StationRepository stationRepository;
     private final KbIconService iconService;
     private final KbImageService imageService;
     private final KbFilePictureService pictureService;
@@ -75,7 +73,6 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             KbAccessService accessService,
             KbTagService tagService,
             StationService stationService,
-            StationRepository stationRepository,
             KbIconService iconService,
             KbImageService imageService,
             KbFilePictureService pictureService,
@@ -86,7 +83,6 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         this.accessService = accessService;
         this.tagService = tagService;
         this.stationService = stationService;
-        this.stationRepository = stationRepository;
         this.iconService = iconService;
         this.imageService = imageService;
         this.pictureService = pictureService;
@@ -119,7 +115,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             log.warn("Invalid station UUID for public KB: {}", uidParam, e);
             throw Refusal.PUBLIC_KB_ADDRESS_NOT_A_STATION.raise();
         }
-        var station = stationRepository.findByUid(uid).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_KB::raise);
+        var station = stationService.findByUid(uid).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_KB::raise);
         if (station.publicKbMode() == PublicKbMode.OFF) {
             throw Refusal.PUBLIC_KB_SWITCHED_OFF.raise();
         }

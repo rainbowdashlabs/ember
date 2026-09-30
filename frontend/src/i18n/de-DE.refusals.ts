@@ -217,6 +217,7 @@ const QUESTION_NOT_ON_LIST = 'Diese Frage steht nicht mehr auf dieser Warteliste
 const NO_LIST_FOR_INVITE = 'Diese Einladung führt zu keiner Warteliste'
 const ENTRY_NOT_HERE = 'Diesen Eintrag gibt es nicht mehr'
 const WAITING_LIST_NOT_HERE = 'Diese Warteliste gibt es nicht mehr'
+const LOOK_NOT_OFFERED = 'Das ist kein Erscheinungsbild, das eine Wache bekommen kann, es wurde nichts gespeichert'
 
 export default {
     'A-001': INSTANCE_UNREACHABLE,
@@ -800,6 +801,7 @@ export default {
     'E-103': 'Dieser Termin wurde abgesagt, für ihn wird keine Anwesenheit erfasst',
     'E-104': 'An diesem Tag macht die Wache Pause, der Termin findet nicht statt',
     'E-105': 'Dieser Termin wurde abgesagt, es sind keine Anmeldungen möglich',
+    'E-106': APPOINTMENT_NOT_HERE,
 
     'CM-001': DAY_NOT_A_DATE,
     'CM-002': COMMENT_NEEDS_TEXT,
@@ -945,7 +947,7 @@ export default {
     'CU-008': 'Das ist kein Teil von Ember, der sich vorenthalten lässt, es wurde nichts gespeichert',
     'CU-009': CHOOSE_A_CLUSTER,
     'CU-010': CLUSTER_NOT_HERE,
-    'CU-011': 'Das ist kein Erscheinungsbild, das eine Wache bekommen kann, es wurde nichts gespeichert',
+    'CU-011': LOOK_NOT_OFFERED,
     'CU-012': 'Nenne die Schritte in der Reihenfolge, in der sie durchlaufen werden. Es wurde nichts gespeichert',
     'CU-013': 'Ein Schritt braucht, wer ihn tut, woran er getan wird und wer das Material danach hat, '
         + 'es wurde nichts gespeichert',
@@ -1258,6 +1260,8 @@ export default {
     'SY-031': 'Hier gibt es keine Sitemap',
     'SY-032': UPLOAD_WITHOUT_FILE,
     'SY-033': 'Diese Datei ließ sich nicht als Tabelle aus Zeilen und Spalten lesen',
+    'SY-034': 'Die Konfigurationsdatei ließ sich nicht schreiben, die Einstellungen bleiben daher wie sie waren',
+    'SY-035': LOOK_NOT_OFFERED,
 
     'ST-001': STORAGE_MOVE_NOT_DONE,
     'ST-002': 'Diese Wache hat keinen eigenen Speicher, der sich testen ließe',
@@ -1280,6 +1284,11 @@ export default {
     'ST-017': 'Der Umzug ist mittendrin abgebrochen und wurde zurückgenommen, die Dateien liegen weiterhin dort, '
         + 'wo sie waren. Der Grund steht im Log der Instanz',
     'ST-018': 'Der Speicher dieser Wache ist gerade nicht erreichbar. Ein neuer Versuch in einem Moment kann klappen',
+    'ST-019': STATION_NOT_HERE,
+    'ST-020': NOT_A_STATION_IDENTITY,
+    'ST-021': 'Der Zeitpunkt, vor dem die Änderungen aufgelistet werden sollen, ist kein Zeitpunkt',
+    'ST-022': STATION_NOT_HERE,
+    'ST-023': FILE_NOT_HERE,
 
     'TR-001': TRAFFIC_SPAN_MISSING,
     'TR-002': TRAFFIC_SPAN_NOT_A_TIME,
@@ -1489,6 +1498,7 @@ export default {
     'Q-070': 'Diesen KI-Anbieter kann diese Instanz nicht verwenden',
     'Q-071': 'Gib den Schlüssel für diesen Anbieter ein, es wurde nichts gespeichert',
     'Q-072': CHANGE_SAVED_BUT_NOT_READ_BACK,
+    'Q-073': CATALOG_NOT_HERE,
 
     'R-001': PROCEDURE_NOT_YOURS,
     'R-002': PROCEDURE_NOT_YOURS,

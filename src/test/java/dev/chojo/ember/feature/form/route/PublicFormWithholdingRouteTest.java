@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.route.PublicFormRoutes.PublicFormState;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.form.service.PublicFormRateLimiter;
+import dev.chojo.ember.feature.form.service.PublicFormService;
 import dev.chojo.ember.feature.form.service.SubmitterHashService;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -26,7 +27,6 @@ import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -68,7 +68,7 @@ class PublicFormWithholdingRouteTest extends RepositoryTestBase {
         member = stationMemberRepo.create(station.id(), account.id());
         harness = RouteHarness.serving(new PublicFormRoutes(
                         formService,
-                        mock(StationRepository.class),
+                        new PublicFormService(formService, stationRepo),
                         mock(SubmitterHashService.class),
                         mock(PublicFormRateLimiter.class),
                         mock(ConsentService.class),

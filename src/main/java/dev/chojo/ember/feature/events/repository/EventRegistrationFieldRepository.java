@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventTemplateRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -83,7 +84,7 @@ public class EventRegistrationFieldRepository {
      * question therefore reads as a new one, which is the one case where the old answers really do
      * belong to a question nobody is asking any more.
      */
-    public void replaceFields(int eventId, List<FieldEntry> fields) {
+    public void replaceFields(int eventId, List<RegistrationFieldDraft> fields) {
         var byName = new LinkedHashMap<String, List<EventRegistrationField>>();
         for (var existing : findByEvent(eventId)) {
             byName.computeIfAbsent(existing.name(), name -> new ArrayList<>()).add(existing);
@@ -159,7 +160,7 @@ public class EventRegistrationFieldRepository {
                 .delete();
     }
 
-    public void replaceTemplateFields(int templateId, List<FieldEntry> fields) {
+    public void replaceTemplateFields(int templateId, List<RegistrationFieldDraft> fields) {
         deleteByTemplate(templateId);
         for (int i = 0; i < fields.size(); i++) {
             var field = fields.get(i);
@@ -246,10 +247,4 @@ public class EventRegistrationFieldRepository {
                 .single(call().bind("registration_id", registrationId).bind("field_id", fieldId))
                 .delete();
     }
-
-    /**
-     * A question as it arrives from the editor, before it has a row of its own.
-     */
-    public record FieldEntry(
-            String name, EventFieldType fieldType, EventRegistrationFieldConfig config, boolean overview) {}
 }

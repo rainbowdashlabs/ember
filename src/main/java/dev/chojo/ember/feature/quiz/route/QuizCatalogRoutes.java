@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.quiz.service.QuizFederationService.SharedQuizCata
 import dev.chojo.ember.feature.quiz.service.QuizImportService;
 import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvMappings;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
+import dev.chojo.ember.feature.quiz.service.QuizRouteGuards;
 import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;

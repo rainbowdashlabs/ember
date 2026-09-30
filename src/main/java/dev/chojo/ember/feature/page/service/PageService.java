@@ -11,8 +11,11 @@ import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
+import dev.chojo.ember.feature.form.entity.Form;
+import dev.chojo.ember.feature.form.entity.FormVisibility;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.page.entity.PageUsingForm;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.repository.PageRepository;
@@ -24,6 +27,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
@@ -140,6 +144,24 @@ public class PageService {
      */
     public List<PageRepository.PickerPage> searchPagePicker(int stationId, String search, int limit) {
         return pageRepository.searchForPicker(stationId, search, limit);
+    }
+
+    /**
+     * The pages that put a form on themselves, where closing the form to its link has just stopped
+     * it working on them.
+     *
+     * <p>An editor may well mean to take the form off the public site, and the cells are theirs to
+     * tidy. What they cannot do is notice by themselves, because the pages go on rendering with a
+     * form on them that nobody can answer. A form that is still listed, or was never published,
+     * strands nothing.
+     *
+     * @param form       the form as it was before the change
+     * @param visibility how far it reaches now
+     */
+    public List<PageUsingForm> pagesStrandedBy(Form form, FormVisibility visibility) {
+        if (visibility != FormVisibility.UNLISTED || form.publicUid() == null) return List.of();
+        return pageRepository.findPagesEmbedding(
+                form.stationId(), form.publicUid().toString());
     }
 
     /**
@@ -446,6 +468,52 @@ public class PageService {
                         .toList()))
                 .toList();
         return page.withRows(renderedRows);
+    }
+
+    /**
+     * Expands a member-list cell as the editor holds it to the members it shows, the same way the
+     * public render does, so the editor preview and the published page stay in lockstep.
+     *
+     * <p>A sort order the cell does not know falls back to the default, and entries of the
+     * descriptions and the order that are not text are left out, so a half-edited cell still
+     * previews.
+     *
+     * @param cell the cell's source, sort order, member descriptions and member order
+     */
+    public List<CellConfig.ResolvedMember> resolveMemberList(int stationId, JsonNode cell) {
+        CellConfig.MemberListSortBy sortBy = null;
+        if (cell.path("sortBy").isString()) {
+            try {
+                sortBy = CellConfig.MemberListSortBy.valueOf(cell.path("sortBy").asString());
+            } catch (IllegalArgumentException unknown) {
+                log.debug(
+                        "A member list asked for an unknown order {}",
+                        cell.path("sortBy").asString());
+            }
+        }
+        var memberDescriptions = new HashMap<String, String>();
+        var descriptionsNode = cell.path("memberDescriptions");
+        if (descriptionsNode.isObject()) {
+            for (var entry : descriptionsNode.properties()) {
+                if (entry.getValue().isString())
+                    memberDescriptions.put(entry.getKey(), entry.getValue().asString());
+            }
+        }
+        var memberOrder = new ArrayList<String>();
+        var orderNode = cell.path("memberOrder");
+        if (orderNode.isArray()) {
+            for (var node : orderNode) {
+                if (node.isString()) memberOrder.add(node.asString());
+            }
+        }
+        return MemberListResolver.resolve(
+                stationMemberRepository,
+                avatarService,
+                stationId,
+                cell.path("source"),
+                sortBy,
+                memberDescriptions,
+                memberOrder);
     }
 
     private ContentCell renderCell(int stationId, ContentCell cell) {

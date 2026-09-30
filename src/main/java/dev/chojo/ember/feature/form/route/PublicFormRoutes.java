@@ -20,10 +20,10 @@ import dev.chojo.ember.feature.form.entity.QuestionBranch;
 import dev.chojo.ember.feature.form.service.FormAnswersRefused;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.form.service.PublicFormRateLimiter;
+import dev.chojo.ember.feature.form.service.PublicFormService;
 import dev.chojo.ember.feature.form.service.SubmitterHashService;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.page.route.SharedPageRoutes;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
@@ -46,7 +46,6 @@ import java.net.InetAddress;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathUuid;
 
@@ -72,7 +71,7 @@ public class PublicFormRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(PublicFormRoutes.class);
 
     private final FormService formService;
-    private final StationRepository stationRepository;
+    private final PublicFormService publicForms;
     private final SubmitterHashService hashService;
     private final PublicFormRateLimiter rateLimiter;
     private final ConsentService consentService;
@@ -82,14 +81,14 @@ public class PublicFormRoutes implements Routes {
     @Inject
     public PublicFormRoutes(
             FormService formService,
-            StationRepository stationRepository,
+            PublicFormService publicForms,
             SubmitterHashService hashService,
             PublicFormRateLimiter rateLimiter,
             ConsentService consentService,
             Network network,
             StationLogoService logoService) {
         this.formService = formService;
-        this.stationRepository = stationRepository;
+        this.publicForms = publicForms;
         this.hashService = hashService;
         this.rateLimiter = rateLimiter;
         this.consentService = consentService;
@@ -161,15 +160,12 @@ public class PublicFormRoutes implements Routes {
             })
     @StationFree("the same link, answering only the name and colours of the station asking")
     private void getSharedFormBrand(Context ctx) {
-        var form = resolveSharedForm(ctx);
-        var station = stationRepository
-                .findById(form.stationId())
-                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_FORM_LINK::raise);
+        var station = publicForms.stationOf(resolveSharedForm(ctx));
         ctx.json(SharedPageRoutes.brandOf(station, logoService));
     }
 
     private Form resolveSharedForm(Context ctx) {
-        return formService.findByShareToken(ctx.pathParam("token")).orElseThrow(Refusal.FORM_LINK_UNKNOWN::raise);
+        return publicForms.sharedForm(ctx.pathParam("token"));
     }
 
     @OpenApi(
@@ -349,27 +345,9 @@ public class PublicFormRoutes implements Routes {
 
     /**
      * The form a public address names.
-     *
-     * <p>The station part of the address is whatever the link was built from, its uid or its
-     * readable name, the same as every other public address of that station.
      */
     private Form resolvePublicForm(Context ctx) {
-        String stationAddress = ctx.pathParam("stationUid");
-        UUID formUid = pathUuid(ctx, "publicUid");
-        var station = stationRepository
-                .findByAddress(stationAddress)
-                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_FORM::raise);
-        var form = formService.findByPublicUid(formUid).orElseThrow(Refusal.PUBLIC_FORM_NOT_HERE::raise);
-        if (form.stationId() != station.id()) {
-            throw Refusal.PUBLIC_FORM_NOT_HERE.raise();
-        }
-        if (form.purpose() != FormPurpose.CONTACT && form.purpose() != FormPurpose.POLL) {
-            throw Refusal.FORM_NOT_ANSWERED_FROM_OUTSIDE.raise();
-        }
-        if (!form.visibility().openlyAddressed()) {
-            throw Refusal.FORM_NOT_OPENLY_ADDRESSED.raise();
-        }
-        return form;
+        return publicForms.resolveFormOfStation(ctx.pathParam("stationUid"), pathUuid(ctx, "publicUid"));
     }
 
     /**

@@ -9,10 +9,10 @@ import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventTemplateRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
@@ -47,7 +47,7 @@ public class EventRegistrationFieldService {
         return repository.findByEvent(eventId);
     }
 
-    public void replaceFields(int eventId, List<FieldEntry> fields) {
+    public void replaceFields(int eventId, List<RegistrationFieldDraft> fields) {
         requireUsableDefaults(fields);
         repository.replaceFields(eventId, fields);
         log.info("Event {} now asks {} question(s)", eventId, fields.size());
@@ -57,7 +57,7 @@ public class EventRegistrationFieldService {
         return repository.findByTemplate(templateId);
     }
 
-    public void replaceTemplateFields(int templateId, List<FieldEntry> fields) {
+    public void replaceTemplateFields(int templateId, List<RegistrationFieldDraft> fields) {
         requireUsableDefaults(fields);
         repository.replaceTemplateFields(templateId, fields);
         log.info("Event template {} now asks {} question(s)", templateId, fields.size());
@@ -72,7 +72,7 @@ public class EventRegistrationFieldService {
      */
     public void copyTemplateFields(int templateId, int eventId) {
         var fields = repository.findByTemplate(templateId).stream()
-                .map(f -> new FieldEntry(f.name(), f.fieldType(), f.config(), f.overview()))
+                .map(f -> new RegistrationFieldDraft(f.name(), f.fieldType(), f.config(), f.overview()))
                 .toList();
         if (fields.isEmpty()) return;
         repository.replaceFields(eventId, fields);
@@ -277,7 +277,7 @@ public class EventRegistrationFieldService {
      * @param fields the questions as they are being written
      * @throws BadRequestResponse naming the question and what is wrong with its default
      */
-    private void requireUsableDefaults(List<FieldEntry> fields) {
+    private void requireUsableDefaults(List<RegistrationFieldDraft> fields) {
         for (var field : fields) {
             var type = field.fieldType() != null ? field.fieldType() : EventFieldType.STRING;
             var config = field.config() != null ? field.config() : EventRegistrationFieldConfig.empty();

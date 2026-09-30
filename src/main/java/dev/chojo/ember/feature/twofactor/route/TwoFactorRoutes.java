@@ -13,12 +13,8 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
-import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Demo;
-import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.LoginResult;
-import dev.chojo.ember.feature.account.entity.TokenType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -26,9 +22,10 @@ import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
-import dev.chojo.ember.feature.twofactor.service.TwoFactorAttemptTracker;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorSignInService;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorSignInService.Attempt;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnService;
 import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -39,7 +36,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
-import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -47,39 +43,33 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 public class TwoFactorRoutes implements Routes {
     private final TwoFactorService twoFactorService;
     private final TwoFactorAuditService auditService;
-    private final AccountRepository accountRepository;
+    private final TwoFactorSignInService signIn;
     private final AuthService authService;
-    private final TokenHasher tokenHasher;
     private final WebAuthnService webAuthnService;
     private final Demo demoConfig;
     private final TrustedDeviceService trustedDeviceService;
     private final AuthRateLimiter rateLimiter;
-    private final TwoFactorAttemptTracker attemptTracker;
     private final SessionCookies sessionCookies;
 
     @Inject
     public TwoFactorRoutes(
             TwoFactorService twoFactorService,
             TwoFactorAuditService auditService,
-            AccountRepository accountRepository,
+            TwoFactorSignInService signIn,
             AuthService authService,
-            TokenHasher tokenHasher,
             WebAuthnService webAuthnService,
             Demo demoConfig,
             TrustedDeviceService trustedDeviceService,
             AuthRateLimiter rateLimiter,
-            TwoFactorAttemptTracker attemptTracker,
             SessionCookies sessionCookies) {
         this.twoFactorService = twoFactorService;
         this.auditService = auditService;
-        this.accountRepository = accountRepository;
+        this.signIn = signIn;
         this.authService = authService;
-        this.tokenHasher = tokenHasher;
         this.webAuthnService = webAuthnService;
         this.demoConfig = demoConfig;
         this.trustedDeviceService = trustedDeviceService;
         this.rateLimiter = rateLimiter;
-        this.attemptTracker = attemptTracker;
         this.sessionCookies = sessionCookies;
     }
 
@@ -241,55 +231,12 @@ public class TwoFactorRoutes implements Routes {
             throw Refusal.TWO_FACTOR_CHECK_DETAILS_MISSING.raise();
         }
 
-        Optional<AccountToken> tokenOpt = accountRepository.findToken(request.preAuthToken());
-        if (tokenOpt.isEmpty()) {
-            throw Refusal.SIGN_IN_NOT_WAITING_ON_A_FACTOR.raise();
-        }
-        AccountToken preAuth = tokenOpt.get();
-        if (preAuth.isExpired() || preAuth.tokenType() != TokenType.TWO_FACTOR_PENDING) {
-            accountRepository.deleteToken(request.preAuthToken());
-            throw Refusal.SIGN_IN_NOT_WAITING_ON_A_FACTOR.raise();
-        }
-
-        int accountId = preAuth.accountId();
+        int accountId = signIn.waitingAccount(request.preAuthToken(), Refusal.SIGN_IN_NOT_WAITING_ON_A_FACTOR);
         RateLimits.enforce(rateLimiter.tryTwoFactor(ctx.ip(), accountId));
-        String attemptKey = tokenHasher.hash(request.preAuthToken());
-        boolean verified;
-
-        if ("BACKUP_CODE".equals(request.factor())) {
-            var result = twoFactorService.verifyBackupCode(accountId, request.proof(), ctx.ip());
-            verified = result.valid();
-            if (verified) {
-                auditService.record(
-                        accountId,
-                        null,
-                        TwoFactorEvent.BACKUP_CODE_USED,
-                        TwoFactorKind.BACKUP_CODES,
-                        ctx.userAgent(),
-                        ctx.header("CF-IPCountry"));
-            }
-        } else {
-            verified = twoFactorService.verifyTotp(accountId, request.proof());
-            if (verified) {
-                auditService.record(
-                        accountId,
-                        null,
-                        TwoFactorEvent.LOGIN_VERIFIED,
-                        TwoFactorKind.TOTP,
-                        ctx.userAgent(),
-                        ctx.header("CF-IPCountry"));
-            }
-        }
-
-        if (!verified) {
-            if (attemptTracker.recordFailure(attemptKey) >= TwoFactorAttemptTracker.MAX_ATTEMPTS) {
-                accountRepository.deleteToken(request.preAuthToken());
-            }
-            throw Refusal.TWO_FACTOR_CODE_WRONG.raise();
-        }
-
-        attemptTracker.reset(attemptKey);
-        accountRepository.deleteToken(request.preAuthToken());
+        signIn.verify(
+                accountId,
+                request.preAuthToken(),
+                new Attempt(request.factor(), request.proof(), ctx.ip(), ctx.userAgent(), ctx.header("CF-IPCountry")));
         Integer deviceTrustId = issueTrustedDeviceIfRequested(ctx, accountId, request.rememberDeviceDays());
         LoginResult session = authService.createVerifiedSessionForAccount(
                 accountId, ctx.userAgent(), ctx.header("CF-IPCountry"), deviceTrustId, request.trustedDevice());
@@ -451,8 +398,7 @@ public class TwoFactorRoutes implements Routes {
         if (!webAuthnService.finishAssertion(accountId, request.challengeToken(), request.credentialJson())) {
             throw Refusal.SECURITY_KEY_SIGN_IN_REFUSED.raise();
         }
-        // Pre-auth is single-use - consume only after successful verification so users can retry.
-        accountRepository.deleteToken(request.preAuthToken());
+        signIn.finish(request.preAuthToken());
         auditService.record(
                 accountId,
                 null,
@@ -529,21 +475,11 @@ public class TwoFactorRoutes implements Routes {
     }
 
     /**
-     * Resolves a TWO_FACTOR_PENDING token to an account id without deleting it - used between
-     * begin/finish calls of the WebAuthn login ceremony so a failed assertion can be retried
-     * with the same pre-auth token.
+     * Resolves a waiting sign-in to its account without spending it, so a failed security key
+     * assertion can be retried with the same pre-auth token.
      */
     private int consumeReadOnlyPreAuth(String preAuthToken) {
-        Optional<AccountToken> tokenOpt = accountRepository.findToken(preAuthToken);
-        if (tokenOpt.isEmpty()) {
-            throw Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY.raise();
-        }
-        AccountToken preAuth = tokenOpt.get();
-        if (preAuth.isExpired() || preAuth.tokenType() != TokenType.TWO_FACTOR_PENDING) {
-            accountRepository.deleteToken(preAuthToken);
-            throw Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY.raise();
-        }
-        return preAuth.accountId();
+        return signIn.waitingAccount(preAuthToken, Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY);
     }
 
     // -- Request / Response records --

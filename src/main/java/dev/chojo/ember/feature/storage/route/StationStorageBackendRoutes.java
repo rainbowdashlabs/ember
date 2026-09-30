@@ -9,116 +9,29 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.cluster.entity.Cluster;
-import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
-import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
-import dev.chojo.ember.feature.storage.audit.StorageAuditEntry;
-import dev.chojo.ember.feature.storage.audit.StorageAuditOutcome;
-import dev.chojo.ember.feature.storage.backend.HealthStatus;
-import dev.chojo.ember.feature.storage.backend.StorageBackend;
-import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
-import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.StorageBackendType;
-import dev.chojo.ember.feature.storage.credential.CredentialCipher;
-import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
-import dev.chojo.ember.feature.storage.migration.MigrationException;
-import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
-import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
-import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
-import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
-import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.BackendOverrideRequest;
-import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.BackendOverrideSummary;
-import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.MigrationResponse;
-import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.ProbeResult;
-import dev.chojo.ember.feature.storage.service.StorageBackendAuditService;
+import dev.chojo.ember.feature.storage.service.StationStorageBackendService;
+import dev.chojo.ember.feature.storage.service.StorageAuditLogService;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
-import dev.chojo.ember.feature.storage.service.StorageMigrationService;
+import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.BackendOverrideRequest;
 import io.javalin.http.Context;
-import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
 
 /**
- * Lets a station manager put the whole station on a storage backend of its own instead of the instance
- * default. Credentials are encrypted with {@link CredentialCipher} before they are stored and never
- * returned.
+ * Station-scoped self-service routes for picking a remote storage backend. A station manager
+ * can override the inherited instance default for the entire station without involving an
+ * instance admin. The override covers every station-scoped movable category at once.
  */
 @Singleton
 public class StationStorageBackendRoutes implements Routes {
-    /**
-     * What a failed probe tells the client. The probe connects to an address from the request, so the
-     * verbatim failure would turn it into a port scanner; the real cause goes to the log.
-     */
-    private static final String PROBE_FAILED =
-            "The storage backend would not accept these settings. The address, the credentials or the target "
-                    + "may be wrong, and the exact reason is in the instance log: it is kept there because this "
-                    + "endpoint opens a connection to an address the request names";
-
-    private static final Logger log = LoggerFactory.getLogger(StationStorageBackendRoutes.class);
-
-    private final StationStorageConfigRepository repository;
-    private final StorageBackendFactory factory;
-    private final StorageBackendResolver resolver;
-    private final CredentialCipher credentialCipher;
-    private final StationRepository stationRepository;
-    private final StorageBackendAuditService auditService;
-    private final StorageBackendAuditRepository auditRepository;
-    private final StorageMigrationService migrationService;
-    private final StorageBackendPayloads payloads;
-    private final ClusterRepository clusterRepository;
-    private final ClusterStorageConfigRepository clusterConfigRepository;
-    private final ClusterStationStorageRepository placementRepository;
+    private final StationStorageBackendService backendService;
+    private final StorageAuditLogService auditLog;
 
     @Inject
-    public StationStorageBackendRoutes(
-            StationStorageConfigRepository repository,
-            StorageBackendFactory factory,
-            StorageBackendResolver resolver,
-            CredentialCipher credentialCipher,
-            StationRepository stationRepository,
-            StorageBackendAuditService auditService,
-            StorageBackendAuditRepository auditRepository,
-            StorageMigrationService migrationService,
-            StorageBackendPayloads payloads,
-            ClusterRepository clusterRepository,
-            ClusterStorageConfigRepository clusterConfigRepository,
-            ClusterStationStorageRepository placementRepository) {
-        this.repository = repository;
-        this.factory = factory;
-        this.resolver = resolver;
-        this.credentialCipher = credentialCipher;
-        this.stationRepository = stationRepository;
-        this.auditService = auditService;
-        this.auditRepository = auditRepository;
-        this.migrationService = migrationService;
-        this.payloads = payloads;
-        this.clusterRepository = clusterRepository;
-        this.clusterConfigRepository = clusterConfigRepository;
-        this.placementRepository = placementRepository;
-    }
-
-    static AuditEntryResponse toResponse(StorageAuditEntry entry) {
-        return new AuditEntryResponse(
-                entry.id(),
-                entry.ts().toString(),
-                entry.actorAccountId().orElse(null),
-                entry.actorMemberId().orElse(null),
-                entry.systemActor().orElse(null),
-                entry.stationId().orElse(null),
-                entry.action(),
-                entry.oldConfig().orElse(null),
-                entry.newConfig().orElse(null),
-                entry.outcome(),
-                entry.error().orElse(null));
+    public StationStorageBackendRoutes(StationStorageBackendService backendService, StorageAuditLogService auditLog) {
+        this.backendService = backendService;
+        this.auditLog = auditLog;
     }
 
     @Override
@@ -133,146 +46,34 @@ public class StationStorageBackendRoutes implements Routes {
         routes.get(prefix + "/station/storage/audit", this::listAudit, StationPermission.STATION_ADMINISTRATOR);
     }
 
-    /** Where this station's files are, who decided that, and whether the station may change it. */
     private void get(Context ctx) {
-        int stationId = sessionStationId(ctx);
-        StorageBackendType instanceDefault = resolver.instanceDefault().type();
-        BackendOverrideSummary own = repository
-                .findOne(stationId)
-                .map(row -> StorageBackendPayloads.toSummary(row.config()))
-                .orElse(null);
-
-        Optional<Cluster> cluster = clusterRepository.findByStation(stationId);
-        BackendOverrideSummary onCluster = placementRepository
-                .findConfigForStation(stationId)
-                .map(StorageBackendPayloads::toSummary)
-                .orElse(null);
-        boolean clusterOffersStorage = cluster.filter(c -> c.storageBackendReach() == ClusterBackendReach.EVERY_STATION)
-                .flatMap(c -> clusterConfigRepository.findCurrent(c.id()))
-                .isPresent();
-        boolean locked = cluster.map(Cluster::storageBackendLocked).orElse(false);
-
-        ctx.json(new BackendOverrideResponse(
-                instanceDefault,
-                own,
-                onCluster,
-                cluster.map(Cluster::name).orElse(null),
-                clusterOffersStorage,
-                locked));
+        ctx.json(backendService.describe(sessionStationId(ctx)));
     }
 
-    /**
-     * Saves and applies a backend by moving the station's bytes onto it; with nothing to move this is
-     * also the first setup. A {@link StorageBackendPayloads.LocalRequest} moves back to the instance
-     * default, a {@link StorageBackendPayloads.ClusterRequest} onto the cluster's storage.
-     */
     private void apply(Context ctx) {
         Actor actor = actor(ctx);
         int stationId = sessionStationId(ctx);
-        BackendOverrideRequest request = ctx.bodyAsClass(BackendOverrideRequest.class);
-        requireStationMayChooseItsOwn(stationId);
-        Optional<StationStorageBackendConfig> existing =
-                repository.findOne(stationId).map(StationStorageConfigRepository.Row::config);
-        StorageMigrationService.Destination destination = destinationFor(stationId, request);
-        StationStorageBackendConfig target =
-                destination instanceof StorageMigrationService.Destination.Own own ? own.config() : null;
-
-        auditService.recordMigration(
-                actor, stationId, StorageAuditAction.MIGRATION_STARTED, existing.orElse(null), target, null);
-        StorageMigrationService.MigrationResult result;
-        try {
-            result = migrationService.moveStation(stationId, destination);
-        } catch (MigrationException e) {
-            auditService.recordMigration(
-                    actor,
-                    stationId,
-                    StorageAuditAction.MIGRATION_FAILED,
-                    existing.orElse(null),
-                    target,
-                    e.getMessage());
-            log.warn("Storage move for station {} failed", stationId, e);
-            throw Refusal.STATION_STORAGE_MOVE_NOT_DONE.raise();
-        }
-        auditService.recordMigration(
-                actor, stationId, StorageAuditAction.MIGRATION_COMPLETED, existing.orElse(null), target, null);
-        ctx.status(HttpStatus.OK)
-                .json(new MigrationResponse(
-                        result.totalKeys(), result.copied(), result.skipped(), result.deleted(), result.copiedBytes()));
+        ctx.json(backendService.apply(actor, stationId, ctx.bodyAsClass(BackendOverrideRequest.class)));
     }
 
     private void probe(Context ctx) {
         Actor actor = actor(ctx);
-        int stationId = sessionStationId(ctx);
-        var row = repository.findOne(stationId).orElseThrow(Refusal.STATION_KEEPS_NO_STORAGE_OF_ITS_OWN::raise);
-        boolean healthy;
-        String errorOrNull;
-        Instant checkedAt;
-        try (StorageBackend backend = factory.buildForStation(row.config())) {
-            HealthStatus status = backend.probe();
-            healthy = status.healthy();
-            errorOrNull =
-                    status.error().map(error -> probeFailure(stationId, error)).orElse(null);
-            checkedAt = status.checkedAt();
-        } catch (Exception e) {
-            healthy = false;
-            errorOrNull = probeFailure(stationId, e.getMessage());
-            checkedAt = Instant.now();
-        }
-        auditService.recordProbe(
-                actor, stationId, healthy ? StorageAuditOutcome.OK : StorageAuditOutcome.FAILED, errorOrNull);
-        ctx.json(new ProbeResult(healthy, errorOrNull, checkedAt.toString()));
+        ctx.json(backendService.probe(actor, sessionStationId(ctx)));
     }
 
-    /**
-     * Probes an unsaved backend so credentials can be tested before saving, without storing or
-     * auditing anything.
-     */
     private void probeConfig(Context ctx) {
         int stationId = sessionStationId(ctx);
-        BackendOverrideRequest request = ctx.bodyAsClass(BackendOverrideRequest.class);
-        StationStorageBackendConfig config = payloads.toEntity(request);
-        boolean healthy;
-        String errorOrNull;
-        Instant checkedAt;
-        try (StorageBackend backend = factory.buildForStation(config)) {
-            HealthStatus status = backend.probe();
-            healthy = status.healthy();
-            errorOrNull =
-                    status.error().map(error -> probeFailure(stationId, error)).orElse(null);
-            checkedAt = status.checkedAt();
-        } catch (Exception e) {
-            healthy = false;
-            errorOrNull = probeFailure(stationId, e.getMessage());
-            checkedAt = Instant.now();
-        }
-        ctx.status(HttpStatus.OK).json(new ProbeResult(healthy, errorOrNull, checkedAt.toString()));
-    }
-
-    private static String probeFailure(int stationId, String cause) {
-        log.warn("Storage backend probe for station {} failed: {}", stationId, cause);
-        return PROBE_FAILED;
+        ctx.json(backendService.probe(stationId, ctx.bodyAsClass(BackendOverrideRequest.class)));
     }
 
     private void listAudit(Context ctx) {
         int stationId = sessionStationId(ctx);
-        Optional<Instant> before = Optional.ofNullable(ctx.queryParam("before")).map(Instant::parse);
-        int limit = Math.clamp(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50), 1, 200);
-        List<AuditEntryResponse> entries = auditRepository.findByStation(stationId, before, limit).stream()
-                .map(StationStorageBackendRoutes::toResponse)
-                .toList();
-        ctx.json(entries);
+        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(StorageAuditLogService.DEFAULT_LIMIT);
+        ctx.json(auditLog.listForStation(stationId, ctx.queryParam("before"), limit));
     }
 
     private int sessionStationId(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        Integer stationId = session.stationId();
-        if (stationId == null) {
-            throw Refusal.NO_STATION_CHOSEN_FOR_STORAGE.raise();
-        }
-        if (stationRepository.findById(stationId).isEmpty()) {
-            throw Refusal.STORAGE_STATION_NOT_HERE.raise();
-        }
-        return stationId;
+        return backendService.requireStation(UserSession.from(ctx).stationId());
     }
 
     private Actor actor(Context ctx) {
@@ -281,72 +82,4 @@ public class StationStorageBackendRoutes implements Routes {
         Integer memberId = session.member() != null ? session.member().id() : null;
         return Actor.human(session.account().id(), memberId);
     }
-
-    /**
-     * Where this station is asking to go. Its cluster's storage is looked up rather than described, so a
-     * station cannot type its way onto somewhere the cluster never named.
-     */
-    private StorageMigrationService.Destination destinationFor(int stationId, BackendOverrideRequest request) {
-        return switch (request) {
-            case StorageBackendPayloads.LocalRequest ignored ->
-                new StorageMigrationService.Destination.InstanceDefault();
-            case StorageBackendPayloads.ClusterRequest ignored -> {
-                Cluster cluster = clusterRepository
-                        .findByStation(stationId)
-                        .orElseThrow(Refusal.STATION_ANSWERS_TO_NO_ASSOCIATION::raise);
-                if (cluster.storageBackendReach() != ClusterBackendReach.EVERY_STATION) {
-                    throw Refusal.ASSOCIATION_KEEPS_NO_STORAGE_FOR_STATIONS.raise();
-                }
-                var current = clusterConfigRepository
-                        .findCurrent(cluster.id())
-                        .orElseThrow(Refusal.ASSOCIATION_KEEPS_NO_STORAGE_OF_ITS_OWN::raise);
-                yield new StorageMigrationService.Destination.Cluster(cluster.id(), current.id(), current.config());
-            }
-            default -> new StorageMigrationService.Destination.Own(payloads.toEntity(request));
-        };
-    }
-
-    /**
-     * A locked association decides where its stations' files are, and a disabled button is not a permission.
-     */
-    private void requireStationMayChooseItsOwn(int stationId) {
-        boolean locked = clusterRepository
-                .findByStation(stationId)
-                .map(Cluster::storageBackendLocked)
-                .orElse(false);
-        if (locked) {
-            throw Refusal.ASSOCIATION_DECIDES_WHERE_FILES_ARE_KEPT.raise();
-        }
-    }
-
-    /**
-     * What is behind this station's files, on whose word, and what is still the station's to change.
-     *
-     * @param instanceDefault      the kind of backend the instance provides
-     * @param override             a backend the station brought itself, or {@code null}
-     * @param clusterBackend       the association's storage its files were carried to, or {@code null}
-     * @param clusterName          the association it answers to, or {@code null}
-     * @param clusterOffersStorage whether that association keeps storage its stations may move onto
-     * @param locked               whether the association decides, which makes this screen read-only
-     */
-    public record BackendOverrideResponse(
-            StorageBackendType instanceDefault,
-            BackendOverrideSummary override,
-            BackendOverrideSummary clusterBackend,
-            String clusterName,
-            boolean clusterOffersStorage,
-            boolean locked) {}
-
-    public record AuditEntryResponse(
-            long id,
-            String ts,
-            Integer actorAccountId,
-            Integer actorMemberId,
-            String systemActor,
-            Integer stationId,
-            StorageAuditAction action,
-            String oldConfig,
-            String newConfig,
-            StorageAuditOutcome outcome,
-            String error) {}
 }

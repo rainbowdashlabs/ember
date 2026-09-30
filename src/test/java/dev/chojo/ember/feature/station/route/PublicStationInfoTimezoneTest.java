@@ -15,8 +15,8 @@ import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.PublicStationInfoService;
 import dev.chojo.ember.feature.station.service.StationLogoService;
-import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
@@ -79,14 +79,13 @@ class PublicStationInfoTimezoneTest {
     private static JsonNode cardOf(String timezone) {
         var stationRepository = mock(StationRepository.class);
         when(stationRepository.findByAddress(STATION_UID.toString())).thenReturn(Optional.of(station(timezone)));
-        var routes = new PublicStationRoutes(
+        var routes = new PublicStationRoutes(new PublicStationInfoService(
                 stationRepository,
-                mock(StationService.class),
                 mock(StationLogoService.class),
                 mock(PageService.class),
                 mock(WaitingListService.class),
                 mock(NewsService.class),
-                mock(FormService.class));
+                mock(FormService.class)));
 
         return read(
                 RouteHarness.serving(routes)

@@ -10,10 +10,10 @@ import dev.chojo.ember.event.events.EventsBatchCreated;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -88,7 +88,7 @@ public class BatchEventService {
             }
 
             var fieldEntries = fieldDefs.stream()
-                    .map(def -> new EventFieldRepository.FieldEntry(
+                    .map(def -> new EventFieldDraft(
                             def.name(),
                             def.fieldType(),
                             def.config(),

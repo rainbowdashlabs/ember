@@ -20,9 +20,9 @@ import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
 import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.IntervalType;
+import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
-import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventExportService;
@@ -58,7 +58,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEvent;
+import static dev.chojo.ember.feature.events.service.EventOwnership.requireOwnedEvent;
 
 /**
  * Local routes for the event entity itself: the station-wide listings, create/read/update/delete,
@@ -214,12 +214,12 @@ public class EventRoutes implements Routes {
      * Reads the picker's time-window filter, falling back to upcoming events when the parameter
      * is absent or names no known mode.
      */
-    private EventRepository.PickerMode parsePickerMode(String modeParam) {
-        if (modeParam == null) return EventRepository.PickerMode.FUTURE;
+    private PickerMode parsePickerMode(String modeParam) {
+        if (modeParam == null) return PickerMode.FUTURE;
         try {
-            return EventRepository.PickerMode.valueOf(modeParam.toUpperCase());
+            return PickerMode.valueOf(modeParam.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            return EventRepository.PickerMode.FUTURE;
+            return PickerMode.FUTURE;
         }
     }
 

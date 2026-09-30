@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
+import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
-import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 

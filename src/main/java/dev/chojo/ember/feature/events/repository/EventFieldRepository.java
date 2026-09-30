@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.repository;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -294,7 +295,7 @@ public class EventFieldRepository {
      * the editor already knows is written over its own row, one it does not know is added, and one it
      * no longer names is deleted with its answers.
      */
-    public void replaceFields(int eventId, List<FieldEntry> fields) {
+    public void replaceFields(int eventId, List<EventFieldDraft> fields) {
         var kept = new ArrayList<Integer>(fields.size());
         for (int i = 0; i < fields.size(); i++) {
             var field = fields.get(i);
@@ -323,7 +324,7 @@ public class EventFieldRepository {
     private boolean update(
             int fieldId,
             int eventId,
-            FieldEntry field,
+            EventFieldDraft field,
             EventFieldType type,
             EventFieldConfig config,
             String value,
@@ -359,32 +360,5 @@ public class EventFieldRepository {
                 WHERE event_id = :event_id AND NOT (id = ANY(:kept));""")
                 .single(call().bind("event_id", eventId).bind("kept", keptIds, PostgreSqlTypes.INTEGER))
                 .delete();
-    }
-
-    public record FieldEntry(
-            Integer id,
-            String name,
-            EventFieldType fieldType,
-            EventFieldConfig config,
-            String value,
-            boolean overview,
-            Integer attendanceFieldId,
-            boolean isPublic) {
-
-        /**
-         * A question the caller does not name a row for, which is one being asked for the first
-         * time. Everything that builds questions from scratch, a template or an import says it this
-         * way; only the editor, which is writing over questions that already exist, names ids.
-         */
-        public FieldEntry(
-                String name,
-                EventFieldType fieldType,
-                EventFieldConfig config,
-                String value,
-                boolean overview,
-                Integer attendanceFieldId,
-                boolean isPublic) {
-            this(null, name, fieldType, config, value, overview, attendanceFieldId, isPublic);
-        }
     }
 }

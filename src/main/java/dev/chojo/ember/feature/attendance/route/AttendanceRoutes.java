@@ -12,7 +12,6 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
@@ -23,7 +22,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
-import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
+import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.service.AttendanceExportService;
 import dev.chojo.ember.feature.attendance.service.AttendanceReportService;
 import dev.chojo.ember.feature.attendance.service.AttendanceReportService.ReportData;
@@ -31,8 +30,9 @@ import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.attendance.service.MemberCheckNotesService;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.util.CsvWriter;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -68,8 +68,8 @@ public class AttendanceRoutes implements Routes {
     private final MemberCheckNotesService memberCheckNotesService;
     private final AttendanceExportService exportService;
     private final AttendanceReportService reportService;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
+    private final StationMemberService memberService;
+    private final MemberNameResolver memberNames;
     private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
@@ -78,15 +78,15 @@ public class AttendanceRoutes implements Routes {
             MemberCheckNotesService memberCheckNotesService,
             AttendanceExportService exportService,
             AttendanceReportService reportService,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
+            StationMemberService memberService,
+            MemberNameResolver memberNames,
             MemberIdentityFactory memberIdentityFactory) {
         this.attendanceService = attendanceService;
         this.memberCheckNotesService = memberCheckNotesService;
         this.exportService = exportService;
         this.reportService = reportService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
+        this.memberService = memberService;
+        this.memberNames = memberNames;
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
@@ -281,25 +281,20 @@ public class AttendanceRoutes implements Routes {
      * Asserts the given member belongs to the caller's station.
      */
     private void verifyMemberInStation(int memberId, UserSession userSession) {
-        var member = stationMemberRepository.findById(memberId).orElseThrow(Refusal.ATTENDANCE_MEMBER_NOT_HERE::raise);
+        var member = memberService.findById(memberId).orElseThrow(Refusal.ATTENDANCE_MEMBER_NOT_HERE::raise);
         if (member.stationId() != userSession.stationId()) {
             throw Refusal.ATTENDANCE_MEMBER_NOT_HERE.raise();
         }
     }
 
     /**
-     * Resolves the display name of the member who created an absence record.
+     * Resolves the name of the member who created an absence record.
      *
      * @param createdBy the member ID of the creator, or {@code null}
-     * @return the full name of the creator, or {@code null} if not resolvable
+     * @return the name the station calls the creator by, or {@code null} if not resolvable
      */
     private String resolveCreatedByName(Integer createdBy) {
-        if (createdBy == null) return null;
-        return stationMemberRepository
-                .findById(createdBy)
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> NameParts.of(a).called())
-                .orElse(null);
+        return createdBy == null ? null : memberNames.called(createdBy);
     }
 
     // -- Templates --

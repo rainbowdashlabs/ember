@@ -34,15 +34,14 @@ import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
 import dev.chojo.ember.feature.inventory.service.InventoryIntakeService;
+import dev.chojo.ember.feature.inventory.service.InventoryLossService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.InventorySwitchRefusedException;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.util.CsvWriter;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -75,8 +74,8 @@ public class InventoryRoutes implements Routes {
     private final InventoryExportService inventoryExportService;
     private final InventoryContainerService containerService;
     private final MemberIdentityFactory memberIdentityFactory;
-    private final StationRepository stationRepository;
-    private final StationMemberRepository stationMemberRepository;
+    private final StationMemberService memberService;
+    private final InventoryLossService lossService;
     private final LossReportService lossReportService;
     private final InventoryIntakeService intakeService;
     private final BorrowedGearService borrowedGearService;
@@ -90,8 +89,8 @@ public class InventoryRoutes implements Routes {
             InventoryExportService inventoryExportService,
             InventoryContainerService containerService,
             MemberIdentityFactory memberIdentityFactory,
-            StationRepository stationRepository,
-            StationMemberRepository stationMemberRepository,
+            StationMemberService memberService,
+            InventoryLossService lossService,
             LossReportService lossReportService,
             InventoryIntakeService intakeService,
             BorrowedGearService borrowedGearService,
@@ -105,8 +104,8 @@ public class InventoryRoutes implements Routes {
         this.inventoryExportService = inventoryExportService;
         this.containerService = containerService;
         this.memberIdentityFactory = memberIdentityFactory;
-        this.stationRepository = stationRepository;
-        this.stationMemberRepository = stationMemberRepository;
+        this.memberService = memberService;
+        this.lossService = lossService;
         this.lossReportService = lossReportService;
         this.selfCheckService = selfCheckService;
     }
@@ -373,7 +372,7 @@ public class InventoryRoutes implements Routes {
     }
 
     private void requireMemberOfStation(int memberId, UserSession session) {
-        var member = stationMemberRepository.findById(memberId).orElseThrow(Refusal.MEMBER_NOT_HERE_FOR_GEAR::raise);
+        var member = memberService.findById(memberId).orElseThrow(Refusal.MEMBER_NOT_HERE_FOR_GEAR::raise);
         RouteSupport.requireSameStation(session, member.stationId());
     }
 
@@ -965,60 +964,8 @@ public class InventoryRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
-        var item = inventoryService.findItemById(id).orElseThrow(Refusal.ITEM_NOT_HERE_ON_LOSS::raise);
-        LostRequest request = ctx.body().isBlank() ? null : ctx.bodyAsClass(LostRequest.class);
-        String note = request == null ? null : request.note();
-        note = isBlank(note) ? null : note.trim();
-
-        // Whoever looks after the station's gear reaches all of it. Everybody else reaches what they hold.
-        if (!session.hasPermission(StationPermission.INVENTORY_EDIT)) {
-            requireHolds(session, item);
-            if (note == null && lossNoteRequired(session.stationId())) {
-                throw Refusal.LOSS_NEEDS_A_NOTE.raise();
-            }
-        }
-        Integer noteBy = note == null || session.member() == null
-                ? null
-                : session.member().id();
-        var lost = inventoryService.markLost(id, note, noteBy).orElseThrow(Refusal.ITEM_NOT_MARKED_LOST::raise);
-        Integer selfCheckId = request == null ? null : request.selfCheckId();
-        if (selfCheckId != null) {
-            selfCheckService.recordLoss(
-                    selfCheckId,
-                    session.stationId(),
-                    session.member().id(),
-                    session.hasPermission(StationPermission.MEMBER_GUARDIAN),
-                    id);
-        }
-        ctx.json(lost);
-    }
-
-    /**
-     * Refuses somebody reporting a loss of gear that is not theirs to report.
-     *
-     * <p>Nothing is granted here and nothing is configured: an item assigned to you is yours to say you
-     * cannot find, and a guardian says it for the person they act for, the way they do everything else in
-     * that person's profile. Anything wider needs {@code INVENTORY_EDIT}, which is checked before this.
-     */
-    private void requireHolds(UserSession session, InventoryItem item) {
-        if (item.assignedTo() == null || session.member() == null) {
-            throw Refusal.LOSS_NOT_YOURS_TO_REPORT.raise();
-        }
-        int holder = item.assignedTo();
-        if (holder == session.member().id()) return;
-        boolean actsForThem = session.hasPermission(StationPermission.MEMBER_GUARDIAN)
-                && stationMemberRepository.findManagers(holder).stream()
-                        .anyMatch(m -> m.id() == session.member().id());
-        if (!actsForThem) {
-            throw Refusal.LOSS_NOT_YOURS_TO_REPORT_FOR_THEM.raise();
-        }
-    }
-
-    private boolean lossNoteRequired(int stationId) {
-        return stationRepository
-                .findById(stationId)
-                .map(Station::lossNoteRequired)
-                .orElse(false);
+        LostRequest request = ctx.body().isBlank() ? new LostRequest(null, null) : ctx.bodyAsClass(LostRequest.class);
+        ctx.json(lossService.markLost(session, id, request.note(), request.selfCheckId()));
     }
 
     @OpenApi(
@@ -1079,7 +1026,7 @@ public class InventoryRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventorySettings.class)))
     private void getInventorySettings(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(new InventorySettings(lossNoteRequired(session.stationId())));
+        ctx.json(new InventorySettings(lossService.lossNoteRequired(session.stationId())));
     }
 
     @OpenApi(
@@ -1092,8 +1039,7 @@ public class InventoryRoutes implements Routes {
     private void updateInventorySettings(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(InventorySettings.class);
-        stationRepository.updateLossNoteRequired(session.stationId(), request.lossNoteRequired());
-        ctx.json(new InventorySettings(lossNoteRequired(session.stationId())));
+        ctx.json(new InventorySettings(lossService.requireLossNote(session.stationId(), request.lossNoteRequired())));
     }
 
     @OpenApi(

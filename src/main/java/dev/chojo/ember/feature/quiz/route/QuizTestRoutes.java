@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.service.QuizAttemptService;
 import dev.chojo.ember.feature.quiz.service.QuizPdfService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
+import dev.chojo.ember.feature.quiz.service.QuizRouteGuards;
 import dev.chojo.ember.feature.quiz.service.QuizTestAccessService;
 import dev.chojo.ember.feature.quiz.service.QuizTestService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;

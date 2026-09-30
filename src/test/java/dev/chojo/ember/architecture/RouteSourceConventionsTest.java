@@ -40,6 +40,12 @@ class RouteSourceConventionsTest {
 
     private static final Pattern INLINE_UUID_PATH_PARSE = Pattern.compile("UUID\\.fromString\\(\\s*ctx\\.pathParam");
 
+    private static final int HANDLER_CEILING = 40;
+
+    private static final Pattern HANDLER = Pattern.compile(
+            "\\s*(?:private|public|protected)?\\s*(?:static\\s+)?void\\s+(\\w+)\\(\\s*(?:final\\s+)?Context\\s+ctx\\s*\\)"
+                    + "\\s*(?:throws [\\w, ]+)?\\s*\\{\\s*");
+
     private static final Pattern UNSCOPED_DELETE = Pattern.compile("deleteById\\(\\s*\"([a-z_]+)\"");
 
     private static final Pattern CREATE_TABLE =
@@ -135,6 +141,52 @@ class RouteSourceConventionsTest {
         assertTrue(unscoped.isEmpty(), () -> ("delete(s) by id on a table that carries a station; use"
                         + " SqlSupport.deleteByIdInStation so the statement names the station:%n%s")
                 .formatted(String.join(System.lineSeparator(), unscoped)));
+    }
+
+    /**
+     * A handler reads the request, hands it to a service and answers what came back, which fits in
+     * {@value #HANDLER_CEILING} lines with room to spare. A handler that grows past that is doing
+     * the service's work, where it can be neither reused nor tested without a server.
+     */
+    @Test
+    void handlersStayShort() throws IOException {
+        List<String> tooLong = new ArrayList<>();
+        try (Stream<Path> files = Files.walk(MAIN_SOURCES)) {
+            for (Path path : files.filter(p -> p.getFileName().toString().endsWith("Routes.java"))
+                    .toList()) {
+                tooLong.addAll(longHandlersIn(path));
+            }
+        }
+        assertTrue(tooLong.isEmpty(), () -> ("handler(s) longer than %d lines; move the work into a service:%n%s")
+                .formatted(HANDLER_CEILING, String.join(System.lineSeparator(), tooLong)));
+    }
+
+    private static List<String> longHandlersIn(Path path) throws IOException {
+        List<String> lines = Files.readAllLines(path);
+        List<String> tooLong = new ArrayList<>();
+        for (int start = 0; start < lines.size(); start++) {
+            Matcher handler = HANDLER.matcher(lines.get(start));
+            if (!handler.matches()) continue;
+            int length = bodyLength(lines, start);
+            if (length > HANDLER_CEILING) {
+                tooLong.add("%s: %s (%d lines)".formatted(path.getFileName(), handler.group(1), length));
+            }
+        }
+        return tooLong;
+    }
+
+    private static int bodyLength(List<String> lines, int start) {
+        int depth = 0;
+        for (int line = start; line < lines.size(); line++) {
+            depth += braces(lines.get(line));
+            if (depth == 0) return line - start + 1;
+        }
+        return lines.size() - start;
+    }
+
+    private static int braces(String line) {
+        return (int) (line.chars().filter(c -> c == '{').count()
+                - line.chars().filter(c -> c == '}').count());
     }
 
     /**

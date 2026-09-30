@@ -9,17 +9,18 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
+import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
@@ -160,9 +161,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         var templateUebung = attendanceRepository.createTemplate(stationId, "Übung");
         attendanceRepository.setTemplateGroups(
                 templateUebung.id(),
-                List.of(
-                        new AttendanceRepository.TemplateGroup(groupAnfaengerId, 0),
-                        new AttendanceRepository.TemplateGroup(groupFortgeschrittenId, 1)));
+                List.of(new TemplateGroup(groupAnfaengerId, 0), new TemplateGroup(groupFortgeschrittenId, 1)));
         attendanceRepository.createTemplateField(
                 templateUebung.id(),
                 "Thema",
@@ -173,9 +172,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         var templateGesamt = attendanceRepository.createTemplate(stationId, "Gesamtübung");
         attendanceRepository.setTemplateGroups(
                 templateGesamt.id(),
-                List.of(
-                        new AttendanceRepository.TemplateGroup(groupAnfaengerId, 0),
-                        new AttendanceRepository.TemplateGroup(groupFortgeschrittenId, 1)));
+                List.of(new TemplateGroup(groupAnfaengerId, 0), new TemplateGroup(groupFortgeschrittenId, 1)));
 
         // -- Event categories --
         var catUebung = categoryRepository.create(stationId, "Übungen", 0, "#ff6421");
@@ -323,9 +320,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         var templateTheorie = attendanceRepository.createTemplate(stationId, "Theorieabend");
         attendanceRepository.setTemplateGroups(
                 templateTheorie.id(),
-                List.of(
-                        new AttendanceRepository.TemplateGroup(groupAnfaengerId, 0),
-                        new AttendanceRepository.TemplateGroup(groupFortgeschrittenId, 1)));
+                List.of(new TemplateGroup(groupAnfaengerId, 0), new TemplateGroup(groupFortgeschrittenId, 1)));
         var theorieabend = crudService.create(
                 stationId,
                 "Theorieabend",
@@ -894,7 +889,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         registrationFieldService.replaceFields(
                 marathon.id(),
                 List.of(
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Shirtgröße",
                                 EventFieldType.ENUM,
                                 new EventRegistrationFieldConfig(
@@ -908,14 +903,14 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                                         null,
                                         false),
                                 true),
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Begleitpersonen",
                                 EventFieldType.NUMBER,
                                 new EventRegistrationFieldConfig(false, "0", null, 0, 5, null, null, null, false),
                                 true),
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Anmerkungen", EventFieldType.TEXTAREA, EventRegistrationFieldConfig.empty(), false),
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Startnummer",
                                 EventFieldType.STRING,
                                 new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, true),

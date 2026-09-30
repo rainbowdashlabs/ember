@@ -10,13 +10,11 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.MemberViewService;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -43,23 +41,14 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class UserTagRoutes implements Routes {
     private final UserTagService tagService;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
-    private final MemberNameResolver memberNameResolver;
-    private final MemberIdentityFactory memberIdentityFactory;
+    private final StationMemberService memberService;
+    private final MemberViewService memberViews;
 
     @Inject
-    public UserTagRoutes(
-            UserTagService tagService,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
-            MemberIdentityFactory memberIdentityFactory,
-            MemberNameResolver memberNameResolver) {
+    public UserTagRoutes(UserTagService tagService, StationMemberService memberService, MemberViewService memberViews) {
         this.tagService = tagService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
-        this.memberIdentityFactory = memberIdentityFactory;
-        this.memberNameResolver = memberNameResolver;
+        this.memberService = memberService;
+        this.memberViews = memberViews;
     }
 
     private static boolean isBlank(String s) {
@@ -71,7 +60,7 @@ public class UserTagRoutes implements Routes {
      * member of another station, so the tags a stranger carries cannot be read or probed.
      */
     private void requireOwnedMember(Context ctx, int memberId) {
-        requireOwnedOrNotFound(ctx, memberId, stationMemberRepository::findById, StationMember::stationId);
+        requireOwnedOrNotFound(ctx, memberId, memberService::findById, StationMember::stationId);
     }
 
     @Override
@@ -94,10 +83,6 @@ public class UserTagRoutes implements Routes {
     }
 
     // -- Tags --
-
-    private MemberWithName toMemberWithName(StationMember m) {
-        return MemberWithName.from(m, accountRepository, memberIdentityFactory, memberNameResolver);
-    }
 
     @OpenApi(
             path = "/api/v1/tags",
@@ -185,7 +170,7 @@ public class UserTagRoutes implements Routes {
     private void getMembers(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, tagService::findById, UserTag::stationId);
-        ctx.json(tagService.findMembers(id).stream().map(this::toMemberWithName).toList());
+        ctx.json(tagService.findMembers(id).stream().map(memberViews::named).toList());
     }
 
     @OpenApi(
@@ -204,9 +189,7 @@ public class UserTagRoutes implements Routes {
         var request = ctx.bodyAsClass(SetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
         tagService.setMembers(tagId, memberIds);
-        ctx.json(tagService.findMembers(tagId).stream()
-                .map(this::toMemberWithName)
-                .toList());
+        ctx.json(tagService.findMembers(tagId).stream().map(memberViews::named).toList());
     }
 
     // -- Convert to Group --
