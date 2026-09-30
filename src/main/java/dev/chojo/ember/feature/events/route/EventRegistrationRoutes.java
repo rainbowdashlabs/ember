@@ -843,6 +843,7 @@ public class EventRegistrationRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var reg =
                 registrationService.findById(id).orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_WITHDRAWAL::raise);
+        requireOwnedEvent(crudService, reg.eventId(), session);
         requireMayAnswerFor(session, reg.memberId());
 
         if (!registrationService.withdraw(id)) {
@@ -862,6 +863,7 @@ public class EventRegistrationRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         var reg = registrationService.findById(id).orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_UNDO::raise);
+        requireOwnedEvent(crudService, reg.eventId(), session);
         requireMayAnswerFor(session, reg.memberId());
 
         if (!registrationService.undoWithdrawal(id)) {
