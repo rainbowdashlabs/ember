@@ -27,7 +27,7 @@ import deDE from '@/i18n/de-DE'
 export async function renderRequest(render: () => VNodeChild): Promise<string> {
     const app = createSSRApp({render})
     attachNuxt(app)
-    app.use(createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': deDE}}))
+    app.use(createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': deDE, en: {}}}))
     app.component('font-awesome-icon', {render: () => h('span')})
     app.component('NuxtLink', defineComponent({
         props: {to: {type: [String, Object], default: ''}},
