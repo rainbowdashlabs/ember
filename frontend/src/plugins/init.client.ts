@@ -7,13 +7,16 @@ import {initTokenRefresh} from '~/api/client'
 import {syncThemeWithSession, useTheme} from '~/composables/useTheme'
 import {installDevErrorHandlers} from '~/util/devErrorReporter'
 
-export default defineNuxtPlugin(async (nuxtApp) => {
+/**
+ * Starts the browser side of the app. The theme stored in this browser is painted before the first
+ * render, and the instance theme is asked for without holding the render up: until it arrives, the
+ * theme the server rendered into the page stays in place.
+ */
+export default defineNuxtPlugin((nuxtApp) => {
     initTokenRefresh()
 
     syncThemeWithSession()
-    const themeReady = useTheme().initFromLocalStorage()
-    const timeout = new Promise<void>(resolve => setTimeout(resolve, 1000))
-    await Promise.race([themeReady, timeout])
+    void useTheme().initFromLocalStorage()
 
     const devErrorHandler = installDevErrorHandlers()
     if (devErrorHandler) {
