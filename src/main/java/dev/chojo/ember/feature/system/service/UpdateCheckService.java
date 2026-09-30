@@ -7,8 +7,9 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.conf.file.elements.Updates;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -23,6 +24,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -38,7 +40,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * at warn and change nothing, so an instance with no outbound access is merely quiet.
  */
 @Singleton
-public class UpdateCheckService {
+public class UpdateCheckService implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(UpdateCheckService.class);
     private static final JsonMapper JSON = Json.MAPPER;
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
@@ -199,21 +201,16 @@ public class UpdateCheckService {
     public record UpdateStatus(String currentVersion, String latestVersion, boolean updateAvailable) {}
 
     /**
-     * Checks at {@code updates.checkIntervalHours}, unless the operator switched it off.
-     *
-     * <p>The first run is delayed by a minute so that starting up is never held behind an outbound
-     * call, and so that an instance restarted in a loop does not hammer the API.
+     * The check at {@code updates.checkIntervalHours} while switched on. The first run waits a minute so start
+     * up never waits on an outbound call and an instance restarting in a loop does not hammer the API.
      */
-    @Singleton
-    public static final class Task extends DelegatingTask {
-        @Inject
-        Task(UpdateCheckService service, Updates config) {
-            super(
-                    "update-check",
-                    Schedule.fixedRate(Duration.ofMinutes(1), Duration.ofHours(config.checkIntervalHours())),
-                    () -> {
-                        if (config.enabled()) service.check();
-                    });
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "update-check",
+                Schedule.fixedRate(Duration.ofMinutes(1), Duration.ofHours(config.checkIntervalHours())),
+                () -> {
+                    if (config.enabled()) check();
+                }));
     }
 }

@@ -25,15 +25,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class AuthCleanupSweeperTest extends RepositoryTestBase {
 
     @Test
     void theTaskSweepsEveryFifteenMinutes() {
         var sweeper = mock(AuthCleanupSweeper.class);
-        var task = new AuthCleanupSweeper.Task(sweeper);
+        when(sweeper.scheduledTasks()).thenCallRealMethod();
+        var task = sweeper.scheduledTasks().getFirst();
 
-        task.run();
+        task.work().run();
 
         verify(sweeper).sweep();
         assertEquals("auth-cleanup-sweep", task.name());

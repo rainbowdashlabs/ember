@@ -32,9 +32,9 @@ class ManagedLoginNoticeSweeperTest {
     @Test
     void theTaskSweepsEveryMinute() {
         var noticeService = mock(ManagedLoginNoticeService.class);
-        var task = new ManagedLoginNoticeSweeper.Task(new ManagedLoginNoticeSweeper(noticeService));
+        var task = new ManagedLoginNoticeSweeper(noticeService).scheduledTasks().getFirst();
 
-        task.run();
+        task.work().run();
 
         verify(noticeService).dispatch();
         assertEquals("managed-login-notice-sweep", task.name());

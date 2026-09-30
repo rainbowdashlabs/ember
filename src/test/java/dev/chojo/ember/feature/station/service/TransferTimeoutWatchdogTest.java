@@ -28,10 +28,11 @@ class TransferTimeoutWatchdogTest {
     @Test
     void theTaskSweepsEveryMinute() {
         var exportService = mock(StationExportService.class);
-        var task = new TransferTimeoutWatchdog.Task(
-                new TransferTimeoutWatchdog(exportService, mock(StationRepository.class)));
+        var task = new TransferTimeoutWatchdog(exportService, mock(StationRepository.class))
+                .scheduledTasks()
+                .getFirst();
 
-        task.run();
+        task.work().run();
 
         verify(exportService).expireStaleTransfers(5);
         assertEquals(Duration.ofMinutes(1), task.schedule().period());

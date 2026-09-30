@@ -32,9 +32,11 @@ class KbTrashPurgerTest {
     @Test
     void theTaskClearsTheTrashEveryHour() {
         var trashService = mock(KbTrashService.class);
-        var task = new KbTrashPurger.Task(new KbTrashPurger(trashService, new KnowledgeBase()));
+        var task = new KbTrashPurger(trashService, new KnowledgeBase())
+                .scheduledTasks()
+                .getFirst();
 
-        task.run();
+        task.work().run();
 
         verify(trashService).sweepExpired(30, KbTrashPurger.MAX_PER_RUN);
         assertEquals(Duration.ofHours(1), task.schedule().period());

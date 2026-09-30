@@ -40,8 +40,9 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.sql.Transactions;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
@@ -64,7 +65,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Singleton
-public class WaitingListService {
+public class WaitingListService implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(WaitingListService.class);
 
     private final WaitingListRepository repository;
@@ -1282,15 +1283,11 @@ public class WaitingListService {
         return stationRepository.findById(stationId).map(Station::name).orElse("");
     }
 
-    /** Asks the people on every list whether they are still interested, once a day. */
-    @Singleton
-    public static final class ConfirmationTask extends DelegatingTask {
-        @Inject
-        ConfirmationTask(WaitingListService service) {
-            super(
-                    "waiting-list-confirmation-check",
-                    Schedule.fixedRate(Duration.ofHours(1), Duration.ofHours(24)),
-                    service::checkAllExpiredConfirmations);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "waiting-list-confirmation-check",
+                Schedule.fixedRate(Duration.ofHours(1), Duration.ofHours(24)),
+                this::checkAllExpiredConfirmations));
     }
 }

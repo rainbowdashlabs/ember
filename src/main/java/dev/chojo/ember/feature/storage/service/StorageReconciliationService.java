@@ -10,8 +10,9 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -32,7 +33,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * backends actually hold, on a schedule and when an administrator asks.
  */
 @Singleton
-public class StorageReconciliationService {
+public class StorageReconciliationService implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(StorageReconciliationService.class);
 
     private static final List<StorageCategory> STATION_CATEGORIES = List.of(
@@ -48,13 +49,18 @@ public class StorageReconciliationService {
     private final StorageUsageRepository usageRepository;
     private final StationRepository stationRepository;
     private final StorageService storage;
+    private final Duration reconciliationInterval;
 
     @Inject
     public StorageReconciliationService(
-            StorageUsageRepository usageRepository, StationRepository stationRepository, StorageService storage) {
+            StorageUsageRepository usageRepository,
+            StationRepository stationRepository,
+            StorageService storage,
+            Storage storageConfig) {
         this.usageRepository = usageRepository;
         this.stationRepository = stationRepository;
         this.storage = storage;
+        this.reconciliationInterval = Duration.ofHours(storageConfig.reconciliationIntervalHours());
     }
 
     public void reconcileAll() {
@@ -216,16 +222,11 @@ public class StorageReconciliationService {
         usageRepository.setUsage(stationId, StorageCategory.IMAGE_AVATAR, totalBytes, fileCount);
     }
 
-    /** Reconciles every station at {@code storage.reconciliationIntervalHours}. */
-    @Singleton
-    public static final class Task extends DelegatingTask {
-        @Inject
-        Task(StorageReconciliationService reconciliation, Storage storageConfig) {
-            super(
-                    "storage-reconciliation",
-                    Schedule.fixedDelay(
-                            Duration.ofMinutes(1), Duration.ofHours(storageConfig.reconciliationIntervalHours())),
-                    reconciliation::reconcileAll);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "storage-reconciliation",
+                Schedule.fixedDelay(Duration.ofMinutes(1), reconciliationInterval),
+                this::reconcileAll));
     }
 }

@@ -80,7 +80,7 @@ class ApplicationLogWriterTest extends RepositoryTestBase {
         log("dev.chojo.ember.Something", Level.INFO, "it happened");
         var writer = new ApplicationLogWriter(config(true, "DEBUG", 14), repository);
 
-        new ApplicationLogWriter.FlushTask(writer).run();
+        writer.scheduledTasks().get(0).work().run();
 
         var stored = repository.search(List.of(), null, null, null, null, 50);
         assertTrue(
@@ -138,7 +138,11 @@ class ApplicationLogWriterTest extends RepositoryTestBase {
         new ApplicationLogWriter(config(false, "DEBUG", 14), repository).pruneNow();
         assertEquals(1, repository.size(), "nothing is touched while the database log is off");
 
-        new ApplicationLogWriter.PruneTask(new ApplicationLogWriter(config(true, "DEBUG", 14), repository)).run();
+        new ApplicationLogWriter(config(true, "DEBUG", 14), repository)
+                .scheduledTasks()
+                .get(1)
+                .work()
+                .run();
         assertEquals(0, repository.size(), "and removed once it is on");
     }
 

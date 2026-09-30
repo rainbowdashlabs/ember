@@ -211,7 +211,7 @@ import dev.chojo.ember.feature.members.route.StationMemberRoutes;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
 import dev.chojo.ember.feature.members.route.UserSettingsRoutes;
 import dev.chojo.ember.feature.members.route.UserTagRoutes;
-import dev.chojo.ember.feature.members.service.ExpiryReminderChecker;
+import dev.chojo.ember.feature.members.service.ExpiryReminderService;
 import dev.chojo.ember.feature.members.service.ManagedLoginNoticeSweeper;
 import dev.chojo.ember.feature.members.service.MemberFeedDetails;
 import dev.chojo.ember.feature.news.route.AdminNewsRoutes;
@@ -324,9 +324,8 @@ import dev.chojo.ember.feature.twofactor.service.WebAuthnRelyingPartyFactory;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListFeedDetails;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
-import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.ShutdownFlush;
-import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -624,57 +623,39 @@ public class EmberModule extends AbstractModule {
         feedDetailsBinder.addBinding().to(FormFeedDetails.class);
         feedDetailsBinder.addBinding().to(ProcedureFeedDetails.class);
 
-        bindScheduledTasks(Multibinder.newSetBinder(binder(), ScheduledTask.class));
-        bindShutdownFlushes(Multibinder.newSetBinder(binder(), ShutdownFlush.class));
-    }
+        Multibinder<TaskSource> taskSources = Multibinder.newSetBinder(binder(), TaskSource.class);
+        taskSources.addBinding().to(PageHitRecorder.class);
+        taskSources.addBinding().to(StationTrafficRecorder.class);
+        taskSources.addBinding().to(ApiRequestLogger.class);
+        taskSources.addBinding().to(ApplicationLogWriter.class);
+        taskSources.addBinding().to(RegistrationDeadlineChecker.class);
+        taskSources.addBinding().to(EventReminderChecker.class);
+        taskSources.addBinding().to(EventThresholdChecker.class);
+        taskSources.addBinding().to(FieldRegistrationSweeper.class);
+        taskSources.addBinding().to(SettledRefusalSweeper.class);
+        taskSources.addBinding().to(DueDateReminderChecker.class);
+        taskSources.addBinding().to(ExpiryReminderService.class);
+        taskSources.addBinding().to(ManagedLoginNoticeSweeper.class);
+        taskSources.addBinding().to(WaitingListService.class);
+        taskSources.addBinding().to(EmailService.class);
+        taskSources.addBinding().to(NotificationDigest.class);
+        taskSources.addBinding().to(MailImportPoller.class);
+        taskSources.addBinding().to(AuthCleanupSweeper.class);
+        taskSources.addBinding().to(ProblemReportSweeper.class);
+        taskSources.addBinding().to(UpdateCheckService.class);
+        taskSources.addBinding().to(DemoService.class);
+        taskSources.addBinding().to(FederationPartnerSeeder.class);
+        taskSources.addBinding().to(DiscoveryPingScheduler.class);
+        taskSources.addBinding().to(DiscoveryStationRefreshScheduler.class);
+        taskSources.addBinding().to(DiscoveryMaintenanceScheduler.class);
+        taskSources.addBinding().to(FederationVersionBroadcaster.class);
+        taskSources.addBinding().to(BeaconMetricsService.class);
+        taskSources.addBinding().to(StorageReconciliationService.class);
+        taskSources.addBinding().to(KbTrashPurger.class);
+        taskSources.addBinding().to(TransferTimeoutWatchdog.class);
+        taskSources.addBinding().to(FeedMetricsService.class);
 
-    /**
-     * The periodic background work, started by the {@link TaskScheduler} once the instance has booted.
-     */
-    private void bindScheduledTasks(Multibinder<ScheduledTask> tasks) {
-        tasks.addBinding().to(PageHitRecorder.FlushTask.class);
-        tasks.addBinding().to(PageHitRecorder.PruneTask.class);
-        tasks.addBinding().to(StationTrafficRecorder.FlushTask.class);
-        tasks.addBinding().to(StationTrafficRecorder.PruneTask.class);
-        tasks.addBinding().to(ApiRequestLogger.FlushTask.class);
-        tasks.addBinding().to(ApiRequestLogger.PruneTask.class);
-        tasks.addBinding().to(ApplicationLogWriter.FlushTask.class);
-        tasks.addBinding().to(ApplicationLogWriter.PruneTask.class);
-        tasks.addBinding().to(RegistrationDeadlineChecker.Task.class);
-        tasks.addBinding().to(EventReminderChecker.Task.class);
-        tasks.addBinding().to(EventThresholdChecker.Task.class);
-        tasks.addBinding().to(FieldRegistrationSweeper.Task.class);
-        tasks.addBinding().to(SettledRefusalSweeper.Task.class);
-        tasks.addBinding().to(DueDateReminderChecker.Task.class);
-        tasks.addBinding().to(ExpiryReminderChecker.class);
-        tasks.addBinding().to(ManagedLoginNoticeSweeper.Task.class);
-        tasks.addBinding().to(WaitingListService.ConfirmationTask.class);
-        tasks.addBinding().to(EmailService.QueueTask.class);
-        tasks.addBinding().to(EmailService.CleanupTask.class);
-        tasks.addBinding().to(NotificationDigest.Task.class);
-        tasks.addBinding().to(MailImportPoller.TickTask.class);
-        tasks.addBinding().to(MailImportPoller.PruneTask.class);
-        tasks.addBinding().to(AuthCleanupSweeper.Task.class);
-        tasks.addBinding().to(ProblemReportSweeper.Task.class);
-        tasks.addBinding().to(UpdateCheckService.Task.class);
-        tasks.addBinding().to(DemoService.IdleResetTask.class);
-        tasks.addBinding().to(FederationPartnerSeeder.Task.class);
-        tasks.addBinding().to(DiscoveryPingScheduler.class);
-        tasks.addBinding().to(DiscoveryStationRefreshScheduler.class);
-        tasks.addBinding().to(DiscoveryMaintenanceScheduler.NonceTask.class);
-        tasks.addBinding().to(DiscoveryMaintenanceScheduler.ReputationTask.class);
-        tasks.addBinding().to(FederationVersionBroadcaster.Task.class);
-        tasks.addBinding().to(BeaconMetricsService.WatchTask.class);
-        tasks.addBinding().to(StorageReconciliationService.Task.class);
-        tasks.addBinding().to(KbTrashPurger.Task.class);
-        tasks.addBinding().to(TransferTimeoutWatchdog.Task.class);
-        tasks.addBinding().to(FeedMetricsService.PruneTask.class);
-    }
-
-    /**
-     * The buffers the shutdown writes to the database before the connection pool closes.
-     */
-    private void bindShutdownFlushes(Multibinder<ShutdownFlush> flushes) {
+        Multibinder<ShutdownFlush> flushes = Multibinder.newSetBinder(binder(), ShutdownFlush.class);
         flushes.addBinding().to(PageHitRecorder.class);
         flushes.addBinding().to(StationTrafficRecorder.class);
         flushes.addBinding().to(ApiRequestLogger.class);

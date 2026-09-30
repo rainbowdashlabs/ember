@@ -17,8 +17,9 @@ import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -55,7 +56,7 @@ import java.util.stream.Collectors;
  * table otherwise only ever grows.
  */
 @Singleton
-public class NotificationDigest {
+public class NotificationDigest implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(NotificationDigest.class);
 
     /**
@@ -83,6 +84,8 @@ public class NotificationDigest {
     /** Whether the sweep writes mail at all; pruning goes on either way. */
     private final boolean enabled;
 
+    private final Duration sweepInterval;
+
     /** When read notifications were last pruned, {@code null} before the first time since start. */
     private Instant lastPrunedAt;
 
@@ -106,10 +109,11 @@ public class NotificationDigest {
         int intervalMinutes = mailing.notificationDigestIntervalMinutes();
         this.floor = Duration.ofMinutes(Math.max(intervalMinutes, 0));
         this.enabled = intervalMinutes > 0;
+        this.sweepInterval = sweepInterval(mailing);
         if (enabled) {
             log.info(
                     "Notification digest looks in every {} minutes, no station written to more often than every {}",
-                    sweepInterval(mailing).toMinutes(),
+                    sweepInterval.toMinutes(),
                     intervalMinutes);
         } else {
             log.info("Notification digest disabled (interval=0)");
@@ -338,15 +342,9 @@ public class NotificationDigest {
         return item.append("</li>").toString();
     }
 
-    /** Mails the digests that are due and prunes read notifications, at {@link #sweepInterval(Mailing)}. */
-    @Singleton
-    public static final class Task extends DelegatingTask {
-        @Inject
-        Task(NotificationDigest digest, Mailing mailing) {
-            super(
-                    "notification-sweep",
-                    Schedule.fixedDelay(sweepInterval(mailing), sweepInterval(mailing)),
-                    () -> digest.sweep(Instant.now()));
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "notification-sweep", Schedule.fixedDelay(sweepInterval, sweepInterval), () -> sweep(Instant.now())));
     }
 }

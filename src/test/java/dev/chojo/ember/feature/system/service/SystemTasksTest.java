@@ -5,11 +5,13 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.lifecycle.Schedule;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -23,9 +25,10 @@ class SystemTasksTest {
     @Test
     void problemReportSweepRunsEverySixHours() {
         var sweeper = mock(ProblemReportSweeper.class);
-        var task = new ProblemReportSweeper.Task(sweeper);
+        when(sweeper.scheduledTasks()).thenCallRealMethod();
+        var task = sweeper.scheduledTasks().getFirst();
 
-        task.run();
+        task.work().run();
 
         verify(sweeper).sweep();
         assertEquals("problem-report-sweep", task.name());
@@ -39,5 +42,19 @@ class SystemTasksTest {
 
         assertDoesNotThrow(
                 () -> new ProblemReportSweeper(repository, mock(ProblemReportScreenshotService.class)).sweep());
+    }
+
+    @Test
+    void theDemoIdleResetLooksEveryMinuteAndLeavesAnOrdinaryInstanceAlone() {
+        var demo = mock(Demo.class);
+        var task = new DemoService(demo, null, null, null, Set.of(), null, null, null, null)
+                .scheduledTasks()
+                .getFirst();
+
+        task.work().run();
+
+        verify(demo).enabled();
+        assertEquals("demo-idle-reset", task.name());
+        assertEquals(Schedule.fixedRate(Duration.ofMinutes(1), Duration.ofMinutes(1)), task.schedule());
     }
 }

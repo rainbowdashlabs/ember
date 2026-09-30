@@ -6,14 +6,16 @@
 package dev.chojo.ember.feature.discovery.service;
 
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Periodically pings every usable peer so the gossip graph stays warm, every
@@ -24,26 +26,34 @@ import java.time.Duration;
  * runtime, but the cadence stays the default until the next restart, which is good enough for now.
  */
 @Singleton
-public class DiscoveryPingScheduler extends DelegatingTask {
+public class DiscoveryPingScheduler implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(DiscoveryPingScheduler.class);
+
+    private final DiscoveryPeerRepository peerRepository;
+    private final DiscoveryPingService pingService;
+    private final DiscoverySettingsService settingsService;
 
     @Inject
     public DiscoveryPingScheduler(
             DiscoveryPeerRepository peerRepository,
             DiscoveryPingService pingService,
             DiscoverySettingsService settingsService) {
-        super(
+        this.peerRepository = peerRepository;
+        this.pingService = pingService;
+        this.settingsService = settingsService;
+    }
+
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
                 "discovery-ping",
                 Schedule.fixedDelay(
                         Duration.ofMinutes(3),
                         Duration.ofMinutes(DiscoverySettingsService.DEFAULT_PING_INTERVAL_MINUTES)),
-                () -> runCycle(peerRepository, pingService, settingsService));
+                this::runCycle));
     }
 
-    private static void runCycle(
-            DiscoveryPeerRepository peerRepository,
-            DiscoveryPingService pingService,
-            DiscoverySettingsService settingsService) {
+    private void runCycle() {
         if (!settingsService.isEnabled()) return;
         try {
             var peers = peerRepository.findUsable();

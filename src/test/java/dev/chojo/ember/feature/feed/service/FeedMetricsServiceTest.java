@@ -107,9 +107,9 @@ class FeedMetricsServiceTest {
         when(repo.pruneDailyMetrics(30)).thenReturn(2);
         when(repo.pruneInactiveUserAgents(30)).thenReturn(1);
         var service = new FeedMetricsService(repo, metrics(30), scheduler);
-        var task = new FeedMetricsService.PruneTask(service);
+        var task = service.scheduledTasks().getFirst();
 
-        task.run();
+        task.work().run();
         verify(repo).pruneDailyMetrics(30);
         verify(repo).pruneInactiveUserAgents(30);
         assertEquals(Schedule.fixedRate(Duration.ofHours(1), Duration.ofHours(24)), task.schedule());

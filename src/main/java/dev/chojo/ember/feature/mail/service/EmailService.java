@@ -17,8 +17,9 @@ import dev.chojo.ember.feature.mail.service.mail.MailProvider;
 import dev.chojo.ember.feature.mail.service.mail.SmtpMailProvider;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -39,7 +40,7 @@ import java.util.Optional;
  * daily send limits at both the global and per-station level.
  */
 @Singleton
-public class EmailService {
+public class EmailService implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     /**
@@ -1034,27 +1035,16 @@ public class EmailService {
         return Map.of("stationName", stationName != null ? stationName : "", "stationSuffix", suffix);
     }
 
-    /** Sends what is waiting in the queue, ten seconds after the previous run. */
-    @Singleton
-    public static final class QueueTask extends DelegatingTask {
-        @Inject
-        QueueTask(EmailService emailService) {
-            super(
-                    "email-queue",
-                    Schedule.fixedDelay(Duration.ofSeconds(10), Duration.ofSeconds(10)),
-                    emailService::processQueue);
-        }
-    }
-
-    /** Removes queue entries older than thirty days, once a day. */
-    @Singleton
-    public static final class CleanupTask extends DelegatingTask {
-        @Inject
-        CleanupTask(EmailService emailService) {
-            super(
-                    "email-queue-cleanup",
-                    Schedule.fixedRate(Duration.ofHours(1), Duration.ofHours(24)),
-                    emailService::runCleanup);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(
+                new ScheduledTask(
+                        "email-queue",
+                        Schedule.fixedDelay(Duration.ofSeconds(10), Duration.ofSeconds(10)),
+                        this::processQueue),
+                new ScheduledTask(
+                        "email-queue-cleanup",
+                        Schedule.fixedRate(Duration.ofHours(1), Duration.ofHours(24)),
+                        this::runCleanup));
     }
 }

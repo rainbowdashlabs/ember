@@ -6,14 +6,16 @@
 package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Watches in-flight cross-instance transfers and invalidates tokens whose destination has
@@ -30,7 +32,7 @@ import java.time.Duration;
  * injector creation before {@code QueryConfiguration.setDefault()} has run.
  */
 @Singleton
-public class TransferTimeoutWatchdog {
+public class TransferTimeoutWatchdog implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(TransferTimeoutWatchdog.class);
     private static final int IDLE_TIMEOUT_MINUTES = 5;
     private static final Duration SCAN_INTERVAL = Duration.ofSeconds(60);
@@ -68,15 +70,11 @@ public class TransferTimeoutWatchdog {
         }
     }
 
-    /** Looks for transfers whose destination has gone silent, every minute. */
-    @Singleton
-    public static final class Task extends DelegatingTask {
-        @Inject
-        Task(TransferTimeoutWatchdog watchdog) {
-            super(
-                    "transfer-timeout-watchdog",
-                    Schedule.fixedDelay(SCAN_INTERVAL, SCAN_INTERVAL),
-                    watchdog::sweepStaleTransfers);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "transfer-timeout-watchdog",
+                Schedule.fixedDelay(SCAN_INTERVAL, SCAN_INTERVAL),
+                this::sweepStaleTransfers));
     }
 }

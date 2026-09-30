@@ -9,8 +9,9 @@ import dev.chojo.ember.feature.discovery.entity.PeerSource;
 import dev.chojo.ember.feature.discovery.protocol.DiscoveryInfoResponse;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -29,7 +31,7 @@ import java.util.Set;
  * <p>Runs once, two minutes after the scheduled tasks start, so the instance has settled first.
  */
 @Singleton
-public class FederationPartnerSeeder {
+public class FederationPartnerSeeder implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(FederationPartnerSeeder.class);
     private static final String INFO_PATH = "/api/v1/public/discovery/info";
 
@@ -91,12 +93,9 @@ public class FederationPartnerSeeder {
         }
     }
 
-    /** Seeds the peer registry once, two minutes after the start. */
-    @Singleton
-    public static final class Task extends DelegatingTask {
-        @Inject
-        Task(FederationPartnerSeeder seeder) {
-            super("discovery-partner-seed", Schedule.once(Duration.ofMinutes(2)), seeder::seedFromFederationPartners);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "discovery-partner-seed", Schedule.once(Duration.ofMinutes(2)), this::seedFromFederationPartners));
     }
 }

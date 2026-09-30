@@ -22,22 +22,18 @@ import java.util.Set;
 import javax.sql.DataSource;
 
 /**
- * Owns the one JVM shutdown hook and the order in which the instance comes down.
+ * Owns the one JVM shutdown hook and brings the instance down in order: HTTP server, scheduled work, every
+ * {@link ShutdownFlush}, storage backends, and the connection pool last, so every flush still has a database.
  *
- * <p>On a stop the HTTP server stops accepting and lets running requests finish, the scheduler stops
- * starting work and gives what runs the rest of the budget, every {@link ShutdownFlush} writes what it
- * still buffers, the storage backends close their connections, and the connection pool closes last, so
- * every flush still has a database to write to.
- * The whole sequence shares one budget of {@link #DRAIN_BUDGET}, which the shipped compose files match
- * with a stop grace period of thirty seconds. Every stage is logged with how long it took, and a stage
- * that fails is logged and does not keep the ones after it from running.
+ * <p>The sequence shares {@link #DRAIN_BUDGET}, which the compose files match with a 30 s stop grace period. A
+ * stage that fails is logged and does not stop the ones after it.
  */
 @Singleton
 public final class Lifecycle {
     /** The time the whole shutdown may take, a few seconds below the container's stop grace period. */
     public static final Duration DRAIN_BUDGET = Duration.ofSeconds(25);
 
-    /** The part of the budget kept back from the scheduled tasks for the flushes and closing the pool. */
+    /** The part of the budget kept back from the scheduled work for the flushes and closing the pool. */
     static final Duration FLUSH_RESERVE = Duration.ofSeconds(5);
 
     private static final Logger log = LoggerFactory.getLogger(Lifecycle.class);
@@ -50,7 +46,7 @@ public final class Lifecycle {
     private final Clock clock;
 
     /**
-     * Creates the lifecycle over everything that has to come down in order.
+     * Creates the lifecycle.
      *
      * @param apiServer  the HTTP server
      * @param scheduler  the background work
@@ -84,16 +80,13 @@ public final class Lifecycle {
     }
 
     /**
-     * Registers the shutdown hook. The only call to {@link Runtime#addShutdownHook(Thread)} in the code base.
+     * Registers the shutdown hook, the only one in the code base.
      */
     public void installShutdownHook() {
         Runtime.getRuntime()
                 .addShutdownHook(Thread.ofPlatform().name("shutdown").unstarted(this::shutdown));
     }
 
-    /**
-     * Brings the instance down in order within the budget.
-     */
     void shutdown() {
         Instant started = clock.instant();
         Instant deadline = started.plus(DRAIN_BUDGET);
@@ -139,7 +132,6 @@ public final class Lifecycle {
         }
     }
 
-    /** One step of the shutdown, allowed to throw. */
     @FunctionalInterface
     private interface Stage {
         void run() throws Exception;

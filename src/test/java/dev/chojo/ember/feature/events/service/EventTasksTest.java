@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -28,7 +29,7 @@ class EventTasksTest {
     @Test
     void reminderCheckRunsEveryThirtyMinutes() {
         assertTask(
-                new EventReminderChecker.Task(mock(EventReminderChecker.class)),
+                taskOf(mock(EventReminderChecker.class)),
                 "event-reminder-check",
                 Duration.ofMinutes(5),
                 Duration.ofMinutes(30));
@@ -37,7 +38,7 @@ class EventTasksTest {
     @Test
     void thresholdCheckRunsEveryThirtyMinutes() {
         assertTask(
-                new EventThresholdChecker.Task(mock(EventThresholdChecker.class)),
+                taskOf(mock(EventThresholdChecker.class)),
                 "event-threshold-check",
                 Duration.ofMinutes(5),
                 Duration.ofMinutes(30));
@@ -47,20 +48,22 @@ class EventTasksTest {
     void aFailedThresholdCheckIsSwallowed() {
         var events = mock(EventRepository.class);
         when(events.findThresholdCandidates()).thenThrow(new IllegalStateException("database gone"));
-        var task = new EventThresholdChecker.Task(new EventThresholdChecker(
-                events,
-                mock(EventRegistrationRepository.class),
-                mock(EventCancellationService.class),
-                mock(OccurrenceCalendar.class),
-                mock(StationReadOnlyGuard.class)));
+        var task = new EventThresholdChecker(
+                        events,
+                        mock(EventRegistrationRepository.class),
+                        mock(EventCancellationService.class),
+                        mock(OccurrenceCalendar.class),
+                        mock(StationReadOnlyGuard.class))
+                .scheduledTasks()
+                .getFirst();
 
-        assertDoesNotThrow(task::run);
+        assertDoesNotThrow(task.work()::run);
     }
 
     @Test
     void deadlineCheckRunsEveryFiveMinutes() {
         assertTask(
-                new RegistrationDeadlineChecker.Task(mock(RegistrationDeadlineChecker.class)),
+                taskOf(mock(RegistrationDeadlineChecker.class)),
                 "registration-deadline-check",
                 Duration.ofMinutes(5),
                 Duration.ofMinutes(5));
@@ -69,7 +72,7 @@ class EventTasksTest {
     @Test
     void fieldRegistrationSweepRunsTwiceADay() {
         assertTask(
-                new FieldRegistrationSweeper.Task(mock(FieldRegistrationSweeper.class)),
+                taskOf(mock(FieldRegistrationSweeper.class)),
                 "field-registration-sweep",
                 Duration.ofMinutes(2),
                 Duration.ofHours(12));
@@ -78,12 +81,17 @@ class EventTasksTest {
     @Test
     void settledRefusalSweepRunsTheSweep() {
         var sweeper = mock(SettledRefusalSweeper.class);
-        var task = new SettledRefusalSweeper.Task(sweeper);
+        var task = taskOf(sweeper);
 
-        task.run();
+        task.work().run();
 
         verify(sweeper).sweep();
         assertTask(task, "settled-refusal-sweep", Duration.ofMinutes(1), Duration.ofMinutes(5));
+    }
+
+    private static ScheduledTask taskOf(TaskSource mockedSource) {
+        when(mockedSource.scheduledTasks()).thenCallRealMethod();
+        return mockedSource.scheduledTasks().getFirst();
     }
 
     private static void assertTask(ScheduledTask task, String name, Duration initialDelay, Duration period) {

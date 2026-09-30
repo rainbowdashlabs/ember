@@ -6,11 +6,9 @@
 package dev.chojo.ember.lifecycle;
 
 /**
- * Buffered state that has to reach the database before the connection pool closes.
- *
- * <p>Registered through the {@code ShutdownFlush} multibinder. The {@link Lifecycle} calls every flush once
- * the HTTP server and the scheduled tasks have stopped, in ascending {@link #order()}, so nothing adds to a
- * buffer after it has been written.
+ * Buffered state that has to reach the database before the connection pool closes, registered through the
+ * {@code ShutdownFlush} multibinder. The {@link Lifecycle} calls it after the HTTP server and the scheduled work
+ * have stopped, so nothing adds to a buffer once it has been written.
  */
 public interface ShutdownFlush {
 

@@ -12,7 +12,9 @@ import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,10 +39,11 @@ class NotificationTasksTest {
 
     @Test
     void theTaskRunsTheSweep() {
-        var digest = mock(NotificationDigest.class);
-        var task = new NotificationDigest.Task(digest, digestEvery(60));
+        var digest = spy(new NotificationDigest(null, null, null, null, null, null, null, digestEvery(60)));
+        doNothing().when(digest).sweep(any());
+        var task = digest.scheduledTasks().getFirst();
 
-        task.run();
+        task.work().run();
 
         verify(digest).sweep(any());
         assertEquals("notification-sweep", task.name());

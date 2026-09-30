@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
+import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
@@ -42,7 +43,7 @@ class StorageReconciliationServiceTest extends RepositoryTestBase {
         var backend = new LocalStorageBackend(storageRoot);
         var resolver = new StorageBackendResolver(backend);
         storageService = new StorageService(resolver, backend);
-        reconciliation = new StorageReconciliationService(storageUsageRepo, stationRepo, storageService);
+        reconciliation = new StorageReconciliationService(storageUsageRepo, stationRepo, storageService, new Storage());
     }
 
     @AfterAll

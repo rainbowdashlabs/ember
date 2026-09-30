@@ -6,14 +6,16 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.conf.file.elements.KnowledgeBase;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Clears wiki entries out of the trash once their time there is up.
@@ -26,7 +28,7 @@ import java.time.Duration;
  * What does not fit goes an hour later, and nothing is lost by waiting.
  */
 @Singleton
-public class KbTrashPurger {
+public class KbTrashPurger implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(KbTrashPurger.class);
     private static final Duration SCAN_INTERVAL = Duration.ofMinutes(60);
     private static final Duration START_DELAY = Duration.ofMinutes(5);
@@ -57,12 +59,9 @@ public class KbTrashPurger {
         }
     }
 
-    /** Clears the expired trash every hour. */
-    @Singleton
-    public static final class Task extends DelegatingTask {
-        @Inject
-        Task(KbTrashPurger purger) {
-            super("kb-trash-purge", Schedule.fixedDelay(START_DELAY, SCAN_INTERVAL), purger::purge);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(
+                new ScheduledTask("kb-trash-purge", Schedule.fixedDelay(START_DELAY, SCAN_INTERVAL), this::purge));
     }
 }

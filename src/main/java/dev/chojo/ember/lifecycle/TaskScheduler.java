@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -25,28 +24,23 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * The one place background work runs: periodic {@link ScheduledTask}s, one-shot delayed work, fire and
- * forget jobs and ordered {@link SerialLane}s.
+ * The one place background work runs: {@link ScheduledTask}s, delayed and fire and forget work, and
+ * {@link SerialLane}s.
  *
- * <p>A single platform thread only keeps time and hands every run to a virtual thread of its own, so a
- * slow or blocking run holds nothing but itself. A task never overlaps itself: a fixed-delay task plans its
- * next run when the current one returns, and a fixed-rate run that falls due while the previous one is
- * still busy is skipped. Every run is guarded, so an exception is logged with the task's name and the
- * schedule carries on.
- *
- * <p>Nothing runs before {@link #start(Collection)}, which the bootstrapper calls once the schema is
- * certain and the demo data is in place, and nothing new starts once {@link #stop(Duration)} has been
- * called by the shutdown hook.
+ * <p>One platform thread keeps time and hands every run to a virtual thread of its own, so a blocking run holds
+ * nothing but itself. Every run is guarded: an exception is logged under the work's name and the schedule
+ * carries on. Nothing new starts once {@link #stop(Duration)} has been called.
  */
 @Singleton
 public final class TaskScheduler {
     private static final Logger log = LoggerFactory.getLogger(TaskScheduler.class);
     private static final Duration INTERRUPT_WAIT = Duration.ofSeconds(1);
 
+    private final Clock clock;
     private final ScheduledThreadPoolExecutor timer;
     private final ExecutorService workers;
-    private final TaskStatusBoard board;
     private final AtomicBoolean started = new AtomicBoolean();
+    private volatile List<TaskRunner> runners = List.of();
     private volatile boolean stopping;
 
     /**
@@ -58,7 +52,7 @@ public final class TaskScheduler {
     }
 
     TaskScheduler(Clock clock) {
-        board = new TaskStatusBoard(clock);
+        this.clock = clock;
         timer = new ScheduledThreadPoolExecutor(
                 1, Thread.ofPlatform().daemon().name("task-timer").factory());
         timer.setRemoveOnCancelPolicy(true);
@@ -69,30 +63,30 @@ public final class TaskScheduler {
     }
 
     /**
-     * Plans every task according to its schedule. Called once.
+     * Plans every task according to its schedule. The bootstrapper calls it once the schema is certain.
      *
-     * @param tasks the tasks registered through the multibinder
+     * @param tasks the tasks of every {@link TaskSource}
      * @throws IllegalStateException when the scheduler has been started before
      */
-    public void start(Collection<? extends ScheduledTask> tasks) {
+    public void start(Collection<ScheduledTask> tasks) {
         if (!started.compareAndSet(false, true)) {
             throw new IllegalStateException("The task scheduler has already been started");
         }
-        tasks.stream()
+        runners = tasks.stream()
                 .sorted(Comparator.comparing(ScheduledTask::name))
                 .map(TaskRunner::new)
-                .forEach(TaskRunner::arm);
+                .toList();
+        runners.forEach(TaskRunner::arm);
         log.info("Started {} scheduled tasks", tasks.size());
     }
 
     /**
-     * What is known about every scheduled task since the start: when it last ran, how long that took
-     * and how it ended.
+     * What every scheduled task has done since the start.
      *
      * @return one status per task, by name
      */
     public List<TaskStatus> statuses() {
-        return board.snapshot();
+        return runners.stream().map(runner -> runner.history.status()).toList();
     }
 
     /**
@@ -103,21 +97,32 @@ public final class TaskScheduler {
      * @param work  the work
      */
     public void later(String name, Duration delay, Runnable work) {
-        after(delay, () -> submit(name, work));
+        after(delay, () -> background(name, work));
     }
 
     /**
-     * Runs a piece of work now, on a virtual thread of its own.
+     * Runs a piece of work now, guarded, on a virtual thread of its own.
      *
      * @param name the name the work runs and is logged under
      * @param work the work
+     * @return {@code false} when the scheduler is stopping and the work was not accepted
      */
-    public void background(String name, Runnable work) {
-        submit(name, work);
+    public boolean background(String name, Runnable work) {
+        if (stopping) {
+            log.debug("Not running {}: the scheduler is stopping", name);
+            return false;
+        }
+        try {
+            workers.execute(() -> runGuarded(name, work));
+            return true;
+        } catch (RejectedExecutionException e) {
+            log.debug("Not running {}: the scheduler has stopped", name);
+            return false;
+        }
     }
 
     /**
-     * An ordered queue whose items run one at a time, in the order they were handed in.
+     * An unbounded {@link SerialLane}.
      *
      * @param name the name the lane's items run and are logged under
      * @return a new lane
@@ -127,8 +132,7 @@ public final class TaskScheduler {
     }
 
     /**
-     * An ordered queue like {@link #lane(String)} that holds at most the given number of waiting items and
-     * refuses more.
+     * A {@link SerialLane} that refuses items once the given number are waiting.
      *
      * @param name     the name the lane's items run and are logged under
      * @param capacity how many items may wait at once
@@ -139,9 +143,8 @@ public final class TaskScheduler {
     }
 
     /**
-     * The virtual thread executor for work that manages its own results, such as a federation fan-out
-     * waiting on its futures. Unlike {@link #background(String, Runnable)} nothing is caught for the
-     * caller, and once the scheduler has stopped the executor refuses new work.
+     * The virtual thread executor for work that handles its own results, such as a fan-out waiting on its
+     * futures. Nothing is caught for the caller, and after {@link #stop(Duration)} it refuses new work.
      *
      * @return the shared executor
      */
@@ -150,17 +153,8 @@ public final class TaskScheduler {
     }
 
     /**
-     * Whether the scheduler has been told to stop.
-     *
-     * @return {@code true} once {@link #stop(Duration)} has been called
-     */
-    public boolean isStopping() {
-        return stopping;
-    }
-
-    /**
-     * Stops the scheduler: nothing new runs, running work gets the grace period to finish, and whatever is
-     * still running after it is interrupted.
+     * Stops the scheduler: nothing new runs, running work gets the grace period to finish and is interrupted
+     * after it.
      *
      * @param grace how long running work may take to finish
      */
@@ -176,27 +170,12 @@ public final class TaskScheduler {
         }
     }
 
-    /**
-     * Hands a piece of work to a virtual thread, guarded. Answers whether it was accepted, which it is
-     * not once the scheduler is stopping.
-     */
-    boolean submit(String name, Runnable work) {
-        if (stopping) {
-            log.debug("Not running {}: the scheduler is stopping", name);
-            return false;
-        }
-        try {
-            workers.execute(() -> runGuarded(name, work));
-            return true;
-        } catch (RejectedExecutionException e) {
-            log.debug("Not running {}: the scheduler has stopped", name);
-            return false;
-        }
+    boolean isStopping() {
+        return stopping;
     }
 
     /**
-     * Runs a piece of work under its own name and logs whatever it throws, so no failure ends a schedule
-     * or a lane. An interruption while the scheduler stops is expected and only logged at debug.
+     * Runs a piece of work under its own thread name and logs whatever it throws.
      */
     static void runGuarded(String name, Runnable work) {
         var thread = Thread.currentThread();
@@ -229,20 +208,21 @@ public final class TaskScheduler {
     }
 
     /**
-     * Drives one task: arms its schedule and makes sure no two of its runs overlap.
+     * Drives one task. A fixed-delay task plans its next run when the current one returns; a fixed-rate run
+     * that falls due while the previous one is busy is skipped, so no two runs overlap.
      */
     private final class TaskRunner {
         private final ScheduledTask task;
-        private final Schedule schedule;
+        private final TaskHistory history;
         private final AtomicBoolean busy = new AtomicBoolean();
 
         private TaskRunner(ScheduledTask task) {
             this.task = task;
-            this.schedule = task.schedule();
-            board.register(task);
+            this.history = new TaskHistory(task, clock);
         }
 
         private void arm() {
+            var schedule = task.schedule();
             if (schedule.mode() == Schedule.Mode.FIXED_RATE) {
                 timer.scheduleAtFixedRate(
                         this::fire,
@@ -259,23 +239,23 @@ public final class TaskScheduler {
                 log.debug("Skipping a run of {}: the previous one is still busy", task.name());
                 return;
             }
-            if (!submit(task.name(), this::runOnce)) {
+            if (!background(task.name(), this::runOnce)) {
                 busy.set(false);
             }
         }
 
         private void runOnce() {
-            Instant startedAt = board.started(task.name());
+            history.started();
             try {
-                task.run();
-                board.succeeded(task.name(), startedAt);
+                task.work().run();
+                history.succeeded();
             } catch (RuntimeException e) {
-                board.failed(task.name(), startedAt, e);
+                history.failed(e);
                 throw e;
             } finally {
                 busy.set(false);
-                if (schedule.mode() == Schedule.Mode.FIXED_DELAY && !stopping) {
-                    after(schedule.period(), this::fire);
+                if (task.schedule().mode() == Schedule.Mode.FIXED_DELAY && !stopping) {
+                    after(task.schedule().period(), this::fire);
                 }
             }
         }

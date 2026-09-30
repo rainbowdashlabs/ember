@@ -67,7 +67,8 @@ class BeaconReportingTest extends RepositoryTestBase {
                 new BeaconMetricsSourceRepository(),
                 new BeaconMetricsIdentity(settings),
                 new BeaconMetricsScheduler(settings, new BeaconMetricsIdentity(settings)),
-                httpClient);
+                httpClient,
+                version("26.15.0"));
     }
 
     /** Nothing has been switched on, so nothing is on. */
@@ -194,10 +195,11 @@ class BeaconReportingTest extends RepositoryTestBase {
                 new BeaconMetricsSourceRepository(),
                 new BeaconMetricsIdentity(settings),
                 new BeaconMetricsScheduler(settings, new BeaconMetricsIdentity(settings)),
-                httpClient);
+                httpClient,
+                version("26.15.0"));
         config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
 
-        new BeaconMetricsService.WatchTask(suppressed, version("26.15.0")).run();
+        suppressed.scheduledTasks().getFirst().work().run();
 
         verify(httpClient, never()).unsignedPost(anyString(), anyString(), any());
     }
@@ -206,7 +208,7 @@ class BeaconReportingTest extends RepositoryTestBase {
     @Test
     void theWatchStartsWithoutSendingAnything() {
         config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
-        var watch = new BeaconMetricsService.WatchTask(metrics, version("26.15.0"));
+        var watch = metrics.scheduledTasks().getFirst();
         verify(httpClient, never()).unsignedPost(anyString(), anyString(), any());
         assertEquals(Duration.ofMinutes(10), watch.schedule().period());
     }

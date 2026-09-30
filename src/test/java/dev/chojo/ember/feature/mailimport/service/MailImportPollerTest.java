@@ -162,8 +162,7 @@ class MailImportPollerTest extends RepositoryTestBase {
         enabledMailbox("Aus");
         var poller = poller(importService, off);
 
-        new MailImportPoller.TickTask(poller, off).run();
-        new MailImportPoller.PruneTask(poller, off).run();
+        poller.scheduledTasks().forEach(task -> task.work().run());
 
         verify(importService, never()).run(any(), any());
     }
@@ -175,11 +174,11 @@ class MailImportPollerTest extends RepositoryTestBase {
         var settings = new MailImport();
         var poller = poller(importService, settings);
 
-        var tick = new MailImportPoller.TickTask(poller, settings);
-        var prune = new MailImportPoller.PruneTask(poller, settings);
+        var tick = poller.scheduledTasks().get(0);
+        var prune = poller.scheduledTasks().get(1);
         enabledMailbox("Takt");
-        tick.run();
-        prune.run();
+        tick.work().run();
+        prune.work().run();
 
         verify(importService, atLeastOnce()).run(any(), any());
         assertEquals(Duration.ofMinutes(1), tick.schedule().period());

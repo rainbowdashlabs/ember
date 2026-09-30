@@ -8,26 +8,23 @@ package dev.chojo.ember.feature.discovery.service;
 import dev.chojo.ember.auth.signing.DatabaseReplayStore;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
- * Periodic housekeeping for discovery state.
- *
- * <ul>
- *   <li>{@link NonceTask} drops expired ping nonces every 5 minutes, together with the expired nonces
- *       of every signed request from another instance (discovery pings and beacon deliveries alike).</li>
- *   <li>{@link ReputationTask} decays negative reputations toward zero every 24 hours.</li>
- * </ul>
+ * Periodic housekeeping for discovery state: every five minutes it drops the expired nonces of pings and of
+ * every signed request from another instance, and once a day it decays negative reputations toward zero.
  */
 @Singleton
-public class DiscoveryMaintenanceScheduler {
+public class DiscoveryMaintenanceScheduler implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(DiscoveryMaintenanceScheduler.class);
     private static final int REPUTATION_DECAY_STEP = 5;
 
@@ -63,27 +60,16 @@ public class DiscoveryMaintenanceScheduler {
         }
     }
 
-    /** Drops the expired nonces of pings and signed requests every five minutes. */
-    @Singleton
-    public static final class NonceTask extends DelegatingTask {
-        @Inject
-        NonceTask(DiscoveryMaintenanceScheduler maintenance) {
-            super(
-                    "signed-request-nonce-sweep",
-                    Schedule.fixedDelay(Duration.ofMinutes(5), Duration.ofMinutes(5)),
-                    maintenance::forgetExpiredNonces);
-        }
-    }
-
-    /** Pulls negative reputations toward zero once a day. */
-    @Singleton
-    public static final class ReputationTask extends DelegatingTask {
-        @Inject
-        ReputationTask(DiscoveryMaintenanceScheduler maintenance) {
-            super(
-                    "discovery-reputation-decay",
-                    Schedule.fixedDelay(Duration.ofHours(1), Duration.ofDays(1)),
-                    maintenance::decayReputation);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(
+                new ScheduledTask(
+                        "signed-request-nonce-sweep",
+                        Schedule.fixedDelay(Duration.ofMinutes(5), Duration.ofMinutes(5)),
+                        this::forgetExpiredNonces),
+                new ScheduledTask(
+                        "discovery-reputation-decay",
+                        Schedule.fixedDelay(Duration.ofHours(1), Duration.ofDays(1)),
+                        this::decayReputation));
     }
 }

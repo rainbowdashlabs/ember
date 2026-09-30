@@ -20,8 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 class UpdateCheckServiceTest {
@@ -112,9 +113,9 @@ class UpdateCheckServiceTest {
                 return false;
             }
         };
-        var service = mock(UpdateCheckService.class);
+        var service = spy(new UpdateCheckService(disabled));
 
-        new UpdateCheckService.Task(service, disabled).run();
+        service.scheduledTasks().getFirst().work().run();
 
         verify(service, never()).check();
     }
@@ -125,10 +126,11 @@ class UpdateCheckServiceTest {
      */
     @Test
     void anEnabledCheckRunsAtTheConfiguredInterval() {
-        var service = mock(UpdateCheckService.class);
-        var task = new UpdateCheckService.Task(service, new Updates());
+        var service = spy(new UpdateCheckService(new Updates()));
+        doNothing().when(service).check();
+        var task = service.scheduledTasks().getFirst();
 
-        task.run();
+        task.work().run();
 
         verify(service).check();
         assertEquals(Schedule.fixedRate(Duration.ofMinutes(1), Duration.ofHours(1)), task.schedule());

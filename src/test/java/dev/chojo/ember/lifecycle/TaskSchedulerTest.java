@@ -227,21 +227,6 @@ class TaskSchedulerTest {
     }
 
     private static ScheduledTask task(String name, Schedule schedule, Runnable body) {
-        return new ScheduledTask() {
-            @Override
-            public String name() {
-                return name;
-            }
-
-            @Override
-            public Schedule schedule() {
-                return schedule;
-            }
-
-            @Override
-            public void run() {
-                body.run();
-            }
-        };
+        return new ScheduledTask(name, schedule, body);
     }
 }

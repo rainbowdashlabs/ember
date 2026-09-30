@@ -8,14 +8,16 @@ package dev.chojo.ember.feature.account.service;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.devicerequest.repository.DeviceRequestRepository;
 import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Removes expired sign-in state on a schedule: account tokens, sessions and WebAuthn challenges.
@@ -26,7 +28,7 @@ import java.time.Duration;
  * or not.
  */
 @Singleton
-public class AuthCleanupSweeper {
+public class AuthCleanupSweeper implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(AuthCleanupSweeper.class);
     private static final Duration SCAN_INTERVAL = Duration.ofMinutes(15);
 
@@ -65,12 +67,9 @@ public class AuthCleanupSweeper {
         }
     }
 
-    /** Removes expired sign-in state every fifteen minutes. */
-    @Singleton
-    public static final class Task extends DelegatingTask {
-        @Inject
-        Task(AuthCleanupSweeper sweeper) {
-            super("auth-cleanup-sweep", Schedule.fixedDelay(SCAN_INTERVAL, SCAN_INTERVAL), sweeper::sweep);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "auth-cleanup-sweep", Schedule.fixedDelay(SCAN_INTERVAL, SCAN_INTERVAL), this::sweep));
     }
 }

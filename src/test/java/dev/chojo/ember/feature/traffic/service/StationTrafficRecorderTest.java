@@ -112,17 +112,17 @@ class StationTrafficRecorderTest extends RepositoryTestBase {
         Mockito.when(switchable.trafficFlushIntervalSeconds()).thenReturn(45);
         var repository = Mockito.mock(StationTrafficRepository.class);
         var rec = new StationTrafficRecorder(repository, switchable);
-        var flush = new StationTrafficRecorder.FlushTask(rec, switchable);
-        var prune = new StationTrafficRecorder.PruneTask(rec, switchable);
+        var flush = rec.scheduledTasks().get(0);
+        var prune = rec.scheduledTasks().get(1);
 
-        flush.run();
-        prune.run();
+        flush.work().run();
+        prune.work().run();
         Mockito.verifyNoInteractions(repository);
 
         Mockito.when(switchable.trafficEnabled()).thenReturn(true);
         rec.record(station.id(), AuthBucket.AUTHENTICATED, 1, 1);
-        flush.run();
-        prune.run();
+        flush.work().run();
+        prune.work().run();
         Mockito.verify(repository).upsert(Mockito.any());
         Mockito.verify(repository).pruneBefore(Mockito.any());
         assertEquals(Duration.ofSeconds(45), flush.schedule().period());

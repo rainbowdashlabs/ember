@@ -15,9 +15,10 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -47,7 +48,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * run joins between bands, so a band only ever sees data produced by lower bands.
  */
 @Singleton
-public class DemoService {
+public class DemoService implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(DemoService.class);
     /**
      * Location of the schema-fingerprint sentinel used to decide whether the demo seeder can
@@ -284,15 +285,11 @@ public class DemoService {
         log.info("Demo: Admin login: admin@ember.local / {}", DemoSeeder.PASSWORD);
     }
 
-    /** Throws the demo data away and seeds it again once nobody has used it for the configured time. */
-    @Singleton
-    public static final class IdleResetTask extends DelegatingTask {
-        @Inject
-        IdleResetTask(DemoService demoService) {
-            super(
-                    "demo-idle-reset",
-                    Schedule.fixedRate(Duration.ofMinutes(1), Duration.ofMinutes(1)),
-                    demoService::checkIdleReset);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "demo-idle-reset",
+                Schedule.fixedRate(Duration.ofMinutes(1), Duration.ofMinutes(1)),
+                this::checkIdleReset));
     }
 }

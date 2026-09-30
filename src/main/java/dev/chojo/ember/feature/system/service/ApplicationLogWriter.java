@@ -8,15 +8,17 @@ package dev.chojo.ember.feature.system.service;
 import ch.qos.logback.classic.Level;
 import dev.chojo.ember.conf.file.elements.Logging;
 import dev.chojo.ember.feature.system.repository.ApplicationLogRepository;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.ShutdownFlush;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Moves log lines from the appender's queue into the database, and keeps the table within its
@@ -33,7 +35,7 @@ import java.time.Duration;
  * appender excludes.
  */
 @Singleton
-public class ApplicationLogWriter implements ShutdownFlush {
+public class ApplicationLogWriter implements ShutdownFlush, TaskSource {
 
     private static final Logger log = LoggerFactory.getLogger(ApplicationLogWriter.class);
 
@@ -124,24 +126,14 @@ public class ApplicationLogWriter implements ShutdownFlush {
         }
     }
 
-    /** Empties the queue into the table every two seconds. */
-    @Singleton
-    public static final class FlushTask extends DelegatingTask {
-        @Inject
-        FlushTask(ApplicationLogWriter writer) {
-            super("application-log-flush", Schedule.fixedDelay(FLUSH_INTERVAL, FLUSH_INTERVAL), writer::flush);
-        }
-    }
-
-    /** Removes the lines past retention every hour. */
-    @Singleton
-    public static final class PruneTask extends DelegatingTask {
-        @Inject
-        PruneTask(ApplicationLogWriter writer) {
-            super(
-                    "application-log-prune",
-                    Schedule.fixedDelay(Duration.ofMinutes(1), PRUNE_INTERVAL),
-                    writer::pruneNow);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(
+                new ScheduledTask(
+                        "application-log-flush", Schedule.fixedDelay(FLUSH_INTERVAL, FLUSH_INTERVAL), this::flush),
+                new ScheduledTask(
+                        "application-log-prune",
+                        Schedule.fixedDelay(Duration.ofMinutes(1), PRUNE_INTERVAL),
+                        this::pruneNow));
     }
 }

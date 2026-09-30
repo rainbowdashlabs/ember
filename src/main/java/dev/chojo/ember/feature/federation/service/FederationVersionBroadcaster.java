@@ -7,14 +7,16 @@ package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Pings all active remote federation partners to exchange contract vectors. The signed
@@ -34,7 +36,7 @@ import java.time.Duration;
  * request happens to touch it first.
  */
 @Singleton
-public class FederationVersionBroadcaster {
+public class FederationVersionBroadcaster implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(FederationVersionBroadcaster.class);
 
     private static final Duration INITIAL_DELAY = Duration.ofMinutes(2);
@@ -75,15 +77,11 @@ public class FederationVersionBroadcaster {
         }
     }
 
-    /** Exchanges the contract vectors every fifteen minutes, the first time two minutes after the start. */
-    @Singleton
-    public static final class Task extends DelegatingTask {
-        @Inject
-        Task(FederationVersionBroadcaster broadcaster) {
-            super(
-                    "federation-version-broadcast",
-                    Schedule.fixedDelay(INITIAL_DELAY, SWEEP_INTERVAL),
-                    broadcaster::broadcastVersion);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "federation-version-broadcast",
+                Schedule.fixedDelay(INITIAL_DELAY, SWEEP_INTERVAL),
+                this::broadcastVersion));
     }
 }

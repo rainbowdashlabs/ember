@@ -34,8 +34,8 @@ import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.system.service.SearchIndexRebuildService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import dev.chojo.ember.lifecycle.Lifecycle;
-import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.RandomTokens;
 import dev.chojo.ember.util.service.CloudflareRangesService;
 import org.slf4j.Logger;
@@ -56,7 +56,7 @@ public class Bootstrapper {
     private static final String ADMIN_LOGIN_NAME = "admin";
     private static final String ADMIN_FIRST_NAME = "Admin";
     private static final String ADMIN_LAST_NAME = "Admin";
-    private static final Key<Set<ScheduledTask>> SCHEDULED_TASKS = Key.get(new TypeLiteral<>() {});
+    private static final Key<Set<TaskSource>> TASK_SOURCES = Key.get(new TypeLiteral<>() {});
 
     /**
      * Creates the account that administers a brand new instance and a default station, unless
@@ -213,7 +213,9 @@ public class Bootstrapper {
         // API is up and anybody could be looking at the news.
         injector.getInstance(ChangelogAnnouncer.class).announce();
 
-        var tasks = injector.getInstance(SCHEDULED_TASKS);
+        var tasks = injector.getInstance(TASK_SOURCES).stream()
+                .flatMap(source -> source.scheduledTasks().stream())
+                .toList();
         var apiServer = injector.getInstance(ApiServer.class);
         apiServer.start();
 

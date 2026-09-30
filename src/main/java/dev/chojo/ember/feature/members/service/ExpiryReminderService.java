@@ -31,12 +31,16 @@ import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -69,7 +73,7 @@ import java.util.stream.Stream;
  * the station's member management, for an association's field the association's own.
  */
 @Singleton
-public class ExpiryReminderService {
+public class ExpiryReminderService implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(ExpiryReminderService.class);
 
     /** How many members management's reminder names before it only counts them. */
@@ -343,5 +347,13 @@ public class ExpiryReminderService {
         } catch (DateTimeParseException e) {
             return null;
         }
+    }
+
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "expiry-reminder-check",
+                Schedule.fixedDelay(Duration.ofMinutes(5), Duration.ofMinutes(30)),
+                () -> sweep(Instant.now())));
     }
 }

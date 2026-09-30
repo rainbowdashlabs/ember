@@ -12,12 +12,11 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 
 /**
- * An ordered queue of work that runs one item at a time, in the order the items were handed in.
+ * A queue of work that runs one item at a time, in the order handed in, without holding a thread while empty:
+ * the first item for an idle lane starts a virtual thread that drains the queue and ends with it.
  *
- * <p>Takes the place of a single-thread executor held for the life of the process. Nothing waits while the
- * lane is empty: the first item handed to an idle lane starts a virtual thread that drains the queue and
- * ends with it. Each item is guarded on its own, so one that fails does not hold up the ones behind it.
- * Once the scheduler stops, the item in hand may finish within the grace period and the rest are abandoned.
+ * <p>Each item is guarded on its own, so a failure does not hold up the rest. Once the scheduler stops, the item
+ * in hand may finish within the grace period and the queued ones are dropped.
  */
 public final class SerialLane {
     private static final Logger log = LoggerFactory.getLogger(SerialLane.class);
@@ -47,7 +46,7 @@ public final class SerialLane {
             if (draining) return true;
             draining = true;
         }
-        if (scheduler.submit(name, this::drain)) return true;
+        if (scheduler.background(name, this::drain)) return true;
         synchronized (this) {
             queue.clear();
             draining = false;

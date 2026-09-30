@@ -6,10 +6,11 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.conf.file.elements.Metrics;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.ShutdownFlush;
 import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.lifecycle.TaskSource;
 import io.javalin.http.Context;
 import io.javalin.router.Endpoint;
 import jakarta.inject.Inject;
@@ -44,7 +45,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * next flush logs how many were lost.
  */
 @Singleton
-public class ApiRequestLogger implements ShutdownFlush {
+public class ApiRequestLogger implements ShutdownFlush, TaskSource {
     /** What a request that matched no route is recorded under. */
     public static final String UNMATCHED = "(unmatched)";
 
@@ -404,21 +405,12 @@ public class ApiRequestLogger implements ShutdownFlush {
 
     record RequestEntry(String method, String path, int statusCode, int durationMs) {}
 
-    /** Writes a batch every five seconds, besides the flush a full batch starts on its own. */
-    @Singleton
-    public static final class FlushTask extends DelegatingTask {
-        @Inject
-        FlushTask(ApiRequestLogger logger) {
-            super("api-request-log-flush", Schedule.fixedRate(FLUSH_INTERVAL, FLUSH_INTERVAL), logger::flush);
-        }
-    }
-
-    /** Removes the entries past {@code metrics.requestStatsRetentionDays}, every six hours. */
-    @Singleton
-    public static final class PruneTask extends DelegatingTask {
-        @Inject
-        PruneTask(ApiRequestLogger logger) {
-            super("api-request-log-prune", Schedule.fixedRate(Duration.ofHours(1), PRUNE_INTERVAL), logger::prune);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(
+                new ScheduledTask(
+                        "api-request-log-flush", Schedule.fixedRate(FLUSH_INTERVAL, FLUSH_INTERVAL), this::flush),
+                new ScheduledTask(
+                        "api-request-log-prune", Schedule.fixedRate(Duration.ofHours(1), PRUNE_INTERVAL), this::prune));
     }
 }

@@ -6,32 +6,14 @@
 package dev.chojo.ember.lifecycle;
 
 /**
- * One piece of periodic background work, run by the {@link TaskScheduler} once the instance has booted.
+ * One piece of periodic background work, contributed by a {@link TaskSource}.
  *
- * <p>A task is registered through the {@code ScheduledTask} multibinder and never starts a thread of its
- * own. The scheduler runs it on a virtual thread, never lets it overlap itself, and catches and logs
- * whatever it throws, so the schedule survives a failed run.
+ * <p>The {@link TaskScheduler} runs it on a virtual thread, never lets it overlap itself and logs whatever it
+ * throws, so a failed run does not end the schedule.
+ *
+ * @param name     the thread name of each run and the key in the log and on the task status page: lower case
+ *                 words joined by hyphens, unique across the instance
+ * @param schedule when it runs
+ * @param work     what one run does
  */
-public interface ScheduledTask {
-
-    /**
-     * The name the task runs under: the thread name of each run, the key in the log and on the admin
-     * task status page. Lower case words joined by hyphens, unique across the instance.
-     *
-     * @return the task's name
-     */
-    String name();
-
-    /**
-     * When the task runs.
-     *
-     * @return the task's schedule
-     */
-    Schedule schedule();
-
-    /**
-     * Performs one run. Whatever it throws is logged with the task's name and the next run happens as
-     * planned.
-     */
-    void run();
-}
+public record ScheduledTask(String name, Schedule schedule, Runnable work) {}

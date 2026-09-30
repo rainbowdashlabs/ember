@@ -10,8 +10,9 @@ import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.beacon.repository.BeaconMetricsSourceRepository;
 import dev.chojo.ember.feature.discovery.service.DiscoveryHttpClient;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -35,7 +36,7 @@ import java.util.List;
  * do not carry it.
  */
 @Singleton
-public class BeaconMetricsService {
+public class BeaconMetricsService implements TaskSource {
 
     private static final Logger log = LoggerFactory.getLogger(BeaconMetricsService.class);
     private static final Duration CHECK_INTERVAL = Duration.ofMinutes(10);
@@ -46,6 +47,7 @@ public class BeaconMetricsService {
     private final BeaconMetricsIdentity identity;
     private final BeaconMetricsScheduler scheduler;
     private final DiscoveryHttpClient httpClient;
+    private final UpdateCheckService updates;
 
     @Inject
     public BeaconMetricsService(
@@ -54,13 +56,15 @@ public class BeaconMetricsService {
             BeaconMetricsSourceRepository source,
             BeaconMetricsIdentity identity,
             BeaconMetricsScheduler scheduler,
-            DiscoveryHttpClient httpClient) {
+            DiscoveryHttpClient httpClient,
+            UpdateCheckService updates) {
         this.config = config;
         this.demo = demo;
         this.source = source;
         this.identity = identity;
         this.scheduler = scheduler;
         this.httpClient = httpClient;
+        this.updates = updates;
     }
 
     /**
@@ -177,16 +181,15 @@ public class BeaconMetricsService {
                 List.copyOf(subjects));
     }
 
-    /** Looks every ten minutes whether the day's numbers are due. */
-    @Singleton
-    public static final class WatchTask extends DelegatingTask {
-        @Inject
-        WatchTask(BeaconMetricsService service, UpdateCheckService updates) {
-            super(
-                    "beacon-metrics",
-                    Schedule.fixedDelay(CHECK_INTERVAL, CHECK_INTERVAL),
-                    () -> service.watch(updates.currentVersion()));
-            service.announceSlot();
-        }
+    /**
+     * The watch, every ten minutes. Logs the daily slot once as it is planned.
+     */
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        announceSlot();
+        return List.of(new ScheduledTask(
+                "beacon-metrics",
+                Schedule.fixedDelay(CHECK_INTERVAL, CHECK_INTERVAL),
+                () -> watch(updates.currentVersion())));
     }
 }

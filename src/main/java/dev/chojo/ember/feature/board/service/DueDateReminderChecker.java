@@ -8,8 +8,9 @@ package dev.chojo.ember.feature.board.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -25,7 +26,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * Sends a daily reminder notification to the assignee if the ticket is not in the last lane.
  */
 @Singleton
-public class DueDateReminderChecker {
+public class DueDateReminderChecker implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(DueDateReminderChecker.class);
 
     private final DomainEventBus eventBus;
@@ -105,15 +106,9 @@ public class DueDateReminderChecker {
             String dueDate,
             int assignedMemberId) {}
 
-    /** Reminds the assignees of due and overdue tickets, every hour. */
-    @Singleton
-    public static final class Task extends DelegatingTask {
-        @Inject
-        Task(DueDateReminderChecker checker) {
-            super(
-                    "board-due-date-check",
-                    Schedule.fixedDelay(Duration.ofMinutes(1), Duration.ofHours(1)),
-                    checker::check);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "board-due-date-check", Schedule.fixedDelay(Duration.ofMinutes(1), Duration.ofHours(1)), this::check));
     }
 }

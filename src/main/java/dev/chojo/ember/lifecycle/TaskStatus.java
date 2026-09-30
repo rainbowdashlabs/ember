@@ -8,8 +8,7 @@ package dev.chojo.ember.lifecycle;
 import java.time.Instant;
 
 /**
- * What is known about one scheduled task since the instance started. Kept in memory only, so a
- * restart begins every task at {@link TaskOutcome#NOT_RUN_YET}.
+ * What one scheduled task has done since the instance started.
  *
  * @param name               the task's name
  * @param mode               how its runs follow each other

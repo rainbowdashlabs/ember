@@ -9,9 +9,10 @@ import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.feature.traffic.entity.AuthBucket;
 import dev.chojo.ember.feature.traffic.entity.TrafficBucket;
 import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.ShutdownFlush;
+import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.HourlyCounters;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -39,7 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * {@link Metrics#trafficRetentionDays()}.
  */
 @Singleton
-public class StationTrafficRecorder implements ShutdownFlush {
+public class StationTrafficRecorder implements ShutdownFlush, TaskSource {
     private static final Logger log = LoggerFactory.getLogger(StationTrafficRecorder.class);
     private static final Duration PRUNE_INTERVAL = Duration.ofHours(6);
     /** PostgreSQL SQLSTATE for {@code foreign_key_violation}. */
@@ -170,29 +171,16 @@ public class StationTrafficRecorder implements ShutdownFlush {
 
     private record StationKey(Integer stationId, AuthBucket auth) {}
 
-    /** Writes the deltas at {@code metrics.trafficFlushIntervalSeconds}. */
-    @Singleton
-    public static final class FlushTask extends DelegatingTask {
-        @Inject
-        FlushTask(StationTrafficRecorder recorder, Metrics metrics) {
-            super("station-traffic-flush", Schedule.fixedRate(flushInterval(metrics), flushInterval(metrics)), () -> {
-                if (metrics.trafficEnabled()) recorder.flush();
-            });
-        }
-
-        private static Duration flushInterval(Metrics metrics) {
-            return Duration.ofSeconds(Math.max(1, metrics.trafficFlushIntervalSeconds()));
-        }
-    }
-
-    /** Removes the buckets past {@code metrics.trafficRetentionDays}, every six hours. */
-    @Singleton
-    public static final class PruneTask extends DelegatingTask {
-        @Inject
-        PruneTask(StationTrafficRecorder recorder, Metrics metrics) {
-            super("station-traffic-prune", Schedule.fixedRate(Duration.ofHours(1), PRUNE_INTERVAL), () -> {
-                if (metrics.trafficEnabled()) recorder.prune();
-            });
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        var flushInterval = Duration.ofSeconds(Math.max(1, metrics.trafficFlushIntervalSeconds()));
+        return List.of(
+                new ScheduledTask("station-traffic-flush", Schedule.fixedRate(flushInterval, flushInterval), () -> {
+                    if (metrics.trafficEnabled()) flush();
+                }),
+                new ScheduledTask(
+                        "station-traffic-prune", Schedule.fixedRate(Duration.ofHours(1), PRUNE_INTERVAL), () -> {
+                            if (metrics.trafficEnabled()) prune();
+                        }));
     }
 }

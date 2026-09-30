@@ -5,14 +5,16 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Moves the far edge of the field registrations along as the days pass.
@@ -27,7 +29,7 @@ import java.time.Duration;
  * for.
  */
 @Singleton
-public class FieldRegistrationSweeper {
+public class FieldRegistrationSweeper implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(FieldRegistrationSweeper.class);
 
     private final EventFieldRegistrationService registrationService;
@@ -46,15 +48,11 @@ public class FieldRegistrationSweeper {
         }
     }
 
-    /** Compares the questions against the registrations every twelve hours. */
-    @Singleton
-    public static final class Task extends DelegatingTask {
-        @Inject
-        Task(FieldRegistrationSweeper sweeper) {
-            super(
-                    "field-registration-sweep",
-                    Schedule.fixedDelay(Duration.ofMinutes(2), Duration.ofHours(12)),
-                    sweeper::sweep);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "field-registration-sweep",
+                Schedule.fixedDelay(Duration.ofMinutes(2), Duration.ofHours(12)),
+                this::sweep));
     }
 }

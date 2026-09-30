@@ -21,8 +21,9 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -36,7 +37,7 @@ import java.util.List;
 import java.util.Set;
 
 @Singleton
-public class EventReminderChecker {
+public class EventReminderChecker implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(EventReminderChecker.class);
 
     private final EventRepository eventRepository;
@@ -217,15 +218,11 @@ public class EventReminderChecker {
                 .toList();
     }
 
-    /** Sends the due reminders and closing warnings, every thirty minutes. */
-    @Singleton
-    public static final class Task extends DelegatingTask {
-        @Inject
-        Task(EventReminderChecker checker) {
-            super(
-                    "event-reminder-check",
-                    Schedule.fixedDelay(Duration.ofMinutes(5), Duration.ofMinutes(30)),
-                    checker::check);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "event-reminder-check",
+                Schedule.fixedDelay(Duration.ofMinutes(5), Duration.ofMinutes(30)),
+                this::check));
     }
 }

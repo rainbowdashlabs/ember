@@ -8,9 +8,10 @@ package dev.chojo.ember.feature.insights.service;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.feature.insights.entity.PageHitBucket;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.ShutdownFlush;
+import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.HourlyCounters;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -38,7 +39,7 @@ import java.util.Locale;
  * to {@code other} so the referer dimension stays bounded.
  */
 @Singleton
-public class PageHitRecorder implements ShutdownFlush {
+public class PageHitRecorder implements ShutdownFlush, TaskSource {
 
     /**
      * Context attribute key carrying the resolved {@code station_page.id} for a successful
@@ -170,29 +171,15 @@ public class PageHitRecorder implements ShutdownFlush {
         }
     }
 
-    /** Writes the hours that are over, at {@code metrics.webStatsFlushIntervalSeconds}. */
-    @Singleton
-    public static final class FlushTask extends DelegatingTask {
-        @Inject
-        FlushTask(PageHitRecorder recorder, Metrics metrics) {
-            super("page-hit-flush", Schedule.fixedRate(flushInterval(metrics), flushInterval(metrics)), () -> {
-                if (metrics.webStatsEnabled()) recorder.flush();
-            });
-        }
-
-        private static Duration flushInterval(Metrics metrics) {
-            return Duration.ofSeconds(Math.max(1, metrics.webStatsFlushIntervalSeconds()));
-        }
-    }
-
-    /** Removes the buckets past {@code metrics.webStatsRetentionDays}, every six hours. */
-    @Singleton
-    public static final class PruneTask extends DelegatingTask {
-        @Inject
-        PruneTask(PageHitRecorder recorder, Metrics metrics) {
-            super("page-hit-prune", Schedule.fixedRate(Duration.ofHours(1), PRUNE_INTERVAL), () -> {
-                if (metrics.webStatsEnabled()) recorder.prune();
-            });
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        var flushInterval = Duration.ofSeconds(Math.max(1, metrics.webStatsFlushIntervalSeconds()));
+        return List.of(
+                new ScheduledTask("page-hit-flush", Schedule.fixedRate(flushInterval, flushInterval), () -> {
+                    if (metrics.webStatsEnabled()) flush();
+                }),
+                new ScheduledTask("page-hit-prune", Schedule.fixedRate(Duration.ofHours(1), PRUNE_INTERVAL), () -> {
+                    if (metrics.webStatsEnabled()) prune();
+                }));
     }
 }

@@ -5,14 +5,16 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Lets go of the answers behind refusals that can no longer be taken back.
@@ -26,7 +28,7 @@ import java.time.Duration;
  * to want them back would be keeping them for no reason anybody could name.
  */
 @Singleton
-public class SettledRefusalSweeper {
+public class SettledRefusalSweeper implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(SettledRefusalSweeper.class);
     private static final Duration SCAN_INTERVAL = Duration.ofMinutes(5);
 
@@ -46,12 +48,9 @@ public class SettledRefusalSweeper {
         }
     }
 
-    /** Clears the answers of settled refusals every five minutes. */
-    @Singleton
-    public static final class Task extends DelegatingTask {
-        @Inject
-        Task(SettledRefusalSweeper sweeper) {
-            super("settled-refusal-sweep", Schedule.fixedDelay(Duration.ofMinutes(1), SCAN_INTERVAL), sweeper::sweep);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "settled-refusal-sweep", Schedule.fixedDelay(Duration.ofMinutes(1), SCAN_INTERVAL), this::sweep));
     }
 }

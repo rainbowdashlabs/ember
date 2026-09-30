@@ -7,11 +7,12 @@ package dev.chojo.ember.feature.feed.service;
 
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.SerialLane;
 import dev.chojo.ember.lifecycle.ShutdownFlush;
 import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -35,7 +36,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * operators can tune them without code changes.
  */
 @Singleton
-public class FeedMetricsService implements ShutdownFlush {
+public class FeedMetricsService implements ShutdownFlush, TaskSource {
     private static final Logger log = LoggerFactory.getLogger(FeedMetricsService.class);
 
     private final FeedMetricsRepository repository;
@@ -119,12 +120,9 @@ public class FeedMetricsService implements ShutdownFlush {
 
     private record Render(String type, int status, long durationMs, int entryCount, String userAgent) {}
 
-    /** Trims the feed metrics once a day, the first time an hour after the start. */
-    @Singleton
-    public static final class PruneTask extends DelegatingTask {
-        @Inject
-        PruneTask(FeedMetricsService service) {
-            super("feed-metrics-prune", Schedule.fixedRate(Duration.ofHours(1), Duration.ofHours(24)), service::prune);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "feed-metrics-prune", Schedule.fixedRate(Duration.ofHours(1), Duration.ofHours(24)), this::prune));
     }
 }

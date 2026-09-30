@@ -5,14 +5,16 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.lifecycle.DelegatingTask;
 import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Sends the access changes a guardian made once their waiting time has passed.
@@ -21,7 +23,7 @@ import java.time.Duration;
  * minutes and exists to swallow a mistaken toggle, not to time anything precisely.
  */
 @Singleton
-public class ManagedLoginNoticeSweeper {
+public class ManagedLoginNoticeSweeper implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(ManagedLoginNoticeSweeper.class);
     private static final Duration SCAN_INTERVAL = Duration.ofSeconds(60);
 
@@ -44,12 +46,9 @@ public class ManagedLoginNoticeSweeper {
         }
     }
 
-    /** Sends the access changes whose waiting time has passed, every minute. */
-    @Singleton
-    public static final class Task extends DelegatingTask {
-        @Inject
-        Task(ManagedLoginNoticeSweeper sweeper) {
-            super("managed-login-notice-sweep", Schedule.fixedDelay(SCAN_INTERVAL, SCAN_INTERVAL), sweeper::sweep);
-        }
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "managed-login-notice-sweep", Schedule.fixedDelay(SCAN_INTERVAL, SCAN_INTERVAL), this::sweep));
     }
 }

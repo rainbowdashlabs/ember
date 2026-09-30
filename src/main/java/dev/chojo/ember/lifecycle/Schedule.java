@@ -28,7 +28,7 @@ public record Schedule(Mode mode, Duration initialDelay, Duration period) {
     }
 
     /**
-     * Validates the schedule: no negative delay, and a positive period for every repeating mode.
+     * Refuses a negative delay, and a period that is not positive in a repeating mode.
      */
     public Schedule {
         Objects.requireNonNull(mode, "mode");
@@ -43,7 +43,7 @@ public record Schedule(Mode mode, Duration initialDelay, Duration period) {
     }
 
     /**
-     * A schedule whose next run starts one period after the previous run has finished.
+     * A {@link Mode#FIXED_DELAY} schedule.
      *
      * @param initialDelay the wait before the first run
      * @param period       the wait between the end of one run and the start of the next
@@ -54,7 +54,7 @@ public record Schedule(Mode mode, Duration initialDelay, Duration period) {
     }
 
     /**
-     * A schedule whose runs start one period apart, skipping a run while the previous one is busy.
+     * A {@link Mode#FIXED_RATE} schedule.
      *
      * @param initialDelay the wait before the first run
      * @param period       the distance between the starts of two runs
@@ -65,7 +65,7 @@ public record Schedule(Mode mode, Duration initialDelay, Duration period) {
     }
 
     /**
-     * A schedule with a single run.
+     * A {@link Mode#ONCE} schedule.
      *
      * @param delay the wait before the run
      * @return the schedule

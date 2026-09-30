@@ -101,17 +101,17 @@ class PageHitRecorderTest extends RepositoryTestBase {
         var repository = Mockito.mock(PageHitRepository.class);
         var rec = new PageHitRecorder(repository, disabled);
 
-        var flush = new PageHitRecorder.FlushTask(rec, disabled);
-        var prune = new PageHitRecorder.PruneTask(rec, disabled);
-        flush.run();
-        prune.run();
+        var flush = rec.scheduledTasks().get(0);
+        var prune = rec.scheduledTasks().get(1);
+        flush.work().run();
+        prune.work().run();
 
         assertEquals(Duration.ofSeconds(1), flush.schedule().period(), "the interval is at least a second");
         Mockito.verifyNoInteractions(repository);
 
         Mockito.when(disabled.webStatsEnabled()).thenReturn(true);
-        prune.run();
-        flush.run();
+        prune.work().run();
+        flush.work().run();
         Mockito.verify(repository).pruneBefore(Mockito.any());
     }
 
