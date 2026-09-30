@@ -114,7 +114,7 @@ public class StatisticsRepository {
     private List<AttendanceMonth> attendanceByMonth(int stationId) {
         return query("""
                         SELECT
-                            to_char(s.start_time AT TIME ZONE 'UTC', 'YYYY-MM') AS month,
+                            to_char(s.start_time, 'YYYY-MM')                   AS month,
                             count(DISTINCT s.id)                               AS sessions,
                             count(e.id) FILTER (WHERE e.status = :present)     AS present,
                             count(e.id) FILTER (WHERE e.status = :absent)      AS absent,
