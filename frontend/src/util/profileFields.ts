@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {type Ref} from 'vue'
+import type {Ref} from 'vue'
 import {ageSourceOf, FieldTypes, parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import {computeAge} from '@/util/age'
 

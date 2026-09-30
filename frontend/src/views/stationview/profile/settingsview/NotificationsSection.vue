@@ -89,7 +89,7 @@ function getToggle(type: string): NotificationToggle {
 
     <!-- Header row -->
     <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center text-xs font-semibold text-(--text-muted) border-b border-(--border) pb-2">
-      <span></span>
+      <span/>
       <span class="w-12 text-center">{{ t('userSettings.columnApp') }}</span>
       <span class="w-12 text-center">{{ t('userSettings.columnEmail') }}</span>
       <span class="w-12 text-center">{{ t('userSettings.columnFeed') }}</span>

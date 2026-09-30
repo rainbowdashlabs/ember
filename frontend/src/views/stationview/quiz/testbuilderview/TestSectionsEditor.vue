@@ -53,7 +53,7 @@ const { t } = useI18n()
       </SecondaryButton>
     </div>
 
-    <EmptyState compact v-if="props.sections.length === 0">{{ t('quiz.sections.noSections') }}</EmptyState>
+    <EmptyState v-if="props.sections.length === 0" compact>{{ t('quiz.sections.noSections') }}</EmptyState>
 
     <DragList
         :items="props.sections"

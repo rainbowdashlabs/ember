@@ -41,7 +41,7 @@ const emit = defineEmits<{
         <SecondaryButton @click="emit('cancel-export')">{{ t('common.cancel') }}</SecondaryButton>
       </template>
       <template v-else>
-        <PrimaryButton :icon="['fas', 'file-export']" v-if="hasMembers" @click="emit('enter-export')">
+        <PrimaryButton v-if="hasMembers" :icon="['fas', 'file-export']" @click="emit('enter-export')">
           {{ t('inventoryMembers.export') }}
         </PrimaryButton>
       </template>

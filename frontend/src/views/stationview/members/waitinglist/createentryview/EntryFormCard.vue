@@ -59,7 +59,7 @@ const { t } = useI18n()
 
     <div class="space-y-1">
       <FieldLabel>{{ t('waitingList.notes') }}</FieldLabel>
-      <TextAreaInput :model-value="notes" @update:model-value="emit('update:notes', $event ?? '')" :placeholder="t('waitingList.notesPlaceholder')"/>
+      <TextAreaInput :model-value="notes" :placeholder="t('waitingList.notesPlaceholder')" @update:model-value="emit('update:notes', $event ?? '')"/>
     </div>
   </NeutralContainer>
 </template>

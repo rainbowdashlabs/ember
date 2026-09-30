@@ -137,7 +137,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 
     <Modal v-model="showCreateModal">
       <SubHeader class="mb-3">{{ t('procedures.createTemplate') }}</SubHeader>
-      <form @submit.prevent="handleCreate" class="space-y-3">
+      <form class="space-y-3" @submit.prevent="handleCreate">
         <TextInput v-model="newName" :placeholder="t('procedures.templateName')" required />
         <TextAreaInput v-model="newDescription" :placeholder="t('procedures.templateDescription')" />
         <div class="flex gap-2 justify-end">

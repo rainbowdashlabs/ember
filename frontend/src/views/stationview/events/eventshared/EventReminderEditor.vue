@@ -37,7 +37,7 @@ function updateReminder(index: number, value: number | undefined) {
     <p class="text-xs text-(--text-muted)">{{ t('eventEdit.remindersHint') }}</p>
     <EmptyState v-if="model.length === 0" compact>{{ t('eventEdit.noReminders') }}</EmptyState>
     <div v-for="(days, i) in model" :key="i" class="flex items-center gap-2">
-      <NumberInput :model-value="days" @update:model-value="updateReminder(i, $event)" class="w-24" />
+      <NumberInput :model-value="days" class="w-24" @update:model-value="updateReminder(i, $event)" />
       <span class="text-sm text-(--text-muted)">{{ t('eventEdit.daysBefore') }}</span>
       <DeleteButton @click="removeReminder(i)" />
     </div>

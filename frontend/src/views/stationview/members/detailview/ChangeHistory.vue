@@ -67,7 +67,7 @@ function acknowledgeAllChanges() {
 
     <FailureAlert :failure="failure"/>
 
-    <MutedText tag="div" size="sm" class="py-2" v-if="changes.length === 0">
+    <MutedText v-if="changes.length === 0" tag="div" size="sm" class="py-2">
       {{ t('memberDetail.noChanges') }}
     </MutedText>
 
@@ -75,11 +75,11 @@ function acknowledgeAllChanges() {
       <HistoryEntry
           v-for="change in changes"
           :key="change.id"
+          v-model:comment-value="acknowledgeComment"
           :change="change"
           :acknowledged-by-me="isAcknowledgedByMe(change)"
           :acknowledging="acknowledging"
           :comment-open="showCommentForChangeId === change.id"
-          v-model:comment-value="acknowledgeComment"
           :format-date="formatDateTime"
           @acknowledge="acknowledgeChange(change.id)"
           @toggle-comment="toggleComment(change.id)"

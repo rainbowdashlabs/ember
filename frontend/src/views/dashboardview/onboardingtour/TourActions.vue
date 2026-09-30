@@ -26,7 +26,7 @@ const {t} = useI18n()
 
 <template>
   <ButtonRow class="shrink-0">
-    <SecondaryButton :icon="['fas', 'chevron-left']" v-if="step > 0" class="text-xs" @click="emit('prev')">
+    <SecondaryButton v-if="step > 0" :icon="['fas', 'chevron-left']" class="text-xs" @click="emit('prev')">
       {{ t('tour.back') }}
     </SecondaryButton>
     <PrimaryButton @click="emit('next')">

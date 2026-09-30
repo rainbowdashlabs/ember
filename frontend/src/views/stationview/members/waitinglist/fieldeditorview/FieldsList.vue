@@ -44,7 +44,7 @@ const sortedFields = computed(() =>
 
     <p class="text-sm text-(--text-muted)">{{ t('waitingList.fieldsHint') }}</p>
 
-    <EmptyState compact v-if="sortedFields.length === 0">{{ t('waitingList.noFields') }}</EmptyState>
+    <EmptyState v-if="sortedFields.length === 0" compact>{{ t('waitingList.noFields') }}</EmptyState>
 
     <div class="space-y-2">
       <FieldRow

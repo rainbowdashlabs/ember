@@ -4,13 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import axios, {type AxiosError, type InternalAxiosRequestConfig} from 'axios'
-
-declare module 'axios' {
-    export interface InternalAxiosRequestConfig {
-        _startTime?: number
-        _stepUpAttempts?: number
-    }
-}
 import {getItem, removeItem, setItem} from './storage'
 import {showToast} from '@/util/toast'
 import {reportApiError} from '@/util/devErrorReporter'
@@ -19,6 +12,13 @@ import type {ApiErrorBody} from '@/util/apiError'
 import {getActingStation} from '@/util/actingStationState'
 import {isPublicRoute} from '@/util/publicRoute'
 import i18n from '@/i18n'
+
+declare module 'axios' {
+    export interface InternalAxiosRequestConfig {
+        _startTime?: number
+        _stepUpAttempts?: number
+    }
+}
 
 /**
  * How often one request may be sent back through the step-up prompt. One answered challenge that

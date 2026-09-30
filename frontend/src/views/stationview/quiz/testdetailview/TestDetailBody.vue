@@ -91,10 +91,10 @@ function onTagIdsUpdate(ids: number[]) {
 
   <template v-if="activeTab === 'test'">
     <TestInfoCard
-        :test="test"
-        :can-configure="canConfigure"
         v-model:edit-start-at="editStartAt"
         v-model:edit-end-at="editEndAt"
+        :test="test"
+        :can-configure="canConfigure"
         :times-dirty="timesDirty"
         :save-times="saveTimes"
         @mark-dirty="emit('mark-times-dirty')"

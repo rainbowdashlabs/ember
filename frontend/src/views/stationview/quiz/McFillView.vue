@@ -297,7 +297,7 @@ watch(loaded, v => { if (v) loadData() }, {immediate: true})
               <font-awesome-icon :icon="['fas', 'star']" class="text-primary text-xs shrink-0 ml-3"/>
               <TextInput :model-value="answer" class="flex-1 !border-0 !bg-transparent !ring-0 !shadow-none"
                          @update:model-value="(v: string | undefined) => editAnswer(qIdx, aIdx, v ?? '')"/>
-              <DeleteButton @click="removeAnswer(qIdx, aIdx)" class="mr-1"/>
+              <DeleteButton class="mr-1" @click="removeAnswer(qIdx, aIdx)"/>
             </div>
           </div>
         </NeutralContainer>

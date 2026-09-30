@@ -7,7 +7,7 @@
 import {onMounted, ref, watch} from 'vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {type FileDownloadConfig} from '@/api/pageManage'
+import type {FileDownloadConfig} from '@/api/pageManage'
 import {listMediaFiles, type StationFile} from '@/api/media'
 
 const props = defineProps<{

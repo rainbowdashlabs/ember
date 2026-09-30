@@ -6,6 +6,9 @@
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
 import type {MemberIdentity} from './types'
+import {uploadFile} from './upload'
+import {downloadAuthed} from '@/util/downloadAuthed'
+import {prepareImageUpload} from '@/util/imageUpload'
 
 export const QuizQuestionTypes = {
     MULTIPLE_CHOICE: 'MULTIPLE_CHOICE',
@@ -234,9 +237,6 @@ export interface CatalogTransferProblem {
     location: string
     message: string
 }
-import {uploadFile} from './upload'
-import {downloadAuthed} from '@/util/downloadAuthed'
-import {prepareImageUpload} from '@/util/imageUpload'
 
 // -- Shared catalog entry from federation --
 

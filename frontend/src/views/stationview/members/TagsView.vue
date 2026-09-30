@@ -187,8 +187,8 @@ const {
         </div>
       </div>
 
-      <TagFormModal v-model="showTagModal" :is-edit="!!editingTag" v-model:name="tagName"
-                    v-model:color="tagColor" v-model:visible="tagVisible" :saving="tagSaving" @save="saveTag"/>
+      <TagFormModal v-model="showTagModal" v-model:name="tagName" v-model:color="tagColor"
+                    v-model:visible="tagVisible" :is-edit="!!editingTag" :saving="tagSaving" @save="saveTag"/>
       <TagDeleteModal v-model="showDeleteModal" :target="deleteTarget" @confirm="confirmDelete"/>
       <TagConvertModal v-model="showConvertModal" :target="convertTarget" @confirm="confirmConvert"/>
     </div>

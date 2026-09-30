@@ -29,9 +29,9 @@ const { t } = useI18n()
   <NeutralContainer class="space-y-3">
     <SubHeader>{{ t('quiz.tests.restrictions') }}</SubHeader>
     <RestrictionsField
+        v-model="restriction"
         :groups="props.groups"
         :tags="props.tags"
-        v-model="restriction"
     />
   </NeutralContainer>
 </template>

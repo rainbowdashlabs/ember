@@ -18,8 +18,8 @@ const model = defineModel<RestrictionSelection>({required: true})
 
 <template>
   <RestrictionPicker
+      v-model="model"
       :groups="groups"
       :tags="tags"
-      v-model="model"
   />
 </template>

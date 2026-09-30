@@ -29,7 +29,7 @@ const rows = [
         <Th>{{ t('helpCenter.inventoryLendingBrowse.colItem') }}</Th>
         <Th>{{ t('helpCenter.inventoryLendingBrowse.colQuantity') }}</Th>
         <Th>{{ t('helpCenter.inventoryLendingBrowse.colAvailable') }}</Th>
-        <th class="px-3 py-2"></th>
+        <th class="px-3 py-2"/>
       </template>
       <DummyAvailableRow
         v-for="(r, i) in rows"

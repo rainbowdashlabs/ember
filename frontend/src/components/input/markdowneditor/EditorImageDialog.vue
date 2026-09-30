@@ -49,7 +49,7 @@ const imageAlt = ref('')
     </div>
 
     <ButtonRow>
-      <PrimaryButton compact v-if="imageUrl" @click="$emit('insertUrl', imageUrl, imageAlt)">
+      <PrimaryButton v-if="imageUrl" compact @click="$emit('insertUrl', imageUrl, imageAlt)">
         <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> Einfügen
       </PrimaryButton>
       <SecondaryButton compact @click="$emit('browse', imageAlt)">

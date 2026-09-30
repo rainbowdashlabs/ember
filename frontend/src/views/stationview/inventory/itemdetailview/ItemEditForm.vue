@@ -50,7 +50,7 @@ const {t} = useI18n()
     </div>
     <div v-if="props.showArt" class="space-y-1">
       <FieldLabel>{{ t('inventory.art.field') }}</FieldLabel>
-      <ArtPicker v-model:artId="artId" v-model:draft="artDraft" :arts="props.arts"/>
+      <ArtPicker v-model:art-id="artId" v-model:draft="artDraft" :arts="props.arts"/>
     </div>
     <div v-if="props.sizes.length > 0" class="space-y-1">
       <FieldLabel>{{ t('itemDetail.size') }}</FieldLabel>

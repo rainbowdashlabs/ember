@@ -51,8 +51,8 @@ const {t} = useI18n()
                 <Td dense muted class="font-mono whitespace-nowrap">PLAN-15</Td>
                 <td class="py-2 pr-3">{{ t('helpCenter.backlog.dummyTitle3') }}</td>
                 <td class="py-2 pr-3"><font-awesome-icon :icon="['fas', 'angle-down']" class="text-xs text-blue-400" /></td>
-                <td class="py-2 pr-3"></td>
-                <td class="py-2 text-xs whitespace-nowrap"></td>
+                <td class="py-2 pr-3"/>
+                <td class="py-2 text-xs whitespace-nowrap"/>
             </tr>
         </tbody>
     </table>

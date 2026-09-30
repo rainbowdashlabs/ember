@@ -105,8 +105,7 @@ onMounted(() => {
 
       <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')"
                     to="/admin/2fa" name="admin-two-factor"
-                    @navigate="close">
-      </SidebarGroup>
+                    @navigate="close"/>
 
       <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" group-key="monitoring">
         <SidebarLink data-onboarding="nav.admin.storage" :icon="['fas', 'hard-drive']" name="admin-storage" to="/admin/monitoring/storage" @navigate="close">

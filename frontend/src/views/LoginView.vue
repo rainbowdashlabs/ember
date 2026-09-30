@@ -262,9 +262,9 @@ const error = computed(() => loginError.value || demoError.value || passkeyError
         <LegalModal v-model="showTos" :title="t('storageConsent.tosTitle')"
                     :loading="tosLoading" :html="tosHtml"/>
 
-        <LoginForm v-if="consent === 'accepted'" class="mx-auto w-full max-w-xs"
-                   v-model:identifier="identifier" v-model:password="password"
-                   v-model:trustedDevice="trustedDevice"
+        <LoginForm v-if="consent === 'accepted'" v-model:identifier="identifier"
+                   v-model:password="password" v-model:trusted-device="trustedDevice"
+                   class="mx-auto w-full max-w-xs"
                    :error="error" :loading="loading"
                    :registration-enabled="registrationEnabled"
                    :passkey-available="passkeyAvailable"

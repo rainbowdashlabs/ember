@@ -440,7 +440,9 @@ watch(() => [props.fileId, props.stationUid], () => {
             </Alert>
             <KbFileContent
                 v-else
+                v-model:edit-content="editContent"
                 :file="file"
+                v-model:block-rows="blockRows"
                 :editing="editing"
                 :content-url="contentUrl"
                 :text-content="textContent"
@@ -450,8 +452,6 @@ watch(() => [props.fileId, props.stationUid], () => {
                 :content-mode="contentMode"
                 :station-uid="blockStationUid"
                 :reader-rows="readerRows"
-                v-model:edit-content="editContent"
-                v-model:block-rows="blockRows"
                 @content-input="onContentInput"
                 @enable-blocks="enableBlocks"
                 @reupload="handleReuploadFile"

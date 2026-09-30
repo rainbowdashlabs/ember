@@ -40,7 +40,7 @@ const emit = defineEmits<{
   <div class="space-y-3">
     <FieldLabel>{{ t('events.exportColumns') }}</FieldLabel>
 
-    <MutedText tag="div" size="sm" class="py-2 text-center" v-if="selectedColumns.length === 0">
+    <MutedText v-if="selectedColumns.length === 0" tag="div" size="sm" class="py-2 text-center">
       {{ t('events.exportNoColumns') }}
     </MutedText>
     <DragList

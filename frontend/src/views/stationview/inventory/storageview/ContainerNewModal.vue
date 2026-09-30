@@ -92,7 +92,7 @@ function onClose() {
 </script>
 
 <template>
-  <Modal v-model="open" size="md" @update:modelValue="(v) => { if (!v) onClose() }">
+  <Modal v-model="open" size="md" @update:model-value="(v) => { if (!v) onClose() }">
     <SubHeader class="mb-3">{{ t('inventory.storage.newContainer') }}</SubHeader>
     <div v-if="validationError || createFailure" class="mb-3 space-y-2">
       <FailureAlert :message="validationError" expected/>

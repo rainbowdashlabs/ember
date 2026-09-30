@@ -198,10 +198,10 @@ const sortedPeers = computed(() =>
 
     <DiscoverySettingsCard
         v-if="settings"
-        :settings="settings"
         v-model:model-enabled="draftEnabled"
         v-model:model-depth="draftDepth"
         v-model:model-interval="draftInterval"
+        :settings="settings"
         :save="saveSettings"
         @discover-now="discoverNow"
         @seed-federation="seedFederation"
@@ -236,10 +236,10 @@ const sortedPeers = computed(() =>
     />
 
     <BlocklistCard
-        :blocklist="blocklist"
         v-model:value="blocklistValue"
         v-model:kind="blocklistKind"
         v-model:note="blocklistNote"
+        :blocklist="blocklist"
         @add="addToBlocklist"
         @remove="removeFromBlocklist"
     />

@@ -40,11 +40,11 @@ defineProps<{
   <div class="space-y-4">
     <NewsListItem
       v-for="item in items"
+      :id="item.id"
       :key="itemKey(item)"
       :ref="(el: unknown) => item.kind === 'local' ? setNewsItemRef(el, item.id) : null"
       :data-news-id="item.kind === 'local' ? item.id : undefined"
       :kind="item.kind"
-      :id="item.id"
       :title="item.title"
       :content-html="item.contentHtml"
       :author="item.author"

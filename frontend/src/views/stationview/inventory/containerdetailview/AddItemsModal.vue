@@ -152,7 +152,7 @@ onMounted(loadItems)
 </script>
 
 <template>
-  <Modal v-model="open" size="lg" mobile-full @update:modelValue="(v) => { if (!v) onClose() }">
+  <Modal v-model="open" size="lg" mobile-full @update:model-value="(v) => { if (!v) onClose() }">
     <SubHeader class="mb-2">{{ t('inventory.storage.addItems.title') }}</SubHeader>
     <p class="text-xs text-(--text-muted) mb-3">{{ t('inventory.storage.addItems.intro') }}</p>
 

@@ -44,7 +44,7 @@ const displayName = computed(() => {
   <div class="space-y-2">
     <FieldLabel>{{ t('adminStations.managerEmail') }}</FieldLabel>
 
-    <component v-if="showCurrent" :is="manager!.accountReady ? SuccessContainer : InfoContainer"
+    <component :is="manager!.accountReady ? SuccessContainer : InfoContainer" v-if="showCurrent"
                class="flex items-center justify-between">
       <div>
         <div class="font-medium">{{ displayName }}</div>

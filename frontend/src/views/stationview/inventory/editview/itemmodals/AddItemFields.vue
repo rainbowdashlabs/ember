@@ -58,7 +58,7 @@ onMounted(() => internalIdInput.value?.$el?.focus())
     </div>
     <div v-if="heterogeneous" class="space-y-1">
       <FieldLabel>{{ t('inventory.art.field') }}</FieldLabel>
-      <ArtPicker v-model:artId="artId" v-model:draft="artDraft" :arts="arts"/>
+      <ArtPicker v-model:art-id="artId" v-model:draft="artDraft" :arts="arts"/>
       <p class="text-xs text-(--text-muted)">{{ t('inventory.art.fieldHint') }}</p>
     </div>
     <div v-if="detail.hasSizes" class="space-y-1">

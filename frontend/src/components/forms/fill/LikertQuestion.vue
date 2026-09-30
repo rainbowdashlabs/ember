@@ -44,7 +44,7 @@ function setRating(statementKey: string, n: number) {
       <table class="w-full text-sm">
         <thead>
         <tr>
-          <th></th>
+          <th/>
           <th v-for="n in scaleSteps" :key="n" class="text-center px-2 py-1 text-xs text-(--text-muted)">
             {{ labelFor(n) }}
           </th>

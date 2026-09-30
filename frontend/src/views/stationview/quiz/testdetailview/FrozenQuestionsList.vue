@@ -42,7 +42,7 @@ const { t } = useI18n()
         {{ frozenQuestions.length > 0 ? t('quiz.frozenQuestions.regenerate') : t('quiz.frozenQuestions.generate') }}
       </SecondaryButton>
     </div>
-    <EmptyState compact v-if="frozenQuestions.length === 0">{{ t('quiz.frozenQuestions.empty') }}</EmptyState>
+    <EmptyState v-if="frozenQuestions.length === 0" compact>{{ t('quiz.frozenQuestions.empty') }}</EmptyState>
     <NeutralContainer v-for="fq in frozenQuestions" :key="fq.position">
       <div v-if="fq.question" class="flex items-start gap-3">
         <MutedText class="w-6 shrink-0 pt-0.5">{{ fq.position + 1 }}.</MutedText>

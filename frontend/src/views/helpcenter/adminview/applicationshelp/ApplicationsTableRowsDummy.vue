@@ -47,7 +47,7 @@ const {t} = useI18n()
     <Td>
       <SuccessBadge>{{ t('adminApplications.accepted') }}</SuccessBadge>
     </Td>
-    <Td></Td>
+    <Td/>
   </TRow>
   <TRow>
     <Td>

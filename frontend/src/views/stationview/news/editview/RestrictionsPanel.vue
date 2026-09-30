@@ -37,12 +37,12 @@ const {t} = useI18n()
     <SubHeader>{{ t('news.restrictToGroups') }}</SubHeader>
     <p class="text-xs text-(--text-muted)">{{ t('news.restrictHint') }}</p>
     <RestrictionPicker
+        v-model="restriction"
         :groups="props.groups"
         :tags="props.tags"
         :members="props.members"
         :show-members="true"
         :show-mode="false"
-        v-model="restriction"
     />
   </NeutralContainer>
 </template>

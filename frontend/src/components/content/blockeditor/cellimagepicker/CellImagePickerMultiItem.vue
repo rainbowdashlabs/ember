@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
-import {type GalleryItem} from '@/api/pageManage'
+import type {GalleryItem} from '@/api/pageManage'
 import {mediaImageSrcset, mediaImageUrlAt, type StationFile} from '@/api/media'
 
 defineProps<{

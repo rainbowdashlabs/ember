@@ -94,8 +94,7 @@ watch(
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')"
-                    to="/helpcenter/admin/2fa" name="help-admin-two-factor" @navigate="close">
-      </SidebarGroup>
+                    to="/helpcenter/admin/2fa" name="help-admin-two-factor" @navigate="close"/>
 
       <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/helpcenter/admin/monitoring" group-key="monitoring">
         <SidebarLink :icon="['fas', 'hard-drive']" name="help-admin-storage"

@@ -35,7 +35,7 @@ const assignable = computed(() => props.members.map(fromCompletion))
 </script>
 
 <template>
-    <div v-if="props.fields.length > 0" class="border-t border-[var(--border)] pt-4"></div>
+    <div v-if="props.fields.length > 0" class="border-t border-[var(--border)] pt-4"/>
     <div v-for="field in props.fields" :key="field.id">
         <FieldLabel class="mb-1">{{ field.name }}</FieldLabel>
         <template v-if="canEdit">

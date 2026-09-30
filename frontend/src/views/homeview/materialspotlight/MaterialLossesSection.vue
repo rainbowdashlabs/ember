@@ -27,7 +27,7 @@ const {typeLabel} = useMaterialLabels()
   />
   <table class="landing-material-table landing-material-table--last">
     <colgroup>
-      <col class="c-item"><col class="c-type"><col class="c-mid"><col class="c-end">
+      <col class="c-item"/><col class="c-type"/><col class="c-mid"/><col class="c-end"/>
     </colgroup>
     <thead>
       <tr>

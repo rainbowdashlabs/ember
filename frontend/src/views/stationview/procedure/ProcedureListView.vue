@@ -203,7 +203,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
           {{ t('procedures.createFromTemplate') }}
         </SelectionToggleButton>
       </div>
-      <form @submit.prevent="handleCreate" class="space-y-3">
+      <form class="space-y-3" @submit.prevent="handleCreate">
         <template v-if="createMode === 'template'">
           <FieldLabel class="mb-1">{{ t('procedures.selectTemplate') }}</FieldLabel>
           <div v-if="templates.length === 0" class="text-sm text-[var(--text-muted)]">{{ t('procedures.noTemplates') }}</div>

@@ -19,6 +19,7 @@ import { useSession } from '@/composables/useSession'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
+import { StationPermission } from '@/api/types'
 
 const { t } = useI18n()
 defineProps<{
@@ -29,7 +30,6 @@ defineProps<{
 
 const router = useRouter()
 const newsRoutes = useNewsRoutes()
-import { StationPermission } from '@/api/types'
 const { hasPermission } = useSession()
 const canEditNews = computed(() => hasPermission(StationPermission.NEWS_EDIT))
 
@@ -231,7 +231,7 @@ watch(() => entries.value.length, async () => {
   >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <PrimaryButton :icon="['fas', 'plus']" v-if="canEditNews" @click="router.push({ name: newsRoutes.create })">
+        <PrimaryButton v-if="canEditNews" :icon="['fas', 'plus']" @click="router.push({ name: newsRoutes.create })">
           {{ t('news.create') }}
         </PrimaryButton>
       </div>

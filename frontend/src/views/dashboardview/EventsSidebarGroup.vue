@@ -31,7 +31,7 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup data-onboarding="nav.events.upcoming" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.pendingRegistrations + counts.openEvents" :icon="['fas', 'calendar-days']" :label="t('sidebar.events')" to="/station/events/upcoming" name="events-upcoming" @navigate="close">
+  <SidebarGroup data-onboarding="nav.events.upcoming" :open-group="isDesktop ? undefined : openGroup" :badge="counts.pendingRegistrations + counts.openEvents" :icon="['fas', 'calendar-days']" :label="t('sidebar.events')" to="/station/events/upcoming" name="events-upcoming" @update:open-group="v => emit('update:openGroup', v)" @navigate="close">
     <SidebarLink v-if="hasPermission(StationPermission.EVENT_REGISTRATION)" :badge="counts.pendingRegistrations" :icon="['fas', 'clipboard-list']" name="events-registrations"
                  to="/station/events/registrations" @navigate="close">
       {{ t('sidebar.pendingRegistrations') }}

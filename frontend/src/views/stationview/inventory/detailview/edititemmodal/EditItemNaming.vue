@@ -45,7 +45,7 @@ const {t} = useI18n()
     </div>
     <div v-if="showArt" class="space-y-1">
       <FieldLabel>{{ t('inventory.art.field') }}</FieldLabel>
-      <ArtPicker v-model:artId="artId" v-model:draft="artDraft" :arts="arts"/>
+      <ArtPicker v-model:art-id="artId" v-model:draft="artDraft" :arts="arts"/>
       <p class="text-xs text-(--text-muted)">{{ t('inventory.art.fieldHint') }}</p>
     </div>
     <div class="space-y-1" data-testid="item-tags">

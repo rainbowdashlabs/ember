@@ -192,9 +192,9 @@ onMounted(async () => {
         <TableColumnPicker :table="table"/>
       </TableFilterBar>
       <BatchToolbar
-          :selected-count="selectedForBatch.size"
           v-model:batch-context="batchContext"
           v-model:batch-status="batchStatus"
+          :selected-count="selectedForBatch.size"
           :batch-saving="batchSaving"
           @apply="applyBatch"
           @select-all="selectAllFiltered"

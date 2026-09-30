@@ -38,6 +38,6 @@ const hasSettings = computed(() => props.question.questionType !== QuestionTypes
       <ToggleInput v-model="question.shuffle"/>
     </MenuSettingRow>
     <LikertSettings v-else-if="question.questionType === QuestionTypes.LIKERT" :question="question"/>
-    <hr class="my-1 border-(--border)">
+    <hr class="my-1 border-(--border)"/>
   </template>
 </template>

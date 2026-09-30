@@ -231,17 +231,17 @@ const {t} = useI18n()
       <FieldLabel>{{ t('events.restrictToRoles') }}</FieldLabel>
       <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
       <RestrictionsField
+          v-model="restriction"
           :groups="groups"
           :tags="tags"
-          v-model="restriction"
       />
 
       <FieldLabel>{{ t('events.restrictVisibility') }}</FieldLabel>
       <p class="text-xs text-(--text-muted)">{{ t('events.restrictVisibilityHint') }}</p>
       <RestrictionsField
+          v-model="viewRestriction"
           :groups="groups"
           :tags="tags"
-          v-model="viewRestriction"
       />
     </template>
 

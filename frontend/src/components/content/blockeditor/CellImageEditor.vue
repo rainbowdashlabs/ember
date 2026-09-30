@@ -15,7 +15,7 @@ import ImageDisplaySection from './cellimageeditor/ImageDisplaySection.vue'
 import ImageCropSection from './cellimageeditor/ImageCropSection.vue'
 import ImageStyleSection from './cellimageeditor/ImageStyleSection.vue'
 import ImageTextSection from './cellimageeditor/ImageTextSection.vue'
-import {type ImageConfig} from '@/api/pageManage'
+import type {ImageConfig} from '@/api/pageManage'
 import {mediaFileUrl, type StationFile} from '@/api/media'
 
 const content = defineModel<string>('content', {required: true})

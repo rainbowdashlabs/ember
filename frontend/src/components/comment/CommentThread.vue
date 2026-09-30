@@ -191,7 +191,7 @@ const maxDepth = 6
         {{ sortDesc ? t('comments.newest') : t('comments.oldest') }}
       </SecondaryButton>
     </div>
-    <div v-for="comment in rootComments" :key="comment.id" :id="`comment-${comment.id}`"
+    <div v-for="comment in rootComments" :id="`comment-${comment.id}`" :key="comment.id"
          class="space-y-2 py-2 transition-colors duration-1000"
          :class="{'bg-primary/10 rounded-theme px-2 -mx-2': highlightId === comment.id}"
     >

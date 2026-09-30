@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {type Page} from '@playwright/test'
+import type {Page} from '@playwright/test'
 import {expect, test} from './fixtures/auth'
 
 /**

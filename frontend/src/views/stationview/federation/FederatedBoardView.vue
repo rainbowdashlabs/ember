@@ -196,12 +196,12 @@ watch([partnerUid, boardKey], loadData)
     <FailureAlert v-else-if="failure" :failure="failure"/>
     <template v-else-if="board">
       <FederatedBoardHeader
+          v-model:search-query="searchQuery"
           :board-name="board.name"
           :short-key="board.shortKey"
           :is-read-only="isReadOnly"
           :is-full="isFull"
           :can-manage-boards="canManageBoards()"
-          v-model:search-query="searchQuery"
           :search-results="searchResults"
           :ticket-page="ticketPage"
           :lane-name="laneName"

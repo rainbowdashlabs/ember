@@ -234,7 +234,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
     <!-- Edit Template Modal -->
     <Modal v-model="showEditModal">
       <SubHeader class="mb-3">{{ t('procedures.editTemplate') }}</SubHeader>
-      <form @submit.prevent="handleEdit" class="space-y-3">
+      <form class="space-y-3" @submit.prevent="handleEdit">
         <TextInput v-model="editName" :placeholder="t('procedures.templateName')" required />
         <TextAreaInput v-model="editDescription" :placeholder="t('procedures.templateDescription')" />
         <div class="flex gap-2 justify-end">
@@ -246,7 +246,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
     <!-- Add/Edit Item Modal -->
     <Modal v-model="showItemModal">
       <SubHeader class="mb-3">{{ editingItem ? t('procedures.editItem') : t('procedures.addItem') }}</SubHeader>
-      <form @submit.prevent="handleSaveItem" class="space-y-3">
+      <form class="space-y-3" @submit.prevent="handleSaveItem">
         <TextInput v-model="itemTitle" :placeholder="t('procedures.itemTitle')" required />
         <TextAreaInput v-model="itemDescription" :placeholder="t('procedures.itemDescription')" />
         <div class="flex items-center gap-4">
@@ -270,7 +270,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       <SubHeader class="mb-3">{{ t('procedures.dependencies') }}: {{ depTargetItem?.title }}</SubHeader>
       <div v-if="detail" class="space-y-3">
         <div class="flex gap-2">
-          <SelectInput :model-value="depSelectedId != null ? String(depSelectedId) : ''" @update:model-value="(v: string | number | null | undefined) => { depSelectedId = v ? Number(v) : null }" class="flex-1">
+          <SelectInput :model-value="depSelectedId != null ? String(depSelectedId) : ''" class="flex-1" @update:model-value="(v: string | number | null | undefined) => { depSelectedId = v ? Number(v) : null }">
             <option value="">{{ t('procedures.dependsOn') }}...</option>
             <option
               v-for="item in detail.items.filter(i => i.id !== depTargetItem?.id && !getDepsForItem(depTargetItem?.id ?? 0).includes(i.id))"

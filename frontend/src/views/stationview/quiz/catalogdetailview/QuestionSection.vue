@@ -129,14 +129,14 @@ function onBatchDone() {
 
     <NeutralContainer v-if="expandedQuestion === 'new'">
       <QuestionInlineEditor
-        :is-editing="false"
         v-model:title="questionTitle"
         v-model:description="questionDescription"
-        :question-type="questionType"
         v-model:category-id="questionCategoryId"
         v-model:points="questionPoints"
         v-model:auto-points="questionAutoPoints"
         v-model:config="questionConfig"
+        :is-editing="false"
+        :question-type="questionType"
         :image-preview="questionImagePreview"
         :auth-image-src="questionAuthImageSrc"
         :has-image="questionHasImage"
@@ -168,25 +168,25 @@ function onBatchDone() {
       @action="openBatchAction"
     />
 
-    <EmptyState compact v-if="questions.length === 0 && expandedQuestion !== 'new'">{{ t('quiz.questions.noQuestions') }}</EmptyState>
+    <EmptyState v-if="questions.length === 0 && expandedQuestion !== 'new'" compact>{{ t('quiz.questions.noQuestions') }}</EmptyState>
 
     <div class="space-y-2">
       <QuestionCard
         v-for="q in filteredQuestions"
         :key="q.id"
+        v-model:editor-title="questionTitle"
+        v-model:editor-description="questionDescription"
+        v-model:editor-category-id="questionCategoryId"
+        v-model:editor-points="questionPoints"
+        v-model:editor-auto-points="questionAutoPoints"
         :question="q"
+        v-model:editor-config="questionConfig"
         :expanded="expandedQuestion === q.id"
         :selected="selectedIds.has(q.id)"
         :reports="reportsFor(q.id)"
         :category-name="getCategoryName(q.categoryId)"
         :categories="categories"
-        v-model:editor-title="questionTitle"
-        v-model:editor-description="questionDescription"
         :editor-question-type="questionType"
-        v-model:editor-category-id="questionCategoryId"
-        v-model:editor-points="questionPoints"
-        v-model:editor-auto-points="questionAutoPoints"
-        v-model:editor-config="questionConfig"
         :editor-image-preview="questionImagePreview"
         :editor-auth-image-src="questionAuthImageSrc"
         :editor-has-image="questionHasImage"

@@ -33,7 +33,7 @@ const emit = defineEmits<{
     <SectionHeader>{{ t('membersCreate.stepGroups') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('membersCreate.stepGroupsHint') }}</p>
 
-    <EmptyState compact v-if="groups.length === 0">{{ t('membersCreate.noGroups') }}</EmptyState>
+    <EmptyState v-if="groups.length === 0" compact>{{ t('membersCreate.noGroups') }}</EmptyState>
 
     <div class="space-y-2">
       <div

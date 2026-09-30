@@ -121,7 +121,7 @@ function doCreate() {
       </ButtonRow>
     </div>
 
-    <MutedText tag="div" size="sm" class="py-2" v-if="people.length === 0">
+    <MutedText v-if="people.length === 0" tag="div" size="sm" class="py-2">
       {{ labels.empty }}
     </MutedText>
 
@@ -130,7 +130,7 @@ function doCreate() {
         <div class="flex items-center justify-between">
           <div>
             <span class="font-semibold">{{ displayName(person) }}</span>
-            <MutedText class="ml-2" v-if="person.email">{{ person.email }}</MutedText>
+            <MutedText v-if="person.email" class="ml-2">{{ person.email }}</MutedText>
           </div>
           <div v-if="!readonly" class="flex items-center gap-2">
             <EditButton @click="emit('edit', person.id)" />

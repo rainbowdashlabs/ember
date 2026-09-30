@@ -119,9 +119,9 @@ function memberIdentity(memberId: number) {
       :count="items.length"
       :show-quick-assign="permissions.canCreateItem && permissions.canQuickAssign"
       :show-intake="permissions.canCreateItem && permissions.canTakeStock"
-      @intake="$emit('openIntake')"
       :show-add="permissions.canCreateItem && permissions.canAddInternal"
       :show-search="items.length > 0"
+      @intake="$emit('openIntake')"
       @quick-assign="$emit('openQuickAssign')"
       @add="$emit('openAdd')"
     />

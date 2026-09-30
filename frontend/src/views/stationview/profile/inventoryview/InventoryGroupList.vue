@@ -46,7 +46,7 @@ const {t} = useI18n()
         </span>
       </div>
 
-      <MutedText tag="div" size="sm" class="py-2" v-if="group.items.length === 0">
+      <MutedText v-if="group.items.length === 0" tag="div" size="sm" class="py-2">
         {{ t('profile.noInventory') }}
       </MutedText>
 

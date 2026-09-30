@@ -81,7 +81,7 @@ function setColumns(keys: (string | number)[], visible: boolean) {
       <span class="text-sm">{{ t('waitingList.hideBelowJoinAge') }}</span>
     </div>
 
-    <EmptyState compact v-if="entries.length === 0">{{ t('waitingList.noEntries') }}</EmptyState>
+    <EmptyState v-if="entries.length === 0" compact>{{ t('waitingList.noEntries') }}</EmptyState>
 
     <WaitingSectionTable
       v-else

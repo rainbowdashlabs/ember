@@ -50,9 +50,9 @@ function emitFilter() {
 <template>
   <NeutralContainer class="flex flex-wrap items-center gap-4">
     <RestrictionPicker
+        v-model="restriction"
         :groups="groups"
         :tags="tags"
-        v-model="restriction"
         @update:model-value="emitFilter"
     />
     <div class="flex items-center gap-2">

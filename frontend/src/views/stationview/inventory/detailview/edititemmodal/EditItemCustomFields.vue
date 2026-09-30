@@ -21,6 +21,6 @@ const {t} = useI18n()
 <template>
   <div v-if="defs.length > 0" class="space-y-2 pt-2">
     <SubHeader>{{ t('inventory.fields.title') }}</SubHeader>
-    <CustomFieldsSection :defs="defs" v-model="values"/>
+    <CustomFieldsSection v-model="values" :defs="defs"/>
   </div>
 </template>

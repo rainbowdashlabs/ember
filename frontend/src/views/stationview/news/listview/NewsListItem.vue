@@ -50,8 +50,8 @@ const entryPage = computed(() => props.kind === 'federated'
     <RowLink :to="entryPage">
       <div class="space-y-3">
         <NewsListItemHeader
-          :kind="kind"
           :id="id"
+          :kind="kind"
           :title="title"
           :author="author"
           :author-name="authorName"

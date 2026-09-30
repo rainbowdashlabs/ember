@@ -74,7 +74,7 @@ onMounted(loadData)
       <InfoBadge v-if="soonest <= 1" class="ml-2">{{ t('dashboard.awaitingSoon') }}</InfoBadge>
     </SectionHeader>
     <div class="overflow-y-auto flex-1 space-y-2">
-      <EmptyState compact v-if="awaiting.length === 0">{{ t('dashboard.noAwaitingAnswer') }}</EmptyState>
+      <EmptyState v-if="awaiting.length === 0" compact>{{ t('dashboard.noAwaitingAnswer') }}</EmptyState>
       <RowLink v-for="entry in awaiting" :key="entry.eventId" :to="eventPage(entry)">
         <NeutralContainer
             data-testid="awaiting-answer"

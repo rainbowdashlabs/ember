@@ -262,17 +262,17 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
     <form class="space-y-4" @submit.prevent="saveItem">
       <SectionHeader>{{ t('inventory.edit.addItem') }}</SectionHeader>
       <AddItemFields
-          v-model:internalId="itemInternalId"
+          v-model:internal-id="itemInternalId"
           v-model:name="itemName"
-          v-model:sizeId="itemSizeId"
+          v-model:size-id="itemSizeId"
           v-model:quantity="itemQuantity"
-          v-model:artId="itemArtId"
-          v-model:artDraft="itemArtDraft"
+          v-model:art-id="itemArtId"
+          v-model:art-draft="itemArtDraft"
           :detail="detail"
           :arts="arts"
           :heterogeneous="heterogeneous"
       />
-      <EditItemCustomFields :defs="fieldDefs" v-model="fieldValues"/>
+      <EditItemCustomFields v-model="fieldValues" :defs="fieldDefs"/>
       <ButtonRow pair align="end">
         <SecondaryButton type="button" @click="showItemModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="itemSaving || !itemName.trim() || fieldsInvalid" type="submit">

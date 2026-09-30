@@ -81,7 +81,7 @@ function setAllName(value: string) {
             <th class="p-2 text-left">{{ t('batchCreate.date') }}</th>
             <th class="p-2 text-left">{{ t('batchCreate.eventName') }}</th>
             <th v-for="fd in activeFields()" :key="fd.name" class="p-2 text-left">{{ fd.name }}</th>
-            <th class="p-2"></th>
+            <th class="p-2"/>
           </tr>
           </thead>
           <tbody>

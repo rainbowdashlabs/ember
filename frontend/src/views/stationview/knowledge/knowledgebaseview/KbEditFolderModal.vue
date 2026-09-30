@@ -61,7 +61,7 @@ async function handleSave() {
 <template>
     <Modal v-model="show">
         <SubHeader class="mb-3">{{ t('kb.editFolder') }}</SubHeader>
-        <form @submit.prevent="handleSave" class="flex flex-col gap-3">
+        <form class="flex flex-col gap-3" @submit.prevent="handleSave">
             <TextInput v-model="editName" :placeholder="t('kb.folderName')" required/>
             <TextAreaInput v-model="editDescription" :placeholder="t('kb.description')"/>
             <KbFolderIconField v-model="iconFile"/>

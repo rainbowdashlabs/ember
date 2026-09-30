@@ -259,7 +259,7 @@ load()
 </script>
 
 <template>
-  <Modal v-model="open" size="md" @update:modelValue="(v) => { if (!v) onClose() }">
+  <Modal v-model="open" size="md" @update:model-value="(v) => { if (!v) onClose() }">
     <SubHeader class="mb-2">{{ t('inventory.unknownScan.title') }}</SubHeader>
     <p class="text-sm text-(--text-muted) mb-3">
       {{ context === 'member' ? t('inventory.unknownScan.introMember') : t('inventory.unknownScan.introContainer') }}
@@ -277,23 +277,23 @@ load()
     </div>
     <UnknownScanForm
         v-else
-        v-model:targetInventoryId="targetInventoryId"
-        v-model:newInventoryName="newInventoryName"
-        v-model:newInventoryType="newInventoryType"
-        v-model:newInventoryHasSizes="newInventoryHasSizes"
-        v-model:newInventorySizes="newInventorySizes"
-        v-model:itemName="itemName"
-        v-model:pickedSizeLabel="pickedSizeLabel"
-        v-model:ownerKind="ownerKind"
-        v-model:fieldValues="fieldValues"
-        :sortedInventories="sortedInventories"
-        :isCreatingInventory="isCreatingInventory"
-        :effectiveHasSizes="effectiveHasSizes"
-        :sizeOptionLabels="sizeOptionLabels"
-        :showOwnerPicker="showOwnerPicker"
-        :fieldDefs="fieldDefs"
-        @addNewSize="addNewSizeRow"
-        @removeNewSize="removeNewSizeRow"
+        v-model:target-inventory-id="targetInventoryId"
+        v-model:new-inventory-name="newInventoryName"
+        v-model:new-inventory-type="newInventoryType"
+        v-model:new-inventory-has-sizes="newInventoryHasSizes"
+        v-model:new-inventory-sizes="newInventorySizes"
+        v-model:item-name="itemName"
+        v-model:picked-size-label="pickedSizeLabel"
+        v-model:owner-kind="ownerKind"
+        v-model:field-values="fieldValues"
+        :sorted-inventories="sortedInventories"
+        :is-creating-inventory="isCreatingInventory"
+        :effective-has-sizes="effectiveHasSizes"
+        :size-option-labels="sizeOptionLabels"
+        :show-owner-picker="showOwnerPicker"
+        :field-defs="fieldDefs"
+        @add-new-size="addNewSizeRow"
+        @remove-new-size="removeNewSizeRow"
     />
 
     <ButtonRow pair align="end" class="mt-4">

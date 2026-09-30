@@ -212,17 +212,16 @@ async function batchGenerate(targets: QuizQuestion[]): Promise<unknown> {
       <MutedText>{{ questions.length }} {{ t('quiz.batch.selected') }}</MutedText>
 
       <BatchActionFields
-        :action="action"
-        :categories="categories"
         v-model:auto-points="batchAutoPoints"
         v-model:points="batchPoints"
         v-model:points-per-correct="batchPointsPerCorrect"
         v-model:category-id="batchCategoryId"
+        :action="action"
+        :categories="categories"
       />
 
       <template v-if="action === 'generate'">
         <BatchGenerateOptions
-          :selected-types="selectedTypesSet"
           v-model:mc-correct="batchAiMcCorrect"
           v-model:mc-wrong="batchAiMcWrong"
           v-model:connect-pairs="batchAiConnectPairs"
@@ -230,6 +229,7 @@ async function batchGenerate(targets: QuizQuestion[]): Promise<unknown> {
           v-model:order-max="batchAiOrderMax"
           v-model:fill-gaps="batchAiFillGaps"
           v-model:fill-sentences="batchAiFillSentences"
+          :selected-types="selectedTypesSet"
         />
       </template>
 

@@ -72,9 +72,9 @@ function setLevel(key: string, value: string) {
     <div class="space-y-3 border-t border-bg-light-accent dark:border-bg-dark-accent pt-3">
         <SubHeader class="text-sm">{{ t('kb.restrictions') }}</SubHeader>
         <RestrictionsField
+            v-model="model"
             :groups="allGroups"
             :tags="allTags"
-            v-model="model"
         />
 
         <div v-if="entries.length > 0">

@@ -10,7 +10,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import DragList from '@/components/input/DragList.vue'
 import CellImagePickerMultiItem from './cellimagepicker/CellImagePickerMultiItem.vue'
-import {type GalleryItem} from '@/api/pageManage'
+import type {GalleryItem} from '@/api/pageManage'
 import {mediaImageSrcset, mediaImageUrlAt, type StationFile} from '@/api/media'
 import {moveWithin} from '@/util/reorder'
 

@@ -26,7 +26,7 @@ const { t } = useI18n()
   <div class="space-y-4">
     <SubHeader v-if="showHeading" class="mt-6">{{ t('forms.fillForm') }}</SubHeader>
 
-    <EmptyState compact v-if="forms.length === 0">{{ t('forms.noAvailableForms') }}</EmptyState>
+    <EmptyState v-if="forms.length === 0" compact>{{ t('forms.noAvailableForms') }}</EmptyState>
 
     <div class="space-y-2">
       <AvailableFormRow

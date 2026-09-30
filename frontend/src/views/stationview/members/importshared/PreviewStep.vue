@@ -44,7 +44,7 @@ const { t } = useI18n()
         <Th>{{ t('memberImport.group') }}</Th>
         <Th>{{ t('memberImport.fields') }}</Th>
         <Th v-if="showContacts">{{ t('memberImport.contacts') }}</Th>
-        <Th></Th>
+        <Th/>
       </template>
       <TRow
           v-for="(member, index) in preview.members"

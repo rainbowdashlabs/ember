@@ -139,10 +139,10 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup :open-group="props.isDesktop ? undefined : props.openGroup" @update:open-group="v => emit('update:openGroup', v)"
-                :badge="counts.openMovements + counts.lendingRequests" :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')"
-                prefix="/station/inventory" :to="hasPermission(StationPermission.INVENTORY_READ) ? '/station/inventory' : undefined"
-                name="inventory-overview" @navigate="close">
+  <SidebarGroup :open-group="props.isDesktop ? undefined : props.openGroup" :badge="counts.openMovements + counts.lendingRequests"
+                :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')" prefix="/station/inventory"
+                :to="hasPermission(StationPermission.INVENTORY_READ) ? '/station/inventory' : undefined" name="inventory-overview"
+                @update:open-group="v => emit('update:openGroup', v)" @navigate="close">
     <SidebarLink v-if="counts.myInventoryCount > 0" :icon="['fas', 'boxes-stacked']" name="inventory-my" to="/station/inventory/my" @navigate="close">
       {{ t('sidebar.myInventory') }}
     </SidebarLink>

@@ -49,7 +49,7 @@ const {picked, take} = useMemberPick(memberId => emit('add-member', memberId))
     <template v-if="!tagLoading">
       <div class="space-y-1">
         <FieldLabel class="text-(--text-muted)">{{ t('userTags.currentMembers') }}</FieldLabel>
-        <MutedText tag="div" size="sm" class="py-2" v-if="current.length === 0">
+        <MutedText v-if="current.length === 0" tag="div" size="sm" class="py-2">
           {{ t('userTags.noMembers') }}
         </MutedText>
         <div class="space-y-1">
@@ -66,7 +66,7 @@ const {picked, take} = useMemberPick(memberId => emit('add-member', memberId))
 
       <div class="space-y-1">
         <FieldLabel class="text-(--text-muted)">{{ t('userTags.addMembers') }}</FieldLabel>
-        <MutedText tag="div" size="sm" class="py-2" v-if="availableMembers.length === 0">
+        <MutedText v-if="availableMembers.length === 0" tag="div" size="sm" class="py-2">
           {{ t('userTags.allAdded') }}
         </MutedText>
         <MemberSelectInput

@@ -120,11 +120,11 @@ onMounted(() => {
         />
 
         <AccountDetailsSection
-            data-onboarding="account.email"
             v-model:first-name="editFirstName"
             v-model:last-name="editLastName"
             v-model:email="editEmail"
             v-model:username="editUsername"
+            data-onboarding="account.email"
             :email-change-pending="emailChangePending"
             :action="saveAccount"
         />

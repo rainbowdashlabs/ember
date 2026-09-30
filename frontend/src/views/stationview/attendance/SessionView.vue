@@ -14,13 +14,12 @@ import type {
   AttendanceSessionField,
   AttendanceStatus,
   AttendanceTemplateField,
-  TemplateGroupEntry,
+  TemplateGroupEntry,SheetOptions
 } from '@/api/attendance'
 import {StationPermission, type MemberGroup, type StationMember} from '@/api/types'
 import {attendance, events, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import type {SheetOptions} from '@/api/attendance'
 import ExportSheetModal from './sessionview/ExportSheetModal.vue'
 import {useSessionMeta} from './sessionview/useSessionMeta'
 import {useCheckMode, type CheckRow} from './sessionview/useCheckMode'

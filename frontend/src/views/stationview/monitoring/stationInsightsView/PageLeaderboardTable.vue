@@ -41,7 +41,7 @@ function totalFor(row: PageLeaderboardEntry): number {
         <th class="py-2 pr-3">{{ t('insights.table.page') }}</th>
         <th class="py-2 pr-3 text-right">{{ t('insights.table.hits') }}</th>
         <th class="py-2 pr-3 text-right">{{ t('insights.table.botHits') }}</th>
-        <th class="py-2 pr-3"></th>
+        <th class="py-2 pr-3"/>
       </tr>
       </thead>
       <tbody>

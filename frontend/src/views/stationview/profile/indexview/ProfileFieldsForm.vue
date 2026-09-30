@@ -39,7 +39,7 @@ function valueOf(field: LaidOutField): string {
   <NeutralContainer class="space-y-4">
     <SectionHeader>{{ t('profile.title') }}</SectionHeader>
 
-    <EmptyState compact v-if="editableFields.length === 0">{{ t('profile.noFields') }}</EmptyState>
+    <EmptyState v-if="editableFields.length === 0" compact>{{ t('profile.noFields') }}</EmptyState>
 
     <ProfileFieldsLayout data-onboarding="profile.fields" :fields="editableFields" :get-value="valueOf" @update="onUpdate"/>
 

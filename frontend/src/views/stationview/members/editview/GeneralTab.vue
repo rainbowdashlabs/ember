@@ -163,7 +163,7 @@ const {running: markingFormer, failure: formerFailure, run: confirmMarkFormer} =
 
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.userType') }}</SubHeader>
-      <SelectInput :model-value="editUserType" @update:model-value="v => { if (v) onUserTypeChange(String(v)) }" class="max-w-xs">
+      <SelectInput :model-value="editUserType" class="max-w-xs" @update:model-value="v => { if (v) onUserTypeChange(String(v)) }">
         <option :value="StationUserType.MANAGER">{{ t('memberEdit.userTypeManager') }}</option>
         <option :value="StationUserType.TEAM">{{ t('memberEdit.userTypeTeam') }}</option>
         <option :value="StationUserType.GUARDIAN">{{ t('memberEdit.userTypeGuardian') }}</option>

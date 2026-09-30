@@ -213,7 +213,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         <div class="border-t border-[var(--border)] pt-4">
           <SubHeader>{{ t('federation.acceptInvite') }}</SubHeader>
           <p class="text-sm text-[var(--text-muted)] mb-2">{{ t('federation.acceptInviteHint') }}</p>
-          <form @submit.prevent="handleAccept" class="flex gap-2">
+          <form class="flex gap-2" @submit.prevent="handleAccept">
             <TextInput v-model="acceptCode" :placeholder="t('federation.codePlaceholder')" class="flex-1 font-mono text-sm" />
             <PrimaryButton type="submit" :disabled="!acceptCode.trim()">{{ t('federation.connect') }}</PrimaryButton>
           </form>

@@ -97,8 +97,8 @@ function onChildNavigate() {
 <template>
   <div :class="hiddenWhenCollapsed ? 'lg:hidden' : ''">
     <button
-        type="button"
         :ref="setAnchor"
+        type="button"
         :class="isActive
         ? 'text-primary'
         : 'text-[var(--text-muted)] hover:text-[var(--text)]'"

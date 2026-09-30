@@ -50,7 +50,7 @@ const { t } = useI18n()
         <SecondaryBadge>{{ fieldTypeLabel(field.fieldType) }}</SecondaryBadge>
         <PrimaryBadge v-if="field.required">{{ t('waitingList.required') }}</PrimaryBadge>
       </div>
-      <MutedText tag="div" class="mt-1" v-if="field.fieldType === 'ENUM'">
+      <MutedText v-if="field.fieldType === 'ENUM'" tag="div" class="mt-1">
         {{ t('waitingList.options') }}: {{ field.config?.options?.join(', ') || '-' }}
       </MutedText>
     </div>

@@ -92,9 +92,9 @@ onMounted(loadData)
                 <FieldLabel class="mb-2">{{ t('boards.viewOverride') }}</FieldLabel>
                 <p class="text-xs text-(--text-muted) mb-2">Leer = sichtbar für alle Mitglieder</p>
                 <RestrictionsField
+                    v-model="viewRestriction"
                     :groups="allGroups"
                     :tags="allTags"
-                    v-model="viewRestriction"
                 />
             </div>
 
@@ -102,9 +102,9 @@ onMounted(loadData)
                 <FieldLabel class="mb-2">{{ t('boards.editOverride') }}</FieldLabel>
                 <p class="text-xs text-(--text-muted) mb-2">Leer = alle mit Lesezugriff können bearbeiten</p>
                 <RestrictionsField
+                    v-model="editRestriction"
                     :groups="allGroups"
                     :tags="allTags"
-                    v-model="editRestriction"
                 />
             </div>
 

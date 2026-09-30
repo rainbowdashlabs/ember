@@ -98,7 +98,7 @@ function update(index: number, line: IntakeLine) {
             <th v-if="props.hasSizes" class="py-1 pr-3 font-medium">{{ t('inventory.intake.size') }}</th>
             <th class="py-1 pr-3 font-medium">{{ t('inventory.intake.number') }}</th>
             <th v-for="field in props.fields" :key="field.id" class="py-1 pr-3 font-medium">{{ field.label }}</th>
-            <th class="py-1"></th>
+            <th class="py-1"/>
           </tr>
         </thead>
         <tbody>

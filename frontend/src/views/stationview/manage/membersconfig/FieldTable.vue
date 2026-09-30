@@ -7,7 +7,7 @@
 import DesktopHeaderRow from './fieldtable/DesktopHeaderRow.vue'
 import DesktopFieldRow from './fieldtable/DesktopFieldRow.vue'
 import MobileFieldCard from './fieldtable/MobileFieldCard.vue'
-import {type ProfileField} from '@/api/profileFields'
+import type {ProfileField} from '@/api/profileFields'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import {useElementWidth} from '@/composables/useElementWidth'
 import {computed, ref} from 'vue'

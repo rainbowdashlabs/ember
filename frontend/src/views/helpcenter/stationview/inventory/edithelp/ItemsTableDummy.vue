@@ -38,7 +38,7 @@ const {t} = useI18n()
             <Th>{{ t('inventory.edit.colId') }}</Th>
             <Th>{{ t('inventory.edit.colSize') }}</Th>
             <Th>{{ t('inventory.edit.colAssigned') }}</Th>
-            <th class="px-3 py-2"></th>
+            <th class="px-3 py-2"/>
           </THead>
         </thead>
         <ItemsTableRows />

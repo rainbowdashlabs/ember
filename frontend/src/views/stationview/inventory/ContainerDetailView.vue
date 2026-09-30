@@ -181,10 +181,10 @@ onMounted(load)
       </p>
 
       <ContainerContentsSection
+          v-model:recursive="recursive"
           :contents="contents"
           :root-container-id="detail.container.id"
           :kind-by-id="kindById"
-          v-model:recursive="recursive"
           @add-items="showAddItemsModal = true"
           @add-child="showAddChoiceModal = true"
           @open-container="navigateToContainer"
@@ -198,7 +198,7 @@ onMounted(load)
         <p class="mb-4 text-sm">{{ t('inventory.storage.deleteWarning', {name: detail.container.name}) }}</p>
         <div class="flex justify-end gap-2">
           <SecondaryButton @click="showDeleteConfirm = false">{{ t('common.cancel') }}</SecondaryButton>
-          <DeleteButton @click="confirmDelete" :label="t('common.delete')" />
+          <DeleteButton :label="t('common.delete')" @click="confirmDelete" />
         </div>
       </Modal>
 

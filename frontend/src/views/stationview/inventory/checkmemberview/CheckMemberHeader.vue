@@ -34,7 +34,7 @@ const { t } = useI18n()
       <p class="text-sm text-(--text-muted)">{{ t('inventory.check.title') }}</p>
     </div>
     <ButtonRow align="end">
-      <PrimaryButton :icon="['fas', 'list-check']" v-if="uncheckedCount > 0 && !checkMode" class="text-sm" @click="$emit('startCheckMode')">
+      <PrimaryButton v-if="uncheckedCount > 0 && !checkMode" :icon="['fas', 'list-check']" class="text-sm" @click="$emit('startCheckMode')">
         {{ t('inventory.check.rapidCheck') }}
       </PrimaryButton>
       <SecondaryButton v-if="state.assigned.length > 0 && !checkMode" class="text-sm" @click="$emit('markAllConfirmed')">

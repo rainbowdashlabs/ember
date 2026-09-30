@@ -82,13 +82,13 @@ function move(fromIndex: number, toIndex: number) {
       <template #default="{index}">
         <MailProviderRow
             :model-value="providers[index]!"
-            @update:model-value="(value: MailProvider) => replaceAt(index, value)"
             :position="index + 1"
             :is-first="index === 0"
             :show-display-fields="props.showDisplayFields"
             :default-recipient="props.defaultRecipient"
             :testing="props.testingPosition === index"
             :test-result="props.testResults?.[index] ?? null"
+            @update:model-value="(value: MailProvider) => replaceAt(index, value)"
             @remove="remove(index)"
             @test="(recipient: string) => emit('test', index, recipient)"
         >

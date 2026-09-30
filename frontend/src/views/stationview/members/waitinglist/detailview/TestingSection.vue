@@ -54,7 +54,7 @@ function entryPage(item: WaitingListEntryWithScore): RouteLocationRaw | null {
   <NeutralContainer class="space-y-4">
     <SubHeader>{{ t('waitingList.sectionTesting') }} ({{ entries.length }})</SubHeader>
 
-    <EmptyState compact v-if="entries.length === 0">{{ t('waitingList.noTestingEntries') }}</EmptyState>
+    <EmptyState v-if="entries.length === 0" compact>{{ t('waitingList.noTestingEntries') }}</EmptyState>
 
     <div v-if="entries.length > 0" class="space-y-3">
       <NeutralContainer

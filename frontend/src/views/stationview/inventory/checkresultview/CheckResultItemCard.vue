@@ -61,6 +61,6 @@ function resultClass(result: string): string {
         {{ resultLabel(item.result) }}
       </ErrorBadge>
     </div>
-    <MutedText tag="p" size="sm" class="mt-1" v-if="item.note">{{ item.note }}</MutedText>
+    <MutedText v-if="item.note" tag="p" size="sm" class="mt-1">{{ item.note }}</MutedText>
   </NeutralContainer>
 </template>

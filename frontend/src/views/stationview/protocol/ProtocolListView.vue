@@ -28,10 +28,10 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 import { protocol, federation } from '@/api'
 import type { TestProtocol, SharedProtocolEntry } from '@/api/protocol'
+import { StationPermission } from '@/api/types'
 
 const { t } = useI18n()
 const router = useRouter()
-import { StationPermission } from '@/api/types'
 const { hasPermission, loaded } = useSession()
 const canConfigure = computed(() => hasPermission(StationPermission.PROTOCOL_CONFIGURE))
 
@@ -197,7 +197,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 
     <Modal v-model="showCreateModal">
       <SubHeader class="mb-3">{{ t('protocol.create') }}</SubHeader>
-      <form @submit.prevent="handleCreate" class="space-y-3">
+      <form class="space-y-3" @submit.prevent="handleCreate">
         <TextInput v-model="newName" :placeholder="t('protocol.name')" required />
         <TextAreaInput v-model="newDescription" :placeholder="t('protocol.description')" />
         <div>

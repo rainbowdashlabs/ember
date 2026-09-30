@@ -23,7 +23,7 @@ function scanHelpcenterPages(baseDir: string): string[] {
             if (statSync(full).isDirectory()) {
                 walk(full)
             } else if (entry.endsWith('.vue')) {
-                let route = '/helpcenter/' + relative(baseDir, full)
+                const route = '/helpcenter/' + relative(baseDir, full)
                     .replace(/\.vue$/, '')
                     .replace(/\/index$/, '')
                 // Skip dynamic param routes

@@ -127,10 +127,10 @@ const {
         <GroupListPanel :groups="groups" :selected-group="selectedGroup" :can-convert-to-tag="false"
                         @create="openCreateGroup" @select="selectGroup" @edit="openEditGroup"
                         @delete="requestDelete"/>
-        <GroupDetailPanel v-if="selectedGroup" :selected-group="selectedGroup" :group-loading="groupLoading"
-                          :sorted-group-members="sortedGroupMembers" :available-members="availableMembers"
-                          :offered-user-types="offeredUserTypes"
-                          :group-roles="groupRoles" :all-roles="allRoles" v-model:group-role-ids="groupRoleIds"
+        <GroupDetailPanel v-if="selectedGroup" v-model:group-role-ids="groupRoleIds" :selected-group="selectedGroup"
+                          :group-loading="groupLoading" :sorted-group-members="sortedGroupMembers"
+                          :available-members="availableMembers"
+                          :offered-user-types="offeredUserTypes" :group-roles="groupRoles" :all-roles="allRoles"
                           :can-edit-roles="editable" @add-member="addMemberToGroup"
                           @remove-member="removeMemberFromGroup"/>
         <div v-else class="flex items-center justify-center text-(--text-muted) py-12">
@@ -138,8 +138,8 @@ const {
         </div>
       </div>
 
-      <GroupFormModal v-model="showGroupModal" :is-edit="!!editingGroup" v-model:name="groupName"
-                      v-model:color="groupColor" :saving="groupSaving" @save="saveGroup"/>
+      <GroupFormModal v-model="showGroupModal" v-model:name="groupName" v-model:color="groupColor"
+                      :is-edit="!!editingGroup" :saving="groupSaving" @save="saveGroup"/>
       <GroupDeleteModal v-model="showDeleteModal" :target="deleteTarget" @confirm="confirmDelete"/>
     </div>
   </ViewContent>

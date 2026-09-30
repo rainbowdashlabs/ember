@@ -193,15 +193,15 @@ function restart() {
 
       <TrainingActiveSession
         v-if="phase === 'training' && !loading && currentQuestion"
+        v-model:user-answer="userAnswer"
+        v-model:user-tf-answer="userTfAnswer"
         :current-question="currentQuestion"
         :current-index="currentIndex"
         :questions-total="questions.length"
         :progress="progress"
         :progress-percent="progressPercent"
         :show-answer="showAnswer"
-        v-model:user-answer="userAnswer"
         :user-mc-selections="userMcSelections"
-        v-model:user-tf-answer="userTfAnswer"
         :user-order-items="userOrderItems"
         :user-connect-pairs="userConnectPairs"
         :user-fill-gaps="userFillGaps"

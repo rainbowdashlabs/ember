@@ -221,8 +221,8 @@ defineExpose({highlightedItem: highlighted})
 
             <div
                 v-if="open"
-                ref="panelRef"
                 :id="panelId"
+                ref="panelRef"
                 role="listbox"
                 class="absolute left-0 right-0 top-full mt-1 z-20 max-h-72 overflow-y-auto rounded-theme border border-(--border) bg-(--bg) shadow-lg py-1"
             >
@@ -234,8 +234,8 @@ defineExpose({highlightedItem: highlighted})
                 </p>
                 <div
                     v-for="item in results"
-                    :key="keyFn ? keyFn(item) : displayFn(item)"
                     :id="rowId(item)"
+                    :key="keyFn ? keyFn(item) : displayFn(item)"
                     :data-row-index="canSelect(item) ? selectable.indexOf(item) : undefined"
                     :title="isSelectableFn && !isSelectableFn(item) ? (notSelectableHint ?? '') : undefined"
                     :class="[

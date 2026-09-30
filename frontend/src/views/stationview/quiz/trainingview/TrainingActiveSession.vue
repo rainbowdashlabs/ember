@@ -56,11 +56,11 @@ const showReport = ref(false)
   </div>
 
   <TrainingQuestionCard
+    v-model:user-answer="userAnswer"
+    v-model:user-tf-answer="userTfAnswer"
     :question="currentQuestion"
     :show-answer="showAnswer"
-    v-model:user-answer="userAnswer"
     :user-mc-selections="userMcSelections"
-    v-model:user-tf-answer="userTfAnswer"
     :user-order-items="userOrderItems"
     :user-connect-pairs="userConnectPairs"
     :user-fill-gaps="userFillGaps"

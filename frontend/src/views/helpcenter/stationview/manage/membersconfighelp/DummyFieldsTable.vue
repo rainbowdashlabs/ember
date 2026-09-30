@@ -24,7 +24,7 @@ const {t} = useI18n()
         <Th align="center" class="font-medium">
           <font-awesome-icon :icon="['fas', 'lock']" class="h-3 w-3" :title="t('helpCenter.membersConfig.optReadonly')"/>
         </Th>
-        <th class="py-2 px-3 font-medium text-right"></th>
+        <th class="py-2 px-3 font-medium text-right"/>
       </THead>
     </thead>
     <tbody>

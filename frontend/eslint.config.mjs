@@ -48,6 +48,21 @@ const SANITISED_HTML = [
     {file: 'src/views/adminview/adminlegalview/FileListPanel.vue', reason: 'computed in the file with renderMarkdown'},
 ]
 
+/**
+ * Vue's rules as the components here are written.
+ *
+ * <p>Blocks go script, template, style. An element with nothing inside closes itself, a void one
+ * included. Where the first attribute of an element written over several lines stands is
+ * formatting, like the rest of Vue's layout rules that Nuxt's config switches off when its
+ * stylistic preset is off; this one it leaves on, and its fix cannot indent what it moves.
+ */
+const VUE_RULES = {
+    'vue/block-order': ['error', {order: ['script', 'template', 'style']}],
+    'vue/first-attribute-linebreak': 'off',
+    'vue/html-self-closing': ['error', {html: {void: 'always', normal: 'always', component: 'always'}, svg: 'always', math: 'always'}],
+    'vue/no-v-html': ['error', {ignorePattern: '^render(Page)?Markdown\\('}],
+}
+
 const IDENTITY_FIELDS = '/^(email|lastName|firstName|username)$/'
 
 /** A state type written inline, which wants a name of its own. */
@@ -115,10 +130,7 @@ export default withNuxt(
     {
         name: 'ember/vue',
         files: ['**/*.vue'],
-        rules: {
-            'vue/block-order': ['error', {order: ['script', 'template', 'style']}],
-            'vue/no-v-html': ['error', {ignorePattern: '^render(Page)?Markdown\\('}],
-        },
+        rules: VUE_RULES,
     },
     {
         name: 'ember/sanitised-html',

@@ -34,7 +34,7 @@ const gradedAttempts = computed(() =>
   <div class="space-y-6">
     <SubHeader>{{ t('quiz.attempt.title') }} ({{ attempts.length }})</SubHeader>
 
-    <EmptyState compact v-if="attempts.length === 0">{{ t('quiz.attempt.noAttempts') }}</EmptyState>
+    <EmptyState v-if="attempts.length === 0" compact>{{ t('quiz.attempt.noAttempts') }}</EmptyState>
 
     <AttemptListGroup
       v-if="ungradedAttempts.length > 0"

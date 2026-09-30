@@ -123,7 +123,7 @@ async function saveProfile() {
         <NeutralContainer class="space-y-4">
           <SectionHeader>{{ t('profileManaged.title') }}</SectionHeader>
 
-          <EmptyState compact v-if="members.length === 0">{{ t('profileManaged.noManaged') }}</EmptyState>
+          <EmptyState v-if="members.length === 0" compact>{{ t('profileManaged.noManaged') }}</EmptyState>
 
           <div v-else class="space-y-1">
             <FieldLabel>{{ t('profileManaged.selectMember') }}</FieldLabel>

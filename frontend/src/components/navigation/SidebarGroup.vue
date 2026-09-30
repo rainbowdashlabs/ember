@@ -195,8 +195,8 @@ watch(() => collapsed.value, (value) => {
     <div class="flex items-center">
       <component
           :is="to ? 'router-link' : 'button'"
-          :to="to"
           :ref="setAnchor"
+          :to="to"
           :title="collapsed ? label : undefined"
           :data-active="isActive ? 'true' : undefined"
           :class="[

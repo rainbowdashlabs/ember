@@ -21,11 +21,11 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import TestList from './testlistview/TestList.vue'
 import ResultsList from './testlistview/ResultsList.vue'
 import ConfirmDeleteModal from './testlistview/ConfirmDeleteModal.vue'
+import { StationPermission } from '@/api/types'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 
 const { t } = useI18n()
 const router = useRouter()
-import { StationPermission } from '@/api/types'
-import { useConfirmAction } from '@/composables/useConfirmAction'
 const { hasPermission, loaded } = useSession()
 const canConfigure = () => hasPermission(StationPermission.TEST_CONFIGURE)
 const canReadResults = () => hasPermission(StationPermission.TEST_RESULT_READ)
@@ -116,7 +116,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 
       <template v-if="!loading">
         <div class="flex items-center justify-end">
-          <PrimaryButton :icon="['fas', 'plus']" v-if="canConfigure()" @click="router.push({ name: 'quiz-test-create' })">
+          <PrimaryButton v-if="canConfigure()" :icon="['fas', 'plus']" @click="router.push({ name: 'quiz-test-create' })">
             {{ t('quiz.tests.create') }}
           </PrimaryButton>
         </div>

@@ -88,7 +88,7 @@ async function updateCategory() {
         {{ t('quiz.categories.create') }}
       </SecondaryButton>
     </div>
-    <EmptyState compact v-if="categories.length === 0">{{ t('quiz.categories.noCategories') }}</EmptyState>
+    <EmptyState v-if="categories.length === 0" compact>{{ t('quiz.categories.noCategories') }}</EmptyState>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
       <NeutralContainer v-for="category in categories" :key="category.id" class="!p-2">
         <div class="flex items-center gap-2">

@@ -95,7 +95,7 @@ onMounted(loadData)
       {{ isGuardian() ? t('dashboard.registrationsManaged') : t('dashboard.registrations') }}
     </SectionHeader>
     <div class="overflow-y-auto flex-1 space-y-2">
-      <EmptyState compact v-if="activeRegistrations.length === 0">{{ t('dashboard.noRegistrations') }}</EmptyState>
+      <EmptyState v-if="activeRegistrations.length === 0" compact>{{ t('dashboard.noRegistrations') }}</EmptyState>
       <template v-else>
         <RowLink v-for="reg in activeRegistrations" :key="reg.id" :to="registrationRoute(reg)">
           <NeutralContainer class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)">

@@ -47,7 +47,7 @@ function finishedDate(item: WaitingListEntryWithScore): string {
   <NeutralContainer class="space-y-4">
     <SubHeader>{{ t('waitingList.sectionFinished') }} ({{ entries.length }})</SubHeader>
 
-    <EmptyState compact v-if="entries.length === 0">{{ t('waitingList.noFinishedEntries') }}</EmptyState>
+    <EmptyState v-if="entries.length === 0" compact>{{ t('waitingList.noFinishedEntries') }}</EmptyState>
 
     <div v-if="entries.length > 0" class="space-y-2">
       <div

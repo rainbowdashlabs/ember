@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
-import {type ImageGalleryConfig} from '@/api/pageManage'
+import type {ImageGalleryConfig} from '@/api/pageManage'
 import {mediaImageSrcset, mediaImageUrlAt} from '@/api/media'
 import {ENLARGED_WIDTH, PAGE_WIDTH} from '@/util/contentContext'
 import EnlargeableImage from '@/components/button/EnlargeableImage.vue'

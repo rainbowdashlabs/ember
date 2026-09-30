@@ -419,9 +419,9 @@ onMounted(loadRegistrations)
       <div v-for="member in registrableMembers" :key="member.key" class="flex items-center gap-3 flex-wrap">
         <span v-if="hasManagedMembers" class="text-sm font-medium min-w-24">{{ member.name }}</span>
         <component
+            :is="standingRegistrationFor(member.key)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : standingRegistrationFor(member.key)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge"
             v-if="standingRegistrationFor(member.key)"
-            :data-testid="`my-answer-${member.key}`"
-            :is="standingRegistrationFor(member.key)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : standingRegistrationFor(member.key)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
+            :data-testid="`my-answer-${member.key}`">
           {{ statusLabel(standingRegistrationFor(member.key)!.status) }}
         </component>
         <SecondaryBadge v-else :data-testid="`my-answer-${member.key}`">{{ t('eventDetail.noAnswerYet') }}</SecondaryBadge>
@@ -441,6 +441,7 @@ onMounted(loadRegistrations)
     />
 
     <RegistrationsPanel
+        v-model:manual-register-member-id="manualRegisterMemberId"
         :event="event"
         :registrations="registrations"
         :pending-registrations="pendingRegistrations"
@@ -449,7 +450,6 @@ onMounted(loadRegistrations)
         :unregistered-members="unregisteredMembers"
         :registration-fields="registrationFields"
         :effective-date="effectiveDate"
-        v-model:manual-register-member-id="manualRegisterMemberId"
         @accept="id => decide(id, RegistrationStatus.ACCEPTED)"
         @deny="id => decide(id, RegistrationStatus.DENIED)"
         @edit-answers="editAnswers"

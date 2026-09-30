@@ -106,7 +106,7 @@ function descriptionOf(field: LaidOutField): string {
       <div v-if="isSection(field)" :class="spanClass(field)" class="pt-2 first:pt-0">
         <SubHeader class="text-sm">{{ field.name }}</SubHeader>
       </div>
-      <div v-else-if="isSpacer(field)" :class="spanClass(field)" aria-hidden="true"></div>
+      <div v-else-if="isSpacer(field)" :class="spanClass(field)" aria-hidden="true"/>
       <div v-else :data-field="field.name" :class="spanClass(field)" class="space-y-1">
         <FieldLabel>
           {{ field.name }}

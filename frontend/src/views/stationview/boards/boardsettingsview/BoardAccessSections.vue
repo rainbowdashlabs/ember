@@ -44,32 +44,32 @@ const { t } = useI18n()
 <template>
     <div class="space-y-6">
         <BoardAccessSection
+            v-model:selected-user-types="viewUserTypes"
+            v-model:selected-group-ids="viewGroupIds"
+            v-model:selected-tag-ids="viewTagIds"
             :title="t('boards.viewAccess')"
             description="Leer = sichtbar für alle Mitglieder"
             :roles="allRoles"
             :groups="allGroups"
             :tags="allTags"
-            v-model:selected-user-types="viewUserTypes"
-            v-model:selected-group-ids="viewGroupIds"
-            v-model:selected-tag-ids="viewTagIds"
         />
         <BoardAccessSection
+            v-model:selected-user-types="editUserTypes"
+            v-model:selected-group-ids="editGroupIds"
+            v-model:selected-tag-ids="editTagIds"
             :title="t('boards.editAccess')"
             description="Leer = alle mit Lesezugriff können bearbeiten"
             :roles="allRoles"
             :groups="allGroups"
             :tags="allTags"
-            v-model:selected-user-types="editUserTypes"
-            v-model:selected-group-ids="editGroupIds"
-            v-model:selected-tag-ids="editTagIds"
         />
         <BoardFederationSection
+            v-model:add-partner-id="addPartnerId"
+            v-model:federated-edit-user-types="federatedEditUserTypes"
             :can-federate="canFederate"
             :targets="federationTargets"
             :available-partners="availablePartners"
             :has-full-mode="hasFullMode"
-            v-model:add-partner-id="addPartnerId"
-            v-model:federated-edit-user-types="federatedEditUserTypes"
             :role-options="roleOptions"
             :partner-name="partnerName"
             @add="emit('addPartner')"

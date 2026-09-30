@@ -53,12 +53,12 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
 
 <template>
   <QuestionInputCard
+    v-model:tf-answer="userTfAnswer"
+    v-model:free-answer="userAnswer"
     :question="question"
     :config="config"
     :disabled="showAnswer"
     :mc-selections="userMcSelections"
-    v-model:tf-answer="userTfAnswer"
-    v-model:free-answer="userAnswer"
     :fill-gaps="userFillGaps"
     :order-items="userOrderItems"
     :connect-pairs="userConnectPairs"

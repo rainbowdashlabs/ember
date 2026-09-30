@@ -37,7 +37,7 @@ const {t} = useI18n()
         <Th>{{ t('inventory.check.lastChecked') }}</Th>
         <Th>{{ t('inventory.check.checkedBy') }}</Th>
         <Th>{{ t('inventory.check.status') }}</Th>
-        <th class="px-3 py-2"></th>
+        <th class="px-3 py-2"/>
       </template>
       <CheckRowDummy member="Max Mustermann" last-checked="10.05.2026, 14:30" checked-by="Admin User">
         <template #action><PrimaryButton>{{ t('inventory.check.start') }}</PrimaryButton></template>

@@ -41,7 +41,7 @@ const {t} = useI18n()
           <Th>{{ t('membersList.colName') }}</Th>
           <Th>{{ t('membersList.colEmail') }}</Th>
           <Th>{{ t('formerMembers.colFormerAt') }}</Th>
-          <th class="px-3 py-2"></th>
+          <th class="px-3 py-2"/>
         </template>
         <TRow>
           <Td class="font-medium text-(--text-muted)">Jan Müller</Td>

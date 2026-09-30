@@ -45,7 +45,7 @@ function valueOf(field: LaidOutField): string {
   <NeutralContainer class="space-y-4">
     <SectionHeader>{{ t('membersCreate.stepFields') }}</SectionHeader>
 
-    <EmptyState compact v-if="fields.length === 0">{{ t('membersCreate.noFields') }}</EmptyState>
+    <EmptyState v-if="fields.length === 0" compact>{{ t('membersCreate.noFields') }}</EmptyState>
 
     <ProfileFieldsLayout
         v-else

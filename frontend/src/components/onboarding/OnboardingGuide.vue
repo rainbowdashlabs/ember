@@ -196,10 +196,10 @@ function close() {
           :style="ring"
       />
 
-      <div role="status" aria-live="polite" tabindex="-1" @keydown.esc="close"
-           :class="targetLow ? 'top-4' : 'bottom-4'"
+      <div role="status" aria-live="polite" tabindex="-1" :class="targetLow ? 'top-4' : 'bottom-4'"
            class="pointer-events-auto absolute left-1/2 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2
-                  rounded-theme border border-(--border) bg-(--bg) p-4 shadow-xl">
+                  rounded-theme border border-(--border) bg-(--bg) p-4 shadow-xl"
+           @keydown.esc="close">
         <div class="flex items-start gap-3">
           <LayeredEmberLogo
               :layers="logo.layers"

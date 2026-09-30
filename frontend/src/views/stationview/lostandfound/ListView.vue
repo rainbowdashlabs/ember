@@ -195,7 +195,7 @@ const createFailure = computed(() => shown(rawCreateFailure.value))
   >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <PrimaryButton :icon="['fas', 'plus']" v-if="canCreate()" @click="openCreate">
+        <PrimaryButton v-if="canCreate()" :icon="['fas', 'plus']" @click="openCreate">
           {{ t('lostAndFound.create') }}
         </PrimaryButton>
       </div>

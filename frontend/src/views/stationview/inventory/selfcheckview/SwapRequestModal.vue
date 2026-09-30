@@ -63,7 +63,7 @@ const ready = computed(() => {
   <Modal v-model="modelValue">
     <div class="space-y-3">
       <SubHeader>{{ t('profile.requestExchange') }}</SubHeader>
-      <p class="text-sm" v-if="item">
+      <p v-if="item" class="text-sm">
         {{ item.inventoryName }} - {{ item.name }}
         <SizeBadge>{{ item.sizeName ?? t('common.unisize') }}</SizeBadge>
       </p>

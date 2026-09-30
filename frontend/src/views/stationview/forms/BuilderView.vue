@@ -425,10 +425,10 @@ async function save() {
 
         <FormRestrictionsEditor
           v-if="answeredByMembers"
+          v-model="restriction"
           :groups="allGroups"
           :tags="allTags"
           :members="allMembers"
-          v-model="restriction"
         />
 
         <ContentDraftBanner v-if="unsaved.offered.value" :saved-at="unsaved.offered.value.savedAt"

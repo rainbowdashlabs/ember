@@ -50,7 +50,7 @@ const emit = defineEmits<{
     <div>
         <Spinner v-if="loading"/>
         <template v-else>
-            <MutedText tag="p" size="sm" v-if="currentFolder?.description">
+            <MutedText v-if="currentFolder?.description" tag="p" size="sm">
                 {{ currentFolder.description }}
             </MutedText>
 

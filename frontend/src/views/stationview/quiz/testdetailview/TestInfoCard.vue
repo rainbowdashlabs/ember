@@ -30,10 +30,10 @@ defineEmits<{
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
       <TestInfoStats :test="test" />
       <TestInfoTimes
-          :test="test"
-          :can-configure="canConfigure"
           v-model:edit-start-at="editStartAt"
           v-model:edit-end-at="editEndAt"
+          :test="test"
+          :can-configure="canConfigure"
           @mark-dirty="$emit('mark-dirty')"
       />
     </div>

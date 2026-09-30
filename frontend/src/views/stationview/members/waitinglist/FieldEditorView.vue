@@ -204,12 +204,12 @@ function goBack() {
 
       <FieldModal
         v-model="showFieldModal"
-        :is-edit="!!editingField"
         v-model:field-name="fieldName"
         v-model:field-type="fieldType"
         v-model:field-required="fieldRequired"
         v-model:field-public="fieldPublic"
         v-model:field-enum-options="fieldEnumOptions"
+        :is-edit="!!editingField"
         :field-types="fieldTypes"
         :field-type-label="fieldTypeLabel"
         :saving="savingField"

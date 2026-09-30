@@ -155,7 +155,7 @@ onMounted(loadDescendants)
 </script>
 
 <template>
-  <Modal v-model="open" size="lg" @update:modelValue="(v) => { if (!v) onClose() }">
+  <Modal v-model="open" size="lg" @update:model-value="(v) => { if (!v) onClose() }">
     <SubHeader class="mb-2">{{ t('inventory.storage.addExisting.title') }}</SubHeader>
     <p class="text-xs text-(--text-muted) mb-3">{{ t('inventory.storage.addExisting.intro') }}</p>
 

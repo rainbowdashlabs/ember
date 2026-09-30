@@ -366,10 +366,10 @@ const pageSubtitle = computed(() => detail.value?.description || t('pages.checkl
         <EmptyState v-if="visibleEntries.length === 0">{{ t('checklist.rowFilteredOut') }}</EmptyState>
         <ChecklistMatrix
             v-else
+            v-model:column-filters="columnFilters"
             :detail="detail"
             :visible-entries="visibleEntries"
             :read-only="readOnly"
-            v-model:column-filters="columnFilters"
             @cell-change="applyCell"
             @delete-entry="onDeleteEntry"
             @bulk-set="onBulkSet"

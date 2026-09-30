@@ -19,11 +19,11 @@ import { quiz, federation, storage } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure, type Failure } from '@/util/failure'
+import { StationPermission } from '@/api/types'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-import { StationPermission } from '@/api/types'
 const { hasPermission, loaded } = useSession()
 
 const catalogId = computed(() => Number(route.params.id))

@@ -36,9 +36,9 @@ const {t} = useI18n()
     <SubHeader>{{ t('quiz.tests.restrictions') }}</SubHeader>
     <NeutralContainer>
       <RestrictionsField
+          v-model="restriction"
           :groups="allGroups"
           :tags="allTags"
-          v-model="restriction"
       />
       <div v-if="restrictionsDirty" class="flex justify-end mt-3">
         <PrimaryButton @click="emit('save')">{{ t('common.save') }}</PrimaryButton>

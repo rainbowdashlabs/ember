@@ -58,8 +58,8 @@ const {t} = useI18n()
         {{ props.detail.container.name }}
       </PageHeader>
       <div class="flex gap-2">
-        <EditButton @click="emit('edit')" :label="t('common.edit')" />
-        <DeleteButton @click="emit('delete')" :label="t('common.delete')" />
+        <EditButton :label="t('common.edit')" @click="emit('edit')" />
+        <DeleteButton :label="t('common.delete')" @click="emit('delete')" />
       </div>
     </div>
 

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {type HeroBannerConfig} from '@/api/pageManage'
+import type {HeroBannerConfig} from '@/api/pageManage'
 import {mediaImageSrcset, mediaImageUrlAt} from '@/api/media'
 import {PAGE_WIDTH} from '@/util/contentContext'
 

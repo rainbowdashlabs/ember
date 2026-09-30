@@ -44,12 +44,12 @@ const {t} = useI18n()
 <template>
   <div class="space-y-4">
     <EditItemNaming
-        v-model:itemName="itemName"
-        v-model:artId="artId"
-        v-model:artDraft="artDraft"
-        v-model:tagNames="tagNames"
+        v-model:item-name="itemName"
+        v-model:art-id="artId"
+        v-model:art-draft="artDraft"
+        v-model:tag-names="tagNames"
         :arts="arts"
-        :showArt="showArt"
+        :show-art="showArt"
         :tags="tags"
     />
     <div class="space-y-1">

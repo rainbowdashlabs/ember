@@ -46,7 +46,7 @@ const {t} = useI18n()
     </div>
 
     <div v-if="props.managerView" class="min-w-0 truncate text-sm">{{ props.member }}</div>
-    <div v-else></div>
+    <div v-else/>
 
     <div class="flex flex-wrap items-center gap-2 text-sm">
       <InfoBadge>{{ props.step }}</InfoBadge>

@@ -25,7 +25,7 @@ const {t} = useI18n()
         <th class="p-2 text-center">{{ t('eventsRegistrations.acceptedCol') }}</th>
         <th class="p-2 text-center">{{ t('eventsRegistrations.deniedCol') }}</th>
         <th class="p-2 text-center">{{ t('eventsRegistrations.date') }}</th>
-        <th class="p-2"></th>
+        <th class="p-2"/>
       </tr>
     </thead>
     <tbody>

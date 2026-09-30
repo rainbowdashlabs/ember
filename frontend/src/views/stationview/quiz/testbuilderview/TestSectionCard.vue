@@ -64,9 +64,9 @@ const { t } = useI18n()
         <TestSectionSourceRow
             v-for="(source, srcIdx) in props.section.sources"
             :key="source.key"
-            :catalog-id="source.catalogId"
             v-model:category-id="source.categoryId"
             v-model:question-count="source.questionCount"
+            :catalog-id="source.catalogId"
             :catalogs="props.catalogs"
             :categories="props.getCategoriesForCatalog(source.catalogId)"
             @update:catalog-id="v => props.onCatalogChange(source, v !== null ? String(v) : undefined)"

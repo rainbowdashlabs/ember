@@ -162,7 +162,7 @@ const {running: assigning, failure: assignFailure, run: runAssign} = useAsyncAct
             <TidyNamesTable :names="names" :selected="selectedNames" @toggle="toggleName"/>
 
             <TidyArtTarget
-                v-model:artId="targetArtId"
+                v-model:art-id="targetArtId"
                 v-model:name="targetName"
                 :arts="arts"
             />

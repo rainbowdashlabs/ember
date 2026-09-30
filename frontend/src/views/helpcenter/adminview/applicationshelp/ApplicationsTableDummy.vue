@@ -23,7 +23,7 @@ const {t} = useI18n()
         <Th>{{ t('adminApplications.station') }}</Th>
         <Th>{{ t('adminApplications.date') }}</Th>
         <Th>{{ t('adminApplications.status') }}</Th>
-        <th class="px-3 py-2"></th>
+        <th class="px-3 py-2"/>
       </THead>
       </thead>
       <ApplicationsTableRowsDummy />

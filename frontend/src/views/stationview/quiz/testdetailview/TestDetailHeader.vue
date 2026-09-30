@@ -61,7 +61,7 @@ function edit() {
       confirmation either way.
     -->
     <ButtonRow align="end">
-      <PrimaryButton :icon="['fas', 'play']" v-if="test.status === QuizTestStatus.ACTIVE" @click="take">
+      <PrimaryButton v-if="test.status === QuizTestStatus.ACTIVE" :icon="['fas', 'play']" @click="take">
         {{ t('quiz.tests.takeTest') }}
       </PrimaryButton>
       <template v-if="canConfigure">

@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import {type ProfileField} from '@/api/profileFields'
+import type {ProfileField} from '@/api/profileFields'
 import {
   Writability, useFieldsCapabilities, writabilityOf, type WritabilityName,
 } from '@/composables/useFieldsConfig'

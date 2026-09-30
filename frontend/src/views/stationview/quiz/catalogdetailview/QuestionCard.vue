@@ -72,7 +72,6 @@ const { isMobile } = useBreakpoint()
     </template>
     <QuestionInlineEditor
       v-else
-      :is-editing="true"
       v-model:title="editorTitle"
       v-model:description="editorDescription"
       v-model:question-type="editorQuestionType"
@@ -80,6 +79,7 @@ const { isMobile } = useBreakpoint()
       v-model:points="editorPoints"
       v-model:auto-points="editorAutoPoints"
       v-model:config="editorConfig"
+      :is-editing="true"
       :image-preview="editorImagePreview"
       :auth-image-src="editorAuthImageSrc"
       :has-image="editorHasImage"

@@ -31,7 +31,7 @@ defineProps<{
       <div v-if="isSection(field)" data-testid="field-section" :class="spanClass(field)" class="pt-2 first:pt-0">
         <SubHeader class="text-sm">{{ field.name }}</SubHeader>
       </div>
-      <div v-else-if="isSpacer(field)" :class="spanClass(field)" aria-hidden="true"></div>
+      <div v-else-if="isSpacer(field)" :class="spanClass(field)" aria-hidden="true"/>
       <div v-else data-testid="field-entry" :data-field="field.name" :class="spanClass(field)" class="text-sm">
         <MutedText>{{ field.name }}:</MutedText>
         <span class="ml-1 font-medium">

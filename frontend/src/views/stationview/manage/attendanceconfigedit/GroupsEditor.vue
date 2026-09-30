@@ -44,7 +44,7 @@ const unselectedGroups = computed(() => {
     <SectionHeader>{{ t('attendanceConfig.groups') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('attendanceConfig.groupsHint') }}</p>
 
-    <EmptyState compact v-if="groups.length === 0">{{ t('attendanceConfig.noGroups') }}</EmptyState>
+    <EmptyState v-if="groups.length === 0" compact>{{ t('attendanceConfig.noGroups') }}</EmptyState>
 
     <DragList
         :items="groups"
@@ -66,7 +66,7 @@ const unselectedGroups = computed(() => {
     <div v-if="unselectedGroups.length > 0" class="pt-2">
       <FieldLabel class="mb-1">{{ t('attendanceConfig.addGroup') }}</FieldLabel>
       <div class="flex flex-wrap gap-2">
-        <SecondaryButton :icon="['fas', 'plus']" v-for="group in unselectedGroups" :key="group.id"
+        <SecondaryButton v-for="group in unselectedGroups" :key="group.id" :icon="['fas', 'plus']"
                          @click="emit('add', group.id)">
           {{ group.name }}
         </SecondaryButton>

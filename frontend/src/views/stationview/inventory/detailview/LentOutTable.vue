@@ -39,7 +39,7 @@ const { t } = useI18n()
         <Th align="center">{{ t('inventory.detail.lentQuantity') }}</Th>
         <Th>{{ t('inventory.detail.lentUntil') }}</Th>
         <Th>{{ t('inventory.detail.lentStatus') }}</Th>
-        <th class="px-3 py-2"></th>
+        <th class="px-3 py-2"/>
       </template>
       <TRow v-for="lent in props.lentOutItems" :key="lent.requestItemId">
         <Td class="font-medium">{{ lent.requestingStationName }}</Td>

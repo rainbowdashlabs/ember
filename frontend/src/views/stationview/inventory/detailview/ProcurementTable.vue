@@ -48,7 +48,7 @@ const { t } = useI18n()
         <Th>{{ t('inventory.detail.owner') }}</Th>
         <Th>{{ t('inventory.detail.size') }}</Th>
         <Th>{{ t('inventory.detail.notes') }}</Th>
-        <th v-if="!props.readonly" class="px-3 py-2"></th>
+        <th v-if="!props.readonly" class="px-3 py-2"/>
       </template>
       <TRow v-for="p in props.entries" :key="p.id">
         <Td><MemberName :identity="p.memberIdentity ?? null"/></Td>

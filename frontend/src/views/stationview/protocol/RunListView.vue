@@ -141,7 +141,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 
     <Modal v-model="showCreateModal" @update:model-value="v => { if (!v) resetCreateModal() }">
       <SubHeader class="mb-3">{{ t('protocol.createRun') }}</SubHeader>
-      <form @submit.prevent="handleCreate" class="space-y-3">
+      <form class="space-y-3" @submit.prevent="handleCreate">
         <div>
           <FieldLabel class="mb-1">{{ t('protocol.selectProtocol') }}</FieldLabel>
           <SelectInput v-model="newProtocolId" class="w-full">
@@ -155,9 +155,9 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         <div>
           <FieldLabel class="mb-1">{{ t('protocol.selectByRestriction') }}</FieldLabel>
           <RestrictionPicker
+            v-model="restriction"
             :groups="allGroups"
             :tags="allTags"
-            v-model="restriction"
             :show-mode="false"
           />
         </div>

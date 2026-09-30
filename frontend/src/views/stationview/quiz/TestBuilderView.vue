@@ -269,11 +269,11 @@ async function save() {
         />
 
         <TestRestrictionsForm
-            :groups="allGroups"
-            :tags="allTags"
             v-model:selected-user-types="selectedUserTypes"
             v-model:selected-group-ids="selectedGroupIds"
             v-model:selected-tag-ids="selectedTagIds"
+            :groups="allGroups"
+            :tags="allTags"
         />
 
         <TestSectionsEditor

@@ -242,7 +242,7 @@ function applyCsvToRows() {
           <div v-for="col in csvColumns" :key="col" class="flex items-center gap-3">
             <span class="w-40 text-sm font-medium truncate">{{ col }}</span>
             <SelectInput :model-value="columnMapping[col] ?? ''"
-                         @update:model-value="columnMapping[col] = String($event ?? '')" class="flex-1">
+                         class="flex-1" @update:model-value="columnMapping[col] = String($event ?? '')">
               <option value="">{{ t('batchCreate.unmapped') }}</option>
               <option value="__date__">{{ t('batchCreate.date') }}</option>
               <option value="__startTime__">{{ t('batchCreate.startTime') }}</option>

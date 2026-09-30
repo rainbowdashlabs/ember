@@ -80,7 +80,7 @@ async function handleSave() {
         <SubHeader class="mb-1">{{ t('kb.share') }}</SubHeader>
         <p class="mb-3 text-xs text-(--text-muted)">{{ t('kb.shareHint') }}</p>
         <FailureAlert :failure="failure" class="mb-3"/>
-        <form @submit.prevent="handleSave" class="flex flex-col gap-3">
+        <form class="flex flex-col gap-3" @submit.prevent="handleSave">
             <div v-if="audience.stations.value.length > 0" class="space-y-2">
                 <FieldLabel>{{ ofCluster ? t('kb.reachStations') : t('kb.reachPartners') }}</FieldLabel>
                 <SelectInput v-model="audience.mode.value">
@@ -106,12 +106,12 @@ async function handleSave() {
             </div>
 
             <KbRestrictionsField
-                :all-groups="allGroups"
-                :all-tags="allTags"
                 v-model="restriction"
                 v-model:levels="grantLevels"
+                :all-groups="allGroups"
+                :all-tags="allTags"
             />
-            <KbPublicVisibilityField :disabled="!isKbPublic()" v-model="publicVisibility"/>
+            <KbPublicVisibilityField v-model="publicVisibility" :disabled="!isKbPublic()"/>
             <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>
         </form>
     </Modal>

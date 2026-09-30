@@ -132,15 +132,15 @@ onMounted(loadInviteInfo)
       <template v-if="!loading && inviteInfo && !submitted">
         <InviteHeader :invite-info="inviteInfo" />
         <RegisterForm
-          :invite-info="inviteInfo"
           v-model:firstname="firstname"
           v-model:lastname="lastname"
-          :guardians="guardians"
           v-model:notes="notes"
           v-model:consent-accepted="consentAccepted"
           v-model:consent-version="consentVersion"
           v-model:privacy-version="privacyVersion"
           v-model:tos-version="tosVersion"
+          :invite-info="inviteInfo"
+          :guardians="guardians"
           :submitting="submitting"
           :field-value-of="getFieldValue"
           @add-guardian="addGuardian"

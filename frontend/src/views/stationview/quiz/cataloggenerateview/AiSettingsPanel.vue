@@ -118,7 +118,7 @@ defineExpose({getProvider, getTransientKey, getModel})
                 <option v-for="m in aiModels" :key="m.id" :value="m.id">{{ m.name }}</option>
               </SelectInput>
               <TextInput v-else v-model="aiBatchModel" class="flex-1" placeholder="gpt-4o-mini"/>
-              <SecondaryButton @click="loadAiModels" :disabled="aiFetchingModels || !aiBatchApiKey">
+              <SecondaryButton :disabled="aiFetchingModels || !aiBatchApiKey" @click="loadAiModels">
                 <Spinner v-if="aiFetchingModels" size="sm"/>
                 <font-awesome-icon v-else :icon="['fas', 'rotate']"/>
               </SecondaryButton>

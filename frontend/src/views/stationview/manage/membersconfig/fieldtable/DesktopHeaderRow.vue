@@ -24,6 +24,6 @@ const gridClass = computed(() => fieldGrid(capabilities.writability))
     <div class="font-medium px-2">{{ t('membersConfig.colType') }}</div>
     <div class="font-medium px-2">{{ t('membersConfig.colWidth') }}</div>
     <DesktopHeaderIcons/>
-    <div></div>
+    <div/>
   </div>
 </template>

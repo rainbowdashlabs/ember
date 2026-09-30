@@ -54,8 +54,8 @@ function youtubeEmbedUrl(url: string): string | null {
 
 <template>
     <div v-if="cell.contentType === CellContentType.MARKDOWN"
-         v-html="markdownHtml"
-         class="markdown-content"/>
+         class="markdown-content"
+         v-html="markdownHtml"/>
 
     <figure v-else-if="cell.contentType === CellContentType.IMAGE && imageUrl" class="space-y-1">
         <EnlargeableImage :src="context.imageUrl(cell.content, ENLARGED_WIDTH)"

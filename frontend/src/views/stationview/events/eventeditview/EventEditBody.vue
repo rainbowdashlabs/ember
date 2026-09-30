@@ -10,7 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
-import type {EventCategory, EventFieldEntry, EventTemplate} from '@/api/events'
+import type {EventCategory, EventFieldEntry, EventTemplate, EventRegistrationFieldDefinition} from '@/api/events'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 import type {PartnerResponse} from '@/api/federation'
 import type {RestrictionSelection} from '@/components/input/restriction'
@@ -19,7 +19,6 @@ import EventFormCard from './EventFormCard.vue'
 import FederationCard from './FederationCard.vue'
 import FieldDefaultsCard from './FieldDefaultsCard.vue'
 import RegistrationFieldsEditor from '../eventshared/RegistrationFieldsEditor.vue'
-import type {EventRegistrationFieldDefinition} from '@/api/events'
 
 interface FieldDefaultEntry {
   source: string

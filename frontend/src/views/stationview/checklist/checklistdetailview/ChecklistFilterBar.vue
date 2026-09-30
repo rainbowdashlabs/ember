@@ -23,7 +23,7 @@ const {t} = useI18n()
     <div class="flex-1 min-w-[200px] max-w-md">
       <SearchInput v-model="search" :placeholder="t('checklist.searchPlaceholder')" autofocus/>
     </div>
-    <label class="flex items-center gap-2 text-sm" v-if="removedCount > 0">
+    <label v-if="removedCount > 0" class="flex items-center gap-2 text-sm">
       <ToggleInput v-model="showRemoved"/>
       <span>{{ t('checklist.showRemoved') }} ({{ removedCount }})</span>
     </label>

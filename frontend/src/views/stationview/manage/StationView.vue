@@ -14,14 +14,6 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAuthImages} from '@/composables/useAuthImage'
 import {describeFailure, type Failure} from '@/util/failure'
-
-const {hasPermission, loaded} = useSession()
-const router = useRouter()
-watch(loaded, (isLoaded) => {
-  if (isLoaded && !hasPermission(StationPermission.STATION_GENERAL)) {
-    router.replace('/station/dashboard/overview')
-  }
-}, {immediate: true})
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -30,6 +22,14 @@ import OwnerSection from './stationview/OwnerSection.vue'
 import LocationSection from './stationview/LocationSection.vue'
 import GeneralSection from './stationview/GeneralSection.vue'
 import LogoSection from './stationview/LogoSection.vue'
+
+const {hasPermission, loaded} = useSession()
+const router = useRouter()
+watch(loaded, (isLoaded) => {
+  if (isLoaded && !hasPermission(StationPermission.STATION_GENERAL)) {
+    router.replace('/station/dashboard/overview')
+  }
+}, {immediate: true})
 
 const {t} = useI18n()
 

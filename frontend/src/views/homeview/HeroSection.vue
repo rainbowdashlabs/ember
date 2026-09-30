@@ -30,11 +30,11 @@ const logo = emberLogo()
             :active-layers="logo.activeLayers"
             :auto-blink="true"
             :bounce="true"
-            :gazePositions="['left', 'right', 'mid']"
+            :gaze-positions="['left', 'right', 'mid']"
             size="h-28 w-28 sm:h-36 sm:w-36 mb-10"
             :pixel-size="512"/>
         <PageHeader class="landing-h1">
-          {{ t('landing.hero.titleLine1') }}<br>
+          {{ t('landing.hero.titleLine1') }}<br/>
           {{ t('landing.hero.titleLine2') }}
         </PageHeader>
         <p class="landing-lede-hero">{{ t('landing.hero.lede') }}</p>

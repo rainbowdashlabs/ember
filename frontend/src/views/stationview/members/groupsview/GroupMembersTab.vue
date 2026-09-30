@@ -58,7 +58,7 @@ const words = computed(() => capabilities.holds === 'stations'
 <template>
   <div class="space-y-1">
     <FieldLabel class="text-(--text-muted)">{{ words.current }}</FieldLabel>
-    <MutedText tag="div" size="sm" class="py-2" v-if="current.length === 0">
+    <MutedText v-if="current.length === 0" tag="div" size="sm" class="py-2">
       {{ words.none }}
     </MutedText>
     <div class="space-y-1">
@@ -75,7 +75,7 @@ const words = computed(() => capabilities.holds === 'stations'
 
   <div class="space-y-1">
     <FieldLabel class="text-(--text-muted)">{{ words.add }}</FieldLabel>
-    <MutedText tag="div" size="sm" class="py-2" v-if="availableMembers.length === 0">
+    <MutedText v-if="availableMembers.length === 0" tag="div" size="sm" class="py-2">
       {{ words.allAdded }}
     </MutedText>
     <GroupStationPicker

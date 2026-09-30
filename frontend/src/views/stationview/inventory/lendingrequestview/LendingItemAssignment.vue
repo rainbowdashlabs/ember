@@ -92,5 +92,5 @@ function onAssignmentScan(value: string) {
       </SuccessButton>
     </div>
   </NeutralContainer>
-  <MutedText tag="p" size="sm" v-else>{{ t('lending.noItems') }}</MutedText>
+  <MutedText v-else tag="p" size="sm">{{ t('lending.noItems') }}</MutedText>
 </template>

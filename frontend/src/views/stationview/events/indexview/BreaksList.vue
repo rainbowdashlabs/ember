@@ -45,7 +45,7 @@ const emit = defineEmits<{
       </ButtonRow>
     </div>
 
-    <EmptyState compact v-if="breaks.length === 0">{{ t('events.noBreaks') }}</EmptyState>
+    <EmptyState v-if="breaks.length === 0" compact>{{ t('events.noBreaks') }}</EmptyState>
 
     <div class="space-y-2">
       <NeutralContainer v-for="br in breaks" :key="br.id" class="flex items-center justify-between flex-wrap gap-2">

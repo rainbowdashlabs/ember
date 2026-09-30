@@ -93,9 +93,9 @@ watch(show, (open) => {
         <EventFieldValueInput
             :model-value="answerOf(field.id)"
             :field-type="field.fieldType"
-            @update:model-value="v => { answers[field.id] = v }"
             :config="field.config as Record<string, unknown>"
             :all-members="allMembers"
+            @update:model-value="v => { answers[field.id] = v }"
         />
         <p
             v-if="field.fieldType === EventFieldTypes.NUMBER && (field.config?.min != null || field.config?.max != null)"

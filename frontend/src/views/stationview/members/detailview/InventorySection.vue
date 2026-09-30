@@ -32,7 +32,7 @@ const emit = defineEmits<{
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between">
       <SubHeader>{{ t('memberDetail.inventory') }}</SubHeader>
-      <PrimaryButton :icon="['fas', 'plus']" v-if="showInventoryManagement" @click="emit('assignItem')">
+      <PrimaryButton v-if="showInventoryManagement" :icon="['fas', 'plus']" @click="emit('assignItem')">
         {{ t('memberDetail.assignItem') }}
       </PrimaryButton>
     </div>

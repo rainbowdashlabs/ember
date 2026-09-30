@@ -282,22 +282,22 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 
       <div class="space-y-2">
         <ButtonRow>
-          <SuccessButton v-if="!doneSections.has(currentSection.id) && currentSectionIndex < topSections.length - 1" class="sm:flex-initial" @click="markDoneAndNext" :disabled="saving">
+          <SuccessButton v-if="!doneSections.has(currentSection.id) && currentSectionIndex < topSections.length - 1" class="sm:flex-initial" :disabled="saving" @click="markDoneAndNext">
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('protocol.markDoneAndNext') }}
           </SuccessButton>
-          <SuccessButton v-if="!doneSections.has(currentSection.id)" class="sm:flex-initial" @click="markDoneAndExit" :disabled="saving">
+          <SuccessButton v-if="!doneSections.has(currentSection.id)" class="sm:flex-initial" :disabled="saving" @click="markDoneAndExit">
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('protocol.markDoneAndExit') }}
           </SuccessButton>
         </ButtonRow>
         <ButtonRow>
-          <SecondaryButton v-if="currentSectionIndex > 0" class="flex-1 sm:flex-initial" @click="savePrev" :disabled="saving">
+          <SecondaryButton v-if="currentSectionIndex > 0" class="flex-1 sm:flex-initial" :disabled="saving" @click="savePrev">
             <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" /> {{ t('protocol.prevSection') }}
           </SecondaryButton>
           <div class="hidden sm:block flex-1" />
-          <SuccessButton v-if="currentSectionIndex === topSections.length - 1" class="flex-1 sm:flex-initial" @click="finishGrading" :disabled="saving">
+          <SuccessButton v-if="currentSectionIndex === topSections.length - 1" class="flex-1 sm:flex-initial" :disabled="saving" @click="finishGrading">
             <font-awesome-icon :icon="['fas', 'flag']" class="mr-1" /> {{ t('protocol.finish') }}
           </SuccessButton>
-          <PrimaryButton v-if="currentSectionIndex < topSections.length - 1" class="sm:flex-initial" @click="saveAndNext" :disabled="saving">
+          <PrimaryButton v-if="currentSectionIndex < topSections.length - 1" class="sm:flex-initial" :disabled="saving" @click="saveAndNext">
             {{ t('protocol.nextSection') }} <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1" />
           </PrimaryButton>
         </ButtonRow>

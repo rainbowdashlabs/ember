@@ -209,10 +209,10 @@ function handleClose() {
           @toggle-item="toggleItem"
           @assign-and-lend="handleAssignAndLend"/>
       <LendingChat
+          v-model:new-message="newMessage"
           :detail="detail"
           :messages="messages"
           :sending="sending"
-          v-model:new-message="newMessage"
           @send="handleSendMessage"/>
     </template>
 

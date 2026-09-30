@@ -167,23 +167,23 @@ async function save() {
       <SubHeader>{{ t('inventory.edit.editItem') }}</SubHeader>
       <FailureAlert :failure="failure"/>
       <EditItemFields
-          v-model:itemName="itemName"
-          v-model:internalId="internalId"
-          v-model:sizeId="sizeId"
-          v-model:containerId="containerId"
-          v-model:artId="artId"
-          v-model:artDraft="artDraft"
-          v-model:tagNames="tagNames"
-          :hasSizes="props.hasSizes"
+          v-model:item-name="itemName"
+          v-model:internal-id="internalId"
+          v-model:size-id="sizeId"
+          v-model:container-id="containerId"
+          v-model:art-id="artId"
+          v-model:art-draft="artDraft"
+          v-model:tag-names="tagNames"
+          :has-sizes="props.hasSizes"
           :sizes="props.sizes"
           :containers="sortedContainers"
           :arts="arts"
-          :showArt="props.heterogeneous"
+          :show-art="props.heterogeneous"
           :tags="tags"
       />
-      <EditItemCustomFields :defs="fieldDefs" v-model="fieldValues"/>
+      <EditItemCustomFields v-model="fieldValues" :defs="fieldDefs"/>
       <template v-if="props.item">
-        <hr class="border-(--bg-accent)">
+        <hr class="border-(--bg-accent)"/>
         <InventoryFieldsPanel
             :inventory-id="props.item.inventoryId"
             :item-id="props.item.id"
@@ -191,7 +191,7 @@ async function save() {
         />
       </template>
       <EditItemFooter
-          :saveDisabled="!itemName.trim() || fieldsInvalid"
+          :save-disabled="!itemName.trim() || fieldsInvalid"
           :save="save"
           @cancel="show = false"
       />

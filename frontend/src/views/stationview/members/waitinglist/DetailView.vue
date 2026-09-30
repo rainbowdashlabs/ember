@@ -233,13 +233,13 @@ function showFailure(reported: Failure) {
       />
 
       <DetailModals
+        v-model:show-delete="showDeleteModal"
+        v-model:show-delete-entry="showDeleteEntryModal"
         :invite="invite"
         :transitions="transitions"
         :invitation="invitation"
-        v-model:show-delete="showDeleteModal"
         :list-name="list?.name"
         :deleting-list="deletingList"
-        v-model:show-delete-entry="showDeleteEntryModal"
         :delete-entry-target="deleteEntryTarget"
         @confirm-delete-list="confirmDeleteList"
         @confirm-delete-entry="confirmDeleteEntry"

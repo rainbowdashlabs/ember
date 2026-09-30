@@ -30,9 +30,9 @@ const restriction = toRestrictionSelection(selectedUserTypes, selectedGroupIds, 
         <SubHeader class="text-sm mb-3">{{ title }}</SubHeader>
         <p class="text-xs text-[var(--text-muted)] mb-3">{{ description }}</p>
         <RestrictionsField
+            v-model="restriction"
             :groups="groups"
             :tags="tags"
-            v-model="restriction"
         />
     </NeutralContainer>
 </template>

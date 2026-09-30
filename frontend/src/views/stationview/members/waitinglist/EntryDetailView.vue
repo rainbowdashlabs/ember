@@ -164,10 +164,10 @@ function goBack() {
 
       <template v-if="!loading && entry">
         <EntryHeaderInfo
-          :entry="entry"
-          :entry-full-name="entryFullName"
           v-model:editing-created-at="editingCreatedAt"
           v-model:edit-created-at-value="editCreatedAtValue"
+          :entry="entry"
+          :entry-full-name="entryFullName"
           @start-edit-created-at="startEditCreatedAt"
           @save-created-at="saveCreatedAt"
         />

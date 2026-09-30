@@ -213,7 +213,7 @@ watch(() => props.inventoryId, load, {immediate: true})
         <SaveButton :disabled="!artName.trim()" :action="saveArt"/>
       </div>
       <template v-if="editingArt">
-        <hr class="border-(--bg-accent)">
+        <hr class="border-(--bg-accent)"/>
         <InventoryFieldsPanel :inventory-id="props.inventoryId" :art-id="editingArt.id"/>
       </template>
       <p v-else class="text-sm text-(--text-muted)">{{ t('inventory.art.fieldsAfterSave') }}</p>

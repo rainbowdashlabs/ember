@@ -25,8 +25,8 @@ const beats = computed(() =>
     <div class="landing-grid-2col landing-grid-2col-airy">
       <div class="poster">
         <PageHeader class="title">
-          {{ t('landing.evening.titleLine1') }}<br>
-          {{ t('landing.evening.titleLine2') }}<br>
+          {{ t('landing.evening.titleLine1') }}<br/>
+          {{ t('landing.evening.titleLine2') }}<br/>
           {{ t('landing.evening.titleLine3') }}
         </PageHeader>
         <p class="kicker">{{ t('landing.evening.kicker') }}</p>

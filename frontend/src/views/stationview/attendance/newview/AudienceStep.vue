@@ -15,9 +15,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import {StationUserType, StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
+import {type MemberGroup, StationUserType, StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
 import type {SessionAudience, TemplateDetail} from '@/api/attendance'
-import type {MemberGroup} from '@/api/types'
 
 /**
  * The second step of starting a sheet nobody kept a template for: whom to enter, and whose questions

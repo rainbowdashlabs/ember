@@ -120,7 +120,7 @@ async function sendSelected() {
                     {{ t('adminProblems.warnings') }}
                 </SelectionToggleButton>
                 <ButtonRow>
-                    <SecondaryButton :icon="['fas', 'check-double']" v-if="entries.some(e => !e.acknowledged)" @click="ackAll">
+                    <SecondaryButton v-if="entries.some(e => !e.acknowledged)" :icon="['fas', 'check-double']" @click="ackAll">
                         {{ t('adminProblems.acknowledgeAll') }}
                     </SecondaryButton>
                     <SecondaryButton

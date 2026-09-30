@@ -190,7 +190,7 @@ onMounted(loadData)
         <span v-if="notifs.length > 0"> ({{ notifs.length }})</span>
       </SectionHeader>
       <div class="flex items-center gap-1">
-        <SecondaryButton :icon="['fas', 'check-double']" v-if="notifs.length > 0" class="text-sm" @click="ackAll">
+        <SecondaryButton v-if="notifs.length > 0" :icon="['fas', 'check-double']" class="text-sm" @click="ackAll">
           {{ t('dashboard.acknowledgeAll') }}
         </SecondaryButton>
         <IconButton
@@ -213,7 +213,7 @@ onMounted(loadData)
         </SecondaryButton>
       </InfoContainer>
 
-      <EmptyState compact v-if="!loading && notifs.length === 0">
+      <EmptyState v-if="!loading && notifs.length === 0" compact>
         <font-awesome-icon :icon="['fas', 'check-double']" class="text-2xl text-success mb-2"/>
         <p>{{ t('dashboard.noNotifications') }}</p>
       </EmptyState>
