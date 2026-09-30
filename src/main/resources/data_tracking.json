@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:cbfe926a6eee2427d2f856e36ad63f956bec1702d62cd9a816d37bf00296e751",
-  "generatedAt": "2026-09-30T00:32:09Z",
+  "schemaHash": "sha256:1fb46ed4d77e36a64da4e64ba7d3ab3af95e02ceea1430559db93837e3347f44",
+  "generatedAt": "2026-09-30T00:54:01Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -1737,45 +1737,6 @@
         "reason": "Deliberately carries no key to the instance that sent it, so nothing here identifies anybody."
       },
       "description": "One subject's bucketed counts for one day. Carries no key to the instance that sent it, by design."
-    },
-    "beacon_nonce": {
-      "feature": "beacon",
-      "scope": "INSTANCE",
-      "tableHash": "sha256:c6204e73690cb2a238801468415a6aac38b6a59fe01d12bc808979639d0df3ea",
-      "columns": [
-        {
-          "name": "instance_id",
-          "type": "text",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "nonce",
-          "type": "text",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "issued_at",
-          "type": "timestamp",
-          "nullable": false,
-          "verified": true
-        }
-      ],
-      "foreignKeys": [],
-      "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "Belongs to this beacon, not to any station here."
-      },
-      "gdprExport": {
-        "status": "IGNORED",
-        "reason": "Replay protection only, no personal data."
-      },
-      "gdprDeletion": {
-        "status": "IGNORED",
-        "reason": "Replay protection only, no personal data."
-      },
-      "description": "One row per accepted delivery, so the same signed payload cannot be replayed."
     },
     "beacon_problem": {
       "feature": "beacon",
@@ -5835,7 +5796,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "OUT for pings we sent, IN for pings we received (used for nonce reuse detection)."
+          "description": "OUT for pings this instance sent. Rows for received pings (IN) are no longer written."
         },
         {
           "name": "peer_key",
@@ -5868,7 +5829,8 @@
       "gdprDeletion": {
         "status": "IGNORED",
         "reason": "Ephemeral discovery protocol state, not personal data"
-      }
+      },
+      "description": "Pings this instance sent and awaits a callback for, so the callback can be matched to its ping. Inbound ping nonces live in signed_request_nonce."
     },
     "discovery_station_cache": {
       "feature": "discovery",
@@ -20377,6 +20339,48 @@
         ]
       },
       "description": "User-saved table filter presets (e.g. member list filters)."
+    },
+    "signed_request_nonce": {
+      "feature": "discovery",
+      "scope": "INSTANCE",
+      "tableHash": "sha256:47df2c1b7856610805c8b417f6d93dd033fc6cfa6206ea9003cd3d10631ac720",
+      "columns": [
+        {
+          "name": "scope",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Whose nonces these are: discovery for inbound pings, beacon:<instance id> for deliveries to this beacon. The same nonce may appear once per scope."
+        },
+        {
+          "name": "nonce",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The nonce the signed request carried."
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the request would no longer be accepted anyway, after which the nonce is forgotten."
+        }
+      ],
+      "foreignKeys": [],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Ephemeral protocol state of this instance, not station-scoped"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Replay protection only, no personal data."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Replay protection only, no personal data."
+      },
+      "description": "Nonces of signed requests from other instances already taken, so a captured request cannot be sent again. Shared by discovery pings and beacon deliveries; swept once expired."
     },
     "station": {
       "feature": "station",

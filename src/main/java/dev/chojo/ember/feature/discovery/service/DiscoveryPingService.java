@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.discovery.service;
 
+import dev.chojo.ember.auth.signing.DatabaseReplayStore;
+import dev.chojo.ember.auth.signing.SignedRequests;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.feature.discovery.entity.BlocklistKind;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
@@ -56,12 +58,14 @@ public class DiscoveryPingService {
     private static final Duration NONCE_TTL = Duration.ofMinutes(30);
     private static final String PING_PATH = "/api/v1/discovery/ping";
     private static final String CALLBACK_PATH = "/api/v1/discovery/peers";
+    private static final String REPLAY_SCOPE = "discovery";
 
     private final DiscoveryKeyService keyService;
     private final DiscoverySigningService signingService;
     private final DiscoveryHttpClient httpClient;
     private final DiscoveryPeerRepository peerRepository;
     private final DiscoveryPingRepository pingRepository;
+    private final DatabaseReplayStore replayStore;
     private final DiscoveryBlocklistRepository blocklistRepository;
     private final DiscoveryReputationService reputationService;
     private final DiscoverySettingsService settingsService;
@@ -81,6 +85,7 @@ public class DiscoveryPingService {
             DiscoveryHttpClient httpClient,
             DiscoveryPeerRepository peerRepository,
             DiscoveryPingRepository pingRepository,
+            DatabaseReplayStore replayStore,
             DiscoveryBlocklistRepository blocklistRepository,
             DiscoveryReputationService reputationService,
             DiscoverySettingsService settingsService,
@@ -91,6 +96,7 @@ public class DiscoveryPingService {
         this.httpClient = httpClient;
         this.peerRepository = peerRepository;
         this.pingRepository = pingRepository;
+        this.replayStore = replayStore;
         this.blocklistRepository = blocklistRepository;
         this.reputationService = reputationService;
         this.settingsService = settingsService;
@@ -150,8 +156,7 @@ public class DiscoveryPingService {
 
         // Drift check
         Instant now = Instant.now();
-        if (message.issuedAt() == null
-                || Duration.between(message.issuedAt(), now).abs().compareTo(MAX_DRIFT) > 0) {
+        if (!SignedRequests.withinDrift(message.issuedAt(), now, MAX_DRIFT)) {
             log.debug("Discarding ping from {} due to drift", message.from().baseUrl());
             return;
         }
@@ -181,10 +186,11 @@ public class DiscoveryPingService {
             return;
         }
 
-        // Replay / loop check
-        boolean fresh = pingRepository.record(
-                message.nonce(), PingDirection.IN, message.from().publicKey(), now, now.plus(NONCE_TTL));
-        if (!fresh) {
+        if (keyService.publicKeyBase64().equals(message.from().publicKey())) {
+            log.debug("Dropping a ping that came back to its sender");
+            return;
+        }
+        if (!replayStore.firstSighting(REPLAY_SCOPE, message.nonce(), now.plus(NONCE_TTL))) {
             log.debug("Dropping replayed/looped ping nonce {}", message.nonce());
             return;
         }
@@ -211,8 +217,7 @@ public class DiscoveryPingService {
         if (message == null || message.from() == null || message.inReplyTo() == null) return false;
 
         Instant now = Instant.now();
-        if (message.issuedAt() == null
-                || Duration.between(message.issuedAt(), now).abs().compareTo(MAX_DRIFT) > 0) {
+        if (!SignedRequests.withinDrift(message.issuedAt(), now, MAX_DRIFT)) {
             return false;
         }
         if (blocklistRepository.contains(

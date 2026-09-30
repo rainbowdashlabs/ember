@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.beacon.service;
 
+import dev.chojo.ember.auth.signing.DatabaseReplayStore;
+import dev.chojo.ember.auth.signing.SignedRequests;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.beacon.repository.BeaconIntakeRepository;
 import dev.chojo.ember.feature.discovery.service.DiscoveryKeyService;
@@ -57,10 +59,12 @@ public class BeaconIntakeService {
     private static final Pattern VERSION = Pattern.compile("^[0-9A-Za-z.\\-+ @:]{1,60}$");
 
     private final BeaconIntakeRepository repository;
+    private final DatabaseReplayStore replayStore;
 
     @Inject
-    public BeaconIntakeService(BeaconIntakeRepository repository) {
+    public BeaconIntakeService(BeaconIntakeRepository repository, DatabaseReplayStore replayStore) {
         this.repository = repository;
+        this.replayStore = replayStore;
     }
 
     /**
@@ -77,18 +81,17 @@ public class BeaconIntakeService {
         if (envelope.protocolVersion() > BeaconPayloads.PROTOCOL_VERSION) {
             throw new BadRequestResponse("This beacon does not speak that protocol version yet");
         }
-        var now = Instant.now();
-        if (Duration.between(envelope.issuedAt(), now).abs().compareTo(DRIFT) > 0) {
+        if (!SignedRequests.withinDrift(envelope.issuedAt(), Instant.now(), DRIFT)) {
             throw new ForbiddenResponse("The report was issued too far from now");
         }
         if (envelope.audience() == null || !sameHost(envelope.audience(), ownUrl)) {
             throw new ForbiddenResponse("The report was addressed to another beacon");
         }
         String instanceId = DiscoveryKeyService.computeInstanceId(publicKey);
-        if (!repository.recordNonce(instanceId, envelope.nonce(), envelope.issuedAt())) {
+        Instant forgettable = envelope.issuedAt().plus(DRIFT).plus(DRIFT);
+        if (!replayStore.firstSighting("beacon:" + instanceId, envelope.nonce(), forgettable)) {
             throw new ForbiddenResponse("That report has already been delivered");
         }
-        repository.pruneNonces(now.minus(DRIFT).minus(DRIFT));
         return instanceId;
     }
 

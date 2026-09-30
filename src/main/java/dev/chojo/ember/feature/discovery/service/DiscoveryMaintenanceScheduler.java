@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.discovery.service;
 
+import dev.chojo.ember.auth.signing.DatabaseReplayStore;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import jakarta.inject.Inject;
@@ -19,7 +20,9 @@ import java.util.concurrent.TimeUnit;
  * Periodic housekeeping for discovery state.
  *
  * <ul>
- *   <li>Drops expired ping nonces every 5 minutes (§9 {@code DiscoveryNonceGc}).</li>
+ *   <li>Drops expired ping nonces every 5 minutes (§9 {@code DiscoveryNonceGc}), together with
+ *       the expired nonces of every signed request from another instance (discovery pings and
+ *       beacon deliveries alike).</li>
  *   <li>Decays negative reputations toward zero every 24 hours (§9 {@code
  *       DiscoveryReputationDecay}).</li>
  * </ul>
@@ -31,7 +34,9 @@ public class DiscoveryMaintenanceScheduler {
 
     @Inject
     public DiscoveryMaintenanceScheduler(
-            DiscoveryPingRepository pingRepository, DiscoveryPeerRepository peerRepository) {
+            DiscoveryPingRepository pingRepository,
+            DiscoveryPeerRepository peerRepository,
+            DatabaseReplayStore replayStore) {
         var nonceGc = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "discovery-nonce-gc");
             t.setDaemon(true);
@@ -40,7 +45,7 @@ public class DiscoveryMaintenanceScheduler {
         nonceGc.scheduleWithFixedDelay(
                 () -> {
                     try {
-                        int n = pingRepository.deleteExpired();
+                        int n = pingRepository.deleteExpired() + replayStore.forgetExpired();
                         if (n > 0) log.debug("Discovery nonce GC: {} expired entries removed", n);
                     } catch (Exception e) {
                         log.warn("Discovery nonce GC failed: {}", e.getMessage());

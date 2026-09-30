@@ -44,7 +44,7 @@ import java.util.UUID;
  * Every signed request binds the HTTP method, request path (with sorted query
  * string), the recipient station UUID, the timestamp and the body. A per-request
  * nonce is sent in the {@code X-Federation-Nonce} header so the receiver can
- * reject replays via {@link FederationReplayCache}.
+ * reject replays.
  * <p>
  * Every signed request gives the partner ten seconds to answer. A partner that accepts the
  * connection and then stalls counts as a failed call instead of holding the caller forever.

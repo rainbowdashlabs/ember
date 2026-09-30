@@ -21,8 +21,9 @@ public class DiscoveryPingRepository {
     private static final String DISCOVERY_PING_COLUMNS = "nonce, direction, peer_key, issued_at, expires_at";
 
     /**
-     * Records a nonce. Returns {@code false} if the nonce was already present (replay or
-     * loop).
+     * Records the nonce of a ping, so the callback answering it can be matched. Inbound pings are
+     * replay-checked in the shared signed-request nonce store instead. Returns {@code false} if the
+     * nonce was already present.
      */
     public boolean record(String nonce, PingDirection direction, String peerKey, Instant issuedAt, Instant expiresAt) {
         int rows = query("""

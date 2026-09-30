@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.beacon.repository;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import jakarta.inject.Singleton;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -167,32 +166,5 @@ public class BeaconIntakeRepository {
                         .bind("inventory", subject.inventory())
                         .bind("version", version))
                 .insert();
-    }
-
-    /**
-     * Whether this delivery has been seen before.
-     *
-     * <p>Signing the body alone leaves a captured report replayable, and replayable straight into the
-     * count of how many installations hit a fault. The nonce is what makes one delivery arrive once.
-     *
-     * @return true when the nonce was new and has now been recorded
-     */
-    public boolean recordNonce(String instanceId, String nonce, Instant issuedAt) {
-        return query("""
-                        INSERT INTO beacon_nonce (instance_id, nonce, issued_at)
-                        VALUES (:instance, :nonce, :issued)
-                        ON CONFLICT (instance_id, nonce) DO NOTHING;""")
-                .single(call().bind("instance", instanceId)
-                        .bind("nonce", nonce)
-                        .bind("issued", issuedAt, INSTANT_TIMESTAMP))
-                .insert()
-                .changed();
-    }
-
-    /** Forgets nonces older than the drift window, which cannot be replayed anyway. */
-    public void pruneNonces(Instant before) {
-        query("DELETE FROM beacon_nonce WHERE issued_at < :before;")
-                .single(call().bind("before", before, INSTANT_TIMESTAMP))
-                .delete();
     }
 }

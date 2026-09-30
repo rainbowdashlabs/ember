@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.auth.signing.MemoryReplayStore;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -20,7 +21,6 @@ import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationContractRefreshService;
-import dev.chojo.ember.feature.federation.service.FederationReplayCache;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -33,6 +33,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -49,11 +50,17 @@ import java.util.UUID;
 public class AccessManager {
     private static final Logger log = LoggerFactory.getLogger(AccessManager.class);
 
+    /**
+     * How long a federation nonce is remembered: twice the timestamp drift the signature check
+     * accepts, so no request that could still pass it is forgotten.
+     */
+    private static final Duration NONCE_WINDOW = Duration.ofMinutes(10);
+
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final FederationRepository federationRepository;
     private final FederationSigningService signingService;
-    private final FederationReplayCache replayCache;
+    private final MemoryReplayStore replayStore;
     private final StationRepository stationRepository;
     private final ClusterRepository clusterRepository;
     private final FederationContractRefreshService contractRefreshService;
@@ -65,7 +72,7 @@ public class AccessManager {
             StationMemberRepository stationMemberRepository,
             FederationRepository federationRepository,
             FederationSigningService signingService,
-            FederationReplayCache replayCache,
+            MemoryReplayStore replayStore,
             StationRepository stationRepository,
             ClusterRepository clusterRepository,
             FederationContractRefreshService contractRefreshService,
@@ -75,7 +82,7 @@ public class AccessManager {
         this.stationMemberRepository = stationMemberRepository;
         this.federationRepository = federationRepository;
         this.signingService = signingService;
-        this.replayCache = replayCache;
+        this.replayStore = replayStore;
         this.stationRepository = stationRepository;
         this.clusterRepository = clusterRepository;
         this.contractRefreshService = contractRefreshService;
@@ -363,7 +370,8 @@ public class AccessManager {
             return Optional.empty();
         }
 
-        if (!replayCache.checkAndRemember(p.id(), nonce)) {
+        if (!replayStore.firstSighting(
+                "federation:" + p.id(), nonce.toString(), Instant.now().plus(NONCE_WINDOW))) {
             log.warn("Replayed federation nonce {} from partner {} (station {})", nonce, p.id(), remoteStationUid);
             return Optional.empty();
         }

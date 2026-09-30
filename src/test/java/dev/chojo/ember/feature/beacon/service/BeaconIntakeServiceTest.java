@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.beacon.service;
 
+import dev.chojo.ember.auth.signing.DatabaseReplayStore;
+import dev.chojo.ember.auth.signing.repository.SignedRequestNonceRepository;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.beacon.repository.BeaconIntakeRepository;
 import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
@@ -32,7 +34,8 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
     private static final String OWN_URL = "https://beacon.test";
 
     private final BeaconIntakeRepository repository = new BeaconIntakeRepository();
-    private final BeaconIntakeService service = new BeaconIntakeService(repository);
+    private final BeaconIntakeService service =
+            new BeaconIntakeService(repository, new DatabaseReplayStore(new SignedRequestNonceRepository()));
     private final BeaconReadRepository read = new BeaconReadRepository();
 
     private static byte[] key() {

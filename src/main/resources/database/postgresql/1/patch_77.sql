@@ -79,3 +79,42 @@ DROP TABLE IF EXISTS ember_schema.account_external_auth;
 
 COMMENT ON COLUMN ember_schema.station.federation_private_key
     IS 'Private key the station signs federation requests with, shared across all of its partners. Stored encrypted with the instance key from the configuration or the data directory, marked by the enc:v1: prefix; a value without it predates encryption and is encrypted once at startup. Never exported as a column: a station transfer carries it sealed with the transfer token.';
+
+CREATE TABLE ember_schema.signed_request_nonce
+(
+    scope      TEXT        NOT NULL,
+    nonce      TEXT        NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (scope, nonce)
+);
+
+CREATE INDEX idx_signed_request_nonce_expires ON ember_schema.signed_request_nonce (expires_at);
+
+COMMENT ON TABLE ember_schema.signed_request_nonce
+    IS 'Nonces of signed requests from other instances already taken, so a captured request cannot be sent again. Shared by discovery pings and beacon deliveries; swept once expired.';
+COMMENT ON COLUMN ember_schema.signed_request_nonce.scope
+    IS 'Whose nonces these are: discovery for inbound pings, beacon:<instance id> for deliveries to this beacon. The same nonce may appear once per scope.';
+COMMENT ON COLUMN ember_schema.signed_request_nonce.nonce
+    IS 'The nonce the signed request carried.';
+COMMENT ON COLUMN ember_schema.signed_request_nonce.expires_at
+    IS 'When the request would no longer be accepted anyway, after which the nonce is forgotten.';
+
+INSERT INTO ember_schema.signed_request_nonce (scope, nonce, expires_at)
+SELECT 'beacon:' || instance_id, nonce, issued_at + INTERVAL '20 minutes'
+FROM ember_schema.beacon_nonce
+ON CONFLICT DO NOTHING;
+
+INSERT INTO ember_schema.signed_request_nonce (scope, nonce, expires_at)
+SELECT 'discovery', nonce, expires_at
+FROM ember_schema.discovery_ping
+WHERE direction = 'IN'
+ON CONFLICT DO NOTHING;
+
+DELETE FROM ember_schema.discovery_ping WHERE direction = 'IN';
+
+DROP TABLE ember_schema.beacon_nonce;
+
+COMMENT ON TABLE ember_schema.discovery_ping
+    IS 'Pings this instance sent and awaits a callback for, so the callback can be matched to its ping. Inbound ping nonces live in signed_request_nonce.';
+COMMENT ON COLUMN ember_schema.discovery_ping.direction
+    IS 'OUT for pings this instance sent. Rows for received pings (IN) are no longer written.';
