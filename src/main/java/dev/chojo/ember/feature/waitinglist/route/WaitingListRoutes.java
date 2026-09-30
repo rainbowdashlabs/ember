@@ -254,10 +254,10 @@ public class WaitingListRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Register on waiting list via invite code",
             tags = {"Waiting List"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RegisterRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WaitingListRegisterRequest.class)),
             responses = {@OpenApiResponse(status = "201"), @OpenApiResponse(status = "400")})
     private void registerViaInvite(Context ctx) {
-        var request = ctx.bodyAsClass(RegisterRequest.class);
+        var request = ctx.bodyAsClass(WaitingListRegisterRequest.class);
         if (request.inviteCode() == null || request.firstname() == null) {
             throw Refusal.WAITING_LIST_REGISTRATION_INCOMPLETE.raise();
         }
@@ -353,12 +353,13 @@ public class WaitingListRoutes implements Routes {
             summary = "Answer the invitation the entry currently holds",
             tags = {"Waiting List"},
             pathParams = @OpenApiParam(name = "token", required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AnswerRequest.class)))
+            requestBody =
+                    @OpenApiRequestBody(content = @OpenApiContent(from = WaitingListInvitationAnswerRequest.class)))
     @StationFree("the same token, used to answer the invitation the entry it names is holding")
     private void answerInvitation(Context ctx) {
         String token = ctx.pathParam("token");
         if (rateLimited(ctx, token)) return;
-        var request = ctx.bodyAsClass(AnswerRequest.class);
+        var request = ctx.bodyAsClass(WaitingListInvitationAnswerRequest.class);
         if (request.answer() == null) {
             throw Refusal.WAITING_LIST_ANSWER_MISSING.raise();
         }
@@ -952,8 +953,7 @@ public class WaitingListRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    @OpenApiName("WaitingListRegisterRequest")
-    public record RegisterRequest(
+    public record WaitingListRegisterRequest(
             String inviteCode,
             String firstname,
             String lastname,
@@ -1018,8 +1018,7 @@ public class WaitingListRoutes implements Routes {
      * @param answer  one of COMING, NOT_INTERESTED or DATE_DOES_NOT_SUIT
      * @param note    anything they wrote alongside it
      */
-    @OpenApiName("WaitingListInvitationAnswerRequest")
-    public record AnswerRequest(Integer eventId, String date, String answer, String note) {}
+    public record WaitingListInvitationAnswerRequest(Integer eventId, String date, String answer, String note) {}
 
     /**
      * @param sendsMail whether the list writes to the people on it, sending nothing at all where it

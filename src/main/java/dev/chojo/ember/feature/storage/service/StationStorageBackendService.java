@@ -218,7 +218,7 @@ public class StationStorageBackendService {
         return switch (request) {
             case StorageBackendPayloads.LocalRequest ignored ->
                 new StorageMigrationService.Destination.InstanceDefault();
-            case StorageBackendPayloads.ClusterRequest ignored -> clusterDestination(stationId);
+            case StorageBackendPayloads.ClusterStorageRequest ignored -> clusterDestination(stationId);
             default -> new StorageMigrationService.Destination.Own(payloads.toEntity(request));
         };
     }

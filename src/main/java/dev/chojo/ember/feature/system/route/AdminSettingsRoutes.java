@@ -49,7 +49,6 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -374,9 +373,10 @@ public class AdminSettingsRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Check if station registration is enabled (public)",
             tags = {"Settings"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationStatus.class)))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationRegistrationStatus.class)))
     private void isRegistrationEnabled(Context ctx) {
-        ctx.json(new RegistrationStatus(instanceSettings.stationRegistrationEnabled()));
+        ctx.json(new StationRegistrationStatus(instanceSettings.stationRegistrationEnabled()));
     }
 
     private void getPublicTheme(Context ctx) {
@@ -896,8 +896,7 @@ public class AdminSettingsRoutes implements Routes {
         }
     }
 
-    @OpenApiName("StationRegistrationStatus")
-    public record RegistrationStatus(boolean enabled) {}
+    public record StationRegistrationStatus(boolean enabled) {}
 
     public record LegalDocumentResponse(LegalDocumentType type, String content, String version) {}
 

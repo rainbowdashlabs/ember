@@ -20,7 +20,6 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -230,13 +229,13 @@ public class TransferRoutes implements Routes {
             description =
                     "Provide the source instance URL and a transfer token. The backend fetches tables one by one and imports them. Poll the progress endpoint to track status.",
             tags = {"Transfer"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ImportRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TransferImportRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = ImportStartResponse.class)),
                 @OpenApiResponse(status = "400")
             })
     private void startImport(Context ctx) {
-        var req = ctx.bodyAsClass(ImportRequest.class);
+        var req = ctx.bodyAsClass(TransferImportRequest.class);
         if (req.token() == null || req.token().isBlank()) {
             throw Refusal.TRANSFER_TOKEN_MISSING.raise();
         }
@@ -301,8 +300,7 @@ public class TransferRoutes implements Routes {
 
     public record TablesResponse(List<String> tables, String schemaHash, String appVersion) {}
 
-    @OpenApiName("TransferImportRequest")
-    public record ImportRequest(String sourceUrl, String token) {}
+    public record TransferImportRequest(String sourceUrl, String token) {}
 
     public record ImportStartResponse(int stationId, String stationName) {}
 

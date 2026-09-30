@@ -41,10 +41,10 @@ class FormResultTallyTest {
                         Option.numbered("Zeltlager", "Kreisjugendtag"), true, false, true, null, null));
         var answers = answers(
                 1,
-                new FormAnswerValue.Choice(List.of("o0"), null),
-                new FormAnswerValue.Choice(List.of("o0", "o1"), null),
-                new FormAnswerValue.Choice(List.of("o1"), "Übungsdienst"),
-                new FormAnswerValue.Choice(List.of("gone"), null));
+                new FormAnswerValue.ChoiceAnswer(List.of("o0"), null),
+                new FormAnswerValue.ChoiceAnswer(List.of("o0", "o1"), null),
+                new FormAnswerValue.ChoiceAnswer(List.of("o1"), "Übungsdienst"),
+                new FormAnswerValue.ChoiceAnswer(List.of("gone"), null));
 
         var tally = only(question, answers, null);
 
@@ -60,7 +60,7 @@ class FormResultTallyTest {
                 FormQuestionType.CHOICE,
                 new FormQuestionConfig.Choice(
                         List.of(new Option("b", "Zweite"), new Option("a", "Erste")), false, false, false, null, null));
-        var answers = answers(9, new FormAnswerValue.Choice(List.of("a"), null));
+        var answers = answers(9, new FormAnswerValue.ChoiceAnswer(List.of("a"), null));
 
         var tally = only(question, answers, null);
 
@@ -73,10 +73,10 @@ class FormResultTallyTest {
         var question = question(2, FormQuestionType.RATING, new FormQuestionConfig.Rating(null, null));
         var answers = answers(
                 2,
-                new FormAnswerValue.Rating(5),
-                new FormAnswerValue.Rating(4),
-                new FormAnswerValue.Rating(5),
-                new FormAnswerValue.Rating(9));
+                new FormAnswerValue.RatingAnswer(5),
+                new FormAnswerValue.RatingAnswer(4),
+                new FormAnswerValue.RatingAnswer(5),
+                new FormAnswerValue.RatingAnswer(9));
 
         var tally = only(question, answers, null);
 
@@ -89,8 +89,8 @@ class FormResultTallyTest {
                 question(3, FormQuestionType.RANKING, new FormQuestionConfig.Ranking(Option.numbered("A", "B", "C")));
         var answers = answers(
                 3,
-                new FormAnswerValue.Ranking(List.of("o2", "o0", "o1")),
-                new FormAnswerValue.Ranking(List.of("o0", "o2", "o1")));
+                new FormAnswerValue.RankingAnswer(List.of("o2", "o0", "o1")),
+                new FormAnswerValue.RankingAnswer(List.of("o0", "o2", "o1")));
 
         var tally = only(question, answers, null);
 
@@ -105,9 +105,9 @@ class FormResultTallyTest {
                 new FormQuestionConfig.Likert(Option.numbered("Essen", "Programm", "Unterkunft"), 1, 5, null));
         var answers = answers(
                 4,
-                new FormAnswerValue.Likert(Map.of("o0", 4, "o1", 5)),
-                new FormAnswerValue.Likert(Map.of("o0", 5, "o1", 2, "gone", 1)),
-                new FormAnswerValue.Likert(Map.of("o0", 5)));
+                new FormAnswerValue.LikertAnswer(Map.of("o0", 4, "o1", 5)),
+                new FormAnswerValue.LikertAnswer(Map.of("o0", 5, "o1", 2, "gone", 1)),
+                new FormAnswerValue.LikertAnswer(Map.of("o0", 5)));
 
         var tally = only(question, answers, null);
 
@@ -123,8 +123,8 @@ class FormResultTallyTest {
         var text = question(5, FormQuestionType.TEXT, new FormQuestionConfig.Text(false));
         var date = question(6, FormQuestionType.DATE, new FormQuestionConfig.Date());
         var answers = new ArrayList<FormAnswer>();
-        answers.addAll(answers(5, new FormAnswerValue.Text("Mehr Zeit"), new FormAnswerValue.Text("  ")));
-        answers.addAll(answers(6, new FormAnswerValue.DateValue("2026-07-01")));
+        answers.addAll(answers(5, new FormAnswerValue.TextAnswer("Mehr Zeit"), new FormAnswerValue.TextAnswer("  ")));
+        answers.addAll(answers(6, new FormAnswerValue.DateAnswer("2026-07-01")));
 
         var tallies = FormResultTally.tally(List.of(text, date), answers, null);
 
@@ -136,8 +136,11 @@ class FormResultTallyTest {
     @Test
     void onlyTheChosenResponsesAreCounted() {
         var question = question(7, FormQuestionType.RATING, new FormQuestionConfig.Rating(3, null));
-        var answers =
-                answers(7, new FormAnswerValue.Rating(1), new FormAnswerValue.Rating(3), new FormAnswerValue.Rating(3));
+        var answers = answers(
+                7,
+                new FormAnswerValue.RatingAnswer(1),
+                new FormAnswerValue.RatingAnswer(3),
+                new FormAnswerValue.RatingAnswer(3));
         int firstResponse = answers.getFirst().responseId();
 
         var tally = only(question, answers, Set.of(firstResponse));
@@ -151,7 +154,7 @@ class FormResultTallyTest {
         var question = question(8, FormQuestionType.RATING, new FormQuestionConfig.Rating(5, null));
         var answers = new ArrayList<FormAnswer>();
         answers.add(new FormAnswer(nextAnswerId++, 999, 8, "not json"));
-        answers.addAll(answers(8, new FormAnswerValue.Rating(2)));
+        answers.addAll(answers(8, new FormAnswerValue.RatingAnswer(2)));
 
         assertEquals(1, only(question, answers, null).answerCount());
     }
@@ -201,7 +204,7 @@ class FormResultTallyTest {
                 new FormQuestionConfig.Text(false),
                 null);
         var responses = List.of(response(1, List.of("p0")), response(2, List.of("p0")));
-        var answers = List.of(new FormAnswer(nextAnswerId++, 1, 10, new FormAnswerValue.Text("früher").toJson()));
+        var answers = List.of(new FormAnswer(nextAnswerId++, 1, 10, new FormAnswerValue.TextAnswer("früher").toJson()));
 
         var tally = FormResultTally.tally(List.of(question), answers, responses, null)
                 .getFirst();

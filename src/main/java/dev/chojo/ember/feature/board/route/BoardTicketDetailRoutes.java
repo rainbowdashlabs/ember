@@ -24,7 +24,6 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -112,7 +111,7 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiParam(name = "boardKey", type = String.class, required = true),
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CommentRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BoardTicketCommentRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardComment.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -120,7 +119,7 @@ public class BoardTicketDetailRoutes implements Routes {
     private void createComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
-        var req = ctx.bodyAsClass(CommentRequest.class);
+        var req = ctx.bodyAsClass(BoardTicketCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) throw Refusal.TICKET_COMMENT_NEEDS_TEXT.raise();
         var comment = ticketService.createComment(ticketId, req.parentId(), guards.actor(session), req.content());
         ctx.status(HttpStatus.CREATED).json(CommentResponseMapper.fromBoard(memberNameResolver, comment));
@@ -136,13 +135,13 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "commentId", type = Integer.class, required = true)
             },
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CommentRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BoardTicketCommentRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void updateComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         int commentId = requireCommentOn(ctx, ticketId);
-        var req = ctx.bodyAsClass(CommentRequest.class);
+        var req = ctx.bodyAsClass(BoardTicketCommentRequest.class);
         ticketService.updateComment(ticketId, commentId, req.content());
         ctx.status(HttpStatus.OK);
     }
@@ -399,6 +398,5 @@ public class BoardTicketDetailRoutes implements Routes {
 
     public record ReorderChecklistRequest(List<Integer> orderedIds) {}
 
-    @OpenApiName("BoardTicketCommentRequest")
-    public record CommentRequest(Integer parentId, String content) {}
+    public record BoardTicketCommentRequest(Integer parentId, String content) {}
 }

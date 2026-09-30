@@ -169,7 +169,7 @@ class ManagedMemberFormAnswerTest extends RepositoryTestBase {
 
     private static void seedAnswer(StationMember respondent, int formId, int questionId, String colour) {
         formService.submitResponse(
-                formId, respondent.id(), guardian.id(), Map.of(questionId, new FormAnswerValue.Text(colour)));
+                formId, respondent.id(), guardian.id(), Map.of(questionId, new FormAnswerValue.TextAnswer(colour)));
     }
 
     private static String answerOf(StationMember respondent, int formId) {

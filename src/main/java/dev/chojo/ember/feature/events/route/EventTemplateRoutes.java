@@ -10,13 +10,10 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.EventTemplateRegistrationField;
-import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateRestrictionService;
@@ -159,14 +156,7 @@ public class EventTemplateRoutes implements Routes {
         var req = ctx.bodyAsClass(SetRegistrationFieldsRequest.class);
         var fields = req.fields() == null ? List.<RegistrationFieldDefinition>of() : req.fields();
         registrationFieldService.replaceTemplateFields(
-                id,
-                fields.stream()
-                        .map(f -> new RegistrationFieldDraft(
-                                f.name(),
-                                f.fieldType(),
-                                f.config() != null ? f.config() : EventRegistrationFieldConfig.empty(),
-                                f.overview()))
-                        .toList());
+                id, fields.stream().map(RegistrationFieldDefinition::toDraft).toList());
         ctx.json(registrationFieldService.findByTemplate(id));
     }
 
@@ -323,12 +313,6 @@ public class EventTemplateRoutes implements Routes {
     public record SetFieldsRequest(List<EventTemplateFieldData> fields) {}
 
     public record SetRegistrationFieldsRequest(List<RegistrationFieldDefinition> fields) {}
-
-    /**
-     * A registration question as the template editor submits it, before it has a row of its own.
-     */
-    public record RegistrationFieldDefinition(
-            String name, EventFieldType fieldType, EventRegistrationFieldConfig config, boolean overview) {}
 
     public record SetRemindersRequest(List<Integer> daysBefore) {}
 }

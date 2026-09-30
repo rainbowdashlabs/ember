@@ -70,14 +70,14 @@ public class AiRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get AI settings including providers and prompt",
             tags = {"Quiz AI"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SettingsResponse.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AiSettingsResponse.class)))
     private void getSettings(Context ctx) {
         var session = UserSession.from(ctx);
         var providers = aiService.getProviders(session.stationId()).stream()
                 .map(StationAiProvider::withoutKey)
                 .toList();
         var prompt = aiService.getPrompt(session.stationId());
-        ctx.json(new SettingsResponse(providers, prompt, aiService.getDefaultPrompt()));
+        ctx.json(new AiSettingsResponse(providers, prompt, aiService.getDefaultPrompt()));
     }
 
     @OpenApi(
@@ -247,8 +247,7 @@ public class AiRoutes implements Routes {
 
     public record JobIdResponse(String jobId) {}
 
-    @OpenApiName("AiSettingsResponse")
-    public record SettingsResponse(List<StationAiProvider> providers, String prompt, String defaultPrompt) {}
+    public record AiSettingsResponse(List<StationAiProvider> providers, String prompt, String defaultPrompt) {}
 
     public record PromptRequest(String prompt) {}
 

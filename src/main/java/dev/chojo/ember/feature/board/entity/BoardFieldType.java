@@ -11,7 +11,7 @@ public enum BoardFieldType {
     BOOLEAN(BoardFieldValue.BooleanValue.class, BoardFieldConfig.Simple.class),
     ENUM(BoardFieldValue.EnumValue.class, BoardFieldConfig.Enum.class),
     DATE(BoardFieldValue.DateValue.class, BoardFieldConfig.Simple.class),
-    LANE_ASSIGNEE(BoardFieldValue.LaneAssignee.class, BoardFieldConfig.LaneAssignee.class);
+    LANE_ASSIGNEE(BoardFieldValue.LaneAssigneeValue.class, BoardFieldConfig.LaneAssignee.class);
 
     private final Class<? extends BoardFieldValue> valueClass;
     private final Class<? extends BoardFieldConfig> configClass;

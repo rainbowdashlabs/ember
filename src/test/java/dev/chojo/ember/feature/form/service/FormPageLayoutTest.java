@@ -102,7 +102,8 @@ class FormPageLayoutTest extends RepositoryTestBase {
         int form = newForm();
         service.saveLayout(form, List.of(page("p0", null), page("later", null)), List.of(text(null, "p0", "A")));
         var question = service.findQuestions(form).getFirst();
-        service.submitResponse(form, member.id(), member.id(), Map.of(question.id(), new FormAnswerValue.Text("x")));
+        service.submitResponse(
+                form, member.id(), member.id(), Map.of(question.id(), new FormAnswerValue.TextAnswer("x")));
 
         service.saveLayout(
                 form, List.of(page("p0", null), page("later", null)), List.of(text(question.id(), "later", "A")));

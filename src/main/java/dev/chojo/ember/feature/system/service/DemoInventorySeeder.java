@@ -800,16 +800,16 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         var conditions = List.of("new", "good", "worn");
         for (var item : stiefelItems) {
             LinkedHashMap<String, ItemFieldValues.FieldValue> values = new LinkedHashMap<>();
-            values.put("condition", new ItemFieldValues.EnumValue(conditions.get(idx % conditions.size())));
+            values.put("condition", new ItemFieldValues.ItemEnumValue(conditions.get(idx % conditions.size())));
             values.put(
                     "last_service",
-                    new ItemFieldValues.DateValue(LocalDate.now().minusDays(30L * (idx % 12))));
+                    new ItemFieldValues.ItemDateValue(LocalDate.now().minusDays(30L * (idx % 12))));
             values.put(
                     "weight_kg",
-                    new ItemFieldValues.NumberValue(
+                    new ItemFieldValues.ItemNumberValue(
                             BigDecimal.valueOf(1.2 + 0.1 * (idx % 5)).setScale(1, RoundingMode.HALF_UP)));
             if (idx % 3 == 0) {
-                values.put("notes", new ItemFieldValues.TextValue("Aus letzter Inventur"));
+                values.put("notes", new ItemFieldValues.ItemTextValue("Aus letzter Inventur"));
             }
             inventoryRepository.updateItem(
                     item.id(),

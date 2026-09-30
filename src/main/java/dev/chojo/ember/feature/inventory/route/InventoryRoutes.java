@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryIntakeRow;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
+import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -280,11 +281,11 @@ public class InventoryRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/inventories",
+            path = "/api/v1/my-inventory-items",
             methods = HttpMethod.GET,
-            summary = "List inventories for the current station",
+            summary = "List the items handed out to the signed-in member",
             tags = {"Inventory"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Inventory[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MyInventoryItem[].class)))
     private void myItems(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(inventoryService.findMemberEntries(session.member().id()).stream()
@@ -445,16 +446,22 @@ public class InventoryRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/inventories",
+            path = "/api/v1/inventories/summary",
             methods = HttpMethod.GET,
-            summary = "List inventories for the current station",
+            summary = "List the inventories of the current station with their item counts",
             tags = {"Inventory"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Inventory[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventorySummary[].class)))
     private void listSummaries(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(inventoryService.findSummaries(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/inventories",
+            methods = HttpMethod.GET,
+            summary = "List inventories for the current station",
+            tags = {"Inventory"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Inventory[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(inventoryService.findByStation(session.stationId()));

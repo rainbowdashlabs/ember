@@ -19,7 +19,6 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -248,7 +247,7 @@ public class BoardTicketRoutes implements Routes {
                 @OpenApiParam(name = "boardKey", type = String.class, required = true),
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AssignRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BoardTicketAssignRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicket.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -256,7 +255,7 @@ public class BoardTicketRoutes implements Routes {
     private void assignTicket(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
-        var req = ctx.bodyAsClass(AssignRequest.class);
+        var req = ctx.bodyAsClass(BoardTicketAssignRequest.class);
         ticketService.assignTicket(
                 ticketId,
                 guards.member(session, req.assignedMemberId()),
@@ -288,6 +287,5 @@ public class BoardTicketRoutes implements Routes {
 
     public record ReorderRequest(int laneId, List<Integer> orderedIds) {}
 
-    @OpenApiName("BoardTicketAssignRequest")
-    public record AssignRequest(Integer assignedMemberId) {}
+    public record BoardTicketAssignRequest(Integer assignedMemberId) {}
 }

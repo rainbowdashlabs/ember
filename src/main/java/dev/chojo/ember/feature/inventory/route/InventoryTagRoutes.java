@@ -85,14 +85,14 @@ public class InventoryTagRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Write a word down",
             tags = {"Inventory"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TagRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InventoryTagRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = TagResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var request = ctx.bodyAsClass(TagRequest.class);
+        var request = ctx.bodyAsClass(InventoryTagRequest.class);
         var tag = tagService.create(session.stationId(), request.name(), request.color());
         ctx.status(HttpStatus.CREATED).json(counted(session.stationId(), tag));
     }
@@ -103,7 +103,7 @@ public class InventoryTagRoutes implements Routes {
             pathParams = @OpenApiParam(name = "tagId", type = Integer.class, required = true),
             summary = "Rename a word or change how it looks",
             tags = {"Inventory"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TagRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InventoryTagRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = TagResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
@@ -111,7 +111,7 @@ public class InventoryTagRoutes implements Routes {
             })
     private void update(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var request = ctx.bodyAsClass(TagRequest.class);
+        var request = ctx.bodyAsClass(InventoryTagRequest.class);
         var tag = tagService.update(
                 session.stationId(), pathInt(ctx, "tagId"), request.name(), request.color(), request.position());
         ctx.json(counted(session.stationId(), tag));
@@ -226,8 +226,7 @@ public class InventoryTagRoutes implements Routes {
      * @param color    optional hex colour for the badge
      * @param position where it should sit
      */
-    @OpenApiName("InventoryTagRequest")
-    public record TagRequest(String name, String color, int position) {}
+    public record InventoryTagRequest(String name, String color, int position) {}
 
     /**
      * @param names the words a thing should wear, as somebody typed them

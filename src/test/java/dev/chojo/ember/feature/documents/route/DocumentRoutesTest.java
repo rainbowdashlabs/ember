@@ -13,7 +13,7 @@ import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService.DocumentPage;
-import dev.chojo.ember.feature.documents.service.DocumentCatalogService.DocumentResponse;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService.MemberDocumentResponse;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService.StoreQuery;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -44,7 +44,7 @@ import static org.mockito.Mockito.when;
  * the catalog.
  */
 class DocumentRoutesTest {
-    private static final DocumentResponse VIEW = new DocumentResponse(
+    private static final MemberDocumentResponse VIEW = new MemberDocumentResponse(
             5, "Ausweis", "a.pdf", "application/pdf", 1, false, false, false, null, null, List.of(), List.of());
 
     private DocumentCatalogService catalog;

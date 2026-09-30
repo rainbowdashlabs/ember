@@ -105,7 +105,7 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
                 formId,
                 submitterMember.id(),
                 guardianMember.id(),
-                Map.of(questionId, new FormAnswerValue.Text("Blue")));
+                Map.of(questionId, new FormAnswerValue.TextAnswer("Blue")));
         responseId = response.id();
     }
 
@@ -262,7 +262,10 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
                     new FormQuestionConfig.Text(false));
             var consent = new ConsentProof("v1", "v1", "v1", "127.0.0.1", "US", "test-agent", Instant.now());
             var response = formService.submitAnonymousResponse(
-                    poll.id(), new byte[] {1, 2, 3, 4}, Map.of(question.id(), new FormAnswerValue.Text("A")), consent);
+                    poll.id(),
+                    new byte[] {1, 2, 3, 4},
+                    Map.of(question.id(), new FormAnswerValue.TextAnswer("A")),
+                    consent);
 
             var entry = assembler.listResponses(poll.id()).stream()
                     .filter(e -> e.id() == response.id())

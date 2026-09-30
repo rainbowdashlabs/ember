@@ -865,7 +865,7 @@ class BoardServiceTest extends RepositoryTestBase {
             var fields = boardService.findFields(boardId);
             int fieldId = fields.getFirst().id();
             // Set field value to member id
-            ticketService.setFieldValue(ticketId1, fieldId, new BoardFieldValue.LaneAssignee(member.id()));
+            ticketService.setFieldValue(ticketId1, fieldId, new BoardFieldValue.LaneAssigneeValue(member.id()));
             // Move ticket to lane[1]
             ticketService.moveTicket(
                     ticketId1,

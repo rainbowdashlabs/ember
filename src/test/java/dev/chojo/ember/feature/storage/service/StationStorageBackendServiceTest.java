@@ -24,7 +24,7 @@ import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepositor
 import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.ClusterRequest;
+import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.ClusterStorageRequest;
 import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.LocalRequest;
 import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.ProbeResult;
 import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.SftpSummary;
@@ -141,7 +141,8 @@ class StationStorageBackendServiceTest {
 
     @Test
     void aStationCannotMoveOntoAnAssociationItDoesNotBelongTo() {
-        var refused = assertThrows(RefusalResponse.class, () -> service.apply(ACTOR, STATION, new ClusterRequest()));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.apply(ACTOR, STATION, new ClusterStorageRequest()));
 
         assertEquals(Refusal.STATION_ANSWERS_TO_NO_ASSOCIATION, refused.refusal());
     }
@@ -150,7 +151,8 @@ class StationStorageBackendServiceTest {
     void anAssociationThatKeepsNoStorageForItsStationsCannotBeMovedOnto() {
         cluster(false, ClusterBackendReach.OWN_FILES);
 
-        var refused = assertThrows(RefusalResponse.class, () -> service.apply(ACTOR, STATION, new ClusterRequest()));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.apply(ACTOR, STATION, new ClusterStorageRequest()));
 
         assertEquals(Refusal.ASSOCIATION_KEEPS_NO_STORAGE_FOR_STATIONS, refused.refusal());
     }
@@ -163,7 +165,7 @@ class StationStorageBackendServiceTest {
         when(migration.moveStation(eq(STATION), any()))
                 .thenReturn(new StorageMigrationService.MigrationResult(4, 3, 1, 0, 99));
 
-        var moved = service.apply(ACTOR, STATION, new ClusterRequest());
+        var moved = service.apply(ACTOR, STATION, new ClusterStorageRequest());
 
         assertEquals(3, moved.copied());
         verify(migration).moveStation(STATION, new StorageMigrationService.Destination.Cluster(2, 8, OWN));

@@ -58,7 +58,7 @@ class FormPathWalkerTest {
         var pages = List.of(page("p0", PageTarget.NEXT));
         var question = text(1, "p0", true);
 
-        var walk = FormPathWalker.walk(pages, List.of(question), Map.of(1, new FormAnswerValue.Text("  ")));
+        var walk = FormPathWalker.walk(pages, List.of(question), Map.of(1, new FormAnswerValue.TextAnswer("  ")));
 
         assertEquals(
                 List.of(FormAnswersRefused.Problem.of(1, "p0", Refusal.QUESTION_NEEDS_AN_ANSWER)), walk.problems());
@@ -74,11 +74,11 @@ class FormPathWalkerTest {
         var walk = FormPathWalker.walk(
                 pages,
                 List.of(skipped, asked),
-                Map.of(1, new FormAnswerValue.Text("stale"), 2, new FormAnswerValue.Text("kept")));
+                Map.of(1, new FormAnswerValue.TextAnswer("stale"), 2, new FormAnswerValue.TextAnswer("kept")));
 
         assertEquals(List.of("p0", "p2"), walk.path());
         assertEquals(List.of(), walk.problems());
-        assertEquals(Map.of(2, new FormAnswerValue.Text("kept")), walk.answers());
+        assertEquals(Map.of(2, new FormAnswerValue.TextAnswer("kept")), walk.answers());
     }
 
     @Test
@@ -112,7 +112,7 @@ class FormPathWalkerTest {
         var walk = FormPathWalker.walk(
                 pages,
                 List.of(choice, rating),
-                Map.of(1, new FormAnswerValue.Choice(List.of(), ""), 2, new FormAnswerValue.Rating(0)));
+                Map.of(1, new FormAnswerValue.ChoiceAnswer(List.of(), ""), 2, new FormAnswerValue.RatingAnswer(0)));
 
         assertEquals(List.of(), walk.problems());
         assertEquals(Map.of(), walk.answers());
@@ -135,7 +135,9 @@ class FormPathWalkerTest {
                 null);
 
         var walk = FormPathWalker.walk(
-                pages, List.of(rating), Map.of(1, new FormAnswerValue.Rating(9), 42, new FormAnswerValue.Text("?")));
+                pages,
+                List.of(rating),
+                Map.of(1, new FormAnswerValue.RatingAnswer(9), 42, new FormAnswerValue.TextAnswer("?")));
 
         assertEquals(
                 List.of(
@@ -149,7 +151,7 @@ class FormPathWalkerTest {
         var config =
                 new FormQuestionConfig.Choice(FormQuestionConfig.Option.numbered("a"), false, false, true, null, null);
 
-        assertEquals(List.of(), config.validate(new FormAnswerValue.Choice(List.of(), "selbst")));
+        assertEquals(List.of(), config.validate(new FormAnswerValue.ChoiceAnswer(List.of(), "selbst")));
     }
 
     private static List<FormPage> pages(JsonNode node) {

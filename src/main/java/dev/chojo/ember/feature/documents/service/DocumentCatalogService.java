@@ -46,7 +46,7 @@ public class DocumentCatalogService {
      *
      * @param includeHidden whether the ones kept from the member themselves are listed too
      */
-    public List<DocumentResponse> forMember(int stationId, int memberId, boolean includeHidden) {
+    public List<MemberDocumentResponse> forMember(int stationId, int memberId, boolean includeHidden) {
         return documents.findByMember(stationId, memberId, includeHidden).stream()
                 .map(this::view)
                 .toList();
@@ -87,7 +87,7 @@ public class DocumentCatalogService {
     /**
      * Sets the words a document is sorted by, writing the ones the station does not know yet.
      */
-    public DocumentResponse setTags(Document document, List<String> tags) {
+    public MemberDocumentResponse setTags(Document document, List<String> tags) {
         documents.setTags(document.id(), document.stationId(), tags != null ? tags : List.of());
         return view(document);
     }
@@ -95,7 +95,7 @@ public class DocumentCatalogService {
     /**
      * Binds a document to exactly these members.
      */
-    public DocumentResponse setMembers(Document document, List<Integer> memberIds) {
+    public MemberDocumentResponse setMembers(Document document, List<Integer> memberIds) {
         documents.setMembers(document.id(), memberIds);
         return view(document);
     }
@@ -103,8 +103,8 @@ public class DocumentCatalogService {
     /**
      * A document as a reader sees it, with the members it is bound to and the words it carries.
      */
-    public DocumentResponse view(Document document) {
-        return new DocumentResponse(
+    public MemberDocumentResponse view(Document document) {
+        return new MemberDocumentResponse(
                 document.id(),
                 document.title(),
                 document.fileName(),
@@ -139,8 +139,7 @@ public class DocumentCatalogService {
      *
      * @param memberIds the members it is bound to, so a reader can tell whose it is
      */
-    @OpenApiName("MemberDocumentResponse")
-    public record DocumentResponse(
+    public record MemberDocumentResponse(
             int id,
             String title,
             String fileName,
@@ -160,5 +159,5 @@ public class DocumentCatalogService {
      * @param total how many the filters match in all, so the pages can be counted
      */
     @OpenApiName("MemberDocumentPage")
-    public record DocumentPage(List<DocumentResponse> documents, int total) {}
+    public record DocumentPage(List<MemberDocumentResponse> documents, int total) {}
 }

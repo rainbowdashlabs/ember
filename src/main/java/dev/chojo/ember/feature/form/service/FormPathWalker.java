@@ -123,7 +123,7 @@ public final class FormPathWalker {
     }
 
     private static Optional<String> pickedOption(FormAnswerValue value) {
-        if (value instanceof FormAnswerValue.Choice(List<String> selected, var _)
+        if (value instanceof FormAnswerValue.ChoiceAnswer(List<String> selected, var _)
                 && selected != null
                 && selected.size() == 1) {
             return Optional.of(selected.getFirst());

@@ -24,7 +24,6 @@ import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -123,11 +122,11 @@ public class ManagedMemberRoutes implements Routes {
             summary = "Set profile values for a managed member",
             tags = {"Managed Members"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetValuesRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ManagedMemberSetValuesRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void setProfile(Context ctx) {
         int memberId = pathInt(ctx, "memberId");
-        var request = ctx.bodyAsClass(SetValuesRequest.class);
+        var request = ctx.bodyAsClass(ManagedMemberSetValuesRequest.class);
         ctx.json(managedMembers.setProfile(guardianId(ctx), memberId, request.values()));
     }
 
@@ -292,6 +291,5 @@ public class ManagedMemberRoutes implements Routes {
         ctx.json(export.data());
     }
 
-    @OpenApiName("ManagedMemberSetValuesRequest")
-    public record SetValuesRequest(List<ValueEntry> values) {}
+    public record ManagedMemberSetValuesRequest(List<ValueEntry> values) {}
 }

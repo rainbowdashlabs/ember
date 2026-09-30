@@ -39,13 +39,13 @@ public final class FormAnswerText {
         if (value == null) return "";
         var labels = labels(question.config());
         return switch (value) {
-            case FormAnswerValue.Text(String text) -> text == null ? "" : text;
-            case FormAnswerValue.DateValue(String date) -> date == null ? "" : date;
-            case FormAnswerValue.Rating(int rating) -> rating < 1 ? "" : String.valueOf(rating);
-            case FormAnswerValue.Choice(List<String> selected, String other) ->
+            case FormAnswerValue.TextAnswer(String text) -> text == null ? "" : text;
+            case FormAnswerValue.DateAnswer(String date) -> date == null ? "" : date;
+            case FormAnswerValue.RatingAnswer(int rating) -> rating < 1 ? "" : String.valueOf(rating);
+            case FormAnswerValue.ChoiceAnswer(List<String> selected, String other) ->
                 choice(selected, other, labels, language);
-            case FormAnswerValue.Ranking(List<String> order) -> ranking(order, labels);
-            case FormAnswerValue.Likert(Map<String, Integer> ratings) -> likert(question.config(), ratings);
+            case FormAnswerValue.RankingAnswer(List<String> order) -> ranking(order, labels);
+            case FormAnswerValue.LikertAnswer(Map<String, Integer> ratings) -> likert(question.config(), ratings);
         };
     }
 

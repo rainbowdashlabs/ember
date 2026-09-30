@@ -806,11 +806,7 @@ public class AttendanceRoutes implements Routes {
         int sessionId = pathInt(ctx, "sessionId");
         verifySessionOwnership(sessionId, UserSession.from(ctx));
         var request = ctx.bodyAsClass(SetSessionFieldsRequest.class);
-        List<AttendanceFieldValueEntry> entries = request.fields() != null
-                ? request.fields().stream()
-                        .map(f -> new AttendanceFieldValueEntry(f.fieldId(), f.value()))
-                        .toList()
-                : List.of();
+        List<AttendanceFieldValueEntry> entries = request.fields() != null ? request.fields() : List.of();
         ctx.json(attendanceService.setSessionFields(sessionId, entries));
     }
 
@@ -1465,15 +1461,9 @@ public class AttendanceRoutes implements Routes {
             SessionAudience audience) {}
 
     /**
-     * A field ID and its JSONB value for batch session field updates.
-     */
-    @OpenApiName("AttendanceFieldValueEntry")
-    public record FieldValueEntry(int fieldId, String value) {}
-
-    /**
      * Request body for batch-upserting session field values.
      */
-    public record SetSessionFieldsRequest(List<FieldValueEntry> fields) {}
+    public record SetSessionFieldsRequest(List<AttendanceFieldValueEntry> fields) {}
 
     /**
      * Request body for creating an attendance entry.

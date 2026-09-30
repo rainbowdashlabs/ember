@@ -155,7 +155,7 @@ public sealed interface FormQuestionConfig {
 
         @Override
         public List<String> validate(FormAnswerValue value) {
-            if (!(value instanceof FormAnswerValue.Choice(List<String> selected, String other))) {
+            if (!(value instanceof FormAnswerValue.ChoiceAnswer(List<String> selected, String other))) {
                 return List.of("Expected choice answer");
             }
             var errors = new ArrayList<String>();
@@ -205,7 +205,7 @@ public sealed interface FormQuestionConfig {
     record Rating(Integer scale, RatingIcon icon) implements FormQuestionConfig {
         @Override
         public List<String> validate(FormAnswerValue value) {
-            if (!(value instanceof FormAnswerValue.Rating(int rating))) return List.of("Expected rating answer");
+            if (!(value instanceof FormAnswerValue.RatingAnswer(int rating))) return List.of("Expected rating answer");
             int max = scale != null ? scale : 5;
             if (rating < 1 || rating > max) return List.of("Rating must be between 1 and " + max);
             return List.of();
@@ -237,7 +237,7 @@ public sealed interface FormQuestionConfig {
 
         @Override
         public List<String> validate(FormAnswerValue value) {
-            if (!(value instanceof FormAnswerValue.Ranking(List<String> order))) {
+            if (!(value instanceof FormAnswerValue.RankingAnswer(List<String> order))) {
                 return List.of("Expected ranking answer");
             }
             if (options == null) return List.of();
@@ -261,7 +261,7 @@ public sealed interface FormQuestionConfig {
 
         @Override
         public List<String> validate(FormAnswerValue value) {
-            if (!(value instanceof FormAnswerValue.Likert(Map<String, Integer> ratings)))
+            if (!(value instanceof FormAnswerValue.LikertAnswer(Map<String, Integer> ratings)))
                 return List.of("Expected likert answer");
             if (ratings == null || ratings.isEmpty()) return List.of("No ratings provided");
             var errors = new ArrayList<String>();

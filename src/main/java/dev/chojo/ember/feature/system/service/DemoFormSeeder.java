@@ -133,16 +133,17 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
             var member = respondents.get(i);
             var response = formRepository.createResponse(survey.id(), member.id(), member.id());
             int rating = 3 + rng.nextInt(3);
-            formRepository.upsertAnswer(response.id(), surveyQuestions.get(0).id(), new FormAnswerValue.Rating(rating));
+            formRepository.upsertAnswer(
+                    response.id(), surveyQuestions.get(0).id(), new FormAnswerValue.RatingAnswer(rating));
             int[] selected = rng.nextInt(2) == 0 ? new int[] {0, 2} : new int[] {1, 3};
             formRepository.upsertAnswer(
                     response.id(),
                     surveyQuestions.get(1).id(),
-                    new FormAnswerValue.Choice(List.of(key(selected[0]), key(selected[1])), ""));
+                    new FormAnswerValue.ChoiceAnswer(List.of(key(selected[0]), key(selected[1])), ""));
             formRepository.upsertAnswer(
                     response.id(),
                     surveyQuestions.get(2).id(),
-                    new FormAnswerValue.Text(suggestions[i % suggestions.length]));
+                    new FormAnswerValue.TextAnswer(suggestions[i % suggestions.length]));
         }
 
         // Add remaining types to survey: DATE, RANKING, LIKERT
@@ -184,16 +185,16 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
             formRepository.upsertAnswer(
                     existingResponse.id(),
                     surveyQuestions.get(3).id(),
-                    new FormAnswerValue.DateValue("202" + (2 + rng.nextInt(4)) + "-0" + (1 + rng.nextInt(9)) + "-15"));
+                    new FormAnswerValue.DateAnswer("202" + (2 + rng.nextInt(4)) + "-0" + (1 + rng.nextInt(9)) + "-15"));
             int[] rankOrder = {rng.nextInt(4), (1 + rng.nextInt(3)) % 4, (2 + rng.nextInt(2)) % 4, 3 - rng.nextInt(2)};
             formRepository.upsertAnswer(
                     existingResponse.id(),
                     surveyQuestions.get(4).id(),
-                    new FormAnswerValue.Ranking(fullRanking(rankOrder)));
+                    new FormAnswerValue.RankingAnswer(fullRanking(rankOrder)));
             formRepository.upsertAnswer(
                     existingResponse.id(),
                     surveyQuestions.get(5).id(),
-                    new FormAnswerValue.Likert(
+                    new FormAnswerValue.LikertAnswer(
                             Map.of("o0", 3 + rng.nextInt(3), "o1", 3 + rng.nextInt(3), "o2", 2 + rng.nextInt(4))));
         }
 
@@ -283,22 +284,24 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(0).id(),
-                    new FormAnswerValue.Choice(List.of(key(choiceIdx)), ""));
+                    new FormAnswerValue.ChoiceAnswer(List.of(key(choiceIdx)), ""));
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(1).id(),
-                    new FormAnswerValue.Text(feedbackTexts[i % feedbackTexts.length]));
+                    new FormAnswerValue.TextAnswer(feedbackTexts[i % feedbackTexts.length]));
             formRepository.upsertAnswer(
-                    response.id(), feedbackQuestions.get(2).id(), new FormAnswerValue.Rating(5 + rng.nextInt(6)));
+                    response.id(), feedbackQuestions.get(2).id(), new FormAnswerValue.RatingAnswer(5 + rng.nextInt(6)));
             formRepository.upsertAnswer(
-                    response.id(), feedbackQuestions.get(3).id(), new FormAnswerValue.DateValue("2026-05-10"));
+                    response.id(), feedbackQuestions.get(3).id(), new FormAnswerValue.DateAnswer("2026-05-10"));
             int[] order = {rng.nextInt(4), (1 + rng.nextInt(3)) % 4, 2, 3};
             formRepository.upsertAnswer(
-                    response.id(), feedbackQuestions.get(4).id(), new FormAnswerValue.Ranking(fullRanking(order)));
+                    response.id(),
+                    feedbackQuestions.get(4).id(),
+                    new FormAnswerValue.RankingAnswer(fullRanking(order)));
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(5).id(),
-                    new FormAnswerValue.Likert(Map.of(
+                    new FormAnswerValue.LikertAnswer(Map.of(
                             "o0",
                             3 + rng.nextInt(3),
                             "o1",

@@ -207,7 +207,7 @@ class InventoryArtServiceTest extends RepositoryTestBase {
         InventoryItem radio = piece(drawer.id(), "Funkgerät blau", blau.id());
 
         Map<String, ItemFieldValues.FieldValue> values = new LinkedHashMap<>();
-        values.put("call_sign", new ItemFieldValues.TextValue("Florian 1"));
+        values.put("call_sign", new ItemFieldValues.ItemTextValue("Florian 1"));
         service.updateItem(
                 radio.id(),
                 null,
@@ -349,6 +349,6 @@ class InventoryArtServiceTest extends RepositoryTestBase {
 
     private static String textValue(InventoryItem item, String key) {
         ItemFieldValues.FieldValue value = item.metadata().fields().values().get(key);
-        return value instanceof ItemFieldValues.TextValue text ? text.value() : null;
+        return value instanceof ItemFieldValues.ItemTextValue text ? text.value() : null;
     }
 }

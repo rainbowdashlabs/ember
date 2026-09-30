@@ -15,7 +15,6 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -48,7 +47,7 @@ public class FeedTokenRoutes implements Routes {
             summary = "Get the current user's feed token",
             tags = {"Feed Tokens"},
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokenResponse.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FeedTokenResponse.class)),
                 @OpenApiResponse(status = "404")
             })
     private void getToken(Context ctx) {
@@ -83,7 +82,7 @@ public class FeedTokenRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Create a feed token for the current user",
             tags = {"Feed Tokens"},
-            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = TokenResponse.class)))
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = FeedTokenResponse.class)))
     private void createToken(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var token = tokenService.getOrCreate(session.member().id());
@@ -95,7 +94,7 @@ public class FeedTokenRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Regenerate the feed token for the current user",
             tags = {"Feed Tokens"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokenResponse.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FeedTokenResponse.class)))
     private void regenerateToken(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var token = tokenService.regenerate(session.member().id());
@@ -114,16 +113,15 @@ public class FeedTokenRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    private TokenResponse toResponse(FeedToken t) {
-        return new TokenResponse(
+    private FeedTokenResponse toResponse(FeedToken t) {
+        return new FeedTokenResponse(
                 t.token(),
                 t.createdAt().toString(),
                 t.icalPolledAt() != null ? t.icalPolledAt().toString() : null,
                 t.notificationPolledAt() != null ? t.notificationPolledAt().toString() : null);
     }
 
-    @OpenApiName("FeedTokenResponse")
-    public record TokenResponse(String token, String createdAt, String icalPolledAt, String notificationPolledAt) {}
+    public record FeedTokenResponse(String token, String createdAt, String icalPolledAt, String notificationPolledAt) {}
 
     public record FeedStatusResponse(boolean hasToken, boolean icalActive, boolean notificationActive) {}
 }

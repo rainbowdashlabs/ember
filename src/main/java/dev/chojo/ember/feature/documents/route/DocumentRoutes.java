@@ -15,7 +15,7 @@ import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService.DocumentPage;
-import dev.chojo.ember.feature.documents.service.DocumentCatalogService.DocumentResponse;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService.MemberDocumentResponse;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService.StoreQuery;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -116,7 +116,8 @@ public class DocumentRoutes implements Routes {
             summary = "The documents kept for a member",
             tags = {"Members"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentResponse[].class)))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberDocumentResponse[].class)))
     private void list(Context ctx) {
         int memberId = pathInt(ctx, "memberId");
         var session = UserSession.from(ctx);
@@ -132,7 +133,7 @@ public class DocumentRoutes implements Routes {
             tags = {"Members"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = DocumentResponse.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberDocumentResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void upload(Context ctx) throws IOException {
@@ -255,7 +256,8 @@ public class DocumentRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Put a document in the store without binding it to anybody",
             tags = {"Members"},
-            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = DocumentResponse.class)))
+            responses =
+                    @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberDocumentResponse.class)))
     private void uploadForStation(Context ctx) throws IOException {
         var session = UserSession.from(ctx);
         int stationId = requireStation(session);
@@ -307,7 +309,8 @@ public class DocumentRoutes implements Routes {
             summary = "Set the words a document is sorted by, writing the new ones",
             tags = {"Members"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentResponse.class)))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberDocumentResponse.class)))
     private void setTags(Context ctx) {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
@@ -355,7 +358,8 @@ public class DocumentRoutes implements Routes {
             summary = "Set the members a document is bound to",
             tags = {"Members"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentResponse.class)))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberDocumentResponse.class)))
     private void setMembers(Context ctx) {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);

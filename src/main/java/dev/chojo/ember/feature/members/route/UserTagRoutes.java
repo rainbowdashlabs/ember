@@ -21,7 +21,6 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -181,12 +180,12 @@ public class UserTagRoutes implements Routes {
                     "Provide the full list of member IDs. Existing members not in the list are removed, new ones are added.",
             tags = {"User Tags"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetMembersRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TagSetMembersRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void setMembers(Context ctx) {
         int tagId = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, tagId, tagService::findById, UserTag::stationId);
-        var request = ctx.bodyAsClass(SetMembersRequest.class);
+        var request = ctx.bodyAsClass(TagSetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
         tagService.setMembers(tagId, memberIds);
         ctx.json(tagService.findMembers(tagId).stream().map(memberViews::named).toList());
@@ -229,6 +228,5 @@ public class UserTagRoutes implements Routes {
 
     public record TagRequest(String name, String color, boolean visible, int position) {}
 
-    @OpenApiName("TagSetMembersRequest")
-    public record SetMembersRequest(List<Integer> memberIds) {}
+    public record TagSetMembersRequest(List<Integer> memberIds) {}
 }

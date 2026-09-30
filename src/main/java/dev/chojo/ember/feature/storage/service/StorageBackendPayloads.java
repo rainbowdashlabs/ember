@@ -68,7 +68,7 @@ public class StorageBackendPayloads {
             }
             case LocalRequest ignored ->
                 throw new IllegalStateException("LOCAL names no backend; the caller must dispatch it separately");
-            case ClusterRequest ignored ->
+            case ClusterStorageRequest ignored ->
                 throw new IllegalStateException("CLUSTER names its cluster's backend; the caller must look it up");
         };
     }
@@ -149,7 +149,7 @@ public class StorageBackendPayloads {
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes({
         @JsonSubTypes.Type(value = LocalRequest.class, name = "LOCAL"),
-        @JsonSubTypes.Type(value = ClusterRequest.class, name = "CLUSTER"),
+        @JsonSubTypes.Type(value = ClusterStorageRequest.class, name = "CLUSTER"),
         @JsonSubTypes.Type(value = S3Request.class, name = "S3"),
         @JsonSubTypes.Type(value = SmbRequest.class, name = "SMB"),
         @JsonSubTypes.Type(value = SftpRequest.class, name = "SFTP")
@@ -166,7 +166,7 @@ public class StorageBackendPayloads {
      * Moves the station onto the current version of its association's storage. Has no fields for the same
      * reason: which storage that is, is the association's to say and not the station's to type.
      */
-    public record ClusterRequest() implements BackendOverrideRequest {}
+    public record ClusterStorageRequest() implements BackendOverrideRequest {}
 
     public record S3Request(
             String endpoint,

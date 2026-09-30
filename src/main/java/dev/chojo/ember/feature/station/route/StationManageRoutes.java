@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.mail.service.MailDashboardService.MailDashboard;
 import dev.chojo.ember.feature.mail.service.MailDashboardService.RequeuedMails;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.StationMailSettingsService;
+import dev.chojo.ember.feature.mail.service.StationMailSettingsService.WebhookUrl;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -360,18 +361,18 @@ public class StationManageRoutes implements Routes {
         ctx.json(new MessageResponse("Logo deleted"));
     }
 
-    @OpenApi(
-            path = "/api/v1/station/manage/mail",
-            methods = HttpMethod.GET,
-            summary = "Get station mail configuration",
-            tags = {"Station Manage"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailConfigResponse.class)))
     /**
      * The address this station's own mail provider reports delivery events to.
      *
      * <p>A station gets an address of its own rather than the instance's, so what it hands to its
      * provider can only ever touch its own post.
      */
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/webhook",
+            methods = HttpMethod.GET,
+            summary = "Get the address the station's mail provider reports delivery events to",
+            tags = {"Station Manage"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebhookUrl.class)))
     private void getMailWebhook(Context ctx) {
         ctx.json(mailSettings.webhook(UserSession.from(ctx).stationId()));
     }
@@ -701,25 +702,6 @@ public class StationManageRoutes implements Routes {
             boolean feelLocked,
             boolean logoLocked,
             String clusterName) {}
-
-    /**
-     * Response containing the station's mail configuration and current usage statistics.
-     */
-    public record MailConfigResponse(
-            String provider,
-            String smtpHost,
-            int smtpPort,
-            SmtpEncryption smtpEncryption,
-            String smtpUser,
-            String senderAddress,
-            String senderName,
-            boolean hasApiKey,
-            String providerName,
-            String providerUrl,
-            int dailyLimit,
-            int monthlyLimit,
-            int sentToday,
-            int sentThisMonth) {}
 
     /**
      * Request body for updating the station's mail configuration.

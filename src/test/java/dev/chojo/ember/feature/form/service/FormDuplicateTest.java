@@ -125,7 +125,7 @@ class FormDuplicateTest extends RepositoryTestBase {
                 source.id(),
                 member.id(),
                 member.id(),
-                Map.of(first.id(), new FormAnswerValue.Choice(List.of("o0"), "")));
+                Map.of(first.id(), new FormAnswerValue.ChoiceAnswer(List.of("o0"), "")));
 
         var copy = service.duplicate(source.id(), "Kopie von Sommerfest", member.id())
                 .orElseThrow();

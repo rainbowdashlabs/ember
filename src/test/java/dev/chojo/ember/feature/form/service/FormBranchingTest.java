@@ -109,7 +109,11 @@ class FormBranchingTest extends RepositoryTestBase {
                 form.id(),
                 member.id(),
                 member.id(),
-                Map.of(form.coming().id(), choice("o0"), form.bringing().id(), new FormAnswerValue.Text("Kuchen")));
+                Map.of(
+                        form.coming().id(),
+                        choice("o0"),
+                        form.bringing().id(),
+                        new FormAnswerValue.TextAnswer("Kuchen")));
 
         service.submitResponse(
                 form.id(),
@@ -117,8 +121,8 @@ class FormBranchingTest extends RepositoryTestBase {
                 member.id(),
                 Map.of(
                         form.coming().id(), choice("o1"),
-                        form.bringing().id(), new FormAnswerValue.Text("Kuchen"),
-                        form.why().id(), new FormAnswerValue.Text("Urlaub")));
+                        form.bringing().id(), new FormAnswerValue.TextAnswer("Kuchen"),
+                        form.why().id(), new FormAnswerValue.TextAnswer("Urlaub")));
 
         var answers = service.findAllAnswersForForm(form.id()).stream()
                 .map(FormAnswer::questionId)
@@ -133,13 +137,13 @@ class FormBranchingTest extends RepositoryTestBase {
                 form.id(),
                 member.id(),
                 member.id(),
-                Map.of(form.coming().id(), choice("o1"), form.why().id(), new FormAnswerValue.Text("Urlaub")));
+                Map.of(form.coming().id(), choice("o1"), form.why().id(), new FormAnswerValue.TextAnswer("Urlaub")));
 
         service.submitResponse(
                 form.id(),
                 member.id(),
                 member.id(),
-                Map.of(form.coming().id(), choice("o1"), form.why().id(), new FormAnswerValue.Text(" ")));
+                Map.of(form.coming().id(), choice("o1"), form.why().id(), new FormAnswerValue.TextAnswer(" ")));
 
         assertEquals(1, service.findAllAnswersForForm(form.id()).size());
     }
@@ -175,7 +179,7 @@ class FormBranchingTest extends RepositoryTestBase {
         var response = service.submitAnonymousResponse(
                 form.id(),
                 new byte[] {1, 2, 3},
-                Map.of(form.coming().id(), choice("o0"), form.bringing().id(), new FormAnswerValue.Text("Salat")),
+                Map.of(form.coming().id(), choice("o0"), form.bringing().id(), new FormAnswerValue.TextAnswer("Salat")),
                 new ConsentProof("c", "p", "t", null, null, null, null));
 
         assertEquals(List.of("p0", "yes"), response.path());
@@ -313,7 +317,7 @@ class FormBranchingTest extends RepositoryTestBase {
     }
 
     private static FormAnswerValue choice(String key) {
-        return new FormAnswerValue.Choice(List.of(key), "");
+        return new FormAnswerValue.ChoiceAnswer(List.of(key), "");
     }
 
     private record BranchingForm(int id, FormQuestion coming, FormQuestion bringing, FormQuestion why) {}

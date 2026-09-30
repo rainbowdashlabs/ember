@@ -78,11 +78,15 @@ class FormDraftTest extends RepositoryTestBase {
                 form,
                 member.id(),
                 guardian.id(),
-                Map.of(question.id(), new FormAnswerValue.Text("halb"), 999_999, new FormAnswerValue.Text("?")),
+                Map.of(
+                        question.id(),
+                        new FormAnswerValue.TextAnswer("halb"),
+                        999_999,
+                        new FormAnswerValue.TextAnswer("?")),
                 List.of("p0", "nowhere"));
 
         var draft = service.findDraft(form, member.id()).orElseThrow();
-        assertEquals(Map.of(question.id(), new FormAnswerValue.Text("halb")), draft.answers());
+        assertEquals(Map.of(question.id(), new FormAnswerValue.TextAnswer("halb")), draft.answers());
         assertEquals(List.of("p0"), draft.path());
         assertEquals(0, service.countResponses(form), "a draft is not an answer");
         assertFalse(service.hasResponded(form, member.id()));
@@ -93,7 +97,8 @@ class FormDraftTest extends RepositoryTestBase {
         var form = textForm();
         var question = service.findQuestions(form).getFirst();
 
-        service.saveDraft(form, member.id(), member.id(), Map.of(question.id(), new FormAnswerValue.Text("a")), null);
+        service.saveDraft(
+                form, member.id(), member.id(), Map.of(question.id(), new FormAnswerValue.TextAnswer("a")), null);
         service.saveDraft(form, member.id(), member.id(), null, List.of("p0"));
 
         var draft = service.findDraft(form, member.id()).orElseThrow();
@@ -106,9 +111,10 @@ class FormDraftTest extends RepositoryTestBase {
         var form = textForm();
         var question = service.findQuestions(form).getFirst();
         service.saveDraft(
-                form, member.id(), member.id(), Map.of(question.id(), new FormAnswerValue.Text("a")), List.of());
+                form, member.id(), member.id(), Map.of(question.id(), new FormAnswerValue.TextAnswer("a")), List.of());
 
-        service.submitResponse(form, member.id(), member.id(), Map.of(question.id(), new FormAnswerValue.Text("a")));
+        service.submitResponse(
+                form, member.id(), member.id(), Map.of(question.id(), new FormAnswerValue.TextAnswer("a")));
 
         assertTrue(service.findDraft(form, member.id()).isEmpty());
     }

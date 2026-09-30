@@ -45,5 +45,5 @@ public sealed interface BoardFieldValue {
 
     record DateValue(String value) implements BoardFieldValue {}
 
-    record LaneAssignee(int memberId) implements BoardFieldValue {}
+    record LaneAssigneeValue(int memberId) implements BoardFieldValue {}
 }

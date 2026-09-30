@@ -151,7 +151,7 @@ public final class FormResultTally {
         var counts = zeroPerOption(config);
         int other = 0;
         for (var value : values) {
-            if (!(value instanceof FormAnswerValue.Choice(List<String> selected, String otherText))) continue;
+            if (!(value instanceof FormAnswerValue.ChoiceAnswer(List<String> selected, String otherText))) continue;
             if (selected != null) {
                 for (var key : selected) counts.computeIfPresent(key, (k, count) -> count + 1);
             }
@@ -164,7 +164,7 @@ public final class FormResultTally {
         int scale = config.scale() != null && config.scale() > 0 ? config.scale() : DEFAULT_RATING_SCALE;
         int[] counts = new int[scale];
         for (var value : values) {
-            if (value instanceof FormAnswerValue.Rating(int rating) && rating >= 1 && rating <= scale) {
+            if (value instanceof FormAnswerValue.RatingAnswer(int rating) && rating >= 1 && rating <= scale) {
                 counts[rating - 1]++;
             }
         }
@@ -183,7 +183,7 @@ public final class FormResultTally {
     private static QuestionTally rankings(int id, FormQuestionConfig.Ranking config, List<FormAnswerValue> values) {
         var scores = zeroPerOption(config);
         for (var value : values) {
-            if (!(value instanceof FormAnswerValue.Ranking(List<String> order)) || order == null) continue;
+            if (!(value instanceof FormAnswerValue.RankingAnswer(List<String> order)) || order == null) continue;
             for (int rank = 0; rank < order.size(); rank++) {
                 int points = order.size() - rank;
                 scores.computeIfPresent(order.get(rank), (k, score) -> score + points);
@@ -196,7 +196,7 @@ public final class FormResultTally {
         var sums = new LinkedHashMap<String, Double>();
         var counts = zeroPerOption(config);
         for (var value : values) {
-            if (!(value instanceof FormAnswerValue.Likert(var ratings)) || ratings == null) continue;
+            if (!(value instanceof FormAnswerValue.LikertAnswer(var ratings)) || ratings == null) continue;
             ratings.forEach((key, rating) -> {
                 if (rating == null || !counts.containsKey(key)) return;
                 sums.merge(key, rating.doubleValue(), Double::sum);
@@ -212,8 +212,8 @@ public final class FormResultTally {
     private static QuestionTally listed(int id, List<FormAnswerValue> values) {
         var listed = values.stream()
                 .map(value -> switch (value) {
-                    case FormAnswerValue.Text(String text) -> text;
-                    case FormAnswerValue.DateValue(String date) -> date;
+                    case FormAnswerValue.TextAnswer(String text) -> text;
+                    case FormAnswerValue.DateAnswer(String date) -> date;
                     default -> null;
                 })
                 .filter(text -> text != null && !text.isBlank())

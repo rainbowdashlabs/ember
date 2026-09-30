@@ -152,7 +152,7 @@ class FormDraftRouteTest extends RepositoryTestBase {
             var read = client.get(childsDraft(), harness.as(sessionOf(guardian)));
 
             assertEquals(
-                    new FormAnswerValue.Text("vom Vormund"),
+                    new FormAnswerValue.TextAnswer("vom Vormund"),
                     draftOf(read).answers().get(questionId));
         });
     }
@@ -192,7 +192,7 @@ class FormDraftRouteTest extends RepositoryTestBase {
             assertEquals(Refusal.FORM_DRAFT_NOT_YOURS, refusalOf(ended));
         });
         assertEquals(
-                new FormAnswerValue.Text("privat"),
+                new FormAnswerValue.TextAnswer("privat"),
                 formService
                         .findDraft(formId, child.id())
                         .orElseThrow()

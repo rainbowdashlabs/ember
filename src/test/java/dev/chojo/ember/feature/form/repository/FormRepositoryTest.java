@@ -250,7 +250,7 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void upsertAnswer() {
-        formRepo.upsertAnswer(responseId, questionId, new FormAnswerValue.Text("John Doe"));
+        formRepo.upsertAnswer(responseId, questionId, new FormAnswerValue.TextAnswer("John Doe"));
         var answers = formRepo.findAnswers(responseId);
         assertEquals(1, answers.size());
     }
@@ -267,7 +267,7 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(32)
     void upsertAnswerOverwrite() {
-        formRepo.upsertAnswer(responseId, questionId, new FormAnswerValue.Text("Jane Doe"));
+        formRepo.upsertAnswer(responseId, questionId, new FormAnswerValue.TextAnswer("Jane Doe"));
         var answers = formRepo.findAnswers(responseId);
         assertEquals(1, answers.size());
     }
@@ -339,13 +339,13 @@ class FormRepositoryTest extends RepositoryTestBase {
                     false,
                     new FormQuestionConfig.Text(false));
             var response = formRepo.createResponse(separateForm.id(), member.id(), member.id());
-            formRepo.upsertAnswer(response.id(), question.id(), new FormAnswerValue.Text("Yes"));
+            formRepo.upsertAnswer(response.id(), question.id(), new FormAnswerValue.TextAnswer("Yes"));
             var stored = formRepo.findAnswersToQuestion(question.id());
             assertEquals(1, stored.size());
 
-            formRepo.updateAnswerValue(stored.getFirst().id(), new FormAnswerValue.Text("No"));
+            formRepo.updateAnswerValue(stored.getFirst().id(), new FormAnswerValue.TextAnswer("No"));
             assertEquals(
-                    new FormAnswerValue.Text("No"),
+                    new FormAnswerValue.TextAnswer("No"),
                     FormAnswerValue.parse(
                             FormQuestionType.TEXT,
                             formRepo.findAnswersToQuestion(question.id())

@@ -77,7 +77,7 @@ class InventoryFieldDefinitionRepositoryTest extends RepositoryTestBase {
 
         assertFalse(fieldDefinitionRepo.fieldHasAnyValue(inventory.id(), "weight"));
         LinkedHashMap<String, ItemFieldValues.FieldValue> values = new LinkedHashMap<>();
-        values.put("weight", new ItemFieldValues.NumberValue(BigDecimal.valueOf(12)));
+        values.put("weight", new ItemFieldValues.ItemNumberValue(BigDecimal.valueOf(12)));
         InventoryItemMetadata metadata = new InventoryItemMetadata(new ItemFieldValues(values));
         InventoryItem item = inventoryRepo.createItem(inventory.id(), "WI-1", "Weighted", null, metadata);
         assertTrue(fieldDefinitionRepo.fieldHasAnyValue(inventory.id(), "weight"));

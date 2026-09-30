@@ -296,7 +296,7 @@ public class BoardTicketService {
                 for (var fv : fieldValues) fvMap.put(fv.fieldId(), fv.value());
                 for (var field : fields) {
                     if (field.config() instanceof BoardFieldConfig.LaneAssignee lac && lac.laneId() == toLaneId) {
-                        if (fvMap.get(field.id()) instanceof BoardFieldValue.LaneAssignee(int memberId)
+                        if (fvMap.get(field.id()) instanceof BoardFieldValue.LaneAssigneeValue(int memberId)
                                 && board != null) {
                             ticketRepository.assignTicket(
                                     ticketId, memberIdentityFactory.local(board.stationId(), memberId));

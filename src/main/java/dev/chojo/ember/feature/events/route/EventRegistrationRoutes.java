@@ -18,7 +18,6 @@ import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
-import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -208,7 +207,7 @@ public class EventRegistrationRoutes implements Routes {
                 r,
                 answers.stream()
                         .filter(v -> !hidden.contains(v.fieldId()))
-                        .map(v -> new FieldValueEntry(v.fieldId(), v.value()))
+                        .map(v -> new EventRegistrationFieldValue(v.fieldId(), v.value()))
                         .toList(),
                 EventRegistrationFieldService.owesAnswer(
                         r.status(), registrationFieldService.requiredFieldIds(r.eventId()), answers));
@@ -228,7 +227,10 @@ public class EventRegistrationRoutes implements Routes {
     }
 
     private static RegistrationResponse toRegistrationResponse(
-            RegistrationRowLookups lookups, EventRegistration r, List<FieldValueEntry> fields, boolean answersMissing) {
+            RegistrationRowLookups lookups,
+            EventRegistration r,
+            List<EventRegistrationFieldValue> fields,
+            boolean answersMissing) {
         var display = lookups.member(r.memberId());
         return new RegistrationResponse(
                 r.id(),
@@ -280,7 +282,7 @@ public class EventRegistrationRoutes implements Routes {
                             r,
                             carried.stream()
                                     .filter(v -> !hidden.contains(v.fieldId()))
-                                    .map(v -> new FieldValueEntry(v.fieldId(), v.value()))
+                                    .map(v -> new EventRegistrationFieldValue(v.fieldId(), v.value()))
                                     .toList(),
                             EventRegistrationFieldService.owesAnswer(r.status(), required, carried));
                 })
@@ -290,7 +292,7 @@ public class EventRegistrationRoutes implements Routes {
     /**
      * Resolves and authorises the member id a register or decline call targets, defaulting to the caller.
      */
-    private int resolveTargetMemberId(UserSession session, RegisterRequest req) {
+    private int resolveTargetMemberId(UserSession session, EventRegisterRequest req) {
         if (session.member() == null) throw Refusal.NOT_A_MEMBER_ON_REGISTRATION.raise();
         if (req.memberId() == null) return session.member().id();
         int memberId = req.memberId();
@@ -474,13 +476,7 @@ public class EventRegistrationRoutes implements Routes {
         var fields = req.fields() == null ? List.<RegistrationFieldDefinition>of() : req.fields();
         answerReminder.replaceQuestions(
                 eventId,
-                fields.stream()
-                        .map(f -> new RegistrationFieldDraft(
-                                f.name(),
-                                f.fieldType(),
-                                f.config() != null ? f.config() : EventRegistrationFieldConfig.empty(),
-                                f.overview()))
-                        .toList());
+                fields.stream().map(RegistrationFieldDefinition::toDraft).toList());
         ctx.json(new MessageResponse("Registration fields updated"));
     }
 
@@ -646,7 +642,7 @@ public class EventRegistrationRoutes implements Routes {
             summary = "Register for an event",
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RegisterRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventRegisterRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = EventRegistration.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -654,7 +650,7 @@ public class EventRegistrationRoutes implements Routes {
     private void register(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
-        var req = ctx.bodyAsClass(RegisterRequest.class);
+        var req = ctx.bodyAsClass(EventRegisterRequest.class);
 
         var event = requireOwnedEvent(crudService, eventId, session);
         LocalDate date = resolveEventDate(req, event);
@@ -692,7 +688,7 @@ public class EventRegistrationRoutes implements Routes {
      * Reads the submitted answers into a map keyed by question, keeping the last entry when a
      * question is sent twice.
      */
-    private static Map<Integer, String> answersOf(List<FieldValueEntry> fields) {
+    private static Map<Integer, String> answersOf(List<EventRegistrationFieldValue> fields) {
         if (fields == null) return Map.of();
         var answers = new LinkedHashMap<Integer, String>();
         for (var field : fields) {
@@ -707,7 +703,7 @@ public class EventRegistrationRoutes implements Routes {
             summary = "Decline an event",
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RegisterRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventRegisterRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = EventRegistration.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -715,7 +711,7 @@ public class EventRegistrationRoutes implements Routes {
     private void decline(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
-        var req = ctx.bodyAsClass(RegisterRequest.class);
+        var req = ctx.bodyAsClass(EventRegisterRequest.class);
 
         var event = visibility.requireVisibleEvent(session, eventId);
         LocalDate date = resolveEventDate(req, event);
@@ -911,7 +907,7 @@ public class EventRegistrationRoutes implements Routes {
     }
 
     /** The day a registration or a decline is filed against, refused where the appointment is not on it. */
-    private LocalDate resolveEventDate(RegisterRequest req, StationEvent event) {
+    private LocalDate resolveEventDate(EventRegisterRequest req, StationEvent event) {
         LocalDate requested = req.eventDate() == null ? null : LocalDate.parse(req.eventDate());
         return occurrenceCalendar.dateToAnswerFor(event, requested);
     }
@@ -926,7 +922,7 @@ public class EventRegistrationRoutes implements Routes {
             RegistrationStatus status,
             Instant createdAt,
             String createdByName,
-            List<FieldValueEntry> fields,
+            List<EventRegistrationFieldValue> fields,
             /**
              * What the appointment is called. Carried on the registration because the reader cannot always
              * look it up: an appointment made by the association above the station lives on the
@@ -947,18 +943,16 @@ public class EventRegistrationRoutes implements Routes {
             /** The question that names them, where one does. */
             String fieldName) {}
 
-    @OpenApiName("EventRegisterRequest")
-    public record RegisterRequest(String eventDate, Integer memberId, List<FieldValueEntry> fields) {}
+    public record EventRegisterRequest(String eventDate, Integer memberId, List<EventRegistrationFieldValue> fields) {}
 
     /**
      * One answer to one registration question. Deliberately the same shape as the attendance and
      * batch field entries, so every custom field payload in the API reads alike.
      */
-    @OpenApiName("EventRegistrationFieldValue")
-    public record FieldValueEntry(int fieldId, String value) {}
+    public record EventRegistrationFieldValue(int fieldId, String value) {}
 
     @OpenApiName("EventRegistrationFieldsRequest")
-    public record RegistrationFieldsRequest(List<FieldValueEntry> fields) {}
+    public record RegistrationFieldsRequest(List<EventRegistrationFieldValue> fields) {}
 
     @OpenApiName("EventRegistrationFieldDefinition")
     public record RegistrationFieldResponse(
@@ -966,10 +960,6 @@ public class EventRegistrationRoutes implements Routes {
 
     @OpenApiName("EventRegistrationFieldDefinitionsRequest")
     public record RegistrationFieldDefinitionsRequest(List<RegistrationFieldDefinition> fields) {}
-
-    @OpenApiName("EventRegistrationFieldDefinitionEntry")
-    public record RegistrationFieldDefinition(
-            String name, EventFieldType fieldType, EventRegistrationFieldConfig config, boolean overview) {}
 
     public record StatusUpdateRequest(RegistrationStatus status) {}
 

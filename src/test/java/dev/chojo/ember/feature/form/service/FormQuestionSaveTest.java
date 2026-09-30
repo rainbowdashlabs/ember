@@ -185,8 +185,8 @@ class FormQuestionSaveTest extends RepositoryTestBase {
                 member.id(),
                 member.id(),
                 Map.of(
-                        first.id(), new FormAnswerValue.Text("first answer"),
-                        second.id(), new FormAnswerValue.Text("second answer")));
+                        first.id(), new FormAnswerValue.TextAnswer("first answer"),
+                        second.id(), new FormAnswerValue.TextAnswer("second answer")));
         return new AnsweredForm(form.id(), first, second);
     }
 
