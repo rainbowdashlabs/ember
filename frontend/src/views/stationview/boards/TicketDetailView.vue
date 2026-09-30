@@ -97,7 +97,7 @@ const fieldValues = ref<Record<number, unknown>>({})
 const allLabels = ref<BoardLabel[]>([])
 const ticketLabels = ref<BoardLabel[]>([])
 
-const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async (isCurrent) => {
     const [boardResult, tk, l, m, am, bf] = await Promise.all([
         api.getBoard(),
         api.getTicket(),
@@ -106,6 +106,7 @@ const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
         api.getAssignableMembers(),
         api.getFields(),
     ])
+    if (!isCurrent()) return
     board.value = boardResult.board as Board
     ticket.value = tk
     lanes.value = l

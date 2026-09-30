@@ -22,6 +22,12 @@ interface UseAsyncLoaderOptions {
 }
 
 /**
+ * Answers whether the run it was handed to is still the latest one. A run that is no longer current
+ * has been overtaken by a later `reload()` and must not write its answer anywhere.
+ */
+export type IsCurrentLoad = () => boolean
+
+/**
  * Generic async-load lifecycle wrapper. Owns `loading` and `error` reactives, runs the supplied
  * closure on mount (configurable) and on every `reload()` call, and absorbs the standard
  * try/catch/finally boilerplate so individual views can keep just the bespoke "assign results to
@@ -35,34 +41,39 @@ interface UseAsyncLoaderOptions {
  * what sort of failure it was, what the reader should do about it, and whether it looks like a
  * fault in Ember worth reporting. Render that with `FailureAlert` and the reader is told all three.
  *
- * <p>It used to discard the thrown thing entirely, `catch` without even a binding, and write "that
- * did not work" over the top. Everything the server had said about why was thrown away at more than
- * a hundred call sites, which is most of the reason a reader of this application could not tell
- * their own mistake from ours.
+ * <p>Every run is numbered, and only the latest one may touch `loading`, `error` and `failure`. A
+ * loader that a filter, a page or a route parameter re-runs can be overtaken by its own next run
+ * while the first answer is still on its way, and the slower answer must not land last. The closure
+ * is handed an {@link IsCurrentLoad} for that reason: it asks it after its last `await` and writes
+ * nothing once it answers false.
  */
 export function useAsyncLoader(
-    fn: () => Promise<void>,
+    fn: (isCurrent: IsCurrentLoad) => Promise<void>,
     options: UseAsyncLoaderOptions = {},
 ) {
     const {t} = useI18n()
     const loading = ref(false)
     const error = ref('')
     const failure = ref<Failure | null>(null)
+    let latestRun = 0
 
     async function reload() {
+        const run = ++latestRun
+        const isCurrent: IsCurrentLoad = () => run === latestRun
         loading.value = true
         error.value = ''
         failure.value = null
         try {
-            await fn()
+            await fn(isCurrent)
         } catch (e) {
+            if (!isCurrent()) return
             const described = describeFailure(e, t)
             failure.value = options.errorMessageKey
                 ? {...described, message: t(options.errorMessageKey)}
                 : described
             error.value = failure.value.message
         } finally {
-            loading.value = false
+            if (isCurrent()) loading.value = false
         }
     }
 

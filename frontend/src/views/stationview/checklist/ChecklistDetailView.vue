@@ -67,13 +67,14 @@ const showMembership = ref(false)
 
 const checklistId = computed(() => Number(route.params.id))
 
-const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async (isCurrent) => {
   const [d, g, ts, m] = await Promise.all([
     checklists.getChecklist(checklistId.value),
     memberGroups.listGroups(),
     userTags.listTags(),
     stationMembers.listMembers(false),
   ])
+  if (!isCurrent()) return
   detail.value = d
   groups.value = g
   tags.value = ts

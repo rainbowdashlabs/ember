@@ -40,7 +40,7 @@ const showCreateModal = ref(false)
 
 const members = ref<MemberCompletion[]>([])
 const assignableMembers = ref<MemberCompletion[]>([])
-const {loading, failure, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
     const [b, l, t, m, am, lb, tlm] = await Promise.all([
         boards.getBoard(boardKey.value),
         boards.getLanes(boardKey.value),
@@ -50,6 +50,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
         boards.getLabels(boardKey.value),
         boards.getAllTicketLabels(boardKey.value),
     ])
+    if (!isCurrent()) return
     board.value = b
     lanes.value = l
     tickets.value = t

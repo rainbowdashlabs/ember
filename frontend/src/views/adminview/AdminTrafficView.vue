@@ -27,7 +27,7 @@ const authFilter = ref<AuthBucketName | ''>('')
 const rows = ref<HourlyTrafficRow[]>([])
 const stationNames = ref<Map<string, string>>(new Map())
 
-const {loading, reload} = useAsyncLoader(async () => {
+const {loading, reload} = useAsyncLoader(async (isCurrent) => {
   const to = new Date()
   const from = new Date(to.getTime() - windowHours.value * 3600_000)
   const res = await traffic.getAdminHourly({
@@ -35,6 +35,7 @@ const {loading, reload} = useAsyncLoader(async () => {
     to: to.toISOString(),
     auth: authFilter.value === '' ? undefined : authFilter.value,
   })
+  if (!isCurrent()) return
   rows.value = res.rows
 }, {autoLoad: false})
 

@@ -40,11 +40,13 @@ const searchQuery = ref('')
 const statusFilter = ref<string>(ProcedureStatus.OPEN)
 const assigneeFilter = ref<string>(canEdit.value ? 'all' : 'me')
 
-const {loading, failure, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
   const params: { status?: string; assignee?: string } = {}
   if (statusFilter.value) params.status = statusFilter.value
   if (assigneeFilter.value === 'me') params.assignee = 'me'
-  items.value = await procedures.getProcedures(params)
+  const found = await procedures.getProcedures(params)
+  if (!isCurrent()) return
+  items.value = found
 }, {autoLoad: false})
 
 const {

@@ -147,7 +147,6 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
    * reads them as the answer to the filter they just set.
    */
   async function reloadOccurrences() {
-    if (loading.value) return
     try {
       await occurrences.load()
     } catch (e) {

@@ -60,9 +60,11 @@ interface ViewBadgeRef {
 const viewBadge = ref<ViewBadgeRef | null>(null)
 const recordedViewIds = new Set<number>()
 
-const {loading, failure, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
   const id = Number(route.params.id)
-  entry.value = await news.getNews(id)
+  const loaded = await news.getNews(id)
+  if (!isCurrent()) return
+  entry.value = loaded
   if (entry.value && !recordedViewIds.has(id)) {
     recordedViewIds.add(id)
     news.recordNewsView(id).then(() => viewBadge.value?.refresh())
