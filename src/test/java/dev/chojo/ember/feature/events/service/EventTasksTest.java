@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import dev.chojo.ember.lifecycle.Schedule;
@@ -45,9 +46,13 @@ class EventTasksTest {
     @Test
     void aFailedThresholdCheckIsSwallowed() {
         var events = mock(EventRepository.class);
-        when(events.findAutoCancel()).thenThrow(new IllegalStateException("database gone"));
-        var task = new EventThresholdChecker.Task(
-                new EventThresholdChecker(events, mock(EventCrudService.class), mock(StationReadOnlyGuard.class)));
+        when(events.findThresholdCandidates()).thenThrow(new IllegalStateException("database gone"));
+        var task = new EventThresholdChecker.Task(new EventThresholdChecker(
+                events,
+                mock(EventRegistrationRepository.class),
+                mock(EventCancellationService.class),
+                mock(OccurrenceCalendar.class),
+                mock(StationReadOnlyGuard.class)));
 
         assertDoesNotThrow(task::run);
     }

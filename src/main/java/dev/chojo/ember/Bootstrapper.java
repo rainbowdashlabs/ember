@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 
-
 /**
  * Application entry point that initializes the Guice injector, runs database migrations,
  * seeds demo data or creates a default admin account, and starts the API server.
