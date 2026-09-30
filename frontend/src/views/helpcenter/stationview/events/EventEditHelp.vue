@@ -105,6 +105,24 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventEdit.minimumTitle')">
+      <p>{{ t('helpCenter.eventEdit.minimumText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.minimumSeriesText') }}</p>
+      <NeutralContainer class="mt-3">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="space-y-1">
+            <FieldLabel>{{ t('events.minRegistrations') }}</FieldLabel>
+            <NumberInput :model-value="6" disabled/>
+          </div>
+          <div class="space-y-1">
+            <FieldLabel>{{ t('events.thresholdDays') }}</FieldLabel>
+            <NumberInput :model-value="3" disabled/>
+            <p class="text-xs text-(--text-muted)">{{ t('events.thresholdDaysHint') }}</p>
+          </div>
+        </div>
+      </NeutralContainer>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventEdit.registrationFieldsTitle')">
       <p>{{ t('helpCenter.eventEdit.registrationFieldsText') }}</p>
       <p>{{ t('helpCenter.eventEdit.registrationFieldsDefaults') }}</p>

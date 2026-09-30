@@ -4,9 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useEventRoutes} from '@/composables/useEventRoutes'
+import {events} from '@/api'
 import {isRecurringEvent, type EventBreak, type EventCategory, type StationEvent} from '@/api/events'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -68,6 +69,22 @@ const categoryStyle = computed<Record<number, {bg: string; fg: string}>>(() => {
   return out
 })
 
+/**
+ * The dates cancelled one by one, as `eventId|date`. Read by the calendar itself, because the list of
+ * appointments it is handed says only which series are cancelled as a whole.
+ */
+const cancelledKeys = ref(new Set<string>())
+
+onMounted(async () => {
+  const cancelled = await events.listStationCancelledDates().catch(() => [])
+  cancelledKeys.value = new Set(cancelled.map(entry => `${entry.eventId}|${entry.cancellation.date}`))
+})
+
+/** Whether an appointment is off on this date, on its own or with its whole series. */
+function isCancelled(ev: StationEvent, date: string): boolean {
+  return !!ev.cancelled || cancelledKeys.value.has(`${ev.id}|${date}`)
+}
+
 function chipStyle(ev: StationEvent): {backgroundColor: string; color: string} | undefined {
   if (ev.categoryId == null) return undefined
   const s = categoryStyle.value[ev.categoryId]
@@ -128,6 +145,7 @@ function detailRoute(ev: StationEvent, date: string) {
             :chip-style="chipStyle"
             :detail-route="detailRoute"
             :format-time="formatTime"
+            :is-cancelled="isCancelled"
         />
         <CalendarMultiDayBar
             v-for="(bar, barIdx) in week.bars"
@@ -136,6 +154,7 @@ function detailRoute(ev: StationEvent, date: string) {
             :chip-style="chipStyle"
             :detail-route="detailRoute"
             :format-time="formatTime"
+            :is-cancelled="isCancelled"
         />
       </div>
     </div>

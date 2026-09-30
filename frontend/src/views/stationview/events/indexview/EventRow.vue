@@ -11,6 +11,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
@@ -105,7 +106,8 @@ const detailRoute = computed(() => {
           <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>
           {{ typeLabel }}
         </SecondaryBadge>
-        <span class="font-medium text-primary">{{ item.event.name }}</span>
+        <span class="font-medium text-primary" :class="{'line-through': item.cancellation}">{{ item.event.name }}</span>
+        <ErrorBadge v-if="item.cancellation" data-testid="event-entry-cancelled">{{ t('events.cancelled') }}</ErrorBadge>
         <MutedIcon v-if="item.event.restricted" :icon="['fas', 'lock']" class="ml-1"/>
         <span class="text-sm text-(--text-muted)">{{ when }}</span>
         <span v-if="dateNote" class="text-sm text-(--text-muted)">{{ dateNote }}</span>

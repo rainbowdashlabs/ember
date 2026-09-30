@@ -18,7 +18,7 @@ import ColorBadge from '@/components/badge/ColorBadge.vue'
 import EventHeadline from '../eventshared/EventHeadline.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
 import EventRegistrationActions from '../eventshared/EventRegistrationActions.vue'
-import type {EventCategory, EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
+import type {CancellationNotice, EventCategory, EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
 import {renderMarkdown} from '@/util/markdown'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 
@@ -42,6 +42,8 @@ const props = defineProps<{
    * sign up for it would be an offer the server refuses.
    */
   answerable: boolean
+  /** Why this date is off, null while it takes place. A date that is off takes no answer. */
+  cancellation: CancellationNotice | null
   formatTime: (iso?: string) => string
   formatDeadline: (iso: string) => string
 }>()
@@ -63,12 +65,16 @@ const containerClass = computed(() => [
 </script>
 
 <template>
-  <NeutralContainer data-testid="upcoming-event" :data-event="event.id" :data-date="date" :class="containerClass">
+  <NeutralContainer
+      data-testid="upcoming-event" :data-event="event.id" :data-date="date" :data-cancelled="!!cancellation"
+      :class="containerClass">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
         <EventHeadline
             :name="event.name" :to="detailRoute" :date="date" :end-date="endDate"
-            :start-time="event.startTime" :end-time="event.endTime" :format-time="formatTime">
+            :start-time="event.startTime" :end-time="event.endTime" :format-time="formatTime"
+            :struck="!!cancellation">
+          <ErrorBadge v-if="cancellation" data-testid="upcoming-event-cancelled">{{ t('events.cancelled') }}</ErrorBadge>
           <ColorBadge v-if="category" :color="category.color" data-testid="upcoming-event-category">
             {{ category.name }}
           </ColorBadge>
@@ -93,7 +99,7 @@ const containerClass = computed(() => [
       </div>
     </div>
     <EventRegistrationActions
-        v-if="answerable"
+        v-if="answerable && !cancellation"
         :people="eligibleMembers"
         :answers="answers"
         :requires-registration="!!event.requiresRegistration"

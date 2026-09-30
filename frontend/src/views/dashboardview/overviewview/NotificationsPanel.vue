@@ -71,6 +71,7 @@ const typeIcons: Record<string, string> = {
   EVENT_REMINDER: 'bell',
   EVENT_DATE_DROPPED: 'calendar-xmark',
   EVENT_MOVED: 'calendar-days',
+  EVENT_DATE_RESTORED: 'rotate-left',
   PROCEDURE_ASSIGNED: 'clipboard-list',
   PROCEDURE_RESOLVED: 'clipboard-check',
   PROCEDURE_REOPENED: 'rotate',

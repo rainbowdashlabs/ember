@@ -7,10 +7,11 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {PublicEvent} from '@/api/publicEvents'
 import {renderMarkdown} from '@/util/markdown'
-import {formatTime, formatWeekdayDate, weekdayName} from '@/util/format'
+import {formatDate, formatTime, formatWeekdayDate, weekdayName} from '@/util/format'
 import ProseContent from '@/components/display/ProseContent.vue'
 
 defineProps<{
@@ -36,7 +37,8 @@ function isRecurring(eventType?: string): boolean {
     <NeutralContainer v-for="ev in events" :key="ev.id" class="space-y-2">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-2">
-          <span class="font-semibold">{{ ev.name }}</span>
+          <span class="font-semibold" :class="{'line-through': ev.cancelled}">{{ ev.name }}</span>
+          <ErrorBadge v-if="ev.cancelled" data-testid="public-event-cancelled">{{ t('publicStation.cancelled') }}</ErrorBadge>
           <SecondaryBadge v-if="isRecurring(ev.eventType)">
             <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>
             {{ ev.categoryName }}
@@ -52,6 +54,10 @@ function isRecurring(eventType?: string): boolean {
           </template>
         </span>
       </div>
+      <p v-if="!ev.cancelled && ev.cancelledDates?.length" class="text-sm text-(--text-muted)"
+         data-testid="public-event-cancelled-dates">
+        {{ t('publicStation.cancelledDates', {dates: ev.cancelledDates.map(date => formatDate(date)).join(', ')}) }}
+      </p>
       <ProseContent v-if="ev.description" v-html="renderMarkdown(ev.description)"/>
       <div v-if="ev.publicFields?.length" class="flex flex-wrap gap-3 text-xs text-(--text-muted)">
         <span v-for="f in ev.publicFields" :key="f.name">

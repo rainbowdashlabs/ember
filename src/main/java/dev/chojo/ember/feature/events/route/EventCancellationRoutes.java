@@ -11,8 +11,11 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.CancellationNotice;
+import dev.chojo.ember.feature.events.entity.CancelledEventDate;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCancellationService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -36,20 +39,27 @@ import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEv
  *
  * <p>Calling off a date of a series leaves every other date of it as it was. A one-time appointment
  * is called off by its date too, since it has only the one; calling it off as a series is refused.
+ *
+ * <p>This class registers the literal {@code GET /events/cancellations}, so it is bound before
+ * {@link EventRoutes}, whose {@code GET /events/{id}} would otherwise answer it.
  */
 @Singleton
 public class EventCancellationRoutes implements Routes {
     private final EventCrudService crudService;
     private final EventCancellationService cancellationService;
+    private final GuardianPolicy guardianPolicy;
 
     @Inject
-    public EventCancellationRoutes(EventCrudService crudService, EventCancellationService cancellationService) {
+    public EventCancellationRoutes(
+            EventCrudService crudService, EventCancellationService cancellationService, GuardianPolicy guardianPolicy) {
         this.crudService = crudService;
         this.cancellationService = cancellationService;
+        this.guardianPolicy = guardianPolicy;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        routes.get(prefix + "/events/cancellations", this::listStationCancelledDates, StationPermission.USER);
         routes.post(prefix + "/events/{id}/cancel", this::cancelSeries, StationPermission.EVENT_EDIT);
         routes.post(prefix + "/events/{id}/dates/{date}/cancel", this::cancelDate, StationPermission.EVENT_EDIT);
         routes.post(prefix + "/events/{id}/dates/{date}/restore", this::restoreDate, StationPermission.EVENT_EDIT);
@@ -141,6 +151,22 @@ public class EventCancellationRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var event = requireOwnedEvent(crudService, pathInt(ctx, "id"), session);
         ctx.json(cancellationService.findCancelledDates(event.id()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/cancellations",
+            methods = HttpMethod.GET,
+            summary = "List the cancelled dates of every appointment the reader sees",
+            description = "Only dates cancelled one by one. A series cancelled as a whole says so on the "
+                    + "appointment itself.",
+            tags = {"Events"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CancelledEventDate[].class)))
+    private void listStationCancelledDates(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var visible = crudService.findFilteredForMembers(
+                session.stationId(), EventVisibility.memberIdsSeenBy(session, guardianPolicy), null, null);
+        ctx.json(cancellationService.findCancelledDates(
+                session.stationId(), visible.stream().map(StationEvent::id).toList()));
     }
 
     private static LocalDate pathDate(Context ctx) {

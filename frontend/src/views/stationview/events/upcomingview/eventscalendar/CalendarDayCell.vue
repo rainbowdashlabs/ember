@@ -18,6 +18,8 @@ const props = defineProps<{
   /** Where an appointment's chip leads on the day it falls on, or nothing where it may not be opened. */
   detailRoute: (ev: StationEvent, date: string) => RouteLocationRaw | null
   formatTime: (iso?: string) => string
+  /** Whether an appointment is off on a date, which strikes its chip through. */
+  isCancelled: (ev: StationEvent, date: string) => boolean
 }>()
 
 void props
@@ -50,6 +52,8 @@ void props
           :title="`${evRef.event.name}${evRef.event.startTime ? ' · ' + formatTime(evRef.event.startTime) : ''}`"
           :custom-style="chipStyle(evRef.event)"
           :to="detailRoute(evRef.event, evRef.date)"
+          :class="{'line-through opacity-60': isCancelled(evRef.event, evRef.date)}"
+          :data-cancelled="isCancelled(evRef.event, evRef.date)"
       >
         <MutedIcon v-if="evRef.event.restricted" :icon="['fas', 'lock']" class="mr-0.5 inline"/>
         <span class="hidden sm:inline">{{ formatTime(evRef.event.startTime) }}&nbsp;</span>

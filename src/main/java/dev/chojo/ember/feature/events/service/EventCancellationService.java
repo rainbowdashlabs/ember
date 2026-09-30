@@ -12,6 +12,7 @@ import dev.chojo.ember.event.events.EventDateRestored;
 import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.CancellationNotice;
+import dev.chojo.ember.feature.events.entity.CancelledEventDate;
 import dev.chojo.ember.feature.events.entity.EventDateCancellation;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
@@ -22,7 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Calling appointments off and bringing their dates back.
@@ -147,6 +150,21 @@ public class EventCancellationService {
     public List<CancellationNotice> findCancelledDates(int eventId) {
         return cancellationRepository.findActiveByEvent(eventId).stream()
                 .map(EventDateCancellation::notice)
+                .toList();
+    }
+
+    /**
+     * The dates of a station's appointments that are off one by one, for the appointments named.
+     *
+     * @param stationId the station
+     * @param eventIds  the appointments the reader may see
+     * @return those dates, each with its appointment
+     */
+    public List<CancelledEventDate> findCancelledDates(int stationId, Collection<Integer> eventIds) {
+        var seen = Set.copyOf(eventIds);
+        return cancellationRepository.findActiveByStation(stationId).stream()
+                .filter(cancellation -> seen.contains(cancellation.eventId()))
+                .map(cancellation -> new CancelledEventDate(cancellation.eventId(), cancellation.notice()))
                 .toList();
     }
 

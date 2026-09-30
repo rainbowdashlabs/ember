@@ -507,13 +507,7 @@ public class EventRoutes implements Routes {
     }
 
     private List<Integer> resolveVisibleMemberIds(UserSession session) {
-        if (session.hasPermission(StationPermission.EVENT_MANAGER)) {
-            return null;
-        }
-        if (session.member() == null) {
-            return List.of(-1);
-        }
-        return guardianPolicy.household(session);
+        return EventVisibility.memberIdsSeenBy(session, guardianPolicy);
     }
 
     /**

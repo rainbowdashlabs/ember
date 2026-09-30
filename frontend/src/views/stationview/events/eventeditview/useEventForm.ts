@@ -100,8 +100,7 @@ export function useEventForm() {
     state.requiresConfirmation = ev.requiresConfirmation ?? false
     state.registrationLimit = ev.registrationLimit ?? undefined
     state.minRegistrations = ev.minRegistrations ?? undefined
-    state.hasThreshold = !!ev.thresholdDate
-    state.thresholdDate = instantToLocalInput(ev.thresholdDate)
+    state.thresholdDays = ev.thresholdDays ?? undefined
     state.registrationCloseDays = ev.registrationCloseDays ?? undefined
     state.repeatUntil = ev.repeatUntil ?? ''
     state.repeatCount = ev.repeatCount ?? undefined
@@ -141,8 +140,7 @@ export function useEventForm() {
       requiresConfirmation: state.requiresConfirmation,
       registrationLimit: state.registrationLimit ?? undefined,
       minRegistrations: state.minRegistrations ?? undefined,
-      thresholdDate: state.hasThreshold && state.thresholdDate
-          ? new Date(state.thresholdDate).toISOString() : undefined,
+      thresholdDays: state.minRegistrations ? state.thresholdDays ?? null : null,
       restriction: state.restriction,
       viewRestriction: state.viewRestriction,
       registrationCloseDays: state.registrationCloseDays ?? undefined,

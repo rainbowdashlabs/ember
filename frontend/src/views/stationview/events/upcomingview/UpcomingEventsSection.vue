@@ -77,6 +77,7 @@ const {t} = useI18n()
           :has-managed-members="managedMembersCount > 0"
           :registering="registering"
           :answerable="answerable"
+          :cancellation="item.cancellation ?? null"
           :format-time="formatTime"
           :format-deadline="formatDeadline"
           @register="emit('register', item.event, item.date, $event)"

@@ -15,6 +15,18 @@ describe('notificationMessageKey', () => {
             .toBe('notification.eventCancelled')
     })
 
+    it('names the date where only one date was called off', () => {
+        expect(notificationMessageKey('EVENT_CANCELLED', 'notification.eventCancelled',
+            {eventName: 'Dienst', eventDate: '2026-10-07', cause: 'MANUAL'}))
+            .toBe('notification.eventDateCancelled')
+    })
+
+    it('says too few registered where the check called the date off', () => {
+        expect(notificationMessageKey('EVENT_CANCELLED', 'notification.eventCancelled',
+            {eventName: 'Dienst', eventDate: '2026-10-07', cause: 'THRESHOLD'}))
+            .toBe('notification.eventDateCancelledTooFew')
+    })
+
     it('names the next date of a moved appointment where one is left', () => {
         expect(notificationMessageKey('EVENT_DATE_DROPPED', 'notification.eventDateDropped', {nextDate: '2026-10-07'}))
             .toBe('notification.eventDateDropped')

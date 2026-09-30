@@ -23,9 +23,18 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
+import EventCancellationBanner from '@/views/stationview/events/eventdetailview/EventCancellationBanner.vue'
 import {StationPermission} from '@/api/types'
+import {CancellationCauses, type CancellationNotice} from '@/api/events'
 
 const {t} = useI18n()
+
+const sampleCancellation: CancellationNotice = {
+  date: '2026-05-25',
+  cause: CancellationCauses.THRESHOLD,
+  reason: null,
+  cancelledAt: null,
+}
 </script>
 
 <template>
@@ -66,7 +75,8 @@ const {t} = useI18n()
           </HelpPermissionGuard>
           <ActionsMenu :label="t('common.actions')" test-id="help-event-actions">
             <DropdownMenuItem :icon="['fas', 'bullhorn']">{{ t('events.announceAsNews') }}</DropdownMenuItem>
-            <DropdownMenuItem :icon="['fas', 'ban']" destructive>{{ t('events.cancelEvent') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'ban']" destructive>{{ t('events.cancelDate') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'calendar-xmark']" destructive>{{ t('events.cancelSeries') }}</DropdownMenuItem>
           </ActionsMenu>
         </ButtonRow>
       </div>
@@ -172,6 +182,10 @@ const {t} = useI18n()
     <HelpPermissionGuard :permissions="[StationPermission.EVENT_EDIT]" :label="t('helpCenter.permissionLabel.eventEdit')">
       <HelpSection :title="t('helpCenter.eventDetail.cancelTitle')">
         <p>{{ t('helpCenter.eventDetail.cancelText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.cancelSeriesText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.restoreText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.cancelAutomaticText') }}</p>
+        <EventCancellationBanner class="mt-3" :cancellation="sampleCancellation" :series-cancelled="false"/>
       </HelpSection>
     </HelpPermissionGuard>
 

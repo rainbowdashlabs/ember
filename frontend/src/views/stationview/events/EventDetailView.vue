@@ -11,7 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {AttendanceTemplate} from '@/api/attendance'
-import {isRecurringEvent, type AbsentMember, type EventCategory, type EventField, type EventRegistrationEntry, type StationEvent} from '@/api/events'
+import {CancellationCauses, isRecurringEvent, type AbsentMember, type CancellationNotice, type EventCategory, type EventField, type EventRegistrationEntry, type StationEvent} from '@/api/events'
 import type {StationMember} from '@/api/types'
 import {attendance, events, managedMembers as managedMembersApi, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -52,6 +52,7 @@ const managedMembers = ref<StationMember[]>([])
 const allMembers = ref<StationMember[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
 const allMyRegistrations = ref<EventRegistrationEntry[]>([])
+const cancelledDates = ref<CancellationNotice[]>([])
 
 /** The answers given for this appointment on the date being looked at, and no other. */
 const myRegistrations = computed(() => allMyRegistrations.value.filter(
@@ -87,6 +88,23 @@ const nextOccurrenceDate = ref<string | null>(null)
  * in the meantime would be a day the page then asks its sign-ups under.
  */
 const effectiveDate = computed((): string | null => focusedDate.value ?? nextOccurrenceDate.value)
+
+/**
+ * Why the date on screen is off, or null while it takes place. A series called off as a whole is off
+ * on every date, with the reason given for the series.
+ */
+const cancellation = computed((): CancellationNotice | null => {
+  const ev = event.value
+  if (!ev) return null
+  if (ev.cancelled) {
+    return {date: effectiveDate.value, cause: CancellationCauses.MANUAL, reason: ev.cancelReason, cancelledAt: ev.cancelledAt}
+  }
+  return cancelledDates.value.find(notice => notice.date === effectiveDate.value) ?? null
+})
+
+/** Whether the date on screen is already behind the station, which nothing can call off or bring back. */
+const datePast = computed(() =>
+    !!effectiveDate.value && effectiveDate.value < stationDayOf(new Date(), stationTimezone.value))
 
 /**
  * The day written above a time on this page.
@@ -160,14 +178,16 @@ const currentTemplateName = computed(() => {
 })
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
-  const [ev, cats, flds, completions, nextDate] = await Promise.all([
+  const [ev, cats, flds, completions, nextDate, offDates] = await Promise.all([
     events.getEvent(eventId.value),
     events.listCategories(),
     events.getEventFields(eventId.value),
     stationMembers.listCompletions().catch(() => []),
     events.getNextDate(eventId.value).catch(() => null),
+    events.listCancelledDates(eventId.value).catch(() => []),
   ])
   event.value = ev
+  cancelledDates.value = offDates
   nextOccurrenceDate.value = nextDate
   categories.value = cats
   fields.value = flds
@@ -254,6 +274,8 @@ function onFieldUpdated(field: EventField) {
         :absent-members="absentMembers"
         :focused-date="focusedDate"
         :effective-date="effectiveDate"
+        :cancellation="cancellation"
+        :date-past="datePast"
         :start-formatted="startFormatted"
         :end-formatted="endFormatted"
         :category-name="currentCategoryName"

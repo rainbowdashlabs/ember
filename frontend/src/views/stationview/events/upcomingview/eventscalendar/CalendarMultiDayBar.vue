@@ -15,6 +15,8 @@ const props = defineProps<{
   /** Where the bar leads on the day the appointment starts, or nothing where it may not be opened. */
   detailRoute: (ev: StationEvent, date: string) => RouteLocationRaw | null
   formatTime: (iso?: string) => string
+  /** Whether an appointment is off on the date it starts, which strikes the bar through. */
+  isCancelled: (ev: StationEvent, date: string) => boolean
 }>()
 
 void props
@@ -26,6 +28,7 @@ void props
       :class="[
         bar.continuesLeft ? 'rounded-l-none ml-0' : 'rounded-l ml-0.5',
         bar.continuesRight ? 'rounded-r-none mr-0' : 'rounded-r mr-0.5',
+        isCancelled(bar.event, bar.startIso) ? 'line-through opacity-60' : '',
       ]"
       :style="{
         gridColumnStart: bar.startCol,

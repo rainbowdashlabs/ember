@@ -20,5 +20,16 @@ import {expiryReminderKey} from './expiry'
 export function notificationMessageKey(type: string, localeKey: string, params: Record<string, string>): string {
     if (type === 'EXPIRY_REMINDER') return expiryReminderKey(params)
     if (type === 'EVENT_DATE_DROPPED' && !params.nextDate) return 'notification.eventDateDroppedLast'
+    if (type === 'EVENT_CANCELLED') return eventCancelledKey(localeKey, params)
+    return localeKey
+}
+
+/**
+ * The sentence a cancellation is worded by: one date called off for too few registrations, one date
+ * called off by a manager, or the whole appointment.
+ */
+function eventCancelledKey(localeKey: string, params: Record<string, string>): string {
+    if (params.cause === 'THRESHOLD') return 'notification.eventDateCancelledTooFew'
+    if (params.eventDate) return 'notification.eventDateCancelled'
     return localeKey
 }

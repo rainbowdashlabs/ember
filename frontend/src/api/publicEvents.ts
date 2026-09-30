@@ -18,6 +18,10 @@ export interface PublicEvent {
     categoryId?: number | null
     categoryName?: string
     publicFields?: { name: string; value: string; fieldType: string }[]
+    /** Whether the appointment is off as a whole: a series cancelled, or a one-time appointment whose date was. */
+    cancelled?: boolean
+    /** The dates of a series from today on that are cancelled one by one. */
+    cancelledDates?: string[]
 }
 
 export interface PublicEventCategory {

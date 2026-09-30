@@ -376,8 +376,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(EventAttachmentRoutes.class);
         routesBinder.addBinding().to(EventRegistrationRoutes.class);
         routesBinder.addBinding().to(EventSharingRoutes.class);
-        routesBinder.addBinding().to(EventRoutes.class);
         routesBinder.addBinding().to(EventCancellationRoutes.class);
+        routesBinder.addBinding().to(EventRoutes.class);
         routesBinder.addBinding().to(FederatedEventRoutes.class);
         routesBinder.addBinding().to(RemoteEventRoutes.class);
         routesBinder.addBinding().to(EventTemplateRoutes.class);

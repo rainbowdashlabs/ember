@@ -57,8 +57,7 @@ const hasDeadline = defineModel<boolean>('hasDeadline')
 const registrationDeadline = defineModel<string>('registrationDeadline')
 const registrationLimit = defineModel<number>('registrationLimit')
 const minRegistrations = defineModel<number>('minRegistrations')
-const hasThreshold = defineModel<boolean>('hasThreshold')
-const thresholdDate = defineModel<string>('thresholdDate')
+const thresholdDays = defineModel<number>('thresholdDays')
 const registrationCloseDays = defineModel<number>('registrationCloseDays')
 
 const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
@@ -200,17 +199,11 @@ const labelId = useId()
           <NumberInput v-model="minRegistrations" placeholder=""/>
         </div>
 
-        <template v-if="minRegistrations && minRegistrations > 0">
-          <div class="flex items-center justify-between">
-            <span :id="`${labelId}-threshold`" class="text-sm font-medium">{{ t('events.thresholdDate') }}</span>
-            <ToggleInput v-model="hasThreshold" :aria-labelledby="`${labelId}-threshold`"/>
-          </div>
-          <div v-if="hasThreshold" class="space-y-1">
-            <FieldLabel>{{ t('events.thresholdDate') }}</FieldLabel>
-            <DateTimeInput v-model="thresholdDate"/>
-            <p class="text-xs text-(--text-muted)">{{ t('events.thresholdHint') }}</p>
-          </div>
-        </template>
+        <div v-if="minRegistrations && minRegistrations > 0" class="space-y-1">
+          <FieldLabel>{{ t('events.thresholdDays') }}</FieldLabel>
+          <NumberInput v-model="thresholdDays" :placeholder="t('events.thresholdDaysPlaceholder')"/>
+          <p class="text-xs text-(--text-muted)">{{ t('events.thresholdDaysHint') }}</p>
+        </div>
 
         <div v-if="eventType !== undefined && eventType !== 'ONE_TIME'" class="space-y-1">
           <FieldLabel>{{ t('events.registrationCloseDays') }}</FieldLabel>

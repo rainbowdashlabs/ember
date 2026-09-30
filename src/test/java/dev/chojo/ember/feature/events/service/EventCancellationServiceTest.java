@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -299,6 +300,19 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         assertEquals(firstDate(), row.nextDate());
         assertEquals(CancellationCause.MANUAL, row.cancellation().cause());
         assertFalse(row.event().seriesCancelled());
+    }
+
+    /** The station's calendar is told the dates off of the appointments the reader sees, and no others. */
+    @Test
+    void theCancelledDatesAreListedForTheAppointmentsSeen() {
+        weekly();
+        service.cancelDate(event, firstDate(), null, null);
+
+        var seen = service.findCancelledDates(station.id(), List.of(event.id()));
+        assertEquals(1, seen.size());
+        assertEquals(event.id(), seen.getFirst().eventId());
+        assertEquals(firstDate(), seen.getFirst().cancellation().date());
+        assertTrue(service.findCancelledDates(station.id(), List.of()).isEmpty());
     }
 
     /** Every date of a series called off as a whole says so, with the reason given for the series. */

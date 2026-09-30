@@ -47,12 +47,15 @@ export interface StationEvent {
     restricted?: boolean
     isPublic?: boolean
     registrationLimit?: number | null
+    /** Whether the whole series is cancelled. A single date, and a one-time appointment, is cancelled by date. */
     cancelled?: boolean
     cancelledAt?: string | null
     cancelReason?: string | null
+    /** The same as `cancelled`, under the name the lists send it by. */
+    seriesCancelled?: boolean
     minRegistrations?: number | null
-    thresholdDate?: string | null
-    thresholdNotified?: boolean
+    /** How many days before each date the minimum must be reached, or the date is cancelled automatically. */
+    thresholdDays?: number | null
     registrationCloseDays?: number | null
     /** The last day a repeating appointment falls on, or null where it repeats without an end. */
     repeatUntil?: string | null
@@ -79,7 +82,7 @@ export interface EventRequest {
     isPublic?: boolean
     registrationLimit?: number | null
     minRegistrations?: number | null
-    thresholdDate?: string | null
+    thresholdDays?: number | null
     registrationCloseDays?: number | null
     /** The last day the repetition may reach, as a plain date. Never sent together with a count. */
     repeatUntil?: string | null
@@ -316,9 +319,30 @@ export interface OccurrenceParams {
     offset?: number
 }
 
+/** Who called a date off: a manager, or the check that too few had registered in time. */
+export const CancellationCauses = {
+    MANUAL: 'MANUAL',
+    THRESHOLD: 'THRESHOLD',
+} as const
+
+export type CancellationCauseName = (typeof CancellationCauses)[keyof typeof CancellationCauses]
+
+/**
+ * Why a date is off. `reason` is what a manager wrote, and empty for the check, whose reason is
+ * worded from the cause.
+ */
+export interface CancellationNotice {
+    date: string | null
+    cause: CancellationCauseName
+    reason?: string | null
+    cancelledAt?: string | null
+}
+
 export interface UpcomingEventOccurrence {
     event: StationEvent
     date: string
+    /** Why this date is off, null while it takes place. */
+    cancellation?: CancellationNotice | null
 }
 
 /** Whether a page of appointments wants the ones that still come round or the ones that do not. */
@@ -366,6 +390,8 @@ export interface DatedEvent {
     event: StationEvent
     nextDate: string | null
     previousDate: string | null
+    /** Why the date the row is ordered by is off, null while it takes place. */
+    cancellation?: CancellationNotice | null
 }
 
 /**
@@ -466,8 +492,40 @@ export const createEvent = events.create
 export const updateEvent = events.update
 export const deleteEvent = events.remove
 
-export async function cancelEvent(eventId: number, reason?: string): Promise<void> {
+/** Cancels a whole series for good. A one-time appointment is cancelled by its date instead. */
+export async function cancelSeries(eventId: number, reason?: string): Promise<void> {
     await client.post(`/events/${eventId}/cancel`, { reason: reason ?? null })
+}
+
+/** Cancels one date of an appointment, leaving every other date of a series as it is. */
+export async function cancelEventDate(eventId: number, date: string, reason?: string): Promise<void> {
+    await client.post(`/events/${eventId}/dates/${date}/cancel`, { reason: reason ?? null })
+}
+
+/** Brings a cancelled date back; the places kept on it stand again. */
+export async function restoreEventDate(eventId: number, date: string): Promise<void> {
+    await client.post(`/events/${eventId}/dates/${date}/restore`)
+}
+
+/** One date of one appointment that is off, as a calendar of many appointments reads it. */
+export interface CancelledEventDate {
+    eventId: number
+    cancellation: CancellationNotice
+}
+
+/**
+ * The dates cancelled one by one of every appointment the reader sees. A whole series cancelled says
+ * so on the appointment itself.
+ */
+export async function listStationCancelledDates(): Promise<CancelledEventDate[]> {
+    const res = await client.get<CancelledEventDate[]>('/events/cancellations')
+    return res.data
+}
+
+/** The dates of an appointment that are cancelled one by one, earliest first. */
+export async function listCancelledDates(eventId: number): Promise<CancellationNotice[]> {
+    const res = await client.get<CancellationNotice[]>(`/events/${eventId}/cancellations`)
+    return res.data
 }
 
 // -- Categories --

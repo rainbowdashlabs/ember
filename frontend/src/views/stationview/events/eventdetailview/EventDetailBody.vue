@@ -9,9 +9,10 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import EventCancelModal from './EventCancelModal.vue'
+import EventCancellationBanner from './EventCancellationBanner.vue'
 import EventRegistrationsTab from './EventRegistrationsTab.vue'
 import EventDetailHeader from './EventDetailHeader.vue'
 import EventInfoTab from './EventInfoTab.vue'
@@ -20,7 +21,7 @@ import EventRegistrationActions from '../eventshared/EventRegistrationActions.vu
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import {isRecurringEvent, type AbsentMember, type EventField, type EventRegistrationEntry, type EventRegistrationField, type RegistrationFieldValue, type StationEvent} from '@/api/events'
+import {isRecurringEvent, type AbsentMember, type CancellationNotice, type EventField, type EventRegistrationEntry, type EventRegistrationField, type RegistrationFieldValue, type StationEvent} from '@/api/events'
 import {attendance, events} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {StationModules, StationPermission, type StationMember} from '@/api/types'
@@ -37,6 +38,10 @@ const props = defineProps<{
   absentMembers: AbsentMember[]
   focusedDate: string | null
   effectiveDate: string | null
+  /** Why the date on screen is off, null while it takes place. */
+  cancellation: CancellationNotice | null
+  /** Whether the date on screen is already behind the station. */
+  datePast: boolean
   startFormatted: string
   endFormatted: string
   categoryName: string
@@ -148,7 +153,7 @@ const stillTakingAnswers = computed(() => {
  * this used to be on a date whose deadline had passed with nobody having answered.
  */
 const showAnswerBlock = computed(() => {
-  if (!props.effectiveDate) return false
+  if (!props.effectiveDate || props.cancellation) return false
   if (answers.value.length > 0) return true
   if (props.registrableMembers.length === 0) return true
   return stillTakingAnswers.value
@@ -219,30 +224,47 @@ const tabs = computed(() => {
   return entries
 })
 
-const showCancelModal = ref(false)
+/**
+ * Which cancellation the dialog is open for: the date on screen, the whole series, or none. The
+ * dialog is told the date, or null for the series.
+ */
+const cancelling = ref<'date' | 'series' | null>(null)
+const cancelDate = computed(() => cancelling.value === 'date' ? props.effectiveDate : null)
+
 function onCancelled() {
-  showCancelModal.value = false
+  cancelling.value = null
   emit('cancelled')
 }
+
+const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
+  if (!props.effectiveDate) return
+  await events.restoreEventDate(props.eventId, props.effectiveDate)
+  emit('cancelled')
+})
 </script>
 
 <template>
   <div class="space-y-6">
-    <Alert v-if="event.cancelled" variant="error">
-      <span class="font-bold">{{ t('events.cancelled') }}</span>
-      <span v-if="event.cancelReason"> - {{ event.cancelReason }}</span>
-      <span v-if="event.cancelledAt" class="text-xs opacity-75 ml-2">{{ formatDateTime(event.cancelledAt) }}</span>
-    </Alert>
+    <EventCancellationBanner
+        v-if="cancellation"
+        :cancellation="cancellation"
+        :series-cancelled="!!event.cancelled"
+    />
+    <FailureAlert :failure="restoreFailure"/>
 
     <EventDetailHeader
         :event="event"
         :can-manage-events="canManageEvents"
         :can-write-news="hasPermission(StationPermission.NEWS_EDIT)"
         :effective-date="effectiveDate"
+        :date-cancelled="!!cancellation"
+        :date-past="datePast"
         :category-name="categoryName"
         :attendance-session-id="attendanceSessionId"
-        :can-take-attendance="canTakeAttendance"
-        @cancel="showCancelModal = true"
+        :can-take-attendance="canTakeAttendance && !cancellation"
+        @cancel-date="cancelling = 'date'"
+        @cancel-series="cancelling = 'series'"
+        @restore-date="restoreDate"
         @attendance="toAttendance"
     />
 
@@ -251,7 +273,7 @@ function onCancelled() {
       <InfoBadge v-if="event.requiresConfirmation">{{ t('events.requiresConfirmation') }}</InfoBadge>
       <span v-if="event.registrationDeadline" class="text-(--text-muted)">{{ t('events.registrationDeadline') }}: {{ formatDateTime(event.registrationDeadline) }}</span>
       <span v-if="event.minRegistrations" class="text-(--text-muted)">{{ t('events.minRegistrations') }}: {{ event.minRegistrations }}</span>
-      <span v-if="event.thresholdDate" class="text-(--text-muted)">{{ t('events.thresholdDate') }}: {{ formatDateTime(event.thresholdDate) }}</span>
+      <span v-if="event.minRegistrations && event.thresholdDays != null" class="text-(--text-muted)">{{ t('events.thresholdDays') }}: {{ t('events.thresholdDaysValue', {days: event.thresholdDays}) }}</span>
     </div>
 
     <NeutralContainer v-if="showAnswerBlock" class="space-y-2" data-testid="your-answer">
@@ -328,9 +350,10 @@ function onCancelled() {
     />
 
     <EventCancelModal
-        :show="showCancelModal"
+        :show="cancelling !== null"
         :event-id="event.id"
-        @close="showCancelModal = false"
+        :date="cancelDate"
+        @close="cancelling = null"
         @cancelled="onCancelled"
     />
   </div>
