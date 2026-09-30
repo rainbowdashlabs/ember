@@ -50,7 +50,8 @@ class PageBlockReferenceRoutesTest extends BlockReferenceTestBase {
                 noCellDescriptions(),
                 stationMemberRepo,
                 mock(AvatarService.class),
-                new ShareTokens());
+                new ShareTokens(),
+                stationRepo);
         var routes = new PageRoutes(
                 pageService,
                 media,
