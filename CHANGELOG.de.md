@@ -15,6 +15,8 @@
 - **Fragen und Seiten per Ziehen sortieren.** Fragen werden innerhalb einer Seite und zwischen Seiten gezogen, Seiten als Ganzes. Geänderte Fragen gehen nicht mehr verloren, wenn der Editor vor dem Speichern verlassen wird: Ember fragt vorher nach und bietet sie beim nächsten Öffnen wieder an.
 - **Fehler zeigen auf die Frage.** Lassen sich Antworten nicht absenden, öffnet das Formular die Seite mit dem Problem und markiert jede betroffene Frage.
 - **Abgesagte Termine sind überall gekennzeichnet.** Die Liste der kommenden Termine, der Monatskalender und der persönliche Kalender-Feed zeigen einen abgesagten Termin durchgestrichen und als abgesagt statt als stattfindend. Eine Anmeldung zu einem solchen Termin wird nicht mehr angeboten.
+- **SFTP- und SMB-Speicher bedienen mehrere Anfragen gleichzeitig.** Seiten mit vielen Bildern warten nicht mehr auf eine Datei nach der anderen, und Wachen auf demselben Verbund-Speicher teilen sich ihre Verbindungen; im Test dauerten 32 Lesezugriffe neben einem großen Upload eine halbe statt vier Sekunden. Grenzen und Wartezeiten beschreibt die Speicher-Seite der Hilfe.
+- **Eine klare Meldung, wenn der Speicher nicht erreichbar ist.** Antwortet der Speicher einer Wache nicht, erfahren die Nutzer mit `503 Service Unavailable`, dass er gerade nicht erreichbar ist, statt einen allgemeinen Fehler zu sehen.
 - **Bilder brauchen weniger Platz und laden schneller.** Die kleineren Größen von Profilbildern, Logos, Wiki-Bildern sowie Bildern in Quiz und Fundsachen werden als WebP gespeichert, und keine Größe wird mehr abgelegt, die so groß ist wie das Bild selbst. Bereits hochgeladene Bilder bleiben, wie sie sind.
 
 ### Sicherheit
@@ -46,6 +48,10 @@
 - **Der öffentliche Kalender zeigte abgesagte Termine als stattfindend.** Die öffentliche Seite der Wache und ihr öffentlicher Kalender-Feed führten abgesagte Termine auf, als hätte sich nichts geändert. Jetzt sind sie als abgesagt gekennzeichnet.
 - **Statistiken brachen nach jedem Neustart ein.** Bei jedem Neustart gingen die Seitenaufrufe bis zur letzten Stunde, die jüngsten Zahlen zum Datenverkehr, Antwortzeiten und Protokollzeilen verloren. Sie werden jetzt gespeichert, bevor der Server anhält, sofern ihm die Zeit zum Herunterfahren gelassen wird.
 - **WebP-Bilder ließen sich nicht überall hochladen.** Ein WebP-Bild als Logo einer Wache oder als Ordnersymbol oder Bild im Wiki hochzuladen schlug fehl und entfernte in manchen Fällen das Bild, das vorher da war. WebP-Bilder werden jetzt wie alle anderen angenommen.
+- **Der Speicher der Instanz konnte nach dem Rückzug einer Wache ausfallen.** Zog eine Wache mit eigenem Speicher zurück auf den Speicher der Instanz und lagen die Dateien der Instanz auf SFTP, SMB oder S3, schlug danach jede Datei der Instanz fehl, bis Ember neu gestartet wurde. Der Speicher der Instanz bleibt jetzt offen.
+- **SMB-Speicher blieb nach einem Verbindungsabbruch unerreichbar.** In manchen Fällen schlug nach einem Abbruch der Verbindung zu einem SMB-Server jede Datei darauf fehl, bis Ember neu gestartet wurde. Ember meldet sich jetzt auf der neuen Verbindung wieder an.
+- **Geänderte Speicher-Einstellungen ließen Verbindungen offen.** Jede Änderung am Speicher einer Wache oder eines Verbunds ließ die Verbindung zum alten Server bis zum nächsten Neustart offen. Ersetzte Verbindungen werden jetzt geschlossen.
+- **Löschen auf SFTP-Speicher konnte fehlschlagen.** In manchen Fällen wurde das Entfernen einer Datei, die auf dem SFTP-Speicher schon fehlte, mit einem Fehler beantwortet. Es gelingt jetzt still, wie auf jedem anderen Speicher.
 - **Animierte Logos standen still.** Ein animiertes GIF als Logo einer Wache und die Kachel eines GIFs im Wiki zeigten nur das erste Bild. Sie bewegen sich jetzt.
 
 ## v26.19.5

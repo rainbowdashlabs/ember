@@ -5630,6 +5630,11 @@ volumes:
                 title: 'Was passiert mit gleichzeitigen Wachen-Migrationen?',
                 text: 'Solange eine Wache gerade migriert, kannst du keine Instanz-Migration starten. Umgekehrt blockiert eine laufende Instanz-Migration alle Wachen-Migrationen. Die Buttons reagieren dann mit einem klaren Fehler.',
             },
+            connections: {
+                title: 'Verbindungen zu SFTP und SMB',
+                text: 'Jeder SFTP- und SMB-Speicher bedient bis zu vier Anfragen gleichzeitig. Weitere Anfragen warten höchstens 10 Sekunden auf eine freie Verbindung, und jede Anfrage an den Server wartet höchstens 30 Sekunden auf eine Antwort. Wachen, die auf demselben Verbund-Speicher liegen, teilen sich diese Verbindungen.',
+                outage: 'Reißt eine Verbindung ab, versucht Ember eine Anfrage, die sich gefahrlos wiederholen lässt, etwa das Lesen einer Datei, einmal auf einer neuen Verbindung. Klappt auch das nicht, sehen die Nutzer die Meldung, dass der Speicher gerade nicht erreichbar ist. Nach drei gescheiterten Verbindungsversuchen in Folge wartet Ember 30 Sekunden, bevor es wieder verbindet; der Test des Speichers versucht es trotzdem immer.',
+            },
             tip: 'Zugangsdaten werden vor dem Schreiben in conf.yml verschlüsselt - also nicht im Klartext durch dein Dateisystem rotiert.',
         },
         adminStorageAudit: {
