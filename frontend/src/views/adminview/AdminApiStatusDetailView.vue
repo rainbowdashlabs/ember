@@ -30,7 +30,7 @@ import {formatDayClockSeconds} from '@/util/format'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent])
 
-const {t} = useI18n()
+const {t, locale} = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -118,7 +118,7 @@ const responseTimeChartOption = computed(() => {
         <template v-if="!loading && detail">
             <div class="grid grid-cols-2 gap-3 mb-6">
                 <NeutralContainer class="text-center">
-                    <p class="text-2xl font-bold">{{ detail.requestCount.toLocaleString('de-DE') }}</p>
+                    <p class="text-2xl font-bold">{{ detail.requestCount.toLocaleString(locale) }}</p>
                     <p class="text-xs text-(--text-muted)">{{ t('apiStatus.totalRequests') }}</p>
                 </NeutralContainer>
                 <NeutralContainer class="text-center">

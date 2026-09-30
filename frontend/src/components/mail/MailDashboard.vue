@@ -43,7 +43,7 @@ const props = defineProps<{
   perStation?: boolean
 }>()
 
-const {t} = useI18n()
+const {t, locale} = useI18n()
 
 const data = ref<MailDashboard | null>(null)
 const actionFailure = ref<Failure | null>(null)
@@ -170,7 +170,7 @@ const stuckTable = useMailRecordTable('mail-stuck', () => data.value?.stuckMails
       </template>
 
       <MutedText v-if="data.oldestPendingAt" tag="p" size="sm">
-        {{ t('mailDashboard.oldestPending', {when: new Date(data.oldestPendingAt).toLocaleString('de-DE')}) }}
+        {{ t('mailDashboard.oldestPending', {when: new Date(data.oldestPendingAt).toLocaleString(locale)}) }}
       </MutedText>
 
       <SubHeader>{{ t('mailDashboard.providersTitle') }}</SubHeader>
@@ -191,7 +191,7 @@ const stuckTable = useMailRecordTable('mail-stuck', () => data.value?.stuckMails
             </SecondaryButton>
           </div>
           <div class="text-xs text-(--text-muted)">
-            {{ t('mailDashboard.blockUntil', {when: new Date(block.expiresAt).toLocaleString('de-DE')}) }}
+            {{ t('mailDashboard.blockUntil', {when: new Date(block.expiresAt).toLocaleString(locale)}) }}
           </div>
           <div v-if="block.reason" class="text-xs text-(--error) break-words">{{ block.reason }}</div>
         </div>

@@ -8073,6 +8073,13 @@ export default {
         selectNone: 'Keine',
         noOptions: 'Keine Auswahl verfügbar.',
     },
+    relativeTime: {
+        justNow: 'gerade eben',
+        minutesAgo: 'vor {n} Min.',
+        hoursAgo: 'vor {n} Std.',
+        dayAgo: 'vor {n} Tag',
+        daysAgo: 'vor {n} Tagen',
+    },
     onboarding: {
         resume: 'Weiter mit der Einrichtung',
         /** Stands in for the child's name where a task is about nobody in particular. */

@@ -49,7 +49,7 @@ const props = defineProps<{
   currentMemberIds: number[]
 }>()
 
-const {t} = useI18n()
+const {t, locale} = useI18n()
 const {canManageEvents, hasPermission} = useSession()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
@@ -90,7 +90,7 @@ const nonPendingRegistrations = computed<StatusGroup[]>(() => {
     byStatus.set(reg.status, list)
   }
   for (const list of byStatus.values()) {
-    list.sort((a, b) => a.memberName.localeCompare(b.memberName, 'de'))
+    list.sort((a, b) => a.memberName.localeCompare(b.memberName, locale.value))
   }
   return [
     RegistrationStatus.ACCEPTED,

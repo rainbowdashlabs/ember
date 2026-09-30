@@ -33,6 +33,7 @@ import type {
   ChecklistSourceRequest,
 } from '@/api/checklists'
 import {formatDate} from '@/util/format'
+import {compareText} from '@/util/locale'
 import EditButton from '@/components/button/EditButton.vue'
 import ChecklistMatrix from './checklistdetailview/ChecklistMatrix.vue'
 import ChecklistFilterBar from './checklistdetailview/ChecklistFilterBar.vue'
@@ -85,7 +86,7 @@ watch(checklistId, () => reload())
 
 const sortedEntries = computed(() =>
     [...(detail.value?.entries ?? [])].sort((a, b) =>
-        a.memberName.localeCompare(b.memberName, 'de', {sensitivity: 'base'}),
+        compareText(a.memberName, b.memberName),
     ),
 )
 const aliveEntries = computed(() => sortedEntries.value.filter(e => !e.deletedAt))

@@ -21,7 +21,7 @@ const props = defineProps<{
   entry: LogEntry
 }>()
 
-const {t} = useI18n()
+const {t, locale} = useI18n()
 
 const expanded = ref(false)
 
@@ -49,7 +49,7 @@ const LEVEL_TONES: Record<string, Tone> = {
 
 const tone = computed<Tone>(() => LEVEL_TONES[props.entry.level] ?? TRACE_TONE)
 
-const when = computed(() => new Date(props.entry.loggedAt).toLocaleString('de-DE'))
+const when = computed(() => new Date(props.entry.loggedAt).toLocaleString(locale.value))
 
 /** The last part of the logger name, which is what identifies it to a reader. */
 const shortLogger = computed(() => props.entry.logger.split('.').pop() ?? props.entry.logger)

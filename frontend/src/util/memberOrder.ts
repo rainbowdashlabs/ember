@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-/** Names sort the way a German reader expects, and neither case nor an accent separates two of them. */
-const collator = new Intl.Collator('de', {sensitivity: 'base'})
+import {compareText} from '@/util/locale'
 
 /**
  * Two members' names, in the order every member menu lists them.
@@ -23,7 +22,7 @@ export function compareMemberNames(one: string, other: string): number {
     const left = one.trim()
     const right = other.trim()
     if (!left || !right) return left ? -1 : right ? 1 : 0
-    return collator.compare(left, right)
+    return compareText(left, right)
 }
 
 /**

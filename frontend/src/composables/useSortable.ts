@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref, toValue, type ComputedRef, type MaybeRefOrGetter, type Ref} from 'vue'
+import {compareText} from '@/util/locale'
 
 export type SortDirection = 'asc' | 'desc'
 
@@ -55,10 +56,8 @@ export interface UseSortableReturn<T, K extends SortKey> {
     ariaSort: (key: K) => AriaSort
 }
 
-const collator = new Intl.Collator('de', {sensitivity: 'base', numeric: true})
-
 /**
- * Compares two raw column values. Strings are compared with the German collator, dates by their
+ * Compares two raw column values. Strings are compared in the interface language's order, dates by their
  * timestamp, booleans as 0/1 and numbers numerically.
  */
 export function compareSortValues(a: SortValue, b: SortValue, options: SortValueOptions = {}): number {
@@ -73,7 +72,7 @@ export function compareSortValues(a: SortValue, b: SortValue, options: SortValue
     const right = b instanceof Date ? b.getTime() : b
     if (typeof left === 'number' && typeof right === 'number') return left - right
     if (typeof left === 'boolean' || typeof right === 'boolean') return Number(left) - Number(right)
-    return collator.compare(String(left), String(right))
+    return compareText(String(left), String(right), true)
 }
 
 /** Builds a comparator from an accessor returning the sortable value of a row. */

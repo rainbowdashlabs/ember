@@ -13,7 +13,7 @@ import {
   isTreeIndeterminate,
   toggleTreeToken,
 } from '@/util/dateFilter'
-import {formatDate} from '@/util/format'
+import {formatDate, monthName} from '@/util/format'
 
 /**
  * The year/month/day checkmark tree of a date filter.
@@ -47,7 +47,7 @@ function toggle(token: string) {
 
 function monthLabel(monthToken: string): string {
   const month = Number(monthToken.slice(5, 7))
-  return new Date(2000, month - 1, 1).toLocaleDateString('de-DE', {month: 'long'})
+  return monthName(month)
 }
 </script>
 

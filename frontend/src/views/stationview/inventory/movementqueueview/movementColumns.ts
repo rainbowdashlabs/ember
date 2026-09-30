@@ -59,14 +59,14 @@ function standingOf(movement: Movement): string[] {
  * @param movements the movements shown, which name the steps the step column can be filtered by
  */
 export function useMovementColumns(movements: () => readonly Movement[]) {
-    const {t} = useI18n()
+    const {t, locale} = useI18n()
 
     const purposes = computed(() => purposeOptions(t))
 
     const stepNames = computed(() => [...new Set(movements()
         .map(movement => movement.reachedStepLabel)
         .filter((label): label is string => !!label))]
-        .toSorted((a, b) => a.localeCompare(b, 'de')))
+        .toSorted((a, b) => a.localeCompare(b, locale.value)))
 
     const standingOptions = computed<ColumnOption[]>(() => [
         ...stateOptions(t),

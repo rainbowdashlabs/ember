@@ -34,7 +34,7 @@ import {formatWeekdayDate, localInputToInstant, timeOnDayOf} from '@/util/format
 import {reportCaughtError} from '@/util/devErrorReporter'
 import {describeFailure} from '@/util/failure'
 
-const {t} = useI18n()
+const {t, locale} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {loaded, hasPermission, sessionInfo} = useSession()
@@ -159,7 +159,7 @@ const memberSections = computed((): MemberSection[] => {
   const sections: MemberSection[] = []
   const assignedMemberIds = new Set<number>()
   const sortByName = (a: StationMember, b: StationMember) =>
-      (a.name ?? '').localeCompare(b.name ?? '', 'de')
+      (a.name ?? '').localeCompare(b.name ?? '', locale.value)
 
   for (const tg of templateGroups.value) {
     const group = groups.value.find(g => g.id === tg.groupId)

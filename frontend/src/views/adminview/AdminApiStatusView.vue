@@ -28,7 +28,7 @@ import {formatMs} from './adminapistatusview/apiStatusFormat'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
-const {t} = useI18n()
+const {t, locale} = useI18n()
 
 const textColor = computed(() => chartTextColor(isDark.value))
 
@@ -139,7 +139,7 @@ const statusChartOption = computed(() => {
         <template v-else>
             <div class="grid grid-cols-3 gap-3 mb-6">
                 <NeutralContainer class="text-center">
-                    <p class="text-2xl font-bold">{{ totalRequests.toLocaleString('de-DE') }}</p>
+                    <p class="text-2xl font-bold">{{ totalRequests.toLocaleString(locale) }}</p>
                     <p class="text-xs text-[var(--text-muted)]">{{ t('apiStatus.totalRequests') }}</p>
                 </NeutralContainer>
                 <NeutralContainer class="text-center">
