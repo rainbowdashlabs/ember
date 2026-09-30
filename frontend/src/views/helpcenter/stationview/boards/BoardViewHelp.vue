@@ -28,6 +28,7 @@ const {t} = useI18n()
         <HelpSection :title="t('helpCenter.boardView.dragTitle')">
             <p>{{ t('helpCenter.boardView.dragText') }}</p>
             <p>{{ t('helpCenter.boardView.dragText2') }}</p>
+            <p>{{ t('helpCenter.boardView.dragText3') }}</p>
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.boardView.ticketTitle')">

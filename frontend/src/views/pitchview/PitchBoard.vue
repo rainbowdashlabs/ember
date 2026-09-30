@@ -4,26 +4,29 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import KanbanLane from '@/views/stationview/boards/boardview/KanbanLane.vue'
+import KanbanLane from '@/components/kanban/KanbanLane.vue'
 import type {PitchBoard} from './pitchTypes'
 
-/** The board of the application itself, fed with the data a demonstration wants to show. */
+/**
+ * The board of the application itself, fed with the data a demonstration wants to show. It is a
+ * picture of the board, so nothing on it can be moved.
+ */
 const props = defineProps<{
   board: PitchBoard
 }>()
 
 const ticketsOf = (laneId: number) => props.board.tickets.filter(ticket => ticket.laneId === laneId)
 const labelsForTicket = (ticketId: number) => props.board.labels?.[ticketId] ?? []
+const archivedCountOf = (index: number) => index === props.board.lanes.length - 1 ? props.board.archivedCount ?? 0 : 0
 </script>
 
 <template>
   <div class="flex gap-3 overflow-x-auto">
     <KanbanLane
         v-for="(lane, index) in board.lanes" :key="lane.id"
-        :lane="lane" :tickets="ticketsOf(lane.id)"
-        :archived-count="board.archivedCount ?? 0"
-        :is-last-lane="index === board.lanes.length - 1"
-        :drag-ticket="null" :drop-lane-id="null" :drop-position="null"
+        :lane="lane" :tickets="ticketsOf(lane.id)" :other-lanes="[]"
+        :archived-count="archivedCountOf(index)" archive-linked
+        group="pitch-board" read-only
         :members="board.members ?? []" :short-key="board.shortKey"
         :labels-for-ticket="labelsForTicket"/>
   </div>

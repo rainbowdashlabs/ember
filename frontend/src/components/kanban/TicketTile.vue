@@ -12,6 +12,10 @@ import type { MemberIdentity } from '@/api/types'
 import { priorityIcon as toPriorityIcon, priorityColor as toPriorityColor } from '@/util/ticketPriority'
 import { formatDayMonth, todayIsoDate } from '@/util/format'
 
+/**
+ * One ticket as a card on the kanban board. The `actions` slot sits beside the title, for what can be
+ * done to the card without opening it.
+ */
 const props = defineProps<{
     ticket: BoardTicket
     shortKey: string
@@ -72,15 +76,15 @@ const isOverdue = computed(() => {
         class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 cursor-pointer hover:border-[var(--accent)] transition-colors shadow-sm"
         @click="emit('click', ticket)"
     >
-        <!-- Title -->
-        <p class="text-sm font-medium leading-tight mb-1 line-clamp-2">{{ ticket.title }}</p>
+        <div class="flex items-start gap-1 mb-1">
+            <p class="flex-1 min-w-0 text-sm font-medium leading-tight line-clamp-2">{{ ticket.title }}</p>
+            <slot name="actions" />
+        </div>
 
-        <!-- Labels -->
         <div v-if="labels && labels.length > 0" class="flex flex-wrap gap-1 mb-2">
             <BaseBadge v-for="label in labels" :key="label.id" bg-class="" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">{{ label.name }}</BaseBadge>
         </div>
 
-        <!-- Checklist progress -->
         <div v-if="hasChecklist" class="flex items-center gap-2 mb-2">
             <div class="flex-1 h-1.5 bg-[var(--bg-muted)] rounded-full overflow-hidden">
                 <div
@@ -92,21 +96,16 @@ const isOverdue = computed(() => {
             <span class="text-xs text-[var(--text-muted)] whitespace-nowrap">{{ ticket.checklistChecked }}/{{ ticket.checklistTotal }}</span>
         </div>
 
-        <!-- Bottom row -->
         <div class="flex items-center justify-between text-xs text-[var(--text-muted)]">
             <div class="flex items-center gap-2">
-                <!-- Time dots -->
                 <div v-if="timeDots.count > 0" class="flex gap-0.5">
                     <span v-for="i in timeDots.count" :key="i" :class="timeDots.color" class="w-1.5 h-1.5 rounded-full" />
                 </div>
-                <!-- Priority -->
                 <font-awesome-icon :icon="priorityIcon" :class="priorityColor" class="text-xs" />
-                <!-- Due date -->
                 <span v-if="formattedDueDate" class="flex items-center gap-0.5" :class="isOverdue ? 'text-red-500 font-medium' : ''">
                     <font-awesome-icon :icon="['fas', 'calendar']" class="text-[0.6rem]" />
                     {{ formattedDueDate }}
                 </span>
-                <!-- Attachments -->
                 <span v-if="attachmentCount && attachmentCount > 0" class="flex items-center gap-0.5">
                     <font-awesome-icon :icon="['fas', 'paperclip']" class="text-[0.6rem]" />
                     {{ attachmentCount }}

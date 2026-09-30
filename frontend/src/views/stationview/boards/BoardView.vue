@@ -10,11 +10,12 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import KanbanLane from './boardview/KanbanLane.vue'
+import KanbanBoard from '@/components/kanban/KanbanBoard.vue'
+import { boardLanes } from '@/components/kanban/kanbanLanes'
 import BoardHeaderBar from './boardview/BoardHeaderBar.vue'
 import BoardFilterBar from './boardview/BoardFilterBar.vue'
 import BoardCreateTicketModal from './boardview/BoardCreateTicketModal.vue'
-import { useBoardDragAndDrop } from '@/composables/useBoardDragAndDrop'
+import { useTicketMoves } from '@/composables/useTicketMoves'
 import { boards, stationMembers } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardLane, BoardTicket, BoardLabel } from '@/api/boards'
@@ -70,19 +71,17 @@ const pageTitle = computed(() => board.value?.name || t('pages.board-view.title'
 /** Once the name is the title, the line under it is where the board says what it is for. */
 const pageSubtitle = computed(() => board.value?.description || t('pages.board-view.subtitle'))
 
-const visibleLanes = computed(() => lanes.value.filter(l => !board.value?.backlogLaneId || l.id !== board.value.backlogLaneId))
+const visibleLanes = computed(() => boardLanes(lanes.value, board.value?.backlogLaneId ?? null))
 const backlogLane = computed(() => board.value?.backlogLaneId ? lanes.value.find(l => l.id === board.value!.backlogLaneId) ?? null : null)
 
-function ticketsForLane(laneId: number): BoardTicket[] {
-    let filtered = tickets.value.filter(t => t.laneId === laneId)
-    if (assigneeFilter.value.size > 0) {
-        filtered = filtered.filter(t => !!t.assignee?.memberUid && assigneeFilter.value.has(t.assignee.memberUid))
+/** Whether a ticket passes the assignee and label filters; an empty filter lets everything through. */
+function matchesFilters(ticket: BoardTicket): boolean {
+    if (assigneeFilter.value.size > 0 && !(ticket.assignee?.memberUid && assigneeFilter.value.has(ticket.assignee.memberUid))) {
+        return false
     }
-    if (labelFilter.value.length > 0) {
-        const filterIds = new Set(labelFilter.value.map(Number))
-        filtered = filtered.filter(t => { const ids = ticketLabelMap.value.get(t.id) ?? []; return ids.some(id => filterIds.has(id)) })
-    }
-    return filtered.sort((a, b) => a.position - b.position)
+    if (labelFilter.value.length === 0) return true
+    const filterIds = new Set(labelFilter.value.map(Number))
+    return (ticketLabelMap.value.get(ticket.id) ?? []).some(id => filterIds.has(id))
 }
 
 function labelsForTicket(ticketId: number): BoardLabel[] {
@@ -104,28 +103,6 @@ const defaultCreateLaneId = computed(() => {
     return current.backlogLaneId ?? lanes.value.find(l => l.id !== current.backlogLaneId)?.id ?? null
 })
 
-function isLastLane(laneId: number): boolean {
-    const vl = visibleLanes.value
-    return vl[vl.length - 1]?.id === laneId
-}
-
-function shouldHideTicket(ticket: BoardTicket, laneId: number): boolean {
-    if (!isLastLane(laneId)) return false
-    if (!board.value) return false
-    const entered = new Date(ticket.laneEnteredAt)
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - board.value.hideDoneAfterDays)
-    return entered < cutoff
-}
-
-function visibleTicketsForLane(laneId: number): BoardTicket[] {
-    return ticketsForLane(laneId).filter(t => !shouldHideTicket(t, laneId))
-}
-
-function archivedCountForLane(laneId: number): number {
-    return ticketsForLane(laneId).filter(t => shouldHideTicket(t, laneId)).length
-}
-
 const assignees = computed(() => {
     const uids = new Set(tickets.value.map(t => t.assignee?.memberUid).filter(Boolean) as string[])
     const list = members.value.filter(m => uids.has(m.memberUid))
@@ -143,16 +120,7 @@ function laneName(laneId: number): string {
     return lanes.value.find(l => l.id === laneId)?.name ?? ''
 }
 
-const {
-    dragTicket,
-    dropLaneId,
-    dropPosition,
-    onTicketDragStart,
-    onLaneDragOver,
-    onLaneDragLeave,
-    onLaneDrop,
-    onDragEnd,
-} = useBoardDragAndDrop(tickets, {
+const {moveTicket} = useTicketMoves(tickets, {
     reorder: (ticketNumber, payload) => boards.reorderTickets(boardKey.value, ticketNumber, payload),
     move: (ticketNumber, payload) => boards.moveTicket(boardKey.value, ticketNumber, payload),
 }, reload)
@@ -185,29 +153,18 @@ watch(boardKey, reload)
                 :labels="allLabels"
             />
 
-            <div class="flex flex-col md:flex-row gap-4 md:overflow-x-auto pb-4" style="min-height: 200px">
-                <KanbanLane
-                    v-for="lane in visibleLanes"
-                    :key="lane.id"
-                    :lane="lane"
-                    :tickets="visibleTicketsForLane(lane.id)"
-                    :archived-count="archivedCountForLane(lane.id)"
-                    :is-last-lane="isLastLane(lane.id)"
-                    :drag-ticket="dragTicket"
-                    :drop-lane-id="dropLaneId"
-                    :drop-position="dropPosition"
-                    :members="members"
-                    :short-key="board.shortKey"
-                    :labels-for-ticket="labelsForTicket"
-                    @dragover="onLaneDragOver"
-                    @dragleave="onLaneDragLeave"
-                    @drop="onLaneDrop"
-                    @ticket-dragstart="onTicketDragStart"
-                    @ticket-dragend="onDragEnd"
-                    @ticket-click="openTicketDetail"
-                    @navigate-archived="router.push(`/station/boards/${board.shortKey}/archived`)"
-                />
-            </div>
+            <KanbanBoard
+                :board="board"
+                :lanes="lanes"
+                :tickets="tickets"
+                :filter="matchesFilters"
+                :members="members"
+                :labels-for-ticket="labelsForTicket"
+                archive-linked
+                @move="moveTicket"
+                @open="openTicketDetail"
+                @open-archive="router.push(`/station/boards/${board.shortKey}/archived`)"
+            />
 
             <BoardCreateTicketModal
                 v-model="showCreateModal"
