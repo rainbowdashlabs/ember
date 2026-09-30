@@ -15,9 +15,10 @@ import type {TokensConfigResponse} from '@/api/adminSettings'
 const {t} = useI18n()
 
 defineProps<{
-  config: TokensConfigResponse
   save: () => Promise<void>
 }>()
+
+const config = defineModel<TokensConfigResponse>('config', {required: true})
 </script>
 
 <template>

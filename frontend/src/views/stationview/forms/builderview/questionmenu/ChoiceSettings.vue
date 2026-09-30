@@ -17,23 +17,21 @@ import type {QuestionDraft} from '../types'
  *
  * <p>A dropdown takes one answer, so turning it on turns several answers off and the other way round.
  */
-const props = defineProps<{
-  question: QuestionDraft
-}>()
+const question = defineModel<QuestionDraft>('question', {required: true})
 
 const {t} = useI18n()
 
 function setMultiSelect(value: boolean) {
-  props.question.config.multiSelect = value
-  if (value) props.question.config.dropdown = false
+  question.value.config.multiSelect = value
+  if (value) question.value.config.dropdown = false
 }
 
 function setDropdown(value: boolean) {
-  props.question.config.dropdown = value
+  question.value.config.dropdown = value
   if (!value) return
-  props.question.config.multiSelect = false
-  props.question.config.multiLimitType = 'NONE'
-  props.question.config.multiLimit = null
+  question.value.config.multiSelect = false
+  question.value.config.multiLimitType = 'NONE'
+  question.value.config.multiLimit = null
 }
 </script>
 

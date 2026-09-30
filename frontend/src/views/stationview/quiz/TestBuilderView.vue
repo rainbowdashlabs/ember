@@ -95,6 +95,10 @@ function reorderSections(fromIndex: number, toIndex: number) {
   sections.value = moveWithin(sections.value, fromIndex, toIndex)
 }
 
+function updateSection(index: number, section: SectionDraft) {
+  sections.value[index] = section
+}
+
 function addSource(section: SectionDraft) {
   section.sources.push({
     key: generateKey(),
@@ -284,6 +288,7 @@ async function save() {
             @add-section="addSection"
             @reorder-sections="reorderSections"
             @remove-section="removeSection"
+            @update-section="updateSection"
             @add-source="addSource"
             @remove-source="removeSource"
         />

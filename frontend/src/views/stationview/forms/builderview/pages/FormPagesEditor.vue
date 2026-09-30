@@ -29,8 +29,8 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <VueDraggable v-model="layout.pages.value" handle="[data-page-grip]" :animation="150" class="space-y-6"
-                @end="keepTargetsForward(layout.pages.value)">
+  <VueDraggable :model-value="layout.pages.value" handle="[data-page-grip]" :animation="150" class="space-y-6"
+                @update:model-value="layout.reorderPages" @end="keepTargetsForward(layout.pages.value)">
     <div v-for="(page, index) in layout.pages.value" :key="page.key" class="space-y-6">
       <PageSection :layout="layout" :page-index="index" :question-types="questionTypes"/>
       <div class="flex justify-center border-t border-dashed border-(--border) pt-3">

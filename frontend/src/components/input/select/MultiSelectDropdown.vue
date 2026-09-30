@@ -26,6 +26,8 @@ const props = defineProps<{
   placeholder?: string
   disabled?: boolean
   searchable?: boolean
+  /** Lands on the button that opens the list, so a label outside can name it. */
+  id?: string
 }>()
 
 const {t} = useI18n()
@@ -67,7 +69,7 @@ function selectNone() {
   <div class="inline-block">
     <DropdownPanel v-model:open="open">
       <template #trigger>
-        <SecondaryButton :disabled="disabled" aria-haspopup="listbox">
+        <SecondaryButton :id="id" :disabled="disabled" aria-haspopup="listbox">
           {{ triggerLabel }}
           <font-awesome-icon
               :icon="['fas', 'chevron-down']"

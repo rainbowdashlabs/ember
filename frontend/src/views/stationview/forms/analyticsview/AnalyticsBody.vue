@@ -46,13 +46,15 @@ const {t} = useI18n()
 <template>
   <ResultFilterBar
     v-if="groupable && analytics.totalResponses > 0"
-    v-model:filter="view.filter.value"
-    v-model:grouping="view.grouping.value"
+    :filter="view.filter.value"
+    :grouping="view.grouping.value"
     :groups="view.groups.value"
     :tags="view.tags.value"
     :fields="view.groupableFields.value"
     :matching="view.narrowed.value ? view.narrowed.value.totalResponses : null"
     :querying="view.querying.value"
+    @update:filter="view.filterBy"
+    @update:grouping="view.groupBy"
     @reset="view.reset"
   />
 

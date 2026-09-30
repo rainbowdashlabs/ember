@@ -97,7 +97,7 @@ function save() {
     <Modal v-model="showModal">
       <SectionHeader>{{ t('clusterStorage.defaultsTitle') }}</SectionHeader>
       <p class="text-sm text-(--text-muted) mt-2 mb-3">{{ t('clusterStorage.emptyMeansInstance') }}</p>
-      <QuotaFieldsInput :fields="fields"/>
+      <QuotaFieldsInput v-model:fields="fields"/>
       <ButtonRow pair align="end" class="mt-4">
         <SecondaryButton @click="showModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton data-testid="cluster-defaults-save" @click="save">{{ t('common.save') }}</PrimaryButton>

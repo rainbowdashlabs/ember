@@ -8,9 +8,7 @@ import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import type {BooleanFieldConfig} from '@/api/inventoryFields'
 
-const props = defineProps<{
-    config: BooleanFieldConfig
-}>()
+const config = defineModel<BooleanFieldConfig>('config', {required: true})
 
 const {t} = useI18n()
 </script>
@@ -19,11 +17,11 @@ const {t} = useI18n()
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
         <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.fields.boolean.trueLabel') }}</span>
-            <TextInput v-model="props.config.trueLabel" />
+            <TextInput v-model="config.trueLabel" />
         </label>
         <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.fields.boolean.falseLabel') }}</span>
-            <TextInput v-model="props.config.falseLabel" />
+            <TextInput v-model="config.falseLabel" />
         </label>
     </div>
 </template>

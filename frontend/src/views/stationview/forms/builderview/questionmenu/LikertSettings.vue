@@ -19,27 +19,25 @@ import type {QuestionDraft} from '../types'
  * <p>A step's label is stored at the position of its value less one, which is where the fill screens
  * read it. A step below one has no such position and is shown by its number alone.
  */
-const props = defineProps<{
-  question: QuestionDraft
-}>()
+const question = defineModel<QuestionDraft>('question', {required: true})
 
 const {t} = useI18n()
 
 const steps = computed(() => {
-  const min = Math.max(1, (props.question.config.scaleMin as number | undefined) ?? 1)
-  const max = (props.question.config.scaleMax as number | undefined) ?? 5
+  const min = Math.max(1, (question.value.config.scaleMin as number | undefined) ?? 1)
+  const max = (question.value.config.scaleMax as number | undefined) ?? 5
   return Array.from({length: Math.max(0, max - min + 1)}, (_, index) => min + index)
 })
 
 function labelOf(value: number): string {
-  return ((props.question.config.scaleLabels as string[] | undefined) ?? [])[value - 1] ?? ''
+  return ((question.value.config.scaleLabels as string[] | undefined) ?? [])[value - 1] ?? ''
 }
 
 function setLabel(value: number, label: string | undefined) {
-  const labels = [...((props.question.config.scaleLabels as string[] | undefined) ?? [])]
+  const labels = [...((question.value.config.scaleLabels as string[] | undefined) ?? [])]
   while (labels.length < value) labels.push('')
   labels[value - 1] = label ?? ''
-  props.question.config.scaleLabels = labels
+  question.value.config.scaleLabels = labels
 }
 </script>
 

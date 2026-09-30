@@ -118,9 +118,9 @@ async function verifyAll() {
     <TableDetailBody
         :entry="entry"
         :columns="columns"
-        :station-transfer="stationTransfer"
-        :gdpr-export="gdprExport"
-        :gdpr-deletion="gdprDeletion"
+        v-model:station-transfer="stationTransfer"
+        v-model:gdpr-export="gdprExport"
+        v-model:gdpr-deletion="gdprDeletion"
         :statuses="statuses"
         :strategies="STRATEGIES"
         :column-options="columnOptions"

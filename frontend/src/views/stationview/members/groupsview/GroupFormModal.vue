@@ -14,29 +14,22 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {useModelProxy} from '@/composables/useModelProxy'
 import {useGroupsCapabilities} from '@/composables/useGroupsConfig'
 
 const {t} = useI18n()
 
-const props = defineProps<{
-  modelValue: boolean
+defineProps<{
   isEdit: boolean
-  name: string
-  color: string
   saving: boolean
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [v: boolean]
-  'update:name': [v: string]
-  'update:color': [v: string]
   save: []
 }>()
 
-const open = useModelProxy(() => props.modelValue, emit, 'modelValue')
-const nameModel = useModelProxy(() => props.name, emit, 'name')
-const colorModel = useModelProxy(() => props.color, emit, 'color')
+const open = defineModel<boolean>({required: true})
+const nameModel = defineModel<string>('name', {required: true})
+const colorModel = defineModel<string>('color', {required: true})
 
 /** An association's group carries no colour, so it is not offered one to set. */
 const capabilities = useGroupsCapabilities()

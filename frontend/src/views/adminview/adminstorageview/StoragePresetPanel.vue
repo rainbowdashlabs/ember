@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {ref, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -43,6 +43,7 @@ const {t} = useI18n()
 const showTierModal = ref(false)
 const editingTier = ref<QuotaTier | null>(null)
 const tierName = ref('')
+const tierNameId = useId()
 const tierFields = ref<QuotaFields>(defaultQuotaFields())
 const showApplyModal = ref(false)
 const applyTierId = ref<number | null>(null)
@@ -170,10 +171,10 @@ function toggleStation(id: string) {
       <SubHeader>{{ editingTier ? t('storageMonitoring.editPreset') : t('storageMonitoring.createPreset') }}</SubHeader>
       <div class="space-y-3 mt-3">
         <div>
-          <label class="block text-sm font-medium mb-1">{{ t('storageMonitoring.presetName') }}</label>
-          <TextInput v-model="tierName" data-testid="tier-name"/>
+          <label :for="tierNameId" class="block text-sm font-medium mb-1">{{ t('storageMonitoring.presetName') }}</label>
+          <TextInput :id="tierNameId" v-model="tierName" data-testid="tier-name"/>
         </div>
-        <QuotaFieldsInput :fields="tierFields"/>
+        <QuotaFieldsInput v-model:fields="tierFields"/>
       </div>
       <ButtonRow pair align="end" class="mt-4">
         <SecondaryButton @click="showTierModal = false">{{ t('common.cancel') }}</SecondaryButton>

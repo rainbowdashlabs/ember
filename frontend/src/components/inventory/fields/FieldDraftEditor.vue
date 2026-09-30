@@ -18,9 +18,10 @@ import BooleanFieldConfigForm from './BooleanFieldConfigForm.vue'
 import EnumFieldConfigForm from './EnumFieldConfigForm.vue'
 
 const props = defineProps<{
-    draft: DraftField
     submitting: boolean
 }>()
+
+const draft = defineModel<DraftField>('draft', {required: true})
 
 const emit = defineEmits<{
     cancel: []
@@ -30,33 +31,32 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 function onTypeChanged(value: FieldTypeName) {
-    if (props.draft.id) return
-    props.draft.fieldType = value
-    props.draft.config = defaultFieldConfig(value)
+    if (draft.value.id) return
+    draft.value = {...draft.value, fieldType: value, config: defaultFieldConfig(value)}
 }
 </script>
 
 <template>
     <div class="mb-4 p-3 rounded-theme border border-(--bg-accent)">
         <SubHeader class="mb-2">
-            {{ props.draft.id ? t('inventory.fields.edit') : t('inventory.fields.add') }}
+            {{ draft.id ? t('inventory.fields.edit') : t('inventory.fields.add') }}
         </SubHeader>
-        <FieldDraftMetaForm :draft="props.draft" @type-changed="onTypeChanged" />
+        <FieldDraftMetaForm v-model:draft="draft" @type-changed="onTypeChanged" />
         <TextFieldConfigForm
-            v-if="props.draft.fieldType === FieldType.TEXT"
-            :config="props.draft.config as TextFieldConfig"
+            v-if="draft.fieldType === FieldType.TEXT"
+            v-model:config="draft.config as TextFieldConfig"
         />
         <NumberFieldConfigForm
-            v-else-if="props.draft.fieldType === FieldType.NUMBER"
-            :config="props.draft.config as NumberFieldConfig"
+            v-else-if="draft.fieldType === FieldType.NUMBER"
+            :config="draft.config as NumberFieldConfig"
         />
         <BooleanFieldConfigForm
-            v-else-if="props.draft.fieldType === FieldType.BOOLEAN"
-            :config="props.draft.config as BooleanFieldConfig"
+            v-else-if="draft.fieldType === FieldType.BOOLEAN"
+            v-model:config="draft.config as BooleanFieldConfig"
         />
         <EnumFieldConfigForm
-            v-else-if="props.draft.fieldType === FieldType.ENUM"
-            :config="props.draft.config as EnumFieldConfig"
+            v-else-if="draft.fieldType === FieldType.ENUM"
+            v-model:config="draft.config as EnumFieldConfig"
         />
         <ButtonRow pair align="end" class="mt-3">
             <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>

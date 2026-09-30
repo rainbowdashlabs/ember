@@ -16,10 +16,11 @@ import type {useFormWalk} from '@/composables/useFormWalk'
 /** The page of a station form the member is on, its questions, and the buttons to go on or send. */
 defineProps<{
   walk: ReturnType<typeof useFormWalk<FormPage, FormQuestion>>
-  answers: Record<number, AnswerValue>
   /** What the button that sends the form says, which differs for a first answer and a correction. */
   sendLabel: string
 }>()
+
+const answers = defineModel<Record<number, AnswerValue>>('answers', {required: true})
 
 const emit = defineEmits<{
   send: []

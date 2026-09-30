@@ -15,15 +15,13 @@ import type { QuestionDraft } from './types'
  * What makes a question the question it is, and so stays on its tile: the options of a choice or a
  * ranking, the statements of a Likert grid. The other kinds have no content beyond their title.
  */
-const props = defineProps<{
-  question: QuestionDraft
-}>()
+const question = defineModel<QuestionDraft>('question', {required: true})
 
 const { t } = useI18n()
 
 /** Where this kind of question keeps its content and what its editor calls it, or null where it has none. */
 const content = computed<{field: OptionField, label: string, addLabel: string} | null>(() => {
-  switch (props.question.questionType) {
+  switch (question.value.questionType) {
     case QuestionTypes.CHOICE:
       return {field: 'options', label: t('forms.choice.options'), addLabel: t('forms.choice.addOption')}
     case QuestionTypes.RANKING:
@@ -36,7 +34,7 @@ const content = computed<{field: OptionField, label: string, addLabel: string} |
 })
 
 function update(field: OptionField, items: FormOption[]) {
-  props.question.config[field] = items
+  question.value.config[field] = items
 }
 </script>
 

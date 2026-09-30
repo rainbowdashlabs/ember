@@ -39,9 +39,8 @@ export function keepTargetsForward(pages: PageDraft[]) {
     if (!leadsForward(pages, index, page.after)) page.after = { ...NEXT }
     for (const question of page.questions) {
       if (!question.branch) continue
-      for (const [key, target] of Object.entries(question.branch)) {
-        if (!leadsForward(pages, index, target)) delete question.branch[key]
-      }
+      question.branch = Object.fromEntries(Object.entries(question.branch)
+          .filter(([, target]) => leadsForward(pages, index, target)))
     }
   })
 }
@@ -175,6 +174,16 @@ export function useFormLayout() {
     keepTargetsForward(pages.value)
   }
 
+  /** Takes the pages in the order dragging them left them in. */
+  function reorderPages(next: PageDraft[]) {
+    pages.value = next
+  }
+
+  /** Puts a page in place of the one at the given index, as an editor of that page hands it back. */
+  function replacePage(index: number, page: PageDraft) {
+    pages.value[index] = page
+  }
+
   function movePage(index: number, direction: -1 | 1) {
     const to = index + direction
     const page = pages.value[index]
@@ -262,7 +271,7 @@ export function useFormLayout() {
 
   return {
     pages, allQuestions, paged, reachable,
-    load, toRequest, adoptIds, addPage, removePage, movePage,
+    load, toRequest, adoptIds, addPage, removePage, movePage, reorderPages, replacePage,
     addQuestion, removeQuestion, moveQuestion, moveToPage, setDeciding, duplicateQuestion, numberOf,
   }
 }

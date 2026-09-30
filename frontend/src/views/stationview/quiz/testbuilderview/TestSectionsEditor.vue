@@ -37,6 +37,7 @@ const emit = defineEmits<{
   addSection: []
   reorderSections: [fromIndex: number, toIndex: number]
   removeSection: [index: number]
+  updateSection: [index: number, section: SectionDraft]
   addSource: [section: SectionDraft]
   removeSource: [section: SectionDraft, sourceIndex: number]
 }>()
@@ -65,6 +66,7 @@ const { t } = useI18n()
         <TestSectionCard
             :section="section"
             :index="sIdx"
+            @update:section="changed => emit('updateSection', sIdx, changed)"
             :catalogs="props.catalogs"
             :get-categories-for-catalog="props.getCategoriesForCatalog"
             :on-catalog-change="props.onCatalogChange"

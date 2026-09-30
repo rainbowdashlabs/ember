@@ -224,6 +224,16 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
         set: (direction: SortDirection) => { state.value.sortDirection = direction },
     })
 
+    /** Sorts by the given column, or by none, keeping the direction. */
+    function sortBy(key: string | null) {
+        state.value.sortKey = key
+    }
+
+    /** Turns the sort the other way round, whichever column it is on. */
+    function flipSortDirection() {
+        state.value.sortDirection = state.value.sortDirection === 'asc' ? 'desc' : 'asc'
+    }
+
     function sortIcon(key: string): string {
         return sortIconFor(sortColumn.value?.key === key, state.value.sortDirection)
     }
@@ -276,6 +286,11 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
         set: (value: string) => { state.value.search = value },
     })
 
+    /** Narrows the rows to those whose searchable text holds the given words. */
+    function searchFor(value: string) {
+        state.value.search = value
+    }
+
     return reactive({
         columns,
         visibleColumns,
@@ -287,6 +302,8 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
         isSortable,
         isFilterable,
         toggleSort,
+        sortBy,
+        flipSortDirection,
         sortKey,
         sortDirection,
         sortIcon,
@@ -297,6 +314,7 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
         closeFilter,
         setFilter,
         search,
+        searchFor,
     })
 }
 

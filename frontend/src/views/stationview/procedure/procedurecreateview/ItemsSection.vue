@@ -23,6 +23,7 @@ const emit = defineEmits<{
   add: []
   reorder: [fromIndex: number, toIndex: number]
   remove: [index: number]
+  update: [index: number, item: EditableItem]
 }>()
 </script>
 
@@ -44,7 +45,8 @@ const emit = defineEmits<{
         @reorder="(from, to) => emit('reorder', from, to)"
     >
       <template #default="{item, index}">
-        <ProcedureItemCard :item="item" :all-items="items" @remove="emit('remove', index)"/>
+        <ProcedureItemCard :item="item" :all-items="items" @update:item="changed => emit('update', index, changed)"
+                           @remove="emit('remove', index)"/>
       </template>
     </DragList>
   </NeutralContainer>

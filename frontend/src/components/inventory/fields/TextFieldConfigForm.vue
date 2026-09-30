@@ -9,9 +9,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import type {TextFieldConfig} from '@/api/inventoryFields'
 
-const props = defineProps<{
-    config: TextFieldConfig
-}>()
+const config = defineModel<TextFieldConfig>('config', {required: true})
 
 const {t} = useI18n()
 </script>
@@ -19,12 +17,12 @@ const {t} = useI18n()
 <template>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
         <label class="flex items-center gap-2 text-sm">
-            <ToggleInput v-model="props.config.multiline" />
+            <ToggleInput v-model="config.multiline" />
             <span>{{ t('inventory.fields.text.multiline') }}</span>
         </label>
         <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.fields.text.maxLength') }}</span>
-            <NumberInput v-model="props.config.maxLength" />
+            <NumberInput v-model="config.maxLength" />
         </label>
     </div>
 </template>

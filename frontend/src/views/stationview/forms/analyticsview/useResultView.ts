@@ -119,9 +119,21 @@ export function useResultView(formId: Ref<number>, enabled: Ref<boolean>) {
         grouping.value = null
     }
 
+    /** Narrows the results to the answers of those the filter lets through. */
+    function filterBy(next: ResultFilter) {
+        filter.value = next
+    }
+
+    /** Splits the results by the given grouping, or stops splitting them. */
+    function groupBy(next: ResultGrouping | null) {
+        grouping.value = next
+    }
+
     return {
         filter,
         grouping,
+        filterBy,
+        groupBy,
         groups,
         tags,
         groupableFields,

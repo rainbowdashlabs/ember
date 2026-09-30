@@ -56,7 +56,7 @@ async function generatePepper() {
       <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
-        <TokenConfigPanel :config="config" :save="save"/>
+        <TokenConfigPanel v-model:config="config" :save="save"/>
         <PepperPanel :configured="config.tokenPepperConfigured" :generating="generating" @generate="generatePepper"/>
       </template>
     </div>

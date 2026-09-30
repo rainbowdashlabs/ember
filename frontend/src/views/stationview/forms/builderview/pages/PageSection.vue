@@ -50,6 +50,7 @@ const further = computed(() => pageChoices(props.layout.pages.value, t).filter(c
 <template>
   <section class="space-y-3" :data-testid="`form-page-${pageIndex}`">
     <PageHeaderEditor v-if="layout.paged.value" :page="page" :index="pageIndex" :last="lastPage"
+                      @update:page="replaced => layout.replacePage(pageIndex, replaced)"
                       :reached="layout.reachable.value.has(page.key)"
                       @move="direction => layout.movePage(pageIndex, direction)"
                       @remove="layout.removePage(pageIndex)"/>
@@ -58,6 +59,7 @@ const further = computed(() => pageChoices(props.layout.pages.value, t).filter(c
                   class="min-h-8 space-y-3" data-testid="page-questions" @add="onDroppedHere">
       <QuestionEditor v-for="(question, index) in page.questions" :key="question.id"
                       :question="question" :number="layout.numberOf(question)"
+                      @update:question="replaced => page.questions.splice(index, 1, replaced)"
                       :first="index === 0" :last="index === page.questions.length - 1" :other-pages="otherPages"
                       @move="direction => layout.moveQuestion(pageIndex, index, direction)"
                       @remove="layout.removeQuestion(pageIndex, index)"

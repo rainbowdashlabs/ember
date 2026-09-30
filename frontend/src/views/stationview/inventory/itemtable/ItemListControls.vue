@@ -51,7 +51,7 @@ const { t } = useI18n()
   </div>
   <slot/>
   <div v-if="showSearch" class="flex items-center gap-2">
-    <TextInput v-model="table.search" :placeholder="t('inventory.edit.searchItems')" class="flex-1"/>
+    <TextInput :model-value="table.search" :placeholder="t('inventory.edit.searchItems')" class="flex-1" @update:model-value="table.searchFor($event ?? '')"/>
     <TableColumnPicker :table="table"/>
   </div>
 </template>

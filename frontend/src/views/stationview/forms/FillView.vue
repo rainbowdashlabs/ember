@@ -292,7 +292,7 @@ watch(loaded, (isLoaded) => {
 
         <FormDraftNote v-if="!sent && draft.resumedFrom.value" :saved-at="draft.resumedFrom.value" @start-over="startOver"/>
 
-        <FillPages v-if="!sent" :walk="walk" :answers="answers"
+        <FillPages v-if="!sent" v-model:answers="answers" :walk="walk"
                    :send-label="hasExistingResponse ? t('forms.update') : t('forms.submit')"
                    @send="submit" @next="next" @cancel="router.push({ name: 'forms-list' })"/>
       </template>

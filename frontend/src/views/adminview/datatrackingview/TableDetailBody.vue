@@ -26,15 +26,16 @@ import type {Failure} from '@/util/failure'
 defineProps<{
   entry: TableEntry
   columns: ColumnEntry[]
-  stationTransfer: TransferContext
-  gdprExport: GdprExportContext
-  gdprDeletion: GdprDeletionContext
   statuses: TrackingStatusName[]
   strategies: readonly string[]
   columnOptions: { value: string; label: string; group?: string }[]
   failure: Failure | null
   save: () => Promise<void>
 }>()
+
+const stationTransfer = defineModel<TransferContext>('stationTransfer', {required: true})
+const gdprExport = defineModel<GdprExportContext>('gdprExport', {required: true})
+const gdprDeletion = defineModel<GdprDeletionContext>('gdprDeletion', {required: true})
 
 const emit = defineEmits<{
   close: []
@@ -59,19 +60,19 @@ const {t} = useI18n()
     <TableSchemaSection :entry="entry"/>
 
     <TableTransferSection
-        :transfer="stationTransfer"
+        v-model:transfer="stationTransfer"
         :statuses="statuses"
         :column-options="columnOptions"
     />
 
     <TableExportSection
-        :export-ctx="gdprExport"
+        v-model:export-ctx="gdprExport"
         :statuses="statuses"
         :column-options="columnOptions"
     />
 
     <TableDeletionSection
-        :deletion="gdprDeletion"
+        v-model:deletion="gdprDeletion"
         :statuses="statuses"
         :strategies="strategies"
         :columns="columns"

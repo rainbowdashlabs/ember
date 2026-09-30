@@ -203,7 +203,7 @@ watch(() => [props.inventoryId, props.artId, props.itemId], () => {
 
     <FieldDraftEditor
         v-if="draft"
-        :draft="draft"
+        v-model:draft="draft"
         :submitting="submitting"
         @cancel="cancelEdit"
         @save="save"

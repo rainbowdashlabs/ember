@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, ref} from 'vue'
+import {computed, inject, provide, ref, type InjectionKey} from 'vue'
 import {inventory, movements} from '@/api'
 import {MovementPurpose, type FlowPreview, type MovementPurposeName} from '@/api/movements'
 import type {Inventory, InventorySize} from '@/api/inventory'
@@ -32,6 +32,28 @@ export interface WizardPrefill {
      * member is standing there with the piece, so taking it in is the same action as raising the swap.
      */
     advanceOnce?: boolean
+}
+
+/** The state of one open wizard, as the wizard's steps are handed it. */
+export type MovementWizardState = ReturnType<typeof useMovementWizard>
+
+const MOVEMENT_WIZARD: InjectionKey<MovementWizardState> = Symbol('movementWizard')
+
+/**
+ * Hands the wizard's state to the steps drawn below it.
+ *
+ * <p>Every step reads and writes a different part of the one state, so the state travels whole rather
+ * than as a dozen models threaded through the component that picks the step.
+ */
+export function provideMovementWizard(wizard: MovementWizardState): void {
+    provide(MOVEMENT_WIZARD, wizard)
+}
+
+/** The state of the wizard this step is drawn in. */
+export function useProvidedMovementWizard(): MovementWizardState {
+    const wizard = inject(MOVEMENT_WIZARD)
+    if (!wizard) throw new Error('A wizard step is drawn outside a movement wizard')
+    return wizard
 }
 
 /** A piece leaves on a return and a swap; on an issue or a request there is nothing to hand in. */

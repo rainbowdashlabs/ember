@@ -15,31 +15,22 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {useModelProxy} from '@/composables/useModelProxy'
 
 const {t} = useI18n()
 
-const props = defineProps<{
-  modelValue: boolean
+defineProps<{
   isEdit: boolean
-  name: string
-  color: string
-  visible: boolean
   saving: boolean
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [v: boolean]
-  'update:name': [v: string]
-  'update:color': [v: string]
-  'update:visible': [v: boolean]
   save: []
 }>()
 
-const open = useModelProxy(() => props.modelValue, emit, 'modelValue')
-const nameModel = useModelProxy(() => props.name, emit, 'name')
-const colorModel = useModelProxy(() => props.color, emit, 'color')
-const visibleModel = useModelProxy(() => props.visible, emit, 'visible')
+const open = defineModel<boolean>({required: true})
+const nameModel = defineModel<string>('name', {required: true})
+const colorModel = defineModel<string>('color', {required: true})
+const visibleModel = defineModel<boolean>('visible', {required: true})
 </script>
 
 <template>

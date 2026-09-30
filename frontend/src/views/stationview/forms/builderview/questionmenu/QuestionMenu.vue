@@ -22,7 +22,6 @@ import type {PageChoice} from '../pageChoice'
  * anywhere else, or once an action has been taken.
  */
 defineProps<{
-  question: QuestionDraft
   /** Whether the question stands first, which leaves nothing above it to move past. */
   first: boolean
   /** Whether the question stands last, which leaves nothing below it to move past. */
@@ -32,6 +31,8 @@ defineProps<{
   /** The other pages of the form, which the question can be moved to. */
   otherPages: PageChoice[]
 }>()
+
+const question = defineModel<QuestionDraft>('question', {required: true})
 
 const emit = defineEmits<{
   describe: []
@@ -65,7 +66,7 @@ defineExpose({show})
                 class="text-(--text-muted) hover:text-(--text)" @click="toggle"/>
     <div v-if="open" data-testid="question-menu"
          class="absolute right-0 top-full z-20 mt-1 w-80 max-w-[calc(100vw-2rem)] rounded-theme border border-(--border) bg-(--bg) py-1 shadow-lg">
-      <QuestionSettings :question="question"/>
+      <QuestionSettings v-model:question="question"/>
       <DropdownMenuItem v-if="!describing" :icon="['fas', 'align-left']" @click="take(() => emit('describe'))">
         {{ t('forms.questionMenu.describe') }}
       </DropdownMenuItem>

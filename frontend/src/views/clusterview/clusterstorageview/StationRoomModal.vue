@@ -71,7 +71,7 @@ function save() {
   <Modal :model-value="props.modelValue" @update:model-value="emit('update:modelValue', $event)">
     <SectionHeader>{{ t('clusterStorage.grantRoomTo', {name: props.station?.stationName ?? ''}) }}</SectionHeader>
     <p class="text-sm text-(--text-muted) mt-2 mb-3">{{ t('clusterStorage.emptyMeansDefaults') }}</p>
-    <QuotaFieldsInput :fields="fields"/>
+    <QuotaFieldsInput v-model:fields="fields"/>
     <div class="flex flex-col gap-2 mt-4 sm:flex-row sm:items-center sm:justify-between">
       <ButtonRow>
         <SecondaryButton :disabled="props.busy || !props.station"

@@ -182,6 +182,11 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     items.value = moveWithin(items.value, fromIndex, toIndex)
   }
 
+  /** Puts an item in place of the one at the given index, as its card hands it back. */
+  function updateItem(index: number, item: EditableItem) {
+    items.value = items.value.map((current, i) => (i === index ? item : current))
+  }
+
   function itemPayload(item: EditableItem, position: number) {
     return {
       title: item.title,
@@ -287,6 +292,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     addItem,
     removeItem,
     reorderItems,
+    updateItem,
     submit,
   }
 }

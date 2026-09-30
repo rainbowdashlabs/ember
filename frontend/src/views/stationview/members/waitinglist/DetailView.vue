@@ -13,7 +13,11 @@ import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DetailHeader from './detailview/DetailHeader.vue'
 import LoadedSections from './detailview/LoadedSections.vue'
-import DetailModals from './detailview/DetailModals.vue'
+import CreateInviteModal from './detailview/CreateInviteModal.vue'
+import DeleteListModal from './detailview/DeleteListModal.vue'
+import TransitionConfirmModal from './detailview/TransitionConfirmModal.vue'
+import InviteEntryModal from './detailview/InviteEntryModal.vue'
+import DeleteEntryModal from './detailview/DeleteEntryModal.vue'
 import type {
   WaitingList,
   WaitingListEntryWithScore,
@@ -232,17 +236,37 @@ function showFailure(reported: Failure) {
         :actions="sectionActions"
       />
 
-      <DetailModals
-        v-model:show-delete="showDeleteModal"
-        v-model:show-delete-entry="showDeleteEntryModal"
-        :invite="invite"
-        :transitions="transitions"
-        :invitation="invitation"
+      <CreateInviteModal
+        v-model="invite.showModal.value"
+        v-model:max-uses="invite.maxUses.value"
+        v-model:expires-at="invite.expiresAt.value"
+        :creating="invite.creating.value"
+        @submit="invite.create"
+      />
+      <DeleteListModal
+        v-model="showDeleteModal"
         :list-name="list?.name"
-        :deleting-list="deletingList"
-        :delete-entry-target="deleteEntryTarget"
-        @confirm-delete-list="confirmDeleteList"
-        @confirm-delete-entry="confirmDeleteEntry"
+        :deleting="deletingList"
+        @confirm="confirmDeleteList"
+      />
+      <TransitionConfirmModal
+        :pending="transitions.pending.value"
+        :running="transitions.running.value"
+        @cancel="transitions.pending.value = null"
+        @confirm="transitions.confirm"
+      />
+      <InviteEntryModal
+        v-model:occurrence="invitation.occurrence.value"
+        v-model:arrival-time="invitation.arrivalTime.value"
+        :target="invitation.target.value"
+        :running="invitation.running.value"
+        @cancel="invitation.cancel"
+        @confirm="invitation.confirm"
+      />
+      <DeleteEntryModal
+        v-model="showDeleteEntryModal"
+        :target="deleteEntryTarget"
+        @confirm="confirmDeleteEntry"
       />
     </div>
   </ViewContent>
