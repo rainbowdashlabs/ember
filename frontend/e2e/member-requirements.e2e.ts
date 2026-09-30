@@ -74,7 +74,7 @@ test.describe('Member equipment requirements', () => {
 
         try {
             await page.goto(`/station/members/detail/${member.memberId}`)
-            await page.getByRole('button', {name: 'Inventar'}).click()
+            await page.getByRole('tab', {name: 'Inventar'}).click()
 
             const card = page.getByTestId('missing-requirement').first()
             await expect(card).toBeVisible()

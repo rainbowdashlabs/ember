@@ -71,7 +71,7 @@ test.describe('A table of people', () => {
 
         try {
             await managerPage.goto(`/station/events/${eventId}`)
-            await managerPage.getByRole('button', {name: 'Anmeldungen'}).click()
+            await managerPage.getByRole('tab', {name: 'Anmeldungen'}).click()
 
             await managerPage.getByTestId('registration-table-menu-trigger').click()
             await managerPage.getByTestId('registration-table-toggle').click()
@@ -112,7 +112,7 @@ test.describe('A table of people', () => {
 
         try {
             await memberPage.goto(`/station/events/${eventId}`)
-            await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+            await memberPage.getByRole('tab', {name: 'Anmeldungen'}).click()
             await expect(
                 memberPage.getByTestId('registration-table-menu-trigger'),
                 'the table is not there to be pressed',

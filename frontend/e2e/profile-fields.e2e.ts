@@ -129,10 +129,10 @@ test.describe('Profile fields', () => {
         await panel.getByTestId('audience-add').selectOption('ROLE:TEAM')
         await expect(panel.getByTestId('audience-Team')).toBeVisible({timeout: 15000})
 
-        await page.getByRole('button', {name: 'Team', exact: true}).click()
+        await page.getByRole('tab', {name: 'Team', exact: true}).click()
         await expect(page.getByTestId(`preview-tile-${name}`)).toBeVisible({timeout: 15000})
 
-        await page.getByRole('button', {name: 'Erziehungsberechtigte', exact: true}).click()
+        await page.getByRole('tab', {name: 'Erziehungsberechtigte', exact: true}).click()
         await expect(page.getByTestId(`preview-tile-${name}`)).toHaveCount(0, {timeout: 15000})
 
         await removeQuestion(page, name)

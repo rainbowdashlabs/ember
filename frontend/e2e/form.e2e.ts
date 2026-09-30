@@ -62,7 +62,7 @@ test.describe('Forms', () => {
         // want to know what a particular person wrote.
         await expect(page.getByText(/Antworten gesamt: [1-9]/)).toBeVisible()
 
-        await page.getByRole('button', {name: 'Einzelantworten'}).click()
+        await page.getByRole('tab', {name: 'Einzelantworten'}).click()
         await expect(page.getByText(/\d+ von \d+/)).toBeVisible()
     })
 

@@ -163,7 +163,7 @@ test.describe('Events', () => {
     test('an event shows who has registered', async ({managerPage: page}) => {
         await openEventWithRegistration(page)
 
-        await page.getByRole('button', {name: 'Anmeldungen'}).click()
+        await page.getByRole('tab', {name: 'Anmeldungen'}).click()
         await expect(page.getByText(/Meine Anmeldung|Anmeldungen/).first()).toBeVisible()
     })
 
@@ -184,7 +184,7 @@ test.describe('Events', () => {
 
         try {
             await page.goto(`/station/events/${appointment.id}/${appointment.dateAfterWeeks(1)}`)
-            await page.getByRole('button', {name: 'Anmeldungen'}).click()
+            await page.getByRole('tab', {name: 'Anmeldungen'}).click()
 
             const myAnswer = page.locator('[data-testid^="my-answer-"]').first()
             await expect(myAnswer).toHaveText('Noch keine Antwort', {timeout: 15000})
@@ -228,7 +228,7 @@ test.describe('Events', () => {
 
         try {
             await memberPage.goto(`/station/events/${eventId}`)
-            await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+            await memberPage.getByRole('tab', {name: 'Anmeldungen'}).click()
 
             const myAnswer = memberPage.locator('[data-testid^="my-answer-"]').first()
             await memberPage.getByTestId('answer-household').click()
@@ -273,7 +273,7 @@ test.describe('Events', () => {
             const eventId = (await created.json()).id
 
             await memberPage.goto(`/station/events/${eventId}`)
-            await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+            await memberPage.getByRole('tab', {name: 'Anmeldungen'}).click()
 
             const myAnswer = memberPage.locator('[data-testid^="my-answer-"]').first()
 
@@ -326,7 +326,7 @@ test.describe('Events', () => {
                 expect(withdrawn.ok(), `the member gave the place back (${await withdrawn.text()})`).toBeTruthy()
 
                 await managerPage.goto(`/station/events/${eventId}`)
-                await managerPage.getByRole('button', {name: 'Anmeldungen'}).click()
+                await managerPage.getByRole('tab', {name: 'Anmeldungen'}).click()
                 await pickMemberByName(managerPage.getByTestId('manual-register'), reader.account.email)
 
                 await expect.poll(async () => {
@@ -361,11 +361,11 @@ test.describe('Events', () => {
                 const myAnswer = memberPage.locator('[data-testid^="my-answer-"]').first()
 
                 await memberPage.goto(`/station/events/${appointment.id}/${signedUpFor}`)
-                await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+                await memberPage.getByRole('tab', {name: 'Anmeldungen'}).click()
                 await expect(myAnswer, 'the date signed up for holds the place').toHaveText('Bestätigt', {timeout: 15000})
 
                 await memberPage.goto(`/station/events/${appointment.id}/${weekAfter}`)
-                await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+                await memberPage.getByRole('tab', {name: 'Anmeldungen'}).click()
                 await expect(myAnswer, 'the week after is still open').toHaveText('Noch keine Antwort', {timeout: 15000})
             } finally {
                 await appointment.remove()
@@ -565,7 +565,7 @@ test.describe('Events', () => {
         const id = managerPage.url().match(/events\/(\d+)/)?.[1]
 
         await memberPage.goto(`/station/events/${id}`)
-        await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+        await memberPage.getByRole('tab', {name: 'Anmeldungen'}).click()
         await memberPage.getByRole('button', {name: 'Anmelden'}).first().click()
 
         await expect(memberPage.getByText(question).first()).toBeVisible()
@@ -573,7 +573,7 @@ test.describe('Events', () => {
         await memberPage.getByRole('button', {name: /Anmelden|Absenden|Speichern/}).last().click()
 
         await managerPage.goto(`/station/events/${id}`)
-        await managerPage.getByRole('button', {name: 'Anmeldungen'}).click()
+        await managerPage.getByRole('tab', {name: 'Anmeldungen'}).click()
         await expect(managerPage.getByText(answer).first()).toBeVisible()
     })
 
@@ -667,7 +667,7 @@ test.describe('Events', () => {
     test('the past appointments are a tab of their own', async ({managerPage: page}) => {
         await page.goto('/station/events')
 
-        await page.getByRole('button', {name: 'Vergangen'}).click()
+        await page.getByRole('tab', {name: 'Vergangen'}).click()
         await expect(page).toHaveURL(/tab=past/)
 
         await page.reload()

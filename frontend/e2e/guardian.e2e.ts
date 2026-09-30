@@ -264,7 +264,7 @@ test.describe('Guardian', () => {
             const eventId = (await created.json()).id
 
             await page.goto(`/station/events/${eventId}`)
-            await page.getByRole('button', {name: 'Anmeldungen'}).click()
+            await page.getByRole('tab', {name: 'Anmeldungen'}).click()
 
             const gives = managed[0]!.id
 
@@ -293,7 +293,7 @@ test.describe('Guardian', () => {
             await page.getByTestId('confirm-sign-off').click()
 
             await page.goto(`/station/events/${eventId}`)
-            await page.getByRole('button', {name: 'Anmeldungen'}).click()
+            await page.getByRole('tab', {name: 'Anmeldungen'}).click()
             await expect(page.getByTestId(`my-answer-${gives}`), 'the place is gone, not turned into a refusal')
                 .toHaveText('Noch keine Antwort', {timeout: 15000})
 

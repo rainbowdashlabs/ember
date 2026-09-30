@@ -71,7 +71,7 @@ test.describe('Cluster governance', () => {
             await page.goto('/cluster/modules')
             await expect(page.getByTestId('cluster-module-switches')).toBeVisible({timeout: 15000})
 
-            await page.getByRole('button', {name: /Ohne Boards/}).click()
+            await page.getByRole('tab', {name: /Ohne Boards/}).click()
             const boards = page.getByTestId('cluster-module-switches')
                 .locator('div')
                 .filter({hasText: /^Boards/})

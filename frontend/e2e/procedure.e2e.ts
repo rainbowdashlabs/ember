@@ -155,7 +155,7 @@ test.describe('Procedures', () => {
         }
 
         await page.goto(`/station/events/${eventId}`)
-        await page.getByRole('button', {name: 'Anmeldungen'}).click()
+        await page.getByRole('tab', {name: 'Anmeldungen'}).click()
 
         await page.getByRole('button', {name: 'Aus den Anmeldungen'}).click()
         await page.getByTestId('signup-procedure-entry').click()
@@ -185,7 +185,7 @@ test.describe('Procedures', () => {
             'every step is one the people on the list may tick').toBe(true)
 
         await page.goto(`/station/events/${eventId}`)
-        await page.getByRole('button', {name: 'Anmeldungen'}).click()
+        await page.getByRole('tab', {name: 'Anmeldungen'}).click()
         await page.getByRole('button', {name: 'Aus den Anmeldungen'}).click()
         await page.getByTestId('signup-procedure-entry').click()
 

@@ -146,12 +146,12 @@ test.describe('Station modules', () => {
             const detail = `/station/events/${eventId}/${start.slice(0, 10)}`
 
             await page.goto(detail)
-            await expect(page.getByRole('button', {name: 'Ausrüstung'})).toBeVisible()
+            await expect(page.getByRole('tab', {name: 'Ausrüstung'})).toBeVisible()
 
             await setModule(page, 'INVENTORY', false)
             await page.goto(detail)
             await expect(page.getByTestId('app-shell')).toBeVisible()
-            await expect(page.getByRole('button', {name: 'Ausrüstung'}), 'the tab is gone with the module')
+            await expect(page.getByRole('tab', {name: 'Ausrüstung'}), 'the tab is gone with the module')
                 .toHaveCount(0)
 
             await setModule(page, 'INVENTORY', true)

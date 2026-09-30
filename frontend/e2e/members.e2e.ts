@@ -516,7 +516,7 @@ test.describe('Members', () => {
         await openImported(page, surname)
         await expect(page.getByText(allergy).first(), 'the answer reached the member').toBeVisible()
 
-        await page.getByRole('button', {name: 'Erziehungsberechtigte'}).click()
+        await page.getByRole('tab', {name: 'Erziehungsberechtigte'}).click()
         await expect(page.getByTestId('guardian-row'), 'the parent was written down and linked').toHaveCount(1)
         await expect(page.getByTestId('guardian-row').first()).toContainText(parent)
     })
@@ -544,7 +544,7 @@ test.describe('Members', () => {
         await expect(page.getByText('Import abgeschlossen')).toBeVisible()
 
         await openImported(page, surname)
-        await page.getByRole('button', {name: 'Erziehungsberechtigte'}).click()
+        await page.getByRole('tab', {name: 'Erziehungsberechtigte'}).click()
         await expect(page.getByTestId('guardian-row')).toHaveCount(1)
         await expect(page.getByTestId('guardian-row').first()).toContainText(parent)
     })
@@ -601,7 +601,7 @@ test.describe('Members', () => {
         await page.goto('/station/members/changes')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
-        await expect(page.getByRole('button', {name: 'Offene Änderungen'})).toBeVisible()
+        await expect(page.getByRole('tab', {name: 'Offene Änderungen'})).toBeVisible()
     })
 
     /**
@@ -619,12 +619,12 @@ test.describe('Members', () => {
 
         // The note is one field per member rather than a list of entries, so what says it was kept
         // is the field still holding it after a reload.
-        await managerPage.getByRole('button', {name: 'Notizen'}).click()
+        await managerPage.getByRole('tab', {name: 'Notizen'}).click()
         await managerPage.getByPlaceholder(/Notiz schreiben/).fill(note)
         await managerPage.getByRole('button', {name: 'Speichern'}).last().click()
 
         await managerPage.reload()
-        await managerPage.getByRole('button', {name: 'Notizen'}).click()
+        await managerPage.getByRole('tab', {name: 'Notizen'}).click()
         await expect(managerPage.getByPlaceholder(/Notiz schreiben/)).toHaveValue(note)
 
         // The endpoint reports what was granted, not what those grants imply, and the right to manage
@@ -635,7 +635,7 @@ test.describe('Members', () => {
 
         await helperPage.goto(`/station/members/detail/${id}`)
         await expect(helperPage.getByTestId('app-shell')).toBeVisible()
-        await expect(helperPage.getByRole('button', {name: 'Notizen'})).toHaveCount(0)
+        await expect(helperPage.getByRole('tab', {name: 'Notizen'})).toHaveCount(0)
         await expect(helperPage.getByText(note)).toHaveCount(0)
 
         await helperPage.context().close()

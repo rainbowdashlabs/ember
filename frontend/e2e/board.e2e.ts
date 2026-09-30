@@ -65,7 +65,7 @@ test.describe('Boards', () => {
         const key = await createBoard(page)
         await createTicket(page, key)
 
-        await page.getByRole('button', {name: /Kommentare/}).click()
+        await page.getByRole('tab', {name: /Kommentare/}).click()
         // The comment box is a rich text editor, so its placeholder is text on the page rather
         // than an attribute, and it takes typing rather than a fill.
         await page.locator('[contenteditable="true"]').last().click()

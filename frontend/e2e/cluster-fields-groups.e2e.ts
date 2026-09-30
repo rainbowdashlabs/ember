@@ -31,9 +31,9 @@ test.describe('Cluster fields and groups', () => {
 
         // The four kinds an association may ask, as the forms it can look at. A station has a fifth
         // for people who are only trying it out, and an association has none of those.
-        const tabs = page.getByRole('button', {name: /Mitglieder|Erziehungsberechtigte|Team|Leitung/})
+        const tabs = page.getByRole('tab', {name: /Mitglieder|Erziehungsberechtigte|Team|Leitung/})
         await expect(tabs.first()).toBeVisible()
-        await expect(page.getByRole('button', {name: 'Schnupperer', exact: true})).toHaveCount(0)
+        await expect(page.getByRole('tab', {name: 'Schnupperer', exact: true})).toHaveCount(0)
 
         await expect(page.getByRole('button', {name: /Feld hinzufügen/i})).toBeVisible()
         await page.context().close()
