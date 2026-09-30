@@ -10,7 +10,6 @@ on:
 
 env:
   JAVA_VERSION: 25
-  PYTHON_VERSION: 3.14
   NODE_VERSION: 24
   # Typst is not packaged by any distribution, so it comes from its own release.
   TYPST_VERSION: 0.14.2
@@ -35,6 +34,10 @@ jobs:
       # Built once here rather than inside each e2e container, twice a group and five groups over.
       - name: Build the runnable distribution
         run: ./toolchain.sh be-dist --build-cache
+      - name: Check formatting, license headers and locale encoding
+        run: ./toolchain.sh format-check
+      - name: Generate Javadoc
+        run: ./toolchain.sh be-javadoc --build-cache
       - name: Pack the distribution
         run: tar czf backend-dist.tar.gz -C build/install ember
       - name: Upload the distribution
@@ -43,36 +46,26 @@ jobs:
           name: backend-dist
           path: backend-dist.tar.gz
 
-  verify-test-repositories:
+  verify-test-backend:
     runs-on: ubuntu-latest
-    name: Verify Repository Tests
-    needs: verify-build-backend
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up JDK
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-      - name: Run repository tests
-        timeout-minutes: 15
-        run: ./toolchain.sh be-suite testRepositories --build-cache
-      - name: Upload coverage data
-        uses: actions/upload-artifact@v7
-        with:
-          name: jacoco-repositories
-          path: build/jacoco/testRepositories.exec
-
-  verify-test-services:
-    runs-on: ubuntu-latest
-    name: Verify Service Tests
-    needs: verify-build-backend
+    name: ${{ matrix.name }}
     # Only to catch a job that has genuinely wedged, which would otherwise sit for six hours. It is
     # far above anything a slow run has taken, on purpose: a run that is merely slow should finish
     # and go green rather than turn red and need starting again by hand.
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: testRepositories
+            name: Verify Repository Tests
+          - suite: testServices
+            name: Verify Service Tests
+            tools: true
+          - suite: testOther
+            name: Verify Other Tests
+          - suite: testTracking
+            name: Verify Data Tracking
     steps:
       - uses: actions/checkout@v7
       - name: Set up JDK
@@ -90,6 +83,7 @@ jobs:
       # cache would be written once and never again, because a hit does not save: the first time
       # Ubuntu moved a package the entry would go stale and quietly stop helping.
       - name: Work out which versions the tools resolve to
+        if: matrix.tools
         id: tools
         run: |
           sudo apt-get update
@@ -97,6 +91,7 @@ jobs:
             | sed -n 's/^  Candidate: //p' | tr ':~+' '---' | paste -sd-)
           echo "key=$versions" >> "$GITHUB_OUTPUT"
       - name: Restore the external tools
+        if: matrix.tools
         uses: actions/cache@v6
         with:
           path: |
@@ -104,6 +99,7 @@ jobs:
             ~/tool-cache/typst
           key: external-tools-${{ runner.os }}-${{ steps.tools.outputs.key }}-typst-${{ env.TYPST_VERSION }}
       - name: Install external tools
+        if: matrix.tools
         env:
           PACKAGES: libreoffice-core libreoffice-impress pandoc webp qpdf
         run: |
@@ -130,69 +126,20 @@ jobs:
               | tar -xJ -C ~/tool-cache/typst --strip-components=1 typst-x86_64-unknown-linux-musl/typst
           fi
           sudo install -m 0755 ~/tool-cache/typst/typst /usr/local/bin/typst
-      - name: Run service tests
+      - name: Run the tests
         timeout-minutes: 15
-        run: ./toolchain.sh be-suite testServices --build-cache
-      - name: Upload coverage data
-        uses: actions/upload-artifact@v7
-        with:
-          name: jacoco-services
-          path: build/jacoco/testServices.exec
-
-  verify-test-tracking:
-    runs-on: ubuntu-latest
-    name: Verify Data Tracking
-    needs: verify-build-backend
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up JDK
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-      # Tracking tests enforce that data_tracking.json is in sync with the live PG schema -
-      # every DB table is tracked, no stale entries, table hashes match the live columns/FKs,
-      # no UNVERIFIED statuses remain, RETAIN strategies carry a legal basis, etc. They use a
-      # testcontainer to spin up PostgreSQL.
-      - name: Run data tracking tests
-        timeout-minutes: 15
-        run: ./toolchain.sh be-suite testTracking --build-cache
+        run: ./toolchain.sh be-suite ${{ matrix.suite }} --build-cache
       - name: Upload coverage data
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: jacoco-tracking
-          path: build/jacoco/testTracking.exec
-
-  verify-test-other:
-    runs-on: ubuntu-latest
-    name: Verify Other Tests
-    needs: verify-build-backend
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up JDK
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-      - name: Run other tests
-        timeout-minutes: 15
-        run: ./toolchain.sh be-suite testOther --build-cache
-      - name: Upload coverage data
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: jacoco-other
-          path: build/jacoco/testOther.exec
+          name: jacoco-${{ matrix.suite }}
+          path: build/jacoco/${{ matrix.suite }}.exec
 
   verify-coverage:
     runs-on: ubuntu-latest
     name: Verify Coverage
-    needs: [verify-test-repositories, verify-test-services, verify-test-tracking, verify-test-other]
+    needs: verify-test-backend
     steps:
       - uses: actions/checkout@v7
         with:
@@ -220,21 +167,6 @@ jobs:
         with:
           name: coverage-report
           path: build/reports/jacoco/jacocoFullReport/
-
-  verify-javadoc:
-    runs-on: ubuntu-latest
-    name: Verify Javadoc
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up JDK
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-      - name: Generate Javadoc
-        run: ./toolchain.sh be-javadoc
 
   verify-build-frontend:
     runs-on: ubuntu-latest
@@ -369,68 +301,19 @@ jobs:
           echo "The end-to-end runs came to: $RESULT"
           [ "$RESULT" = "success" ] || exit 1
 
-  verify-formatting-backend:
+  verify-repository-rules:
     runs-on: ubuntu-latest
-    name: Verify Backend Formatting
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up JDK
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-      - name: Check formatting and license headers
-        run: ./gradlew spotlessJavaCheck
-
-  verify-formatting-frontend:
-    runs-on: ubuntu-latest
-    name: Verify Frontend Formatting
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up JDK
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-      - name: Check formatting and license headers
-        run: ./gradlew spotlessJavascriptCheck spotlessVueCheck
-
-  verify-locales:
-    runs-on: ubuntu-latest
-    name: Verify Locales
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - name: Set up JDK
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-      - name: Check locale encoding
-        run: ./gradlew spotlessFrontendLocalesCheck
-
-  # A database that has run a patch is never offered it again, so a patch may not change once it
-  # exists on main. Every test builds its database from nothing, which is the one path where such
-  # an edit is invisible: the from-nothing database runs the edited file and looks correct, while
-  # every running instance skips it and silently lacks whatever was added.
-  verify-migrations-frozen:
-    runs-on: ubuntu-latest
-    name: Verify Migrations Are Frozen
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    name: Verify Repository Rules
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      # A database that has run a patch is never offered it again, so a patch may not change once it
+      # exists on main. Every test builds its database from nothing, which is the one path where such
+      # an edit is invisible: the from-nothing database runs the edited file and looks correct, while
+      # every running instance skips it and silently lacks whatever was added.
       - name: Check that no existing migration was changed
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
         run: |
@@ -462,31 +345,10 @@ jobs:
           echo
           echo "When the change is the point, put [modify patch] in a commit message on this branch."
           exit 1
-
-  # A release written on one side only is read as a smaller release by whoever reads the other.
-  verify-changelog-languages:
-    runs-on: ubuntu-latest
-    name: Verify Changelog Languages
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Check that both changelogs carry the same releases
-        run: ./toolchain.sh fe-lint changelog-languages
-
-  # A patch that has not reached main has not reached any database either, so several of them on one
-  # branch carry no history worth keeping apart and are free to become one file.
-  verify-one-migration-per-change:
-    runs-on: ubuntu-latest
-    name: Verify One Migration Per Change
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
+      # A patch that has not reached main has not reached any database either, so several of them on
+      # one branch carry no history worth keeping apart and are free to become one file.
       - name: Check that at most one migration is added
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
         run: |
@@ -507,12 +369,6 @@ jobs:
           echo "statements into the lowest-numbered patch, delete the rest, and set"
           echo "src/main/resources/database/version to that one number."
           exit 1
-
-  verify-version-unreleased:
-    runs-on: ubuntu-latest
-    name: Verify Version Is Unreleased
-    steps:
-      - uses: actions/checkout@v7
       - name: Check the project version against the released tags
         env:
           REF_TYPE: ${{ github.ref_type }}
