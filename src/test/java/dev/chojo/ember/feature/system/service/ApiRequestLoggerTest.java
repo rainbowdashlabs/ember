@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.conf.file.elements.Metrics;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import io.javalin.Javalin;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -28,16 +29,18 @@ class ApiRequestLoggerTest {
 
     private static final String FEED_TOKEN = "hgEV4EC3kq9ZrT0bXa7LmN2pQ8sUvWy1";
 
+    private final TaskScheduler scheduler = new TaskScheduler();
     private Javalin app;
 
     @AfterEach
     void stop() {
         if (app != null) app.stop();
+        scheduler.stop(Duration.ofSeconds(1));
     }
 
     @Test
     void aTokenPathIsRecordedAsItsTemplate() throws Exception {
-        var logger = new ApiRequestLogger(new Metrics(), 10);
+        var logger = new ApiRequestLogger(new Metrics(), scheduler, 10);
         serveFeed(logger);
 
         request("/api/v1/public/feed/" + FEED_TOKEN + "/events.ics");
@@ -49,7 +52,7 @@ class ApiRequestLoggerTest {
 
     @Test
     void aPathThatMatchedNoRouteIsRecordedUnderTheMarker() throws Exception {
-        var logger = new ApiRequestLogger(new Metrics(), 10);
+        var logger = new ApiRequestLogger(new Metrics(), scheduler, 10);
         serveFeed(logger);
 
         request("/api/v1/public/shared/" + FEED_TOKEN);
@@ -61,7 +64,7 @@ class ApiRequestLoggerTest {
 
     @Test
     void aFullBufferDropsWithoutBlocking() {
-        var logger = new ApiRequestLogger(new Metrics(), 3);
+        var logger = new ApiRequestLogger(new Metrics(), scheduler, 3);
 
         assertTimeoutPreemptively(Duration.ofSeconds(2), () -> {
             for (int i = 0; i < 10; i++) {
@@ -75,7 +78,7 @@ class ApiRequestLoggerTest {
 
     @Test
     void aMissingTemplateIsRecordedUnderTheMarker() {
-        var logger = new ApiRequestLogger(new Metrics(), 3);
+        var logger = new ApiRequestLogger(new Metrics(), scheduler, 3);
 
         logger.record("GET", null, 404, 1);
 

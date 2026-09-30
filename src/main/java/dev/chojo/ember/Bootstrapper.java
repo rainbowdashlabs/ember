@@ -32,7 +32,6 @@ import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
-import dev.chojo.ember.feature.system.service.ApplicationLogWriter;
 import dev.chojo.ember.feature.system.service.ChangelogAnnouncer;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
@@ -223,9 +222,6 @@ public class Bootstrapper {
 
         var searchIndexRebuild = injector.getInstance(SearchIndexRebuildService.class);
         Thread.ofPlatform().daemon().name("search-index-rebuild").start(searchIndexRebuild::rebuildInBackground);
-
-        // After the schema is certain: in demo mode the migration runs in DemoService, not above.
-        injector.getInstance(ApplicationLogWriter.class).start();
 
         // Whether this start is an update is a question only the previous start can answer, and the
         // answer is kept in the database, so it is asked where the schema is certain and before the

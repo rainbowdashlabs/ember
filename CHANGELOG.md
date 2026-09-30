@@ -43,6 +43,7 @@
 - **Every repeating appointment was called weekly.** The page of a monthly, quarterly or yearly appointment labelled it as weekly. It now names how often it repeats, the same way the list of appointments does.
 - **Cancelling one date cancelled the whole series.** Cancelling a repeating appointment, by hand or automatically for too few registrations, called off every date and told everybody registered for any of them. Only the date concerned is cancelled now, and the automatic check counts the registrations of that date alone.
 - **The public calendar showed cancelled appointments as taking place.** The station's public page and its public calendar feed listed cancelled appointments as if nothing had changed. They now mark them as cancelled.
+- **Statistics dipped after every restart.** Each restart lost the page visits of up to the last hour, the latest traffic counts, request timings and log lines. They are now saved before the server stops, as long as it is given its time to shut down.
 
 ## v26.19.5
 

@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -81,12 +80,7 @@ class ApplicationLogWriterTest extends RepositoryTestBase {
         log("dev.chojo.ember.Something", Level.INFO, "it happened");
         var writer = new ApplicationLogWriter(config(true, "DEBUG", 14), repository);
 
-        writer.start();
-        try {
-            waitForRows(1);
-        } finally {
-            writer.stop();
-        }
+        new ApplicationLogWriter.FlushTask(writer).run();
 
         var stored = repository.search(List.of(), null, null, null, null, 50);
         assertTrue(
@@ -112,12 +106,7 @@ class ApplicationLogWriterTest extends RepositoryTestBase {
         log("dev.chojo.ember.Something", Level.INFO, "not wanted");
         var writer = new ApplicationLogWriter(config(false, "DEBUG", 14), repository);
 
-        writer.start();
-        try {
-            TimeUnit.SECONDS.sleep(3);
-        } finally {
-            writer.stop();
-        }
+        writer.flushAll();
 
         assertTrue(repository.search(List.of(), null, null, null, null, 10).isEmpty());
         assertTrue(DatabaseLogAppender.drain(10).isEmpty(), "and the queue is emptied rather than grown");
@@ -129,12 +118,7 @@ class ApplicationLogWriterTest extends RepositoryTestBase {
         log("dev.chojo.ember.Something", Level.ERROR, "trouble");
         var writer = new ApplicationLogWriter(config(true, "WARN", 14), repository);
 
-        writer.start();
-        try {
-            waitForRows(1);
-        } finally {
-            writer.stop();
-        }
+        writer.flushAll();
 
         var stored = repository.search(List.of(), null, null, null, null, 10);
         assertEquals(1, stored.size());
@@ -154,7 +138,7 @@ class ApplicationLogWriterTest extends RepositoryTestBase {
         new ApplicationLogWriter(config(false, "DEBUG", 14), repository).pruneNow();
         assertEquals(1, repository.size(), "nothing is touched while the database log is off");
 
-        new ApplicationLogWriter(config(true, "DEBUG", 14), repository).pruneNow();
+        new ApplicationLogWriter.PruneTask(new ApplicationLogWriter(config(true, "DEBUG", 14), repository)).run();
         assertEquals(0, repository.size(), "and removed once it is on");
     }
 
@@ -179,8 +163,7 @@ class ApplicationLogWriterTest extends RepositoryTestBase {
 
         log("dev.chojo.ember.Something", Level.INFO, "will not be written");
         writer.pruneNow();
-        writer.start();
-        writer.stop();
+        writer.flushAll();
 
         assertFalse(Thread.currentThread().isInterrupted(), "and nothing was thrown out of it");
     }
@@ -201,20 +184,22 @@ class ApplicationLogWriterTest extends RepositoryTestBase {
         assertTrue(DatabaseLogAppender.dropped() > 0, "and what did not fit was counted");
     }
 
+    /**
+     * The shutdown flush takes the whole queue rather than the one batch a periodic run takes, and it
+     * goes last so the lines the other flushes log are in the queue by then.
+     */
     @Test
-    void startingTwiceDoesNotStartTwice() {
-        var writer = new ApplicationLogWriter(config(true, "DEBUG", 14), repository);
-        writer.start();
-        writer.start();
-        writer.stop();
-        assertFalse(Thread.currentThread().isInterrupted());
-    }
-
-    private void waitForRows(int expected) throws InterruptedException {
-        for (int attempt = 0; attempt < 40; attempt++) {
-            if (repository.size() >= expected) return;
-            TimeUnit.MILLISECONDS.sleep(250);
+    void theShutdownFlushDrainsTheWholeQueueLast() {
+        for (int i = 0; i < 1_200; i++) {
+            log("dev.chojo.ember.Something", Level.INFO, "line " + i);
         }
-        assertEquals(expected, repository.size(), "the writer never wrote anything");
+        var writer = new ApplicationLogWriter(config(true, "DEBUG", 14), repository);
+
+        writer.flushAll();
+
+        assertTrue(repository.size() >= 1_200, "more than two batches were written");
+        assertTrue(DatabaseLogAppender.drain(10).isEmpty(), "and nothing is left in the queue");
+        assertEquals(Integer.MAX_VALUE, writer.order());
+        assertEquals("application log", writer.name());
     }
 }

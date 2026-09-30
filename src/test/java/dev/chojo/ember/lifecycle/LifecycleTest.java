@@ -5,14 +5,12 @@
  */
 package dev.chojo.ember.lifecycle;
 
+import dev.chojo.ember.MovableClock;
 import dev.chojo.ember.api.ApiServer;
 import org.junit.jupiter.api.Test;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -28,7 +26,7 @@ import static org.mockito.Mockito.withSettings;
 
 class LifecycleTest {
     private final List<String> stages = new ArrayList<>();
-    private final MovableClock clock = new MovableClock();
+    private final MovableClock clock = new MovableClock(Instant.parse("2026-01-01T00:00:00Z"));
     private final ApiServer apiServer = mock(ApiServer.class);
     private final TaskScheduler scheduler = mock(TaskScheduler.class);
     private final DataSource dataSource = mock(DataSource.class, withSettings().extraInterfaces(AutoCloseable.class));
@@ -138,29 +136,5 @@ class LifecycleTest {
                 return order;
             }
         };
-    }
-
-    /** A clock the test moves forward by hand. */
-    private static final class MovableClock extends Clock {
-        private Instant now = Instant.parse("2026-01-01T00:00:00Z");
-
-        void advance(Duration duration) {
-            now = now.plus(duration);
-        }
-
-        @Override
-        public ZoneId getZone() {
-            return ZoneOffset.UTC;
-        }
-
-        @Override
-        public Clock withZone(ZoneId zone) {
-            return this;
-        }
-
-        @Override
-        public Instant instant() {
-            return now;
-        }
     }
 }

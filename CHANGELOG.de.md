@@ -43,6 +43,7 @@
 - **Jeder wiederkehrende Termin hieß wöchentlich.** Die Seite eines monatlichen, vierteljährlichen oder jährlichen Termins bezeichnete ihn als wöchentlich. Sie nennt jetzt, wie oft er sich wiederholt, so wie die Liste der Termine.
 - **Das Absagen eines Termins sagte die ganze Serie ab.** Wurde ein wiederkehrender Termin abgesagt, von Hand oder automatisch wegen zu weniger Anmeldungen, fielen alle Termine aus, und alle, die für irgendeinen davon angemeldet waren, wurden benachrichtigt. Jetzt fällt nur der betroffene Termin aus, und die automatische Prüfung zählt allein die Anmeldungen dieses Termins.
 - **Der öffentliche Kalender zeigte abgesagte Termine als stattfindend.** Die öffentliche Seite der Wache und ihr öffentlicher Kalender-Feed führten abgesagte Termine auf, als hätte sich nichts geändert. Jetzt sind sie als abgesagt gekennzeichnet.
+- **Statistiken brachen nach jedem Neustart ein.** Bei jedem Neustart gingen die Seitenaufrufe bis zur letzten Stunde, die jüngsten Zahlen zum Datenverkehr, Antwortzeiten und Protokollzeilen verloren. Sie werden jetzt gespeichert, bevor der Server anhält, sofern ihm die Zeit zum Herunterfahren gelassen wird.
 
 ## v26.19.5
 

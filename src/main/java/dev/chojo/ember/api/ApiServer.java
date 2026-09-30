@@ -232,9 +232,6 @@ public class ApiServer {
         this.stepUpGuard = stepUpGuard;
         this.network = network;
         this.globalRateLimiter = globalRateLimiter;
-        this.apiRequestLogger.start();
-        this.trafficRecorder.start();
-        this.pageHitRecorder.start();
     }
 
     /**

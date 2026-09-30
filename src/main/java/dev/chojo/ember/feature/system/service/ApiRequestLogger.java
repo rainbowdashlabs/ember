@@ -6,6 +6,10 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.conf.file.elements.Metrics;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ShutdownFlush;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import io.javalin.http.Context;
 import io.javalin.router.Endpoint;
 import jakarta.inject.Inject;
@@ -13,13 +17,11 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -42,39 +44,31 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * next flush logs how many were lost.
  */
 @Singleton
-public class ApiRequestLogger {
+public class ApiRequestLogger implements ShutdownFlush {
     /** What a request that matched no route is recorded under. */
     public static final String UNMATCHED = "(unmatched)";
 
     private static final Logger log = LoggerFactory.getLogger(ApiRequestLogger.class);
     private static final int BATCH_SIZE = 100;
     private static final int CAPACITY = 10_000;
-    private static final long FLUSH_INTERVAL_MS = 5000;
-    private static final long PRUNE_INTERVAL_HOURS = 6;
+    private static final Duration FLUSH_INTERVAL = Duration.ofSeconds(5);
+    private static final Duration PRUNE_INTERVAL = Duration.ofHours(6);
 
     private final LinkedBlockingQueue<RequestEntry> buffer;
     private final AtomicLong dropped = new AtomicLong();
     private final AtomicBoolean flushQueued = new AtomicBoolean();
-    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
-        var t = new Thread(r, "api-request-logger");
-        t.setDaemon(true);
-        return t;
-    });
     private final Metrics metrics;
+    private final TaskScheduler scheduler;
 
     @Inject
-    public ApiRequestLogger(Metrics metrics) {
-        this(metrics, CAPACITY);
+    public ApiRequestLogger(Metrics metrics, TaskScheduler scheduler) {
+        this(metrics, scheduler, CAPACITY);
     }
 
-    ApiRequestLogger(Metrics metrics, int capacity) {
+    ApiRequestLogger(Metrics metrics, TaskScheduler scheduler, int capacity) {
         this.metrics = metrics;
+        this.scheduler = scheduler;
         this.buffer = new LinkedBlockingQueue<>(capacity);
-    }
-
-    public void start() {
-        executor.scheduleAtFixedRate(this::flush, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        executor.scheduleAtFixedRate(this::prune, 1, PRUNE_INTERVAL_HOURS, TimeUnit.HOURS);
     }
 
     /**
@@ -104,7 +98,7 @@ public class ApiRequestLogger {
             return;
         }
         if (buffer.size() >= BATCH_SIZE && flushQueued.compareAndSet(false, true)) {
-            executor.execute(this::flush);
+            scheduler.background("api-request-log-flush", this::flush);
         }
     }
 
@@ -305,7 +299,29 @@ public class ApiRequestLogger {
         return new EndpointDetail(method, path, totals.avgDurationMs(), totals.requestCount(), statusCodes, recent);
     }
 
-    private void flush() {
+    @Override
+    public String name() {
+        return "API request log";
+    }
+
+    /**
+     * Writes everything buffered, batch by batch, until the buffer is empty or a batch cannot be
+     * written.
+     */
+    @Override
+    public void flushAll() {
+        boolean written = true;
+        while (written && !buffer.isEmpty()) {
+            written = flush();
+        }
+    }
+
+    /**
+     * Writes one batch of up to twice the batch size.
+     *
+     * @return whether the batch was written; {@code false} when it could not be
+     */
+    boolean flush() {
         flushQueued.set(false);
         long lost = dropped.getAndSet(0);
         if (lost > 0) {
@@ -313,7 +329,7 @@ public class ApiRequestLogger {
         }
         var batch = new ArrayList<RequestEntry>();
         buffer.drainTo(batch, BATCH_SIZE * 2);
-        if (batch.isEmpty()) return;
+        if (batch.isEmpty()) return true;
 
         try {
             query("""
@@ -326,8 +342,10 @@ public class ApiRequestLogger {
                                     .bind("duration_ms", e.durationMs))
                             .toList())
                     .insert();
+            return true;
         } catch (Exception e) {
             log.warn("Failed to flush API request log batch ({} entries)", batch.size(), e);
+            return false;
         }
     }
 
@@ -336,7 +354,7 @@ public class ApiRequestLogger {
      * through {@code make_interval}, because a bound value is not expanded inside an
      * {@code INTERVAL} literal.
      */
-    private void prune() {
+    void prune() {
         try {
             int days = Math.max(1, metrics.requestStatsRetentionDays());
             query("DELETE FROM api_request_log WHERE created_at < now() - make_interval(days := :days);")
@@ -385,4 +403,22 @@ public class ApiRequestLogger {
     public record HourlyStats(String hour, long requestCount, double avgDurationMs, long errorCount) {}
 
     record RequestEntry(String method, String path, int statusCode, int durationMs) {}
+
+    /** Writes a batch every five seconds, besides the flush a full batch starts on its own. */
+    @Singleton
+    public static final class FlushTask extends DelegatingTask {
+        @Inject
+        FlushTask(ApiRequestLogger logger) {
+            super("api-request-log-flush", Schedule.fixedRate(FLUSH_INTERVAL, FLUSH_INTERVAL), logger::flush);
+        }
+    }
+
+    /** Removes the entries past {@code metrics.requestStatsRetentionDays}, every six hours. */
+    @Singleton
+    public static final class PruneTask extends DelegatingTask {
+        @Inject
+        PruneTask(ApiRequestLogger logger) {
+            super("api-request-log-prune", Schedule.fixedRate(Duration.ofHours(1), PRUNE_INTERVAL), logger::prune);
+        }
+    }
 }

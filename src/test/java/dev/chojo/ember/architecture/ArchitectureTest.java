@@ -60,7 +60,6 @@ public class ArchitectureTest {
             "dev.chojo.ember.feature.federation.service.FederationVersionBroadcaster",
             "dev.chojo.ember.feature.federation.service.FederationWebhookService",
             "dev.chojo.ember.feature.feed.service.FeedMetricsService",
-            "dev.chojo.ember.feature.insights.service.PageHitRecorder",
             "dev.chojo.ember.feature.knowledgebase.service.KbPresentationService",
             "dev.chojo.ember.feature.knowledgebase.service.KbTrashPurger",
             "dev.chojo.ember.feature.mail.service.EmailService",
@@ -73,12 +72,9 @@ public class ArchitectureTest {
             "dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog",
             "dev.chojo.ember.feature.storage.route.StorageRoutes",
             "dev.chojo.ember.feature.storage.service.StorageReconciliationService",
-            "dev.chojo.ember.feature.system.service.ApiRequestLogger",
-            "dev.chojo.ember.feature.system.service.ApplicationLogWriter",
             "dev.chojo.ember.feature.system.service.DemoService",
             "dev.chojo.ember.feature.system.service.ProblemReportSweeper",
             "dev.chojo.ember.feature.system.service.UpdateCheckService",
-            "dev.chojo.ember.feature.traffic.service.StationTrafficRecorder",
             "dev.chojo.ember.feature.waitinglist.service.WaitingListService",
             "dev.chojo.ember.util.service.CloudflareRangesService");
 
@@ -136,8 +132,7 @@ public class ArchitectureTest {
             public void check(JavaClass clazz, ConditionEvents events) {
                 if (isTestClass(clazz) || THREAD_OWNERS_TO_MIGRATE.contains(topLevelName(clazz))) return;
                 Stream.<JavaCall<?>>concat(
-                                clazz.getMethodCallsFromSelf().stream(),
-                                clazz.getConstructorCallsFromSelf().stream())
+                                clazz.getMethodCallsFromSelf().stream(), clazz.getConstructorCallsFromSelf().stream())
                         .filter(ArchitectureTest::startsThreadsOfItsOwn)
                         .forEach(call -> events.add(SimpleConditionEvent.violated(clazz, call.getDescription())));
             }

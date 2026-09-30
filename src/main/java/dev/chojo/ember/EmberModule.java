@@ -155,6 +155,7 @@ import dev.chojo.ember.feature.form.route.FormRoutes;
 import dev.chojo.ember.feature.form.route.PublicFormRoutes;
 import dev.chojo.ember.feature.form.service.FormFeedDetails;
 import dev.chojo.ember.feature.insights.route.StationInsightsRoutes;
+import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.inventory.route.FederatedInventoryTagRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryArtRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
@@ -263,6 +264,8 @@ import dev.chojo.ember.feature.system.route.SidebarCountRoutes;
 import dev.chojo.ember.feature.system.route.SitemapRoutes;
 import dev.chojo.ember.feature.system.route.UpdateRoutes;
 import dev.chojo.ember.feature.system.route.UtilRoutes;
+import dev.chojo.ember.feature.system.service.ApiRequestLogger;
+import dev.chojo.ember.feature.system.service.ApplicationLogWriter;
 import dev.chojo.ember.feature.system.service.DemoAttendanceSeeder;
 import dev.chojo.ember.feature.system.service.DemoAvatarSeeder;
 import dev.chojo.ember.feature.system.service.DemoBoardSeeder;
@@ -297,6 +300,7 @@ import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
 import dev.chojo.ember.feature.system.service.ProblemReportSweeper;
 import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
+import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
 import dev.chojo.ember.feature.twofactor.route.StepUpRoutes;
 import dev.chojo.ember.feature.twofactor.route.TwoFactorAdminRoutes;
 import dev.chojo.ember.feature.twofactor.route.TwoFactorRoutes;
@@ -628,12 +632,26 @@ public class EmberModule extends AbstractModule {
     /**
      * The periodic background work, started by the {@link TaskScheduler} once the instance has booted.
      */
-    private void bindScheduledTasks(Multibinder<ScheduledTask> tasks) {}
+    private void bindScheduledTasks(Multibinder<ScheduledTask> tasks) {
+        tasks.addBinding().to(PageHitRecorder.FlushTask.class);
+        tasks.addBinding().to(PageHitRecorder.PruneTask.class);
+        tasks.addBinding().to(StationTrafficRecorder.FlushTask.class);
+        tasks.addBinding().to(StationTrafficRecorder.PruneTask.class);
+        tasks.addBinding().to(ApiRequestLogger.FlushTask.class);
+        tasks.addBinding().to(ApiRequestLogger.PruneTask.class);
+        tasks.addBinding().to(ApplicationLogWriter.FlushTask.class);
+        tasks.addBinding().to(ApplicationLogWriter.PruneTask.class);
+    }
 
     /**
      * The buffers the shutdown writes to the database before the connection pool closes.
      */
-    private void bindShutdownFlushes(Multibinder<ShutdownFlush> flushes) {}
+    private void bindShutdownFlushes(Multibinder<ShutdownFlush> flushes) {
+        flushes.addBinding().to(PageHitRecorder.class);
+        flushes.addBinding().to(StationTrafficRecorder.class);
+        flushes.addBinding().to(ApiRequestLogger.class);
+        flushes.addBinding().to(ApplicationLogWriter.class);
+    }
 
     @Provides
     @Singleton
