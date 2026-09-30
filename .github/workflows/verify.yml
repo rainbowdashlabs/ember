@@ -253,10 +253,10 @@ jobs:
         run: npm ci
       - name: Lint frontend
         working-directory: frontend
-        run: npm run lint
+        run: NODE_OPTIONS="--max-old-space-size=8192" npm run lint
       - name: Build frontend
         working-directory: frontend
-        run: NODE_OPTIONS="--max-old-space-size=8192" npm run build
+        run: NODE_OPTIONS="--max-old-space-size=8192" npm run build -- --skip-lint
       - name: Pack the build
         working-directory: frontend
         run: tar czf frontend-build.tar.gz .output

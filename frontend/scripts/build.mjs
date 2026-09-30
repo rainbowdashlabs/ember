@@ -7,52 +7,30 @@ import { resolve } from 'node:path'
  * production build. Each stage is cheaper than the one after it, so a failure surfaces
  * as early as possible.
  *
- * Linters distinguish errors from warnings - only errors set a non-zero exit code, so the
- * warning backlog prints without blocking. Use `npm run lint:audit` to survey warnings
- * without gating.
+ * The linters are the registry in `linters.mjs`, run by `lint.mjs`, which is also what
+ * `npm run lint` and CI run. `--skip-lint` leaves them out for a caller that has just run
+ * them as a step of its own.
  */
-const lintScripts = [
-  'lint-icons.mjs',
-  'lint-conventions.mjs',
-  'lint-helpcenter.mjs',
-  'lint-help-index.mjs',
-  'lint-helpcenter-i18n.mjs',
-  'lint-locales.mjs',
-  'lint-imports.mjs',
-  'lint-style.mjs',
-  'lint-i18n-keys.mjs',
-  'lint-component-size.mjs',
-  'lint-duplication.mjs',
-  'lint-page-titles.mjs',
-  'lint-browser-storage.mjs',
-  'lint-em-dash.mjs',
-  'lint-comments.mjs',
-  'lint-markdown-render.mjs',
-  'lint-stacked-text.mjs',
-  'lint-button-rows.mjs',
-  'lint-page-links.mjs',
-  'lint-generic-errors.mjs',
-  'lint-social-meta.mjs',
-  'lint-context-titles.mjs',
-]
-
-for (const script of lintScripts) {
-  const result = spawnSync(process.execPath, [resolve('scripts', script)], { stdio: 'inherit' })
+function stage(args) {
+  const result = spawnSync(process.execPath, args, { stdio: 'inherit' })
   if (result.status !== 0) {
     process.exit(result.status ?? 1)
   }
+}
+
+if (!process.argv.includes('--skip-lint')) {
+  stage([resolve('scripts/lint.mjs')])
 }
 
 const nuxi = resolve('node_modules/.bin/nuxi')
 
 /**
  * `nuxi build` does not type-check, so vue-tsc has to run as its own stage. Without this
- * the build only proves the bundle compiles, not that the types hold.
+ * the build only proves the bundle compiles, not that the types hold. The stories have a
+ * tsconfig of their own, which the application's never included.
  */
-const typecheck = spawnSync(process.execPath, [nuxi, 'typecheck'], { stdio: 'inherit' })
-if (typecheck.status !== 0) {
-  process.exit(typecheck.status ?? 1)
-}
+stage([nuxi, 'typecheck'])
+stage([resolve('node_modules/typescript/bin/tsc'), '-p', 'tsconfig.e2e.json'])
 
 if (existsSync('.output')) {
   rmSync('.output', { recursive: true, force: true })
