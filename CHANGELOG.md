@@ -44,6 +44,7 @@
 - **Signing up was offered where it was not allowed.** A member could be offered to sign up for an appointment open only to part of the station, and was only told it was not open to them after pressing it. The sign-up is now offered only to those who may register, and everybody else sees a short note saying why.
 - **Every repeating appointment was called weekly.** The page of a monthly, quarterly or yearly appointment labelled it as weekly. It now names how often it repeats, the same way the list of appointments does.
 - **One unreadable message could stop a mailbox import.** In some cases a mailbox failed to import on every visit because of a single message the mail server could not hand over, such as one another mail program had just deleted, until the mailbox was suspended. Such a message is now skipped and the rest of the mailbox is imported.
+- **News blocks forgot their news entry.** Saving a page or an article dropped the entry chosen in a news block, which then showed as no longer available. The block now keeps its entry and shows it as it is now, as long as it is on the station's public blog.
 - **Sharing a board with partners could not be saved.** Saving which partner stations a board is shared with failed, so a board could not be shared at all. It now saves, and each partner gets a choice of which member type there may see the board.
 
 ## v26.19.5

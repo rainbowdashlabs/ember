@@ -109,6 +109,35 @@ class ContentBlockServiceTest extends RepositoryTestBase {
         }
     }
 
+    /** A news block names its entry and nothing else, and a page and an article both keep it. */
+    @Test
+    void aNewsBlockKeepsTheEntryItNames() {
+        for (var scope : ContentBlockService.Scope.values()) {
+            var container = blocks.create(station.id());
+            try {
+                var teaser = CellConfig.parse(
+                        CellContentType.NEWS_TEASER,
+                        CellConfig.MAPPER.readTree("{\"newsUid\":\"3f2b8c4e-1a6d-4e7f-9b0c-5d8e2f1a7c33\"}"));
+                blocks.save(container.id(), List.of(row(CellContentType.NEWS_TEASER, "", teaser)), scope);
+
+                var stored = blocks.loadRows(container.id())
+                        .getFirst()
+                        .cells()
+                        .getFirst()
+                        .config();
+                assertEquals(
+                        "3f2b8c4e-1a6d-4e7f-9b0c-5d8e2f1a7c33",
+                        CellConfig.MAPPER
+                                .readTree(stored.toJson())
+                                .path("newsUid")
+                                .asString(null),
+                        scope.name());
+            } finally {
+                blocks.delete(container.id());
+            }
+        }
+    }
+
     @Test
     void theAllowlistRecursesIntoNestedRows() {
         var container = blocks.create(station.id());

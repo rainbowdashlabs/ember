@@ -56,6 +56,19 @@ public sealed interface CellConfig {
         }
     }
 
+    /**
+     * The public id a block names, kept only when it is a UUID. An author writes a block's settings
+     * as they like, and an id that is not one names nothing.
+     */
+    private static String wellFormedUid(String raw) {
+        if (raw == null) return null;
+        try {
+            return UUID.fromString(raw).toString();
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
     default String toJson() {
         try {
             return MAPPER.writeValueAsString(this);
@@ -221,15 +234,6 @@ public sealed interface CellConfig {
             if (eventUid != null) date = wellFormedDay(date);
         }
 
-        private static String wellFormedUid(String raw) {
-            if (raw == null) return null;
-            try {
-                return UUID.fromString(raw).toString();
-            } catch (IllegalArgumentException e) {
-                return null;
-            }
-        }
-
         private static String wellFormedDay(String raw) {
             if (raw == null) return null;
             try {
@@ -259,11 +263,24 @@ public sealed interface CellConfig {
     record KbArticleConfig(Integer articleId, String fallbackTitle) implements CellConfig {}
 
     /**
-     * Static news teaser.
+     * News teaser.
+     *
+     * <p>The editor names a news entry by {@code newsUid}, whose title, date, text and link are read
+     * when the block is shown, and only while the entry is on the station's public blog. The
+     * remaining text fields are the older hand-written card: they are still read, so a block stored
+     * with them keeps its text in the article's written form, but the block itself shows only the
+     * entry it names.
+     *
+     * <p>An id that is not a UUID names nothing.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record NewsTeaserConfig(String title, String date, String summary, String url, String imageUrl)
-            implements CellConfig {}
+    record NewsTeaserConfig(String title, String date, String summary, String url, String imageUrl, String newsUid)
+            implements CellConfig {
+
+        public NewsTeaserConfig {
+            newsUid = wellFormedUid(newsUid);
+        }
+    }
 
     /**
      * Link card pointing at another station page.

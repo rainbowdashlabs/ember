@@ -5,11 +5,20 @@
  */
 <script lang="ts" setup>
 import {onMounted, ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {listPublicBlog} from '@/api/news'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import type {NewsTeaserConfig} from '@/api/pageManage'
 import {formatDate} from '@/util/format'
 
+/**
+ * One news entry, shown live from the entry itself.
+ *
+ * <p>The block keeps only the entry's public id, so a changed title or text shows here as it is now.
+ * Only entries on the station's public blog are drawn, for every reader alike: that is all the
+ * picker offers, and a page is read by anybody. Nothing is said about the entry until it has been
+ * looked for, so a page drawn on the server does not call every entry gone.
+ */
 const props = defineProps<{
     config: NewsTeaserConfig
     stationUid?: string
@@ -24,9 +33,19 @@ interface ResolvedNews {
     publishedAt: string | null
 }
 
+const {t} = useI18n()
+
 const resolved = ref<ResolvedNews | null>(null)
+const looked = ref(false)
 
 async function resolve() {
+    resolved.value = null
+    looked.value = false
+    await lookUp()
+    looked.value = true
+}
+
+async function lookUp() {
     if (!props.stationUid || !props.config.newsUid) return
     try {
         const entries = await listPublicBlog(props.stationUid, 0, 50)
@@ -69,5 +88,5 @@ watch(() => [props.stationUid, props.config.newsUid], resolve, {immediate: false
             <p v-if="resolved.summary" class="text-sm text-(--text-muted)">{{ resolved.summary }}</p>
         </div>
     </a>
-    <EmptyHint v-else>Nicht mehr verfügbar</EmptyHint>
+    <EmptyHint v-else-if="looked">{{ t('stationPages.cells.newsUnavailable') }}</EmptyHint>
 </template>

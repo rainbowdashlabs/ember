@@ -32,7 +32,7 @@ public enum CellContentType {
     UPCOMING_EVENTS(
             CellConfig.UpcomingEventsConfig.class, new CellConfig.UpcomingEventsConfig(null, null, null, null, null)),
     KB_ARTICLE(CellConfig.KbArticleConfig.class, new CellConfig.KbArticleConfig(null, null)),
-    NEWS_TEASER(CellConfig.NewsTeaserConfig.class, new CellConfig.NewsTeaserConfig(null, null, null, null, null)),
+    NEWS_TEASER(CellConfig.NewsTeaserConfig.class, new CellConfig.NewsTeaserConfig(null, null, null, null, null, null)),
     PAGE_LINK(CellConfig.PageLinkConfig.class, new CellConfig.PageLinkConfig(null, null)),
     MAP(CellConfig.MapConfig.class, new CellConfig.MapConfig(null, null, null, null, null)),
     ADDRESS_CARD(

@@ -10070,6 +10070,7 @@ export default {
         cells: {
             pageLinkUnresolved: 'Seite nicht mehr erreichbar',
             eventUnavailable: 'Dieser Termin ist hier nicht verfügbar.',
+            newsUnavailable: 'Diese Neuigkeit ist hier nicht verfügbar.',
             eventMore: 'Mehr erfahren',
             eventCancelled: 'Abgesagt',
             eventUntil: 'bis',
