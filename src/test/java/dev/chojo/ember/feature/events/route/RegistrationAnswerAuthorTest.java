@@ -54,6 +54,7 @@ import static org.mockito.Mockito.when;
  * read off this list while the shirts are ordered, and sending the manager away to ask the member to
  * fix it is how the list gets ordered from wrong.
  */
+// TODO: ask through RouteHarness once the per-date cancellation rework of the registration routes lands
 class RegistrationAnswerAuthorTest {
     private static final int STATION_ID = 3;
     private static final int OWNER_MEMBER_ID = 11;

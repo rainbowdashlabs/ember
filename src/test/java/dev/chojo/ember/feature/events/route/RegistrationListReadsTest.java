@@ -68,6 +68,7 @@ import static org.mockito.Mockito.when;
  * the appointment and the appointment's questions on its own, so a list of a hundred people cost
  * some six hundred round trips. The rows must still say exactly what they said before.
  */
+// TODO: ask through RouteHarness once the per-date cancellation rework of the registration routes lands
 class RegistrationListReadsTest {
     private static final int STATION_ID = 3;
     private static final int EVENT_ID = 9;

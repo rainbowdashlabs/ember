@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.events.route;
 
-import dev.chojo.ember.api.ApiServer;
+import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -26,17 +27,15 @@ import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.Context;
-import io.javalin.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -99,7 +98,7 @@ class EventRegistrationStatsRouteTest {
                 STATION_ID,
                 null,
                 null,
-                Set.of(),
+                Set.of(StationPermission.EVENT_REGISTRATION),
                 Set.of(),
                 null);
     }
@@ -128,38 +127,28 @@ class EventRegistrationStatsRouteTest {
                 mock(OccurrenceCalendar.class));
     }
 
-    @SuppressWarnings("unchecked")
-    private Context asking(String categoryParam) {
-        Context ctx = mock(Context.class);
-        Validator<Integer> eventIdParam = mock(Validator.class);
-        when(eventIdParam.get()).thenReturn(EVENT_ID);
-        when(ctx.pathParamAsClass("eventId", Integer.class)).thenReturn(eventIdParam);
-        when(ctx.attribute(ApiServer.ATTR_SESSION)).thenReturn(session());
-        when(ctx.queryParam("categoryId")).thenReturn(categoryParam);
-        when(ctx.queryParam("months")).thenReturn(null);
-        return ctx;
-    }
-
-    private void askForTheRanking(Context ctx) throws Exception {
-        Method handler = EventRegistrationRoutes.class.getDeclaredMethod("getRegistrationStats", Context.class);
-        handler.setAccessible(true);
-        handler.invoke(routes, ctx);
+    private void askForTheRanking(String query) {
+        var harness = RouteHarness.serving(routes);
+        var answer = harness.request(client -> client.get(
+                RouteHarness.PREFIX + "/events/%d/registration-stats%s".formatted(EVENT_ID, query),
+                harness.as(session())));
+        assertEquals(200, answer.code(), answer.body().string());
     }
 
     @Test
-    void anEventInNoCategoryIsRankedAcrossAllOfThem() throws Exception {
+    void anEventInNoCategoryIsRankedAcrossAllOfThem() {
         when(crudService.findById(EVENT_ID)).thenReturn(Optional.of(eventInCategory(null)));
 
-        askForTheRanking(asking(null));
+        askForTheRanking("");
 
         verify(registrationService).findStatsByEvent(eq(EVENT_ID), isNull(), eq(12));
     }
 
     @Test
-    void anEventInACategoryIsRankedWithinIt() throws Exception {
+    void anEventInACategoryIsRankedWithinIt() {
         when(crudService.findById(EVENT_ID)).thenReturn(Optional.of(eventInCategory(4)));
 
-        askForTheRanking(asking(null));
+        askForTheRanking("");
 
         verify(registrationService).findStatsByEvent(EVENT_ID, 4, 12);
     }
@@ -169,10 +158,10 @@ class EventRegistrationStatsRouteTest {
      * compares one against another. What is asked for wins over what the event says.
      */
     @Test
-    void theCategoryAskedForWinsOverTheEventsOwn() throws Exception {
+    void theCategoryAskedForWinsOverTheEventsOwn() {
         when(crudService.findById(EVENT_ID)).thenReturn(Optional.of(eventInCategory(4)));
 
-        askForTheRanking(asking("7"));
+        askForTheRanking("?categoryId=7");
 
         verify(registrationService).findStatsByEvent(EVENT_ID, 7, 12);
     }
