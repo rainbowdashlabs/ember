@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -25,6 +26,7 @@ import java.util.concurrent.Future;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -358,5 +360,44 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
         var due = emailQueueRepo.fetchPending(10, true);
         assertEquals(1, due.size(), "a requeued mail does not wait out an old delay");
         assertEquals(id, due.getFirst().id());
+    }
+
+    @Test
+    @Order(24)
+    void renewingTheClaimKeepsAMailFromCountingAsStuck() {
+        drain();
+        emailQueueRepo.enqueue("waited@example.com", "Waited", "Body", station.id());
+        int id = emailQueueRepo.fetchPending(10, true).getFirst().id();
+        leaveBehind("waited@example.com", "30 minutes");
+
+        emailQueueRepo.renewClaim(id);
+
+        assertTrue(
+                emailQueueRepo.stuck(station.id(), 50).stream().noneMatch(entry -> entry.id() == id),
+                "a mail whose claim was just renewed is being worked on");
+        assertEquals(0, emailQueueRepo.requeueStuck(station.id(), id));
+        assertEquals("SENDING", statusOf("waited@example.com"));
+    }
+
+    @Test
+    @Order(0)
+    void noLastSentTimeBeforeAnyMailWentOut() {
+        assertTrue(emailQueueRepo.findLastSentAt().isEmpty());
+    }
+
+    @Test
+    @Order(25)
+    void lastSentTimeIsTheNewestSentMail() {
+        drain();
+        emailQueueRepo.enqueue("latest@example.com", "Latest", "Body", station.id());
+        int id = emailQueueRepo.fetchPending(10, true).getFirst().id();
+        emailQueueRepo.markSent(id);
+        Instant sentAt = query("SELECT sent_at FROM email_queue WHERE id = :id;")
+                .single(call().bind("id", id))
+                .map(row -> row.get("sent_at", INSTANT_TIMESTAMP))
+                .first()
+                .orElseThrow();
+
+        assertEquals(sentAt, emailQueueRepo.findLastSentAt().orElseThrow());
     }
 }

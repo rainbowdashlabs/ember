@@ -5,19 +5,36 @@
  */
 package dev.chojo.ember.feature.statistics.repository;
 
+import dev.chojo.ember.feature.attendance.entity.AttendanceEntry.AttendanceStatus;
+import dev.chojo.ember.feature.attendance.entity.AttendanceEntry.EntrySource;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics.EmailStatusCount;
+import dev.chojo.ember.feature.statistics.entity.StationStatistics.AttendanceMonth;
+import dev.chojo.ember.feature.statistics.entity.StationStatistics.EventRegistrations;
+import dev.chojo.ember.feature.statistics.entity.StationStatistics.InventoryStatus;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.Json;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StatisticsRepositoryTest extends RepositoryTestBase {
@@ -132,6 +149,112 @@ class StatisticsRepositoryTest extends RepositoryTestBase {
         assertEquals(afterByStatus.get(EmailQueueStatus.FAILED), after.counts().emailFailed());
         assertEquals(
                 before.counts().emailFailed() + 1, statistics.adminOverview().emailFailed());
+    }
+
+    private static int memberOf(int stationId, String email) {
+        var account = accountRepo.create(email, "Stat", "Member", true);
+        return stationMemberRepo.create(stationId, account.id()).id();
+    }
+
+    private static StationEvent eventAt(int stationId, String name, Instant start) {
+        return eventRepo.create(
+                stationId,
+                name,
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(Duration.ofHours(1)),
+                null,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    @Test
+    void attendanceIsCountedPerMonthAndStatus() {
+        var station = stationRepo.create("Attendance Statistics Station");
+        int present = memberOf(station.id(), "att-present@test.com");
+        int absent = memberOf(station.id(), "att-absent@test.com");
+        int declined = memberOf(station.id(), "att-declined@test.com");
+        var template = attendanceRepo.createTemplate(station.id(), "Drill");
+        Instant start = Instant.now().minus(Duration.ofHours(2));
+        var session = attendanceRepo.createSession(
+                template.id(), start, start.plus(Duration.ofHours(1)), null, "Drill", null);
+        attendanceRepo.createSession(template.id(), start, start.plus(Duration.ofHours(1)), null, "Empty", null);
+        attendanceRepo.createEntry(session.id(), present, AttendanceStatus.PRESENT, EntrySource.EXPECTED);
+        attendanceRepo.createEntry(session.id(), absent, AttendanceStatus.ABSENT, EntrySource.EXPECTED);
+        attendanceRepo.createEntry(session.id(), declined, AttendanceStatus.DECLINED, EntrySource.EXPECTED);
+
+        var months = statistics.stationStatistics(station.id()).attendanceByMonth();
+
+        String month = YearMonth.from(start.atZone(ZoneOffset.UTC)).toString();
+        assertEquals(List.of(new AttendanceMonth(month, 2, 1, 1, 1)), months);
+    }
+
+    @Test
+    void inventoriesCountTheirAssignedAndLostPieces() {
+        var station = stationRepo.create("Inventory Statistics Station");
+        int member = memberOf(station.id(), "inv-holder@test.com");
+        var radios = inventoryRepo.create(station.id(), "Funk", InventoryType.INTERNAL, false, false);
+        inventoryRepo.create(station.id(), "Leer", InventoryType.INTERNAL, false, false);
+        var handedOut = inventoryRepo.createItem(radios.id(), "F-1", "Funk", null, InventoryItemMetadata.empty());
+        var lost = inventoryRepo.createItem(radios.id(), "F-2", "Funk", null, InventoryItemMetadata.empty());
+        inventoryRepo.createItem(radios.id(), "F-3", "Funk", null, InventoryItemMetadata.empty());
+        inventoryRepo.updateCustody(handedOut.id(), ItemCustody.WITH_MEMBER, station.id(), member, null);
+        inventoryRepo.updateCustody(lost.id(), ItemCustody.LOST, station.id(), null, null);
+
+        var inventories = statistics.stationStatistics(station.id()).inventoryStatus();
+
+        assertEquals(List.of(new InventoryStatus("Funk", 3, 1, 1), new InventoryStatus("Leer", 0, 0, 0)), inventories);
+    }
+
+    @Test
+    void upcomingEventsWithAnswersCountThemPerStatus() {
+        var station = stationRepo.create("Event Statistics Station");
+        int first = memberOf(station.id(), "ev-first@test.com");
+        int second = memberOf(station.id(), "ev-second@test.com");
+        var upcoming = eventAt(station.id(), "Kommend", Instant.now().plus(Duration.ofDays(5)));
+        eventAt(station.id(), "Unbeantwortet", Instant.now().plus(Duration.ofDays(6)));
+        var past = eventAt(station.id(), "Vorbei", Instant.now().minus(Duration.ofDays(5)));
+        LocalDate day = LocalDate.now().plusDays(5);
+        eventRegistrationRepo.create(upcoming.id(), first, day, RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(upcoming.id(), second, day, RegistrationStatus.PENDING, null);
+        eventRegistrationRepo.create(upcoming.id(), first, day.plusDays(7), RegistrationStatus.DECLINED, null);
+        eventRegistrationRepo.create(upcoming.id(), second, day.plusDays(7), RegistrationStatus.WITHDRAWN, null);
+        eventRegistrationRepo.create(past.id(), first, LocalDate.now().minusDays(5), RegistrationStatus.ACCEPTED, null);
+
+        var registrations = statistics.stationStatistics(station.id()).eventRegistrations();
+
+        assertEquals(List.of(new EventRegistrations("Kommend", 1, 1, 2)), registrations);
+    }
+
+    @Test
+    void theOverviewListsOnlyOpenProblemReports() {
+        var station = stationRepo.create("Problem Statistics Station");
+        int before = statistics.adminOverview().problemReportsOpen();
+        var open = problemReportRepo.create(
+                station.id(), null, "Grace", "Broken", "/stations", null, null, null, null, null);
+        var handled = problemReportRepo.create(
+                station.id(), null, "Linus", "Fixed", "/account", null, null, null, null, null);
+        problemReportRepo.acknowledge(handled.id());
+
+        var overview = statistics.adminOverview();
+
+        assertEquals(before + 1, overview.problemReportsOpen());
+        var report = overview.recentProblemReports().stream()
+                .filter(r -> r.id() == open.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals("Grace", report.reporterName());
+        assertEquals("/stations", report.pageUrl());
+        assertNotNull(report.createdAt());
+        assertTrue(overview.recentProblemReports().stream().noneMatch(r -> r.id() == handled.id()));
     }
 
     @Test
