@@ -7,12 +7,14 @@
 - **Ablaufdaten mit Erinnerungen.** Ein Profilfeld einer Wache oder eines Verbands kann ein Datum halten, das abläuft, etwa einen Erste-Hilfe-Kurs oder einen Führerschein, und die Schnellvorlagen dafür nutzen es jetzt. Es steht gelb, wenn es bald abläuft, und rot, wenn es abgelaufen ist, auf der Seite des Mitglieds und bei Feldern der Wache auch in der Mitgliederliste, und das Mitglied und die Mitgliederverwaltung der Wache oder des Verbands werden rechtzeitig erinnert.
 - **Formulare mit Seiten und Verzweigungen.** Ein Formular lässt sich in Seiten aufteilen, die zur nächsten Seite, zu einer gewählten Seite weiter unten oder direkt zum Absenden führen. Eine Frage mit einer Antwort kann entscheiden, welche Seite als Nächstes kommt, und die Auswertung zeigt, wie viele eine Frage überhaupt gesehen haben.
 - **Ein Formular später fertig ausfüllen.** Ein begonnenes, nicht abgesendetes Formular bleibt erhalten und öffnet sich wieder auf der Seite, auf der es verlassen wurde, bei Formularen der Wache auf jedem Gerät, bei öffentlichen Formularen auf demselben Gerät. Sehen kann es nur, wer es ausfüllt, und wer diese Person betreut, und es endet, wenn das Formular schließt.
+- **Einzelne Termine absagen und wiederherstellen.** Verantwortliche können gezielt den Termin absagen, den sie gerade ansehen, während das Absagen einer ganzen Serie eine eigene, endgültige Aktion bleibt. Ein abgesagter Termin lässt sich wiederherstellen, solange er noch bevorsteht, und alle, die dafür angemeldet sind, erfahren davon.
 
 ### Verbesserungen
 
 - **Vorschau, Duplizieren und eine Nachricht nach dem Absenden.** Der Formular-Editor zeigt das Formular so, wie es ausgefüllt wird, samt Weg durch die Seiten, und Formulare und Fragen lassen sich duplizieren. Ein Formular kann nach dem Absenden eine eigene Nachricht und einen Link zeigen.
 - **Fragen und Seiten per Ziehen sortieren.** Fragen werden innerhalb einer Seite und zwischen Seiten gezogen, Seiten als Ganzes. Geänderte Fragen gehen nicht mehr verloren, wenn der Editor vor dem Speichern verlassen wird: Ember fragt vorher nach und bietet sie beim nächsten Öffnen wieder an.
 - **Fehler zeigen auf die Frage.** Lassen sich Antworten nicht absenden, öffnet das Formular die Seite mit dem Problem und markiert jede betroffene Frage.
+- **Abgesagte Termine sind überall gekennzeichnet.** Die Liste der kommenden Termine, der Monatskalender und der persönliche Kalender-Feed zeigen einen abgesagten Termin durchgestrichen und als abgesagt statt als stattfindend. Eine Anmeldung zu einem solchen Termin wird nicht mehr angeboten.
 
 ### Sicherheit
 
@@ -24,6 +26,7 @@
 - **Einstellungen einer Frage stehen in einem Menü.** Alles außer „Pflichtfeld" steckt im Menü in der Ecke jeder Frage, und geänderte Einstellungen stehen als Etiketten unter ihrem Titel. Neue Fragen kommen über einen Knopf am Ende jeder Seite dazu.
 - **Nach dem Absenden erscheint eine Bestätigung.** Nach dem Absenden eines Formulars der Wache bleibst du auf einer Seite, die das bestätigt, mit dem Weg zurück zu den Umfragen und, wo das Formular es erlaubt, der Möglichkeit, die Antwort zu ändern.
 - **Die Vorlage Jugendflamme bietet „Keine" an.** Die Schnellvorlage Jugendflamme legt ein Auswahlfeld mit „Keine" und den drei Stufen an, sodass jedes Mitglied genau eine Stufe hat. Das Datum, an dem die Stufe erreicht wurde, kommt wie bisher mit.
+- **Die Frist für die Mindestanzahl zählt Tage vor jedem Termin.** Ein Termin mit einer Mindestanzahl an Anmeldungen legt jetzt fest, wie viele Tage vor jedem Termin sie erreicht sein muss, statt einen festen Tag zu nennen, und einmalige Termine behalten ihre Frist. Bei wiederkehrenden Terminen entfällt die alte Frist und muss im Editor des Termins neu gesetzt werden.
 
 ### Fehlerbehebungen
 
@@ -38,6 +41,8 @@
 - **Die Liste der Profilfelder war auf mittleren Bildschirmen zu eng.** Auf Bildschirmen zwischen Telefon und breitem Desktop drückte die Liste der Profilfelder in den Mitgliedereinstellungen die Namen zusammen, bis sich die Zeilen überlagerten. Jetzt wechselt sie zu Kacheln, sobald die Tabelle nicht mehr hineinpasst.
 - **Die Anmeldung wurde angeboten, wo sie nicht erlaubt war.** Einem Mitglied konnte die Anmeldung zu einem Termin angeboten werden, der nur einem Teil der Wache offensteht, und erst nach dem Drücken erfuhr es, dass er ihm nicht offensteht. Die Anmeldung wird jetzt nur denen angeboten, die sich anmelden dürfen, alle anderen sehen einen kurzen Hinweis, warum.
 - **Jeder wiederkehrende Termin hieß wöchentlich.** Die Seite eines monatlichen, vierteljährlichen oder jährlichen Termins bezeichnete ihn als wöchentlich. Sie nennt jetzt, wie oft er sich wiederholt, so wie die Liste der Termine.
+- **Das Absagen eines Termins sagte die ganze Serie ab.** Wurde ein wiederkehrender Termin abgesagt, von Hand oder automatisch wegen zu weniger Anmeldungen, fielen alle Termine aus, und alle, die für irgendeinen davon angemeldet waren, wurden benachrichtigt. Jetzt fällt nur der betroffene Termin aus, und die automatische Prüfung zählt allein die Anmeldungen dieses Termins.
+- **Der öffentliche Kalender zeigte abgesagte Termine als stattfindend.** Die öffentliche Seite der Wache und ihr öffentlicher Kalender-Feed führten abgesagte Termine auf, als hätte sich nichts geändert. Jetzt sind sie als abgesagt gekennzeichnet.
 
 ## v26.19.5
 

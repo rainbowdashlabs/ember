@@ -7,12 +7,14 @@
 - **Expiry dates with reminders.** A station's or an association's profile field can hold a date that runs out, such as a first aid course or a driving licence, and the quick templates for these now use it. It shows yellow when it is close and red when it has passed, on the member's page and, for a station's fields, in the member list, and the member and the member management of the station or association are reminded ahead of time.
 - **Forms with pages and branching.** A form can be split into pages, each leading on to the next page, to a chosen page further down or straight to sending. A single-answer question can decide which page comes next, and the results say how many readers were shown each question.
 - **Continue a form later.** A form that is started and not sent is kept, and opens again on the page where it was left, for station forms on any device and for public forms on the same device. Only the person filling it in, and whoever looks after them, can see it, and it ends when the form closes.
+- **Cancel and restore single dates.** Managers can cancel just the date of an appointment they are looking at, while cancelling a whole series stays a separate, final action. A cancelled date can be restored as long as it lies ahead, and everybody still registered for it is told.
 
 ### Improvements
 
 - **Preview, duplicate and a message after sending.** The form editor shows the form as it will be filled in, including the path through its pages, and forms and questions can be duplicated. A form can show its own message and a link once it is sent.
 - **Reorder questions and pages by dragging.** Questions are dragged within a page and between pages, and pages as a whole. Changed questions are no longer lost when the editor is left before saving: leaving asks first, and reopening offers them back.
 - **Errors point at the question.** When answers cannot be sent, the form opens the page with the problem and marks each question it is about.
+- **Cancelled dates are marked everywhere.** The list of upcoming appointments, the month calendar and the personal calendar feed show a cancelled date crossed out and marked as cancelled instead of as taking place. Registering for such a date is no longer offered.
 
 ### Security
 
@@ -24,6 +26,7 @@
 - **Question settings move into a menu.** Settings beyond "required" sit behind the menu in the corner of each question, and changed ones show as labels under its title. New questions are added with one button at the end of each page.
 - **Sending a form shows a confirmation.** After sending a station form you stay on a screen that says so, with the way back to the forms and, where the form allows it, a way to change the answer.
 - **Jugendflamme template offers "None".** The Jugendflamme quick template adds one choice field with "None" and the three levels, so every member holds exactly one level. The date the level was reached comes with it as before.
+- **The minimum-registration deadline counts days before each date.** An appointment with a minimum number of registrations now says how many days before each date it has to be reached, instead of naming one fixed day, and one-time appointments keep their deadline. On repeating appointments the old deadline is removed and has to be set again in the appointment's editor.
 
 ### Fixes
 
@@ -38,6 +41,8 @@
 - **The profile field list was cramped on medium screens.** On screens between phone and wide desktop, the list of profile fields in the member settings squeezed its names until the rows overlapped. It now switches to tiles as soon as the table no longer fits.
 - **Signing up was offered where it was not allowed.** A member could be offered to sign up for an appointment open only to part of the station, and was only told it was not open to them after pressing it. The sign-up is now offered only to those who may register, and everybody else sees a short note saying why.
 - **Every repeating appointment was called weekly.** The page of a monthly, quarterly or yearly appointment labelled it as weekly. It now names how often it repeats, the same way the list of appointments does.
+- **Cancelling one date cancelled the whole series.** Cancelling a repeating appointment, by hand or automatically for too few registrations, called off every date and told everybody registered for any of them. Only the date concerned is cancelled now, and the automatic check counts the registrations of that date alone.
+- **The public calendar showed cancelled appointments as taking place.** The station's public page and its public calendar feed listed cancelled appointments as if nothing had changed. They now mark them as cancelled.
 
 ## v26.19.5
 
