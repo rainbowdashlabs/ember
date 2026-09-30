@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -139,6 +140,21 @@ class StorageBackendResolverTest {
         assertThrows(StorageUnavailableException.class, () -> factory.clients().ssh());
     }
 
+    @Test
+    void aBackendThatFailsToCloseDoesNotKeepTheOthersOpen() {
+        var failing = (RecordingBackend) backendOf(OWN_ONE);
+        failing.failsToClose = true;
+        var own = (RecordingBackend) backendOf(OWN_TWO);
+        var cluster = (RecordingBackend) backendOf(CLUSTER_ONE);
+
+        assertDoesNotThrow(resolver::closeAll);
+
+        assertTrue(failing.closed);
+        assertTrue(own.closed);
+        assertTrue(cluster.closed);
+        assertThrows(StorageUnavailableException.class, () -> factory.clients().ssh());
+    }
+
     private StorageBackend backendOf(int stationId) {
         return resolver.forScope(station(stationId), StorageCategory.MEDIA_FILES);
     }
@@ -175,6 +191,7 @@ class StorageBackendResolverTest {
 
     private static final class RecordingBackend implements StorageBackend {
         private volatile boolean closed;
+        private volatile boolean failsToClose;
 
         @Override
         public StorageBackendType type() {
@@ -217,6 +234,7 @@ class StorageBackendResolverTest {
         @Override
         public void close() {
             closed = true;
+            if (failsToClose) throw new IllegalStateException("expected by the test");
         }
     }
 }

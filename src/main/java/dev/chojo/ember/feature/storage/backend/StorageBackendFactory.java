@@ -165,9 +165,15 @@ public class StorageBackendFactory {
      * last thing storage does before the process stops. Nothing is built just to be closed.
      */
     public synchronized void closeInstanceDefault() {
-        if (instanceDefault != null && instanceDefault != localBackend) instanceDefault.close();
+        var built = instanceDefault;
         instanceDefault = null;
-        clients.close();
+        try {
+            if (built != null && built != localBackend) built.close();
+        } catch (RuntimeException e) {
+            log.warn("Could not close the instance storage backend", e);
+        } finally {
+            clients.close();
+        }
     }
 
     /**

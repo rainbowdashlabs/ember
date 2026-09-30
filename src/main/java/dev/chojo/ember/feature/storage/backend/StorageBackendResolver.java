@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepositor
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -48,6 +50,7 @@ import java.util.Set;
 @Singleton
 public class StorageBackendResolver {
     private static final long MAX_CACHED = 256;
+    private static final Logger log = LoggerFactory.getLogger(StorageBackendResolver.class);
 
     private final StorageBackendFactory factory;
     private final StationStorageConfigRepository overrideRepository;
@@ -87,9 +90,18 @@ public class StorageBackendResolver {
                 .maximumSize(MAX_CACHED)
                 .executor(Runnable::run)
                 .<BackendKey, StorageBackend>removalListener((key, backend, cause) -> {
-                    if (backend != null && !handedOver.remove(backend)) backend.close();
+                    if (backend != null && !handedOver.remove(backend)) closeQuietly(backend);
                 })
                 .build();
+    }
+
+    /** Closes a backend that is no longer reachable; one that fails to close does not keep the others open. */
+    private static void closeQuietly(StorageBackend backend) {
+        try {
+            backend.close();
+        } catch (RuntimeException e) {
+            log.warn("Could not close a station storage backend of type {}", backend.type(), e);
+        }
     }
 
     /**
