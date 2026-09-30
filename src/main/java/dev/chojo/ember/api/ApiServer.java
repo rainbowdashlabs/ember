@@ -231,6 +231,69 @@ public class ApiServer {
     }
 
     /**
+     * Writes a request to the trace log: method, address, headers and the start of the body, with
+     * secrets redacted. Nothing is assembled unless trace logging is on, because reading the body
+     * and formatting every header would otherwise be paid on every request for a line nobody sees.
+     */
+    private static void traceRequest(Context ctx) {
+        if (ctx.method() == HandlerType.OPTIONS || !log.isTraceEnabled()) return;
+        String body;
+        if (isSensitivePath(ctx.path())) {
+            body = "[REDACTED - contains sensitive data]";
+        } else if (ctx.contentType() == null
+                || ctx.contentType().contains("text")
+                || ctx.contentType().equals(JSON)) {
+            body = ctx.body().substring(0, Math.min(ctx.body().length(), 180));
+        } else {
+            body = "Bytes";
+        }
+        log.trace(
+                "Received request on route: {} {}\nHeaders:\n{}\nBody:\n{}",
+                ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
+                LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
+                traceHeaders(ctx.headerMap()),
+                body);
+    }
+
+    /**
+     * Writes a response to the trace log: status, headers and the start of a JSON body, with
+     * secrets redacted. Like {@link #traceRequest}, only assembled while trace logging is on.
+     */
+    private static void traceResponse(Context ctx) {
+        if (ctx.method() == HandlerType.OPTIONS || !log.isTraceEnabled()) return;
+        String body;
+        if (isSensitivePath(ctx.path())) {
+            body = "[REDACTED]";
+        } else if (JSON.equals(ctx.res().getContentType())) {
+            String result = requireNonNullElse(ctx.result(), "");
+            body = result.substring(0, Math.min(result.length(), 360));
+        } else {
+            body = "Bytes";
+        }
+        var headers = new LinkedHashMap<String, String>();
+        for (String name : ctx.res().getHeaderNames()) {
+            headers.put(name, ctx.res().getHeader(name));
+        }
+        log.trace(
+                "Answered request on route: {} {}\nStatus: {}\nHeaders:\n{}\nBody:\n{}",
+                ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
+                LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
+                ctx.status(),
+                traceHeaders(headers),
+                body);
+    }
+
+    private static boolean isSensitivePath(String path) {
+        return path.contains("/auth/") || path.contains("/ai/") || path.contains("/admin/config/");
+    }
+
+    private static String traceHeaders(Map<String, String> headers) {
+        return LogRedaction.redactHeaders(headers).entrySet().stream()
+                .map(header -> "   " + header.getKey() + ": " + header.getValue())
+                .collect(Collectors.joining("\n"));
+    }
+
+    /**
      * Estimates the inbound byte count for a request: declared content length (zero when
      * not set or unknown) plus a cheap header-bytes approximation. Used by the per-station
      * traffic recorder; the precision is operational-observability grade, not billing-grade.
@@ -390,57 +453,8 @@ public class ApiServer {
 
             config.routes.before(this::enforceGlobalRateLimit);
 
-            config.routes.before(ctx -> {
-                if (ctx.method() == HandlerType.OPTIONS) return;
-                String bodyLog;
-                if (ctx.path().contains("/ai/")
-                        || ctx.path().contains("/auth/")
-                        || ctx.path().contains("/admin/config/")) {
-                    bodyLog = "[REDACTED - contains sensitive data]";
-                } else if (ctx.contentType() == null
-                        || ctx.contentType().contains("text")
-                        || ctx.contentType().equals(JSON)) {
-                    bodyLog = ctx.body().substring(0, Math.min(ctx.body().length(), 180));
-                } else {
-                    bodyLog = "Bytes";
-                }
-                log.trace(
-                        "Received request on route: {} {}\nHeaders:\n{}\nBody:\n{}",
-                        ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
-                        LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
-                        LogRedaction.redactHeaders(ctx.headerMap()).entrySet().stream()
-                                .map(h -> "   " + h.getKey() + ": " + h.getValue())
-                                .collect(Collectors.joining("\n")),
-                        bodyLog);
-            });
-
-            config.routes.after(ctx -> {
-                if (ctx.method() == HandlerType.OPTIONS) return;
-                String responseBody;
-                if (ctx.path().contains("/auth/")
-                        || ctx.path().contains("/ai/")
-                        || ctx.path().contains("/admin/config/")) {
-                    responseBody = "[REDACTED]";
-                } else if (JSON.equals(ctx.res().getContentType())) {
-                    String result = requireNonNullElse(ctx.result(), "");
-                    responseBody = result.substring(0, Math.min(result.length(), 360));
-                } else {
-                    responseBody = "Bytes";
-                }
-                var responseHeaders = new LinkedHashMap<String, String>();
-                for (String h : ctx.res().getHeaderNames()) {
-                    responseHeaders.put(h, ctx.res().getHeader(h));
-                }
-                log.trace(
-                        "Answered request on route: {} {}\nStatus: {}\nHeaders:\n{}\nBody:\n{}",
-                        ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
-                        LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
-                        ctx.status(),
-                        LogRedaction.redactHeaders(responseHeaders).entrySet().stream()
-                                .map(h -> "   " + h.getKey() + ": " + h.getValue())
-                                .collect(Collectors.joining("\n")),
-                        responseBody);
-            });
+            config.routes.before(ApiServer::traceRequest);
+            config.routes.after(ApiServer::traceResponse);
 
             config.routes.after(this::applyBrowserSecurityHeaders);
 
