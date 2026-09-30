@@ -62,7 +62,8 @@ guice = { group = "com.google.inject", name = "guice", version = "7.0.0" }
 
 # Security
 bcrypt = { group = "at.favre.lib", name = "bcrypt", version = "0.10.2" }
-totp = { group = "dev.samstevens.totp", name = "totp", version = "1.7.1" }
+java-otp = { group = "com.eatthepath", name = "java-otp", version = "1.0.0" }
+commons-codec = { group = "commons-codec", name = "commons-codec", version = "1.19.0" }
 zxing-core = { group = "com.google.zxing", name = "core", version = "3.5.4" }
 zxing-javase = { group = "com.google.zxing", name = "javase", version = "3.5.4" }
 webauthn-server = { group = "com.yubico", name = "webauthn-server-core", version = "2.9.0" }

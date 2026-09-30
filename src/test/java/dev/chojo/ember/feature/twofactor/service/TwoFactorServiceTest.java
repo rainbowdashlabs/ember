@@ -15,8 +15,6 @@ import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.samstevens.totp.code.DefaultCodeGenerator;
-import dev.samstevens.totp.code.HashingAlgorithm;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +25,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 class TwoFactorServiceTest extends RepositoryTestBase {
 
@@ -108,6 +109,35 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertFalse(
                 service.verifyTotp(accountId, loginCode),
                 "the same code must be rejected as a replay within its window");
+    }
+
+    /**
+     * Enrolment and sign-in check a code the same way, so a code one of them accepts the other
+     * accepts too.
+     */
+    @Test
+    void enrolmentAndSignInShareOneCheck() throws Exception {
+        var settings = new TwoFactorSettings();
+        setField(settings, "enabled", true);
+        setField(settings, "secretKey", validKey());
+        TotpService totp = spy(new TotpService(settings, new Demo()));
+        var shared = new TwoFactorService(
+                twoFactorRepo,
+                totp,
+                new BackupCodeService(settings),
+                new TwoFactorAuditService(twoFactorRepo),
+                accountRepo,
+                new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                mock(EmailService.class));
+        int accountId = newAccount();
+        var enrollment = shared.beginTotpEnrollment(accountId, "shared@test.com");
+        String code = generateCurrentTotp(enrollment.secret());
+
+        assertTrue(shared.confirmTotpEnrollment(
+                accountId, enrollment.secret(), code, enrollment.recoveryCodes(), "ua", null));
+        assertTrue(shared.verifyTotp(accountId, code));
+
+        verify(totp, times(2)).matchStep(enrollment.secret(), code);
     }
 
     @Test
@@ -391,18 +421,10 @@ class TwoFactorServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Generates a TOTP code for the given Base32 secret using the {@link TotpService}'s own
-     * verifier configuration. We need this so {@code confirmTotpEnrollment} sees a code
-     * that the verifier accepts in the same thread.
+     * The code an authenticator app shows right now for this Base32 secret, so
+     * {@code confirmTotpEnrollment} and {@code verifyTotp} see a code a real app would produce.
      */
     private String generateCurrentTotp(String secret) {
-        try {
-            var algorithm = HashingAlgorithm.SHA1;
-            var codeGenerator = new DefaultCodeGenerator(algorithm, 6);
-            long timeBucket = Instant.now().getEpochSecond() / 30;
-            return codeGenerator.generate(secret, timeBucket);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return TotpCodes.current(secret);
     }
 }

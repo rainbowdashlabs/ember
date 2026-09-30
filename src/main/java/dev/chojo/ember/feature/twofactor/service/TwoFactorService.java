@@ -207,7 +207,7 @@ public class TwoFactorService {
 
     public boolean confirmTotpEnrollment(
             int accountId, String secret, String code, List<String> recoveryCodes, String userAgent, String country) {
-        if (!totpService.verifyCode(secret, code)) {
+        if (totpService.matchStep(secret, code).isEmpty()) {
             return false;
         }
 
