@@ -7817,15 +7817,6 @@ export default {
         tooMany: 'Es werden die ersten {count} Mitglieder angezeigt. Grenze die Liste auf eine Wache ein.',
         allStations: 'Alle Wachen',
         includeFormer: 'Ehemalige anzeigen',
-        former: 'Ehemalig',
-        stationOwner: 'Wachleitung',
-        archive: 'Als ehemalig führen',
-        userTypes: {
-            MEMBER: 'Mitglied',
-            GUARDIAN: 'Erziehungsberechtigter',
-            TEAM: 'Teammitglied',
-            MANAGER: 'Manager',
-        },
     },
     clusterModules: {
         hint: 'Ein abgeschaltetes Modul steht der Wache nicht zur Verfügung und kann dort auch nicht wieder eingeschaltet werden. Vorhandene Daten bleiben erhalten und sind wieder da, sobald ihr das Modul freigebt.',
