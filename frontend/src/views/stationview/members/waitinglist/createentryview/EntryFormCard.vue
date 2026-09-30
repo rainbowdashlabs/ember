@@ -13,7 +13,7 @@ import BasicFieldsSection from './BasicFieldsSection.vue'
 import GuardiansSection from './GuardiansSection.vue'
 import CustomFieldsSection from './CustomFieldsSection.vue'
 
-const props = defineProps<{
+defineProps<{
   firstname: string
   lastname: string
   guardians: GuardianInput[]

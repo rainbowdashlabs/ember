@@ -16,6 +16,15 @@ import type {AnswerablePerson} from '@/util/eventAnswers'
 /** Everybody an answer can be given for, as the screens hold them. */
 type AnswerablePeople = AnswerablePerson[]
 
+/** An answer waiting on the reader: the appointment, the day, who it could be for and what it asks. */
+export interface AnswerPrompt {
+    event: StationEvent
+    date: string
+    people: AnswerablePerson[]
+    fields: EventRegistrationField[]
+    attending: boolean
+}
+
 /**
  * Answering one appointment: signing up, refusing, and taking either back.
  *
@@ -44,13 +53,7 @@ export function useEventAnswer(
      * people it is for, or what the appointment's questions are answered with. Cleared once the
      * dialog the screen renders for it is confirmed or dismissed.
      */
-    const answerPrompt = ref<{
-        event: StationEvent
-        date: string
-        people: AnswerablePerson[]
-        fields: EventRegistrationField[]
-        attending: boolean
-    } | null>(null)
+    const answerPrompt = ref<AnswerPrompt | null>(null)
 
     /**
      * Opens a gesture the reader has just made. The screen's failure belongs to that gesture and not to

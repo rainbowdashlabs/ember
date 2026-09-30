@@ -164,6 +164,30 @@ export function formatDateTime(value?: string | null, timezone?: string | null):
 }
 
 /**
+ * Formats a moment as `dd.MM., HH:mm:ss` in the reader's own time zone, for a list that tells
+ * requests a second apart. Returns an empty string when the input is missing.
+ */
+export function formatDayClockSeconds(value?: string | null): string {
+    if (!value) return ''
+    return written(value, null, {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'})
+}
+
+/**
+ * Labels an hour on a chart's axis with its day, month and clock, in the reader's own locale and
+ * time zone. A value that is no moment is left as it came.
+ */
+export function formatHourLabel(iso: string): string {
+    const date = new Date(iso)
+    if (Number.isNaN(date.getTime())) return iso
+    return date.toLocaleString(undefined, {month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'})
+}
+
+/** The German name of a month given as a number, 1 for January through 12 for December. */
+export function monthName(month: number): string {
+    return new Date(2000, month - 1).toLocaleDateString('de-DE', {month: 'long'})
+}
+
+/**
  * Formats a moment as a long German date and a short clock - `12. Oktober 2026 um 20:00` - for the
  * blocks that give an appointment room enough to read as a sentence. Returns an empty string when
  * the input is missing.

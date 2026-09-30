@@ -34,7 +34,7 @@ const {box, step, steps, pointing, revealing, blocked, behindMenu, gaze, targetL
 const {stop, skip, load, status, confirm} = useOnboardingTasks()
 
 /**
- * The task whose steps have just run out: what it was called, where its list is, and whether it
+ * A task whose steps have just run out: what it was called, where its list is, and whether it
  * actually counts as done.
  *
  * Those last two are not the same question. Reaching the end of the steps means the reader was
@@ -42,7 +42,14 @@ const {stop, skip, load, status, confirm} = useOnboardingTasks()
  * who closed the questions of an event instead of sending them walked every step and answered
  * nothing, and Ember congratulating them on it would be a lie they find out about on the next page.
  */
-const completed = ref<{title: string, route: string, done: boolean} | null>(null)
+interface CompletedTask {
+  title: string
+  route: string
+  done: boolean
+}
+
+/** The task whose steps have just run out, while its closing message shows. */
+const completed = ref<CompletedTask | null>(null)
 
 const walking = computed(() => activeTaskId.value !== null && !guideDismissed.value && step.value !== null)
 const visible = computed(() => walking.value || completed.value !== null)
@@ -180,7 +187,7 @@ function close() {
 
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="pointer-events-none fixed inset-0 z-50">
+    <div v-if="visible" class="pointer-events-none fixed inset-0 z-50" role="presentation" @keydown.esc="close">
       <div
           v-if="spotlight"
           aria-hidden="true"
@@ -198,8 +205,7 @@ function close() {
 
       <div role="status" aria-live="polite" tabindex="-1" :class="targetLow ? 'top-4' : 'bottom-4'"
            class="pointer-events-auto absolute left-1/2 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2
-                  rounded-theme border border-(--border) bg-(--bg) p-4 shadow-xl"
-           @keydown.esc="close">
+                  rounded-theme border border-(--border) bg-(--bg) p-4 shadow-xl">
         <div class="flex items-start gap-3">
           <LayeredEmberLogo
               :layers="logo.layers"

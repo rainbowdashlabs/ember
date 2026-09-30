@@ -49,7 +49,7 @@ const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 const pageId = computed(() => Number(route.params.id))
 
 /** Held so that a save can tell the editor its draft is no longer a rescue worth keeping. */
-const editor = ref<{draftSaved: () => void} | null>(null)
+const editor = ref<InstanceType<typeof ContentBlockEditor> | null>(null)
 
 /**
  * The page's own title at the head of the editor, because "Seite bearbeiten" stands above every one

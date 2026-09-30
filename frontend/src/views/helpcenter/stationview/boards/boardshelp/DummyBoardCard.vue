@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -17,8 +16,6 @@ defineProps<{
     ticketCount: string
     showManagerActions: boolean
 }>()
-
-const {t} = useI18n()
 </script>
 
 <template>

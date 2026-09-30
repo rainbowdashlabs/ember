@@ -24,7 +24,7 @@ import {isRecurringEvent, type AbsentMember, type EventField, type EventRegistra
 import {attendance, events} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {StationModules, StationPermission, type StationMember} from '@/api/types'
-import {formatDateTime, stationToday} from '@/util/format'
+import {formatDateTime} from '@/util/format'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 import {useSession} from '@/composables/useSession'
 
@@ -68,7 +68,7 @@ const emit = defineEmits<{
 const currentMemberIds = computed(() => props.allMembers.map(member => member.id))
 
 const {t} = useI18n()
-const {isModuleEnabled, stationTimezone} = useSession()
+const {isModuleEnabled} = useSession()
 const router = useRouter()
 
 /**

@@ -19,7 +19,6 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {StationPermission} from '@/api/types'
 

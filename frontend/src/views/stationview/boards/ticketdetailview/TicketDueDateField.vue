@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import InlineEditTrigger from '@/components/button/InlineEditTrigger.vue'
 import { formatDate } from '@/util/format'
 
 const props = defineProps<{
@@ -35,19 +36,9 @@ function startEditing() {
     <div>
         <FieldLabel class="mb-1">{{ t('boards.dueDate') }}</FieldLabel>
         <DateInput v-if="editing && canEdit" v-model="dueDate" @change="editing = false; emit('save')" @blur="editing = false" />
-        <div
-            v-else
-            class="rounded-theme px-2 py-1 text-sm"
-            :class="canEdit ? 'cursor-pointer hover:bg-(--bg-accent)' : ''"
-            role="button"
-            tabindex="0"
-            :aria-disabled="!canEdit"
-            @click.stop="startEditing"
-            @keydown.enter.stop.prevent="startEditing"
-            @keydown.space.stop.prevent="startEditing"
-        >
+        <InlineEditTrigger v-else :can-edit="canEdit" @activate="startEditing">
             <span v-if="dueDate">{{ formatDate(dueDate) }}</span>
             <span v-else class="text-(--text-muted) italic">-</span>
-        </div>
+        </InlineEditTrigger>
     </div>
 </template>

@@ -65,10 +65,10 @@ const { t } = useI18n()
           </FieldLabel>
         </div>
 
-        <div class="flex items-center gap-2">
-          <label class="text-sm text-(--text-muted)">{{ t('quiz.tests.timeLimitMinutes') }}</label>
+        <label class="flex items-center gap-2">
+          <span class="text-sm text-(--text-muted)">{{ t('quiz.tests.timeLimitMinutes') }}</span>
           <NumberInput :model-value="30" class="w-24" disabled />
-        </div>
+        </label>
       </NeutralContainer>
     </HelpSection>
 

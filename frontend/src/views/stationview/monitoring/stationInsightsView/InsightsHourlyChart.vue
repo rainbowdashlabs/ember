@@ -14,6 +14,7 @@ import {DataZoomComponent, GridComponent, LegendComponent, TooltipComponent} fro
 import type {HourlyTotal} from '@/api/insights'
 import {bottomLegend, cartesianGrid, ZOOM_SLIDER_BOTTOM} from '@/util/chartLayout'
 import {darkThemeActive as isDark} from '@/util/themeState'
+import {formatHourLabel} from '@/util/format'
 
 use([CanvasRenderer, BarChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
@@ -27,17 +28,6 @@ const textColor = computed(() => (isDark.value ? '#ccc' : '#333'))
 
 const labels = computed(() => props.rows.map(r => formatHourLabel(r.hour)))
 const data = computed(() => props.rows.map(r => r.hits))
-
-function formatHourLabel(iso: string): string {
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return iso
-  return d.toLocaleString(undefined, {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
 
 const option = computed(() => ({
   tooltip: {

@@ -61,14 +61,14 @@ const dummySeparator = ref(';')
           {{ t('helpCenter.sample.members.membersFile') }} (25 {{ t('csvImport.rows') }})
         </span>
       </div>
-      <div class="flex items-center gap-2">
-        <label class="text-sm font-medium">{{ t('csvImport.separator') }}</label>
+      <label class="flex items-center gap-2">
+        <span class="text-sm font-medium">{{ t('csvImport.separator') }}</span>
         <SelectInput v-model="dummySeparator" class="w-20">
           <option value=";">;</option>
           <option value=",">,</option>
           <option value="&#9;">{{ t('csvImport.tab') }}</option>
         </SelectInput>
-      </div>
+      </label>
       <PrimaryButton>{{ t('csvImport.next') }}</PrimaryButton>
     </NeutralContainer>
 

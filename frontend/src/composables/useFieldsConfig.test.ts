@@ -9,7 +9,6 @@ import {defineComponent} from 'vue'
 import {describe, expect, it} from 'vitest'
 import {FieldTypes, type ProfileField, type ProfileFieldRequest} from '@/api/profileFields'
 import type {ProfileFieldAssignment} from '@/util/profileFields'
-import {fieldTemplates} from '@/views/stationview/manage/membersconfig/fieldTemplates'
 import {STATION_ROLES, useFieldsConfig, type FieldsPort} from './useFieldsConfig'
 
 function field(id: number, name: string, fieldType: string = FieldTypes.BIRTH_DATE): ProfileField {
@@ -123,7 +122,9 @@ describe('useFieldsConfig', () => {
   it('sends a template\'s required and readonly on the field itself', async () => {
     const created: ProfileFieldRequest[] = []
     const config = configFor([], [], created)
-    const birthDate = fieldTemplates.find(template => template.name === 'Geburtsdatum')!
+    const birthDate = {
+      fields: [{name: 'Geburtsdatum', fieldType: FieldTypes.BIRTH_DATE, config: {}, required: true, readonly: true}],
+    }
 
     await config.applyTemplate(birthDate, 'MEMBER')
 

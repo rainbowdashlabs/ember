@@ -22,12 +22,14 @@ const {t} = useI18n()
         <p class="text-sm px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent">{{ t('helpCenter.sample.quiz.water') }}</p>
       </div>
       <div>
-        <label class="text-xs text-success block mb-1">{{ t('quiz.evaluate.correctAnswer') }}</label>
+        <span class="text-xs text-success block mb-1">{{ t('quiz.evaluate.correctAnswer') }}</span>
         <p class="text-sm px-3 py-2 rounded border border-success/30 bg-success/10">{{ t('helpCenter.sample.quiz.waterAndFoam') }}</p>
       </div>
       <div class="flex items-center gap-2">
-        <label class="text-sm font-medium">{{ t('quiz.evaluate.points') }}</label>
-        <NumberInput :model-value="1" disabled class="w-24" />
+        <label class="flex items-center gap-2">
+          <span class="text-sm font-medium">{{ t('quiz.evaluate.points') }}</span>
+          <NumberInput :model-value="1" disabled class="w-24" />
+        </label>
         <span class="text-sm text-(--text-muted)">/ 2</span>
       </div>
     </div>

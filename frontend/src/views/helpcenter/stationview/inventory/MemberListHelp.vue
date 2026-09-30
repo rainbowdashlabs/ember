@@ -37,18 +37,18 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryMembers.filterText') }}</p>
 
       <NeutralContainer class="flex flex-wrap items-center gap-4">
-        <div class="flex items-center gap-2">
-          <label class="text-sm font-medium">{{ t('inventoryMembers.role') }}</label>
+        <label class="flex items-center gap-2">
+          <span class="text-sm font-medium">{{ t('inventoryMembers.role') }}</span>
           <SelectInput class="w-40 text-sm">
             <option value="">{{ t('inventoryMembers.allRoles') }}</option>
             <option>{{ t('helpCenter.sample.groups.member') }}</option>
             <option>{{ t('helpCenter.sample.groups.team') }}</option>
           </SelectInput>
-        </div>
-        <div class="flex items-center gap-2">
-          <label class="text-sm font-medium">{{ t('inventoryMembers.showEmpty') }}</label>
+        </label>
+        <label class="flex items-center gap-2">
+          <span class="text-sm font-medium">{{ t('inventoryMembers.showEmpty') }}</span>
           <ToggleInput :model-value="false" />
-        </div>
+        </label>
       </NeutralContainer>
 
       <p>{{ t('helpCenter.inventoryMembers.restrictionText') }}</p>

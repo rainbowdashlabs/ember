@@ -11,7 +11,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type { WaitingListField } from '@/api/waitingList'
 
-const props = defineProps<{
+defineProps<{
   field: WaitingListField
   index: number
   total: number

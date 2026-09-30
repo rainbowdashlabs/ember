@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {QuizQuestionTypes, type QuizQuestion} from '@/api/quiz'
 import { useI18n } from 'vue-i18n'
 import QuestionHeader from './questioninputcard/QuestionHeader.vue'
@@ -80,14 +81,13 @@ const { t } = useI18n()
     </template>
 
     <template v-else-if="question.quizQuestionType === QuizQuestionTypes.FREE_ANSWER || question.quizQuestionType === QuizQuestionTypes.ENUMERATION || question.quizQuestionType === QuizQuestionTypes.IMAGE_TEXT">
-      <textarea
-        :value="freeAnswer"
+      <TextAreaInput
+        v-model="freeAnswer"
         :aria-label="question.title"
-        rows="4"
+        :rows="4"
         :disabled="disabled"
-        class="w-full px-3 py-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-transparent focus:outline-none focus:border-primary text-sm resize-none disabled:opacity-60"
+        class="text-sm"
         :placeholder="t('quiz.attempt.freeAnswerPlaceholder')"
-        @input="freeAnswer = ($event.target as HTMLTextAreaElement).value"
       />
     </template>
 

@@ -124,7 +124,7 @@ onBeforeUnmount(() => {
     <p class="text-(--text-muted)">Diese Seite gibt es auf dieser Instanz nicht.</p>
   </div>
 
-  <div v-else ref="stage" class="relative h-dvh overflow-hidden bg-(--bg)" @mousemove="wake">
+  <div v-else ref="stage" class="relative h-dvh overflow-hidden bg-(--bg)" role="presentation" @mousemove="wake">
     <Transition name="slide-fade">
       <PitchSlide :key="slide.id" :slide="slide" class="absolute inset-0"
                   :position="`${column + 1} / ${PITCH_TRACKS.length}`"/>

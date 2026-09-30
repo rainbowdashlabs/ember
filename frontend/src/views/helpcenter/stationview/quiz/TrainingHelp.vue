@@ -94,7 +94,7 @@ const { t } = useI18n()
     <!-- Dummy: Revealed answer -->
     <SuccessContainer>
       <div>
-        <label class="text-xs font-semibold block mb-1">{{ t('quiz.training.correctAnswer') }}</label>
+        <span class="text-xs font-semibold block mb-1">{{ t('quiz.training.correctAnswer') }}</span>
         <p class="text-sm">112</p>
       </div>
     </SuccessContainer>

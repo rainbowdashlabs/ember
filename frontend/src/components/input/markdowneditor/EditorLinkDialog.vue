@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useId } from 'vue'
 import {search as kbSearch, type SearchResult} from '@/api/knowledgeBase'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -25,6 +25,7 @@ defineEmits<{
   cancel: []
 }>()
 
+const fieldId = useId()
 const linkText = ref(props.initialText)
 const linkUrl = ref(props.initialUrl)
 const linkSearchQuery = ref(props.initialUrl)
@@ -72,13 +73,13 @@ function selectResult(result: SearchResult) {
     </div>
 
     <div>
-      <label class="block text-xs text-[var(--text-muted)] mb-0.5">Anzeigetext</label>
-      <TextInput v-model="linkText" placeholder="Text des Links" class="!text-sm" />
+      <label :for="`${fieldId}-text`" class="block text-xs text-[var(--text-muted)] mb-0.5">Anzeigetext</label>
+      <TextInput :id="`${fieldId}-text`" v-model="linkText" placeholder="Text des Links" class="!text-sm" />
     </div>
 
     <div>
-      <label class="block text-xs text-[var(--text-muted)] mb-0.5">URL oder Datei suchen</label>
-      <TextInput v-model="linkSearchQuery" placeholder="https://... oder Suchbegriff" class="!text-sm" @input="onSearchInput" />
+      <label :for="`${fieldId}-target`" class="block text-xs text-[var(--text-muted)] mb-0.5">URL oder Datei suchen</label>
+      <TextInput :id="`${fieldId}-target`" v-model="linkSearchQuery" placeholder="https://... oder Suchbegriff" class="!text-sm" @input="onSearchInput" />
     </div>
 
     <div v-if="linkSearchResults.length > 0" class="max-h-32 overflow-y-auto rounded border border-[var(--border)] divide-y divide-[var(--border)]">

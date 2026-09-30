@@ -8,11 +8,22 @@ import { useI18n } from 'vue-i18n'
 import { procedures, stationMembers } from '@/api'
 import type { ProcedureTemplate, TemplateDetail } from '@/api/procedures'
 import type { MemberCompletion } from '@/api/stationMembers'
-import type { EditableItem } from '@/views/stationview/procedure/procedurecreateview/types'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 import { dateToInstant, instantToDate } from '@/util/format'
 import { moveWithin } from '@/util/reorder'
+
+/** A checklist item as the form edits it, known by a temporary id until the procedure is saved. */
+export interface EditableItem {
+    id?: number
+    tempId: number
+    title: string
+    description: string
+    isPublic: boolean
+    userAssigned: boolean
+    position: number
+    dependsOn: number[]
+}
 
 /**
  * The editable form behind creating and editing a procedure, including its checklist items and

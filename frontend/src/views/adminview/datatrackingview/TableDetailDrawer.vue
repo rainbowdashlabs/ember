@@ -116,11 +116,11 @@ async function verifyAll() {
   <SidePanel :model-value="true" @update:model-value="emit('close')">
     <TableDetailHeader :name="name" :entry="entry" @close="emit('close')"/>
     <TableDetailBody
-        :entry="entry"
-        :columns="columns"
         v-model:station-transfer="stationTransfer"
         v-model:gdpr-export="gdprExport"
         v-model:gdpr-deletion="gdprDeletion"
+        :entry="entry"
+        :columns="columns"
         :statuses="statuses"
         :strategies="STRATEGIES"
         :column-options="columnOptions"

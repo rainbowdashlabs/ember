@@ -44,7 +44,7 @@ const { t } = useI18n()
           <TextAreaInput :model-value="'Fragen zu den Grundlagen'" disabled />
 
           <div class="space-y-3">
-            <label class="text-xs text-(--text-muted) font-medium">{{ t('quiz.sections.sources') }}</label>
+            <span class="text-xs text-(--text-muted) font-medium">{{ t('quiz.sections.sources') }}</span>
 
             <div class="flex flex-col sm:flex-row gap-2 items-start sm:items-center p-3 rounded border border-bg-light-accent dark:border-bg-dark-accent">
               <SelectInput :model-value="'1'" class="flex-1" disabled>
@@ -55,10 +55,10 @@ const { t } = useI18n()
                 <option value="">{{ t('quiz.sections.allCategories') }}</option>
               </SelectInput>
 
-              <div class="flex items-center gap-2">
-                <label class="text-xs text-(--text-muted) whitespace-nowrap">{{ t('quiz.sections.questionCount') }}</label>
+              <label class="flex items-center gap-2">
+                <span class="text-xs text-(--text-muted) whitespace-nowrap">{{ t('quiz.sections.questionCount') }}</span>
                 <NumberInput :model-value="10" class="w-20" disabled />
-              </div>
+              </label>
 
               <DeleteButton disabled />
             </div>

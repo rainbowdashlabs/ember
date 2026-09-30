@@ -15,7 +15,7 @@ import TemplateSelectorSection from '@/views/stationview/procedure/procedurecrea
 import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/BasicInfoSection.vue'
 import AssigneesSection from '@/views/stationview/procedure/procedurecreateview/AssigneesSection.vue'
 import ItemsSection from '@/views/stationview/procedure/procedurecreateview/ItemsSection.vue'
-import type {EditableItem} from '@/views/stationview/procedure/procedurecreateview/types'
+import type {EditableItem} from '@/composables/useProcedureForm'
 import type {ProcedureTemplate} from '@/api/procedures'
 import type {MemberCompletion} from '@/api/stationMembers'
 

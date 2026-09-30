@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -34,6 +35,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const toggleId = useId()
 </script>
 
 <template>
@@ -58,12 +60,12 @@ const { t } = useI18n()
     </div>
     <div class="space-y-2">
       <div class="flex items-center gap-2">
-        <ToggleInput v-model="fieldRequired" />
-        <label class="text-sm font-medium">{{ t('waitingList.required') }}</label>
+        <ToggleInput v-model="fieldRequired" :aria-labelledby="`${toggleId}-required`" />
+        <span :id="`${toggleId}-required`" class="text-sm font-medium">{{ t('waitingList.required') }}</span>
       </div>
       <div class="flex items-center gap-2">
-        <ToggleInput v-model="fieldPublic" />
-        <label class="text-sm font-medium">{{ t('waitingList.fieldPublic') }}</label>
+        <ToggleInput v-model="fieldPublic" :aria-labelledby="`${toggleId}-public`" />
+        <span :id="`${toggleId}-public`" class="text-sm font-medium">{{ t('waitingList.fieldPublic') }}</span>
       </div>
     </div>
     <ButtonRow pair align="end">

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useId } from 'vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -20,6 +20,7 @@ defineEmits<{
   cancel: []
 }>()
 
+const urlId = useId()
 const videoUrl = ref('')
 const detectedProvider = ref('')
 
@@ -49,8 +50,8 @@ function onInput() {
     </div>
 
     <div>
-      <label class="block text-xs text-[var(--text-muted)] mb-0.5">Video-URL</label>
-      <TextInput v-model="videoUrl" placeholder="https://www.youtube.com/watch?v=..." class="!text-sm" @input="onInput" />
+      <label :for="urlId" class="block text-xs text-[var(--text-muted)] mb-0.5">Video-URL</label>
+      <TextInput :id="urlId" v-model="videoUrl" placeholder="https://www.youtube.com/watch?v=..." class="!text-sm" @input="onInput" />
     </div>
 
     <p v-if="detectedProvider" class="text-xs text-[var(--text-muted)]">

@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import DragList from '@/components/input/DragList.vue'
 import ProcedureItemCard from '@/views/stationview/procedure/procedurecreateview/ProcedureItemCard.vue'
-import type {EditableItem} from '@/views/stationview/procedure/procedurecreateview/types'
+import type {EditableItem} from '@/composables/useProcedureForm'
 
 const {t} = useI18n()
 

@@ -19,6 +19,12 @@ import { useBoardApi } from '@/composables/useBoardApi'
 import { useAttachmentPreview } from '@/views/stationview/boards/boardview/useAttachmentPreview'
 import { formatSize } from '@/util/format'
 
+/**
+ * The links, web links and attachments of a ticket.
+ *
+ * <p>An attachment tile opens its file on a click as a convenience. The preview and download buttons
+ * on the tile are what a keyboard reaches, so the tile itself is not a control of its own.
+ */
 const props = defineProps<{
     boardKey: string
     ticketNumber: number
@@ -184,8 +190,12 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                     </div>
                     <IconButton :icon="['fas', 'xmark']" :label="t('common.cancel')" class="text-(--text-muted)" @click="showAddLink = false; linkSearchQuery = ''" />
                 </div>
-                <div v-if="linkSearchResults.length > 0" class="border border-(--border) rounded-theme divide-y divide-(--border)">
-                    <div v-for="(result, i) in linkSearchResults" :key="result.id" class="px-3 py-1.5 text-sm cursor-pointer flex items-center gap-2" :class="i === selectedIndex ? 'bg-primary/10' : 'hover:bg-primary/5'" @click="addLink(result.id, result.ticketNumber)" @mouseenter="selectedIndex = i">
+                <div v-if="linkSearchResults.length > 0" class="border border-(--border) rounded-theme divide-y divide-(--border)" role="listbox">
+                    <div v-for="(result, i) in linkSearchResults" :key="result.id" class="px-3 py-1.5 text-sm cursor-pointer flex items-center gap-2"
+                         :class="i === selectedIndex ? 'bg-primary/10' : 'hover:bg-primary/5'"
+                         role="option" tabindex="-1" :aria-selected="i === selectedIndex"
+                         @click="addLink(result.id, result.ticketNumber)" @keydown.enter.prevent="addLink(result.id, result.ticketNumber)"
+                         @mouseenter="selectedIndex = i" @focus="selectedIndex = i">
                         <span class="font-mono text-(--text-muted)">{{ shortKey }}-{{ result.ticketNumber }}</span>
                         <span class="truncate">{{ result.title }}</span>
                     </div>
@@ -218,7 +228,9 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                 <IconButton v-if="!readonly" :icon="['fas', 'plus']" :label="t('boards.addAttachment')" class="text-(--text-muted) text-xs" @click="emit('addFile')" />
             </div>
             <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                <div v-for="att in attachments" :key="att.id" class="relative group rounded-lg border border-(--border) overflow-hidden bg-(--bg-accent) cursor-pointer" style="aspect-ratio: 3/4" @click="canPreview(att) ? openPreview(att) : handleDownload(att)">
+                <div v-for="att in attachments" :key="att.id" class="relative group rounded-lg border border-(--border) overflow-hidden bg-(--bg-accent) cursor-pointer" style="aspect-ratio: 3/4"
+                     role="presentation"
+                     @click="canPreview(att) ? openPreview(att) : handleDownload(att)">
                     <!-- Image thumbnail -->
                     <img v-if="isImage(att) && srcFor(att.id)" :src="srcFor(att.id) ?? undefined" :alt="att.originalName" class="w-full h-full object-contain" />
                     <!-- File type icon fallback -->
@@ -230,7 +242,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                         <p class="text-[0.65rem] text-white truncate">{{ att.originalName }}</p>
                     </div>
                     <!-- Action bar (bottom) -->
-                    <div class="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div class="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5 flex items-center justify-between opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                         <span class="text-[0.55rem] text-white/80">{{ formatSize(att.sizeBytes) }}</span>
                         <div class="flex gap-1" @click.stop>
                             <IconButton v-if="canPreview(att)" :icon="['fas', 'eye']" :label="t('common.preview')" class="text-white text-xs" @click="openPreview(att)" />

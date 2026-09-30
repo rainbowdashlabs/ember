@@ -5,8 +5,7 @@
  */
 import {ref, type Ref} from 'vue'
 import client from '@/api/client'
-
-export type MapTileProvider = 'OSM' | 'MAPBOX' | 'STADIA' | 'MAPTILER' | 'THUNDERFOREST' | 'CUSTOM'
+import type {MapTileProvider} from '@/api/maps'
 
 export interface PublicMapsConfig {
     provider: MapTileProvider

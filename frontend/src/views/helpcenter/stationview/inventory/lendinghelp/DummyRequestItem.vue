@@ -6,9 +6,6 @@
 <script lang="ts" setup>
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InlineDetail from '@/components/typography/InlineDetail.vue'
-import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
 
 defineProps<{
   station: string

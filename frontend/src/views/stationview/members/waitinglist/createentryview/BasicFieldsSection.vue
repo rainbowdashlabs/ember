@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
-const props = defineProps<{
+defineProps<{
   firstname: string
   lastname: string
 }>()

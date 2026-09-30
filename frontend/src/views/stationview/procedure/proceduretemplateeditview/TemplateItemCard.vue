@@ -13,7 +13,7 @@ import type { ProcedureTemplateItem } from '@/api/procedures'
 
 const { t } = useI18n()
 
-const props = defineProps<{
+defineProps<{
   item: ProcedureTemplateItem
   index: number
   canManage: boolean

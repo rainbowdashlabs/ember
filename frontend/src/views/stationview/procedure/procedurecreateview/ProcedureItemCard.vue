@@ -12,7 +12,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {EditableItem} from './types'
+import type {EditableItem} from '@/composables/useProcedureForm'
 
 const {t} = useI18n()
 

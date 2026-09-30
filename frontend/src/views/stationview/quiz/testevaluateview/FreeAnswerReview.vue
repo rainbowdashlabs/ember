@@ -53,7 +53,7 @@ const showSampleAnswers = computed(() =>
       </p>
     </div>
     <div v-if="showSampleAnswers">
-      <label class="text-xs font-semibold text-success block mb-1">{{ t('quiz.evaluate.sampleAnswers') }}</label>
+      <span class="text-xs font-semibold text-success block mb-1">{{ t('quiz.evaluate.sampleAnswers') }}</span>
       <p class="text-sm px-3 py-2 rounded border border-success/30 bg-success/10">
         {{ sampleAnswers || '-' }}
       </p>

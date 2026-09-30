@@ -4,13 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {GdprExportContext, TrackingStatusName} from '@/api/dataTracking'
-import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import StatusBadge from './StatusBadge.vue'
 import StatusReasonFields from './StatusReasonFields.vue'
+import IgnoredColumnsField from './IgnoredColumnsField.vue'
 
 defineProps<{
   statuses: TrackingStatusName[]
@@ -20,12 +19,6 @@ defineProps<{
 const exportCtx = defineModel<GdprExportContext>('exportCtx', {required: true})
 
 const {t} = useI18n()
-const ignoredColumnsId = useId()
-
-const ignoredColumns = computed({
-  get: () => exportCtx.value.ignoredColumns ?? [],
-  set: (v: string[]) => { exportCtx.value = {...exportCtx.value, ignoredColumns: [...v]} },
-})
 </script>
 
 <template>
@@ -40,18 +33,7 @@ const ignoredColumns = computed({
           v-model:reason="exportCtx.reason"
           :statuses="statuses"
       />
-      <div>
-        <label :for="ignoredColumnsId" class="block text-xs text-(--text-muted) mb-1">
-          {{ t('adminDataTracking.detail.ignoredColumns') }}
-        </label>
-        <MultiSelectDropdown
-            :id="ignoredColumnsId"
-            v-model="ignoredColumns"
-            :options="columnOptions"
-            :placeholder="t('adminDataTracking.detail.ignoredColumnsPlaceholder')"
-            searchable
-        />
-      </div>
+      <IgnoredColumnsField v-model:ignored="exportCtx.ignoredColumns" :column-options="columnOptions"/>
       <div v-if="exportCtx.identityColumns?.length">
         <span class="text-xs text-(--text-muted)">{{ t('adminDataTracking.detail.identityColumns') }}:</span>
         <ul class="text-xs font-mono mt-1 space-y-0.5">

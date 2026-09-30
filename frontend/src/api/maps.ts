@@ -4,7 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {MapTileProvider} from '@/composables/useMapsConfig'
+
+/** Where the map's tiles come from. */
+export type MapTileProvider = 'OSM' | 'MAPBOX' | 'STADIA' | 'MAPTILER' | 'THUNDERFOREST' | 'CUSTOM'
 
 export type GeocodingProvider = 'NONE' | 'NOMINATIM' | 'LOCATIONIQ' | 'GEOAPIFY'
 

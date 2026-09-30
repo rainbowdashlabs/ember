@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {useI18n} from 'vue-i18n'
 import ColorInput from '@/components/input/ColorInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -15,8 +14,6 @@ defineProps<{
     upDisabled?: boolean
     downDisabled?: boolean
 }>()
-
-const {t} = useI18n()
 </script>
 
 <template>

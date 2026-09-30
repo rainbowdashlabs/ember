@@ -66,10 +66,10 @@ const { t } = useI18n()
         <TestSectionCard
             :section="section"
             :index="sIdx"
-            @update:section="changed => emit('updateSection', sIdx, changed)"
             :catalogs="props.catalogs"
             :get-categories-for-catalog="props.getCategoriesForCatalog"
             :on-catalog-change="props.onCatalogChange"
+            @update:section="changed => emit('updateSection', sIdx, changed)"
             @remove="emit('removeSection', sIdx)"
             @add-source="emit('addSource', section)"
             @remove-source="srcIdx => emit('removeSource', section, srcIdx)"

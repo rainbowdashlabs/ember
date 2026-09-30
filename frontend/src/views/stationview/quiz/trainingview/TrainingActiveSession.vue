@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import TrainingQuestionCard from './TrainingQuestionCard.vue'
+import TrainingQuestionCard from '@/components/quiz/TrainingQuestionCard.vue'
 import ReportQuestionModal from './ReportQuestionModal.vue'
 import type { QuizQuestion } from '@/api/quiz'
 

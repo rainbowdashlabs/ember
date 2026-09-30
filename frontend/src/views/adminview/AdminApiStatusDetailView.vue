@@ -26,6 +26,7 @@ import type {EndpointDetail} from '@/api/apiStatus'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {darkThemeActive as isDark} from '@/util/themeState'
 import {formatMs} from './adminapistatusview/apiStatusFormat'
+import {formatDayClockSeconds} from '@/util/format'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent])
 
@@ -60,9 +61,6 @@ function statusColor(code: number): string {
     return 'text-error'
 }
 
-function formatTimestamp(ts: string): string {
-    return new Date(ts).toLocaleString('de-DE', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'})
-}
 
 const statusChartOption = computed(() => {
     if (!detail.value) return {}
@@ -93,7 +91,7 @@ const responseTimeChartOption = computed(() => {
     return {
         tooltip: {trigger: 'axis'},
         grid: {left: 60, right: 20, bottom: 30},
-        xAxis: {type: 'category', data: requests.map(r => formatTimestamp(r.timestamp)), show: false},
+        xAxis: {type: 'category', data: requests.map(r => formatDayClockSeconds(r.timestamp)), show: false},
         yAxis: {type: 'value', name: 'ms', nameTextStyle: {color: textColor.value}, axisLabel: {color: textColor.value}},
         series: [{
             type: 'line',
@@ -151,7 +149,7 @@ const responseTimeChartOption = computed(() => {
                         </THead>
                         <tbody>
                             <TRow v-for="(req, idx) in detail.recentRequests" :key="idx">
-                                <Td class="font-mono text-xs">{{ formatTimestamp(req.timestamp) }}</Td>
+                                <Td class="font-mono text-xs">{{ formatDayClockSeconds(req.timestamp) }}</Td>
                                 <Td align="right" :class="statusColor(req.statusCode)" class="font-semibold tabular-nums">{{ req.statusCode }}</Td>
                                 <Td align="right" class="tabular-nums">{{ formatMs(req.durationMs) }}</Td>
                             </TRow>

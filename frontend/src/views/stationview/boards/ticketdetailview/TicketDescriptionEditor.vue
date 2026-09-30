@@ -29,7 +29,8 @@ const { t } = useI18n()
     <div>
         <FieldLabel class="mb-1">{{ t('boards.ticketDescription') }}</FieldLabel>
         <ProseContent v-if="!editing && description" class="rounded-theme p-2 min-h-[2rem]" :class="canEdit ? 'cursor-pointer hover:bg-[var(--bg-accent)]' : ''" @click="canEdit && (editing = true)" v-html="renderMarkdown(description)"/>
-        <div v-else-if="!editing && canEdit" class="text-sm text-[var(--text-muted)] cursor-pointer rounded-theme p-2 hover:bg-[var(--bg-accent)] italic" @click="editing = true">
+        <div v-else-if="!editing && canEdit" class="text-sm text-[var(--text-muted)] cursor-pointer rounded-theme p-2 hover:bg-[var(--bg-accent)] italic"
+             role="button" tabindex="0" @click="editing = true" @keydown.enter.space.prevent="editing = true">
             {{ t('boards.clickToAddDescription') }}
         </div>
         <div v-else>

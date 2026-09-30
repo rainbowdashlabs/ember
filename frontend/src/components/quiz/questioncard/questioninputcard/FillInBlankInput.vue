@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import TextInput from '@/components/input/text/TextInput.vue'
 
 const props = defineProps<{
   config: Record<string, unknown>
@@ -32,13 +33,15 @@ const fillGapCount = computed(() => (props.config.gapCount as number) ?? fillAns
       class="flex items-center gap-2"
     >
       <span class="text-sm text-(--text-muted) w-6">{{ gapIdx }}.</span>
-      <input
-        :value="fillGaps[String(gapIdx - 1)] ?? ''"
-        :disabled="disabled"
-        class="flex-1 px-3 py-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-transparent focus:outline-none focus:border-primary text-sm disabled:opacity-60"
-        :placeholder="t('quiz.attempt.fillGapPlaceholder', { n: gapIdx })"
-        @input="emit('setFillGap', gapIdx - 1, ($event.target as HTMLInputElement).value)"
-      />
+      <div class="flex-1">
+        <TextInput
+          :model-value="fillGaps[String(gapIdx - 1)] ?? ''"
+          :disabled="disabled"
+          class="text-sm"
+          :placeholder="t('quiz.attempt.fillGapPlaceholder', { n: gapIdx })"
+          @update:model-value="value => emit('setFillGap', gapIdx - 1, value ?? '')"
+        />
+      </div>
     </div>
   </div>
 </template>
