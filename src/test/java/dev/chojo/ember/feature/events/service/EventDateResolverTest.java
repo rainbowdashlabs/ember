@@ -73,19 +73,25 @@ class EventDateResolverTest extends RepositoryTestBase {
         assertTrue(eventDateResolver.nextDates(List.of()).isEmpty());
     }
 
+    /**
+     * The weekday is tomorrow's, never today's: the two weeks ahead include both of their ends, so an
+     * appointment on today's weekday falls in them three times and the count would depend on the day
+     * the test runs.
+     */
     @Test
     void aWeeklyAppointmentFallsOnItsOwnWeekday() {
         Instant start = Instant.now().minus(30, ChronoUnit.DAYS);
-        var weekly = event(StationEvent.EventType.RECURRING, DayOfWeek.WEDNESDAY.getValue(), start);
+        DayOfWeek weekday = LocalDate.now(dateResolverZone()).plusDays(1).getDayOfWeek();
+        var weekly = event(StationEvent.EventType.RECURRING, weekday.getValue(), start);
 
         LocalDate next = eventDateResolver.nextDate(weekly).orElseThrow();
-        assertEquals(DayOfWeek.WEDNESDAY, next.getDayOfWeek());
+        assertEquals(weekday, next.getDayOfWeek());
         assertFalse(next.isBefore(LocalDate.now(dateResolverZone())));
 
         var inTwoWeeks = eventDateResolver.occurrencesWithin(weekly, 14);
         assertEquals(2, inTwoWeeks.size());
         assertEquals(next, inTwoWeeks.getFirst());
-        assertTrue(inTwoWeeks.stream().allMatch(date -> date.getDayOfWeek() == DayOfWeek.WEDNESDAY));
+        assertTrue(inTwoWeeks.stream().allMatch(date -> date.getDayOfWeek() == weekday));
 
         assertEquals(next, eventDateResolver.nextDates(List.of(weekly)).get(weekly.id()));
     }
