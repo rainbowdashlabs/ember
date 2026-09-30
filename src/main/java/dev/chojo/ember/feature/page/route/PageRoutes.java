@@ -353,19 +353,20 @@ public class PageRoutes implements Routes {
      */
     private void getShareLink(Context ctx) {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
-        requireOwnedPage(ctx, pid);
-        ctx.json(new ShareLinkResponse(pageService.shareToken(pid).orElse(null)));
+        var page = requireOwnedPage(ctx, pid);
+        ctx.json(new ShareLinkResponse(
+                pageService.shareToken(pid).orElse(null), pageService.linksOpen(page.stationId())));
     }
 
     private void replaceShareLink(Context ctx) {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
-        requireOwnedPage(ctx, pid);
+        var page = requireOwnedPage(ctx, pid);
         var request = ctx.bodyAsClass(ReplaceShareLinkRequest.class);
         var replaced = pageService.replaceShareToken(pid, request.currentToken());
         if (replaced.isEmpty()) {
             throw Refusal.PAGE_LINK_ALREADY_REPLACED.raise();
         }
-        ctx.json(new ShareLinkResponse(replaced.get()));
+        ctx.json(new ShareLinkResponse(replaced.get(), pageService.linksOpen(page.stationId())));
     }
 
     private void setLandingPage(Context ctx) {
@@ -440,7 +441,11 @@ public class PageRoutes implements Routes {
 
     record VisibilityRequest(PageVisibility visibility) {}
 
-    record ShareLinkResponse(String token) {}
+    /**
+     * @param token the link's token, or {@code null} where the page has none
+     * @param opens whether the station's pages are open, without which no link leads anywhere
+     */
+    record ShareLinkResponse(String token, boolean opens) {}
 
     record ReplaceShareLinkRequest(String currentToken) {}
 

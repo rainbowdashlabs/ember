@@ -44,6 +44,7 @@
 - **Signing up was offered where it was not allowed.** A member could be offered to sign up for an appointment open only to part of the station, and was only told it was not open to them after pressing it. The sign-up is now offered only to those who may register, and everybody else sees a short note saying why.
 - **Every repeating appointment was called weekly.** The page of a monthly, quarterly or yearly appointment labelled it as weekly. It now names how often it repeats, the same way the list of appointments does.
 - **One unreadable message could stop a mailbox import.** In some cases a mailbox failed to import on every visit because of a single message the mail server could not hand over, such as one another mail program had just deleted, until the mailbox was suspended. Such a message is now skipped and the rest of the mailbox is imported.
+- **Unavailable public pages showed an unclear error.** Opening a public page, wiki article or shared page link that was no longer available, for example because the station's public pages were switched off, showed an error that said nothing about what had gone wrong. The page now says that it is gone, and the dialog with a page's link warns while the station's public pages are switched off.
 
 ## v26.19.5
 

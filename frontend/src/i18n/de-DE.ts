@@ -6366,6 +6366,7 @@ export default {
         replaceConfirm: 'Neuen Link erzeugen',
         replaceConflict: 'Der Link wurde zwischenzeitlich geändert. Öffne die Ansicht erneut, um den aktuellen zu sehen.',
         none: 'Diese Seite hat noch keinen Link.',
+        pagesClosed: 'Solange die öffentlichen Seiten der Wache ausgeschaltet sind, öffnet dieser Link nichts. Schalte sie unter Föderation → Einstellungen → Öffentliche Seiten ein, bevor du ihn weitergibst.',
         formNone: 'Dieses Formular hat noch keinen Link zum Versenden.',
         formTitle: 'Link zum Versenden',
         formPublicHint: 'Dieses Formular ist öffentlich erreichbar und hat damit eine feste Adresse. Wenn du stattdessen einen Link möchtest, der sich wieder zurückziehen lässt, stelle oben „Öffentlich erreichbar" ab.',
