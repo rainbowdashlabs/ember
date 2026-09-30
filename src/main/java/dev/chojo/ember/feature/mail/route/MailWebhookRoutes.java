@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -59,22 +60,28 @@ public class MailWebhookRoutes implements Routes {
 
     /**
      * Sweego signs every call, so where a secret is configured the report is trusted because it is
-     * provably Sweego's rather than because the caller knew the address. Without a secret the key
-     * in the address is what there is, as with the other relays.
+     * provably Sweego's rather than because the caller knew the address: an unsigned call, a stale
+     * timestamp and a signature this secret did not produce are all refused. Without a secret the
+     * key in the address is what there is, as with the other relays.
+     *
+     * <p>Every refusal answers the same code as a wrong key, so somebody who guessed the address
+     * learns nothing about how close they came; the log names the actual reason.
      */
     private void sweegoEvent(Context ctx) {
         var scope = authorise(ctx);
         String secret = chainService.sweegoSecret(scope.stationId());
-        if (secret != null
-                && !secret.isBlank()
-                && !SweegoSignature.matches(
-                        ctx.header("webhook-id"),
-                        ctx.header("webhook-timestamp"),
-                        ctx.header("webhook-signature"),
-                        ctx.body(),
-                        secret)) {
-            log.warn("Sweego report refused: the signature does not match the body");
-            throw Refusal.MAIL_REPORT_NOT_TAKEN.raise();
+        if (secret != null && !secret.isBlank()) {
+            var verdict = SweegoSignature.verify(
+                    ctx.header("webhook-id"),
+                    ctx.header("webhook-timestamp"),
+                    ctx.header("webhook-signature"),
+                    ctx.body(),
+                    secret,
+                    Instant.now());
+            if (verdict != SweegoSignature.Verdict.VALID) {
+                log.warn("Sweego report refused: {}", verdict);
+                throw Refusal.MAIL_REPORT_NOT_TAKEN.raise();
+            }
         }
 
         JsonNode body = ctx.bodyAsClass(JsonNode.class);
