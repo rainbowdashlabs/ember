@@ -62,7 +62,8 @@ import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEv
 
 /**
  * Local routes for the event entity itself: the station-wide listings, create/read/update/delete,
- * cancellation, restrictions, reminders, batch creation and the PDF export. Participation lives in
+ * restrictions, reminders, batch creation and the PDF export. Calling off lives in
+ * {@link EventCancellationRoutes}, participation in
  * {@link EventRegistrationRoutes}, the categories, breaks and fields an event is described by in
  * {@link EventStructureRoutes}.
  *
@@ -126,8 +127,6 @@ public class EventRoutes implements Routes {
 
         routes.post(prefix + "/events/batch", this::batchCreate, StationPermission.EVENT_EDIT);
         routes.post(prefix + "/events/batch/generate-dates", this::generateDates, StationPermission.EVENT_EDIT);
-
-        routes.post(prefix + "/events/{id}/cancel", this::cancelEvent, StationPermission.EVENT_EDIT);
 
         routes.get(prefix + "/events/{id}", this::get, StationPermission.USER);
         routes.get(prefix + "/events/{id}/next-date", this::getNextDate, StationPermission.USER);
@@ -507,16 +506,6 @@ public class EventRoutes implements Routes {
         }
     }
 
-    private void cancelEvent(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = pathInt(ctx, "id");
-        var req = ctx.bodyAsClass(CancelEventRequest.class);
-        if (!crudService.cancelEvent(session.stationId(), id, req.reason())) {
-            throw Refusal.EVENT_NOT_HERE_ON_CANCELLATION.raise();
-        }
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
     private List<Integer> resolveVisibleMemberIds(UserSession session) {
         if (session.hasPermission(StationPermission.EVENT_MANAGER)) {
             return null;
@@ -772,8 +761,6 @@ public class EventRoutes implements Routes {
             Integer registrationCloseDays,
             LocalDate repeatUntil,
             Integer repeatCount) {}
-
-    public record CancelEventRequest(String reason) {}
 
     /**
      * The next day an appointment falls on, or nothing for one that has no date at all.

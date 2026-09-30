@@ -208,8 +208,31 @@ public class LendingService {
      * @return how many requests were withdrawn
      */
     public int withdrawForEvent(int eventId, int stationId) {
+        return withdraw(repository.findOpenRequestsForEvent(eventId), stationId);
+    }
+
+    /**
+     * Withdraws the requests an appointment has sent for one of its dates that nobody has settled yet.
+     *
+     * <p>What calling off a single date does: the requests for the other dates of the series still
+     * stand, and so does one written for the appointment as a whole.
+     *
+     * @param eventId   the appointment
+     * @param stationId the station it belongs to
+     * @param date      the date called off
+     * @return how many requests were withdrawn
+     */
+    public int withdrawForEventDate(int eventId, int stationId, LocalDate date) {
+        return withdraw(
+                repository.findOpenRequestsForEvent(eventId).stream()
+                        .filter(request -> date.equals(request.eventDate()))
+                        .toList(),
+                stationId);
+    }
+
+    private int withdraw(List<LendingRequest> requests, int stationId) {
         int withdrawn = 0;
-        for (var request : repository.findOpenRequestsForEvent(eventId)) {
+        for (var request : requests) {
             if (declineRequest(request.id(), stationId, "Der Termin wurde abgesagt")) withdrawn++;
         }
         return withdrawn;

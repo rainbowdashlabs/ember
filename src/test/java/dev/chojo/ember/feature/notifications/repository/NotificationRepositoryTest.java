@@ -278,7 +278,7 @@ class NotificationRepositoryTest extends RepositoryTestBase {
         var read = notificationRepo.create(
                 member.id(),
                 NotificationType.EVENT_CANCELLED,
-                NotificationData.of(new NotificationParams.EventCancelled("Probe", "Krank"), about21));
+                NotificationData.of(new NotificationParams.EventCancelled("Probe", "Krank", null, null), about21));
         assertTrue(notificationRepo.acknowledge(read.id(), member.id()));
         notificationRepo.create(
                 member.id(),

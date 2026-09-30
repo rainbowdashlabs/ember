@@ -12,6 +12,8 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
+
 /**
  * What has to happen to held stock when an appointment stops happening.
  *
@@ -63,5 +65,20 @@ public class EquipmentReleaseService {
     public void withdrawRequests(int eventId, int stationId) {
         int withdrawn = lendingService.withdrawForEvent(eventId, stationId);
         if (withdrawn > 0) log.info("Appointment {} withdrew {} lending requests", eventId, withdrawn);
+    }
+
+    /**
+     * Withdraws what an appointment has asked of a partner for one date, leaving the other dates alone.
+     *
+     * <p>What calling off one date does. A date called off can be brought back, and the lines are
+     * the appointment's for every date, so they stay as they are.
+     *
+     * @param eventId   the appointment
+     * @param stationId the station it belongs to
+     * @param date      the date called off
+     */
+    public void withdrawRequestsOn(int eventId, int stationId, LocalDate date) {
+        int withdrawn = lendingService.withdrawForEventDate(eventId, stationId, date);
+        if (withdrawn > 0) log.info("Appointment {} withdrew {} lending requests for {}", eventId, withdrawn, date);
     }
 }

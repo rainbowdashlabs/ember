@@ -2635,39 +2635,6 @@ class EventServicesTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(203)
-    void cancelEventNotFound() {
-        assertFalse(crudService.cancelEvent(station.id(), 999999, "ghost"));
-    }
-
-    @Test
-    @Order(204)
-    void cancelEventAlreadyCancelled() {
-        var start = Instant.now().plus(30, ChronoUnit.DAYS);
-        var end = start.plus(2, ChronoUnit.HOURS);
-        var event = crudService.create(
-                station.id(),
-                "Cancellable",
-                "desc",
-                StationEvent.EventType.ONE_TIME,
-                null,
-                start,
-                end,
-                null,
-                false,
-                null,
-                false,
-                categoryId,
-                null,
-                null,
-                null,
-                null);
-        assertTrue(crudService.cancelEvent(station.id(), event.id(), "first"));
-        // Second cancel hits the "already cancelled" log.warn branch.
-        assertFalse(crudService.cancelEvent(station.id(), event.id(), "second"));
-    }
-
-    @Test
     @Order(205)
     void deleteBreakNotFound() {
         assertFalse(breakService.delete(999999));

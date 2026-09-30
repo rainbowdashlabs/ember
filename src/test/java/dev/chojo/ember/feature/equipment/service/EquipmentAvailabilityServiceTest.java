@@ -9,6 +9,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.equipment.EquipmentTestSupport;
 import dev.chojo.ember.feature.equipment.entity.ClaimOrigin;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -202,7 +203,7 @@ class EquipmentAvailabilityServiceTest extends RepositoryTestBase {
                                 station.id(), LineTarget.item(trailer.id()), from(day, 0), from(day.plusDays(1), 0))
                         .claimed());
 
-        eventRepo.cancelEvent(event.id(), "Wetter");
+        eventDateCancellationRepo.cancel(event.id(), day, CancellationCause.MANUAL, "Wetter", null);
         assertEquals(
                 0,
                 availability

@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.EventCancelled;
 import dev.chojo.ember.event.events.EventChanged;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
@@ -33,8 +32,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Owns the lifecycle of station events: lookups, creation, updates, deletion and cancellation,
- * including the domain events that accompany them.
+ * Owns the lifecycle of station events: lookups, creation, updates and deletion, including the
+ * domain events that accompany them. Calling off lives in {@link EventCancellationService}.
  */
 @Singleton
 public class EventCrudService {
@@ -410,36 +409,6 @@ public class EventCrudService {
         }
         log.warn("Failed to delete event {}", id);
         return false;
-    }
-
-    /**
-     * Cancels an event, notifying all registered members.
-     *
-     * @param stationId the station ID (for ownership check)
-     * @param eventId   the event ID
-     * @param reason    optional cancellation reason
-     * @return true if the event was cancelled
-     */
-    public boolean cancelEvent(int stationId, int eventId, String reason) {
-        var event = eventRepository.findById(eventId).orElse(null);
-        if (event == null || event.stationId() != stationId) {
-            log.warn("Cannot cancel event: event {} not found for station {}", eventId, stationId);
-            return false;
-        }
-        if (event.cancelled()) {
-            log.warn("Cannot cancel event: event {} already cancelled", eventId);
-            return false;
-        }
-
-        boolean cancelled = eventRepository.cancelEvent(eventId, reason);
-        if (cancelled) {
-            equipmentRelease.withdrawRequests(eventId, stationId);
-            log.info("Cancelled event {} for station {}", eventId, stationId);
-            eventBus.publish(new EventCancelled(stationId, eventId, event.name(), reason));
-        } else {
-            log.warn("Failed to cancel event {}", eventId);
-        }
-        return cancelled;
     }
 
     /**

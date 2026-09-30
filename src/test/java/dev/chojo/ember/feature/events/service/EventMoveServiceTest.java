@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.handlers.EventChangedHandler;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
@@ -97,6 +98,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
                 eventRegistrationRepo,
                 eventFieldRepo,
                 eventReminderRepo,
+                eventDateCancellationRepo,
                 occurrenceCalendar,
                 stationMemberRepo,
                 memberNameResolver,
@@ -285,6 +287,45 @@ class EventMoveServiceTest extends RepositoryTestBase {
                                 && m.eventDate().equals(newDay)
                                 && m.startTime().equals("10:00")));
         verify(notifications, never()).notifyMembers(any(), eq(NotificationType.EVENT_DATE_DROPPED), any());
+    }
+
+    /** A date that was called off is still a date of the series, so a change of time keeps its places. */
+    @Test
+    void aCancelledDateKeepsItsPlacesWhenTheSeriesChanges() {
+        weeklyOn(DayOfWeek.TUESDAY);
+        var kept = register(child, nextTuesday(), RegistrationStatus.ACCEPTED);
+        eventDateCancellationRepo.cancel(event.id(), nextTuesday(), CancellationCause.MANUAL, null, null);
+
+        change(event, event.name(), event.dayOfWeek(), event.startTime().plus(1, ChronoUnit.HOURS));
+
+        assertEquals(RegistrationStatus.ACCEPTED, reread(kept).status());
+        assertTrue(eventDateCancellationRepo.isCancelled(event.id(), nextTuesday()));
+    }
+
+    /** A one-off that was called off stays called off on the day it moved to. */
+    @Test
+    void aMovedOneOffTakesItsCancellationAlong() {
+        LocalDate day = today.plusDays(3);
+        LocalDate newDay = today.plusDays(5);
+        oneOffOn(day);
+        eventDateCancellationRepo.cancel(event.id(), day, CancellationCause.MANUAL, "Sturm", null);
+
+        change(event, event.name(), null, newDay.atTime(10, 0).atZone(zone).toInstant());
+
+        assertTrue(eventDateCancellationRepo.isCancelled(event.id(), newDay));
+        assertFalse(eventDateCancellationRepo.isCancelled(event.id(), day));
+    }
+
+    /** A date the series no longer falls on takes what said it was off with it. */
+    @Test
+    void theCancellationOfADroppedDateIsForgotten() {
+        weeklyOn(DayOfWeek.TUESDAY);
+        register(child, nextTuesday(), RegistrationStatus.ACCEPTED);
+        eventDateCancellationRepo.cancel(event.id(), nextTuesday(), CancellationCause.MANUAL, null, null);
+
+        moveTo(event, DayOfWeek.WEDNESDAY);
+
+        assertTrue(eventDateCancellationRepo.find(event.id(), nextTuesday()).isEmpty());
     }
 
     /**

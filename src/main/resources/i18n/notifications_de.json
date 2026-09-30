@@ -37,6 +37,7 @@
     "status.CLOSED": "Abgeschlossen",
     "cancelled": "Termin abgesagt",
     "cancelledWithReason": "Termin abgesagt: {reason}",
+    "cancelledTooFewRegistrations": "Termin abgesagt: zu wenige Anmeldungen",
     "registrationRequired": "Anmeldung erforderlich"
   },
   "feedLabel": {
@@ -148,6 +149,7 @@
     "REGISTRATION_ANSWER_MISSING": "Antwort fehlt: {eventName} - {memberName}",
     "EVENT_DATE_DROPPED": "Anmeldung zurückgezogen: {eventName} - {memberName}",
     "EVENT_MOVED": "Verschoben: {eventName} - {memberName}",
+    "EVENT_DATE_RESTORED": "Findet wieder statt: {eventName}",
     "PROCEDURE_ASSIGNED": "Prozedur zugewiesen: {procedureName}",
     "PROCEDURE_RESOLVED": "Abgeschlossen: {procedureName}",
     "PROCEDURE_REOPENED": "Wieder geöffnet: {procedureName}",
@@ -210,6 +212,7 @@
     "REGISTRATION_ANSWER_MISSING": "Antwort nachgefragt",
     "EVENT_DATE_DROPPED": "Termin entfällt",
     "EVENT_MOVED": "Termin verschoben",
+    "EVENT_DATE_RESTORED": "Termin findet wieder statt",
     "PROCEDURE_ASSIGNED": "Prozedur zugewiesen",
     "PROCEDURE_RESOLVED": "Prozedur abgeschlossen",
     "PROCEDURE_REOPENED": "Prozedur wieder geöffnet",
@@ -262,6 +265,9 @@
     "notification.registrationDeadlineExpired.one": "Anmeldefrist für {eventName} abgelaufen ({pendingCount} offen)",
     "notification.registrationDeadlineExpired.other": "Anmeldefrist für {eventName} abgelaufen ({pendingCount} offen)",
     "notification.eventCancelled": "Termin abgesagt: {eventName}",
+    "notification.eventCancelled.DATE": "{eventName} am {eventDate} wurde abgesagt",
+    "notification.eventCancelled.THRESHOLD": "{eventName} am {eventDate} wurde abgesagt: zu wenige Anmeldungen",
+    "notification.eventDateRestored": "{eventName} am {eventDate} findet doch statt",
     "notification.eventReminder.one": "{eventName} ist morgen ({eventDate})",
     "notification.eventReminder.other": "{eventName} in {daysBefore} Tagen ({eventDate})",
     "notification.procedureAssigned": "{assignedByName} hat dir die Prozedur \"{procedureName}\" zugewiesen",

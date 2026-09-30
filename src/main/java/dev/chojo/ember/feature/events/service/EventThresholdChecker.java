@@ -25,14 +25,19 @@ public class EventThresholdChecker {
     private static final Logger log = LoggerFactory.getLogger(EventThresholdChecker.class);
 
     private final EventRepository eventRepository;
-    private final EventCrudService crudService;
+    private final EventCancellationService cancellationService;
+    private final OccurrenceCalendar occurrenceCalendar;
     private final StationReadOnlyGuard readOnlyGuard;
 
     @Inject
     public EventThresholdChecker(
-            EventRepository eventRepository, EventCrudService crudService, StationReadOnlyGuard readOnlyGuard) {
+            EventRepository eventRepository,
+            EventCancellationService cancellationService,
+            OccurrenceCalendar occurrenceCalendar,
+            StationReadOnlyGuard readOnlyGuard) {
         this.eventRepository = eventRepository;
-        this.crudService = crudService;
+        this.cancellationService = cancellationService;
+        this.occurrenceCalendar = occurrenceCalendar;
         this.readOnlyGuard = readOnlyGuard;
         var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "event-threshold-checker");
@@ -47,11 +52,10 @@ public class EventThresholdChecker {
             var events = eventRepository.findAutoCancel();
             for (var event : events) {
                 if (!readOnlyGuard.isWritable(event.stationId())) continue;
-                log.info("Auto-cancelling event {} (id={}) - threshold not met", event.name(), event.id());
-                crudService.cancelEvent(
-                        event.stationId(),
-                        event.id(),
-                        "Mindestanzahl von " + event.minRegistrations() + " Anmeldungen nicht erreicht");
+                occurrenceCalendar.next(event).ifPresent(date -> {
+                    log.info("Auto-cancelling event {} (id={}) - threshold not met", event.name(), event.id());
+                    cancellationService.cancelForTooFewRegistrations(event, date);
+                });
             }
         } catch (Exception e) {
             log.error("Error checking event thresholds", e);

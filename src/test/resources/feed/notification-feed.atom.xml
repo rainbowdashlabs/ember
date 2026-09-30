@@ -820,4 +820,34 @@
     <summary type="text">Nachricht &lt;NEW_EVENT&gt; &amp; mehr</summary>
     <dc:date>2026-09-01T08:15:54Z</dc:date>
   </entry>
+  <entry>
+    <title>Titel EVENT_CANCELLED</title>
+    <link rel="alternate" href="https://ember.example.com/deep/event-detail" />
+    <category term="Kategorie EVENT_CANCELLED" />
+    <category term="EVENT_CANCELLED" scheme="urn:ember:notification-type" />
+    <author>
+      <name />
+    </author>
+    <id>urn:ember:notification:55</id>
+    <updated>2026-09-01T08:15:55Z</updated>
+    <published>2026-09-01T08:15:55Z</published>
+    <content type="html">&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie EVENT_CANCELLED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;EVENT_CANCELLED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Termin:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Probe&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;eventDate:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.2026&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Start:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.26, 18:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;End:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;21.09.26, 12:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Recurrence:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Wöchentlich&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Deadline:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;15.09.26, 22:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Limit:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;12&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/event-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content>
+    <summary type="text">Nachricht &lt;EVENT_CANCELLED&gt; &amp; mehr</summary>
+    <dc:date>2026-09-01T08:15:55Z</dc:date>
+  </entry>
+  <entry>
+    <title>Titel EVENT_DATE_RESTORED</title>
+    <link rel="alternate" href="https://ember.example.com/deep/event-detail" />
+    <category term="Kategorie EVENT_DATE_RESTORED" />
+    <category term="EVENT_DATE_RESTORED" scheme="urn:ember:notification-type" />
+    <author>
+      <name />
+    </author>
+    <id>urn:ember:notification:56</id>
+    <updated>2026-09-01T08:15:56Z</updated>
+    <published>2026-09-01T08:15:56Z</published>
+    <content type="html">&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie EVENT_DATE_RESTORED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;EVENT_DATE_RESTORED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Termin:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Probe&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;eventDate:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;26.09.2026&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Start:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.26, 18:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;End:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;21.09.26, 12:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Recurrence:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Wöchentlich&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Deadline:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;15.09.26, 22:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Limit:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;12&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/event-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content>
+    <summary type="text">Nachricht &lt;EVENT_DATE_RESTORED&gt; &amp; mehr</summary>
+    <dc:date>2026-09-01T08:15:56Z</dc:date>
+  </entry>
 </feed>

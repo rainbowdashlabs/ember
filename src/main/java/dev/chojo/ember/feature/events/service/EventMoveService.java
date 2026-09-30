@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.events.entity.OccurrenceRule;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
@@ -45,7 +46,7 @@ import java.util.TreeSet;
  * moves along to the new day, and everybody holding a place is told the new time. A series is many
  * occasions, and a date it leaves is an occasion that no longer happens: the places still held on it
  * are withdrawn, their members and whoever looks after them are told, with the next date the series
- * now falls on, and the answers and reminder records filed against it go. The same holds for a series
+ * now falls on, and the answers, reminder records and cancellation filed against it go. The same holds for a series
  * whose end moved closer and for a one-off appointment that became a series or the other way round.
  * Dates the appointment still falls on are left exactly as they are, and so is a place already given
  * up or turned down, which says the member is not coming either way.
@@ -61,6 +62,7 @@ public class EventMoveService {
     private final EventRegistrationRepository registrationRepository;
     private final EventFieldRepository fieldRepository;
     private final EventReminderRepository reminderRepository;
+    private final EventDateCancellationRepository cancellationRepository;
     private final OccurrenceCalendar occurrenceCalendar;
     private final StationMemberRepository memberRepository;
     private final MemberNameResolver nameResolver;
@@ -71,6 +73,7 @@ public class EventMoveService {
             EventRegistrationRepository registrationRepository,
             EventFieldRepository fieldRepository,
             EventReminderRepository reminderRepository,
+            EventDateCancellationRepository cancellationRepository,
             OccurrenceCalendar occurrenceCalendar,
             StationMemberRepository memberRepository,
             MemberNameResolver nameResolver,
@@ -78,6 +81,7 @@ public class EventMoveService {
         this.registrationRepository = registrationRepository;
         this.fieldRepository = fieldRepository;
         this.reminderRepository = reminderRepository;
+        this.cancellationRepository = cancellationRepository;
         this.occurrenceCalendar = occurrenceCalendar;
         this.memberRepository = memberRepository;
         this.nameResolver = nameResolver;
@@ -111,6 +115,7 @@ public class EventMoveService {
         if (!from.equals(to)) {
             int moved = registrationRepository.moveDate(after.id(), from, to);
             fieldRepository.moveDateValues(after.id(), from, to);
+            cancellationRepository.moveDate(after.id(), from, to);
             log.info("Event {} moved from {} to {}, taking {} registrations along", after.id(), from, to, moved);
         }
         if (Objects.equals(before.startTime(), after.startTime())) return;
@@ -146,6 +151,7 @@ public class EventMoveService {
         var withdrawn = registrationRepository.withdrawOnDates(after.id(), gone);
         fieldRepository.deleteDateValuesOn(after.id(), gone);
         reminderRepository.deleteSentOn(after.id(), gone);
+        cancellationRepository.deleteOn(after.id(), gone);
         log.info("Event {} no longer falls on {}, withdrew {} registrations there", after.id(), gone, withdrawn.size());
 
         for (var registration : withdrawn) {

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
@@ -326,7 +327,7 @@ class NotificationFeedGoldenTest {
         add(
                 list,
                 NotificationType.EVENT_CANCELLED,
-                new NotificationParams.EventCancelled("Probe", "Wetter"),
+                new NotificationParams.EventCancelled("Probe", "Wetter", null, CancellationCause.MANUAL),
                 "event-detail",
                 event42);
         add(
@@ -604,6 +605,19 @@ class NotificationFeedGoldenTest {
                 "cluster",
                 null);
         add(list, NotificationType.NEW_EVENT, new NotificationParams.NewEvent("Ohne Termin", null), null, null);
+        add(
+                list,
+                NotificationType.EVENT_CANCELLED,
+                new NotificationParams.EventCancelled(
+                        "Probe", null, LocalDate.of(2026, 9, 19), CancellationCause.THRESHOLD),
+                "event-detail",
+                event43);
+        add(
+                list,
+                NotificationType.EVENT_DATE_RESTORED,
+                new NotificationParams.EventDateRestored("Probe", LocalDate.of(2026, 9, 26)),
+                "event-detail",
+                event43);
         return list;
     }
 

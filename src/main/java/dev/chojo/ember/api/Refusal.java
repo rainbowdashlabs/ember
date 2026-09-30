@@ -2111,6 +2111,48 @@ public enum Refusal {
     REGISTRATION_DAY_CANCELLED(
             Area.EVENTS, 93, HttpStatus.BAD_REQUEST, "That date was cancelled, so it takes no registrations"),
 
+    /** A whole series called off for an appointment that is not a series and is called off by its date. */
+    ONE_TIME_EVENT_CANCELLED_AS_SERIES(
+            Area.EVENTS,
+            94,
+            HttpStatus.BAD_REQUEST,
+            "A one-time appointment is cancelled by its date, not as a series, so nothing was changed"),
+
+    /** A series called off a second time. */
+    SERIES_ALREADY_CANCELLED(Area.EVENTS, 95, HttpStatus.CONFLICT, "This series is already cancelled"),
+
+    /** A date to call off or bring back that does not read as a date. */
+    CANCELLATION_DAY_NOT_A_DATE(Area.EVENTS, 96, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),
+
+    /** A date to call off that the appointment does not fall on, or that a break of the station takes out. */
+    DATE_TO_CANCEL_NOT_A_DATE_OF_THE_EVENT(
+            Area.EVENTS,
+            97,
+            HttpStatus.BAD_REQUEST,
+            "The appointment does not take place on that date, so there is nothing to cancel"),
+
+    /** A date to call off that is already behind the station. */
+    DATE_TO_CANCEL_IN_THE_PAST(
+            Area.EVENTS, 98, HttpStatus.BAD_REQUEST, "That date is already past, so it can no longer be cancelled"),
+
+    /** A date called off that already is, on its own or with the whole series. */
+    DATE_ALREADY_CANCELLED(Area.EVENTS, 99, HttpStatus.CONFLICT, "That date is already cancelled"),
+
+    /** A date to bring back that is not called off. */
+    DATE_TO_RESTORE_NOT_CANCELLED(
+            Area.EVENTS, 100, HttpStatus.CONFLICT, "That date is not cancelled, so there is nothing to restore"),
+
+    /** A date to bring back that is already behind the station. */
+    DATE_TO_RESTORE_IN_THE_PAST(
+            Area.EVENTS, 101, HttpStatus.BAD_REQUEST, "That date is already past, so it can no longer be restored"),
+
+    /** A date to bring back of a series that was called off as a whole, which stays final. */
+    DATE_OF_CANCELLED_SERIES_NOT_RESTORED(
+            Area.EVENTS,
+            102,
+            HttpStatus.CONFLICT,
+            "The whole series is cancelled, so none of its dates can be restored"),
+
     /** A list of comments asked for on a day that is not a date. */
     COMMENT_DAY_NOT_A_DATE(Area.COMMENTS, 1, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),
 

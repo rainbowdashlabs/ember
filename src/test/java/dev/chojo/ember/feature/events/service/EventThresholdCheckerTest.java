@@ -37,8 +37,9 @@ class EventThresholdCheckerTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var eventBus = new DomainEventBus(Set.of());
+        var services = newEventServices(eventBus);
         checker = new EventThresholdChecker(
-                eventRepo, newEventServices(eventBus).crud(), new StationReadOnlyGuard(stationRepo));
+                eventRepo, services.cancellation(), services.calendar(), new StationReadOnlyGuard(stationRepo));
         station = stationRepo.create("ThresholdChecker Station");
         account = accountRepo.create("threshold@test.com", "Threshold", "Checker");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -81,10 +82,7 @@ class EventThresholdCheckerTest extends RepositoryTestBase {
         checkMethod.invoke(checker);
 
         // Verify the event was cancelled
-        var updated = eventRepo.findById(event.id()).orElseThrow();
-        assertTrue(updated.cancelled());
-        assertNotNull(updated.cancelReason());
-        assertTrue(updated.cancelReason().contains("5"));
+        assertEquals(1, eventDateCancellationRepo.findActiveByEvent(event.id()).size());
 
         eventRepo.delete(event.id());
     }
@@ -119,8 +117,7 @@ class EventThresholdCheckerTest extends RepositoryTestBase {
         checkMethod.setAccessible(true);
         checkMethod.invoke(checker);
 
-        var updated = eventRepo.findById(event.id()).orElseThrow();
-        assertFalse(updated.cancelled());
+        assertTrue(eventDateCancellationRepo.findActiveByEvent(event.id()).isEmpty());
 
         eventRegistrationRepo.delete(reg.id());
         eventRepo.delete(event.id());

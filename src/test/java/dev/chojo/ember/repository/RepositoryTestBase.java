@@ -68,6 +68,7 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.EventBreakService;
+import dev.chojo.ember.feature.events.service.EventCancellationService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
@@ -717,7 +718,9 @@ public abstract class RepositoryTestBase {
             EventReminderService reminder,
             EquipmentNeedService equipmentNeeds,
             EquipmentAvailabilityService equipmentAvailability,
-            LendingService lending) {}
+            LendingService lending,
+            EventCancellationService cancellation,
+            OccurrenceCalendar calendar) {}
 
     /**
      * Builds the event domain's services over the shared repositories.
@@ -731,8 +734,10 @@ public abstract class RepositoryTestBase {
         var availability =
                 new EquipmentAvailabilityService(equipmentAvailabilityRepo, equipmentNeedRepo, eventRepo, calendar);
         var lending = newLendingService(eventBus, availability);
-        var crudService = new EventCrudService(
-                eventRepo, eventBus, new EquipmentReleaseService(equipmentNeedRepo, lending), restrictionService);
+        var release = new EquipmentReleaseService(equipmentNeedRepo, lending);
+        var crudService = new EventCrudService(eventRepo, eventBus, release, restrictionService);
+        var cancellation =
+                new EventCancellationService(eventRepo, eventDateCancellationRepo, calendar, release, eventBus);
         return new EventServices(
                 crudService,
                 new EventOccurrenceService(crudService, calendar),
@@ -750,7 +755,9 @@ public abstract class RepositoryTestBase {
                 new EquipmentNeedService(
                         equipmentNeedRepo, equipmentAvailabilityRepo, availability, crudService, lineTargetService),
                 availability,
-                lending);
+                lending,
+                cancellation,
+                calendar);
     }
 
     /**

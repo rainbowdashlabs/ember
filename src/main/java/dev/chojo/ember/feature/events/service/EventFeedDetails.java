@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.feed.render.FeedDetails;
@@ -60,9 +61,19 @@ public class EventFeedDetails implements FeedDetailsContributor {
                 details.putSnippetIfPresent(details.label("description", "Description"), eventDescription);
                 addEventContext(details);
             }
-            case NotificationParams.EventCancelled(String eventName, String reason) -> {
+            case NotificationParams.EventCancelled(
+                    String eventName,
+                    String reason,
+                    LocalDate eventDate,
+                    CancellationCause _) -> {
                 details.putIfPresent(details.label("event", "Event"), eventName);
+                if (eventDate != null) details.put(details.label("eventDate"), details.date(eventDate));
                 details.putIfPresent(details.label("reason"), reason);
+                addEventContext(details);
+            }
+            case NotificationParams.EventDateRestored(String eventName, LocalDate eventDate) -> {
+                details.putIfPresent(details.label("event", "Event"), eventName);
+                if (eventDate != null) details.put(details.label("eventDate"), details.date(eventDate));
                 addEventContext(details);
             }
             case NotificationParams.EventReminder(String eventName, int daysBefore, LocalDate eventDate) -> {

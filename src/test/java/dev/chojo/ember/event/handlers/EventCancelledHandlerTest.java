@@ -6,52 +6,71 @@
 package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.events.EventCancelled;
+import dev.chojo.ember.event.events.EventDateRestored;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
+import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+/**
+ * Who hears that an appointment was called off, or that a date takes place again: the members
+ * holding a place on the date concerned and whoever looks after them, and nobody else.
+ */
 class EventCancelledHandlerTest extends RepositoryTestBase {
-    private static EventCancelledHandler handler;
-    private static NotificationService notificationService;
     private static Station station;
-    private static Account account;
-    private static StationMember member;
+    private static StationMember onTheDate;
+    private static StationMember guardian;
+    private static StationMember onAnotherDate;
+    private static StationMember inThePast;
     private static int eventId;
+    private static LocalDate date;
+
+    private NotificationService notificationService;
+    private EventCancelledHandler cancelled;
+    private EventDateRestoredHandler restored;
 
     @BeforeAll
     static void setup() {
-        notificationService = mock(NotificationService.class);
-        handler = new EventCancelledHandler(notificationService, eventRegistrationRepo, occurrenceCalendar);
         station = stationRepo.create("CancelledHandler Station");
-        account = accountRepo.create("cancelled-handler@test.com", "Cancel", "Handler");
-        member = stationMemberRepo.create(station.id(), account.id());
+        onTheDate = member("cancel-date@test.com");
+        guardian = member("cancel-guardian@test.com");
+        onAnotherDate = member("cancel-other@test.com");
+        inThePast = member("cancel-past@test.com");
+        stationMemberRepo.addManager(guardian.id(), onTheDate.id());
 
+        date = LocalDate.now().plusDays(7);
         var event = eventRepo.create(
                 station.id(),
                 "Cancel Handler Event",
                 "desc",
-                StationEvent.EventType.ONE_TIME,
-                null,
+                StationEvent.EventType.RECURRING,
+                date.getDayOfWeek().getValue(),
                 Instant.now().plus(1, ChronoUnit.DAYS),
                 Instant.now().plus(1, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
                 null,
@@ -64,64 +83,100 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
                 null,
                 null);
         eventId = event.id();
-
-        // Register the member for this event
+        eventRegistrationRepo.create(eventId, onTheDate.id(), date, RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(eventId, onAnotherDate.id(), date.plusWeeks(1), RegistrationStatus.PENDING, null);
         eventRegistrationRepo.create(
-                event.id(), member.id(), LocalDate.now().plusDays(1), RegistrationStatus.ACCEPTED, null);
+                eventId, inThePast.id(), LocalDate.now().minusWeeks(2), RegistrationStatus.ACCEPTED, null);
+    }
+
+    private static StationMember member(String email) {
+        Account account = accountRepo.create(email, "Cancel", "Handler");
+        return stationMemberRepo.create(station.id(), account.id());
     }
 
     @AfterAll
     static void cleanup() {
         eventRepo.delete(eventId);
-        stationMemberRepo.delete(member.id());
         stationRepo.delete(station.id());
-        accountRepo.delete(account.id());
+    }
+
+    @BeforeEach
+    void wire() {
+        notificationService = mock(NotificationService.class);
+        var guardians = new GuardianPolicy(stationMemberRepo);
+        cancelled =
+                new EventCancelledHandler(notificationService, eventRegistrationRepo, occurrenceCalendar, guardians);
+        restored = new EventDateRestoredHandler(notificationService, eventRegistrationRepo, guardians);
     }
 
     @Test
-    @Order(1)
-    void eventType() {
-        assertEquals(EventCancelled.class, handler.eventType());
+    void theyHandleTheirOwnEvents() {
+        assertEquals(EventCancelled.class, cancelled.eventType());
+        assertEquals(EventDateRestored.class, restored.eventType());
+    }
+
+    /** A date called off tells whoever holds a place on it and their guardian, and nobody on another date. */
+    @Test
+    void aCancelledDateTellsOnlyThatDatesHousehold() {
+        cancelled.handle(new EventCancelled(
+                station.id(), eventId, "Cancel Handler Event", "Sturm", date, CancellationCause.MANUAL));
+
+        verify(notificationService)
+                .notifyMembers(
+                        eq(Set.of(onTheDate.id(), guardian.id())),
+                        eq(NotificationType.EVENT_CANCELLED),
+                        argThat((NotificationData data) ->
+                                data.params() instanceof NotificationParams.EventCancelled params
+                                        && date.equals(params.eventDate())
+                                        && "DATE".equals(params.variant())));
+    }
+
+    /** A date the check called off is worded by its cause rather than by a stored reason. */
+    @Test
+    void aDateCalledOffForTooFewRegistrationsSaysSo() {
+        cancelled.handle(new EventCancelled(
+                station.id(), eventId, "Cancel Handler Event", null, date, CancellationCause.THRESHOLD));
+
+        verify(notificationService)
+                .notifyMembers(
+                        any(), eq(NotificationType.EVENT_CANCELLED), argThat((NotificationData data) -> "THRESHOLD"
+                                .equals(data.params().variant())));
+    }
+
+    /** A whole series tells everybody on a date still to come, and nobody whose date is behind them. */
+    @Test
+    void aCancelledSeriesTellsEveryPlaceStillToCome() {
+        cancelled.handle(EventCancelled.series(station.id(), eventId, "Cancel Handler Event", "Aufgelöst"));
+
+        verify(notificationService)
+                .notifyMembers(
+                        argThat((Collection<Integer> audience) ->
+                                audience.containsAll(Set.of(onTheDate.id(), guardian.id(), onAnotherDate.id()))
+                                        && !audience.contains(inThePast.id())),
+                        eq(NotificationType.EVENT_CANCELLED),
+                        argThat((NotificationData data) -> data.params().variant() == null));
     }
 
     @Test
-    @Order(2)
-    void handleNotifiesRegisteredMembers() {
-        var event = new EventCancelled(station.id(), eventId, "Cancel Handler Event", "Testing cancellation");
-        handler.handle(event);
+    void aDateNobodyHoldsAPlaceOnTellsNobody() {
+        cancelled.handle(new EventCancelled(
+                station.id(), eventId, "Cancel Handler Event", null, date.plusWeeks(5), CancellationCause.MANUAL));
+        restored.handle(new EventDateRestored(station.id(), eventId, "Cancel Handler Event", date.plusWeeks(5)));
 
-        verify(notificationService, atLeastOnce())
-                .notify(eq(member.id()), eq(NotificationType.EVENT_CANCELLED), any(NotificationData.class));
-    }
-
-    @Test
-    @Order(3)
-    void handleWithNoRegistrations() {
-        // Create event with no registrations
-        var emptyEvent = eventRepo.create(
-                station.id(),
-                "No Reg Event",
-                "",
-                StationEvent.EventType.ONE_TIME,
-                null,
-                Instant.now().plus(5, ChronoUnit.DAYS),
-                Instant.now().plus(5, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
-                null,
-                false,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null);
-
-        reset(notificationService);
-        var cancelledEvent = new EventCancelled(station.id(), emptyEvent.id(), "No Reg Event", "No members");
-        handler.handle(cancelledEvent);
-
-        // Should not notify anyone since no registrations
         verifyNoInteractions(notificationService);
-        eventRepo.delete(emptyEvent.id());
+    }
+
+    /** A date brought back tells whoever kept their place on it, and their guardian. */
+    @Test
+    void aRestoredDateTellsThatDatesHousehold() {
+        restored.handle(new EventDateRestored(station.id(), eventId, "Cancel Handler Event", date));
+
+        verify(notificationService)
+                .notifyMembers(
+                        eq(Set.of(onTheDate.id(), guardian.id())),
+                        eq(NotificationType.EVENT_DATE_RESTORED),
+                        argThat((NotificationData data) ->
+                                data.params() instanceof NotificationParams.EventDateRestored params
+                                        && date.equals(params.eventDate())));
     }
 }

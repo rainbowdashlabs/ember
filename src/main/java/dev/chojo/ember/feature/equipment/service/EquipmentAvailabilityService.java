@@ -287,6 +287,7 @@ public class EquipmentAvailabilityService {
             if (needs == null || event.cancelled()) continue;
             int slack = slackOf(needs);
             for (LocalDate date : occurrencesIn(event, calendar, from, to, slack)) {
+                if (calendar.isCancelled(event, date)) continue;
                 for (var need : needsForDate(needs, date)) {
                     Instant start =
                             EquipmentOccurrenceWindows.startOf(event, date).minus(need.lead());

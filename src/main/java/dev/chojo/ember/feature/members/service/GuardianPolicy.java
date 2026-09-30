@@ -12,7 +12,10 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Whom a reader acts for: themselves, and every member they look after.
@@ -58,6 +61,21 @@ public class GuardianPolicy {
         ids.add(session.member().id());
         wards(session).forEach(ward -> ids.add(ward.id()));
         return ids;
+    }
+
+    /**
+     * These members and everybody who looks after any of them, each once: who hears about something
+     * that happened to a member's registration.
+     *
+     * @param memberIds the members concerned
+     * @return them and their guardians
+     */
+    public Set<Integer> withGuardians(Collection<Integer> memberIds) {
+        var audience = new LinkedHashSet<Integer>(memberIds);
+        for (int memberId : memberIds) {
+            memberRepository.findManagers(memberId).forEach(guardian -> audience.add(guardian.id()));
+        }
+        return audience;
     }
 
     /**

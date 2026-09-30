@@ -37,6 +37,7 @@
     "status.CLOSED": "Closed",
     "cancelled": "Event cancelled",
     "cancelledWithReason": "Event cancelled: {reason}",
+    "cancelledTooFewRegistrations": "Event cancelled: too few registrations",
     "registrationRequired": "Registration required"
   },
   "feedLabel": {
@@ -148,6 +149,7 @@
     "REGISTRATION_ANSWER_MISSING": "Answer missing: {eventName} - {memberName}",
     "EVENT_DATE_DROPPED": "Registration withdrawn: {eventName} - {memberName}",
     "EVENT_MOVED": "Moved: {eventName} - {memberName}",
+    "EVENT_DATE_RESTORED": "Takes place again: {eventName}",
     "PROCEDURE_ASSIGNED": "Procedure assigned: {procedureName}",
     "PROCEDURE_RESOLVED": "Resolved: {procedureName}",
     "PROCEDURE_REOPENED": "Reopened: {procedureName}",
@@ -210,6 +212,7 @@
     "REGISTRATION_ANSWER_MISSING": "Answer Wanted",
     "EVENT_DATE_DROPPED": "Event Date Dropped",
     "EVENT_MOVED": "Event Moved",
+    "EVENT_DATE_RESTORED": "Event Date Restored",
     "PROCEDURE_ASSIGNED": "Procedure Assigned",
     "PROCEDURE_RESOLVED": "Procedure Resolved",
     "PROCEDURE_REOPENED": "Procedure Reopened",
@@ -262,6 +265,9 @@
     "notification.registrationDeadlineExpired.one": "Registration deadline expired for {eventName} ({pendingCount} pending)",
     "notification.registrationDeadlineExpired.other": "Registration deadline expired for {eventName} ({pendingCount} pending)",
     "notification.eventCancelled": "Event cancelled: {eventName}",
+    "notification.eventCancelled.DATE": "{eventName} on {eventDate} was cancelled",
+    "notification.eventCancelled.THRESHOLD": "{eventName} on {eventDate} was cancelled: too few registrations",
+    "notification.eventDateRestored": "{eventName} on {eventDate} takes place after all",
     "notification.eventReminder.one": "{eventName} is tomorrow ({eventDate})",
     "notification.eventReminder.other": "{eventName} in {daysBefore} days ({eventDate})",
     "notification.procedureAssigned": "{assignedByName} assigned you to procedure \"{procedureName}\"",

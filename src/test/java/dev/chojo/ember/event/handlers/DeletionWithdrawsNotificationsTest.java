@@ -112,7 +112,7 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
                 NotificationLinks.event(21));
         int answer = create(
                 NotificationType.EVENT_CANCELLED,
-                new NotificationParams.EventCancelled("Probe", "Krank"),
+                new NotificationParams.EventCancelled("Probe", "Krank", null, null),
                 NotificationLinks.event(21));
         int reminder = create(
                 NotificationType.EVENT_REMINDER,

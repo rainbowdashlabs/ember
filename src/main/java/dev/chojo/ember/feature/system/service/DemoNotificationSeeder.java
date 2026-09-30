@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
@@ -249,8 +250,20 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                 memberId,
                 NotificationType.EVENT_CANCELLED,
                 NotificationData.of(
-                        new NotificationParams.EventCancelled("Offenes Training", "Schneesturm angekündigt"),
+                        new NotificationParams.EventCancelled(
+                                "Offenes Training",
+                                "Schneesturm angekündigt",
+                                ctx.today().plusDays(3),
+                                CancellationCause.MANUAL),
                         oneTimeLink));
+
+        notificationRepository.create(
+                memberId,
+                NotificationType.EVENT_DATE_RESTORED,
+                NotificationData.of(
+                        new NotificationParams.EventDateRestored(
+                                "Offenes Training", ctx.today().plusDays(1)),
+                        recurringLink));
 
         notificationRepository.create(
                 memberId,

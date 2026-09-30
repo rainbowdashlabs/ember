@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.notifications.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
@@ -162,7 +163,34 @@ public sealed interface NotificationParams {
 
     record RegistrationDeadlineExpired(String eventName, int pendingCount) implements NotificationParams {}
 
-    record EventCancelled(String eventName, String reason) implements NotificationParams {}
+    /**
+     * An appointment somebody holds a place on was called off, one date of it or the whole series.
+     *
+     * <p>A date called off by the check for too few registrations carries no reason: the sentence
+     * for its cause says why, in the reader's own language.
+     *
+     * @param eventName the appointment
+     * @param reason    the reason a manager gave, or null
+     * @param eventDate the date called off, null where the whole series was
+     * @param cause     who called it off, null on notifications written before dates could be
+     */
+    record EventCancelled(String eventName, String reason, LocalDate eventDate, CancellationCause cause)
+            implements NotificationParams {
+        /** The sentence for one date, and the one for a date too few had registered for. */
+        @Override
+        public String variant() {
+            if (cause == CancellationCause.THRESHOLD) return "THRESHOLD";
+            return eventDate != null ? "DATE" : null;
+        }
+    }
+
+    /**
+     * A date of an appointment that had been called off takes place again.
+     *
+     * @param eventName the appointment
+     * @param eventDate the date that takes place again
+     */
+    record EventDateRestored(String eventName, LocalDate eventDate) implements NotificationParams {}
 
     record EventReminder(String eventName, int daysBefore, LocalDate eventDate) implements NotificationParams {}
 

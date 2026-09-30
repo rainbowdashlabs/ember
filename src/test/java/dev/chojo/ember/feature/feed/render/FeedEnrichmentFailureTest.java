@@ -95,7 +95,7 @@ class FeedEnrichmentFailureTest {
                 1,
                 rowCount(rows(
                         NotificationType.EVENT_CANCELLED,
-                        new NotificationParams.EventCancelled("Probe", null),
+                        new NotificationParams.EventCancelled("Probe", null, null, null),
                         Map.of("id", 1))));
     }
 
