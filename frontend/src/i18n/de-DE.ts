@@ -4762,7 +4762,7 @@ export default {
         inactive: 'Nicht eingerichtet',
         authenticator: 'Authenticator-App',
         setup: {
-            description: 'Schütze dein Konto mit einer Authenticator-App (z. B. Google Authenticator, Authy).',
+            description: 'Schütze dein Konto mit einer Authenticator-App (z. B. Google Authenticator, Authy).',
             begin: 'Einrichten',
             scanQr: 'QR-Code scannen',
             qrAlt: 'QR-Code',
@@ -4821,9 +4821,9 @@ export default {
         stepUp: {
             title: 'Sicherheitsbestätigung erforderlich',
             description: 'Diese Aktion ist sensibel. Bitte bestätige sie mit deinem zweiten Faktor.',
-            categoryAccountSecurity: 'Du bestätigst eine Änderung an deinen Sicherheits­einstellungen.',
+            categoryAccountSecurity: 'Du bestätigst eine Änderung an deinen Sicherheitseinstellungen.',
             categoryFederation: 'Du bestätigst eine Änderung an der Vernetzung mit anderen Wachen.',
-            categoryInstanceConfig: 'Du bestätigst eine Änderung an der Instanz­konfiguration.',
+            categoryInstanceConfig: 'Du bestätigst eine Änderung an der Instanzkonfiguration.',
             categoryRoleChange: 'Du bestätigst eine Änderung an Berechtigungen oder Rollen.',
             /** Named for the approving screen, which says which kind of action it is confirming. */
             category: {
@@ -4856,7 +4856,7 @@ export default {
             policiesHint: 'Aktivierte Typen müssen 2FA einrichten. Rollen-basierte Pflicht (Admin, Manager) wird automatisch angewandt.',
             required: 'Pflicht',
             optional: 'Optional',
-            membersTitle: 'Mitglieder­übersicht',
+            membersTitle: 'Mitgliederübersicht',
             statusEnrolled: 'Eingerichtet',
             statusMandatedGap: 'Pflicht - fehlt',
             statusOptional: 'Optional',
@@ -5752,7 +5752,7 @@ export default {
             waitingSince: 'Auf der Liste seit',
             lastConfirmation: 'Letzte Bestätigung',
             nextConfirmation: 'Nächste Bestätigung bis',
-            positionHint: 'Die Position ist nur ein grober Anhaltspunkt und entspricht nicht unbedingt der tatsächlichen Aufnahme­reihenfolge.',
+            positionHint: 'Die Position ist nur ein grober Anhaltspunkt und entspricht nicht unbedingt der tatsächlichen Aufnahmereihenfolge.',
             invitationTitle: 'Deine Einladung',
             invitationIntro: 'Wir würden uns freuen, dich kennenzulernen. Sag uns bitte kurz Bescheid, ob es dir passt.',
             invitationAppointment: 'Termin',

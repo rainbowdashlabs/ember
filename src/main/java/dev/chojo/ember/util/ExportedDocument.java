@@ -25,5 +25,5 @@ public record ExportedDocument(byte[] bytes, String filename) {
         return new ExportedDocument((BYTE_ORDER_MARK + text).getBytes(StandardCharsets.UTF_8), filename);
     }
 
-    private static final String BYTE_ORDER_MARK = "﻿";
+    private static final String BYTE_ORDER_MARK = "\uFEFF";
 }
