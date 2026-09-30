@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,9 +31,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class LeasePoolTest {
     private final MovableClock clock = new MovableClock();
     private final List<FakeTree> opened = new ArrayList<>();
+    private final List<Runnable> drains = new ArrayList<>();
 
     private LeasePool<FakeTree> pool(int size, Duration wait) {
-        return new LeasePool<>("test storage", this::open, size, wait, clock);
+        return new LeasePool<>("test storage", this::open, size, wait, drains::add, clock);
     }
 
     private FakeTree open() {
@@ -151,6 +153,7 @@ class LeasePoolTest {
                 },
                 4,
                 Duration.ofMillis(300),
+                drains::add,
                 clock);
         var a = refusing.acquire();
         var b = refusing.acquire();
@@ -173,6 +176,7 @@ class LeasePoolTest {
                 },
                 4,
                 Duration.ofSeconds(5),
+                drains::add,
                 clock);
 
         var refused = assertThrows(StorageUnavailableException.class, down::acquire);
@@ -193,6 +197,7 @@ class LeasePoolTest {
                 },
                 4,
                 Duration.ofSeconds(5),
+                drains::add,
                 clock);
         for (int i = 0; i < LeasePool.FAILURES_BEFORE_REFUSING; i++) {
             assertThrows(StorageUnavailableException.class, flaky::acquire);
@@ -219,6 +224,7 @@ class LeasePoolTest {
                 },
                 4,
                 Duration.ofSeconds(5),
+                drains::add,
                 clock);
         for (int i = 0; i <= LeasePool.FAILURES_BEFORE_REFUSING; i++) {
             assertThrows(StorageUnavailableException.class, flaky::acquire);
@@ -245,6 +251,62 @@ class LeasePoolTest {
         lent.close();
         assertTrue(lent.tree().closed);
         assertThrows(StorageUnavailableException.class, pool::acquire);
+    }
+
+    @Test
+    void whatTheTreesShareIsReleasedOnTheDrainerOnceTheLastLentTreeIsBack() {
+        var pool = pool(2, Duration.ofSeconds(1));
+        var lent = pool.acquire();
+        boolean[] released = {false};
+
+        pool.close(() -> released[0] = true);
+
+        assertFalse(released[0], "a lent tree still needs what the trees share");
+        assertEquals(1, drains.size(), "the wait runs on the drainer, not on the caller");
+        lent.close();
+        drains.getFirst().run();
+        assertTrue(released[0]);
+    }
+
+    @Test
+    void anIdlePoolReleasesAtOnceWithoutTheDrainer() {
+        var pool = pool(2, Duration.ofSeconds(1));
+        pool.acquire().close();
+        boolean[] released = {false};
+
+        pool.close(() -> released[0] = true);
+
+        assertTrue(released[0]);
+        assertTrue(drains.isEmpty());
+    }
+
+    @Test
+    void aDrainerThatRefusesHasTheCallerWaitForTheLentTrees() throws Exception {
+        var pool = new LeasePool<FakeTree>(
+                "test storage",
+                this::open,
+                2,
+                Duration.ofSeconds(1),
+                work -> {
+                    throw new RejectedExecutionException("scheduler stopped");
+                },
+                clock);
+        var lent = pool.acquire();
+        boolean[] released = {false};
+        var giveBack = CompletableFuture.runAsync(() -> {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            lent.close();
+        });
+
+        pool.close(() -> released[0] = true);
+
+        assertTrue(released[0]);
+        assertTrue(lent.tree().closed);
+        giveBack.get(5, TimeUnit.SECONDS);
     }
 
     private static final class MovableClock extends Clock {

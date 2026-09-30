@@ -134,7 +134,7 @@ class SmbStorageBackendContractTest extends FileTreeBackendContract {
     void aDroppedConnectionIsSignedInAgain() {
         var config = config();
         var client = new SMBClient(SmbConfig.builder().withEncryptData(false).build());
-        try (var own = new SmbStorageBackend(config, client)) {
+        try (var own = new SmbStorageBackend(config, client, Runnable::run)) {
             byte[] payload = "before".getBytes(StandardCharsets.UTF_8);
             own.store(
                     "scope/drop/before",

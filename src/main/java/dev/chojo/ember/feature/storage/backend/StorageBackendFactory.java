@@ -64,7 +64,7 @@ public class StorageBackendFactory {
      */
     public StorageBackendFactory(
             Storage storageConfig, LocalStorageBackend localBackend, CredentialCipher credentialCipher) {
-        this(storageConfig, localBackend, credentialCipher, new StorageClients());
+        this(storageConfig, localBackend, credentialCipher, new StorageClients(Runnable::run));
     }
 
     /** The protocol clients the backends of this factory share. */
@@ -203,11 +203,11 @@ public class StorageBackendFactory {
     }
 
     private StorageBackend smb(SmbBackendConfig config) {
-        return new SmbStorageBackend(config, clients.smb(config.seal(), config.dfs()));
+        return new SmbStorageBackend(config, clients.smb(config.seal(), config.dfs()), clients.drainer());
     }
 
     private StorageBackend sftp(SftpBackendConfig config) {
-        return new SftpStorageBackend(config, clients.ssh());
+        return new SftpStorageBackend(config, clients.ssh(), clients.drainer());
     }
 
     private LocalStorageBackend buildLocal(StorageBackendSettings.LocalSettings local) {

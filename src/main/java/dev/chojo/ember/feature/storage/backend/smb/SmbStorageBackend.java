@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.storage.backend.tree.LeasePool;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.Executor;
 
 /**
  * SMB3-backed storage, spoken directly to the share through smbj: no kernel mount, no FUSE, no
@@ -46,24 +47,29 @@ public final class SmbStorageBackend extends FileTreeBackend {
      * @param config where the share is and how to sign in
      */
     public SmbStorageBackend(SmbBackendConfig config) {
-        this(config, StorageClients.newSmbClient(config.seal(), config.dfs()), true);
+        this(config, StorageClients.newSmbClient(config.seal(), config.dfs()), true, Runnable::run);
     }
 
     /**
      * A backend on a client shared with other backends, which the caller closes.
      *
-     * @param config where the share is and how to sign in
-     * @param client the client to connect through
+     * @param config  where the share is and how to sign in
+     * @param client  the client to connect through
+     * @param drainer where a closed pool waits for the sessions still lent
      */
-    public SmbStorageBackend(SmbBackendConfig config, SMBClient client) {
-        this(config, client, false);
+    public SmbStorageBackend(SmbBackendConfig config, SMBClient client, Executor drainer) {
+        this(config, client, false, drainer);
     }
 
-    private SmbStorageBackend(SmbBackendConfig config, SMBClient client, boolean ownsClient) {
+    private SmbStorageBackend(SmbBackendConfig config, SMBClient client, boolean ownsClient, Executor drainer) {
         super(
                 StorageBackendType.SMB,
                 new LeasePool<>(
-                        "SMB storage at " + config.host(), () -> open(client, config), CONNECTIONS, ACQUIRE_TIMEOUT),
+                        "SMB storage at " + config.host(),
+                        () -> open(client, config),
+                        CONNECTIONS,
+                        ACQUIRE_TIMEOUT,
+                        drainer),
                 config.basePath(),
                 Set.of());
         this.client = client;

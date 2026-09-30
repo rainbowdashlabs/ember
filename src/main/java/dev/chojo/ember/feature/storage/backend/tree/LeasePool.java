@@ -19,6 +19,8 @@ import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -68,6 +70,7 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
     private final String name;
     private final Opener<T> opener;
     private final Duration acquireTimeout;
+    private final Executor drainer;
     private final Clock clock;
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition changed = lock.newCondition();
@@ -86,15 +89,18 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
      * @param opener         opens one tree
      * @param maxSize        how many trees may be open at once
      * @param acquireTimeout how long a caller waits for a tree
+     * @param drainer        where a closed pool waits for the trees still lent, the task scheduler's
+     *                       workers in the application
      */
-    public LeasePool(String name, Opener<T> opener, int maxSize, Duration acquireTimeout) {
-        this(name, opener, maxSize, acquireTimeout, Clock.systemUTC());
+    public LeasePool(String name, Opener<T> opener, int maxSize, Duration acquireTimeout, Executor drainer) {
+        this(name, opener, maxSize, acquireTimeout, drainer, Clock.systemUTC());
     }
 
-    LeasePool(String name, Opener<T> opener, int maxSize, Duration acquireTimeout, Clock clock) {
+    LeasePool(String name, Opener<T> opener, int maxSize, Duration acquireTimeout, Executor drainer, Clock clock) {
         this.name = name;
         this.opener = opener;
         this.acquireTimeout = acquireTimeout;
+        this.drainer = drainer;
         this.clock = clock;
         this.limit = maxSize;
     }
@@ -148,7 +154,8 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
 
     /**
      * Closes the pool, and runs {@code afterwards} at once when no tree is lent, else once the last one
-     * is back or {@link #DRAIN_LIMIT} has passed, from a thread of its own.
+     * is back or {@link #DRAIN_LIMIT} has passed, on the pool's drainer. A drainer that refuses the
+     * work, the task scheduler once it has stopped, has the caller wait instead.
      */
     @Override
     public void close(Runnable afterwards) {
@@ -171,10 +178,15 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
             afterwards.run();
             return;
         }
-        Thread.ofVirtual().name("storage-drain").start(() -> {
+        Runnable finish = () -> {
             closeStragglers();
             afterwards.run();
-        });
+        };
+        try {
+            drainer.execute(finish);
+        } catch (RejectedExecutionException stopping) {
+            finish.run();
+        }
     }
 
     /**

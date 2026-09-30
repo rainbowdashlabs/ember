@@ -8,12 +8,15 @@ package dev.chojo.ember.feature.storage.backend;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import dev.chojo.ember.feature.storage.backend.sftp.SftpSessions;
+import dev.chojo.ember.lifecycle.TaskScheduler;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.apache.sshd.client.SshClient;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -33,8 +36,34 @@ public class StorageClients implements AutoCloseable {
     public static final Duration IO_TIMEOUT = Duration.ofSeconds(30);
 
     private final Map<SmbKey, SMBClient> smbClients = new HashMap<>();
+    private final Executor drainer;
     private SshClient ssh;
     private boolean closed;
+
+    /**
+     * Clients whose backends drain their pools on the task scheduler's workers.
+     *
+     * @param scheduler the scheduler of the process
+     */
+    @Inject
+    public StorageClients(TaskScheduler scheduler) {
+        this(scheduler.executor());
+    }
+
+    /**
+     * Clients whose backends drain their pools on the given executor; a direct one drains while the
+     * backend is being closed.
+     *
+     * @param drainer where a closed pool waits for its lent connections
+     */
+    public StorageClients(Executor drainer) {
+        this.drainer = drainer;
+    }
+
+    /** Where a closed pool of these clients' backends waits for the connections still lent. */
+    public Executor drainer() {
+        return drainer;
+    }
 
     /**
      * The shared SSH client, started on first use.

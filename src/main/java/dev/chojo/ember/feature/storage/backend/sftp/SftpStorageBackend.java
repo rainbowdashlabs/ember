@@ -12,6 +12,7 @@ import org.apache.sshd.client.SshClient;
 
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.Executor;
 
 /**
  * SFTP-backed storage, spoken through Apache MINA SSHD: no kernel mount, no FUSE, no host-level SSH
@@ -38,23 +39,25 @@ public final class SftpStorageBackend extends FileTreeBackend {
      * @param config where the server is and how to sign in
      */
     public SftpStorageBackend(SftpBackendConfig config) {
-        this(config, new SftpSessions(config, SftpSessions.newClient(), true));
+        this(config, new SftpSessions(config, SftpSessions.newClient(), true), Runnable::run);
     }
 
     /**
      * A backend on a client shared with other backends, which the caller closes.
      *
-     * @param config where the server is and how to sign in
-     * @param client the started client to connect through
+     * @param config  where the server is and how to sign in
+     * @param client  the started client to connect through
+     * @param drainer where a closed pool waits for the channels still lent
      */
-    public SftpStorageBackend(SftpBackendConfig config, SshClient client) {
-        this(config, new SftpSessions(config, client, false));
+    public SftpStorageBackend(SftpBackendConfig config, SshClient client, Executor drainer) {
+        this(config, new SftpSessions(config, client, false), drainer);
     }
 
-    private SftpStorageBackend(SftpBackendConfig config, SftpSessions sessions) {
+    private SftpStorageBackend(SftpBackendConfig config, SftpSessions sessions, Executor drainer) {
         super(
                 StorageBackendType.SFTP,
-                new LeasePool<>("SFTP storage at " + config.host(), sessions::open, CONNECTIONS, ACQUIRE_TIMEOUT),
+                new LeasePool<>(
+                        "SFTP storage at " + config.host(), sessions::open, CONNECTIONS, ACQUIRE_TIMEOUT, drainer),
                 config.basePath(),
                 Set.of());
         this.sessions = sessions;
