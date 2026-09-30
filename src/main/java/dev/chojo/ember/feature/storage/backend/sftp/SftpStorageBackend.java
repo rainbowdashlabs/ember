@@ -28,6 +28,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
@@ -388,7 +389,7 @@ public class SftpStorageBackend implements StorageBackend, AutoCloseable {
                 }
                 if (!empty) return;
                 sftp.rmdir(parent);
-            } catch (IOException e) {
+            } catch (IOException | UncheckedIOException e) {
                 return;
             }
             current = parent;
