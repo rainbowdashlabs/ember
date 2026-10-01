@@ -40,7 +40,7 @@ test.describe('Media library', () => {
 
         const body = page.locator('[contenteditable="true"]').first()
         await body.click()
-        await page.getByRole('button', {name: 'Image'}).click()
+        await page.getByRole('button', {name: 'Bild', exact: true}).click()
         await page.getByRole('button', {name: 'Medien'}).click()
 
         await page.getByTestId('media-file').filter({hasText: SEEDED_FILE}).first().click()
@@ -65,7 +65,7 @@ test.describe('Media library', () => {
 
         await page.getByRole('button', {name: 'Bearbeiten', exact: true}).first().click()
         await page.locator('.markdown-editor-content').click()
-        await page.getByRole('button', {name: 'Image'}).click()
+        await page.getByRole('button', {name: 'Bild', exact: true}).click()
         await page.getByRole('button', {name: 'Medien'}).click()
         await page.getByTestId('media-file').filter({hasText: SEEDED_FILE}).first().click()
         await page.getByRole('button', {name: 'Speichern'}).last().click()

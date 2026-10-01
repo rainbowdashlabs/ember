@@ -58,7 +58,7 @@ test.describe('System news', () => {
         await adminPage.locator('[contenteditable="true"]').first().click()
         await adminPage.keyboard.type('Siehe Bild.')
 
-        await adminPage.getByRole('button', {name: 'Image'}).click()
+        await adminPage.getByRole('button', {name: 'Bild', exact: true}).click()
         await adminPage.getByRole('button', {name: 'Medien'}).click()
         await adminPage.locator('input[type="file"]').first().setInputFiles({
             name: `${unique('instanz')}.png`,
