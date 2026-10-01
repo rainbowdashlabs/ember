@@ -182,8 +182,7 @@ public class InventoryExportService {
 
         rows.sort(Comparator.comparing(r -> (String) r.get("name")));
 
-        var zone =
-                StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
+        var zone = StationFormat.timezoneOf(station);
         var data = new LinkedHashMap<String, Object>();
         data.put("stationName", station.name());
         data.put("generatedBy", generatedBy);
