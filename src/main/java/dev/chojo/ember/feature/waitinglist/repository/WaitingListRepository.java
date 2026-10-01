@@ -572,6 +572,18 @@ public class WaitingListRepository {
                 .insert();
     }
 
+    /**
+     * Removes what an entry held for one question, which is how a cleared answer is kept.
+     *
+     * @param entryId the entry
+     * @param fieldId the question
+     */
+    public void deleteEntryValue(int entryId, int fieldId) {
+        query("DELETE FROM waiting_list_entry_value WHERE entry_id = :entry_id AND field_id = :field_id;")
+                .single(call().bind("entry_id", entryId).bind("field_id", fieldId))
+                .delete();
+    }
+
     public int countPendingEntries(int stationId) {
         return count("""
                 SELECT

@@ -11,11 +11,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * What a board ticket takes in a custom field today, and the shape it keeps.
+ * How a board ticket's custom field value is read into the record its field type names, and the
+ * shape it keeps.
  *
- * <p>The only measure is that the value reads as the record its field type names: a date is any
- * text and a choice is any word. Written down before the field types are brought together, so the
- * change that starts checking them shows exactly what it turned away.
+ * <p>Reading only asks that the value fits the record: a date reads as any text and a choice as any
+ * word. Whether a date is a day and a choice one of the options is asked when the value is saved,
+ * which {@code BoardFieldValueRouteTest} pins.
  */
 class BoardFieldValueTest {
 
@@ -30,7 +31,7 @@ class BoardFieldValueTest {
     }
 
     @Test
-    void aNumberIsKeptAsAFractionAndTextIsRefused() {
+    void aNumberReadsAsAFractionAndTextIsRefused() {
         assertEquals("{\"value\":2.5}", kept(BoardFieldType.NUMBER, "{\"value\":2.5}"));
         assertEquals("{\"value\":3.0}", kept(BoardFieldType.NUMBER, "{\"value\":3}"));
         assertNull(kept(BoardFieldType.NUMBER, "{\"value\":\"drei\"}"));
@@ -43,12 +44,12 @@ class BoardFieldValueTest {
     }
 
     @Test
-    void aDateTakesAnyText() {
+    void aDateReadsAsAnyText() {
         assertEquals("{\"value\":\"irgendwann\"}", kept(BoardFieldType.DATE, "{\"value\":\"irgendwann\"}"));
     }
 
     @Test
-    void aChoiceTakesAnyWordWhateverItOffers() {
+    void aChoiceReadsAsAnyWord() {
         assertEquals("{\"value\":\"XL\"}", kept(BoardFieldType.ENUM, "{\"value\":\"XL\"}"));
     }
 

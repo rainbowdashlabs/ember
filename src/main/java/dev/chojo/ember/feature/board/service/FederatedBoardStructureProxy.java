@@ -66,7 +66,9 @@ public class FederatedBoardStructureProxy implements FederationServer {
                 (partner, params, body) -> boardService.findAllTicketLabels(guards.viewableBoardId(partner, params)));
         endpoints.serve(
                 RemoteBoardRoutes.GET_FIELDS,
-                (partner, params, body) -> boardService.findFields(guards.viewableBoardId(partner, params)));
+                (partner, params, body) -> boardService.findFields(guards.viewableBoardId(partner, params)).stream()
+                        .map(BoardField::of)
+                        .toList());
     }
 
     /**

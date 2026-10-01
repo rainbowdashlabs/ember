@@ -36,15 +36,56 @@ public sealed interface BoardFieldValue {
         }
     }
 
-    record StringValue(String value) implements BoardFieldValue {}
+    /**
+     * The value as the plain text the one check measures against the field.
+     *
+     * @return the text
+     */
+    String answer();
 
-    record NumberValue(double value) implements BoardFieldValue {}
+    record StringValue(String value) implements BoardFieldValue {
+        @Override
+        public String answer() {
+            return value;
+        }
+    }
 
-    record BooleanValue(boolean value) implements BoardFieldValue {}
+    record NumberValue(double value) implements BoardFieldValue {
+        @Override
+        public String answer() {
+            return String.valueOf(value);
+        }
+    }
 
-    record EnumValue(String value) implements BoardFieldValue {}
+    record BooleanValue(boolean value) implements BoardFieldValue {
+        @Override
+        public String answer() {
+            return String.valueOf(value);
+        }
+    }
 
-    record DateValue(String value) implements BoardFieldValue {}
+    record EnumValue(String value) implements BoardFieldValue {
+        @Override
+        public String answer() {
+            return value;
+        }
+    }
 
-    record LaneAssigneeValue(int memberId) implements BoardFieldValue {}
+    /**
+     * A calendar day, written as the ISO date it is ({@code 2026-10-01}). Anything else is refused
+     * when it is saved; one kept from before that is still shown as it was written.
+     */
+    record DateValue(String value) implements BoardFieldValue {
+        @Override
+        public String answer() {
+            return value;
+        }
+    }
+
+    record LaneAssigneeValue(int memberId) implements BoardFieldValue {
+        @Override
+        public String answer() {
+            return String.valueOf(memberId);
+        }
+    }
 }

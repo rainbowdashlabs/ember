@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.feature.question.QuestionSettings;
 import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
 import tools.jackson.databind.JsonNode;
@@ -57,6 +58,11 @@ public sealed interface BoardFieldConfig {
 
     boolean required();
 
+    /** What this field says about the question it asks, as the one check reads it. */
+    default QuestionSettings settings() {
+        return QuestionSettings.required(required());
+    }
+
     default String toJson() {
         try {
             return MAPPER.writeValueAsString(this);
@@ -67,7 +73,12 @@ public sealed interface BoardFieldConfig {
 
     record Simple(boolean required) implements BoardFieldConfig {}
 
-    record Enum(boolean required, List<String> options) implements BoardFieldConfig {}
+    record Enum(boolean required, List<String> options) implements BoardFieldConfig {
+        @Override
+        public QuestionSettings settings() {
+            return QuestionSettings.required(required).withOptions(options);
+        }
+    }
 
     record LaneAssignee(boolean required, int laneId) implements BoardFieldConfig {}
 }

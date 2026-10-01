@@ -7,6 +7,13 @@ package dev.chojo.ember.feature.board.entity;
 
 import dev.chojo.ember.feature.question.FieldType;
 
+/**
+ * The type of a board field as it is sent: to partner stations a board is shared with, and to the
+ * board screens. The station itself speaks of the shared {@link FieldType}.
+ *
+ * <p>The names are part of what a shared board's partners read, so they keep the spelling those
+ * partners know. Each one also says which record a field's settings and a ticket's value of it are.
+ */
 public enum BoardFieldType {
     STRING(BoardFieldValue.StringValue.class, BoardFieldConfig.Simple.class),
     NUMBER(BoardFieldValue.NumberValue.class, BoardFieldConfig.Simple.class),
@@ -47,5 +54,15 @@ public enum BoardFieldType {
      */
     public static BoardFieldType stored(String stored) {
         return FieldType.featureType(BoardFieldType.class, stored, BoardFieldType::fieldType);
+    }
+
+    /**
+     * The wire spelling of a shared field type.
+     *
+     * @param type a type a board offers
+     * @throws IllegalArgumentException where a board does not offer the type
+     */
+    public static BoardFieldType of(FieldType type) {
+        return stored(type.name());
     }
 }

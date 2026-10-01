@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.QuestionCheck;
+import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
@@ -443,30 +444,33 @@ public class WaitingListService implements TaskSource {
      *
      * <p>What is left blank is not refused here. A list decides for itself which of its questions
      * have to be answered, and turning a family away mid-form over a question they were about to
-     * reach is not what the check is for.
+     * reach is not what the check is for. Every answer is kept in the one shape its type is kept in,
+     * and a blank one clears what the question held.
      *
      * @throws BadRequestResponse naming the question and what is wrong with the answer
      */
     private void writeAnswers(int listId, int entryId, Map<Integer, JsonNode> fieldValues) {
         if (fieldValues == null || fieldValues.isEmpty()) return;
-        var questions = repository.findFieldsByList(listId).stream()
-                .collect(Collectors.toMap(WaitingListField::id, WaitingListField::question));
+        var fields = repository.findFieldsByList(listId).stream()
+                .collect(Collectors.toMap(WaitingListField::id, field -> field));
         for (var answer : fieldValues.entrySet()) {
-            var question = questions.get(answer.getKey());
-            if (question == null) continue;
-            QuestionCheck.answerIfGiven(question, asText(answer.getValue())).ifPresent(problem -> {
-                throw new BadRequestResponse(problem.message());
-            });
+            var field = fields.get(answer.getKey());
+            if (field == null) continue;
+            QuestionCheck.answerIfGiven(field.question(), QuestionValues.read(answer.getValue()))
+                    .ifPresent(problem -> {
+                        throw new BadRequestResponse(problem.message());
+                    });
         }
         for (var answer : fieldValues.entrySet()) {
-            repository.upsertEntryValue(entryId, answer.getKey(), answer.getValue());
+            var field = fields.get(answer.getKey());
+            if (field == null) continue;
+            var stored = QuestionValues.write(field.fieldType().fieldType(), QuestionValues.read(answer.getValue()));
+            if (stored == null) {
+                repository.deleteEntryValue(entryId, field.id());
+            } else {
+                repository.upsertEntryValue(entryId, field.id(), stored);
+            }
         }
-    }
-
-    /** An answer as somebody typed it, which is what a stored JSON string wraps in quotes. */
-    private static @Nullable String asText(JsonNode node) {
-        if (node == null || node.isNull()) return null;
-        return node.isString() ? node.asString() : node.toString();
     }
 
     public WaitingListEntry createEntry(
@@ -840,18 +844,11 @@ public class WaitingListService implements TaskSource {
         return birthDateField(listId).flatMap(field -> values.stream()
                 .filter(value -> value.fieldId() == field.id())
                 .findFirst()
-                .flatMap(value -> ageFrom(readDate(value))));
+                .flatMap(value -> ageFrom(QuestionValues.read(value.value()))));
     }
 
-    /** Reads the answer as text, whether it was stored as a string or as something else. */
-    private static @Nullable String readDate(WaitingListEntryValue value) {
-        var node = value.value();
-        if (node == null || node.isNull()) return null;
-        return node.isString() ? node.asString() : node.toString().replace("\"", "");
-    }
-
-    private static Optional<Integer> ageFrom(@Nullable String date) {
-        if (date == null || date.isBlank()) return Optional.empty();
+    private static Optional<Integer> ageFrom(String date) {
+        if (date.isBlank()) return Optional.empty();
         try {
             return Optional.of((int) ChronoUnit.YEARS.between(LocalDate.parse(date.trim()), LocalDate.now()));
         } catch (Exception e) {
@@ -865,11 +862,7 @@ public class WaitingListService implements TaskSource {
      * @param values the answers as submitted, keyed by field
      */
     public Optional<Integer> ageFromSubmitted(int listId, Map<Integer, JsonNode> values) {
-        return birthDateField(listId).flatMap(field -> {
-            var node = values.get(field.id());
-            if (node == null || node.isNull()) return Optional.empty();
-            return ageFrom(node.isString() ? node.asString() : node.toString().replace("\"", ""));
-        });
+        return birthDateField(listId).flatMap(field -> ageFrom(QuestionValues.read(values.get(field.id()))));
     }
 
     /**
@@ -910,10 +903,9 @@ public class WaitingListService implements TaskSource {
         for (var field : fields) {
             String value = values.stream()
                     .filter(v -> v.fieldId() == field.id())
-                    .map(WaitingListEntryValue::value)
+                    .map(entryValue -> QuestionValues.read(entryValue.value()))
+                    .filter(text -> !text.isEmpty())
                     .findFirst()
-                    .map(node ->
-                            node == null || node.isNull() ? "0" : (node.isString() ? node.asString() : node.toString()))
                     .orElse("0");
             variables.put(field.name(), value);
         }

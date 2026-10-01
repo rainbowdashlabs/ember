@@ -24,7 +24,11 @@ public record WaitingListField(
      * <p>A waiting list has no starting value to give, so the question it asks has none either.
      */
     public Question question() {
-        return config.settings().withRequired(required).asQuestion(name, fieldType.kind());
+        return config.settings()
+                .withRequired(required)
+                .asQuestion(name, fieldType.fieldType())
+                .orElseThrow(
+                        () -> new IllegalStateException("Every waiting list question holds a value: " + fieldType));
     }
 
     public static RowMapping<WaitingListField> map() {

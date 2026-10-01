@@ -13,9 +13,8 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
-import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
-import dev.chojo.ember.feature.board.entity.BoardFieldType;
+import dev.chojo.ember.feature.board.entity.BoardFieldDefinition;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
@@ -30,6 +29,7 @@ import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -508,10 +508,10 @@ class BoardServiceTest extends RepositoryTestBase {
         boardService.replaceFields(
                 boardId,
                 List.of(
-                        new BoardField(
-                                0, boardId, "Component", BoardFieldType.STRING, new BoardFieldConfig.Simple(false), 0),
-                        new BoardField(
-                                0, boardId, "Effort", BoardFieldType.NUMBER, new BoardFieldConfig.Simple(false), 1)));
+                        new BoardFieldDefinition(
+                                0, boardId, "Component", FieldType.TEXT, new BoardFieldConfig.Simple(false), 0),
+                        new BoardFieldDefinition(
+                                0, boardId, "Effort", FieldType.NUMBER, new BoardFieldConfig.Simple(false), 1)));
         var fields = boardService.findFields(boardId);
         assertEquals(2, fields.size());
         assertEquals("Component", fields.getFirst().name());
@@ -586,7 +586,8 @@ class BoardServiceTest extends RepositoryTestBase {
     void ticketFieldValues() {
         boardService.replaceFields(
                 boardId,
-                List.of(new BoardField(0, boardId, "F", BoardFieldType.STRING, new BoardFieldConfig.Simple(false), 0)));
+                List.of(new BoardFieldDefinition(
+                        0, boardId, "F", FieldType.TEXT, new BoardFieldConfig.Simple(false), 0)));
         var fields = boardService.findFields(boardId);
         int fid = fields.getFirst().id();
         ticketService.setFieldValue(ticketId1, fid, new BoardFieldValue.StringValue("test"));
@@ -808,11 +809,11 @@ class BoardServiceTest extends RepositoryTestBase {
             // Create a lane_assignee field pointing to lanes[1]
             boardService.replaceFields(
                     boardId,
-                    List.of(new BoardField(
+                    List.of(new BoardFieldDefinition(
                             0,
                             boardId,
                             "Reviewer",
-                            BoardFieldType.LANE_ASSIGNEE,
+                            FieldType.LANE_ASSIGNEE,
                             new BoardFieldConfig.LaneAssignee(
                                     false, lanes.get(1).id()),
                             0)));

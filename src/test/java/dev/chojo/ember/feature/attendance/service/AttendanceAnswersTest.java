@@ -9,26 +9,31 @@ import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
+import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * What an attendance sheet's own fields take today, and how the sheet keeps it.
+ * What an attendance sheet's own fields take, and how the sheet keeps it.
  *
- * <p>Written down before the field types are brought together, so that every later change can show
- * which of these it meant to change and that it left the rest alone.
+ * <p>First written down before the field types were brought together. A number on a sheet is whole
+ * now, a member outside the group a field is narrowed to is refused, and every answer is kept in the
+ * one shape its type is kept in, with nothing kept for a blank one.
  */
 class AttendanceAnswersTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();
@@ -36,6 +41,7 @@ class AttendanceAnswersTest extends RepositoryTestBase {
     private static AttendanceService service;
     private static Station station;
     private static int memberId;
+    private static int groupMemberId;
     private static int groupId;
 
     @BeforeAll
@@ -51,16 +57,13 @@ class AttendanceAnswersTest extends RepositoryTestBase {
                 new Attendance(),
                 stationRepo,
                 eventDateCancellationRepo,
-                new AttendanceAudienceService(attendanceRepo));
+                new AttendanceAudienceService(attendanceRepo),
+                memberEligibility());
         station = stationRepo.create("AttendanceAnswersStation");
-        memberId = stationMemberRepo
-                .create(
-                        station.id(),
-                        accountRepo
-                                .create("attendance-answers@test.com", "Alma", "A")
-                                .id())
-                .id();
+        memberId = member("attendance-answers@test.com", "Alma");
+        groupMemberId = member("attendance-answers-group@test.com", "Berta");
         groupId = memberGroupRepo.create(station.id(), "Niemand").id();
+        memberGroupRepo.addMember(groupId, groupMemberId);
     }
 
     @AfterAll
@@ -68,17 +71,40 @@ class AttendanceAnswersTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
-    /** Writes one answer into a fresh sheet whose only field is of the given type, and reads it back. */
-    private static String kept(AttendanceFieldType type, String config, String answer) {
+    private static int member(String email, String firstName) {
+        return stationMemberRepo
+                .create(station.id(), accountRepo.create(email, firstName, "A").id())
+                .id();
+    }
+
+    /** A fresh sheet whose only field is of the given type, and that field. */
+    private record Sheet(int sessionId, int fieldId) {}
+
+    private static Sheet sheet(AttendanceFieldType type, String config) {
         var template = service.createTemplate(station.id(), "Bogen " + NAMES.incrementAndGet());
         var field = service.createTemplateField(
                         template.id(), type.name(), type, AttendanceFieldConfig.parse(config), 0)
                 .getFirst();
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
-        var sheet = service.createSession(template.id(), start, start.plus(2, ChronoUnit.HOURS), null, null, null);
-        return service.setSessionFields(sheet.id(), List.of(new AttendanceFieldValueEntry(field.id(), answer)))
-                .getFirst()
-                .value();
+        var session = service.createSession(template.id(), start, start.plus(2, ChronoUnit.HOURS), null, null, null);
+        return new Sheet(session.id(), field.id());
+    }
+
+    private static @Nullable String held(Sheet sheet, List<AttendanceSessionField> fields) {
+        return fields.stream()
+                .filter(field -> field.fieldId() == sheet.fieldId())
+                .map(AttendanceSessionField::value)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /** Writes one answer into a fresh sheet whose only field is of the given type, and reads it back. */
+    private static @Nullable String kept(AttendanceFieldType type, String config, String answer) {
+        var sheet = sheet(type, config);
+        return held(
+                sheet,
+                service.setSessionFields(
+                        sheet.sessionId(), List.of(new AttendanceFieldValueEntry(sheet.fieldId(), answer))));
     }
 
     private static void refused(AttendanceFieldType type, String config, String answer) {
@@ -86,16 +112,18 @@ class AttendanceAnswersTest extends RepositoryTestBase {
     }
 
     @Test
-    void aNumberTakesAFraction() {
-        assertEquals("2.5", kept(AttendanceFieldType.NUMBER, "{}", "2.5"));
+    void aNumberIsWhole() {
+        assertEquals("3", kept(AttendanceFieldType.NUMBER, "{}", "3"));
+        refused(AttendanceFieldType.NUMBER, "{}", "2.5");
         refused(AttendanceFieldType.NUMBER, "{}", "\"zwei\"");
     }
 
     @Test
-    void aDayAndAYesOrNoAreMeasuredAndKeptAsSent() {
+    void aDayAndAYesOrNoAreMeasuredAndKeptInTheirShape() {
         assertEquals("\"2026-03-09\"", kept(AttendanceFieldType.DATE, "{}", "\"2026-03-09\""));
         refused(AttendanceFieldType.DATE, "{}", "\"09.03.2026\"");
         assertEquals("true", kept(AttendanceFieldType.BOOLEAN, "{}", "true"));
+        assertEquals("true", kept(AttendanceFieldType.BOOLEAN, "{}", "\"1\""));
         refused(AttendanceFieldType.BOOLEAN, "{}", "\"ja\"");
     }
 
@@ -106,23 +134,44 @@ class AttendanceAnswersTest extends RepositoryTestBase {
     }
 
     @Test
-    void aRequiredFieldMayStayEmpty() {
-        assertEquals("\"\"", kept(AttendanceFieldType.STRING, "{\"required\":true}", "\"\""));
+    void aRequiredFieldMayStayEmptyAndKeepsNothing() {
+        assertNull(kept(AttendanceFieldType.STRING, "{\"required\":true}", "\"\""));
     }
 
     @Test
-    void membersAreKeptInEitherShape() {
+    void aClearedFieldKeepsNothing() {
+        var sheet = sheet(AttendanceFieldType.STRING, "{}");
+        service.setSessionFields(sheet.sessionId(), List.of(new AttendanceFieldValueEntry(sheet.fieldId(), "\"x\"")));
+
+        var fields = service.setSessionFields(
+                sheet.sessionId(), List.of(new AttendanceFieldValueEntry(sheet.fieldId(), "\"\"")));
+
+        assertNull(held(sheet, fields));
+    }
+
+    @Test
+    void membersAreKeptAsNumbersWhicheverShapeTheyArriveIn() {
         assertEquals(String.valueOf(memberId), kept(AttendanceFieldType.MEMBER, "{}", String.valueOf(memberId)));
-        assertEquals("\"" + memberId + "\"", kept(AttendanceFieldType.MEMBER, "{}", "\"" + memberId + "\""));
+        assertEquals(String.valueOf(memberId), kept(AttendanceFieldType.MEMBER, "{}", "\"" + memberId + "\""));
         assertEquals("[" + memberId + "]", kept(AttendanceFieldType.MEMBER_LIST, "{}", "[" + memberId + "]"));
         refused(AttendanceFieldType.MEMBER, "{}", "\"Alma\"");
     }
 
     @Test
-    void aSheetMayNameAMemberOutsideTheFieldsGroup() {
+    void aSheetRefusesAMemberOutsideTheFieldsGroup() {
         String config = "{\"groupId\":" + groupId + "}";
 
         assertEquals(
-                String.valueOf(memberId), kept(AttendanceFieldType.MEMBER_OF_GROUP, config, String.valueOf(memberId)));
+                String.valueOf(groupMemberId),
+                kept(AttendanceFieldType.MEMBER_OF_GROUP, config, String.valueOf(groupMemberId)));
+        refused(AttendanceFieldType.MEMBER_OF_GROUP, config, String.valueOf(memberId));
+        refused(AttendanceFieldType.MEMBER_LIST_OF_GROUP, config, "[" + groupMemberId + "," + memberId + "]");
+    }
+
+    @Test
+    void aDateFieldMayStartAtToday() {
+        var sheet = sheet(AttendanceFieldType.DATE, "{\"defaultValue\":\"__TODAY__\"}");
+
+        assertEquals("\"" + LocalDate.now() + "\"", held(sheet, attendanceRepo.findSessionFields(sheet.sessionId())));
     }
 }

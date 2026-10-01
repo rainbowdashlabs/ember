@@ -59,6 +59,8 @@
 - **Comments in one section of the data export.** What somebody receives when they ask for their data lists all their comments in one section, on appointments, news entries, wiki files and board tickets alike, and each one says what it was written on. Notifications that point at a comment still open on it.
 - **Board comments belong to whoever wrote them.** A comment on a ticket can be changed only by its author, and removed only by its author or a board manager, where before anybody who could edit the ticket could do both. A comment can no longer be saved empty.
 - **Comment notices on watched tickets.** The notice about a new comment on a ticket you watch names who wrote it, in your language, and follows the setting for comment notices instead of the one for ticket updates. Nobody is told about their own comment any more.
+- **Number fields take whole numbers.** Number fields of attendance sheets, waiting lists, gear and board tickets take whole numbers, as their input boxes already offer them. A gear field whose step is below one still takes a fraction, and numbers saved before stay as they are.
+- **Attendance fields for a group take only its members.** A member field on an attendance sheet that is limited to a group refuses members outside that group when the sheet is saved.
 ### Fixes
 
 - **Own comments on a partner's board could not be changed.** Changing or removing your own comment on a board a partner station shares with you did nothing. It now works, and boards shared between two instances pause until both run this version.
@@ -135,6 +137,8 @@
 - **A repeated Sweego report could send a mail twice.** In some cases, when Sweego sent the same bounce report again, the mail concerned went out twice or moved on to the next provider too early. A report that arrives again is now recognised and counted once.
 - **Association profile answers were not checked.** An answer to an association's profile question was saved whatever it said, such as a choice the question does not offer or a date that is no date. It is now checked like an answer to the station's own questions.
 - **The member import kept answers a question does not take.** Importing members stored a cell such as an unknown choice, a day that is no day or "maybe" under a yes or no question as written. Such a cell is now left out, and the preview and the result name its row.
+- **Board fields took any value.** A custom field on a board ticket could be saved with a date that is not a date or with a choice the field does not offer. Such values are now refused when they are saved.
+- **Attendance date fields could not start at today.** Saving an attendance template field set to start at today's date was refused with a message that it expects a date. It is saved again, and new sheets start at the day they are made.
 
 ## v26.19.5
 

@@ -32,7 +32,9 @@ public record AttendanceTemplateField(
      * answer written on a sheet as measure one given to an appointment.
      */
     public Question question() {
-        return config.settings().asQuestion(name, fieldType.kind());
+        return config.settings()
+                .asQuestion(name, fieldType.fieldType())
+                .orElseThrow(() -> new IllegalStateException("Every sheet field holds a value: " + fieldType));
     }
 
     /**

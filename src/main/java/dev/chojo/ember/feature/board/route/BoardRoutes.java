@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
+import dev.chojo.ember.feature.board.entity.BoardFieldDefinition;
 import dev.chojo.ember.feature.board.entity.BoardFieldType;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
@@ -290,7 +291,12 @@ public class BoardRoutes implements Routes {
     private void getFields(Context ctx) {
         StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
-        ctx.json(boardService.findFields(id));
+        ctx.json(fieldsOf(id));
+    }
+
+    /** The fields of a board as the board screens read them. */
+    private List<BoardField> fieldsOf(int boardId) {
+        return boardService.findFields(boardId).stream().map(BoardField::of).toList();
     }
 
     @OpenApi(
@@ -309,11 +315,8 @@ public class BoardRoutes implements Routes {
         int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(FieldRequest[].class);
         boardService.replaceFields(
-                id,
-                Arrays.stream(req)
-                        .map(f -> new BoardField(0, id, f.name(), f.fieldType(), f.parsedConfig(), 0))
-                        .toList());
-        ctx.json(boardService.findFields(id));
+                id, Arrays.stream(req).map(f -> f.definition(id)).toList());
+        ctx.json(fieldsOf(id));
     }
 
     @OpenApi(
@@ -604,8 +607,14 @@ public class BoardRoutes implements Routes {
      *               request is read.
      */
     public record FieldRequest(String name, BoardFieldType fieldType, JsonNode config) {
-        public BoardFieldConfig parsedConfig() {
-            return BoardFieldConfig.parse(fieldType, config);
+        /**
+         * The field this request describes, as the board keeps it.
+         *
+         * @param boardId the board it is for
+         */
+        public BoardFieldDefinition definition(int boardId) {
+            return new BoardFieldDefinition(
+                    0, boardId, name, fieldType.fieldType(), BoardFieldConfig.parse(fieldType, config), 0);
         }
     }
 

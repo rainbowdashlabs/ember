@@ -7,12 +7,12 @@ package dev.chojo.ember.feature.board.repository;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.Board;
-import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
-import dev.chojo.ember.feature.board.entity.BoardFieldType;
+import dev.chojo.ember.feature.board.entity.BoardFieldDefinition;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.util.sql.SqlSupport;
@@ -237,14 +237,14 @@ public class BoardRepository {
 
     // -- Field CRUD --
 
-    public List<BoardField> findFields(int boardId) {
+    public List<BoardFieldDefinition> findFields(int boardId) {
         return query("SELECT %s FROM board_field WHERE board_id = :board_id ORDER BY position;", FIELD_COLUMNS)
                 .single(call().bind("board_id", boardId))
-                .map(BoardField.map())
+                .map(BoardFieldDefinition.map())
                 .all();
     }
 
-    public void createField(int boardId, String name, BoardFieldType fieldType, BoardFieldConfig config, int position) {
+    public void createField(int boardId, String name, FieldType fieldType, BoardFieldConfig config, int position) {
         SqlSupport.insertReturning(
                 """
                 INSERT INTO board_field(board_id, name, field_type, config, position)
@@ -252,10 +252,10 @@ public class BoardRepository {
                 RETURNING %s;""",
                 call().bind("board_id", boardId)
                         .bind("name", name)
-                        .bind("field_type", fieldType.fieldType())
+                        .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position),
-                BoardField.map(),
+                BoardFieldDefinition.map(),
                 FIELD_COLUMNS);
     }
 

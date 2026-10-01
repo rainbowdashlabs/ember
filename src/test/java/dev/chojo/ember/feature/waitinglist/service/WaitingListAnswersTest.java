@@ -13,10 +13,12 @@ import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,14 +36,16 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
- * What a waiting list entry takes as an answer today, and the shape the list keeps it in.
+ * What a waiting list entry takes as an answer, and the shape the list keeps it in.
  *
- * <p>Written down before the field types are brought together, so that every later change can show
- * which of these it meant to change and that it left the rest alone.
+ * <p>First written down before the field types were brought together. A number is whole now, and
+ * every answer is kept in the one shape its type is kept in, with nothing kept for a blank one.
  */
 class WaitingListAnswersTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();
@@ -91,7 +95,7 @@ class WaitingListAnswersTest extends RepositoryTestBase {
                 .id();
     }
 
-    private JsonNode kept(WaitingListFieldType type, String config, boolean required, JsonNode answer) {
+    private @Nullable JsonNode kept(WaitingListFieldType type, String config, boolean required, JsonNode answer) {
         var field = service.createField(
                 listId,
                 type.name() + NAMES.incrementAndGet(),
@@ -110,8 +114,8 @@ class WaitingListAnswersTest extends RepositoryTestBase {
         return service.findEntryValues(entry.id()).stream()
                 .filter(value -> value.fieldId() == field.id())
                 .findFirst()
-                .orElseThrow()
-                .value();
+                .map(WaitingListEntryValue::value)
+                .orElse(null);
     }
 
     private void refused(WaitingListFieldType type, String config, JsonNode answer) {
@@ -119,11 +123,9 @@ class WaitingListAnswersTest extends RepositoryTestBase {
     }
 
     @Test
-    void aNumberTakesAFractionAndRefusesText() {
-        assertEquals(
-                "2.5",
-                kept(WaitingListFieldType.NUMBER, "{}", false, DecimalNode.valueOf(new BigDecimal("2.5")))
-                        .toString());
+    void aNumberIsWholeAndRefusesText() {
+        assertEquals("3", String.valueOf(kept(WaitingListFieldType.NUMBER, "{}", false, StringNode.valueOf("3"))));
+        refused(WaitingListFieldType.NUMBER, "{}", DecimalNode.valueOf(new BigDecimal("2.5")));
         refused(WaitingListFieldType.NUMBER, "{}", StringNode.valueOf("zwei"));
     }
 
@@ -136,9 +138,9 @@ class WaitingListAnswersTest extends RepositoryTestBase {
     }
 
     @Test
-    void aYesOrNoIsKeptAsABooleanOrAsText() {
+    void aYesOrNoIsKeptAsABoolean() {
         assertEquals(BooleanNode.TRUE, kept(WaitingListFieldType.BOOLEAN, "{}", false, BooleanNode.TRUE));
-        assertEquals(StringNode.valueOf("1"), kept(WaitingListFieldType.BOOLEAN, "{}", false, StringNode.valueOf("1")));
+        assertEquals(BooleanNode.TRUE, kept(WaitingListFieldType.BOOLEAN, "{}", false, StringNode.valueOf("1")));
         refused(WaitingListFieldType.BOOLEAN, "{}", StringNode.valueOf("ja"));
     }
 
@@ -155,7 +157,26 @@ class WaitingListAnswersTest extends RepositoryTestBase {
     }
 
     @Test
-    void aRequiredQuestionMayStayEmpty() {
-        assertEquals(StringNode.valueOf(""), kept(WaitingListFieldType.TEXT, "{}", true, StringNode.valueOf("")));
+    void aRequiredQuestionMayStayEmptyAndKeepsNothing() {
+        assertNull(kept(WaitingListFieldType.TEXT, "{}", true, StringNode.valueOf("")));
+    }
+
+    @Test
+    void aClearedAnswerKeepsNothing() {
+        var field = service.createField(
+                listId,
+                "Notiz" + NAMES.incrementAndGet(),
+                WaitingListFieldType.TEXT,
+                WaitingListFieldConfig.parse("{}"),
+                0,
+                false,
+                true);
+        var guardians = List.of(new GuardianInput("", "", "warteliste" + NAMES.incrementAndGet() + "@test.com", ""));
+        var entry = service.createEntry(
+                listId, "Kind", "Muster", guardians, Map.of(field.id(), StringNode.valueOf("x")), "");
+
+        service.updateEntry(entry.id(), "Kind", "Muster", guardians, "", Map.of(field.id(), StringNode.valueOf("")));
+
+        assertTrue(service.findEntryValues(entry.id()).isEmpty());
     }
 }

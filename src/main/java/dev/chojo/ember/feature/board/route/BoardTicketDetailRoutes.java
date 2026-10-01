@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.question.QuestionCheck;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -381,8 +382,11 @@ public class BoardTicketDetailRoutes implements Routes {
                 .filter(f -> f.id() == fieldId)
                 .findFirst()
                 .orElseThrow(Refusal.TICKET_FIELD_NOT_HERE::raise);
-        var value = BoardFieldValue.parse(field.fieldType(), ctx.body());
+        var value = BoardFieldValue.parse(field.wireType(), ctx.body());
         if (value == null) throw Refusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise();
+        QuestionCheck.answer(field.question(), value.answer()).ifPresent(problem -> {
+            throw Refusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise(problem.message());
+        });
         ticketService.setFieldValue(ticketId, fieldId, value);
         ticketService.logHistory(
                 ticketId, BoardTicketHistoryAction.FIELD_CHANGED, "Feld #" + fieldId, guards.actor(session));

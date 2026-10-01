@@ -53,10 +53,14 @@ public record InventoryFieldDefinition(
      *
      * <p>What it holds is typed already, which is why a date here has always been a date. What
      * nothing measured is whether a choice is one of the ones written down and whether a measurement
-     * sits between its bounds.
+     * sits between its bounds. A number carries a fraction where its step is below one, which is how
+     * the field already offers one on the screen, and is whole everywhere else.
      */
     public Question question() {
-        return settings().withRequired(required).asQuestion(label, fieldType.kind());
+        return settings()
+                .withRequired(required)
+                .asQuestion(label, fieldType.fieldType())
+                .orElseThrow(() -> new IllegalStateException("Every inventory field holds a value: " + fieldType));
     }
 
     /** What this field says about the question it asks, out of the settings typed per kind. */
@@ -68,7 +72,7 @@ public record InventoryFieldDefinition(
                             .toList());
         }
         if (config instanceof FieldConfig.NumberConfig(BigDecimal min, BigDecimal max, BigDecimal step, String unit)) {
-            return QuestionSettings.none().withBounds(min, max);
+            return QuestionSettings.none().withBounds(min, max).withStep(step);
         }
         return QuestionSettings.none();
     }

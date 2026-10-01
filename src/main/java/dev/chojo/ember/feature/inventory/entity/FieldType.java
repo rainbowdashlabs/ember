@@ -5,10 +5,11 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
-import dev.chojo.ember.feature.question.QuestionKind;
-
 /**
- * Supported custom-field types for {@link InventoryFieldDefinition}.
+ * The custom-field types of {@link InventoryFieldDefinition} as the station's screens spell them.
+ *
+ * <p>Only the spelling is this feature's own: what a type means is the shared field type each of
+ * these names through {@link #fieldType()}.
  */
 public enum FieldType {
     /**
@@ -24,7 +25,7 @@ public enum FieldType {
      */
     TEXT,
     /**
-     * Decimal number with optional min/max/step/unit.
+     * Number with optional min/max/step/unit, whole unless its step is below one.
      */
     NUMBER,
     /**
@@ -32,23 +33,7 @@ public enum FieldType {
      */
     BOOLEAN;
 
-    /**
-     * The shared kind this type is, which is what the one check measures an answer against.
-     *
-     * <p>Gear is measured rather than counted, so a number here carries a fraction: a length in
-     * metres and a weight in kilos are what these fields hold.
-     */
-    public QuestionKind kind() {
-        return switch (this) {
-            case DATE -> QuestionKind.DATE;
-            case ENUM -> QuestionKind.CHOICE;
-            case TEXT -> QuestionKind.TEXT;
-            case NUMBER -> QuestionKind.DECIMAL;
-            case BOOLEAN -> QuestionKind.BOOLEAN;
-        };
-    }
-
-    /** The shared name this type is stored under. */
+    /** The shared name this type is stored under, which is also what every check reads. */
     public dev.chojo.ember.feature.question.FieldType fieldType() {
         return this == ENUM
                 ? dev.chojo.ember.feature.question.FieldType.CHOICE

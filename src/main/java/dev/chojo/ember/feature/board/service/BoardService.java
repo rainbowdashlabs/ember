@@ -9,7 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
-import dev.chojo.ember.feature.board.entity.BoardField;
+import dev.chojo.ember.feature.board.entity.BoardFieldDefinition;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.LaneData;
@@ -179,15 +179,15 @@ public class BoardService {
 
     // -- Fields --
 
-    public List<BoardField> findFields(int boardId) {
+    public List<BoardFieldDefinition> findFields(int boardId) {
         return repository.findFields(boardId);
     }
 
-    public void replaceFields(int boardId, List<BoardField> fields) {
+    public void replaceFields(int boardId, List<BoardFieldDefinition> fields) {
         repository.deleteAllFields(boardId);
         for (int i = 0; i < fields.size(); i++) {
             var f = fields.get(i);
-            repository.createField(boardId, f.name(), f.fieldType(), f.config(), i);
+            repository.createField(boardId, f.name(), f.type(), f.config(), i);
         }
         log.info("Replaced fields on board {} with {} fields", boardId, fields.size());
     }

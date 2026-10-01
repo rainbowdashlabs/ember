@@ -11,7 +11,6 @@ import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardActivityType;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
-import dev.chojo.ember.feature.board.entity.BoardFieldType;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
@@ -19,6 +18,7 @@ import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -131,7 +131,7 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(15)
     void createAndFindFields() {
-        boardRepo.createField(boardId, "Component", BoardFieldType.STRING, new BoardFieldConfig.Simple(false), 0);
+        boardRepo.createField(boardId, "Component", FieldType.TEXT, new BoardFieldConfig.Simple(false), 0);
         var fields = boardRepo.findFields(boardId);
         assertEquals(1, fields.size());
         assertEquals("Component", fields.getFirst().name());
@@ -465,7 +465,7 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(84)
     void setAndFindFieldValues() {
-        boardRepo.createField(boardId, "TestField", BoardFieldType.STRING, new BoardFieldConfig.Simple(false), 0);
+        boardRepo.createField(boardId, "TestField", FieldType.TEXT, new BoardFieldConfig.Simple(false), 0);
         var fields = boardRepo.findFields(boardId);
         int fieldId = fields.getFirst().id();
         boardTicketRepo.setFieldValue(ticketId1, fieldId, new BoardFieldValue.StringValue("hello"));

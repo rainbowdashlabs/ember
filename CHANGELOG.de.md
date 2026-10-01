@@ -59,6 +59,8 @@
 - **Kommentare in einem Abschnitt der Datenauskunft.** Wer seine Daten anfordert, findet alle eigenen Kommentare in einem Abschnitt, ob zu Terminen, Neuigkeiten, Wiki-Dateien oder Board-Tickets, und jeder nennt, wozu er geschrieben wurde. Benachrichtigungen, die auf einen Kommentar zeigen, öffnen ihn weiterhin.
 - **Board-Kommentare gehören dem, der sie geschrieben hat.** Einen Kommentar zu einem Ticket kann nur sein Verfasser ändern und nur sein Verfasser oder ein Board-Verwalter entfernen, wo bisher jeder beides konnte, der das Ticket bearbeiten durfte. Ein Kommentar lässt sich nicht mehr leer speichern.
 - **Hinweise auf Kommentare an beobachteten Tickets.** Der Hinweis auf einen neuen Kommentar an einem Ticket, das du beobachtest, nennt, wer ihn geschrieben hat, in deiner Sprache, und folgt der Einstellung für Kommentare statt der für Ticket-Updates. Über den eigenen Kommentar wird niemand mehr benachrichtigt.
+- **Zahlenfelder nehmen ganze Zahlen.** Zahlenfelder von Anwesenheitslisten, Wartelisten, Ausrüstung und Board-Tickets nehmen ganze Zahlen, wie ihre Eingabefelder sie schon anbieten. Ein Ausrüstungsfeld mit einer Schrittweite unter eins nimmt weiter Kommazahlen, und bereits gespeicherte Zahlen bleiben, wie sie sind.
+- **Anwesenheitsfelder für eine Gruppe nehmen nur ihre Mitglieder.** Ein Mitgliederfeld einer Anwesenheitsliste, das auf eine Gruppe beschränkt ist, weist beim Speichern der Liste Mitglieder außerhalb dieser Gruppe ab.
 ### Fehlerbehebungen
 
 - **Eigene Kommentare auf dem Board eines Partners ließen sich nicht ändern.** Den eigenen Kommentar auf einem Board zu ändern oder zu entfernen, das eine Partnerwache mit dir teilt, bewirkte nichts. Das funktioniert jetzt, und zwischen zwei Instanzen geteilte Boards ruhen, bis beide diese Version haben.
@@ -135,6 +137,8 @@
 - **Eine wiederholte Meldung von Sweego konnte eine Mail doppelt senden.** In manchen Fällen, wenn Sweego dieselbe Meldung über eine nicht zugestellte Mail erneut schickte, ging die Mail zweimal hinaus oder wechselte zu früh zum nächsten Anbieter. Eine erneut eintreffende Meldung wird jetzt erkannt und nur einmal gezählt.
 - **Antworten auf Profilfragen des Verbands wurden nicht geprüft.** Eine Antwort auf eine Profilfrage des Verbands wurde gespeichert, was immer sie enthielt, etwa eine Auswahl, die die Frage nicht anbietet, oder ein Datum, das keines ist. Sie wird jetzt geprüft wie eine Antwort auf die eigenen Fragen der Wache.
 - **Der Mitgliederimport übernahm Antworten, die eine Frage nicht annimmt.** Beim Import von Mitgliedern wurde eine Zelle wie eine unbekannte Auswahl, ein Tag, der keiner ist, oder "vielleicht" unter einer Ja/Nein-Frage so gespeichert, wie sie dastand. Eine solche Zelle wird jetzt ausgelassen, und Vorschau und Ergebnis nennen ihre Zeile.
+- **Board-Felder nahmen jeden Wert.** Ein eigenes Feld an einem Board-Ticket ließ sich mit einem Datum speichern, das kein Datum ist, oder mit einer Auswahl, die das Feld nicht anbietet. Solche Werte werden jetzt beim Speichern abgewiesen.
+- **Datumsfelder von Anwesenheitslisten konnten nicht mit heute beginnen.** Ein Feld einer Anwesenheitsvorlage, das mit dem heutigen Datum beginnen soll, wurde beim Speichern mit dem Hinweis abgewiesen, es erwarte ein Datum. Es lässt sich wieder speichern, und neue Listen beginnen mit dem Tag, an dem sie angelegt werden.
 
 ## v26.19.5
 

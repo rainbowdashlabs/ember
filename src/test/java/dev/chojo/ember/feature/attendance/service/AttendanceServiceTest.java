@@ -75,7 +75,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 new Attendance(),
                 stationRepo,
                 eventDateCancellationRepo,
-                new AttendanceAudienceService(attendanceRepo));
+                new AttendanceAudienceService(attendanceRepo),
+                memberEligibility());
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
         member = stationMemberRepo.create(station.id(), account.id());

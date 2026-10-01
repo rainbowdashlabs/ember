@@ -6,8 +6,13 @@
 package dev.chojo.ember.feature.waitinglist.entity;
 
 import dev.chojo.ember.feature.question.FieldType;
-import dev.chojo.ember.feature.question.QuestionKind;
 
+/**
+ * The question types of a waiting list as the station's screens spell them.
+ *
+ * <p>Only the spelling is this feature's own: what a type means is {@link FieldType}, which each of
+ * these names through {@link #fieldType()}.
+ */
 public enum WaitingListFieldType {
     TEXT,
     NUMBER,
@@ -22,23 +27,7 @@ public enum WaitingListFieldType {
      */
     BIRTH_DATE;
 
-    /**
-     * The shared kind this type is, which is what the one check measures an answer against.
-     *
-     * <p>A number reads as one that may carry a fraction, because nothing ever checked these and a
-     * list that has been taking them is not told today that it may not.
-     */
-    public QuestionKind kind() {
-        return switch (this) {
-            case TEXT -> QuestionKind.TEXT;
-            case NUMBER -> QuestionKind.DECIMAL;
-            case DATE, BIRTH_DATE -> QuestionKind.DATE;
-            case BOOLEAN -> QuestionKind.BOOLEAN;
-            case ENUM -> QuestionKind.CHOICE;
-        };
-    }
-
-    /** The shared name this type is stored under. */
+    /** The shared name this type is stored under, which is also what every check and value reads. */
     public FieldType fieldType() {
         return this == ENUM ? FieldType.CHOICE : FieldType.valueOf(name());
     }

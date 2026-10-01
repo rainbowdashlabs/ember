@@ -32,10 +32,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * What a piece of gear takes in its own fields today, and how the piece keeps it.
+ * What a piece of gear takes in its own fields, and how the piece keeps it.
  *
- * <p>Written down before the field types are brought together, so that every later change can show
- * which of these it meant to change and that it left the rest alone.
+ * <p>First written down before the field types were brought together. A number carries a fraction
+ * only where its step is below one now, as the screen already offers it.
  */
 class InventoryAnswersTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();
@@ -85,11 +85,11 @@ class InventoryAnswersTest extends RepositoryTestBase {
     }
 
     private static FieldConfig.NumberConfig bounds(String min, String max) {
-        return new FieldConfig.NumberConfig(new BigDecimal(min), new BigDecimal(max), null, "kg");
+        return new FieldConfig.NumberConfig(new BigDecimal(min), new BigDecimal(max), new BigDecimal("0.5"), "kg");
     }
 
     @Test
-    void aNumberTakesAFractionBetweenItsBounds() {
+    void aNumberWhoseStepIsBelowOneTakesAFractionBetweenItsBounds() {
         var piece = written(
                 FieldType.NUMBER,
                 bounds("0", "20"),
@@ -98,6 +98,24 @@ class InventoryAnswersTest extends RepositoryTestBase {
                 new ItemFieldValues.ItemNumberValue(new BigDecimal("12.5")));
 
         assertEquals("{\"fields\": {\"weight\": {\"kind\": \"NUMBER\", \"value\": 12.5}}}", storedMetadata(piece));
+    }
+
+    @Test
+    void aNumberWithoutAStepIsWhole() {
+        var count = new FieldConfig.NumberConfig(null, null, null, "");
+
+        var piece = written(
+                FieldType.NUMBER, count, false, "count", new ItemFieldValues.ItemNumberValue(new BigDecimal("3")));
+        assertEquals("{\"fields\": {\"count\": {\"kind\": \"NUMBER\", \"value\": 3}}}", storedMetadata(piece));
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> written(
+                        FieldType.NUMBER,
+                        count,
+                        false,
+                        "count",
+                        new ItemFieldValues.ItemNumberValue(new BigDecimal("2.5"))));
     }
 
     @Test
