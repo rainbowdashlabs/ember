@@ -11,13 +11,15 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpList from '@/components/helpcenter/HelpList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import DummyMainArea from './ticketdetailhelp/DummyMainArea.vue'
-import DummySidebar from './ticketdetailhelp/DummySidebar.vue'
-import DummyAddMenu from './ticketdetailhelp/DummyAddMenu.vue'
+import TicketHeaderBar from '@/views/stationview/boards/ticketdetailview/TicketHeaderBar.vue'
+import TicketTitleEditor from '@/views/stationview/boards/ticketdetailview/TicketTitleEditor.vue'
+import TicketBody from '@/views/stationview/boards/ticketdetailview/TicketBody.vue'
+import TicketAddMenu from '@/views/stationview/boards/ticketdetailview/TicketAddMenu.vue'
+import {ticketDetailFixtures} from './ticketdetailhelp/fixtures'
 
 const {t} = useI18n()
+const fixture = ticketDetailFixtures(t)
 </script>
 
 <template>
@@ -30,19 +32,8 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.ticketDetail.headerTitle')">
       <p>{{ t('helpCenter.ticketDetail.headerText') }}</p>
       <NeutralContainer>
-        <div class="flex items-center gap-3 mb-4">
-          <IconButton :icon="['fas', 'chevron-left']" label="Back"/>
-          <span class="font-mono text-(--text-muted)">JF-42</span>
-          <div class="ml-auto flex items-center gap-1">
-            <IconButton :icon="['fas', 'eye']" :label="t('boards.watch')" class="text-(--text-muted)"/>
-            <div class="relative">
-              <IconButton :icon="['fas', 'ellipsis']" label="Menu" class="text-(--text-muted)"/>
-            </div>
-          </div>
-        </div>
-        <div class="text-lg font-semibold rounded-theme px-2 py-1 cursor-pointer hover:bg-(--bg-accent)">
-          {{ t('helpCenter.ticketDetail.dummyTitle') }}
-        </div>
+        <TicketHeaderBar :short-key="fixture.board.shortKey" :ticket-number="fixture.ticket.ticketNumber" :is-watching="false" can-edit/>
+        <TicketTitleEditor :title="fixture.ticket.title" :editing="false" can-edit/>
       </NeutralContainer>
     </HelpSection>
 
@@ -54,16 +45,26 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.ticketDetail.layoutTitle')">
       <p>{{ t('helpCenter.ticketDetail.layoutText') }}</p>
       <NeutralContainer>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <DummyMainArea/>
-          <DummySidebar/>
-        </div>
+        <TicketBody
+            :board="fixture.board" :ticket="fixture.ticket" :all-tickets="fixture.allTickets" :lanes="fixture.lanes"
+            :members="fixture.members" :assignable-members="fixture.members" :all-labels="fixture.allLabels"
+            :ticket-labels="fixture.ticketLabels" :board-fields="fixture.boardFields" :priority-options="fixture.priorityChoices"
+            :checklist="fixture.checklist" checklist-visible :links="fixture.links" :weblinks="fixture.weblinks"
+            :attachments="fixture.attachments" :transitions="fixture.transitions" :history="fixture.history"
+            :comment-source="fixture.commentSource" :kb-links="fixture.kbLinks" :kb-search-results="[]" :can-edit="false"
+            :failure="null" :title="fixture.ticket.title" :description="fixture.ticket.description ?? ''"
+            :priority="fixture.ticket.priority" :assigned-member-id="fixture.assignedMemberId"
+            :due-date="fixture.ticket.dueDate ?? ''" :field-values="fixture.fieldValues"
+            :show-add-link="false" :show-add-weblink="false" :show-kb-search="false"
+        />
       </NeutralContainer>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.ticketDetail.addMenuTitle')">
       <p>{{ t('helpCenter.ticketDetail.addMenuText') }}</p>
-      <DummyAddMenu/>
+      <div class="h-56">
+        <TicketAddMenu can-add-checklist open/>
+      </div>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.ticketDetail.sidebarTitle')">

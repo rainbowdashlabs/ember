@@ -23,7 +23,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const showMenu = ref(false)
+/** Whether the menu is open. The ticket page leaves it to the menu; the help center holds it open. */
+const showMenu = defineModel<boolean>('open', { default: false })
 const menuRef = ref<HTMLElement | null>(null)
 
 function handleClickOutside(e: MouseEvent) {
