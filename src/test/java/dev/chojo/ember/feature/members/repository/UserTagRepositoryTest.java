@@ -81,9 +81,9 @@ class UserTagRepositoryTest extends RepositoryTestBase {
     @Order(10)
     void addMember() {
         userTagRepo.addMember(tagId, member.id());
-        var tags = userTagRepo.findTagsForMember(member.id());
-        assertEquals(1, tags.size());
-        assertEquals(tagId, tags.getFirst().id());
+        var members = userTagRepo.findMembers(tagId);
+        assertEquals(1, members.size());
+        assertEquals(member.id(), members.getFirst().id());
     }
 
     @Test
