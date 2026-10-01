@@ -516,7 +516,7 @@ case "$cmd" in
         task=rewriteRun
         [ "$cmd" = be-rewrite-dry ] && task=rewriteDryRun
         cd "$ROOT"
-        run ./gradlew "$task" "-PrewriteRecipe=$recipe" "-PrewriteOptions=$options" \
+        run ./gradlew --no-daemon "$task" "-PrewriteRecipe=$recipe" "-PrewriteOptions=$options" \
             "-Dorg.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g"
         ;;
     be-wrapper)    cd "$ROOT"; run ./gradlew wrapper --gradle-version "$@" ;;

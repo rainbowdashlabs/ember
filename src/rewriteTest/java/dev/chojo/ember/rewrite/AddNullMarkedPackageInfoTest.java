@@ -54,6 +54,25 @@ class AddNullMarkedPackageInfoTest implements RewriteTest {
     }
 
     @Test
+    void theOptionsArriveFromTheConfigurationFile() {
+        rewriteRun(
+                spec -> spec.recipeFromYaml("""
+                        type: specs.openrewrite.org/v1beta/recipe
+                        name: dev.chojo.ember.rewrite.Selected
+                        displayName: The recipe named on the command line
+                        description: The recipe and options a rewrite run applies.
+                        recipeList:
+                          - dev.chojo.ember.rewrite.AddNullMarkedPackageInfo:
+                              packages: "dev.example"
+                              spotBugsDefaults: true
+                        """, "dev.chojo.ember.rewrite.Selected"),
+                srcMainJava(java(
+                        AddNullMarkedPackageInfo.text("dev.example.stock", false),
+                        AddNullMarkedPackageInfo.text("dev.example.stock", true),
+                        source -> source.path("dev/example/stock/package-info.java"))));
+    }
+
+    @Test
     void aPlainFileIsBroughtUpToTheSpotBugsDefaults() {
         rewriteRun(
                 spec -> spec.recipe(new AddNullMarkedPackageInfo(null, true)),

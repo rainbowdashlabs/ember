@@ -499,13 +499,17 @@ val rewriteSelection = tasks.register("rewriteSelection") {
             "type: specs.openrewrite.org/v1beta/recipe",
             "name: dev.chojo.ember.rewrite.Selected",
             "displayName: The recipe named on the command line",
+            "description: The recipe and options a rewrite run applies.",
             "recipeList:",
         )
         if (pairs.isEmpty()) {
             lines += "  - dev.chojo.ember.rewrite.$name"
         } else {
             lines += "  - dev.chojo.ember.rewrite.$name:"
-            pairs.forEach { (key, value) -> lines += "      $key: \"${value.replace("\"", "\\\"")}\"" }
+            pairs.forEach { (key, value) ->
+                val scalar = if (value.matches(Regex("true|false|-?\\d+"))) value else "\"${value.replace("\"", "\\\"")}\""
+                lines += "      $key: $scalar"
+            }
         }
         val file = output.get().asFile
         file.parentFile.mkdirs()
@@ -529,6 +533,10 @@ rewrite {
         "src/test/resources/**",
         "**/*.md",
     )
+}
+
+tasks.named<JavaCompile>(rewriteRecipes.compileJavaTaskName) {
+    options.compilerArgs.add("-parameters")
 }
 
 tasks.matching { it.name == "rewriteRun" || it.name == "rewriteDryRun" }.configureEach {
