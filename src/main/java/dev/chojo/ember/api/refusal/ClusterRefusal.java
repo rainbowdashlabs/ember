@@ -685,7 +685,10 @@ public enum ClusterRefusal implements Refusal {
     CLUSTER_PROFILE_FIELD_MEMBER_NOT_IN_CLUSTER(168, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
 
     /** A member whose cluster answers are asked for who is not here any more. */
-    CLUSTER_PROFILE_FIELD_MEMBER_GONE(169, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE);
+    CLUSTER_PROFILE_FIELD_MEMBER_GONE(169, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
+
+    /** A member archived from the association who their station could not archive either. */
+    CLUSTER_MANAGED_MEMBER_NOT_ARCHIVED(170, HttpStatus.BAD_REQUEST, Sentences.MEMBER_NOT_YET_FORMER);
 
     private final Definition definition;
 

@@ -155,6 +155,8 @@ final class Sentences {
 
     static final String SESSION_HAS_NO_ACCOUNT = "This session does not stand for an account";
     static final String MEMBER_NOT_HERE = "That member is not here any more";
+    static final String MEMBER_NOT_YET_FORMER =
+            "This member cannot be marked as having left: they may still hold equipment, or a role";
     static final String ACCOUNT_NOT_HERE = "That account is not here any more";
     static final String PROFILE_FIELD_NOT_HERE = "That profile question is not here any more";
     static final String ADDRESS_MISSING = "Give the address to write to";

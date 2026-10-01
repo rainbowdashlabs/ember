@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.FormerMemberService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
@@ -64,7 +65,18 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                         new AccountInviteService(accountRepo, mock(AuthService.class))),
                 new UserTypeChangeService(stationMemberRepo, newGroupMemberships()),
                 memberDocumentRepo,
-                documentService());
+                documentService(),
+                new FormerMemberService(
+                        stationMemberRepo,
+                        accountRepo,
+                        inventoryRepo,
+                        itemMovementService,
+                        memberGroupRepo,
+                        userTagRepo,
+                        attendanceRepo,
+                        profileFieldRepo,
+                        documentService(),
+                        selfCheckService));
     }
 
     /** A document store backed by a local folder, which is all these stories need of one. */
@@ -233,9 +245,45 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
 
         service.setPermissions(
                 clusterId, peopled.member().id(), Set.of(StationPermission.STATION_ADMINISTRATOR), strangerAccountId);
+        assertTrue(stationMemberRepo.findPermissions(peopled.member().id()).stream()
+                .anyMatch(permission -> permission.permission() == StationPermission.STATION_ADMINISTRATOR));
+    }
 
-        service.archive(clusterId, peopled.member().id(), strangerAccountId);
-        assertTrue(
+    /** Archiving means the same whoever presses the button: the station's whole leaving routine runs. */
+    @Test
+    void anArchivedMemberLeavesTheWayTheStationLetsThemGo() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        int memberId = peopled.member().id();
+        int strangerAccountId = freshAccount().id();
+        service.setPermissions(
+                clusterId, memberId, Set.of(StationPermission.USER, StationPermission.LOGIN), strangerAccountId);
+        var group = memberGroupRepo.create(peopled.station().id(), "Jugend " + NAMES.incrementAndGet());
+        memberGroupRepo.addMember(group.id(), memberId);
+
+        service.archive(clusterId, memberId, strangerAccountId);
+
+        var archived = stationMemberRepo.findById(memberId).orElseThrow();
+        assertTrue(archived.former());
+        assertNull(archived.accountId(), "the login is taken away with the account");
+        assertTrue(stationMemberRepo.findPermissions(memberId).isEmpty());
+        assertTrue(memberGroupRepo.findGroupsForMember(memberId).isEmpty());
+    }
+
+    @Test
+    void somebodyTheStationCouldNotArchiveIsNotArchivedByTheAssociationEither() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        int strangerAccountId = freshAccount().id();
+        service.setPermissions(
+                clusterId, peopled.member().id(), Set.of(StationPermission.STATION_ADMINISTRATOR), strangerAccountId);
+
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> service.archive(clusterId, peopled.member().id(), strangerAccountId));
+
+        assertEquals(ClusterRefusal.CLUSTER_MANAGED_MEMBER_NOT_ARCHIVED, refusal.refusal());
+        assertFalse(
                 stationMemberRepo.findById(peopled.member().id()).orElseThrow().former());
     }
 

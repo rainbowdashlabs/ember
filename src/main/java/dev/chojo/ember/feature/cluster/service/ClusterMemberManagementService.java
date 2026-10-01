@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.FormerMemberService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
@@ -64,6 +65,7 @@ public class ClusterMemberManagementService {
     private final UserTypeChangeService userTypeChanges;
     private final DocumentRepository documentRepository;
     private final DocumentService documentService;
+    private final FormerMemberService formerMembers;
 
     @Inject
     public ClusterMemberManagementService(
@@ -73,7 +75,9 @@ public class ClusterMemberManagementService {
             StationMemberInviteService inviteService,
             UserTypeChangeService userTypeChanges,
             DocumentRepository documentRepository,
-            DocumentService documentService) {
+            DocumentService documentService,
+            FormerMemberService formerMembers) {
+        this.formerMembers = formerMembers;
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.profileFieldService = profileFieldService;
@@ -332,18 +336,28 @@ public class ClusterMemberManagementService {
     }
 
     /**
-     * Marks somebody as having left their station.
+     * Marks somebody as having left their station, the way the station itself does.
+     *
+     * <p>Archiving means the same whoever presses the button, so the station's whole leaving routine runs:
+     * their roles and with them the login, their guardians and wards, groups, tags, documents and the
+     * answers not kept for the record. Somebody the station could not archive, because they still hold
+     * equipment or a role that has to be handed on first, is not archived from here either.
      *
      * @param clusterId      the cluster acting
      * @param memberId       the member
      * @param actorAccountId the account behind the cluster manager, for the self-check
+     * @throws RefusalResponse {@link ClusterRefusal#CLUSTER_MANAGED_MEMBER_NOT_ARCHIVED} where the station could
+     *                         not archive them either
      */
     public void archive(int clusterId, int memberId, int actorAccountId) {
         StationMember member = requireMemberOfCluster(clusterId, memberId);
         requireNotSelf(member, actorAccountId);
         requireNotStationOwner(member);
+        if (formerMembers.canMarkFormer(memberId) != null) {
+            throw ClusterRefusal.CLUSTER_MANAGED_MEMBER_NOT_ARCHIVED.raise();
+        }
 
-        memberRepository.setFormer(memberId, true);
+        formerMembers.markFormer(memberId);
         log.info("Cluster {} archived member {}", clusterId, memberId);
     }
 

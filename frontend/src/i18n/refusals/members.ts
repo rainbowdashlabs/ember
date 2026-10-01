@@ -14,6 +14,7 @@ import {
     TAG_NOT_HERE,
     SESSION_WITHOUT_ACCOUNT,
     MEMBER_NOT_HERE,
+    MEMBER_NOT_YET_FORMER,
     ACCOUNT_NOT_HERE,
     PROFILE_FIELD_NOT_HERE,
     LINK_CARRIES_NOTHING,
@@ -92,8 +93,7 @@ export default {
     'M-050': 'Dieser Bestätigungslink gilt nicht mehr, die Adresse wurde nicht geändert',
     'M-052': MEMBER_NOT_HERE,
     'M-053': 'Nenne das Konto, das als Mitglied aufgenommen werden soll',
-    'M-055': 'Dieses Mitglied lässt sich noch nicht als ausgetreten kennzeichnen: '
-        + 'es hat vielleicht noch Ausrüstung oder eine Rolle',
+    'M-055': MEMBER_NOT_YET_FORMER,
     'M-056': 'Zu diesem Mitglied gibt es kein Konto, an das geschrieben werden könnte',
     'M-057': ACCOUNT_NOT_HERE,
     'M-058': 'Dieses Konto ist bereits eingerichtet, es wurde keine Einladung verschickt',

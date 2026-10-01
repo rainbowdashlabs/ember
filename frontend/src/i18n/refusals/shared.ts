@@ -45,6 +45,8 @@ export const KB_ARTICLE_NEEDS_A_NAME = 'Ein Artikel braucht einen Namen, es wurd
 export const KB_PICTURE_KIND_NOT_TAKEN = 'Hier werden nur Bilder als PNG, JPEG oder WebP angenommen'
 export const SESSION_WITHOUT_ACCOUNT = 'Diese Sitzung gehört zu keinem Konto'
 export const MEMBER_NOT_HERE = 'Dieses Mitglied gibt es nicht mehr'
+export const MEMBER_NOT_YET_FORMER = 'Dieses Mitglied lässt sich noch nicht als ausgetreten kennzeichnen: '
+    + 'es hat vielleicht noch Ausrüstung oder eine Rolle'
 export const ACCOUNT_NOT_HERE = 'Dieses Konto gibt es nicht mehr'
 export const PROFILE_FIELD_NOT_HERE = 'Dieses Profilfeld gibt es nicht mehr'
 export const LINK_CARRIES_NOTHING = 'Dieser Link enthält nichts, womit sich etwas tun lässt'

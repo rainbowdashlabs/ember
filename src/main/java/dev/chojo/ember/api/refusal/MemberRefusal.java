@@ -188,10 +188,7 @@ public enum MemberRefusal implements Refusal {
     MEMBER_ACCOUNT_NOT_NAMED(53, HttpStatus.BAD_REQUEST, "Name the account to add as a member"),
 
     /** A member who cannot yet be written off the register. */
-    MEMBER_NOT_MARKED_FORMER(
-            55,
-            HttpStatus.BAD_REQUEST,
-            "This member cannot be marked as having left: they may still hold equipment, or a role"),
+    MEMBER_NOT_MARKED_FORMER(55, HttpStatus.BAD_REQUEST, Sentences.MEMBER_NOT_YET_FORMER),
 
     /** An invitation being sent again to a member who has no account behind them. */
     MEMBER_HAS_NO_ACCOUNT(56, HttpStatus.BAD_REQUEST, "This member has no account to write to"),
