@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.util;
 
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,14 +22,34 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Supplier;
 
+/**
+ * Writes the errors a development instance runs into, from the backend and from the frontend, one
+ * file per distinct trace, into {@code dev-errors/} unless another directory is given.
+ */
+@Singleton
 public final class DevErrorWriter {
     private static final Logger log = LoggerFactory.getLogger(DevErrorWriter.class);
-    private static final Path ERROR_DIR = Path.of("dev-errors");
+    private static final Path DEFAULT_DIR = Path.of("dev-errors");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH-mm-ss");
 
-    private DevErrorWriter() {}
+    private final Path dir;
 
-    public static void write(Throwable throwable, String context) {
+    /** Writes into {@code dev-errors/}, where a running development instance keeps them. */
+    @Inject
+    public DevErrorWriter() {
+        this(DEFAULT_DIR);
+    }
+
+    /**
+     * Writes into a directory of the caller's choosing.
+     *
+     * @param dir the directory the error files go to
+     */
+    public DevErrorWriter(Path dir) {
+        this.dir = dir;
+    }
+
+    public void write(Throwable throwable, String context) {
         store("backend", () -> buildTraceKey(throwable), () -> {
             var sw = new StringWriter();
             sw.write("Source: backend\n");
@@ -41,7 +63,7 @@ public final class DevErrorWriter {
         });
     }
 
-    public static void writeFrontend(String source, String message, String stack, String context) {
+    public void writeFrontend(String source, String message, String stack, String context) {
         store(
                 "frontend",
                 () -> stripMessages(stack),
@@ -53,10 +75,10 @@ public final class DevErrorWriter {
                         + stack + "\n");
     }
 
-    public static void clearOnStartup() {
+    public void clearOnStartup() {
         try {
-            if (Files.exists(ERROR_DIR)) {
-                try (var files = Files.list(ERROR_DIR)) {
+            if (Files.exists(dir)) {
+                try (var files = Files.list(dir)) {
                     files.filter(p -> p.toString().endsWith(".txt")).forEach(p -> {
                         try {
                             Files.delete(p);
@@ -71,21 +93,21 @@ public final class DevErrorWriter {
     }
 
     /** Writes one file per distinct trace, named by the time and a hash of the trace. */
-    private static void store(String origin, Supplier<String> traceKey, Supplier<String> content) {
+    private void store(String origin, Supplier<String> traceKey, Supplier<String> content) {
         try {
-            Files.createDirectories(ERROR_DIR);
+            Files.createDirectories(dir);
             String hash = Sha256.hexPrefix(traceKey.get(), 16);
             if (hashFileExists(hash)) return;
             String time = LocalTime.now(ZoneId.systemDefault()).format(TIME_FMT);
-            Path file = ERROR_DIR.resolve(time + " - " + origin + " - " + hash + ".txt");
+            Path file = dir.resolve(time + " - " + origin + " - " + hash + ".txt");
             Files.writeString(file, content.get(), StandardCharsets.UTF_8);
         } catch (Exception e) {
             log.warn("Failed to write {} dev error file", origin, e);
         }
     }
 
-    private static boolean hashFileExists(String hash) throws IOException {
-        try (var files = Files.list(ERROR_DIR)) {
+    private boolean hashFileExists(String hash) throws IOException {
+        try (var files = Files.list(dir)) {
             return files.anyMatch(p -> FilePaths.nameOf(p).contains(hash));
         }
     }

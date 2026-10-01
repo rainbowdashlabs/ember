@@ -31,13 +31,19 @@ public final class MediaTestSupport {
 
     private MediaTestSupport() {}
 
+    /**
+     * A media library storing into the given backend.
+     *
+     * @param backend the local backend the files go to, kept outside the working directory by the caller
+     * @return the library
+     */
     public static MediaLibraryService library(
+            LocalStorageBackend backend,
             StationRepository stationRepository,
             ContentContainerRepository containers,
             MediaFileRepository fileRepository,
             MediaMetaRepository metaRepository,
             StorageUsageRepository usageRepository) {
-        var backend = new LocalStorageBackend();
         var storageService = new StorageService(new StorageBackendResolver(backend), backend);
         var storageConfig = new Storage();
         var storage = new MediaStorageService(storageService, stationRepository, backend);

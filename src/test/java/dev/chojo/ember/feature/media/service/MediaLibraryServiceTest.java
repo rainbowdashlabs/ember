@@ -15,7 +15,6 @@ import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -40,7 +39,7 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var backend = new LocalStorageBackend();
+        var backend = localStorage();
         var storageService = new StorageService(new StorageBackendResolver(backend), backend);
         var storageConfig = new Storage();
         var storage = new MediaStorageService(storageService, stationRepo, backend);

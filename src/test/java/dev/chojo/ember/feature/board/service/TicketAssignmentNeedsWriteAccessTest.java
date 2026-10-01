@@ -19,7 +19,6 @@ import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -67,7 +66,7 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
         var tagService = new UserTagService(userTagRepo, memberGroupRepo);
         boardService = new BoardService(boardRepo, memberService, groupService, tagService);
 
-        var backend = new LocalStorageBackend();
+        var backend = localStorage();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,

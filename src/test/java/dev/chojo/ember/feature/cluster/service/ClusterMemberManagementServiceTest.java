@@ -24,7 +24,6 @@ import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -68,7 +67,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
 
     /** A document store backed by a local folder, which is all these stories need of one. */
     private static DocumentService documentService() {
-        var backend = new LocalStorageBackend();
+        var backend = localStorage();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         return new DocumentService(memberDocumentRepo, storage, new ImageVariants(storage), stationRepo);
     }

@@ -104,7 +104,6 @@ import dev.chojo.ember.feature.quiz.service.QuizTestService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
@@ -213,7 +212,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
         var commentService = newCommentService(noOpBus);
         var kbStorageConfig = new Storage();
-        var kbBackend = new LocalStorageBackend();
+        var kbBackend = localStorage();
         var kbResolver = new StorageBackendResolver(kbBackend);
         var kbStorageSvc = new StorageService(kbResolver, kbBackend);
         var kbCompression = new TextCompressionPolicy(kbStorageConfig);
@@ -325,7 +324,12 @@ class DemoServiceTest extends RepositoryTestBase {
                 new NewsAttachmentService(
                         new NewsAttachmentRepository(),
                         MediaTestSupport.library(
-                                stationRepo, contentContainerRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo),
+                                localStorage(),
+                                stationRepo,
+                                contentContainerRepo,
+                                mediaFileRepo,
+                                mediaMetaRepo,
+                                storageUsageRepo),
                         stationRepo,
                         new Api()),
                 eventFederationRepo,
@@ -440,7 +444,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, quizImageService);
         var kbSeeder = new DemoKnowledgeBaseSeeder(kbService, kbContentService, knowledgeBaseRepo);
         var protocolSeeder = new DemoProtocolSeeder(testProtocolRepo, demoClock);
-        var avatarSeeder = new DemoAvatarSeeder(avatarService, accountRepo);
+        var avatarSeeder = new DemoAvatarSeeder(avatarService, accountRepo, storageRoot.resolve("demo-avatars"));
         var federationSeeder = new DemoFederationSeeder(
                 stationRepo,
                 federationService,
@@ -481,7 +485,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
         var selfCheckSeeder = new DemoSelfCheckSeeder(selfCheckRepo, inventoryRepo, itemCustodyService, demoClock);
         var demoStorageConfig = new Storage();
-        var demoBackend = new LocalStorageBackend();
+        var demoBackend = localStorage();
         var demoResolver = new StorageBackendResolver(demoBackend);
         var demoStorageSvc = new StorageService(demoResolver, demoBackend);
         var demoStorage = new MediaStorageService(demoStorageSvc, stationRepo, demoBackend);
@@ -581,7 +585,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         videoSeeder),
                 stationRepo,
                 clusterRepo,
-                new StorageBackendResolver(new LocalStorageBackend()),
+                new StorageBackendResolver(localStorage()),
                 new TaskScheduler());
     }
 

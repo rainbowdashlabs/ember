@@ -23,7 +23,6 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -56,7 +55,7 @@ class PageServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var backend = new LocalStorageBackend();
+        var backend = localStorage();
         var resolver = new StorageBackendResolver(backend);
         var storageService = new StorageService(resolver, backend);
         var storageConfig = new Storage();

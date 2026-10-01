@@ -127,6 +127,7 @@ public class ApiServer {
     private final AccessGate accessGate;
     private final ResponseHeaderPolicy responseHeaderPolicy;
     private final ExceptionMapping exceptionMapping;
+    private final DevErrorWriter devErrorWriter;
     private volatile Javalin app;
 
     @Inject
@@ -147,7 +148,8 @@ public class ApiServer {
             GlobalRateLimiter globalRateLimiter,
             AccessGate accessGate,
             ResponseHeaderPolicy responseHeaderPolicy,
-            ExceptionMapping exceptionMapping) {
+            ExceptionMapping exceptionMapping,
+            DevErrorWriter devErrorWriter) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.demoConfig = demoConfig;
@@ -165,6 +167,7 @@ public class ApiServer {
         this.accessGate = accessGate;
         this.responseHeaderPolicy = responseHeaderPolicy;
         this.exceptionMapping = exceptionMapping;
+        this.devErrorWriter = devErrorWriter;
     }
 
     /**
@@ -368,7 +371,7 @@ public class ApiServer {
      */
     public void start() {
         if (demoConfig.dev()) {
-            DevErrorWriter.clearOnStartup();
+            devErrorWriter.clearOnStartup();
         }
         app = create().start(apiConfig.host(), apiConfig.port());
         log.info("API server started on {}:{}", apiConfig.host(), apiConfig.port());

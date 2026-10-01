@@ -62,11 +62,24 @@ public class DemoAvatarSeeder implements DemoSeeder {
 
     private final AvatarService avatarService;
     private final AccountRepository accountRepository;
+    private final Path cacheDir;
 
     @Inject
     public DemoAvatarSeeder(AvatarService avatarService, AccountRepository accountRepository) {
+        this(avatarService, accountRepository, AVATAR_CACHE_DIR);
+    }
+
+    /**
+     * A seeder that caches the fetched pictures in a directory of the caller's choosing.
+     *
+     * @param avatarService     where the pictures are stored
+     * @param accountRepository who gets one
+     * @param cacheDir          the directory fetched pictures are kept in
+     */
+    public DemoAvatarSeeder(AvatarService avatarService, AccountRepository accountRepository, Path cacheDir) {
         this.avatarService = avatarService;
         this.accountRepository = accountRepository;
+        this.cacheDir = cacheDir;
     }
 
     @Override
@@ -87,7 +100,7 @@ public class DemoAvatarSeeder implements DemoSeeder {
      */
     public int seedMissingAvatars() {
         try {
-            Files.createDirectories(AVATAR_CACHE_DIR);
+            Files.createDirectories(cacheDir);
         } catch (IOException e) {
             log.warn("Failed to create avatar cache directory: {}", e.getMessage());
         }
@@ -114,7 +127,7 @@ public class DemoAvatarSeeder implements DemoSeeder {
      */
     private byte[] pictureFor(HttpClient httpClient, Account account) throws IOException {
         String seed = buildSeed(account);
-        Path cacheFile = AVATAR_CACHE_DIR.resolve(seed + ".png");
+        Path cacheFile = cacheDir.resolve(seed + ".png");
         if (Files.exists(cacheFile)) {
             return Files.readAllBytes(cacheFile);
         }

@@ -28,7 +28,6 @@ import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -83,7 +82,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         transport = mock(FederationTransport.class);
         notificationService =
                 new FederatedBoardNotificationService(transport, new FederationRepository(), service, boardRepo);
-        var fbBackend = new LocalStorageBackend();
+        var fbBackend = localStorage();
         var fbResolver = new StorageBackendResolver(fbBackend);
         var fbStorage = new StorageService(fbResolver, fbBackend);
         var attachmentSvc = new BoardAttachmentService(fbStorage, stationRepo, fbBackend);

@@ -11,7 +11,9 @@ import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,9 +30,12 @@ class DiscoveryClusterGroupingTest extends RepositoryTestBase {
 
     private static DiscoveryStationProjectionService service;
 
+    @TempDir
+    static Path configDir;
+
     @BeforeAll
     static void setup() {
-        service = new DiscoveryStationProjectionService(stationRepo, clusterRepo, new Conf());
+        service = new DiscoveryStationProjectionService(stationRepo, clusterRepo, new Conf(configDir));
     }
 
     @Test

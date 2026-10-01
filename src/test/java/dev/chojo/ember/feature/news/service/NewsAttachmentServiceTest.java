@@ -38,7 +38,7 @@ class NewsAttachmentServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         media = MediaTestSupport.library(
-                stationRepo, contentContainerRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo);
+                localStorage(), stationRepo, contentContainerRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo);
         service = new NewsAttachmentService(new NewsAttachmentRepository(), media, stationRepo, new Api());
         station = stationRepo.create("NewsAttachmentStation");
         otherStation = stationRepo.create("NewsAttachmentOtherStation");

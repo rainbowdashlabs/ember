@@ -211,9 +211,11 @@ import dev.chojo.ember.util.sql.Transactions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -386,6 +388,21 @@ public abstract class RepositoryTestBase {
     protected static DataSource dataSource;
     protected static String schemaName;
 
+    /** The directory standing in for {@code data/} while one test class runs, removed after it. */
+    @TempDir
+    protected static Path storageRoot;
+
+    /**
+     * A local storage backend over this class's temporary data directory, so that what a test stores
+     * never lands in the working directory. Every backend of one class shares the directory, as the
+     * backends of a running instance share {@code data/}.
+     *
+     * @return the backend
+     */
+    protected static LocalStorageBackend localStorage() {
+        return new LocalStorageBackend(storageRoot);
+    }
+
     /**
      * Builds every repository and service the tests share. Order matters in two places: the cluster storage
      * quota service comes after the storage usage repository it reads, and the cluster inventory service
@@ -468,7 +485,7 @@ public abstract class RepositoryTestBase {
                 new DomainEventBus(Set.of()));
         clusterItemHandoverService =
                 new ClusterItemHandoverService(inventoryRepo, itemCustodyService, itemMovementService);
-        var movementBackend = new LocalStorageBackend();
+        var movementBackend = localStorage();
         lossReportService = new LossReportService(
                 inventoryRepo,
                 itemMovementService,
@@ -549,8 +566,8 @@ public abstract class RepositoryTestBase {
                 stationRepo,
                 new StationStorageConfigRepository(),
                 new ClusterStationStorageRepository(),
-                new StorageBackendFactory(new Storage(), new LocalStorageBackend(), null),
-                new StorageBackendResolver(new LocalStorageBackend()),
+                new StorageBackendFactory(new Storage(), localStorage(), null),
+                new StorageBackendResolver(localStorage()),
                 new MigrationLockRegistry());
         clusterStorageBackendService = new ClusterStorageBackendService(
                 clusterRepo,
@@ -559,7 +576,7 @@ public abstract class RepositoryTestBase {
                 new ClusterStationStorageRepository(),
                 new StationStorageConfigRepository(),
                 storageMigrationService,
-                new StorageBackendResolver(new LocalStorageBackend()));
+                new StorageBackendResolver(localStorage()));
         clusterService = new ClusterService(
                 clusterRepo,
                 stationRepo,

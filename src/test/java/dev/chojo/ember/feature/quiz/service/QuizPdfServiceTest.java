@@ -10,7 +10,6 @@ import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.Json;
@@ -47,7 +46,7 @@ class QuizPdfServiceTest extends RepositoryTestBase {
         }
         testService = new QuizTestService(
                 quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo), mock(RestrictionService.class));
-        var backend = new LocalStorageBackend();
+        var backend = localStorage();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         pdfService = new QuizPdfService(
                 quizTestRepo,

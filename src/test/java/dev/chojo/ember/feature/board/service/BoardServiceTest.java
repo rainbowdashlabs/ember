@@ -32,7 +32,6 @@ import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.HttpStatus;
@@ -77,7 +76,7 @@ class BoardServiceTest extends RepositoryTestBase {
         tagService = mock(UserTagService.class);
 
         boardService = new BoardService(boardRepo, memberService, groupService, tagService);
-        var btBackend = new LocalStorageBackend();
+        var btBackend = localStorage();
         var btResolver = new StorageBackendResolver(btBackend);
         var btStorage = new StorageService(btResolver, btBackend);
         var attachmentSvc = new BoardAttachmentService(btStorage, stationRepo, btBackend);

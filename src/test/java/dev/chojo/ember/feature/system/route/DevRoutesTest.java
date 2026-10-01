@@ -11,8 +11,13 @@ import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository.QueuedEmail;
 import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.system.service.DevMailService;
+import dev.chojo.ember.util.DevErrorWriter;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -33,8 +38,11 @@ class DevRoutesTest {
     private final DemoService demoService = mock(DemoService.class);
     private final EmailQueueRepository mailQueue = mock(EmailQueueRepository.class);
 
+    @TempDir
+    Path errorDir;
+
     @Test
-    void aDevelopmentInstanceTakesErrorReportsAndResets() {
+    void aDevelopmentInstanceTakesErrorReportsAndResets() throws IOException {
         var harness = RouteHarness.serving(routes(true));
 
         harness.run((server, client) -> {
@@ -46,6 +54,9 @@ class DevRoutesTest {
         });
 
         verify(demoService).resetAndSeed();
+        try (var written = Files.list(errorDir)) {
+            assertEquals(1, written.count(), "the report is written to the error directory");
+        }
     }
 
     @Test
@@ -90,7 +101,8 @@ class DevRoutesTest {
     }
 
     private DevRoutes routes(boolean dev) {
-        return new DevRoutes(demo(dev), () -> demoService, () -> new DevMailService(mailQueue));
+        return new DevRoutes(
+                demo(dev), new DevErrorWriter(errorDir), () -> demoService, () -> new DevMailService(mailQueue));
     }
 
     private static Demo demo(boolean dev) {

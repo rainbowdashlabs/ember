@@ -16,7 +16,6 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -36,7 +35,7 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var backend = new LocalStorageBackend();
+        var backend = localStorage();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         var avatars = new AvatarService(new ImageVariants(storage));
         service = new GdprDeletionService(accountRepo, stationMemberRepo, memberLookupService, avatars);

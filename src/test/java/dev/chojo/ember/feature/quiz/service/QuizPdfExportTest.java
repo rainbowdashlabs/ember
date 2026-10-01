@@ -27,7 +27,10 @@ import dev.chojo.ember.feature.storage.service.StorageService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -52,6 +55,9 @@ class QuizPdfExportTest {
     private static QuizTestService testService;
     private static QuizPdfService pdfService;
     private static StationRepository stationRepo;
+
+    @TempDir
+    static Path storageRoot;
 
     @BeforeAll
     static void setup() throws Exception {
@@ -105,7 +111,7 @@ class QuizPdfExportTest {
         testRepo = new QuizTestRepository();
         testService = new QuizTestService(
                 testRepo, new QuizQuestionSelector(catalogRepo, testRepo), mock(RestrictionService.class));
-        var backend = new LocalStorageBackend();
+        var backend = new LocalStorageBackend(storageRoot);
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         var imageService = new QuizQuestionImageService(new ImageVariants(storage), stationRepo);
         pdfService = new QuizPdfService(testRepo, catalogRepo, imageService, stationRepo);

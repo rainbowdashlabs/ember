@@ -44,12 +44,18 @@ public class DevRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(DevRoutes.class);
 
     private final Demo demo;
+    private final DevErrorWriter devErrorWriter;
     private final Provider<DemoService> demoService;
     private final Provider<DevMailService> mailService;
 
     @Inject
-    public DevRoutes(Demo demo, Provider<DemoService> demoService, Provider<DevMailService> mailService) {
+    public DevRoutes(
+            Demo demo,
+            DevErrorWriter devErrorWriter,
+            Provider<DemoService> demoService,
+            Provider<DevMailService> mailService) {
         this.demo = demo;
+        this.devErrorWriter = devErrorWriter;
         this.demoService = demoService;
         this.mailService = mailService;
     }
@@ -74,7 +80,7 @@ public class DevRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void reportError(Context ctx) {
         var report = ctx.bodyAsClass(DevErrorReport.class);
-        DevErrorWriter.writeFrontend(
+        devErrorWriter.writeFrontend(
                 Objects.requireNonNullElse(report.source(), "unknown"),
                 Objects.requireNonNullElse(report.message(), ""),
                 Objects.requireNonNullElse(report.stack(), ""),

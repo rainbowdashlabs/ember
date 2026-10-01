@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
 import dev.chojo.ember.feature.traffic.service.StationResolver;
 import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
+import dev.chojo.ember.util.DevErrorWriter;
 import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.Request;
@@ -245,6 +246,7 @@ public final class RouteHarness {
     private ApiServer server() {
         Demo demo = new Demo();
         ClusterRepository clusters = mock(ClusterRepository.class);
+        DevErrorWriter devErrors = mock(DevErrorWriter.class);
         return new ApiServer(
                 new LinkedHashSet<>(Arrays.asList(routes)),
                 new Api(),
@@ -269,7 +271,8 @@ public final class RouteHarness {
                         demo,
                         mock(DemoService.class)),
                 new ResponseHeaderPolicy(demo, stations),
-                new ExceptionMapping(demo));
+                new ExceptionMapping(demo, devErrors),
+                devErrors);
     }
 
     /**

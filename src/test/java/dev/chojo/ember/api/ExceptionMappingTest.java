@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
+import dev.chojo.ember.util.DevErrorWriter;
 import io.javalin.Javalin;
 import io.javalin.http.Handler;
 import io.javalin.http.NotFoundResponse;
@@ -49,7 +50,7 @@ class ExceptionMappingTest {
     private static Response answer(Handler handler) {
         Javalin app = Javalin.create(config -> {
             config.jsonMapper(ApiJsonMapper.forApi(mock(StationRepository.class), mock(ClusterRepository.class)));
-            new ExceptionMapping(new Demo()).install(config.routes);
+            new ExceptionMapping(new Demo(), mock(DevErrorWriter.class)).install(config.routes);
             config.routes.get(PATH, handler);
         });
         var answered = new AtomicReference<Response>();

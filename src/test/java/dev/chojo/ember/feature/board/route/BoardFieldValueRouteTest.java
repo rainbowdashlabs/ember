@@ -25,7 +25,6 @@ import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.testtools.Response;
@@ -71,7 +70,7 @@ class BoardFieldValueRouteTest extends RepositoryTestBase {
                 memberService,
                 new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo),
                 new UserTagService(userTagRepo, memberGroupRepo));
-        var backend = new LocalStorageBackend();
+        var backend = localStorage();
         tickets = new BoardTicketService(
                 boardTicketRepo,
                 boardRepo,

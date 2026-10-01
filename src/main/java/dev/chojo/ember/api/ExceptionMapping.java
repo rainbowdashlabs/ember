@@ -51,10 +51,12 @@ public class ExceptionMapping {
     private static final Logger log = LoggerFactory.getLogger(ExceptionMapping.class);
 
     private final Demo demoConfig;
+    private final DevErrorWriter devErrorWriter;
 
     @Inject
-    public ExceptionMapping(Demo demoConfig) {
+    public ExceptionMapping(Demo demoConfig, DevErrorWriter devErrorWriter) {
         this.demoConfig = demoConfig;
+        this.devErrorWriter = devErrorWriter;
     }
 
     /**
@@ -140,7 +142,7 @@ public class ExceptionMapping {
             } else {
                 log.warn("Request refused on route {} {}, reference {}", ctx.method(), ctx.path(), reference, err);
             }
-            if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
+            if (devErrors) devErrorWriter.write(err, ctx.method() + " " + ctx.path());
             ctx.json(new ErrorResponseWrapper(
                             refusal.status().getMessage(),
                             refusal.message(),
@@ -166,15 +168,15 @@ public class ExceptionMapping {
      * not an event an operator needs a trace for. A {@code 401} is left silent: an expired session
      * is the most ordinary thing that happens here.
      */
-    private static void logFailure(Context ctx, int code, String message, Throwable err, boolean devErrors) {
+    private void logFailure(Context ctx, int code, String message, Throwable err, boolean devErrors) {
         if (code >= 500) {
             log.error("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), message, err);
-            if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
+            if (devErrors) devErrorWriter.write(err, ctx.method() + " " + ctx.path());
             return;
         }
         if (code == 404) {
             logNotFound(ctx, message);
-            if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
+            if (devErrors) devErrorWriter.write(err, ctx.method() + " " + ctx.path());
             return;
         }
         if (code >= 400 && code != 401) {

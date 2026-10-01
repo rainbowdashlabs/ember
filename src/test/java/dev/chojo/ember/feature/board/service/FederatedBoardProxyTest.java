@@ -55,7 +55,6 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -144,7 +143,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 stationRepo,
                 groupService,
                 tagService);
-        var fbpBackend = new LocalStorageBackend();
+        var fbpBackend = localStorage();
         var fbpResolver = new StorageBackendResolver(fbpBackend);
         var fbpStorage = new StorageService(fbpResolver, fbpBackend);
         var attachmentSvc = new BoardAttachmentService(fbpStorage, stationRepo, fbpBackend);
