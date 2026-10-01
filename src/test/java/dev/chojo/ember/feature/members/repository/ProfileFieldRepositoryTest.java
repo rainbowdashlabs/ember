@@ -250,8 +250,6 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
         return field;
     }
 
-    // -- Values --
-
     @Test
     @Order(10)
     void setAndFindValue() {

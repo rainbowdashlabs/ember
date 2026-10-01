@@ -357,10 +357,10 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
         service.revokePasskeyCode(guardian.id(), child.id());
         org.mockito.Mockito.verify(enrollmentService).revokeCode(childAccount.id());
 
-        // With an address of their own the mail path is theirs, and the button is refused.
         service.setEmail(guardian.id(), child.id(), "lena-passkey@example.org");
         assertThrows(
                 ForbiddenResponse.class,
-                () -> service.issuePasskeyCode(guardian.id(), child.id(), guardianAccount.id(), "ua", null));
+                () -> service.issuePasskeyCode(guardian.id(), child.id(), guardianAccount.id(), "ua", null),
+                "with an address of their own the mail path is theirs");
     }
 }

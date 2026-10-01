@@ -182,7 +182,6 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(55)
     void findItemById() {
-        // Item was deleted in order 50, so create a new one
         var inv = service.create(station.id(), "FindItem Inv", InventoryType.INTERNAL, false, true);
         var item = service.createItem(inv.id(), "FI-001", "FindItem 1", null, null);
         assertTrue(service.findItemById(item.id()).isPresent());
@@ -373,7 +372,6 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Order(71)
     void requirementCrud() {
         var inv = service.create(station.id(), "Req Inv", InventoryType.INTERNAL, false, true);
-        // Use MEMBER user type
         var req = service.createRequirement(inv.id(), StationUserType.MEMBER, 0, null, 3);
         assertNotNull(req);
 
@@ -444,7 +442,6 @@ class InventoryServiceTest extends RepositoryTestBase {
     void requirementsVisibleAtAStationCarryTheClustersOwn() {
         var home = stationRepo.create("Träger Vorgaben");
         var cluster = clusterRepo.create("Kreisverband Vorgaben", null, home.id());
-        // A cluster keeps no gear here until it says so, and one that keeps none asks nothing either
         clusterRepo.setUsesInventory(cluster.id(), true);
         stationRepo.setCluster(station.id(), cluster.id());
 
@@ -466,9 +463,10 @@ class InventoryServiceTest extends RepositoryTestBase {
 
         assertEquals("Kreisverband Vorgaben", service.ownerAbove(station.id()).orElse(null));
 
-        // A cluster that does not keep its gear here asks nothing of anybody
         clusterRepo.setUsesInventory(cluster.id(), false);
-        assertTrue(service.findRequirementsVisibleAt(station.id()).stream().noneMatch(row -> row.fromCluster()));
+        assertTrue(
+                service.findRequirementsVisibleAt(station.id()).stream().noneMatch(row -> row.fromCluster()),
+                "a cluster that does not keep its gear here asks nothing of anybody");
         assertTrue(service.ownerAbove(station.id()).isEmpty());
 
         stationRepo.setCluster(station.id(), null);
@@ -481,7 +479,8 @@ class InventoryServiceTest extends RepositoryTestBase {
     /**
      * Switching an inventory between internal and external re-says the owner on every item it
      * holds, so the pieces and the inventory never contradict each other. Mixed holds both kinds
-     * and rewrites nothing, and borrowed gear is nobody's to re-declare.
+     * and rewrites nothing, and borrowed gear is nobody's to re-declare. The borrowed row is written
+     * the way the lending flow writes one, because it carries the loan it came in on.
      */
     @Test
     @Order(74)
@@ -492,7 +491,6 @@ class InventoryServiceTest extends RepositoryTestBase {
 
         var inv = service.create(station.id(), "Umsteller", InventoryType.INTERNAL, false, true);
         int piece = service.createItem(inv.id(), "U-1", "Gurt", null, null).id();
-        // A borrowed row carries the loan it came in on, so one is written the way the lending flow does
         var partner = stationRepo.create("Partner Umstellung");
         var lendingRepo = new LendingRepository();
         var request = lendingRepo.createRequest(

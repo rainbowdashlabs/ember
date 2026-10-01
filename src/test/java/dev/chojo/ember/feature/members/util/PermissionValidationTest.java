@@ -17,9 +17,9 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/** The permission fixtures carry the IDs the database seeds them with. */
 class PermissionValidationTest {
 
-    // Test permission fixtures matching DB IDs
     static final Permission LOGIN = new Permission(1, StationPermission.LOGIN);
     static final Permission USER = new Permission(2, StationPermission.USER);
     static final Permission MEMBER_GUARDIAN = new Permission(3, StationPermission.MEMBER_GUARDIAN);
@@ -29,8 +29,6 @@ class PermissionValidationTest {
 
     static final List<Permission> ALL_PERMISSIONS =
             List.of(LOGIN, USER, MEMBER_GUARDIAN, MEMBER_MANAGER, STATION_ADMINISTRATOR, INVENTORY_MANAGER);
-
-    // --- validatePermissionChanges ---
 
     @Test
     void allowsValidPermissionAssignment() {
@@ -58,7 +56,7 @@ class PermissionValidationTest {
     @Test
     void allowsKeepingExistingPermissionEvenWithoutCallerHavingIt() {
         List<Permission> current = List.of(LOGIN, STATION_ADMINISTRATOR);
-        List<Integer> desired = List.of(LOGIN.id(), STATION_ADMINISTRATOR.id()); // no change
+        List<Integer> desired = List.of(LOGIN.id(), STATION_ADMINISTRATOR.id());
         Set<StationPermission> callerPermissions = EnumSet.of(StationPermission.MEMBER_MANAGER);
 
         assertDoesNotThrow(() ->
@@ -80,10 +78,9 @@ class PermissionValidationTest {
     @Test
     void allowsRemovingPermission() {
         List<Permission> current = List.of(LOGIN, INVENTORY_MANAGER);
-        List<Integer> desired = List.of(LOGIN.id()); // removing INVENTORY_MANAGER
+        List<Integer> desired = List.of(LOGIN.id());
         Set<StationPermission> callerPermissions = EnumSet.of(StationPermission.LOGIN);
 
-        // Removing a permission is always allowed (no authorization check on removal)
         assertDoesNotThrow(() ->
                 PermissionValidation.validatePermissionChanges(current, desired, ALL_PERMISSIONS, callerPermissions));
     }

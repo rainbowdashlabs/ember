@@ -163,7 +163,6 @@ class NotificationDataTest {
 
     @Test
     void roundTripAllTypes() {
-        // Ensure every type can serialize and deserialize without error
         var testParams = Map.<NotificationType, NotificationParams>of(
                 NotificationType.NEW_NEWS, new NotificationParams.NewNews("t", "a", "p"),
                 NotificationType.NEWS_COMMENT, new NotificationParams.NewsComment("t", "a", "p"),
@@ -177,7 +176,6 @@ class NotificationDataTest {
                 NotificationType.PROFILE_FIELD_CHANGED, new NotificationParams.ProfileFieldChanged("m", "f"),
                 NotificationType.PROCUREMENT_REQUESTED, new NotificationParams.ProcurementRequested("i"),
                 NotificationType.PROCUREMENT_FULFILLED, new NotificationParams.ProcurementFulfilled("i"));
-        // Map.of only supports 10 entries, add remaining separately
         var remaining = Map.<NotificationType, NotificationParams>of(
                 NotificationType.NEW_FORM, new NotificationParams.NewForm("t"),
                 NotificationType.LOST_AND_FOUND_NEW, new NotificationParams.LostAndFoundNew("d"),

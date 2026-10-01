@@ -129,7 +129,6 @@ class NewsServiceTest extends RepositoryTestBase {
     @Test
     @Order(28)
     void recordAndListViewers() {
-        // Idempotent: two calls only produce one row.
         service.recordView(newsId, member.id());
         service.recordView(newsId, member.id());
 
@@ -137,14 +136,13 @@ class NewsServiceTest extends RepositoryTestBase {
         assertEquals(1, summary.seen().size(), "the only member should appear in the seen list");
         assertNotNull(summary.seen().getFirst().seenAt());
         assertEquals(member.uid(), summary.seen().getFirst().member().memberUid());
-        // The only eligible member has now seen the news, so unseen is empty.
         assertEquals(0, summary.unseen().size());
     }
 
+    /** Builds on the view {@link #recordAndListViewers()} recorded. */
     @Test
     @Order(29)
     void countViewsAndHasViewed() {
-        // Order 28 (recordAndListViewers) already recorded a view for member.
         assertEquals(1, service.countViews(newsId));
         assertTrue(service.hasViewed(newsId, member.id()));
         assertFalse(service.hasViewed(newsId, -42));

@@ -122,13 +122,10 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
         assertEquals(ItemOwner.PARTNER_STATION, copy.ownerKind());
         assertEquals(owner.id(), copy.ownerStationId());
         assertNotNull(copy.loanRequestItemId());
-        // The snapshot: name and identifier as they stood when the gear changed hands
         assertEquals("Funkgerät", copy.name());
         assertEquals("BG-001", copy.internalId());
-        // It rests at the station that has it, exactly as a cluster's jacket does
         assertEquals(ItemCustody.AT_STATION, copy.custody());
         assertEquals(borrower.id(), copy.custodyStationId());
-        // And it sits on a shelf of that station's own, made for the occasion
         var shelf = inventoryRepo.findById(copy.inventoryId()).orElseThrow();
         assertTrue(shelf.borrowed());
         assertFalse(shelf.homogeneous());
@@ -210,9 +207,9 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
                 ForbiddenResponse.class, () -> inventoryService.updateItem(copy.id(), "X", "Neu", null, null, null));
         assertThrows(ForbiddenResponse.class, () -> inventoryService.deleteItem(copy.id(), null));
         assertThrows(ForbiddenResponse.class, () -> inventoryService.moveItem(copy.id(), inventoryId, null));
-        // A borrower cannot lend a partner's radio on to a third station
         assertTrue(
-                lending.findAssignableItems(borrower.id(), copy.inventoryId()).isEmpty());
+                lending.findAssignableItems(borrower.id(), copy.inventoryId()).isEmpty(),
+                "a borrower cannot lend a partner's radio on to a third station");
 
         handBack(requestId, source);
     }
@@ -242,7 +239,6 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
         assertTrue(renamed.borrowed());
 
         assertThrows(BadRequestResponse.class, () -> inventoryService.delete(shelfId));
-        // Nothing of the station's own may be filed on it either
         assertThrows(BadRequestResponse.class, () -> inventoryService.createItem(shelfId, "X", "Eigenes", null, null));
 
         handBack(requestId, source);
@@ -265,8 +261,6 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
         handBack(requestId, source);
         assertTrue(borrowedGearService.borrowedAt(borrower.id()).isEmpty());
     }
-
-    // -- helpers --
 
     private static InventoryItem ownedPiece(String internalId, String name) {
         return inventoryRepo.createItem(inventoryId, internalId, name, null, null);

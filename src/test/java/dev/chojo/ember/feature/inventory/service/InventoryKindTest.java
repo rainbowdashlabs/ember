@@ -102,8 +102,6 @@ class InventoryKindTest extends RepositoryTestBase {
                 null);
     }
 
-    // -- The barriers --
-
     @Test
     void aRequirementIsRefusedOnADrawerOfDifferentThings() {
         int id = drawer("Sonstiges");
@@ -149,8 +147,6 @@ class InventoryKindTest extends RepositoryTestBase {
         service.delete(inventory.id());
     }
 
-    // -- The switch --
-
     @Test
     void aRequirementStandsInTheWayOfBecomingADrawer() {
         int id = oneThing("Helm", false);
@@ -163,7 +159,6 @@ class InventoryKindTest extends RepositoryTestBase {
                 .anyMatch(blocker ->
                         blocker.kind() == SwitchBlockerKind.REQUIREMENT && blocker.id() == requirement.id()));
 
-        // and it goes through once nothing asks for it any more
         service.deleteRequirement(requirement.id());
         var switched = service.update(id, "Helm", InventoryType.INTERNAL, false, false);
         assertTrue(switched.isPresent());
@@ -275,8 +270,6 @@ class InventoryKindTest extends RepositoryTestBase {
         assertFalse(renamed.get().homogeneous());
         service.delete(id);
     }
-
-    // -- The move --
 
     @Test
     void movingAPieceKeepsItsIdentityAndItsHistory() {

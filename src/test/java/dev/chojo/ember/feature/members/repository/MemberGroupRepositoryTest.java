@@ -73,8 +73,6 @@ class MemberGroupRepositoryTest extends RepositoryTestBase {
                 "Beta Team", memberGroupRepo.findById(groupId).orElseThrow().name());
     }
 
-    // -- Members --
-
     @Test
     @Order(10)
     void addAndFindMembers() {
@@ -99,20 +97,15 @@ class MemberGroupRepositoryTest extends RepositoryTestBase {
         assertTrue(memberGroupRepo.findMembers(groupId).isEmpty());
     }
 
-    // -- Group Permissions --
-
     @Test
     @Order(20)
     void memberInGroupWithLoginPermissionHasLoginPermission() {
-        // Add member to the group
         memberGroupRepo.addMember(groupId, member.id());
 
-        // Assign LOGIN permission to the group
         Permission loginPerm =
                 stationMemberRepo.findPermissionByName(StationPermission.LOGIN).orElseThrow();
         memberGroupRepo.addGroupPermission(groupId, loginPerm.id());
 
-        // The same resolution the session goes through, which is where a group's permissions have to arrive
         Set<StationPermission> resolved =
                 new MemberPermissionResolver(stationMemberRepo, memberGroupRepo).resolve(member.id());
 
@@ -121,7 +114,6 @@ class MemberGroupRepositoryTest extends RepositoryTestBase {
                 "Member in a group with LOGIN permission should have LOGIN");
         assertTrue(resolved.contains(StationPermission.USER), "LOGIN expands to include USER");
 
-        // Cleanup
         memberGroupRepo.removeGroupPermission(groupId, loginPerm.id());
         memberGroupRepo.removeMember(groupId, member.id());
     }

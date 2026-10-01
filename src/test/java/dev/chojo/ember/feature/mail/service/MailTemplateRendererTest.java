@@ -66,7 +66,6 @@ class MailTemplateRendererTest {
     @ParameterizedTest(name = "{0}/{1}")
     @MethodSource("allTemplates")
     void renders(String locale, String name) {
-        // Pass a mutable copy so the renderer can add its own keys (e.g. lang).
         var vars = new HashMap<>(VARS);
         String rendered = renderer.render(name, locale, vars);
         assertFalse(rendered.isBlank(), "rendered output is empty");
@@ -74,7 +73,6 @@ class MailTemplateRendererTest {
         assertTrue(
                 rendered.contains("Ember") || rendered.contains("Test Station"),
                 "shared layout did not render senderName or stationName");
-        // Confirm no unsubstituted {{var}} placeholders remain.
         assertFalse(
                 rendered.matches("(?s).*\\{\\{\\s*\\w+\\s*}}.*"),
                 "rendered output still contains unsubstituted placeholders");

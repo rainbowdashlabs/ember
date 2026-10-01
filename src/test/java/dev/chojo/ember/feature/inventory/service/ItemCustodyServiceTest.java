@@ -68,8 +68,7 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
         assertEquals(ItemCustody.WITH_OWNER, custodyOf(own));
         assertNull(inventoryRepo.findItemById(own).orElseThrow().custodyStationId());
 
-        // The station does not own it, so the station is holding it rather than its owner
-        assertEquals(ItemCustody.AT_STATION, custodyOf(theirs));
+        assertEquals(ItemCustody.AT_STATION, custodyOf(theirs), "the station holds what it does not own");
         assertEquals(
                 station.id(), inventoryRepo.findItemById(theirs).orElseThrow().custodyStationId());
     }
@@ -84,7 +83,6 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
         assertEquals(ItemCustody.WITH_MEMBER, custodyOf(own));
         assertEquals(ItemCustody.WITH_MEMBER, custodyOf(theirs));
 
-        // Each goes back to the store it rests in, which is not the same store for the two
         itemCustodyService.takeBack(own);
         itemCustodyService.takeBack(theirs);
         assertEquals(ItemCustody.WITH_OWNER, custodyOf(own));
@@ -108,10 +106,9 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
                 inventoryRepo.findUnassignedItems(mixedInventoryId).stream().anyMatch(i -> i.id() == itemId),
                 "nobody can hand out what nobody can find");
 
-        // The spell stays open, because the member has not given anything back
         var history = inventoryRepo.findHistory(itemId);
         assertFalse(history.isEmpty());
-        assertNull(history.getFirst().returned());
+        assertNull(history.getFirst().returned(), "the spell stays open, because the member gave nothing back");
     }
 
     /**
@@ -273,8 +270,7 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
         assertTrue(held.stream().anyMatch(i -> i.id() == own));
         assertTrue(held.stream().anyMatch(i -> i.id() == theirs), "gear the body above owns but the station holds");
 
-        // The scanner reads the same rule
-        assertTrue(inventoryRepo.findByInternalId(station.id(), "C-12").isPresent());
+        assertTrue(inventoryRepo.findByInternalId(station.id(), "C-12").isPresent(), "the scanner reads the same rule");
 
         var otherStation = stationRepo.create("CustodyOtherStation");
         assertTrue(inventoryRepo.findItemsByStation(otherStation.id()).isEmpty());

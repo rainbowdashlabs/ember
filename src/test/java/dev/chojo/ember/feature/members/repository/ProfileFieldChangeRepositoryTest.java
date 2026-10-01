@@ -87,8 +87,6 @@ class ProfileFieldChangeRepositoryTest extends RepositoryTestBase {
     void updateChangeNewValue() {
         profileFieldChangeRepo.updateChangeNewValue(changeId, "\"updated\"");
         var changes = profileFieldChangeRepo.findByMember(member.id());
-        // The change should still exist; we can't easily assert the JSON value here
-        // but the method should not throw
         assertEquals(1, changes.size());
     }
 
@@ -108,7 +106,6 @@ class ProfileFieldChangeRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(8)
     void countPendingChangesBeforeAck() {
-        // One unacknowledged change requiring acknowledgement exists
         assertEquals(1, profileFieldChangeRepo.countPendingChanges(station.id(), member.id()));
     }
 
@@ -155,7 +152,6 @@ class ProfileFieldChangeRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(22)
     void countPendingChangesAfterAck() {
-        // The change has been acknowledged, so count should be 0
         assertEquals(0, profileFieldChangeRepo.countPendingChanges(station.id(), member.id()));
     }
 

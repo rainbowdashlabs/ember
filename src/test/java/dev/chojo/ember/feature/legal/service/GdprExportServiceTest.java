@@ -48,19 +48,15 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 memberDocumentRepo,
                 mock(DocumentService.class));
 
-        // Create account
         account = accountRepo.create("gdpr-test@example.com", "Max", "Mustermann", true);
         assertNotNull(account);
 
-        // Create station
         var station = stationRepo.create("Teststation");
         stationId = station.id();
 
-        // Create member
         member = stationMemberRepo.create(stationId, account.id());
         assertNotNull(member);
 
-        // Create session
         accountRepo.createSession(
                 account.id(),
                 "test-token-gdpr",
@@ -68,16 +64,13 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 "Mozilla/5.0 Test Agent",
                 null);
 
-        // Create profile field + value
         var field = profileFieldRepo.create(
                 stationId, "Telefon", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.setValue(member.id(), field.id(), StringNode.valueOf("0151 12345678"));
 
-        // Create group + assign member
         var group = memberGroupRepo.create(stationId, "Anfänger");
         memberGroupRepo.addMember(group.id(), member.id());
 
-        // Create attendance session + entry
         var template = attendanceRepo.createTemplate(stationId, "Test Template");
         var session = attendanceRepo.createSession(
                 template.id(), Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(), null, "Test Session", null);
@@ -87,7 +80,6 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 AttendanceEntry.AttendanceStatus.PRESENT,
                 AttendanceEntry.EntrySource.EXPECTED);
 
-        // Create event + registration
         var event = eventRepo.create(
                 stationId,
                 "Test Event",
@@ -107,7 +99,6 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 null);
         eventRegistrationRepo.create(event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 
-        // Create absence
         attendanceRepo.createAbsence(
                 member.id(), LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), "Urlaub", null);
     }
@@ -230,14 +221,14 @@ class GdprExportServiceTest extends RepositoryTestBase {
         assertTrue(memberships.isEmpty());
     }
 
+    /**
+     * The per-table payload lives under {@code memberTables}, keyed by table name and driven by the
+     * export identity columns in the data tracking.
+     */
     @Test
     @Order(40)
     void exportMemberDataContainsExpectedEnvelopeKeys() {
         var data = gdprService.exportMemberData(member.id());
-        // After the metadata-driven rewrite the envelope is:
-        //   memberId, stationId, former, stationName, memberTables, memberUidTables
-        // The actual per-table payload lives under memberTables (keyed by DB table name) and
-        // is driven by gdprExport.identityColumns in data_tracking.json.
         for (var key : List.of("memberId", "stationId", "former", "memberTables", "memberUidTables")) {
             assertTrue(data.containsKey(key), "Missing envelope key: " + key);
         }

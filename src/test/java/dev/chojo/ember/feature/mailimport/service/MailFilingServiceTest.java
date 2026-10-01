@@ -117,6 +117,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
                 .id();
     }
 
+    /** Ignores a file that will not delete, because a leftover temporary file is not worth failing a test over. */
     @AfterAll
     static void cleanup() throws IOException {
         stationRepo.delete(station.id());
@@ -127,7 +128,6 @@ class MailFilingServiceTest extends RepositoryTestBase {
                     try {
                         Files.deleteIfExists(path);
                     } catch (IOException ignored) {
-                        // A leftover temporary file is not worth failing a test over.
                     }
                 });
             }

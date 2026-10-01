@@ -117,17 +117,18 @@ class LossReportServiceTest extends RepositoryTestBase {
         assertEquals(MovementState.OPEN, movement.state());
         assertEquals(itemId, movement.outgoingItemId());
 
-        // The announcement was the report itself; what waits is the association's own step
         var steps = itemMovementService.stepsOf(movement);
         assertEquals(3, steps.size(), "the return leg is not walked, because there is nothing to walk back");
         assertEquals("Mitglied meldet an", steps.get(0).label());
         assertEquals("Verband schickt Ersatz", steps.get(1).label());
         assertEquals("Wache gibt aus", steps.get(2).label());
-        assertEquals(steps.get(1).id(), movement.currentStepId());
+        assertEquals(
+                steps.get(1).id(),
+                movement.currentStepId(),
+                "the report was the announcement, so the association's own step waits");
 
-        // The gear is still missing. Reporting it says nothing about where it is.
         var item = inventoryRepo.findItemById(itemId).orElseThrow();
-        assertEquals(ItemCustody.LOST, item.custody());
+        assertEquals(ItemCustody.LOST, item.custody(), "reporting a loss says nothing about where the gear is");
         assertEquals("Beim Einsatz liegen geblieben", item.lostNote(), "the member's note is not overwritten");
 
         clusterService.releaseStation(cluster.id(), station.id());

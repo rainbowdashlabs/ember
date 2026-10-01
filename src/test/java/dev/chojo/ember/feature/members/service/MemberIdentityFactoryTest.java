@@ -99,7 +99,6 @@ class MemberIdentityFactoryTest extends RepositoryTestBase {
         assertEquals(1, enriched.size());
         assertEquals(member.id(), enriched.getFirst().id());
         assertEquals("Identity Factory", enriched.getFirst().name());
-        // Station name should be enriched
         assertNotNull(enriched.getFirst().stationName());
     }
 

@@ -124,10 +124,9 @@ class MovementFlowServiceTest extends RepositoryTestBase {
         assertEquals(1, movementFlowService.findActiveSteps(flow.id()).size());
         assertEquals(2, movementFlowService.findAllSteps(flow.id()).size(), "the retired step still renders");
 
-        // A step added afterwards does not reuse the retired step's place
         var third = movementFlowService.addStep(
                 flow.id(), "Eingetroffen", StepActor.OWNER, StepSubject.OUTGOING, ItemCustody.WITH_OWNER, false);
-        assertEquals(2, third.position());
+        assertEquals(2, third.position(), "a later step does not reuse the retired step's place");
     }
 
     @Test
@@ -170,6 +169,7 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                         true));
     }
 
+    /** Renaming is always allowed, because the behaviour hangs off the custody and never off the words. */
     @Test
     void aStepInUseCannotChangeItsBehaviourButCanStillBeRenamed() {
         int itemId = inventoryRepo
@@ -190,7 +190,6 @@ class MovementFlowServiceTest extends RepositoryTestBase {
         int flowId = movement.flowId();
         var step = movementFlowService.findActiveSteps(flowId).getLast();
 
-        // Renaming is always allowed: the behaviour hangs off the custody, never off the words
         assertTrue(movementFlowService.updateStep(
                 step.id(),
                 "Beim Träger angekommen",
@@ -271,7 +270,6 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                         MovementParty.MEMBER),
                 "and it changes only the owner it was bound for");
 
-        // Put it back so the other tests find the presets where they left them
         movementFlowService.bind(
                 station.id(),
                 inventoryId,

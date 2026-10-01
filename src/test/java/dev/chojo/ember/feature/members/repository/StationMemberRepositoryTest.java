@@ -99,8 +99,6 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertFalse(stationMemberRepo.findByAccount(account1.id()).isEmpty());
     }
 
-    // -- Permissions --
-
     @Test
     @Order(9)
     void findAllPermissions() {
@@ -119,8 +117,8 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void grantAndFindPermissions() {
-        // Permission ID 1 = 'LOGIN' (seeded)
-        stationMemberRepo.grantPermission(memberId1, 1);
+        int seededLoginPermissionId = 1;
+        stationMemberRepo.grantPermission(memberId1, seededLoginPermissionId);
         List<Permission> permissions = stationMemberRepo.findPermissions(memberId1);
         assertEquals(1, permissions.size());
         assertEquals(StationPermission.LOGIN, permissions.getFirst().permission());
@@ -132,8 +130,6 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertTrue(stationMemberRepo.revokePermission(memberId1, 1));
         assertTrue(stationMemberRepo.findPermissions(memberId1).isEmpty());
     }
-
-    // -- Manager Relations --
 
     @Test
     @Order(20)
@@ -185,8 +181,6 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
                 completions.stream().allMatch(c -> c.name() != null && !c.name().isBlank()));
     }
 
-    // -- Additional coverage --
-
     @Test
     @Order(30)
     void findByUid() {
@@ -195,7 +189,6 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertTrue(found.isPresent());
         assertEquals(memberId1, found.get().id());
 
-        // non-existent UID returns empty
         assertTrue(stationMemberRepo.findByUid(station.id(), UUID.randomUUID()).isEmpty());
     }
 
@@ -380,7 +373,6 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertFalse(perms.isEmpty());
         assertTrue(perms.stream().anyMatch(p -> p.permission() == StationPermission.LOGIN));
 
-        // Clear
         stationMemberRepo.setUserTypePermissions(station.id(), StationUserType.GUARDIAN, List.of());
         var cleared = stationMemberRepo.findUserTypePermissions(station.id(), StationUserType.GUARDIAN);
         assertTrue(cleared.isEmpty());

@@ -27,10 +27,9 @@ class FeedRateLimiterTest {
         assertTrue(limiter.tryAcquire("token-a").isEmpty());
     }
 
+    /** The burst drains the bucket, and nothing refills within the same instant. */
     @Test
     void initialBurstAdmitsCapacityThenRejects() {
-        // Burst capacity = 10. The first 10 acquires drain the bucket; the 11th is 429-ed
-        // because no token has refilled yet (refill = 5/min = 1/12s).
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         var limiter = new FeedRateLimiter(clock);
         for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) {
@@ -46,13 +45,11 @@ class FeedRateLimiterTest {
     void slotsRefillAtTheConfiguredRate() {
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         var limiter = new FeedRateLimiter(clock);
-        // Drain the burst.
         for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) {
             assertTrue(limiter.tryAcquire("t").isEmpty());
         }
         assertTrue(limiter.tryAcquire("t").isPresent());
 
-        // One refill interval later (60s / 5 = 12s), exactly one slot has refilled.
         clock.advanceSeconds(12);
         assertTrue(limiter.tryAcquire("t").isEmpty(), "A token should have refilled after one interval");
         assertTrue(limiter.tryAcquire("t").isPresent(), "But only one - the bucket is empty again");
@@ -62,10 +59,7 @@ class FeedRateLimiterTest {
     void longIdleRefillsUpToCapacityNotBeyond() {
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         var limiter = new FeedRateLimiter(clock);
-        // Drain.
         for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) limiter.tryAcquire("t");
-        // Wait long enough to refill 100× capacity worth of time - the bucket should still
-        // cap at BURST_CAPACITY.
         clock.advanceSeconds(60 * 100);
         for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) {
             assertTrue(limiter.tryAcquire("t").isEmpty(), "Refilled burst slot " + (i + 1));
@@ -77,11 +71,9 @@ class FeedRateLimiterTest {
     void differentTokensHaveSeparateBuckets() {
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         var limiter = new FeedRateLimiter(clock);
-        // Exhaust token "a" entirely.
         for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++)
             assertTrue(limiter.tryAcquire("a").isEmpty());
         assertTrue(limiter.tryAcquire("a").isPresent());
-        // Token "b" still has the full burst.
         for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++)
             assertTrue(limiter.tryAcquire("b").isEmpty());
         assertTrue(limiter.tryAcquire("b").isPresent());
@@ -118,8 +110,6 @@ class FeedRateLimiterTest {
                 admitted.get(),
                 "Exactly the burst capacity should be admitted under contention");
     }
-
-    // -- helpers --
 
     private static final class ControllableClock extends Clock {
         private final AtomicReference<Instant> now;

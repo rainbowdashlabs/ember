@@ -155,8 +155,6 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         assertTrue(result.isEmpty());
     }
 
-    // -- Values --
-
     @Test
     @Order(10)
     void findValuesEmpty() {
@@ -176,7 +174,6 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void setValuesTwiceRecordsChange() {
-        // Second call with a different value should record a change
         var entries = List.of(new FieldValueEntry(fieldId, "\"555-9999\""));
         var result = service.setValues(member.id(), entries, member.id());
         assertFalse(result.isEmpty());
@@ -187,7 +184,6 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(13)
     void findChanges() {
         var changes = service.findChanges(member.id());
-        // At least one change was recorded (initial set)
         assertFalse(changes.isEmpty());
     }
 
@@ -221,7 +217,6 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(17)
     void acknowledgeAll() {
-        // Set a value again to create a new unacknowledged change
         var entries = List.of(new FieldValueEntry(fieldId, "\"555-0000\""));
         service.setValues(member.id(), entries, member.id());
 
@@ -236,26 +231,21 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         assertNotNull(summary);
     }
 
-    // -- Profile completeness --
-
     @Test
     @Order(21)
     void isProfileCompleteWithNothingRequired() {
-        // The member's one field is not required, so nothing is outstanding
-        assertTrue(service.isProfileComplete(member.id()));
+        assertTrue(service.isProfileComplete(member.id()), "the member's one field is not required");
     }
 
     @Test
     @Order(22)
     void isProfileCompleteRequiredFieldMissing() {
-        // Create a required field with no value for a new member
         var reqField = ask("Required Field", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 10, true, false);
         var account2 = accountRepo.create("pfield-empty@test.com", "Empty", "Member");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
 
         assertFalse(service.isProfileComplete(member2.id()));
 
-        // Cleanup
         service.delete(reqField.id());
         stationMemberRepo.delete(member2.id());
         accountRepo.delete(account2.id());
@@ -298,15 +288,12 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         accountRepo.delete(account3.id());
     }
 
-    // -- findApplicableFields / scopeForUserType --
-
     @Test
     @Order(23)
     void findApplicableFieldsForMember() {
         stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
         var fields = service.findApplicableFields(member.id());
         assertNotNull(fields);
-        // Should return MEMBER-scope fields since member has MEMBER user type
     }
 
     /**
@@ -451,17 +438,13 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         assertTrue(fields.isEmpty());
     }
 
-    // -- What counts as a complete profile --
-
     @Test
     @Order(24)
     void isProfileCompleteReadonlyRequired() {
-        // Readonly + required fields should be skipped
         var readonlyReqField = ask("ReadonlyReq", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 30, true, true);
         var account3 = accountRepo.create("pfield-readonly@test.com", "Readonly", "Test");
         var member3 = stationMemberRepo.create(station.id(), account3.id());
-        // Should be complete - readonly required fields are skipped
-        assertTrue(service.isProfileComplete(member3.id()));
+        assertTrue(service.isProfileComplete(member3.id()), "a read-only required field is skipped");
         service.delete(readonlyReqField.id());
         stationMemberRepo.delete(member3.id());
         accountRepo.delete(account3.id());
@@ -470,11 +453,9 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(24)
     void isProfileCompleteWithEmptyValue() {
-        // Empty string and "\"\"" should count as missing
         var reqField = ask("EmptyValField", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 31, true, false);
         var account4 = accountRepo.create("pfield-emptyval@test.com", "Empty", "Val");
         var member4 = stationMemberRepo.create(station.id(), account4.id());
-        // Set empty quoted value
         service.setValues(member4.id(), List.of(new FieldValueEntry(reqField.id(), "\"\"")), member4.id());
         assertFalse(service.isProfileComplete(member4.id()));
         service.delete(reqField.id());
@@ -536,17 +517,13 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         memberGroupRepo.delete(group.id());
     }
 
-    // -- acknowledgeAll with changes --
-
     @Test
     @Order(24)
     void acknowledgeAllWithPendingChanges() {
-        // Create a new field change by setting a value
         var tmpField = ask("AckAllField", FieldType.TEXT, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 40);
         service.setValues(member.id(), List.of(new FieldValueEntry(tmpField.id(), "\"initial\"")), member.id());
         service.setValues(member.id(), List.of(new FieldValueEntry(tmpField.id(), "\"changed\"")), member.id());
 
-        // Now acknowledgeAll from a different acknowledger
         var account5 = accountRepo.create("pfield-ack@test.com", "Ack", "User");
         var member5 = stationMemberRepo.create(station.id(), account5.id());
         var acks = service.acknowledgeAll(member.id(), member5.id(), "Batch ack");
@@ -647,7 +624,6 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
 
         service.reorder(station.id(), ProfileFieldScope.MANAGER, List.of(second.id(), first.id()));
 
-        // Nothing to move is not an error, and writes nothing
         service.reorder(station.id(), ProfileFieldScope.MANAGER, List.of());
 
         var ordered = service.findByStationAndScope(station.id(), ProfileFieldScope.MANAGER);

@@ -58,8 +58,6 @@ class FormRepositoryTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
-    // -- Forms --
-
     @Test
     @Order(1)
     void create() {
@@ -137,8 +135,6 @@ class FormRepositoryTest extends RepositoryTestBase {
                 Form.FormStatus.OPEN, formRepo.findById(formId).orElseThrow().status());
     }
 
-    // -- Questions --
-
     @Test
     @Order(10)
     void createQuestion() {
@@ -182,8 +178,6 @@ class FormRepositoryTest extends RepositoryTestBase {
         assertEquals("Full name?", questions.getFirst().title());
         assertEquals(1, questions.getFirst().position());
     }
-
-    // -- Responses --
 
     @Test
     @Order(20)
@@ -245,8 +239,6 @@ class FormRepositoryTest extends RepositoryTestBase {
         formRepo.deleteResponse(anonymous.id());
     }
 
-    // -- Answers --
-
     @Test
     @Order(30)
     void upsertAnswer() {
@@ -272,8 +264,6 @@ class FormRepositoryTest extends RepositoryTestBase {
         assertEquals(1, answers.size());
     }
 
-    // -- Restrictions (now handled by RestrictionRepository) --
-
     @Test
     @Order(40)
     void setAndFindRestrictions() {
@@ -284,13 +274,10 @@ class FormRepositoryTest extends RepositoryTestBase {
                         List.of(StationUserType.MEMBER, StationUserType.TEAM), List.of(), List.of(), List.of(), null));
         var restrictions = restrictionRepo.findRestrictions(RestrictionType.FORM, formId);
         assertEquals(2, restrictions.size());
-        // Clear
         restrictionRepo.setRestrictions(RestrictionType.FORM, formId, RestrictionSelection.empty());
         assertTrue(
                 restrictionRepo.findRestrictions(RestrictionType.FORM, formId).isEmpty());
     }
-
-    // -- Cleanup --
 
     @Test
     @Order(60)

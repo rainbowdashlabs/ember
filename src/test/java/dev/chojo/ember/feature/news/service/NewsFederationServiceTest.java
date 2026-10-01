@@ -122,13 +122,11 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         accountA = accountRepo.create("newsfed-svc@test.com", "Alice", "Smith");
         memberA = stationMemberRepo.create(stationA.id(), accountA.id());
 
-        // Local partnership: A <-> B
         var keyPair = federationService.generateKeyPair();
         var partner = federationService.acceptInvite(
                 stationA.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
         partnerIdAB = partner.id();
 
-        // Remote partnership: A <-> C (remote host)
         var keyPairC = federationService.generateKeyPair();
         var partnerC = federationService.acceptInvite(
                 stationA.id(),
@@ -138,7 +136,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 null);
         int partnerIdAC = partnerC.id();
 
-        // Create published news on stationA
         var authorIdentity = stationMemberRepo.resolveIdentity(memberA.id());
         news1 = newsRepo.create(stationA.id(), "News One", "# One", "<h1>One</h1>", authorIdentity);
         news2 = newsRepo.create(stationA.id(), "News Two", "# Two", "<h1>Two</h1>", authorIdentity);
@@ -154,8 +151,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         stationRepo.delete(stationC.id());
         accountRepo.delete(accountA.id());
     }
-
-    // -- Share management delegation --
 
     @Test
     @Order(1)
@@ -202,7 +197,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void findSharedNewsIds() {
-        // news1 is SPECIFIC for partnerIdAB
         var ids = service.findSharedNewsIds(partnerIdAB, stationA.id());
         assertTrue(ids.contains(news1.id()));
     }
@@ -228,8 +222,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         assertTrue(service.findShareByNews(news1.id()).isEmpty());
     }
 
-    // -- createRemoteComment --
-
     @Test
     @Order(15)
     void createRemoteComment() {
@@ -250,22 +242,16 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         assertEquals("Reply", child.content());
     }
 
-    // -- Federated browsing (local) --
-
     @Test
     @Order(20)
     void browseFederatedNewsLocalPartner() {
-        // Share news1 with ALL_PARTNERS
         service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
 
-        // Mock httpClient.getList for the remote partner to return empty
         when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any()))
                 .thenReturn(List.of());
 
-        // Browse from stationB's perspective - stationA is a local partner
         var items = service.browseFederatedNews(stationB.id());
         assertNotNull(items);
-        // stationB sees stationA as a local partner with shared news
         assertTrue(
                 items.stream().anyMatch(i -> i.news().id() == news1.id()),
                 "Should find news1 shared via local partner");
@@ -297,8 +283,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         assertTrue(items.stream().anyMatch(i -> i.news().id() == news2.id()));
     }
 
-    // -- Federated browsing (remote via HTTP) --
-
     @Test
     @Order(25)
     void browseFederatedNewsViaHttp() {
@@ -314,12 +298,10 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         var items = service.browseFederatedNews(stationA.id());
         assertFalse(items.isEmpty());
 
-        // Verify HTTP was called
         verify(httpClient)
                 .getList(
                         eq("https://remote-news.example.com"), pathIs("/remote/news"), any(), eq(stationA.id()), any());
 
-        // Should contain the remote news item
         assertTrue(items.stream()
                 .anyMatch(i ->
                         i.news().id() == 9999 && "Remote Title".equals(i.news().title())));
@@ -335,8 +317,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         var items = service.browseFederatedNews(stationA.id());
         assertNotNull(items);
     }
-
-    // -- getFederatedNews (local) --
 
     @Test
     @Order(30)
@@ -365,8 +345,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 IllegalArgumentException.class,
                 () -> service.getFederatedNews(stationB.id(), UUID.randomUUID(), news1.id()));
     }
-
-    // -- getFederatedNews (remote via HTTP) --
 
     @Test
     @Order(35)
@@ -403,26 +381,19 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         assertThrows(RefusalResponse.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 99));
     }
 
-    // -- Inactive partner --
-
     @Test
     @Order(40)
     void getFederatedNewsSuspendedPartner() {
-        // Find the reverse partner (stationA's record pointing to stationC)
         var reversePartner = federationRepo
                 .findPartnerByStationAndRemoteUid(stationA.id(), stationC.uid())
                 .orElseThrow();
 
-        // Suspend stationA's partner record for stationC
         federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.SUSPENDED);
 
         assertThrows(BadRequestResponse.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 42));
 
-        // Restore
         federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.ACTIVE);
     }
-
-    // -- Record types --
 
     @Test
     @Order(50)
@@ -460,8 +431,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         assertNull(data.contentMarkdown());
     }
 
-    // -- toNewsData covers null content/publishedAt --
-
     @Test
     @Order(55)
     void getFederatedNewsLocalWithComments() {
@@ -469,7 +438,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
 
         var result = service.getFederatedNews(stationB.id(), stationA.uid(), news1.id());
         assertNotNull(result);
-        // news1 has comments created in earlier tests
         assertTrue(result.commentCount() >= 0);
         assertNotNull(result.publishedAt());
         assertFalse(result.publishedAt().isEmpty());
@@ -486,7 +454,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         var items = service.browseFederatedNews(stationB.id());
         var localItems = items.stream().filter(i -> i.news().id() == news1.id()).toList();
         assertFalse(localItems.isEmpty());
-        // Partner station name should be stationA's name
         assertEquals("NewsFedSvcA", localItems.getFirst().partnerStationName());
     }
 

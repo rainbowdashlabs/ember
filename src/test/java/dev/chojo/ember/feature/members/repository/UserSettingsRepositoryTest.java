@@ -43,7 +43,7 @@ class UserSettingsRepositoryTest extends RepositoryTestBase {
         var settings = userSettingsRepo.findOrCreate(member.id());
         assertNotNull(settings);
         assertEquals(member.id(), settings.memberId());
-        assertFalse(settings.emailEnabled()); // default
+        assertFalse(settings.emailEnabled(), "mail is off by default");
     }
 
     @Test
@@ -70,8 +70,7 @@ class UserSettingsRepositoryTest extends RepositoryTestBase {
     @Order(5)
     void findOrCreateIdempotent() {
         var settings = userSettingsRepo.findOrCreate(member.id());
-        // Should return existing settings, not create new ones
-        assertTrue(settings.emailEnabled()); // preserved from previous update
+        assertTrue(settings.emailEnabled(), "the existing settings come back, not fresh ones");
     }
 
     @Test
@@ -88,7 +87,6 @@ class UserSettingsRepositoryTest extends RepositoryTestBase {
     @Order(7)
     void updateThemePreservedOnFindOrCreate() {
         var settings = userSettingsRepo.findOrCreate(member.id());
-        // Should return existing settings, not reset theme
         assertEquals("ember", settings.theme());
     }
 

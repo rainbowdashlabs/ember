@@ -40,6 +40,7 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
     private static InventoryItem item;
     private static int checkId;
 
+    /** Both members get the user permission, without which the next-unchecked-member lookup skips them. */
     @BeforeAll
     static void setup() {
         station = stationRepo.create("Check Station");
@@ -47,7 +48,6 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         account2 = accountRepo.create("check2@test.com", "Check", "Checker");
         member1 = stationMemberRepo.create(station.id(), account1.id());
         member2 = stationMemberRepo.create(station.id(), account2.id());
-        // Assign MEMBER permission so nextUncheckedMember filter works
         stationMemberRepo.findPermissionByName(StationPermission.USER).ifPresent(r -> {
             stationMemberRepo.grantPermission(member1.id(), r.id());
             stationMemberRepo.grantPermission(member2.id(), r.id());
@@ -64,8 +64,6 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         accountRepo.delete(account1.id());
         accountRepo.delete(account2.id());
     }
-
-    // -- Locks --
 
     @Test
     @Order(1)
@@ -105,8 +103,6 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         assertTrue(inventoryCheckRepo.findLock(member1.id()).isEmpty());
     }
 
-    // -- Checks --
-
     @Test
     @Order(10)
     void createCheck() {
@@ -137,7 +133,6 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
     void checkOverview() {
         var overview = inventoryCheckRepo.checkOverview(station.id());
         assertFalse(overview.isEmpty());
-        // member1 was checked, member2 was not
         var m1 = overview.stream()
                 .filter(s -> s.memberId() == member1.id())
                 .findFirst()
@@ -145,8 +140,6 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         assertNotNull(m1.lastCheckedAt());
         assertEquals("Check", m1.checkerFirstName());
     }
-
-    // -- Check Items --
 
     @Test
     @Order(20)
@@ -167,12 +160,9 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         assertEquals(CheckResult.CONFIRMED, items.getFirst().result());
     }
 
-    // -- Navigation --
-
     @Test
     @Order(30)
     void nextUncheckedMember() {
-        // member1 was checked, member2 was not, so member2 should be next
         var next = inventoryCheckRepo.nextUncheckedMember(station.id(), member1.id(), false);
         assertTrue(next.isPresent());
         assertEquals(member2.id(), next.get());
@@ -206,10 +196,10 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         containerRepo.delete(container.id());
     }
 
+    /** Builds on the earlier check of member1 by member2, which recorded one item. */
     @Test
     @Order(50)
     void latestCheckDetail() {
-        // Builds on the member1 check from the earlier order (member1 was checked by member2 with one item).
         var detail = inventoryCheckRepo.latestCheckDetail(member1.id());
         assertTrue(detail.isPresent());
         assertEquals(checkId, detail.get().check().id());
@@ -241,11 +231,13 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         assertEquals("Check Checker", results.getFirst().checkerName());
     }
 
+    /**
+     * The item already carries member1's earlier member-scope check; a container-scope check of the
+     * same item makes the history show the container name and both scopes, newest first.
+     */
     @Test
     @Order(70)
     void findCheckHistoryForItem() {
-        // member1's prior MEMBER-scope check is already on `item`. Add a CONTAINER-scope check
-        // touching the same item so the history join surfaces the container name and both scopes.
         var container = containerRepo.create(station.id(), null, null, "HistoryRoom", null, "", null);
         var containerCheck = inventoryCheckRepo.createContainerCheck(station.id(), container.id(), member2.id(), false);
         inventoryCheckRepo.createCheckItem(
@@ -253,13 +245,11 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
 
         var history = inventoryCheckRepo.findCheckHistoryForItem(item.id());
         assertEquals(2, history.size());
-        // Newest first → the container check we just added.
         assertEquals(containerCheck.id(), history.getFirst().checkId());
         assertEquals(CheckResult.NOT_IN_POSSESSION, history.getFirst().result());
         assertEquals(InventoryCheckScope.CONTAINER, history.getFirst().scope());
         assertEquals("HistoryRoom", history.get(0).containerName());
         assertEquals("left at home", history.get(0).note());
-        // Member-scope check is older.
         assertEquals(InventoryCheckScope.MEMBER, history.get(1).scope());
         assertNull(history.get(1).containerName());
 
@@ -269,11 +259,9 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(80)
     void releaseExpiredLocks() {
-        // No exception even when nothing matches the age filter.
         inventoryCheckRepo.acquireLock(station.id(), member1.id(), member2.id());
         inventoryCheckRepo.releaseExpiredLocks(60);
         assertTrue(inventoryCheckRepo.findLock(member1.id()).isPresent());
-        // A zero-minute window expires everything, dropping the lock.
         inventoryCheckRepo.releaseExpiredLocks(0);
         assertTrue(inventoryCheckRepo.findLock(member1.id()).isEmpty());
     }
@@ -281,12 +269,10 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(81)
     void nextUncheckedMemberTeamOnly() {
-        // Both demo members are user_type=MEMBER, so the team filter must skip them.
         assertTrue(inventoryCheckRepo
                 .nextUncheckedMember(station.id(), member1.id(), true)
                 .isEmpty());
 
-        // Promote member2 to TEAM and try again - it should now be picked up.
         stationMemberRepo.setUserType(member2.id(), StationUserType.TEAM);
         var picked = inventoryCheckRepo.nextUncheckedMember(station.id(), member1.id(), true);
         assertTrue(picked.isPresent());

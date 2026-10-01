@@ -127,8 +127,7 @@ class ClusterFederationTest extends RepositoryTestBase {
         assertThrows(BadRequestResponse.class, () -> service.endFederation(meshPairId));
         assertThrows(BadRequestResponse.class, () -> service.suspendPartner(homePairId), "content must keep arriving");
 
-        // A mesh pair is a matter between the two stations, so pausing one is theirs to do
-        assertTrue(service.suspendPartner(meshPairId));
+        assertTrue(service.suspendPartner(meshPairId), "a mesh pair is the two stations' own to pause");
     }
 
     @Test

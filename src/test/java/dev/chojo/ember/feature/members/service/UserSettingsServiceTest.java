@@ -89,7 +89,6 @@ class UserSettingsServiceTest extends RepositoryTestBase {
     void getNotificationSettingsEmpty() {
         var settings = service.getNotificationSettings(member.id());
         assertNotNull(settings);
-        // Default: no explicit settings stored
         assertTrue(settings.isEmpty() || settings.containsKey(NotificationType.NEW_NEWS));
     }
 
@@ -126,7 +125,6 @@ class UserSettingsServiceTest extends RepositoryTestBase {
     @Test
     @Order(13)
     void findOrCreateIdempotent() {
-        // Should not reset the settings that were updated
         var settings = service.findOrCreate(member.id());
         assertNotNull(settings);
         assertEquals(member.id(), settings.memberId());

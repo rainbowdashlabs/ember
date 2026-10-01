@@ -130,7 +130,6 @@ class RegistrationCodeServiceTest extends RepositoryTestBase {
         var group2 = memberGroupRepo.create(station.id(), "Seniors");
         var result = service.setGroups(station.id(), codeId, List.of(group.id(), group2.id()));
         assertEquals(2, result.size());
-        // Switch to just one
         var result2 = service.setGroups(station.id(), codeId, List.of(group2.id()));
         assertEquals(1, result2.size());
         assertEquals(group2.id(), result2.getFirst());

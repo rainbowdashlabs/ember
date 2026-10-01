@@ -95,12 +95,9 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(5)
     void findVisibleForMember() {
-        // No group restrictions, should be visible
         var visible = newsRepo.findVisibleForMember(station.id(), member.id(), false, 0, 10);
         assertEquals(1, visible.size());
     }
-
-    // -- Restrictions (now handled by RestrictionRepository) --
 
     @Test
     @Order(10)
@@ -118,13 +115,10 @@ class NewsRepositoryTest extends RepositoryTestBase {
         memberGroupRepo.delete(group.id());
     }
 
-    // -- Acknowledgements --
-
     @Test
     @Order(30)
     void acknowledge() {
         assertDoesNotThrow(() -> newsRepo.acknowledge(newsId, member.id()));
-        // Idempotent - calling again should not throw
         assertDoesNotThrow(() -> newsRepo.acknowledge(newsId, member.id()));
     }
 
@@ -138,11 +132,9 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(32)
     void countUnacknowledged() {
-        // Create a second account/member that has not acknowledged
         var account2 = accountRepo.create("news2@test.com", "News2", "User2");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
         int unacked = newsRepo.countUnacknowledged(station.id(), member2.id(), false);
-        // There is one published news article that member2 has not acknowledged
         assertEquals(1, unacked);
         accountRepo.delete(account2.id());
     }
@@ -150,7 +142,6 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(33)
     void countUnacknowledgedWhenAcknowledged() {
-        // member already acknowledged the article in Order(30)
         int unacked = newsRepo.countUnacknowledged(station.id(), member.id(), false);
         assertEquals(0, unacked);
     }
@@ -207,18 +198,14 @@ class NewsRepositoryTest extends RepositoryTestBase {
         assertFalse(newsRepo.hasPublicBlogEntries(station.id()));
     }
 
-    // -- Views --
-
     @Test
     @Order(50)
     void recordViewAndCount() {
-        // No views yet
         assertEquals(0, newsRepo.countViews(newsId));
         assertFalse(newsRepo.hasViewed(newsId, member.id()));
         newsRepo.recordView(newsId, member.id());
         assertEquals(1, newsRepo.countViews(newsId));
         assertTrue(newsRepo.hasViewed(newsId, member.id()));
-        // Idempotent - second call adds no row
         newsRepo.recordView(newsId, member.id());
         assertEquals(1, newsRepo.countViews(newsId));
     }
@@ -228,7 +215,6 @@ class NewsRepositoryTest extends RepositoryTestBase {
     void findSeenAndUnseenViewers() {
         var account2 = accountRepo.create("news-views2@test.com", "News2", "Viewer");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
-        // member has viewed, member2 has not
         var seen = newsRepo.findSeenViewers(newsId);
         assertEquals(1, seen.size());
         assertEquals(member.uid(), seen.getFirst().member().memberUid());

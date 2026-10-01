@@ -46,7 +46,6 @@ class SubmitterHashServiceTest {
 
         assertNotNull(hash);
         assertEquals(32, hash.length);
-        // Salt persisted as Base64-encoded 32 bytes.
         String persisted = store.get(SubmitterHashService.SALT_KEY);
         assertNotNull(persisted);
         assertEquals(32, Base64.getDecoder().decode(persisted).length);
@@ -95,7 +94,6 @@ class SubmitterHashServiceTest {
 
         assertNotNull(hash);
         assertEquals(32, hash.length);
-        // Verify the salt was not regenerated.
         assertEquals(Base64.getEncoder().encodeToString(preExisting), store.get(SubmitterHashService.SALT_KEY));
     }
 
@@ -104,7 +102,6 @@ class SubmitterHashServiceTest {
         Map<String, String> store = new HashMap<>();
         var service = new SubmitterHashService(inMemorySettings(store));
         byte[] firstHash = service.hash(InetAddress.getByName("203.0.113.42"), 7);
-        // Wipe the store; the cached salt must keep the service working.
         store.clear();
         byte[] secondHash = service.hash(InetAddress.getByName("203.0.113.42"), 7);
         assertArrayEquals(firstHash, secondHash);

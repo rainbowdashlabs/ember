@@ -99,8 +99,7 @@ class InventoryArtServiceTest extends RepositoryTestBase {
         InventoryItem loose = piece(drawer.id(), "Laminiergerät", null);
         assertNull(loose.artId());
         assertNull(inventoryRepo.findItemById(loose.id()).orElseThrow().artId());
-        // A count over kinds leaves it out rather than inventing a group for it.
-        assertTrue(artService.stock(drawer.id()).isEmpty());
+        assertTrue(artService.stock(drawer.id()).isEmpty(), "a count over kinds invents no group for it");
         assertEquals(1, artService.nameCounts(drawer.id()).size());
         assertEquals(1, artService.nameCounts(drawer.id()).getFirst().unassigned());
         assertTrue(fieldDefinitionService.resolveForItem(loose).isEmpty());
@@ -113,11 +112,10 @@ class InventoryArtServiceTest extends RepositoryTestBase {
         assertThrows(BadRequestResponse.class, () -> artService.create(drawer.id(), "Blau", "", 0));
         assertThrows(BadRequestResponse.class, () -> artService.create(drawer.id(), "  blau  ", "", 0));
 
-        // And the same word in another station's drawer is the same kind, which is what lets a
-        // partner's stock be counted alongside this one's.
         Inventory otherDrawer = drawer();
         InventoryArt elsewhere = artService.create(otherDrawer.id(), " BLAU ", "", 0);
-        assertEquals("blau", elsewhere.mergeKey());
+        assertEquals(
+                "blau", elsewhere.mergeKey(), "the same word elsewhere is the same kind, so partner stock counts too");
         assertTrue(artService.sameAcrossStations(elsewhere.id()).size() >= 2);
     }
 
@@ -219,15 +217,12 @@ class InventoryArtServiceTest extends RepositoryTestBase {
         assertEquals(
                 "Florian 1", textValue(inventoryRepo.findItemById(radio.id()).orElseThrow(), "call_sign"));
 
-        // The kind goes, and the form comes back with nothing in it because it showed nothing.
         service.updateItem(radio.id(), null, "Funkgerät blau", null, null, InventoryItemMetadata.empty(), null);
         InventoryItem stripped = inventoryRepo.findItemById(radio.id()).orElseThrow();
         assertNull(stripped.artId());
         assertTrue(fieldDefinitionService.resolveForItem(stripped).isEmpty());
         assertEquals("Florian 1", textValue(stripped, "call_sign"));
 
-        // And it reads again the day the kind comes back, which the tidying screen does without
-        // touching what the piece recorded.
         artService.assign(drawer.id(), blau.id(), List.of(radio.id()));
         InventoryItem restored = inventoryRepo.findItemById(radio.id()).orElseThrow();
         assertEquals(1, fieldDefinitionService.resolveForItem(restored).size());
@@ -277,7 +272,6 @@ class InventoryArtServiceTest extends RepositoryTestBase {
         InventoryArt gruen = artService.create(drawer.id(), "grün", "", 1);
         assertThrows(BadRequestResponse.class, () -> artService.update(gruen.id(), " BLAU ", "", 1));
         assertThrows(BadRequestResponse.class, () -> artService.update(gruen.id(), "", "", 1));
-        // Keeping its own name is not taking another one.
         assertTrue(artService.update(blau.id(), "blau", "eine Notiz", 5).isPresent());
         assertEquals("eine Notiz", artService.findById(blau.id()).orElseThrow().note());
     }

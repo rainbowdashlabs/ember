@@ -97,7 +97,6 @@ class FeedTokenServiceTest extends RepositoryTestBase {
     @Test
     @Order(8)
     void oldTokenNoLongerWorks() {
-        // The old token should no longer resolve
         var result = service.findByToken("old-invalid-token");
         assertTrue(result.isEmpty());
     }

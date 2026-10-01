@@ -51,17 +51,18 @@ class IcalEventRendererTest {
     private IcalEventRenderer renderer;
     private Station station;
 
+    /**
+     * Fields render their stored text, and translations echo their key with the placeholder values
+     * appended, so a test can assert on the key and on what was substituted into it.
+     */
     @BeforeEach
     void setup() {
         eventFieldService = mock(EventFieldService.class);
-        // Stand-in for the real resolution: everything but a member field renders its stored text.
         when(eventFieldService.displayValue(any())).thenAnswer(inv -> {
             AppointmentField field = inv.getArgument(0);
             return field == null || field.value() == null ? "" : field.value().trim();
         });
         NotificationText notificationService = mock(NotificationText.class);
-        // Mirror NotificationText: echo the key, but interpolate {name} placeholders from the
-        // params map when present so cancelledWithReason etc. surface their substitution values.
         when(notificationService.resolveLocalized(any(), eq("ical"), any(), any()))
                 .thenAnswer(inv -> {
                     String key = inv.getArgument(2);
@@ -112,8 +113,6 @@ class IcalEventRendererTest {
                 false,
                 false);
     }
-
-    // -- visibility --
 
     @Test
     void hidesNonGuardianWhoDeclined() {
@@ -222,8 +221,6 @@ class IcalEventRendererTest {
         assertTrue(renderer.isVisibleForFeed(closed, ctx(Map.of(), accepted)), "a place taken keeps it");
     }
 
-    // -- rendering --
-
     @Test
     void rendersLocationPropertyFromFirstLocationField() {
         var event = simpleEvent(10);
@@ -248,9 +245,8 @@ class IcalEventRendererTest {
         assertEquals("Marktplatz 1", location.getValue());
         var url = ve.getProperty("URL").map(Url.class::cast).orElseThrow();
         assertTrue(url.getValue().contains("/station/events/10?station="));
-        // Description omits the LOCATION field (it lives on its own property) but keeps the other.
         String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
-        assertFalse(description.contains("Ort: Marktplatz 1"));
+        assertFalse(description.contains("Ort: Marktplatz 1"), "the location has a property of its own");
         assertTrue(description.contains("Thema: Übung"));
         assertTrue(description.contains("/station/events/10"));
     }
@@ -273,14 +269,7 @@ class IcalEventRendererTest {
         var event = simpleEvent(12);
         when(eventFieldService.findByEvent(eq(12), any())).thenReturn(List.of());
         var ctx = new IcalEventRenderer.Context(
-                station,
-                "en",
-                "https://ember.example.com",
-                false, // verbose=false
-                Map.of(),
-                Map.of(),
-                Map.of(),
-                calendar(List.of()));
+                station, "en", "https://ember.example.com", false, Map.of(), Map.of(), Map.of(), calendar(List.of()));
 
         var ve = renderer.render(event, ctx).getFirst();
         String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
@@ -304,9 +293,7 @@ class IcalEventRendererTest {
         assertTrue(description.contains("Alice"));
         assertTrue(description.contains("Bob"));
         assertTrue(description.contains("label.accepted"));
-        // Only one of the two managed members is ACCEPTED (Alice); owner accepts are not counted
-        // in this aggregate.
-        assertTrue(description.contains("1 / "));
+        assertTrue(description.contains("1 / "), "only the managed members count, and only Alice accepted");
     }
 
     /**
@@ -417,8 +404,6 @@ class IcalEventRendererTest {
                 .getValue()
                 .contains("cancelled"));
     }
-
-    // -- helpers --
 
     private IcalEventRenderer.Context ctxWithCancellations(List<EventDateCancellation> cancellations) {
         return new IcalEventRenderer.Context(

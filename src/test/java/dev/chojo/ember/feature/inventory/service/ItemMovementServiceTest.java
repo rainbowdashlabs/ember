@@ -158,19 +158,20 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 itemMovementService.stepsOf(movement).size(),
                 "the owner's two steps are in the chain, walked by the station where the owner is not here");
 
-        // Step 2 takes it back to the station, which does not own it
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
         assertEquals(ItemCustody.AT_STATION, custodyOf(old));
 
-        // Step 3 puts it in the post, where it is in neither store's free stock
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
         assertEquals(ItemCustody.IN_TRANSIT, custodyOf(old));
         assertEquals(
                 movement.id(), inventoryRepo.findItemById(old).orElseThrow().custodyMovementId());
-        assertFalse(inventoryRepo.findUnassignedItems(mixedInventoryId).stream().anyMatch(i -> i.id() == old));
+        assertFalse(
+                inventoryRepo.findUnassignedItems(mixedInventoryId).stream().anyMatch(i -> i.id() == old),
+                "in the post it is in neither store's free stock");
 
-        // It still belongs to the station's list, because the station is one end of the movement
-        assertTrue(inventoryRepo.findItemsByStation(station.id()).stream().anyMatch(i -> i.id() == old));
+        assertTrue(
+                inventoryRepo.findItemsByStation(station.id()).stream().anyMatch(i -> i.id() == old),
+                "the station is one end of the movement, so it keeps the piece on its list");
 
         movement = walkToEnd(movement, replacement);
         assertEquals(MovementState.DONE, movement.state());
@@ -285,10 +286,12 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         assertEquals(ItemCustody.WITH_OWNER, custodyOf(gear));
     }
 
+    /**
+     * The owning body is named, but nobody from its side can press anything, so the station is still
+     * standing in and the record has to say so.
+     */
     @Test
     void namingABodyAboveTheStationDoesNotMakeItsStepsItsOwnAnswer() {
-        // The owning body is named, but nobody from its side can press anything, so the station is
-        // still standing in and the record has to say so
         var flow = movementFlowService.createFlow(station.id(), "Benanntes Trägerbein", MovementPurpose.ISSUE);
         movementFlowService.addStep(
                 flow.id(),
@@ -302,7 +305,6 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         movementFlowService.bind(
                 station.id(), null, ItemOwner.CLUSTER, MovementPurpose.ISSUE, MovementParty.STORE, flow.id());
 
-        // A real cluster, because the item's owning cluster is a foreign key now
         var home = stationRepo.create("Träger " + CODES.incrementAndGet());
         int clusterId = clusterRepo.create("Kreisverband", null, home.id()).id();
         int itemId = inventoryRepo
@@ -338,7 +340,8 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
     /**
      * An issue that already names what is being sent is what a cluster starting one looks like, and the
-     * station is told what is coming by name rather than by a step it has to go and read.
+     * station is told what is coming by name rather than by a step it has to go and read. Somebody
+     * answering for the cluster starts it, because the station cannot say that gear has been sent.
      */
     @Test
     void anIssueOfClusterGearNamesWhatIsOnItsWay() {
@@ -363,8 +366,6 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                         clusterId)
                 .id();
 
-        // Started by somebody answering for the cluster, because the first step is the cluster's: gear
-        // it has not sent yet is not something the station can say has been sent
         var cluster = new ItemMovementService.Actor(team.memberId(), true, true);
         ItemMovement movement = itemMovementService.create(
                 station.id(),
@@ -446,10 +447,12 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 "the owner answered for itself");
     }
 
+    /**
+     * Nobody carries owner rights today. The day the body above the station has people who can press
+     * its own steps, they arrive as this actor and the same chain reads as confirmed.
+     */
     @Test
     void anOwnerAnsweringForItselfIsRecordedAsConfirming() {
-        // Nobody carries owner rights today. The day the body above the station has people who can
-        // press its own steps, they arrive here as this actor and the same chain reads as confirmed
         var owner = new ItemMovementService.Actor(member.id(), true, true);
         int old = itemWithMember(ItemOwner.CLUSTER);
 
@@ -468,7 +471,6 @@ class ItemMovementServiceTest extends RepositoryTestBase {
     void aDeclinedMovementPutsTheItemBackWithTheMember() {
         int old = itemWithMember(ItemOwner.CLUSTER);
         ItemMovement movement = announceExchange(old);
-        // Take it back and put it in the post, so it is well away from the member
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
         assertEquals(ItemCustody.IN_TRANSIT, custodyOf(old));
@@ -500,7 +502,6 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         assertNotNull(asked.movementStep());
         assertEquals(ItemCustody.WITH_MEMBER, asked.item().custody());
 
-        // Taken back, then put in the post: the member holds nothing at all any more
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
         assertTrue(entryFor(old).isEmpty(), "handed in means off the member's list");
 
@@ -618,7 +619,6 @@ class ItemMovementServiceTest extends RepositoryTestBase {
     void aStepNobodyAnswersCanBeForcedAndSaysSoAfterwards() {
         int old = itemWithMember(ItemOwner.STATION);
         ItemMovement movement = announceExchange(old);
-        // Roll back to the member's step by starting a fresh one nobody has answered
         int other = itemWithMember(ItemOwner.STATION);
         ItemMovement fresh = itemMovementService.create(
                 station.id(),
@@ -633,7 +633,6 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 team,
                 null);
 
-        // The station's own steps are refused: it can simply acknowledge those
         var refused = assertThrows(
                 BadRequestResponse.class,
                 () -> itemMovementService.force(fresh.id(), fresh.currentStepId(), team, "Keine Antwort", null));
@@ -658,7 +657,6 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         int old = itemWithMember(ItemOwner.STATION);
         ItemMovement movement = announceExchange(old);
 
-        // The movement now stands on a station step, and a plain member may not take it
         assertThrows(
                 ForbiddenResponse.class,
                 () -> itemMovementService.acknowledge(movement.id(), movement.currentStepId(), kid, "", null));
@@ -704,9 +702,9 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         itemMovementService.decline(takenBack.id(), team, "Aufgeräumt");
     }
 
+    /** Runs on a station of its own, because the other tests bind flows of their own to the shared one. */
     @Test
     void aFlowKeepsItsPresetsAndTheBindingsThatPointAtThem() {
-        // Its own station, because the tests above bind flows of their own to the shared one
         var pristine = stationRepo.create("MovementPresetStation");
         var flows = movementFlowService.findFlows(pristine.id());
         assertEquals(11, flows.size(), "one chain per combination of purpose, owner and other end");

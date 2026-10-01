@@ -132,11 +132,9 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void setManagers() {
-        // Set member1 as manager of member2
         var result = service.setManagers(member2.id(), List.of(member1.id()));
         assertTrue(result.stream().anyMatch(m -> m.id() == member1.id()));
 
-        // Remove all managers
         var cleared = service.setManagers(member2.id(), List.of());
         assertTrue(cleared.isEmpty());
     }
@@ -145,7 +143,6 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Order(22)
     void setManagersIdempotent() {
         service.setManagers(member2.id(), List.of(member1.id()));
-        // Setting again with same list should be idempotent
         var result = service.setManagers(member2.id(), List.of(member1.id()));
         assertEquals(1, result.size());
         service.setManagers(member2.id(), List.of());
@@ -187,7 +184,6 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(25)
     void setPermissionsGrantsLoginAndTriggersOnboarding() {
-        // Create a member with email for LOGIN permission testing
         var account3 = accountRepo.create("svc-login@test.com", "Login", "Test");
         var member3 = service.create(station.id(), account3.id());
 
@@ -203,7 +199,6 @@ class StationMemberServiceTest extends RepositoryTestBase {
                 null);
         assertTrue(result.stream().anyMatch(r -> r.permission() == StationPermission.LOGIN));
 
-        // Cleanup
         service.delete(member3.id());
         accountRepo.delete(account3.id());
     }
@@ -213,7 +208,6 @@ class StationMemberServiceTest extends RepositoryTestBase {
     void setPermissionsRevokesExisting() {
         var userPerm =
                 stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
-        // Grant first
         service.setPermissions(
                 member2.id(),
                 List.of(userPerm.id()),
@@ -221,7 +215,6 @@ class StationMemberServiceTest extends RepositoryTestBase {
                 null);
         assertTrue(
                 service.findPermissions(member2.id()).stream().anyMatch(p -> p.permission() == StationPermission.USER));
-        // Revoke by passing empty list
         service.setPermissions(
                 member2.id(),
                 List.of(),
@@ -233,11 +226,9 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(27)
     void setManaged() {
-        // Set member1 as manager of member2 via setManaged
         var result = service.setManaged(member1.id(), List.of(member2.id()));
         assertTrue(result.stream().anyMatch(m -> m.id() == member2.id()));
 
-        // Remove via empty list
         var cleared = service.setManaged(member1.id(), List.of());
         assertTrue(cleared.isEmpty());
     }
@@ -254,7 +245,6 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(29)
     void setPermissionsRejectsLoginWithoutEmail() {
-        // Create an account without email
         var noEmailAccount = accountRepo.create(null, "NoEmail", "User");
         var noEmailMember = service.create(station.id(), noEmailAccount.id());
 
@@ -406,7 +396,6 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void delete() {
-        // Create a third member to delete
         var account3 = accountRepo.create("svc3@test.com", "Third", "Member");
         var member3 = service.create(station.id(), account3.id());
         assertTrue(service.delete(member3.id()));

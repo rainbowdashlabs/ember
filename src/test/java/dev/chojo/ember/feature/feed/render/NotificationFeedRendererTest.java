@@ -75,6 +75,12 @@ class NotificationFeedRendererTest {
     private ProcedureService procedureService;
     private StationRepository stationRepository;
 
+    /**
+     * Every lookup finds nothing until a test stubs it, and every text comes back distinguishable:
+     * categories as {@code loc:} plus the type, titles as {@code title:} plus the type, statuses with
+     * a check mark, and translations as their key with the placeholders filled. A label whose key
+     * comes back unchanged falls back to the renderer's capitalised display label.
+     */
     @BeforeEach
     void setup() {
         notificationService = mock(NotificationText.class);
@@ -87,11 +93,8 @@ class NotificationFeedRendererTest {
         boardTicketService = mock(BoardTicketService.class);
         procedureService = mock(ProcedureService.class);
         stationRepository = mock(StationRepository.class);
-        // No-ops by default; per-test stubbing wires up real returns when needed.
         when(crudService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
         when(eventFieldService.findByEvent(ArgumentMatchers.anyInt(), any())).thenReturn(List.of());
-        // Stand-in for the real resolution: everything but a member field renders its stored
-        // text, so a test that cares about member names stubs this again for its own field.
         when(eventFieldService.displayValue(ArgumentMatchers.any())).thenAnswer(inv -> {
             AppointmentField field = inv.getArgument(0);
             return field == null || field.value() == null ? "" : field.value().trim();
@@ -102,22 +105,13 @@ class NotificationFeedRendererTest {
         when(inventoryService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
         when(boardTicketService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
         when(procedureService.findItems(ArgumentMatchers.anyInt())).thenReturn(List.of());
-        // Return a localised label that's distinguishable from the raw enum name so tests
-        // can verify both labels make it into the SyndEntry categories.
         when(notificationService.resolveCategory(any(), any()))
                 .thenAnswer(inv -> "loc:" + ((NotificationType) inv.getArgument(1)).name());
         when(notificationService.resolveMessage(any(), any())).thenReturn("MESSAGE");
-        // Title resolver: produce a distinguishable per-type string so tests can assert that
-        // the renderer actually calls resolveFeedTitle (not the old resolveCategory).
         when(notificationService.resolveFeedTitle(any(), any()))
                 .thenAnswer(inv ->
                         "title:" + ((Notification) inv.getArgument(1)).type().name());
-        // Status helper: deterministic check-mark + raw status name. Lets the body assertions
-        // stay simple without needing the real ical bundle wired in.
         when(notificationService.resolveStatusWithSymbol(any(), any())).thenAnswer(inv -> "✓ " + inv.getArgument(1));
-        // Mirror NotificationText: echo the key, applying {name} placeholder substitution
-        // when params are provided. Lets tests reason about the bundle key without setting up
-        // real translation files.
         when(notificationService.resolveLocalized(any(), any(), any(), any())).thenAnswer(inv -> {
             String value = inv.getArgument(2);
             @SuppressWarnings("unchecked")
@@ -128,7 +122,6 @@ class NotificationFeedRendererTest {
             }
             return value;
         });
-        // No deep link by default - renderer must fall back to the dashboard.
         when(notificationService.resolveNotificationUrl(any(), any(), any())).thenReturn(null);
         renderer = new NotificationFeedRenderer(
                 notificationService,
@@ -149,26 +142,23 @@ class NotificationFeedRendererTest {
         return new NotificationFeedRenderer.RenderContext("de", "https://ember.example.com", "TOKEN", true, true, null);
     }
 
+    /** The bare category would make every News notification read as just "News" in the reader inbox. */
     @Test
     void entryTitleComesFromResolveFeedTitle() {
-        // Renderer must delegate to the rich title helper, not the bare category - otherwise
-        // every News notification reads as just "News" in the reader inbox.
         var n = notification(100, NotificationType.NEW_NEWS, new NotificationParams.NewNews("T", "A", "P"));
         var entry = renderer.render(n, richCtx());
         assertEquals("title:NEW_NEWS", entry.getTitle());
     }
 
+    /** The status row goes through the one helper that decides locale and symbol. */
     @Test
     void statusBodyUsesLocalisedSymbolFromService() {
-        // Body status row must be routed through resolveStatusWithSymbol so locale + symbol
-        // policy lives in one place. Verifying the helper is actually invoked.
         var n = notification(
                 101,
                 NotificationType.EVENT_REGISTRATION_STATUS,
                 new NotificationParams.EventRegistrationStatus("Tim Berger", "Probe", RegistrationStatus.ACCEPTED, ""));
         var entry = renderer.render(n, richCtx());
         var html = entry.getContents().getFirst().getValue();
-        // The mock returns "✓ ACCEPTED" - make sure that lands in the body.
         assertTrue(html.contains("✓ ACCEPTED"), "Body should embed status from service helper");
     }
 
@@ -194,10 +184,8 @@ class NotificationFeedRendererTest {
     void carriesShortSummaryAndRichHtmlContent() {
         var n = notification(3, NotificationType.NEW_EVENT, new NotificationParams.NewEvent("Probe", "Konzert"));
         var entry = renderer.render(n, richCtx());
-        // Atom <summary> carries the short headline so readers' inbox rows stay readable.
         assertEquals("text/plain", entry.getDescription().getType());
-        assertEquals("MESSAGE", entry.getDescription().getValue());
-        // Atom <content type="html"> carries the rich body for the expanded view.
+        assertEquals("MESSAGE", entry.getDescription().getValue(), "the summary keeps inbox rows short");
         var html = entry.getContents().stream()
                 .filter(c -> "text/html".equals(c.getType()))
                 .findFirst()
@@ -213,14 +201,13 @@ class NotificationFeedRendererTest {
         assertEquals("Alice", entry.getAuthor());
     }
 
+    /** The localised label is for people, the enum name for filters that work across locales. */
     @Test
     void categoryCarriesLocalisedLabelAndStableEnumName() {
         var n = notification(
                 5, NotificationType.STORAGE_WARNING, new NotificationParams.StorageWarning(91, "9.1 GB", "10 GB"));
         var entry = renderer.render(n, richCtx());
         var names = entry.getCategories().stream().map(SyndCategory::getName).toList();
-        // Both the localised label (what humans see) and the raw enum name (for scripted
-        // filters across locales) are exposed.
         assertEquals(2, names.size());
         assertTrue(names.contains("loc:STORAGE_WARNING"), "Localised label missing: " + names);
         assertTrue(names.contains("STORAGE_WARNING"), "Stable enum-name fallback missing: " + names);
@@ -237,13 +224,12 @@ class NotificationFeedRendererTest {
         var html = entry.getContents().getFirst().getValue();
         assertTrue(html.contains("/api/v1/public/feed/TOKEN/lost-and-found/17/image"));
         assertTrue(html.contains("alt=\"Blaue Jacke\""));
-        // MediaRSS thumbnail also wired so readers like Thunderbird get a preview thumbnail.
         var media = entry.getModules().stream()
                 .filter(MediaEntryModuleImpl.class::isInstance)
                 .map(MediaEntryModuleImpl.class::cast)
                 .findFirst()
                 .orElseThrow();
-        assertEquals(1, media.getMediaContents().length);
+        assertEquals(1, media.getMediaContents().length, "readers like Thunderbird show the media thumbnail");
         assertEquals("image", media.getMediaContents()[0].getMedium());
     }
 
@@ -292,7 +278,6 @@ class NotificationFeedRendererTest {
 
     @Test
     void newEventBodyIncludesEventTimesAndCustomFieldValues() {
-        // The event the notification refers to.
         var start = Instant.parse("2027-09-15T17:00:00Z");
         var end = Instant.parse("2027-09-15T19:00:00Z");
         var event = stubEvent(42, start, end);
@@ -329,21 +314,15 @@ class NotificationFeedRendererTest {
                 new NotificationData.NotificationLink("event-detail", Map.of("id", 42)));
         var entry = renderer.render(n, richCtx());
         var html = entry.getContents().getFirst().getValue();
-        // Custom field with a value is rendered; empty field is skipped.
         assertTrue(html.contains("Treffpunkt"), "Field name should be rendered");
         assertTrue(html.contains("Marktplatz"), "Field value should be rendered");
         assertFalse(html.contains(">Empty<"), "Blank field should be skipped");
-        // Same-day events collapse into a single "When:" range row instead of separate
-        // Start / End rows. The mocked resolveLocalized echoes keys back, which triggers the
-        // renderer's fallback to the capitalised display label "When".
         assertTrue(html.contains("When"), "When (range-merged) label should be present");
         assertFalse(html.contains("Starts"), "Same-day events shouldn't render separate Starts row");
     }
 
     @Test
     void lostAndFoundEnrichmentAddsFindDate() {
-        // Service returns an item with a known find date; body must surface it under the
-        // localised "Found on" label (mock echoes key → fallback to capitalised display label).
         when(lostAndFoundService.findById(17))
                 .thenReturn(Optional.of(new LostAndFoundItem(
                         17, 1, "Blaue Jacke", LocalDate.of(2026, 6, 12), null, null, 2, Instant.now())));
@@ -354,7 +333,6 @@ class NotificationFeedRendererTest {
                 new NotificationData.NotificationLink("lost-and-found", Map.of("id", 17)));
         var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
         assertTrue(html.contains("Found on"), "Find date label should be present: " + html);
-        // Date rendered in some locale-appropriate form; just assert the year is present.
         assertTrue(html.contains("2026"), "Find date year should land in body: " + html);
     }
 
@@ -376,7 +354,6 @@ class NotificationFeedRendererTest {
 
     @Test
     void lendingEnrichmentMergesRequestedDateRange() {
-        // From + To present → single "Needed:" range row.
         when(lendingService.findRequest(42))
                 .thenReturn(Optional.of(new LendingRequest(
                         42,
@@ -398,13 +375,11 @@ class NotificationFeedRendererTest {
                 new NotificationData.NotificationLink("lending-request", Map.of("id", 42)));
         var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
         assertTrue(html.contains("Needed"), "Needed label should be present");
-        // Range marker (en-dash) collapses from/to into one fact.
         assertTrue(html.contains("–"), "Range should be merged with en-dash: " + html);
     }
 
     @Test
     void lendingEnrichmentSilentlyNoOpsOnMissingId() {
-        // No id in routeParams → enrichment skips; body still renders other facts.
         var n = notification(
                 53,
                 NotificationType.LENDING_NEW_REQUEST,
@@ -415,11 +390,9 @@ class NotificationFeedRendererTest {
         assertTrue(html.contains("Some Station"));
     }
 
+    /** The categories are listed as bullets under their label, the largest first. */
     @Test
     void storageWarningEnrichmentAddsCategoryBreakdown() {
-        // Service returns three categories with different sizes; renderer must sort by
-        // bytes-desc and surface them as a bulleted child list under the "Largest
-        // categories" label.
         var now = Instant.now();
         when(storageQuotaService.getUsage(7))
                 .thenReturn(List.of(
@@ -433,14 +406,11 @@ class NotificationFeedRendererTest {
                 new NotificationData.NotificationLink("station-settings", Map.of("stationId", 7)));
         var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
         assertTrue(html.contains("Largest categories"), "Header should be present: " + html);
-        // Bullet marker for each category line.
         assertTrue(html.contains("•"), "Bullet marker should be present");
-        // Largest category renders first; renderer mock echoes the storageCategory key.
         int kbPos = html.indexOf("KB_FILES");
         int boardPos = html.indexOf("BOARD_ATTACHMENTS");
         assertTrue(kbPos > 0 && boardPos > 0, "Both category labels should appear in body");
         assertTrue(kbPos < boardPos, "KB_FILES (largest) should appear before BOARD_ATTACHMENTS");
-        // Formatted size lands in the line.
         assertTrue(html.contains("GiB"));
     }
 
@@ -456,14 +426,11 @@ class NotificationFeedRendererTest {
                 new NotificationData.NotificationLink("inventory-procurement", Map.of("id", 99)));
         var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
         assertTrue(html.contains("Type"), "Type row should be present: " + html);
-        // Renderer falls back to enum name when resolveLocalized mock echoes the key - that's
-        // INTERNAL in this test setup. In production the bundle has the localised label.
         assertTrue(html.contains("INTERNAL"), "Inventory type should land in body: " + html);
     }
 
     @Test
     void procedureProgressEnrichmentMergesCheckedAndTotalIntoSingleRow() {
-        // 3 of 5 checked → "Progress: 3 of 5 items" (mock echoes progressFormat key with subst).
         var items = List.of(
                 procedureItem(1, 80, "A", true),
                 procedureItem(2, 80, "B", true),
@@ -478,15 +445,12 @@ class NotificationFeedRendererTest {
                 new NotificationData.NotificationLink("procedure-detail", Map.of("id", 80)));
         var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
         assertTrue(html.contains("Progress"), "Progress row label should be present: " + html);
-        // Mock echoes the bundle key "progressFormat" after substituting {checked} and {total}.
-        // The substituted values are what test asserts on.
         assertTrue(html.contains("3"), "Checked count should appear");
         assertTrue(html.contains("5"), "Total count should appear");
     }
 
     @Test
     void procedureProgressNoOpsOnEmptyItemList() {
-        // No items → no progress row.
         var n = notification(
                 74,
                 NotificationType.PROCEDURE_RESOLVED,
@@ -556,7 +520,6 @@ class NotificationFeedRendererTest {
                 new NotificationData.NotificationLink("station-settings"));
         var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
         assertFalse(html.contains("Largest categories"));
-        // Base usage row still renders.
         assertTrue(html.contains("91%"));
     }
 
@@ -681,8 +644,6 @@ class NotificationFeedRendererTest {
         assertFalse(html.contains("<script>"));
         assertTrue(html.contains("&lt;script&gt;"));
     }
-
-    // -- helpers --
 
     private static Notification notification(int id, NotificationType type, NotificationParams params) {
         return notification(id, type, params, null);

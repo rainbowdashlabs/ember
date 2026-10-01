@@ -85,11 +85,8 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertTrue(updated.homogeneous());
         assertEquals("shirt", updated.icon());
         assertEquals("#b45309", updated.color());
-        // restore
         inventoryRepo.update(inventoryId, "Helmets", InventoryType.EXTERNAL, true, true, Glyph.NONE);
     }
-
-    // -- Sizes --
 
     @Test
     @Order(10)
@@ -116,8 +113,6 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertTrue(inventoryRepo.deleteSize(secondId));
         assertEquals(1, inventoryRepo.findSizes(inventoryId).size());
     }
-
-    // -- Items --
 
     @Test
     @Order(19)
@@ -196,18 +191,14 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertFalse(inventoryRepo.findItemsByMember(member.id()).isEmpty());
         assertEquals(1, inventoryRepo.countItemsByMember(member.id()));
 
-        // Unassign
         assertTrue(itemCustodyService.takeBack(itemId).isPresent());
         assertNull(inventoryRepo.findItemById(itemId).orElseThrow().assignedTo());
         assertEquals(0, inventoryRepo.countItemsByMember(member.id()));
     }
 
-    // -- History --
-
     @Test
     @Order(30)
     void createHistory() {
-        // Re-create item for history tests
         InventoryItem item = inventoryRepo.createItem(inventoryId, "H-003", "History Helmet", sizeId, null);
         itemId = item.id();
 
@@ -247,8 +238,6 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     void cleanupHistoryItem() {
         assertTrue(inventoryRepo.deleteItem(itemId));
     }
-
-    // -- Requirements --
 
     private static int requirementId;
 
@@ -293,17 +282,13 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertNotNull(req);
         assertEquals(group.id(), req.groupId());
         assertEquals(3, req.quantity());
-        // cleanup
         inventoryRepo.deleteRequirement(req.id());
         memberGroupRepo.delete(group.id());
     }
 
-    // -- findItemsByStation / findSizesByStation / findUnassignedItems --
-
     @Test
     @Order(45)
     void findItemsByStation() {
-        // Create a fresh item for this test
         InventoryItem item = inventoryRepo.createItem(inventoryId, "STAT-001", "Station Item", sizeId, null);
         var items = inventoryRepo.findItemsByStation(station.id());
         assertFalse(items.isEmpty());
@@ -328,8 +313,6 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         inventoryRepo.deleteItem(item.id());
     }
 
-    // -- markLost / markFound --
-
     @Test
     @Order(48)
     void markLostAndFound() {
@@ -342,8 +325,6 @@ class InventoryRepositoryTest extends RepositoryTestBase {
 
         inventoryRepo.deleteItem(item.id());
     }
-
-    // -- createItem with an owner --
 
     @Test
     @Order(49)
@@ -376,8 +357,6 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         inventoryRepo.deleteItem(item.id());
     }
 
-    // -- createHistoryWithDates --
-
     @Test
     @Order(35)
     void createHistoryWithDates() {
@@ -391,8 +370,6 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertNotNull(history.getFirst().returned());
         inventoryRepo.deleteItem(item.id());
     }
-
-    // -- updateRequirementPosition --
 
     @Test
     @Order(43)
@@ -435,12 +412,9 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         stationRepo.delete(home.id());
     }
 
-    // -- Cleanup --
-
     @Test
     @Order(50)
     void deleteItemFinal() {
-        // item was already deleted in Order(34)
         assertFalse(inventoryRepo.deleteItem(itemId));
     }
 

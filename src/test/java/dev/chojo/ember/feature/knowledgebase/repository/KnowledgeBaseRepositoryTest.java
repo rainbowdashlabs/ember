@@ -44,8 +44,6 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
-    // -- Folders --
-
     @Test
     @Order(1)
     void createFolder() {
@@ -89,8 +87,6 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         knowledgeBaseRepo.purgeFolder(sub.id());
     }
 
-    // -- Files --
-
     @Test
     @Order(10)
     void createMarkdownFile() {
@@ -121,7 +117,6 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void findFilesRootLevel() {
-        // create a file without folder
         var rootFile = knowledgeBaseRepo.createFile(
                 station.id(), null, "Root file", "", KbFileType.TEXT, "text/plain", 10, null, member.id());
         var rootFiles = knowledgeBaseRepo.findFiles(station.id(), null);
@@ -145,8 +140,6 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
                 knowledgeBaseRepo.findFileById(fileId).orElseThrow().name());
     }
 
-    // -- Text Content --
-
     @Test
     @Order(20)
     void storeAndReadTextContent() {
@@ -162,8 +155,6 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         knowledgeBaseRepo.storeTextContent(fileId, "New content");
         assertEquals("New content", knowledgeBaseRepo.readTextContent(fileId).orElseThrow());
     }
-
-    // -- Versions --
 
     @Test
     @Order(30)
@@ -191,14 +182,11 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         assertEquals(2, next);
     }
 
-    // -- Search Index --
-
     @Test
     @Order(40)
     void updateSearchIndexAndSearch() {
         knowledgeBaseRepo.updateSearchIndex(fileId, "welcome safety document fire", "simple");
         var results = knowledgeBaseRepo.search(station.id(), "safety", "simple", 50);
-        // May or may not return results depending on tsvector; just verify no exception
         assertNotNull(results);
     }
 
@@ -209,8 +197,6 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         assertNotNull(results);
     }
 
-    // -- Tags --
-
     @Test
     @Order(50)
     void findOrCreateTag() {
@@ -218,7 +204,6 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         assertNotNull(tag);
         assertEquals("safety", tag.name());
 
-        // Idempotent
         var tag2 = knowledgeBaseRepo.findOrCreateTag(station.id(), "safety");
         assertEquals(tag.id(), tag2.id());
     }
@@ -257,8 +242,6 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         assertTrue(knowledgeBaseRepo.deleteTag(tag.id()));
     }
 
-    // -- Related Files --
-
     @Test
     @Order(60)
     void setAndFindRelatedFiles() {
@@ -269,13 +252,10 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         assertFalse(related.isEmpty());
         assertTrue(related.stream().anyMatch(f -> f.id() == other.id()));
 
-        // clear
         knowledgeBaseRepo.setRelatedFiles(fileId, List.of());
         assertTrue(knowledgeBaseRepo.findRelatedFiles(fileId).isEmpty());
         knowledgeBaseRepo.purgeFile(other.id());
     }
-
-    // -- Public Visibility --
 
     @Test
     @Order(80)
@@ -306,8 +286,6 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         knowledgeBaseRepo.removePublicVisibility(null, fileId);
         assertTrue(knowledgeBaseRepo.findPublicVisibility(null, fileId).isEmpty());
     }
-
-    // -- Restrictions --
 
     @Test
     @Order(85)
@@ -342,8 +320,6 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         knowledgeBaseRepo.clearRestrictions(null, fileId);
     }
 
-    // -- Source Reference --
-
     @Test
     @Order(88)
     void setSourceReference() {
@@ -352,8 +328,6 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         assertTrue(knowledgeBaseRepo.setSourceReference(fileId, other.id(), station.id()));
         knowledgeBaseRepo.purgeFile(other.id());
     }
-
-    // -- createFile with linkUrl --
 
     @Test
     @Order(93)
@@ -373,8 +347,6 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         assertEquals("https://example.com", file.linkUrl());
         knowledgeBaseRepo.purgeFile(file.id());
     }
-
-    // -- Cleanup --
 
     @Test
     @Order(99)

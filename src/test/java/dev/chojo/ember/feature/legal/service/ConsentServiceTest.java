@@ -37,7 +37,6 @@ class ConsentServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() throws IOException {
-        // Create minimal directory structure for legal docs
         Path privacyDir = tempDir.resolve("privacy");
         Path tosDir = tempDir.resolve("tos");
         Path consentDir = tempDir.resolve("consent");
@@ -48,7 +47,6 @@ class ConsentServiceTest extends RepositoryTestBase {
         Files.createDirectories(consentDir.resolve("de"));
         Files.createDirectories(imprintDir.resolve("de"));
 
-        // Write simple markdown content
         Files.writeString(privacyDir.resolve("de").resolve("01-privacy.md"), "# Privacy\nWe value your privacy.");
         Files.writeString(tosDir.resolve("de").resolve("01-tos.md"), "# Terms\nThese are the terms.");
         Files.writeString(consentDir.resolve("de").resolve("01-consent.md"), "# Consent\nPlease consent.");
@@ -118,7 +116,6 @@ class ConsentServiceTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void getPrivacyPolicyFallbackLocale() {
-        // Non-existent locale falls back to default
         var doc = service.getPrivacyPolicy("xx");
         assertNotNull(doc);
     }
@@ -135,7 +132,6 @@ class ConsentServiceTest extends RepositoryTestBase {
                 "127.0.0.1",
                 "DE",
                 "TestAgent/1.0");
-        // No exception = success
     }
 
     @Test
@@ -158,10 +154,7 @@ class ConsentServiceTest extends RepositoryTestBase {
     @Order(20)
     void getDiffSameVersion() {
         var versions = service.getCurrentVersions();
-        // Same version diff should return null or empty
         var diff = service.getPrivacyDiff(versions.privacyVersion(), versions.privacyVersion());
-        // Either null (no archived version yet) or empty string - just verify no exception
-        // diff may be null if no history archive exists yet
         assertTrue(diff == null || diff.isEmpty() || !diff.isEmpty());
     }
 
@@ -177,7 +170,6 @@ class ConsentServiceTest extends RepositoryTestBase {
     @Order(22)
     void recordConsentWithNullCountry() {
         var versions = service.getCurrentVersions();
-        // null country should be accepted
         assertDoesNotThrow(() -> service.recordConsent(
                 account.id(),
                 versions.consentVersion(),
@@ -210,30 +202,25 @@ class ConsentServiceTest extends RepositoryTestBase {
                 "Agent/2.0");
         var latest = service.findLatestConsent(account.id());
         assertTrue(latest.isPresent());
-        // Should return some consent record
         assertNotNull(latest.get().consentVersion());
     }
 
     @Test
     @Order(24)
     void getPrivacyDiffDifferentVersions() {
-        // fromVersion different from toVersion - should return null or some string
         var diff = service.getPrivacyDiff("version-a", "version-b");
-        // Just verify no exception - result is null when no history exists
         assertTrue(diff == null || diff.isEmpty() || !diff.isEmpty());
     }
 
     @Test
     @Order(25)
     void initializeIsIdempotent() {
-        // Calling initialize a second time should not throw
         assertDoesNotThrow(() -> service.initialize());
     }
 
     @Test
     @Order(30)
     void initializeLogsWhenDocumentsChange() throws IOException {
-        // Create a fresh set of directories with new content to trigger the "changed" path
         Path freshPrivacy = tempDir.resolve("privacy2");
         Path freshTos = tempDir.resolve("tos2");
         Path freshConsent = tempDir.resolve("consent2");
@@ -256,12 +243,9 @@ class ConsentServiceTest extends RepositoryTestBase {
         when(apiConfig2.imprintDir()).thenReturn(freshImprint.toString());
 
         var service2 = new ConsentService(accountRepo, apiConfig2);
-        // First init - all documents are new, so changed=true
         assertDoesNotThrow(service2::initialize);
-        // Second init - same content, so changed=false (exercises the else branch)
         assertDoesNotThrow(service2::initialize);
 
-        // Modify one doc and re-init to trigger the log.warn with mixed changed/unchanged
         Files.writeString(freshPrivacy.resolve("de").resolve("01-privacy.md"), "# Privacy v3\nUpdated again.");
         assertDoesNotThrow(service2::initialize);
     }

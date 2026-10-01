@@ -60,13 +60,11 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         account = accountRepo.create("newsfed@test.com", "NewsFed", "User");
         StationMember member = stationMemberRepo.create(station.id(), account.id());
 
-        // Create news articles (published at creation)
         var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
         news1 = newsRepo.create(station.id(), "Fed News 1", "# One", "<h1>One</h1>", authorIdentity);
         news2 = newsRepo.create(station.id(), "Fed News 2", "# Two", "<h1>Two</h1>", authorIdentity);
         news3 = newsRepo.create(station.id(), "Fed News 3", "# Three", "<h1>Three</h1>", authorIdentity);
 
-        // Create federation partners
         var keyPair = federationService.generateKeyPair();
         var partner = federationService.acceptInvite(
                 station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
@@ -77,7 +75,6 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
                 station.id(), stationC.id(), federationService.encodePublicKey(keyPairB), null, null);
         partnerIdB = partnerB.id();
 
-        // Create a comment for federated author tests
         commentRepo.create(CommentEntityType.NEWS, news1.id(), null, null, authorIdentity, "Test comment");
     }
 
@@ -87,8 +84,6 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
         accountRepo.delete(account.id());
     }
-
-    // -- setShare and findShareByNews --
 
     @Test
     @Order(1)
@@ -117,8 +112,6 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         assertTrue(fedRepo.findShareByNews(99999).isEmpty());
     }
 
-    // -- setShare upsert (ON CONFLICT) --
-
     @Test
     @Order(4)
     void setShareUpdatesExisting() {
@@ -127,8 +120,6 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         assertEquals(ShareScope.SPECIFIC, updated.scope());
         assertEquals(NewsVisibilityRole.TEAM, updated.visibilityRole());
     }
-
-    // -- Share targets --
 
     @Test
     @Order(10)
@@ -165,12 +156,9 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         assertTrue(targets.isEmpty());
     }
 
-    // -- findSharedNewsIds --
-
     @Test
     @Order(20)
     void findSharedNewsIdsAllPartners() {
-        // Set news1 to ALL_PARTNERS
         fedRepo.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER);
         var ids = fedRepo.findSharedNewsIds(partnerId, station.id());
         assertTrue(ids.contains(news1.id()));
@@ -179,7 +167,6 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void findSharedNewsIdsSpecificWithTarget() {
-        // Set news2 to SPECIFIC with partnerId
         var share2 = fedRepo.setShare(news2.id(), ShareScope.SPECIFIC, NewsVisibilityRole.MEMBER);
         fedRepo.setShareTargets(share2.id(), List.of(partnerId));
 
@@ -190,9 +177,7 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(22)
     void findSharedNewsIdsSpecificWithoutTarget() {
-        // news2 is SPECIFIC for partnerId only; partnerIdB should NOT see it
         var ids = fedRepo.findSharedNewsIds(partnerIdB, station.id());
-        // partnerIdB should see news1 (ALL_PARTNERS) but NOT news2 (SPECIFIC, targeted only at partnerId)
         assertTrue(ids.contains(news1.id()));
         assertFalse(ids.contains(news2.id()));
     }
@@ -200,7 +185,6 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(23)
     void findSharedNewsIdsNoSharesConfigured() {
-        // news3 has no share configured at all
         var ids = fedRepo.findSharedNewsIds(partnerId, station.id());
         assertFalse(ids.contains(news3.id()));
     }
@@ -233,8 +217,6 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         assertTrue(fedRepo.findSharedNewsIds(partnerId, station.id()).contains(news1.id()));
     }
 
-    // -- findVisibilityRole --
-
     @Test
     @Order(30)
     void findVisibilityRole() {
@@ -249,12 +231,9 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         assertTrue(fedRepo.findVisibilityRole(99999).isEmpty());
     }
 
-    // -- removeShare --
-
     @Test
     @Order(40)
     void removeShare() {
-        // Remove news2 share
         fedRepo.removeShare(news2.id());
         assertTrue(fedRepo.findShareByNews(news2.id()).isEmpty());
     }
@@ -262,7 +241,6 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(41)
     void removeShareCascadesTargets() {
-        // Create a new share with targets, then remove it
         var share = fedRepo.setShare(news3.id(), ShareScope.SPECIFIC, NewsVisibilityRole.MEMBER);
         fedRepo.setShareTargets(share.id(), List.of(partnerId));
         fedRepo.removeShare(news3.id());
@@ -274,11 +252,8 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(42)
     void removeShareNonExistent() {
-        // Should not throw
         assertDoesNotThrow(() -> fedRepo.removeShare(99999));
     }
-
-    // -- Entity record construction --
 
     @Test
     @Order(60)

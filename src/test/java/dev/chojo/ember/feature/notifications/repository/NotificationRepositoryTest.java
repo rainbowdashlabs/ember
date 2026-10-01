@@ -132,7 +132,6 @@ class NotificationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void acknowledgeAll() {
-        // Create another notification to test bulk acknowledge
         var data = NotificationData.of(new NotificationParams.NewEvent(null, null));
         create(member.id(), NotificationType.NEW_EVENT, data);
         assertEquals(1, notificationRepo.countUnacknowledged(member.id()));
@@ -144,7 +143,6 @@ class NotificationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(13)
     void deleteOldAcknowledged() {
-        // Should not throw
         notificationRepo.deleteOldAcknowledged();
     }
 
@@ -211,8 +209,9 @@ class NotificationRepositoryTest extends RepositoryTestBase {
         assertEquals(
                 1, notificationRepo.findAllForClusterMember(clusterMember.id()).size());
 
-        // The station member's own feed is untouched by any of it
-        assertFalse(notificationRepo.findAll(member.id()).stream().anyMatch(n -> n.id() == created.id()));
+        assertFalse(
+                notificationRepo.findAll(member.id()).stream().anyMatch(n -> n.id() == created.id()),
+                "the station member's own feed is untouched");
 
         assertTrue(notificationRepo.acknowledgeForClusterMember(created.id(), clusterMember.id()));
         assertFalse(

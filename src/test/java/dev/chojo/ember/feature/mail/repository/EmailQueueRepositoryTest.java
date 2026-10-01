@@ -63,14 +63,12 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
         var pending = emailQueueRepo.fetchPending(10, true);
         assertEquals(2, pending.size());
         assertEquals("test@example.com", pending.getFirst().recipient());
-        // After fetch, status is SENDING, so pending count is 0
-        assertEquals(0, emailQueueRepo.pendingCount());
+        assertEquals(0, emailQueueRepo.pendingCount(), "fetched mail is sending, no longer pending");
     }
 
     @Test
     @Order(4)
     void markSent() {
-        // Re-enqueue to test markSent
         emailQueueRepo.enqueue("sent@example.com", "Sent Test", "Body");
         var pending = emailQueueRepo.fetchPending(1, true);
         assertFalse(pending.isEmpty());
@@ -95,7 +93,6 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
         emailQueueRepo.markFailed(pending.getFirst().id());
         emailQueueRepo.requeue(pending.getFirst().id());
         assertEquals(1, emailQueueRepo.pendingCount());
-        // Clean up by fetching and marking sent
         var refetched = emailQueueRepo.fetchPending(1, true);
         emailQueueRepo.markSent(refetched.getFirst().id());
     }
@@ -128,7 +125,6 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(11)
     void cleanupOldEntries() {
-        // Should not throw
         emailQueueRepo.cleanupOldEntries(1);
     }
 

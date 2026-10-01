@@ -208,10 +208,11 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 member.id());
         var share = federationRepo.createKbShare(stationB.id(), null, folder.id(), ShareScope.ALL_PARTNERS);
 
-        // A shared folder arrives as a folder now, with its article inside rather than loose beside it
         var level = service.browseSharedKb(station.id());
         assertTrue(level.folders().stream().anyMatch(shared -> shared.id() == folder.id()));
-        assertTrue(level.files().stream().noneMatch(item -> item.file().id() == file.id()));
+        assertTrue(
+                level.files().stream().noneMatch(item -> item.file().id() == file.id()),
+                "the article sits inside the shared folder, not loose beside it");
 
         var inside = service.browseFederatedKbFolder(station.id(), stationB.uid(), folder.id(), StationUserType.MEMBER);
         assertTrue(inside.files().stream().anyMatch(item -> item.remoteId() == file.id()));
@@ -251,8 +252,9 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals("the shared one", served.description());
         assertEquals(stationB.name(), served.stationName());
 
-        // The subfolder is offered inside the shared one, not beside it at the top
-        assertTrue(top.folders().stream().noneMatch(candidate -> candidate.remoteId() == inner.id()));
+        assertTrue(
+                top.folders().stream().noneMatch(candidate -> candidate.remoteId() == inner.id()),
+                "the subfolder is offered inside the shared one, not beside it at the top");
         var opened = service.browseFederatedKbFolder(station.id(), stationB.uid(), outer.id(), StationUserType.MEMBER);
         assertTrue(opened.folders().stream().anyMatch(candidate -> candidate.remoteId() == inner.id()));
 
@@ -301,7 +303,10 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         knowledgeBaseRepo.purgeFile(forOne.id());
     }
 
-    /** A folder for named stations holding an article for a different one is a contradiction, so it is refused. */
+    /**
+     * A folder for named stations holding an article for a different one is a contradiction, so it is
+     * refused. Narrowing the article to nobody stands, because it says less than the folder, not more.
+     */
     @Test
     @Order(3)
     void anArticleCannotReachPastTheFolderHoldingIt() {
@@ -330,7 +335,6 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 BadRequestResponse.class,
                 () -> service.shareEntry(stationB.id(), inside.id(), null, ShareScope.ALL_PARTNERS, List.of()));
 
-        // Narrowing to nobody is allowed: it says less than the folder above, not more
         var narrowed = service.shareEntry(stationB.id(), inside.id(), null, ShareScope.SPECIFIC, List.of());
 
         federationRepo.deleteKbShare(narrowed.id(), stationB.id());
