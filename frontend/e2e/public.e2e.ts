@@ -6,6 +6,7 @@
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {hydrated} from './fixtures/hydrated'
 
 /**
  * What a stranger sees of a station. No session and no fixture: these pages are the reason the
@@ -81,6 +82,7 @@ test.describe.serial('A survey sent by link', () => {
     test('a manager takes the link and a stranger answers the survey with it', async ({managerPage, page}) => {
         const path = await sharedPollLink(managerPage)
         await page.goto(path)
+        await hydrated(page)
 
         await expect(page.getByText('Was sollen wir als nächstes machen?')).toBeVisible()
         await page.getByText('Zeltlager').click()
@@ -147,6 +149,7 @@ test.describe('A public survey kept for later', () => {
         await page.addInitScript(() => window.localStorage.setItem('storage_consent', 'accepted'))
 
         await page.goto(path)
+        await hydrated(page)
         await page.getByRole('textbox').first().fill(name)
         await page.getByTestId('form-page-next').click()
         await expect(page.getByText('Was bringst du mit?')).toBeVisible()
@@ -154,6 +157,7 @@ test.describe('A public survey kept for later', () => {
 
         await page.goto('/f/es-gibt-keinen-solchen-link')
         await page.goto(path)
+        await hydrated(page)
 
         await expect(page.getByTestId('form-draft-note')).toBeVisible()
         await expect(page.getByText('Was bringst du mit?')).toBeVisible()

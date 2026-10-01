@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {expect, test, type Page} from '@playwright/test'
+import {hydrated} from './fixtures/hydrated'
 
 /**
  * The public pages the server renders, taken up by the browser without a word from Vue.
@@ -31,14 +32,6 @@ function hydrationReports(page: Page): string[] {
         if (message.type() === 'error' && /hydration/i.test(message.text())) reports.push(message.text())
     })
     return reports
-}
-
-/** Waits until Nuxt has finished taking up the page the server sent. */
-async function hydrated(page: Page): Promise<void> {
-    await page.waitForFunction(() => {
-        const nuxt = (window as unknown as {useNuxtApp?: () => {isHydrating: boolean}}).useNuxtApp
-        return nuxt !== undefined && !nuxt().isHydrating
-    })
 }
 
 /** The width of a phone, so every project reaches what a narrow screen renders differently. */
