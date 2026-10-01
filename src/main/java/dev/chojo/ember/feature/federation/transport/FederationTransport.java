@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.federation.transport;
 
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -43,17 +44,25 @@ public interface FederationTransport {
     <T> List<T> getList(FederationPartner partner, FederationRequest request, Class<T> elementType);
 
     /**
-     * Sends a body and reads the answer. Pass {@link Void} as the type for an endpoint that
-     * answers nothing, which then returns {@code null}.
+     * Sends a body and reads the answer.
      *
      * @param partner the asking station's partner row
      * @param request the request to make
      * @param body    the body the endpoint declares, {@code null} for none
      * @param type    the type to read the answer as
      * @param <T>     the answer type
-     * @return the answer
+     * @return the answer, never {@code null}
      */
-    <T> T send(FederationPartner partner, FederationRequest request, Object body, Class<T> type);
+    <T> T send(FederationPartner partner, FederationRequest request, @Nullable Object body, Class<T> type);
+
+    /**
+     * Sends to an endpoint that answers nothing and waits until the partner took it in.
+     *
+     * @param partner the asking station's partner row
+     * @param request the request to make
+     * @param body    the body the endpoint declares, {@code null} for none
+     */
+    void deliver(FederationPartner partner, FederationRequest request, @Nullable Object body);
 
     /**
      * Sends a body and reads a list. A partner on another instance that cannot be reached answers

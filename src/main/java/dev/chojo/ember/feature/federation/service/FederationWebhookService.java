@@ -85,7 +85,8 @@ public class FederationWebhookService {
         int attempts = retryDelays.size() + 1;
         for (int attempt = 1; attempt <= attempts; attempt++) {
             if (attempt > 1 && !pause(retryDelays.get(attempt - 2))) return;
-            if (httpClient.post(partner.remoteHost(), request, body, partner.partnerStationId(), partner.stationId())) {
+            if (httpClient.post(
+                    partner.requireRemoteHost(), request, body, partner.partnerStationId(), partner.stationId())) {
                 log.debug("Webhook {} delivered to partner {} (attempt {})", request.path(), partner.id(), attempt);
                 return;
             }

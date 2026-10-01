@@ -34,6 +34,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -147,7 +148,7 @@ public class LendingRoutes implements Routes {
             throw Refusal.LENDING_FIRST_DAY_MISSING.raise();
         }
 
-        LocalDate dateTo = req.dateTo() != null ? req.dateTo() : req.dateFrom();
+        LocalDate dateTo = Objects.requireNonNullElse(req.dateTo(), req.dateFrom());
         var lines = req.items() == null
                 ? List.<LendingService.RequestLine>of()
                 : req.items().stream()
@@ -346,7 +347,7 @@ public class LendingRoutes implements Routes {
                 req.itemId(),
                 req.blockFrom(),
                 req.blockTo(),
-                req.reason() != null ? req.reason() : "");
+                Objects.requireNonNullElse(req.reason(), ""));
         ctx.status(HttpStatus.CREATED).json(block);
     }
 

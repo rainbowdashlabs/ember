@@ -76,13 +76,13 @@ public class StationLocationService {
         rejectIfTooLong("city", update.city());
     }
 
-    private static void rejectIfTooLong(String field, String value) {
+    private static void rejectIfTooLong(String field, @Nullable String value) {
         if (value != null && value.length() > MAX_TEXT_LEN) {
             throw new BadRequestResponse(field + " exceeds " + MAX_TEXT_LEN + " characters");
         }
     }
 
-    private static String trimToNull(String value) {
+    private static @Nullable String trimToNull(@Nullable String value) {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;

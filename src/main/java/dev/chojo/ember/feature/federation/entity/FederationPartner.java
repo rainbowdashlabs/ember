@@ -90,10 +90,21 @@ public record FederationPartner(
     }
 
     /**
+     * The host of a partner on another instance, for the callers that only ever talk to one.
+     *
+     * @return the host
+     * @throws IllegalStateException for a partner on this instance, which has none
+     */
+    public String requireRemoteHost() {
+        if (remoteHost == null) throw new IllegalStateException("Partner " + id + " is on this instance");
+        return remoteHost;
+    }
+
+    /**
      * The core hash of the partner's last presented contract vector, or {@code null}
      * while the vector is unknown.
      */
-    public String coreHash() {
+    public @Nullable String coreHash() {
         return federationContract != null ? federationContract.core() : null;
     }
 

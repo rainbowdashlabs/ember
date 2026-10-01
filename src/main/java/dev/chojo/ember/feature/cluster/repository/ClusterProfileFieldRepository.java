@@ -155,9 +155,9 @@ public class ClusterProfileFieldRepository {
             int fieldId,
             ProfileFieldScope role,
             int position,
-            String widthOverride,
-            Boolean readonlyOverride,
-            Boolean requiredOverride) {
+            @Nullable String widthOverride,
+            @Nullable Boolean readonlyOverride,
+            @Nullable Boolean requiredOverride) {
         query("""
                 INSERT INTO cluster_profile_field_assignment
                     (field_id, role, position, width_override, readonly_override, required_override)
@@ -241,10 +241,10 @@ public class ClusterProfileFieldRepository {
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
-            String width,
+            @Nullable String width,
             boolean stationReadonly,
             boolean keepOnArchive,
-            Integer stationGroupId) {
+            @Nullable Integer stationGroupId) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
@@ -276,10 +276,10 @@ public class ClusterProfileFieldRepository {
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
-            String width,
+            @Nullable String width,
             boolean stationReadonly,
             boolean keepOnArchive,
-            Integer stationGroupId) {
+            @Nullable Integer stationGroupId) {
         return query("""
                 UPDATE cluster_profile_field
                 SET name             = :name,

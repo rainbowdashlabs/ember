@@ -137,16 +137,15 @@ public class BoardAttachmentService {
                 } catch (NumberFormatException ignored) {
                     continue;
                 }
-                Optional<Integer> stationId = lookupStationId(ticketId);
-                if (stationId.isEmpty()) {
+                Optional<UUID> stationUid = lookupStationId(ticketId).map(stationRepository::resolveUid);
+                if (stationUid.isEmpty()) {
                     log.warn("Could not resolve station for legacy board ticket {}; leaving in place", ticketId);
                     continue;
                 }
-                UUID uid = stationRepository.resolveUid(stationId.get());
                 Path target = localBackend
                         .root()
                         .resolve("station")
-                        .resolve(uid.toString())
+                        .resolve(stationUid.get().toString())
                         .resolve("attachments")
                         .resolve("board")
                         .resolve(name);

@@ -80,7 +80,7 @@ public class PublicStationInfoService {
         return publicInfo(station, offer, landingPageSlug);
     }
 
-    private PublicStationInfo publicInfo(Station station, Offer offer, String landingPageSlug) {
+    private PublicStationInfo publicInfo(Station station, Offer offer, @Nullable String landingPageSlug) {
         return new PublicStationInfo(
                 station.uid().toString(),
                 station.name(),

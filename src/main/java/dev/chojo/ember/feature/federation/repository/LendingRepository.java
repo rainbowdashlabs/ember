@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.entity.LentOutItem;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -79,9 +80,9 @@ public class LendingRepository {
             UUID owningStationUid,
             LocalDate dateFrom,
             LocalDate dateTo,
-            Integer createdBy,
-            Integer eventId,
-            LocalDate eventDate,
+            @Nullable Integer createdBy,
+            @Nullable Integer eventId,
+            @Nullable LocalDate eventDate,
             String occasion) {
         return insertReturning(
                 """
@@ -189,7 +190,12 @@ public class LendingRepository {
     // -- Lending Request Items --
 
     public LendingRequestItem addRequestItem(
-            int requestId, Integer inventoryId, Integer itemId, Integer artId, int quantity, Integer needId) {
+            int requestId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            @Nullable Integer artId,
+            int quantity,
+            @Nullable Integer needId) {
         return insertReturning(
                 """
                 INSERT INTO federation_lending_request_item(request_id, inventory_id, item_id, art_id, quantity, need_id)
@@ -300,7 +306,7 @@ public class LendingRepository {
     }
 
     public LendingMessage createMessage(
-            int requestId, UUID senderStationUid, Integer senderMemberId, String message, boolean isSystem) {
+            int requestId, UUID senderStationUid, @Nullable Integer senderMemberId, String message, boolean isSystem) {
         return insertReturning(
                 """
                 INSERT INTO federation_lending_message(request_id, sender_station_uid, sender_member_id, message, is_system)
@@ -345,7 +351,12 @@ public class LendingRepository {
     }
 
     public InventoryBlock createBlock(
-            int stationId, Integer inventoryId, Integer itemId, LocalDate blockFrom, LocalDate blockTo, String reason) {
+            int stationId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            LocalDate blockFrom,
+            LocalDate blockTo,
+            String reason) {
         return insertReturning(
                 """
                 INSERT INTO federation_inventory_block(station_id, inventory_id, item_id, block_from, block_to, reason)
@@ -398,7 +409,12 @@ public class LendingRepository {
                 .all();
     }
 
-    public boolean isBlocked(int stationId, Integer inventoryId, Integer itemId, LocalDate dateFrom, LocalDate dateTo) {
+    public boolean isBlocked(
+            int stationId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            LocalDate dateFrom,
+            LocalDate dateTo) {
         var blocks = findActiveBlocks(stationId, dateFrom, dateTo);
         for (var block : blocks) {
             Integer blockedInventory = block.inventoryId();

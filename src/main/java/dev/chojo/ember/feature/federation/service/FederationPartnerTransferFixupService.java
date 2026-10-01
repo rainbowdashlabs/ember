@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,7 +148,7 @@ public class FederationPartnerTransferFixupService {
         for (FederationPartner partner : remote) {
             try {
                 boolean ok = federationHttpClient.post(
-                        partner.remoteHost(),
+                        partner.requireRemoteHost(),
                         RemoteFederationRoutes.ANNOUNCE.at(),
                         payload,
                         partner.partnerStationId(),
@@ -179,7 +180,7 @@ public class FederationPartnerTransferFixupService {
      * UID and was previously intra-instance is flipped to point at the destination URL.
      * Already-remote rows are left untouched.
      */
-    public void flipSourceSideRetainedPartners(UUID departedStationUid, String destinationInstanceUrl) {
+    public void flipSourceSideRetainedPartners(UUID departedStationUid, @Nullable String destinationInstanceUrl) {
         String url = destinationInstanceUrl == null ? null : destinationInstanceUrl.trim();
         if (url == null || url.isEmpty()) {
             log.warn(

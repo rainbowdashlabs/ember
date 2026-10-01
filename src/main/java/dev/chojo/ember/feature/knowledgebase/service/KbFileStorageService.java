@@ -175,16 +175,15 @@ public class KbFileStorageService {
                 } catch (NumberFormatException ignored) {
                     continue;
                 }
-                Optional<Integer> stationId = lookupStationId(fileId);
-                if (stationId.isEmpty()) {
+                Optional<UUID> stationUid = lookupStationId(fileId).map(stationRepository::resolveUid);
+                if (stationUid.isEmpty()) {
                     log.warn("Could not resolve station for legacy kb file {}; leaving in place", fileId);
                     continue;
                 }
-                UUID uid = stationRepository.resolveUid(stationId.get());
                 Path target = localBackend
                         .root()
                         .resolve("station")
-                        .resolve(uid.toString())
+                        .resolve(stationUid.get().toString())
                         .resolve("kb-files")
                         .resolve(name);
                 FilePaths.createParentDirectories(target);

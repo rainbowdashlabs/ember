@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.federation.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Map;
 
 /**
@@ -42,7 +44,7 @@ public record SharePolicy(
      * @param artId       the kind it is, or {@code null} when nobody has said
      * @param itemId      the piece itself
      */
-    public boolean allows(int inventoryId, Integer artId, int itemId) {
+    public boolean allows(int inventoryId, @Nullable Integer artId, int itemId) {
         if (!lendingEnabled) return false;
         Boolean forItem = byItem.get(itemId);
         if (forItem != null) return forItem;

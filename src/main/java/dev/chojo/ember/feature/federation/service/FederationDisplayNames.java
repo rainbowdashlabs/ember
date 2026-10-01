@@ -8,7 +8,9 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import org.jspecify.annotations.Nullable;
 
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -29,13 +31,22 @@ public final class FederationDisplayNames {
     /**
      * Resolves the partner station's display name using the (local → persisted → fallback) chain.
      */
-    public static String partnerName(StationRepository stationRepository, FederationPartner partner, String fallback) {
+    public static String partnerName(
+            StationRepository stationRepository, @Nullable FederationPartner partner, String fallback) {
         if (partner == null) return fallback;
+        return Objects.requireNonNullElse(knownPartnerName(stationRepository, partner), fallback);
+    }
+
+    /**
+     * The partner station's display name from the local station or the persisted one, or {@code null}
+     * when neither knows it.
+     */
+    public static @Nullable String knownPartnerName(StationRepository stationRepository, FederationPartner partner) {
         return stationRepository
                 .findByUid(partner.partnerStationId())
                 .map(Station::name)
                 .or(() -> Optional.ofNullable(partner.partnerStationName()))
                 .filter(s -> !s.isBlank())
-                .orElse(fallback);
+                .orElse(null);
     }
 }

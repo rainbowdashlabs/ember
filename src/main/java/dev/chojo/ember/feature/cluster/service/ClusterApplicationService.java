@@ -22,6 +22,7 @@ import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +74,7 @@ public class ClusterApplicationService {
         Station station = requireStation(stationId);
         Cluster cluster = requireCluster(clusterId);
 
-        if (station.ownerMemberId() == null || station.ownerMemberId() != actorMemberId) {
+        if (!station.isOwnedBy(actorMemberId)) {
             throw new ForbiddenResponse("Only the station's owner can ask to join a cluster");
         }
         if (station.stationKind() == StationKind.CLUSTER_HOME) {
@@ -104,7 +105,7 @@ public class ClusterApplicationService {
         ClusterApplication application = requireApplication(applicationId);
         Station station = requireStation(application.stationId());
 
-        if (station.ownerMemberId() == null || station.ownerMemberId() != actorMemberId) {
+        if (!station.isOwnedBy(actorMemberId)) {
             throw new ForbiddenResponse("Only the station's owner can withdraw its request");
         }
         requireOpen(application);
@@ -123,7 +124,7 @@ public class ClusterApplicationService {
      * @param resolvingMemberId the cluster member deciding
      * @throws BadRequestResponse when it was already decided, or the station joined a cluster meanwhile
      */
-    public void approve(int applicationId, int clusterId, Integer resolvingMemberId) {
+    public void approve(int applicationId, int clusterId, @Nullable Integer resolvingMemberId) {
         ClusterApplication application = requireApplication(applicationId);
         requireSameCluster(application, clusterId);
         requireOpen(application);
@@ -147,7 +148,7 @@ public class ClusterApplicationService {
      * @param resolvingMemberId the cluster member deciding
      * @throws BadRequestResponse when it was already decided
      */
-    public void deny(int applicationId, int clusterId, String reason, Integer resolvingMemberId) {
+    public void deny(int applicationId, int clusterId, @Nullable String reason, @Nullable Integer resolvingMemberId) {
         ClusterApplication application = requireApplication(applicationId);
         requireSameCluster(application, clusterId);
         requireOpen(application);

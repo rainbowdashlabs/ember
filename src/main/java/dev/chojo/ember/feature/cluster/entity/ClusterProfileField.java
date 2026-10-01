@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.cluster.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A question a cluster asks of the people at its stations.
@@ -38,10 +39,10 @@ public record ClusterProfileField(
         ProfileFieldConfig config,
         boolean required,
         boolean readonly,
-        String width,
+        @Nullable String width,
         boolean stationReadonly,
         boolean keepOnArchive,
-        Integer stationGroupId) {
+        @Nullable Integer stationGroupId) {
 
     public static RowMapping<ClusterProfileField> map() {
         return row -> new ClusterProfileField(

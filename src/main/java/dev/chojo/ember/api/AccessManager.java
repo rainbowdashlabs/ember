@@ -402,7 +402,7 @@ public class AccessManager {
         if (remoteSurface == null || stored == null) return false;
         return FederationContractCatalog.surfaceOfRequestPath(ctx.method(), ctx.path())
                 .filter(surface -> surface != FederationSurface.CORE)
-                .map(surface -> !remoteSurface.equals(stored.featureHash(surface.capability())))
+                .map(surface -> !remoteSurface.equals(stored.featureHash(surface.requireCapability())))
                 .orElse(false);
     }
 

@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Singleton
@@ -94,13 +95,12 @@ public class SidebarCountService {
         int lendingRequests = 0;
         if (roles.contains(StationPermission.INVENTORY_MANAGER)
                 && roles.contains(StationPermission.STATION_FEDERATION)) {
-            lendingRequests = lendingRepository.countActionableRequests(stationRepository.resolveUid(stationId));
+            lendingRequests = lendingRepository.countActionableRequests(uidOf(stationId));
         }
 
         int federationRequests = 0;
         if (roles.contains(StationPermission.STATION_FEDERATION)) {
-            UUID stationUid = stationRepository.resolveUid(stationId);
-            federationRequests = federationRepository.countPendingRequests(stationUid);
+            federationRequests = federationRepository.countPendingRequests(uidOf(stationId));
         }
 
         // openEvents: TODO - complex query, return 0 for now
@@ -154,6 +154,10 @@ public class SidebarCountService {
                 myInventoryCount,
                 openMovements,
                 procedureCount);
+    }
+
+    private UUID uidOf(int stationId) {
+        return Objects.requireNonNull(stationRepository.resolveUid(stationId), "the station counted for exists");
     }
 
     public record SidebarCounts(

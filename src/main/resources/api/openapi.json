@@ -41015,7 +41015,7 @@
             "type" : "boolean"
           },
           "reason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },

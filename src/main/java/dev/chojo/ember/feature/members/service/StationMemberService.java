@@ -184,7 +184,7 @@ public class StationMemberService {
         var target = memberRepository.findById(memberId).orElse(null);
         if (target != null) {
             var station = stationRepository.findById(target.stationId()).orElse(null);
-            if (station != null && station.ownerMemberId() != null && station.ownerMemberId() == memberId) {
+            if (station != null && station.isOwnedBy(memberId)) {
                 var adminPerm = allPermissions.stream()
                         .filter(p -> p.permission() == StationPermission.STATION_ADMINISTRATOR)
                         .findFirst();

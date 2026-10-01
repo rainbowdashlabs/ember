@@ -36,6 +36,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,7 +140,8 @@ public class StationImportService {
      * {@code station} wire entry (the int-id column is otherwise dropped when the settings are
      * applied).
      */
-    private static void seedStationRemap(IdRemapper idMap, Map<String, Object> stationData, int targetStationId) {
+    private static void seedStationRemap(
+            IdRemapper idMap, @Nullable Map<String, Object> stationData, int targetStationId) {
         if (stationData == null) return;
         Integer sourceId = asInteger(stationData.get("id"));
         if (sourceId != null) idMap.put("station", sourceId, targetStationId);
@@ -210,7 +212,7 @@ public class StationImportService {
      * @param stationUid the destination station UUID
      * @return the progress, or {@code null}
      */
-    public ImportProgress getProgressByUid(UUID stationUid) {
+    public @Nullable ImportProgress getProgressByUid(UUID stationUid) {
         for (var progress : activeImports.values()) {
             if (stationUid.equals(progress.stationUid())) return progress;
         }
@@ -325,7 +327,7 @@ public class StationImportService {
         return client.fetchPage("station", 0, PAGE_SIZE);
     }
 
-    private StationImportContext newContext(int stationId, Map<String, Object> stationData) {
+    private StationImportContext newContext(int stationId, @Nullable Map<String, Object> stationData) {
         var idMap = new IdRemapper();
         seedStationRemap(idMap, stationData, stationId);
         return new StationImportContext(stationId, idMap);

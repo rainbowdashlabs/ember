@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.discovery.entity.PublishedRemoteStation;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -142,7 +143,7 @@ public class DiscoveryStationCacheRepository {
                 .all();
     }
 
-    public List<CachedDiscoveryStation> searchForPicker(String search, int limit) {
+    public List<CachedDiscoveryStation> searchForPicker(@Nullable String search, int limit) {
         var where = WhereBuilder.create().like("""
                         AND (LOWER(c.payload->>'name') LIKE :q
                              OR LOWER(COALESCE(c.payload->>'city', '')) LIKE :q

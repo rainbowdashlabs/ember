@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.federation.transport;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * One endpoint's serving function: the share check and the answer for a partner that asked.
  *
@@ -26,5 +28,6 @@ public interface FederationHandler<B, R> {
      * @param body    the request body, {@code null} when the endpoint takes none
      * @return the answer, {@code null} when the endpoint answers nothing
      */
-    R serve(ServingPartner partner, PathParams params, B body);
+    @Nullable
+    R serve(ServingPartner partner, PathParams params, @Nullable B body);
 }

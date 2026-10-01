@@ -39,7 +39,7 @@ public record LendingRequestItem(
      *
      * @return the target, or {@code null} on a line that names nothing
      */
-    public LineTarget target() {
+    public @Nullable LineTarget target() {
         if (itemId != null) return LineTarget.item(itemId);
         if (artId != null) return LineTarget.art(artId);
         if (inventoryId != null) return LineTarget.inventory(inventoryId);

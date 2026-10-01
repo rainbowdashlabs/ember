@@ -189,7 +189,7 @@ public class MemberNameResolver {
         }
         return federationRepository
                 .findPartnerById(partnerId)
-                .map(p -> FederationDisplayNames.partnerName(stationRepository, p, null))
+                .map(p -> FederationDisplayNames.knownPartnerName(stationRepository, p))
                 .orElse(null);
     }
 

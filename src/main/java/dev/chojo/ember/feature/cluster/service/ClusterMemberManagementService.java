@@ -25,6 +25,7 @@ import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,9 +166,9 @@ public class ClusterMemberManagementService {
             int memberId,
             String title,
             String fileName,
-            String mimeType,
+            @Nullable String mimeType,
             byte[] data,
-            Integer uploadedBy) {
+            @Nullable Integer uploadedBy) {
         StationMember member = requireMemberOfCluster(clusterId, memberId);
         requireDocuments(member.stationId());
         return documentService.store(
@@ -275,9 +276,9 @@ public class ClusterMemberManagementService {
      */
     public MemberPage search(
             int clusterId,
-            String query,
-            Integer stationId,
-            StationUserType userType,
+            @Nullable String query,
+            @Nullable Integer stationId,
+            @Nullable StationUserType userType,
             boolean includeFormer,
             int page,
             int size) {
@@ -388,7 +389,7 @@ public class ClusterMemberManagementService {
 
     private void requireNotStationOwner(StationMember member) {
         stationRepository.findById(member.stationId()).ifPresent(station -> {
-            if (station.ownerMemberId() != null && station.ownerMemberId() == member.id()) {
+            if (station.isOwnedBy(member.id())) {
                 throw new ForbiddenResponse("A station's owner cannot be edited from the cluster");
             }
         });

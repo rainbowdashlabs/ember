@@ -233,7 +233,7 @@ public class FederationEnrollmentService {
                 localBaseUrl,
                 FederationContractVersions.current(),
                 publicKey,
-                parts.token(),
+                parts.requireToken(),
                 "");
         String signature = signer.signEnrollment(station.id(), enrollmentPayload(unsigned));
         return new HandshakeRequest(

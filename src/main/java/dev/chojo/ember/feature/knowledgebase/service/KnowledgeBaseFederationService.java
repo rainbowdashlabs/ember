@@ -437,7 +437,9 @@ public class KnowledgeBaseFederationService implements FederationServer {
      */
     public RemoteKbFile remoteFileForPartner(FederationPartner partner, int fileId) {
         var file = fileForPartner(partner, fileId);
-        return RemoteKbFile.of(file, stationRepository.resolveUid(file.stationId()));
+        return RemoteKbFile.of(
+                file,
+                Objects.requireNonNull(stationRepository.resolveUid(file.stationId()), "a file's station exists"));
     }
 
     /**
@@ -1098,11 +1100,10 @@ public class KnowledgeBaseFederationService implements FederationServer {
     public void deleteFederatedComment(int stationId, UUID partnerStationUid, int commentId, UUID memberUid) {
         var partner = resolvePartner(stationId, partnerStationUid);
         try {
-            transport.send(
+            transport.deliver(
                     partner,
                     RemoteKnowledgeBaseRoutes.DELETE_COMMENT.at(commentId),
-                    new RemoteKbCommentDeleteRequest(memberUid),
-                    Void.class);
+                    new RemoteKbCommentDeleteRequest(memberUid));
         } catch (RefusalResponse e) {
             if (e.refusal() == Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER) {
                 throw Refusal.PARTNER_KB_COMMENT_NOT_DELETED.raise();

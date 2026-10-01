@@ -126,7 +126,7 @@ public class LendingRequestViewService {
      * @return {@code true} when both are the same station
      */
     public boolean isOwnStation(int stationId, UUID stationUid) {
-        return stationRepository.resolveUid(stationId).equals(stationUid);
+        return Objects.equals(stationRepository.resolveUid(stationId), stationUid);
     }
 
     /**
@@ -139,7 +139,7 @@ public class LendingRequestViewService {
      * @param eventId   the appointment the list was collected for, or {@code null}
      * @return the name, or an empty string where there is no appointment or it is not this station's
      */
-    public String occasionOf(int stationId, Integer eventId) {
+    public String occasionOf(int stationId, @Nullable Integer eventId) {
         if (eventId == null) return "";
         return eventService
                 .findById(eventId)
@@ -265,7 +265,9 @@ public class LendingRequestViewService {
      * @return the lines lent out from it
      */
     public List<LentOutItem> lentOut(int inventoryId, int stationId) {
-        return lendingRepository.findLentOutByInventory(inventoryId, stationRepository.resolveUid(stationId));
+        UUID stationUid = Objects.requireNonNull(
+                stationRepository.resolveUid(stationId), "the station owning an inventory exists");
+        return lendingRepository.findLentOutByInventory(inventoryId, stationUid);
     }
 
     public record LendingRequestResponse(

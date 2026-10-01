@@ -24,6 +24,7 @@ import dev.chojo.ember.util.RandomTokens;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +35,7 @@ import java.security.KeyPairGenerator;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -202,7 +204,7 @@ public class FederationService {
         record Requested(FederationPartner partner) implements CodeOutcome {}
 
         /** The code was turned away, for the named reason. */
-        record Refused(CodeRefusal reason, String detail) implements CodeOutcome {}
+        record Refused(CodeRefusal reason, @Nullable String detail) implements CodeOutcome {}
     }
 
     /**
@@ -244,7 +246,7 @@ public class FederationService {
             return new CodeOutcome.Requested(createPairRequest(enteringStationId, targetStationId));
         }
 
-        if (!consumeInviteToken(targetStationId, parts.token())) {
+        if (!consumeInviteToken(targetStationId, parts.requireToken())) {
             return new CodeOutcome.Refused(CodeRefusal.SPENT_TOKEN, null);
         }
         repository.deletePendingRequest(enteringStationId, target.get().uid());
@@ -434,8 +436,8 @@ public class FederationService {
             int acceptingStationId,
             int initiatingStationId,
             String initiatingPublicKey,
-            String initiatingRemoteHost,
-            String acceptingRemoteHost) {
+            @Nullable String initiatingRemoteHost,
+            @Nullable String acceptingRemoteHost) {
         String acceptingPublicKey = ensureStationKey(acceptingStationId);
 
         UUID acceptingUid = resolveStationUid(acceptingStationId);
@@ -689,7 +691,8 @@ public class FederationService {
         return repository.findKbShareTargets(shareId);
     }
 
-    public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, ShareScope shareScope) {
+    public FederationShare createKbShare(
+            int stationId, @Nullable Integer fileId, @Nullable Integer folderId, ShareScope shareScope) {
         return createKbShare(stationId, fileId, folderId, shareScope, List.of());
     }
 
@@ -699,7 +702,11 @@ public class FederationService {
      * @param partnerIds the partnerships it is for, read only when the scope names stations
      */
     public FederationShare createKbShare(
-            int stationId, Integer fileId, Integer folderId, ShareScope shareScope, List<Integer> partnerIds) {
+            int stationId,
+            @Nullable Integer fileId,
+            @Nullable Integer folderId,
+            ShareScope shareScope,
+            List<Integer> partnerIds) {
         var share = repository.createKbShare(stationId, fileId, folderId, shareScope);
         if (shareScope == ShareScope.SPECIFIC) {
             repository.setKbShareTargets(share.id(), partnerIds);
@@ -804,12 +811,24 @@ public class FederationService {
      * Resolves an internal station ID to its UUID.
      */
     private UUID resolveStationUid(int stationId) {
-        return stationRepository.resolveUid(stationId);
+        return Objects.requireNonNull(stationRepository.resolveUid(stationId), "a station with partners exists");
     }
 
-    public record PairingCodeParts(UUID stationUid, String host, String token) {
+    public record PairingCodeParts(
+            UUID stationUid, String host, @Nullable String token) {
         public boolean isStationInvite() {
             return token != null && !token.isBlank();
+        }
+
+        /**
+         * The token of a station invite, which a plain pairing code does not carry.
+         *
+         * @return the token
+         * @throws IllegalStateException for a plain pairing code
+         */
+        public String requireToken() {
+            if (token == null || token.isBlank()) throw new IllegalStateException("A pairing code carries no token");
+            return token;
         }
     }
 }

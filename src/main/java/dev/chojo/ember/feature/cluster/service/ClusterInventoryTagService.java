@@ -13,6 +13,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +88,8 @@ public class ClusterInventoryTagService {
      * @param stationGroupId the group of stations it is meant for, or {@code null} for all of them
      * @return the recommendation
      */
-    public ClusterInventoryTag create(int clusterId, String name, String color, Integer stationGroupId) {
+    public ClusterInventoryTag create(
+            int clusterId, String name, @Nullable String color, @Nullable Integer stationGroupId) {
         String wanted = requireName(name);
         if (clusterTagRepository.findByName(clusterId, stationGroupId, wanted).isPresent()) {
             throw new BadRequestResponse("The association already recommends that word to these stations");
@@ -109,7 +111,12 @@ public class ClusterInventoryTagService {
      * @return the recommendation as it now stands
      */
     public ClusterInventoryTag update(
-            int clusterId, int id, String name, String color, int position, Integer stationGroupId) {
+            int clusterId,
+            int id,
+            String name,
+            @Nullable String color,
+            int position,
+            @Nullable Integer stationGroupId) {
         var tag = requireOwnTag(clusterId, id);
         String wanted = requireName(name);
         var clash = clusterTagRepository.findByName(clusterId, stationGroupId, wanted);

@@ -30,6 +30,7 @@ import dev.chojo.ember.util.SlugGenerator;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -353,7 +354,7 @@ public class StationService {
     public boolean transferOwnership(int stationId, int currentMemberId, int newOwnerMemberId) {
         var station = stationRepository.findById(stationId).orElse(null);
         if (station == null) return false;
-        if (station.ownerMemberId() == null || station.ownerMemberId() != currentMemberId) return false;
+        if (!station.isOwnedBy(currentMemberId)) return false;
 
         Permission managerRole = memberRepository
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
@@ -379,7 +380,7 @@ public class StationService {
      */
     public boolean isOwner(int stationId, int memberId) {
         var station = stationRepository.findById(stationId).orElse(null);
-        return station != null && station.ownerMemberId() != null && station.ownerMemberId() == memberId;
+        return station != null && station.isOwnedBy(memberId);
     }
 
     /**
@@ -486,7 +487,7 @@ public class StationService {
         log.info("Station {} turned its public blog {}", stationId, enabled ? "on" : "off");
     }
 
-    public void updatePublicSlug(int stationId, String slug) {
+    public void updatePublicSlug(int stationId, @Nullable String slug) {
         if (slug != null) {
             var existing = stationRepository.findBySlug(slug);
             if (existing.isPresent() && existing.get().id() != stationId) {

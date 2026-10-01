@@ -24,6 +24,7 @@ import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,7 +143,7 @@ public class DiscoveryPingService {
      * @param message         parsed body
      * @param signatureHeader value of {@code X-Ember-Discovery-Signature}
      */
-    public void handleInboundPing(String rawBody, DiscoveryPingMessage message, String signatureHeader) {
+    public void handleInboundPing(String rawBody, DiscoveryPingMessage message, @Nullable String signatureHeader) {
         if (!settingsService.isEnabled()) return;
         if (message == null || message.from() == null || message.nonce() == null) return;
 
@@ -204,7 +205,7 @@ public class DiscoveryPingService {
      * that we actually sent a ping with that nonce and the window hasn't elapsed, and merges
      * the announced peers into the local registry.
      */
-    public boolean handleCallback(String rawBody, DiscoveryCallbackMessage message, String signatureHeader) {
+    public boolean handleCallback(String rawBody, DiscoveryCallbackMessage message, @Nullable String signatureHeader) {
         if (!settingsService.isEnabled()) return false;
         if (message == null || message.from() == null || message.inReplyTo() == null) return false;
 

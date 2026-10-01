@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
 import dev.chojo.ember.feature.discovery.entity.PeerSource;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -80,7 +81,7 @@ public class DiscoveryPeerRepository {
      * {@code lastSeenAt}. Returns the resulting row.
      */
     public DiscoveryPeer upsert(
-            String publicKey, String baseUrl, String instanceId, PeerSource source, String introducedBy) {
+            String publicKey, String baseUrl, String instanceId, PeerSource source, @Nullable String introducedBy) {
         return insertReturning(
                 """
                 INSERT INTO discovery_peer (public_key, base_url, instance_id, source, introduced_by)

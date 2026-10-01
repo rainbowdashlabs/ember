@@ -60,8 +60,9 @@ public class FederationPartnerSeeder implements TaskSource {
             var partners = federationRepository.findAllActiveRemotePartners();
             Set<String> uniqueHosts = new HashSet<>();
             for (var partner : partners) {
-                if (partner.remoteHost() == null || !uniqueHosts.add(partner.remoteHost())) continue;
-                if (probeAndInsert(partner.remoteHost())) added++;
+                String host = partner.remoteHost();
+                if (host == null || !uniqueHosts.add(host)) continue;
+                if (probeAndInsert(host)) added++;
             }
             if (added > 0) {
                 log.info("Seeded {} discovery peer(s) from federation partners", added);
@@ -75,7 +76,8 @@ public class FederationPartnerSeeder implements TaskSource {
     private boolean probeAndInsert(String baseUrl) {
         try {
             var info = httpClient.get(baseUrl, INFO_PATH, DiscoveryInfoResponse.class);
-            if (info == null || info.publicKey() == null) {
+            String publicKey = info == null ? null : info.publicKey();
+            if (info == null || publicKey == null) {
                 log.debug("Federation partner {} has no discovery info endpoint", baseUrl);
                 return false;
             }
@@ -83,9 +85,8 @@ public class FederationPartnerSeeder implements TaskSource {
                 log.debug("Federation partner {} reports discoveryEnabled=false; skipping", baseUrl);
                 return false;
             }
-            // upsert is a no-op if we already know this public key.
-            boolean existed = peerRepository.findByPublicKey(info.publicKey()).isPresent();
-            peerRepository.upsert(info.publicKey(), info.baseUrl(), info.instanceId(), PeerSource.BOOTSTRAP, null);
+            boolean existed = peerRepository.findByPublicKey(publicKey).isPresent();
+            peerRepository.upsert(publicKey, info.baseUrl(), info.instanceId(), PeerSource.BOOTSTRAP, null);
             return !existed;
         } catch (Exception e) {
             log.debug("Probe of {} failed: {}", baseUrl, e.getMessage());

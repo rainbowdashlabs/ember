@@ -26,6 +26,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,6 +107,7 @@ public class ClusterInventoryService {
                 stationUid = station.map(s -> s.uid()).orElse(null);
                 stationName = station.map(s -> s.name()).orElse(null);
             }
+            Integer sizeId = item.sizeId();
             items.add(new ClusterItem(
                     item.id(),
                     item.internalId(),
@@ -114,8 +116,8 @@ public class ClusterInventoryService {
                     stationUid,
                     stationName,
                     holderName(item.assignedTo()),
-                    item.sizeId(),
-                    item.sizeId() == null ? null : sizeLabels.get(item.sizeId())));
+                    sizeId,
+                    sizeId == null ? null : sizeLabels.get(sizeId)));
         }
         return items;
     }
@@ -411,7 +413,7 @@ public class ClusterInventoryService {
      * for somebody who has left, and a member still at their station carries no name of their own, only an
      * account that does.
      */
-    private String holderName(Integer memberId) {
+    private @Nullable String holderName(@Nullable Integer memberId) {
         if (memberId == null) return null;
         String name = nameResolver.called(memberId);
         return name != null && !name.isBlank() ? name : null;
@@ -427,14 +429,14 @@ public class ClusterInventoryService {
      */
     public record ClusterItem(
             int itemId,
-            String internalId,
+            @Nullable String internalId,
             String name,
             ItemCustody custody,
-            UUID stationUid,
-            String stationName,
-            String holderName,
-            Integer sizeId,
-            String sizeLabel) {}
+            @Nullable UUID stationUid,
+            @Nullable String stationName,
+            @Nullable String holderName,
+            @Nullable Integer sizeId,
+            @Nullable String sizeLabel) {}
 
     /**
      * One kind of thing the association owns, with the sizes it is cut to.

@@ -28,6 +28,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,10 +110,10 @@ public class ClusterProfileFieldService {
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
-            String width,
+            @Nullable String width,
             boolean stationReadonly,
             boolean keepOnArchive,
-            Integer stationGroupId) {
+            @Nullable Integer stationGroupId) {
         requireCluster(clusterId);
         requireUsable(name, fieldType, config);
         requireOwnGroup(clusterId, stationGroupId);
@@ -156,9 +157,9 @@ public class ClusterProfileFieldService {
             int fieldId,
             ProfileFieldScope role,
             int position,
-            String widthOverride,
-            Boolean readonlyOverride,
-            Boolean requiredOverride) {
+            @Nullable String widthOverride,
+            @Nullable Boolean readonlyOverride,
+            @Nullable Boolean requiredOverride) {
         requireField(clusterId, fieldId);
         fieldRepository.assignToRole(fieldId, role, position, widthOverride, readonlyOverride, requiredOverride);
         log.info("Cluster {} asks {} field {}", clusterId, role, fieldId);
@@ -179,10 +180,10 @@ public class ClusterProfileFieldService {
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
-            String width,
+            @Nullable String width,
             boolean stationReadonly,
             boolean keepOnArchive,
-            Integer stationGroupId) {
+            @Nullable Integer stationGroupId) {
         requireField(clusterId, fieldId);
         requireUsable(name, fieldType, config);
         requireOwnGroup(clusterId, stationGroupId);
@@ -294,7 +295,7 @@ public class ClusterProfileFieldService {
     /**
      * A question may only be pointed at a group of the association's own.
      */
-    private void requireOwnGroup(int clusterId, Integer stationGroupId) {
+    private void requireOwnGroup(int clusterId, @Nullable Integer stationGroupId) {
         if (stationGroupId == null) return;
         boolean own = stationGroupRepository
                 .findById(stationGroupId)
@@ -317,7 +318,8 @@ public class ClusterProfileFieldService {
      * @param scope     which kind of member it applies to
      * @param groupId   the group it is pointed at, or {@code null} for every station
      */
-    private void requireReachesNobodyTwice(int clusterId, Integer fieldId, String name, Integer groupId) {
+    private void requireReachesNobodyTwice(
+            int clusterId, @Nullable Integer fieldId, String name, @Nullable Integer groupId) {
         Set<Integer> reached = new HashSet<>(stationGroupRepository.findStationIdsReachedBy(clusterId, groupId));
         if (reached.isEmpty()) return;
 

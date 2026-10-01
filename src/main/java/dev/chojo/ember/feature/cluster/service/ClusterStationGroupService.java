@@ -15,6 +15,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,7 +195,7 @@ public class ClusterStationGroupService {
         return name.trim();
     }
 
-    private void requireNameFree(int clusterId, String name, Integer exceptGroupId) {
+    private void requireNameFree(int clusterId, String name, @Nullable Integer exceptGroupId) {
         boolean taken = groupRepository.findByCluster(clusterId).stream()
                 .filter(group -> exceptGroupId == null || group.id() != exceptGroupId)
                 .anyMatch(group -> group.name().equalsIgnoreCase(name));

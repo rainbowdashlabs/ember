@@ -53994,7 +53994,7 @@ export interface components {
         };
         ApplicationDecisionRequest: {
             approve?: boolean;
-            reason?: string;
+            reason?: string | null;
         };
         ApplicationLogPage: {
             databaseEnabled: boolean;

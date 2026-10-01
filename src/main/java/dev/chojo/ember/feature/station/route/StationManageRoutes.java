@@ -241,9 +241,8 @@ public class StationManageRoutes implements Routes {
     private StationInfo buildStationInfo(Station station, UserSession session) {
         boolean hasLogo = logoService.exists(station.id());
         var locks = stationService.lookAndFeelLocks(station.id());
-        boolean isOwner = session.member() != null
-                && station.ownerMemberId() != null
-                && station.ownerMemberId() == session.member().id();
+        var member = session.member();
+        boolean isOwner = member != null && station.isOwnedBy(member.id());
         return new StationInfo(
                 station.uid().toString(),
                 station.name(),

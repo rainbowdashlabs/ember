@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import io.javalin.http.Handler;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,14 +36,14 @@ public final class FederationContractBinder {
     private final JavalinDefaultRoutingApi routes;
     private final String prefix;
     private final List<FederationEndpoint> contract;
-    private final FederationEndpoints served;
+    private final @Nullable FederationEndpoints served;
     private final List<FederationEndpoint> bound = new ArrayList<>();
 
     private FederationContractBinder(
             JavalinDefaultRoutingApi routes,
             String prefix,
             List<FederationEndpoint> contract,
-            FederationEndpoints served) {
+            @Nullable FederationEndpoints served) {
         this.routes = routes;
         this.prefix = prefix;
         this.contract = contract;
@@ -72,7 +73,7 @@ public final class FederationContractBinder {
             JavalinDefaultRoutingApi routes,
             String prefix,
             List<FederationEndpoint> contract,
-            FederationEndpoints served,
+            @Nullable FederationEndpoints served,
             Consumer<FederationContractBinder> bindings) {
         var binder = new FederationContractBinder(routes, prefix, contract, served);
         bindings.accept(binder);
@@ -130,7 +131,7 @@ public final class FederationContractBinder {
                 return;
             }
             if (endpoint.surface() != FederationSurface.CORE) {
-                String localSurface = local.featureHash(endpoint.surface().capability());
+                String localSurface = local.featureHash(endpoint.surface().requireCapability());
                 String remoteSurface = ctx.header(FederationHeaders.HEADER_SURFACE);
                 if (!localSurface.equals(remoteSurface)) {
                     ctx.status(HttpStatus.CONFLICT)
@@ -152,5 +153,9 @@ public final class FederationContractBinder {
      * @param local   the hash of the instance answering the request
      * @param remote  the hash the caller presented, {@code null} when it sent none
      */
-    public record MismatchResponse(String error, String surface, String local, String remote) {}
+    public record MismatchResponse(
+            String error,
+            @Nullable String surface,
+            String local,
+            @Nullable String remote) {}
 }

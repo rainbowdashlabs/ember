@@ -404,13 +404,14 @@ public class ClusterStorageQuotaService {
      * @param stationId the station about to be granted, weighed out of the sum so its old promise is replaced
      *                  rather than added to
      */
-    private void requirePoolStretches(Cluster cluster, int stationId, Long totalBytes) {
-        if (cluster.storagePoolBytes() == null || totalBytes == null) return;
+    private void requirePoolStretches(Cluster cluster, int stationId, @Nullable Long totalBytes) {
+        Long pool = cluster.storagePoolBytes();
+        if (pool == null || totalBytes == null) return;
         long othersTotal = quotaRepository.sumGrantedTotals(cluster.id(), stationId);
-        if (othersTotal + totalBytes > cluster.storagePoolBytes()) {
+        if (othersTotal + totalBytes > pool) {
             throw new BadRequestResponse(
                     "That is more than the cluster has left. Its pool is %d bytes and %d are already handed out."
-                            .formatted(cluster.storagePoolBytes(), othersTotal));
+                            .formatted(pool, othersTotal));
         }
     }
 

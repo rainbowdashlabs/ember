@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -86,7 +87,11 @@ public class RemoteLendingRoutes implements Routes {
      * @param artName what that kind is called, or {@code null}
      */
     public record RemoteAvailableEntry(
-            int inventoryId, String inventoryName, Integer artId, String artName, int availableCount) {}
+            int inventoryId,
+            String inventoryName,
+            @Nullable Integer artId,
+            @Nullable String artName,
+            int availableCount) {}
 
     /**
      * A request for gear, as the borrowing station sends it to the lending one.
@@ -105,7 +110,11 @@ public class RemoteLendingRoutes implements Routes {
      * @param itemId      the piece the line names, or {@code null}
      * @param artId       the kind of thing the line asks for, or {@code null}
      */
-    public record RemoteLendingLine(Integer inventoryId, Integer itemId, Integer artId, int quantity) {}
+    public record RemoteLendingLine(
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            @Nullable Integer artId,
+            int quantity) {}
 
     /**
      * The lending station's answer to a request it wrote down.

@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.cluster.entity.ClusterApplication;
 import dev.chojo.ember.feature.cluster.entity.ClusterApplicationStatus;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -107,7 +108,8 @@ public class ClusterApplicationRepository {
      * @param resolvedBy the cluster member who decided, or {@code null} when the station withdrew
      * @return {@code true} when a pending row was closed
      */
-    public boolean resolve(int id, ClusterApplicationStatus status, String denyReason, Integer resolvedBy) {
+    public boolean resolve(
+            int id, ClusterApplicationStatus status, @Nullable String denyReason, @Nullable Integer resolvedBy) {
         return query("""
                 UPDATE cluster_application
                 SET status      = :status,

@@ -53,7 +53,8 @@ public record LendingRequest(
         UUID uid) {
 
     /**
-     * A request whose identity between the stations does not matter to the caller.
+     * A request whose identity between the stations does not matter to the caller, which gets a
+     * fresh one.
      */
     public LendingRequest(
             int id,
@@ -81,7 +82,7 @@ public record LendingRequest(
                 eventId,
                 eventDate,
                 occasion,
-                null);
+                UUID.randomUUID());
     }
 
     /**

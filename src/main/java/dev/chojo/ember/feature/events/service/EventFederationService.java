@@ -947,11 +947,10 @@ public class EventFederationService implements FederationServer {
      */
     public void deleteFederatedComment(int stationId, UUID partnerStationUid, int commentId, UUID memberUid) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        transport.send(
+        transport.deliver(
                 partner,
                 RemoteEventRoutes.DELETE_COMMENT.at(commentId),
-                new RemoteEventRoutes.RemoteCommentDeleteRequest(memberUid),
-                Void.class);
+                new RemoteEventRoutes.RemoteCommentDeleteRequest(memberUid));
         log.info("Station {} deleted its comment {} at partner {}", stationId, commentId, partner.id());
     }
 
@@ -1007,11 +1006,10 @@ public class EventFederationService implements FederationServer {
             int stationId, UUID partnerStationUid, int eventId, UUID remoteMemberId, LocalDate eventDate) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
         try {
-            transport.send(
+            transport.deliver(
                     partner,
                     RemoteEventRoutes.WITHDRAW.at(eventId),
-                    new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate),
-                    Void.class);
+                    new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate));
             log.info("Station {} withdrew a registration for event {} at partner {}", stationId, eventId, partner.id());
         } catch (RefusalResponse e) {
             if (e.refusal() != Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER) throw e;
@@ -1029,12 +1027,11 @@ public class EventFederationService implements FederationServer {
     public void confirmOwnFederatedMember(
             int stationId, UUID partnerStationUid, int eventId, UUID remoteMemberId, LocalDate eventDate) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        answeredOr(
-                () -> transport.send(
+        deliveredOr(
+                () -> transport.deliver(
                         partner,
                         RemoteEventRoutes.CONFIRM_OWN.at(eventId),
-                        new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate),
-                        Void.class),
+                        new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate)),
                 Refusal.NO_PLACES_LEFT_AT_HOLDER);
         log.info("Station {} confirmed one of its own for event {} at partner {}", stationId, eventId, partner.id());
     }
@@ -1048,12 +1045,11 @@ public class EventFederationService implements FederationServer {
     public void undoFederatedWithdrawal(
             int stationId, UUID partnerStationUid, int eventId, UUID remoteMemberId, LocalDate eventDate) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
-        answeredOr(
-                () -> transport.send(
+        deliveredOr(
+                () -> transport.deliver(
                         partner,
                         RemoteEventRoutes.UNDO_WITHDRAWAL.at(eventId),
-                        new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate),
-                        Void.class),
+                        new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate)),
                 Refusal.FEDERATED_WITHDRAWAL_NO_LONGER_UNDONE);
         log.info("Station {} took a withdrawal back for event {} at partner {}", stationId, eventId, partner.id());
     }
@@ -1070,6 +1066,15 @@ public class EventFederationService implements FederationServer {
             if (e.refusal() == Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER) throw unanswered.raise();
             throw e;
         }
+    }
+
+    private static void deliveredOr(Runnable call, Refusal unanswered) {
+        answeredOr(
+                () -> {
+                    call.run();
+                    return Boolean.TRUE;
+                },
+                unanswered);
     }
 
     private List<FederatedEventItem> browsePartner(FederationPartner partner) {

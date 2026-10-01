@@ -65,7 +65,7 @@ public class StationDiscoveryService {
      * @param signedIn  whether anybody is signed in at all
      * @param stationId the asking station, or null where none is chosen
      */
-    public List<DiscoveryEntry> list(boolean signedIn, Integer stationId) {
+    public List<DiscoveryEntry> list(boolean signedIn, @Nullable Integer stationId) {
         List<DiscoveryEntry> entries = localEntries(signedIn, stationId);
         for (var remote : remoteStations.list()) {
             entries.add(toRemoteEntry(remote));
@@ -73,7 +73,7 @@ public class StationDiscoveryService {
         return entries;
     }
 
-    private List<DiscoveryEntry> localEntries(boolean signedIn, Integer stationId) {
+    private List<DiscoveryEntry> localEntries(boolean signedIn, @Nullable Integer stationId) {
         int exclude = stationId == null ? 0 : stationId;
         Set<UUID> partners = stationId == null ? Set.of() : partnerUids(stationId);
         var discoverable =
@@ -192,7 +192,7 @@ public class StationDiscoveryService {
         return coordinate == null ? null : coordinate.doubleValue();
     }
 
-    private static UUID remoteClusterUid(String clusterUid) {
+    private static @Nullable UUID remoteClusterUid(@Nullable String clusterUid) {
         if (clusterUid == null) return null;
         try {
             return UUID.fromString(clusterUid);

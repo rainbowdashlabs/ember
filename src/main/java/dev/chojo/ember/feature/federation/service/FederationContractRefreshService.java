@@ -58,7 +58,7 @@ public class FederationContractRefreshService {
         if (!httpClient.canSign(partner.stationId())) return false;
 
         var response = httpClient.get(
-                partner.remoteHost(),
+                partner.requireRemoteHost(),
                 RemoteFederationRoutes.VERSION_PING.at(),
                 partner.partnerStationId(),
                 partner.stationId(),

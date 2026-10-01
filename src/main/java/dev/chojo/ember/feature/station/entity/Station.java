@@ -9,6 +9,7 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -43,7 +44,7 @@ public record Station(
         String name,
         String timezone,
         String locale,
-        Integer ownerMemberId,
+        @Nullable Integer ownerMemberId,
         String defaultTheme,
         boolean allowUserTheme,
         String customThemeColors,
@@ -54,7 +55,7 @@ public record Station(
         String discoveryDescription,
         boolean discoveryShowKb,
         boolean publicCalendarEnabled,
-        Integer landingPageId,
+        @Nullable Integer landingPageId,
         boolean publicPagesEnabled,
         String publicSlug,
         boolean publicWaitlistEnabled,
@@ -71,6 +72,16 @@ public record Station(
         boolean lossNoteRequired,
         boolean pdfHidesInstanceUrl,
         boolean nicknamesEnabled) {
+
+    /**
+     * Whether the given member owns this station.
+     *
+     * @param memberId the member
+     * @return true when the station has an owner and it is that member
+     */
+    public boolean isOwnedBy(int memberId) {
+        return ownerMemberId != null && ownerMemberId == memberId;
+    }
 
     /**
      * A station as it is read where the question of nicknames does not arise.

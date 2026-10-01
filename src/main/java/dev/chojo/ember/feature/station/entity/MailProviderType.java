@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.station.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Supported mail provider types for station email configuration.
  */
@@ -37,7 +39,7 @@ public enum MailProviderType {
     /**
      * Reads a provider from what a request named, empty when it named nothing we know.
      */
-    public static java.util.Optional<MailProviderType> fromName(String value) {
+    public static java.util.Optional<MailProviderType> fromName(@Nullable String value) {
         if (value == null || value.isBlank()) return java.util.Optional.empty();
         try {
             return java.util.Optional.of(valueOf(value.trim().toUpperCase(java.util.Locale.ROOT)));

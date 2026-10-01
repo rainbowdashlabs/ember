@@ -12,6 +12,7 @@ import dev.chojo.ember.auth.signing.RawBodyEnvelope;
 import dev.chojo.ember.auth.signing.SignatureAlgorithm;
 import dev.chojo.ember.auth.signing.SignedRequests;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,7 +58,7 @@ public class FederationSigningService {
      * Builds the canonical path-with-query string; see
      * {@link FederationEnvelope#canonicalPathWithQuery(String, String)}.
      */
-    public static String canonicalPathWithQuery(String path, String query) {
+    public static String canonicalPathWithQuery(String path, @Nullable String query) {
         return FederationEnvelope.canonicalPathWithQuery(path, query);
     }
 
@@ -72,7 +73,7 @@ public class FederationSigningService {
      * Reports whether the query string repeats any parameter name; see
      * {@link FederationEnvelope#hasDuplicateQueryKeys(String)}.
      */
-    public static boolean hasDuplicateQueryKeys(String query) {
+    public static boolean hasDuplicateQueryKeys(@Nullable String query) {
         return FederationEnvelope.hasDuplicateQueryKeys(query);
     }
 

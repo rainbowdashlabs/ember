@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -53,8 +54,10 @@ public class StationRepository {
 
     /**
      * Resolves an internal station ID to its external UUID. Cached.
+     *
+     * @return the UUID, or {@code null} when there is no such station
      */
-    public UUID resolveUid(int stationId) {
+    public @Nullable UUID resolveUid(int stationId) {
         return uidCache.get(stationId, id -> query("SELECT uid FROM station WHERE id = :id;")
                 .single(call().bind("id", id))
                 .map(row -> row.get("uid", StandardValueConverter.UUID_STRING))
@@ -164,7 +167,7 @@ public class StationRepository {
     /**
      * Updates the public slug for a station.
      */
-    public void updatePublicSlug(int id, String slug) {
+    public void updatePublicSlug(int id, @Nullable String slug) {
         query("UPDATE station SET public_slug = :slug WHERE id = :id;")
                 .single(call().bind("slug", slug).bind("id", id))
                 .update()
@@ -263,7 +266,7 @@ public class StationRepository {
      * @param clusterId the cluster it now answers to, or {@code null} to release it
      * @return {@code true} if a row was updated
      */
-    public boolean setCluster(int id, Integer clusterId) {
+    public boolean setCluster(int id, @Nullable Integer clusterId) {
         return query("UPDATE station SET cluster_id = :cluster_id WHERE id = :id;")
                 .single(call().bind("cluster_id", clusterId).bind("id", id))
                 .update()
@@ -414,12 +417,12 @@ public class StationRepository {
      */
     public void updateLocation(
             int id,
-            String addressLine,
-            String postalCode,
-            String city,
-            String country,
-            BigDecimal latitude,
-            BigDecimal longitude) {
+            @Nullable String addressLine,
+            @Nullable String postalCode,
+            @Nullable String city,
+            @Nullable String country,
+            @Nullable BigDecimal latitude,
+            @Nullable BigDecimal longitude) {
         query("""
                 UPDATE station
                 SET address_line = :address_line,

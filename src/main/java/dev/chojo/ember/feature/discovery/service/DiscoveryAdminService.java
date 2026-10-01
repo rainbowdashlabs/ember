@@ -110,19 +110,19 @@ public class DiscoveryAdminService {
             throw Refusal.PEER_NEEDS_AN_ADDRESS.raise();
         }
         var info = reachPeer(request.baseUrl());
-        if (info.publicKey() == null) {
+        String publicKey = info.publicKey();
+        if (publicKey == null) {
             throw Refusal.PEER_NAMED_NO_KEY.raise(
                     "The address answered as a peer would, but named no key to recognise it by");
         }
-        if (request.expectedPublicKey() != null
-                && !request.expectedPublicKey().isBlank()
-                && !request.expectedPublicKey().equals(info.publicKey())) {
+        String expectedKey = request.expectedPublicKey();
+        if (expectedKey != null && !expectedKey.isBlank() && !expectedKey.equals(publicKey)) {
             throw Refusal.PEER_KEY_NOT_THE_EXPECTED_ONE.raise();
         }
         if (!info.discoveryEnabled()) {
             throw Refusal.PEER_DOES_NOT_WANT_DISCOVERY.raise();
         }
-        var peer = peers.upsert(info.publicKey(), info.baseUrl(), info.instanceId(), PeerSource.MANUAL, null);
+        var peer = peers.upsert(publicKey, info.baseUrl(), info.instanceId(), PeerSource.MANUAL, null);
         try {
             pings.sendPing(peer);
         } catch (RuntimeException e) {
@@ -136,8 +136,9 @@ public class DiscoveryAdminService {
      */
     private DiscoveryInfoResponse reachPeer(String baseUrl) {
         var probe = httpClient.probe(baseUrl, "/api/v1/public/discovery/info", DiscoveryInfoResponse.class);
-        if (!probe.reached()) throw Refusal.PEER_DID_NOT_ANSWER.raise(probe.problem());
-        return probe.value();
+        var answer = probe.value();
+        if (answer == null) throw Refusal.PEER_DID_NOT_ANSWER.raise(probe.problem());
+        return answer;
     }
 
     /**

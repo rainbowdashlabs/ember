@@ -34,7 +34,7 @@ public class DiscoveredStationService {
         this.federation = federation;
     }
 
-    private static boolean matchesQuery(String name, String query) {
+    private static boolean matchesQuery(String name, @Nullable String query) {
         if (query == null || query.isBlank()) return true;
         if (name == null) return false;
         return name.toLowerCase(Locale.ROOT).contains(query.trim().toLowerCase(Locale.ROOT));
@@ -75,7 +75,7 @@ public class DiscoveredStationService {
      * @param query     a fragment of the name, or null for any
      * @param limit     how many at most, held between 1 and 50
      */
-    public List<StationPickerResult> picker(int stationId, String query, int limit) {
+    public List<StationPickerResult> picker(int stationId, @Nullable String query, int limit) {
         int held = Math.clamp(limit, 1, 50);
         LinkedHashMap<String, StationPickerResult> byUid = new LinkedHashMap<>();
         for (var partner : federation.findActivePartnerSummaries(stationId)) {

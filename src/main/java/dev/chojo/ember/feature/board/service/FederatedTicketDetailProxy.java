@@ -377,11 +377,10 @@ public class FederatedTicketDetailProxy implements FederationServer {
                 boardKey,
                 ticketNumber,
                 remoteMemberId);
-        transport.send(
+        transport.deliver(
                 locator.requirePartner(partnerId),
                 RemoteBoardTicketDetailRoutes.EDIT_COMMENT.at(boardKey, ticketNumber, commentId),
-                new RemoteEditCommentRequest(remoteMemberId, displayName, content),
-                Void.class);
+                new RemoteEditCommentRequest(remoteMemberId, displayName, content));
     }
 
     /**
@@ -402,11 +401,10 @@ public class FederatedTicketDetailProxy implements FederationServer {
                 boardKey,
                 ticketNumber,
                 remoteMemberId);
-        transport.send(
+        transport.deliver(
                 locator.requirePartner(partnerId),
                 RemoteBoardTicketDetailRoutes.DELETE_COMMENT.at(boardKey, ticketNumber, commentId),
-                new RemoteDeleteCommentRequest(remoteMemberId),
-                Void.class);
+                new RemoteDeleteCommentRequest(remoteMemberId));
     }
 
     /**
@@ -478,11 +476,10 @@ public class FederatedTicketDetailProxy implements FederationServer {
                 boardKey,
                 ticketNumber,
                 remoteMemberUid);
-        transport.send(
+        transport.deliver(
                 locator.requirePartner(partnerId),
                 RemoteBoardTicketDetailRoutes.UPDATE_CHECKLIST_ITEM.at(boardKey, ticketNumber, itemId),
-                new RemoteUpdateChecklistItemRequest(title, checked, remoteMemberUid, displayName),
-                Void.class);
+                new RemoteUpdateChecklistItemRequest(title, checked, remoteMemberUid, displayName));
     }
 
     /**
@@ -503,11 +500,10 @@ public class FederatedTicketDetailProxy implements FederationServer {
                 boardKey,
                 ticketNumber,
                 remoteMemberUid);
-        transport.send(
+        transport.deliver(
                 locator.requirePartner(partnerId),
                 RemoteBoardTicketDetailRoutes.DELETE_CHECKLIST_ITEM.at(boardKey, ticketNumber, itemId),
-                null,
-                Void.class);
+                null);
     }
 
     /**
@@ -551,11 +547,10 @@ public class FederatedTicketDetailProxy implements FederationServer {
                 ticketNumber,
                 linkedTicketNumber,
                 remoteMemberUid);
-        transport.send(
+        transport.deliver(
                 locator.requirePartner(partnerId),
                 RemoteBoardTicketLinkRoutes.CREATE_LINK.at(boardKey, ticketNumber),
-                new RemoteLinkRequest(linkedTicketNumber, linkType, remoteMemberUid, displayName),
-                Void.class);
+                new RemoteLinkRequest(linkedTicketNumber, linkType, remoteMemberUid, displayName));
     }
 
     /**
@@ -582,11 +577,10 @@ public class FederatedTicketDetailProxy implements FederationServer {
                 ticketNumber,
                 linkedTicketNumber,
                 remoteMemberUid);
-        transport.send(
+        transport.deliver(
                 locator.requirePartner(partnerId),
                 RemoteBoardTicketLinkRoutes.DELETE_LINK.at(boardKey, ticketNumber, linkedTicketNumber),
-                new RemoteDeleteLinkRequest(remoteMemberUid, displayName),
-                Void.class);
+                new RemoteDeleteLinkRequest(remoteMemberUid, displayName));
     }
 
     /**
@@ -650,11 +644,10 @@ public class FederatedTicketDetailProxy implements FederationServer {
                 partnerId,
                 boardKey,
                 remoteMemberId);
-        transport.send(
+        transport.deliver(
                 locator.requirePartner(partnerId),
                 RemoteBoardTicketLinkRoutes.REMOVE_TICKET_LABEL.at(boardKey, ticketNumber, labelId),
-                new RemoteLabelActionRequest(remoteMemberId, displayName),
-                Void.class);
+                new RemoteLabelActionRequest(remoteMemberId, displayName));
     }
 
     /**
@@ -681,11 +674,10 @@ public class FederatedTicketDetailProxy implements FederationServer {
      * @param remoteMemberId the member on the partner station
      */
     public void proxyWatchTicket(int partnerId, String boardKey, int ticketNumber, UUID remoteMemberId) {
-        transport.send(
+        transport.deliver(
                 locator.requirePartner(partnerId),
                 RemoteBoardTicketDetailRoutes.WATCH_TICKET.at(boardKey, ticketNumber),
-                new RemoteWatchRequest(remoteMemberId),
-                Void.class);
+                new RemoteWatchRequest(remoteMemberId));
     }
 
     /**
@@ -697,11 +689,10 @@ public class FederatedTicketDetailProxy implements FederationServer {
      * @param remoteMemberId the member on the partner station
      */
     public void proxyUnwatchTicket(int partnerId, String boardKey, int ticketNumber, UUID remoteMemberId) {
-        transport.send(
+        transport.deliver(
                 locator.requirePartner(partnerId),
                 RemoteBoardTicketDetailRoutes.UNWATCH_TICKET.at(boardKey, ticketNumber),
-                new RemoteWatchRequest(remoteMemberId),
-                Void.class);
+                new RemoteWatchRequest(remoteMemberId));
     }
 
     /**

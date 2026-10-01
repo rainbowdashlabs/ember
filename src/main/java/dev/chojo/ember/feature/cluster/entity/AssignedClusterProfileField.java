@@ -9,6 +9,7 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A cluster's question together with how it is put to one audience.
@@ -26,7 +27,7 @@ public record AssignedClusterProfileField(ClusterProfileField field, ClusterProf
             a.readonly_override, a.required_override""";
 
     /** How much of a row this audience gives it, which the assignment may decide against the definition. */
-    public String width() {
+    public @Nullable String width() {
         return assignment.width(field.width());
     }
 

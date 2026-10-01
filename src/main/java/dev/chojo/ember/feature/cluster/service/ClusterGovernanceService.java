@@ -19,6 +19,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,7 +132,7 @@ public class ClusterGovernanceService {
      * @param clusterId      the cluster
      * @param stationGroupId the group, or {@code null} for the denials that reach every station
      */
-    public Set<StationModule> findDeniedModules(int clusterId, Integer stationGroupId) {
+    public Set<StationModule> findDeniedModules(int clusterId, @Nullable Integer stationGroupId) {
         requireOwnGroup(clusterId, stationGroupId);
         return clusterRepository.findDeniedModules(clusterId, stationGroupId);
     }
@@ -152,7 +153,7 @@ public class ClusterGovernanceService {
      * @param stationGroupId the group it is deciding for, or {@code null} for every station
      * @param modules        the modules it now denies there
      */
-    public void setDeniedModules(int clusterId, Integer stationGroupId, Set<StationModule> modules) {
+    public void setDeniedModules(int clusterId, @Nullable Integer stationGroupId, Set<StationModule> modules) {
         Cluster cluster = requireCluster(clusterId);
         requireOwnGroup(clusterId, stationGroupId);
         Set<StationModule> before = clusterRepository.findDeniedModules(clusterId, stationGroupId);
@@ -181,7 +182,7 @@ public class ClusterGovernanceService {
     }
 
     /** A group of another association is not this one's to decide for. */
-    private void requireOwnGroup(int clusterId, Integer stationGroupId) {
+    private void requireOwnGroup(int clusterId, @Nullable Integer stationGroupId) {
         if (stationGroupId == null) return;
         boolean own = stationGroupRepository
                 .findById(stationGroupId)
@@ -213,9 +214,9 @@ public class ClusterGovernanceService {
      */
     public void setLookAndFeel(
             int clusterId,
-            String defaultTheme,
-            String customThemeColors,
-            ThemeFeel defaultFeel,
+            @Nullable String defaultTheme,
+            @Nullable String customThemeColors,
+            @Nullable ThemeFeel defaultFeel,
             boolean themeLocked,
             boolean colorsLocked,
             boolean feelLocked,

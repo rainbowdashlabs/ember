@@ -161,7 +161,7 @@ public class ClusterGovernanceRoutes implements Routes {
      * Which group of stations the request is about, or {@code null} for every station of the cluster,
      * which is what the screen asks for until somebody picks a tab.
      */
-    private static Integer stationGroup(Context ctx) {
+    private static @Nullable Integer stationGroup(Context ctx) {
         String raw = ctx.queryParam("stationGroupId");
         if (raw == null || raw.isBlank()) return null;
         try {
@@ -240,7 +240,7 @@ public class ClusterGovernanceRoutes implements Routes {
         return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_GOVERNANCE::raise);
     }
 
-    private static ThemeFeel parseFeel(String raw) {
+    private static @Nullable ThemeFeel parseFeel(@Nullable String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
             return ThemeFeel.valueOf(raw);

@@ -472,11 +472,10 @@ public class FederatedTicketProxy implements FederationServer {
      * @param orderedIds the ticket ids in their new order
      */
     public void proxyReorderTickets(int partnerId, String boardKey, int laneId, List<Integer> orderedIds) {
-        transport.send(
+        transport.deliver(
                 locator.requirePartner(partnerId),
                 RemoteBoardTicketRoutes.REORDER_TICKETS.at(boardKey),
-                new RemoteReorderRequest(laneId, orderedIds),
-                Void.class);
+                new RemoteReorderRequest(laneId, orderedIds));
     }
 
     /**
@@ -488,11 +487,10 @@ public class FederatedTicketProxy implements FederationServer {
      */
     public void proxyDeleteTicket(int partnerId, String boardKey, int ticketNumber) {
         log.info("Federated ticket deletion on partner {} board {} ticket {}", partnerId, boardKey, ticketNumber);
-        transport.send(
+        transport.deliver(
                 locator.requirePartner(partnerId),
                 RemoteBoardTicketRoutes.DELETE_TICKET.at(boardKey, ticketNumber),
-                null,
-                Void.class);
+                null);
     }
 
     private List<TicketSummary> summarize(List<BoardTicket> tickets) {

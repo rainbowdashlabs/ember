@@ -160,7 +160,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         if (file.size() > MAX_UPLOAD_SIZE) throw Refusal.CLUSTER_MEMBER_DOCUMENT_TOO_LARGE.raise();
 
         String title = ctx.formParam("title");
-        if (isBlank(title)) title = file.filename();
+        if (title == null || title.isBlank()) title = file.filename();
 
         byte[] data;
         try (var in = file.content()) {
@@ -348,7 +348,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         }
     }
 
-    private static boolean isBlank(String value) {
+    private static boolean isBlank(@Nullable String value) {
         return value == null || value.isBlank();
     }
 
@@ -438,7 +438,7 @@ public class ClusterMemberManagementRoutes implements Routes {
      * Turns the station identity on the wire into the internal id, checked against this cluster so the
      * filter cannot be used to peer into somebody else's station.
      */
-    private Integer resolveStationFilter(Cluster cluster, String raw) {
+    private @Nullable Integer resolveStationFilter(Cluster cluster, @Nullable String raw) {
         if (raw == null || raw.isBlank()) return null;
         UUID uid;
         try {
@@ -453,7 +453,7 @@ public class ClusterMemberManagementRoutes implements Routes {
                 .orElseThrow(Refusal.STATION_NOT_IN_THIS_CLUSTER::raise);
     }
 
-    private static int intParam(String raw, int fallback) {
+    private static int intParam(@Nullable String raw, int fallback) {
         if (raw == null || raw.isBlank()) return fallback;
         try {
             return Integer.parseInt(raw);
@@ -462,7 +462,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         }
     }
 
-    private static StationUserType parseUserType(String raw) {
+    private static @Nullable StationUserType parseUserType(@Nullable String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
             return StationUserType.valueOf(raw);

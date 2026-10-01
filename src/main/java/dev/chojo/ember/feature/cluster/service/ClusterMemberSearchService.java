@@ -101,7 +101,12 @@ public class ClusterMemberSearchService {
      * @param size          the page size
      */
     public record Search(
-            String query, Integer stationId, StationUserType userType, boolean includeFormer, int page, int size) {}
+            @Nullable String query,
+            @Nullable Integer stationId,
+            @Nullable StationUserType userType,
+            boolean includeFormer,
+            int page,
+            int size) {}
 
     /**
      * @param stationOwner whether they are their station's owner, which the cluster may not edit

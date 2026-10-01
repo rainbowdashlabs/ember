@@ -93,11 +93,11 @@ public class TransferFileImporter {
         boolean totalPinned = false;
         while (true) {
             var page = client.listKeys(category, after);
+            Integer total = page.total();
             if (!totalPinned) {
-                progress.setSubTotal(
-                        page.total() != null ? page.total() : page.keys().size());
+                progress.setSubTotal(total != null ? total : page.keys().size());
                 totalPinned = true;
-            } else if (page.total() == null) {
+            } else if (total == null) {
                 progress.setSubTotal(progress.subTotal() + page.keys().size());
             }
             for (String key : page.keys()) {

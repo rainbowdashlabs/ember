@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.transfer.TransferBackendDescriptor;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
@@ -142,7 +143,7 @@ public final class TransferSourceClient {
      * @return the listed keys with the next cursor and, when known, the total
      */
     @SuppressWarnings("unchecked")
-    public ListKeysPage listKeys(StorageCategory category, String after) {
+    public ListKeysPage listKeys(StorageCategory category, @Nullable String after) {
         var sb = new StringBuilder(baseUrl)
                 .append("/api/v1/public/transfer/")
                 .append(token)
@@ -328,7 +329,10 @@ public final class TransferSourceClient {
      * @param next  the cursor for the following page, or {@code null} when exhausted
      * @param total the overall key count when the source reports one, otherwise {@code null}
      */
-    public record ListKeysPage(List<String> keys, String next, Integer total) {}
+    public record ListKeysPage(
+            List<String> keys,
+            @Nullable String next,
+            @Nullable Integer total) {}
 
     /**
      * A payload streamed from the source together with its content type.

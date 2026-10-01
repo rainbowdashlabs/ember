@@ -194,7 +194,8 @@ public class ClusterStationRoutes implements Routes {
     /**
      * @param approve whether to let the station in; when false the reason is shown to its owner
      */
-    public record ApplicationDecisionRequest(boolean approve, String reason) {}
+    public record ApplicationDecisionRequest(
+            boolean approve, @Nullable String reason) {}
 
     public record ClusterStationResponse(
             UUID uid, String name, @Nullable String publicSlug) {}

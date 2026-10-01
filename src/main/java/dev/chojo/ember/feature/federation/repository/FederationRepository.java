@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.federation.entity.PublicPartnerSummary;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -127,7 +128,11 @@ public class FederationRepository {
     }
 
     public FederationPartner createPartner(
-            int stationId, UUID partnerStationUid, String inviteCode, String publicKey, String remoteHost) {
+            int stationId,
+            UUID partnerStationUid,
+            @Nullable String inviteCode,
+            @Nullable String publicKey,
+            @Nullable String remoteHost) {
         return insertReturning(
                 """
                 INSERT INTO federation_partner(station_id, partner_station_id, invite_code, public_key, status, remote_host, partner_station_name)
@@ -363,7 +368,8 @@ public class FederationRepository {
 
     // -- KB Shares --
 
-    public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, ShareScope shareScope) {
+    public FederationShare createKbShare(
+            int stationId, @Nullable Integer fileId, @Nullable Integer folderId, ShareScope shareScope) {
         return insertReturning(
                 """
                 INSERT INTO federation_kb_share(station_id, file_id, folder_id, share_scope)

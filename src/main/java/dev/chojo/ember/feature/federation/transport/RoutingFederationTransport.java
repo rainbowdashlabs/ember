@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -44,7 +45,7 @@ public class RoutingFederationTransport implements FederationTransport {
     }
 
     @Override
-    public <T> T send(FederationPartner partner, FederationRequest request, Object body, Class<T> type) {
+    public <T> T send(FederationPartner partner, FederationRequest request, @Nullable Object body, Class<T> type) {
         request.requireResponseType(type);
         return to(partner).send(partner, request, body, type);
     }
@@ -54,6 +55,11 @@ public class RoutingFederationTransport implements FederationTransport {
             FederationPartner partner, FederationRequest request, Object body, Class<T> elementType) {
         request.requireResponseType(elementType);
         return to(partner).sendList(partner, request, body, elementType);
+    }
+
+    @Override
+    public void deliver(FederationPartner partner, FederationRequest request, @Nullable Object body) {
+        to(partner).deliver(partner, request, body);
     }
 
     @Override

@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
@@ -69,9 +70,13 @@ public class LocalFederationTransport implements FederationTransport {
     }
 
     @Override
-    public <T> T send(FederationPartner partner, FederationRequest request, Object body, Class<T> type) {
-        var answer = convert(call(partner, request, body), type);
-        return type == Void.class ? null : answered(answer);
+    public <T> T send(FederationPartner partner, FederationRequest request, @Nullable Object body, Class<T> type) {
+        return answered(convert(call(partner, request, body), type));
+    }
+
+    @Override
+    public void deliver(FederationPartner partner, FederationRequest request, @Nullable Object body) {
+        call(partner, request, body);
     }
 
     @Override
@@ -107,26 +112,26 @@ public class LocalFederationTransport implements FederationTransport {
                 .orElseThrow(Refusal.FEDERATION_PARTNERSHIP_NOT_ACTIVE_THERE::raise);
     }
 
-    private Object call(FederationPartner partner, FederationRequest request, Object body) {
+    private @Nullable Object call(FederationPartner partner, FederationRequest request, @Nullable Object body) {
         var endpoint = request.endpoint();
         FederationHandler<Object, Object> handler = endpoints.get().handlerFor(endpoint);
         Object payload = endpoint.requestType() == Void.class ? null : convert(body, endpoint.requestType());
         return handler.serve(servingSide(partner), PathParams.of(request), payload);
     }
 
-    private <T> T convert(Object value, Class<T> type) {
+    private <T> @Nullable T convert(@Nullable Object value, Class<T> type) {
         if (value == null || type == Void.class) return null;
         if (type.isInstance(value)) return type.cast(value);
         return mapper.convertValue(value, type);
     }
 
-    private <T> List<T> convertList(Object value, Class<T> elementType) {
+    private <T> List<T> convertList(@Nullable Object value, Class<T> elementType) {
         if (value == null) return List.of();
         return ((List<?>) value)
                 .stream().map(element -> convert(element, elementType)).toList();
     }
 
-    private static <T> T answered(T answer) {
+    private static <T> T answered(@Nullable T answer) {
         if (answer == null) throw Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
         return answer;
     }

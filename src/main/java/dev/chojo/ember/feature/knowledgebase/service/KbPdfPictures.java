@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -82,7 +83,8 @@ public class KbPdfPictures {
      * @return the rewritten body with the pictures it now points at
      */
     public Placed place(int stationId, String markdown) {
-        var stationUid = stationRepository.resolveUid(stationId).toString();
+        var stationUid = Objects.requireNonNull(stationRepository.resolveUid(stationId), "the exporting station exists")
+                .toString();
         var namesByUrl = new LinkedHashMap<String, String>();
         var pictures = new LinkedHashMap<String, byte[]>();
         Function<String, String> localName = url -> namesByUrl.computeIfAbsent(url, u -> read(stationId, stationUid, u)

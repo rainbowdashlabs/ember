@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -124,7 +125,7 @@ public class ClusterRepository {
                 SELECT %s FROM cluster ORDER BY name;""", CLUSTER_COLUMNS).single(call()).map(Cluster.map()).all();
     }
 
-    public Cluster create(String name, String description, int homeStationId) {
+    public Cluster create(String name, @Nullable String description, int homeStationId) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO cluster(name, description, home_station_id)
@@ -135,7 +136,7 @@ public class ClusterRepository {
                 CLUSTER_COLUMNS);
     }
 
-    public boolean rename(int id, String name, String description) {
+    public boolean rename(int id, String name, @Nullable String description) {
         return query("UPDATE cluster SET name = :name, description = :description WHERE id = :id;")
                 .single(call().bind("name", name)
                         .bind("description", description)
@@ -332,7 +333,7 @@ public class ClusterRepository {
      *                       reach every station
      * @return the denied modules, skipping any name the code no longer knows
      */
-    public Set<StationModule> findDeniedModules(int clusterId, Integer stationGroupId) {
+    public Set<StationModule> findDeniedModules(int clusterId, @Nullable Integer stationGroupId) {
         Set<StationModule> denied = EnumSet.noneOf(StationModule.class);
         for (String name : query("""
                 SELECT module FROM cluster_denied_module
@@ -363,7 +364,7 @@ public class ClusterRepository {
      * @param stationGroupId the group being written, or {@code null} for every station
      * @param modules        what it now denies there
      */
-    public void setDeniedModules(int clusterId, Integer stationGroupId, Set<StationModule> modules) {
+    public void setDeniedModules(int clusterId, @Nullable Integer stationGroupId, Set<StationModule> modules) {
         query("""
                 DELETE FROM cluster_denied_module
                 WHERE cluster_id = :cluster_id
@@ -464,9 +465,9 @@ public class ClusterRepository {
      */
     public boolean setLookAndFeel(
             int clusterId,
-            String defaultTheme,
-            String customThemeColors,
-            ThemeFeel defaultFeel,
+            @Nullable String defaultTheme,
+            @Nullable String customThemeColors,
+            @Nullable ThemeFeel defaultFeel,
             boolean themeLocked,
             boolean colorsLocked,
             boolean feelLocked,

@@ -18,6 +18,7 @@ import io.javalin.http.HttpStatus;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
@@ -31,6 +32,7 @@ import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -167,7 +169,7 @@ public class FederationHttpClient {
      * Performs a signed GET and deserializes the response as a single typed object.
      * Returns null on error or non-2xx status.
      */
-    public <T> T get(
+    public <T> @Nullable T get(
             String remoteHost,
             FederationRequest request,
             UUID partnerStationUid,
@@ -219,7 +221,7 @@ public class FederationHttpClient {
      * The request body is serialized to JSON internally.
      * Returns null on error or non-2xx status.
      */
-    public <T> T post(
+    public <T> @Nullable T post(
             String remoteHost,
             FederationRequest request,
             Object requestBody,
@@ -294,7 +296,7 @@ public class FederationHttpClient {
      * The request body is serialized to JSON internally.
      * Returns null on error or non-2xx status.
      */
-    public <T> T put(
+    public <T> @Nullable T put(
             String remoteHost,
             FederationRequest request,
             Object requestBody,
@@ -391,7 +393,7 @@ public class FederationHttpClient {
             String method,
             String remoteHost,
             FederationRequest request,
-            String body,
+            @Nullable String body,
             UUID partnerStationUid,
             int localStationId)
             throws Exception {
@@ -403,7 +405,9 @@ public class FederationHttpClient {
         String nonce = UUID.randomUUID().toString();
         String signature = signer.signRequest(
                 localStationId, method, pathWithQuery, partnerStationUid, nonce, signedBody, timestampStr);
-        String stationUid = stationRepository.resolveUid(localStationId).toString();
+        String stationUid = Objects.requireNonNull(
+                        stationRepository.resolveUid(localStationId), "a station signing its own request exists")
+                .toString();
 
         var local = FederationContractVersions.current();
         var builder = HttpRequest.newBuilder()
@@ -418,7 +422,7 @@ public class FederationHttpClient {
                 .header(FederationHeaders.HEADER_CORE, local.core());
         var surface = request.endpoint().surface();
         if (surface != FederationSurface.CORE) {
-            builder.header(FederationHeaders.HEADER_SURFACE, local.featureHash(surface.capability()));
+            builder.header(FederationHeaders.HEADER_SURFACE, local.featureHash(surface.requireCapability()));
         }
 
         BodyPublisher publisher = body == null ? BodyPublishers.noBody() : BodyPublishers.ofString(body);
@@ -440,7 +444,8 @@ public class FederationHttpClient {
      * @param status   how it ended
      * @param response what the far side answered, only present once it is {@code ESTABLISHED}
      */
-    public record HandshakeAttempt(HandshakeStatus status, RemoteFederationRoutes.HandshakeResponse response) {}
+    public record HandshakeAttempt(
+            HandshakeStatus status, RemoteFederationRoutes.@Nullable HandshakeResponse response) {}
 
     /** How a handshake attempt ended, in terms a person entering a code can be told about. */
     public enum HandshakeStatus {

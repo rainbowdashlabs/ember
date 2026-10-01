@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.federation.service.FederationWebhookService;
 import io.javalin.http.HandlerType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,25 +43,21 @@ public class HttpFederationTransport implements FederationTransport {
     @Override
     public <T> T get(FederationPartner partner, FederationRequest request, Class<T> type) {
         requireKey(partner);
-        return answered(
-                httpClient.get(partner.remoteHost(), request, partner.partnerStationId(), partner.stationId(), type));
+        return answered(httpClient.get(
+                partner.requireRemoteHost(), request, partner.partnerStationId(), partner.stationId(), type));
     }
 
     @Override
     public <T> List<T> getList(FederationPartner partner, FederationRequest request, Class<T> elementType) {
         if (!canSign(partner)) return List.of();
         return httpClient.getList(
-                partner.remoteHost(), request, partner.partnerStationId(), partner.stationId(), elementType);
+                partner.requireRemoteHost(), request, partner.partnerStationId(), partner.stationId(), elementType);
     }
 
     @Override
-    public <T> T send(FederationPartner partner, FederationRequest request, Object body, Class<T> type) {
+    public <T> T send(FederationPartner partner, FederationRequest request, @Nullable Object body, Class<T> type) {
         requireKey(partner);
-        if (type == Void.class) {
-            if (!delivered(partner, request, body)) throw Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
-            return null;
-        }
-        var host = partner.remoteHost();
+        var host = partner.requireRemoteHost();
         var target = partner.partnerStationId();
         int station = partner.stationId();
         var method = request.endpoint().method();
@@ -74,7 +71,18 @@ public class HttpFederationTransport implements FederationTransport {
             FederationPartner partner, FederationRequest request, Object body, Class<T> elementType) {
         if (!canSign(partner)) return List.of();
         return httpClient.postList(
-                partner.remoteHost(), request, body, partner.partnerStationId(), partner.stationId(), elementType);
+                partner.requireRemoteHost(),
+                request,
+                body,
+                partner.partnerStationId(),
+                partner.stationId(),
+                elementType);
+    }
+
+    @Override
+    public void deliver(FederationPartner partner, FederationRequest request, @Nullable Object body) {
+        requireKey(partner);
+        if (!delivered(partner, request, body)) throw Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
     }
 
     @Override
@@ -82,8 +90,8 @@ public class HttpFederationTransport implements FederationTransport {
         webhooks.notifyPartner(partner.id(), webhook, body);
     }
 
-    private boolean delivered(FederationPartner partner, FederationRequest request, Object body) {
-        var host = partner.remoteHost();
+    private boolean delivered(FederationPartner partner, FederationRequest request, @Nullable Object body) {
+        var host = partner.requireRemoteHost();
         var target = partner.partnerStationId();
         int station = partner.stationId();
         var method = request.endpoint().method();
@@ -107,7 +115,7 @@ public class HttpFederationTransport implements FederationTransport {
         if (!canSign(partner)) throw Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
     }
 
-    private static <T> T answered(T answer) {
+    private static <T> T answered(@Nullable T answer) {
         if (answer == null) throw Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
         return answer;
     }

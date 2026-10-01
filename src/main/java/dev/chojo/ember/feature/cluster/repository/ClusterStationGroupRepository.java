@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.cluster.repository;
 
 import dev.chojo.ember.feature.cluster.entity.ClusterStationGroup;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -167,7 +168,7 @@ public class ClusterStationGroupRepository {
      * @param groupId   the group the question names, or {@code null} for every station
      * @return the stations reached
      */
-    public List<Integer> findStationIdsReachedBy(int clusterId, Integer groupId) {
+    public List<Integer> findStationIdsReachedBy(int clusterId, @Nullable Integer groupId) {
         if (groupId == null) {
             return query("SELECT id FROM station WHERE cluster_id = :cluster_id ORDER BY id;")
                     .single(call().bind("cluster_id", clusterId))

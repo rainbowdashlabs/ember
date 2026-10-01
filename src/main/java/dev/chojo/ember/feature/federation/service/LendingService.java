@@ -172,12 +172,12 @@ public class LendingService implements FederationServer {
             LocalDate dateFrom,
             LocalDate dateTo,
             int createdBy,
-            Integer eventId,
-            LocalDate eventDate,
+            @Nullable Integer eventId,
+            @Nullable LocalDate eventDate,
             String occasion) {
         return createRequest(
                 requestingStationId,
-                stationRepository.resolveUid(owningStationId),
+                uidOf(owningStationId),
                 dateFrom,
                 dateTo,
                 createdBy,
@@ -213,11 +213,11 @@ public class LendingService implements FederationServer {
             LocalDate dateFrom,
             LocalDate dateTo,
             int createdBy,
-            Integer eventId,
-            LocalDate eventDate,
+            @Nullable Integer eventId,
+            @Nullable LocalDate eventDate,
             String occasion,
             List<RequestLine> lines) {
-        UUID requestingUid = stationRepository.resolveUid(requestingStationId);
+        UUID requestingUid = uidOf(requestingStationId);
         var partner = requireLendingPartner(requestingStationId, owningUid);
         Integer lendingStationHere =
                 stationRepository.findByUid(owningUid).map(Station::id).orElse(null);
@@ -295,7 +295,7 @@ public class LendingService implements FederationServer {
      * @return what this station calls each line
      */
     public RemoteLendingAccepted serveRequest(ServingPartner partner, RemoteLendingRequest body) {
-        UUID lendingUid = stationRepository.resolveUid(partner.servingStationId());
+        UUID lendingUid = uidOf(partner.servingStationId());
         var known = repository.findRequestByUid(body.uid());
         if (known.isPresent()) {
             var request = known.get();
@@ -377,7 +377,7 @@ public class LendingService implements FederationServer {
      * @return this instance's copy, refused alike when missing and when the two are not its parties
      */
     private LendingRequest sharedRequest(ServingPartner partner, UUID uid) {
-        UUID servingUid = stationRepository.resolveUid(partner.servingStationId());
+        UUID servingUid = uidOf(partner.servingStationId());
         return repository
                 .findRequestByUid(uid)
                 .filter(request -> request.isParty(servingUid) && request.isParty(partner.askingStationUid()))
@@ -401,13 +401,18 @@ public class LendingService implements FederationServer {
     }
 
     public List<LendingRequest> findRequestsByStation(int stationId) {
-        return repository.findRequestsByStation(stationRepository.resolveUid(stationId));
+        return repository.findRequestsByStation(uidOf(stationId));
     }
 
     // -- Requests --
 
     public LendingRequestItem addRequestItem(
-            int requestId, Integer inventoryId, Integer itemId, Integer artId, int quantity, Integer needId) {
+            int requestId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            @Nullable Integer artId,
+            int quantity,
+            @Nullable Integer needId) {
         LendingRequestItem added = repository.addRequestItem(requestId, inventoryId, itemId, artId, quantity, needId);
         log.info("Lending request {} now asks for {} piece(s) more", requestId, quantity);
         return added;
@@ -576,7 +581,7 @@ public class LendingService implements FederationServer {
         return moveOn(requestId, stationId, LendingStatus.APPROVED, "Anfrage genehmigt", null);
     }
 
-    public boolean declineRequest(int requestId, int stationId, String reason) {
+    public boolean declineRequest(int requestId, int stationId, @Nullable String reason) {
         String msg = "Anfrage abgelehnt" + (reason != null && !reason.isBlank() ? ": " + reason : "");
         return moveOn(requestId, stationId, LendingStatus.DECLINED, msg, reason);
     }
@@ -630,14 +635,15 @@ public class LendingService implements FederationServer {
      * @param reason        why, where it was declined, or {@code null}
      * @return {@code true} when the request moved
      */
-    private boolean moveOn(int requestId, int stationId, LendingStatus status, String systemMessage, String reason) {
+    private boolean moveOn(
+            int requestId, int stationId, LendingStatus status, String systemMessage, @Nullable String reason) {
         if (!repository.updateRequestStatus(requestId, status)) {
             log.warn("Moving lending request {} to {} by station {} affected no row", requestId, status, stationId);
             return false;
         }
         var request = repository.findRequestById(requestId).orElse(null);
         if (request == null) return true;
-        UUID actingUid = stationRepository.resolveUid(stationId);
+        UUID actingUid = uidOf(stationId);
         applyConsequences(request, status);
         repository.createMessage(requestId, actingUid, null, systemMessage, true);
         publishStatusChange(
@@ -750,7 +756,7 @@ public class LendingService implements FederationServer {
 
     public LendingMessage sendMessage(
             int requestId, int senderStationId, int senderMemberId, String senderName, String message) {
-        UUID senderStationUid = stationRepository.resolveUid(senderStationId);
+        UUID senderStationUid = uidOf(senderStationId);
         var msg = repository.createMessage(requestId, senderStationUid, senderMemberId, message, false);
         repository.findRequestById(requestId).ifPresent(r -> {
             UUID targetStationUid = r.otherParty(senderStationUid);
@@ -797,7 +803,7 @@ public class LendingService implements FederationServer {
      */
     public List<LendingMessage> serveMessages(ServingPartner partner, UUID uid) {
         var request = sharedRequest(partner, uid);
-        return repository.findLocalMessages(request.id(), stationRepository.resolveUid(partner.servingStationId()));
+        return repository.findLocalMessages(request.id(), uidOf(partner.servingStationId()));
     }
 
     /**
@@ -808,7 +814,7 @@ public class LendingService implements FederationServer {
      */
     public List<LendingMessage> getMessages(int requestId, int localStationId) {
         var request = repository.findRequestById(requestId).orElseThrow();
-        UUID localStationUid = stationRepository.resolveUid(localStationId);
+        UUID localStationUid = uidOf(localStationId);
         var all = new ArrayList<>(repository.findLocalMessages(requestId, localStationUid));
         var partner = findPartnerForStation(localStationId, request.otherParty(localStationUid));
         if (partner != null) {
@@ -835,7 +841,12 @@ public class LendingService implements FederationServer {
     }
 
     public InventoryBlock createBlock(
-            int stationId, Integer inventoryId, Integer itemId, LocalDate from, LocalDate to, String reason) {
+            int stationId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            LocalDate from,
+            LocalDate to,
+            String reason) {
         var block = repository.createBlock(stationId, inventoryId, itemId, from, to, reason);
         log.info("Created inventory block {} for station {}", block.id(), stationId);
         return block;
@@ -857,7 +868,12 @@ public class LendingService implements FederationServer {
         return repository.findBlocksByStation(stationId);
     }
 
-    public boolean isBlocked(int stationId, Integer inventoryId, Integer itemId, LocalDate dateFrom, LocalDate dateTo) {
+    public boolean isBlocked(
+            int stationId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            LocalDate dateFrom,
+            LocalDate dateTo) {
         return repository.isBlocked(stationId, inventoryId, itemId, dateFrom, dateTo);
     }
 
@@ -869,7 +885,7 @@ public class LendingService implements FederationServer {
      * would tell another station what you own and which of it you are deliberately keeping.
      */
     public AvailableInventoryResult findAvailableInventory(
-            int stationId, String query, LocalDate dateFrom, LocalDate dateTo) {
+            int stationId, @Nullable String query, @Nullable LocalDate dateFrom, LocalDate dateTo) {
         var partners = federationService.findPartners(stationId).stream()
                 .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
                 .filter(this::lendsWith)
@@ -1037,7 +1053,11 @@ public class LendingService implements FederationServer {
 
     // -- Federated available inventory (parallel fetch from all partners) --
 
-    private FederationPartner findPartnerForStation(int localStationId, UUID partnerStationUid) {
+    private UUID uidOf(int stationId) {
+        return Objects.requireNonNull(stationRepository.resolveUid(stationId), "a station that lends or asks exists");
+    }
+
+    private @Nullable FederationPartner findPartnerForStation(int localStationId, UUID partnerStationUid) {
         var partners = federationService.findPartners(localStationId);
         for (var p : partners) {
             if (Objects.equals(p.partnerStationId(), partnerStationUid)
@@ -1192,7 +1212,12 @@ public class LendingService implements FederationServer {
      * @param artId       the kind of thing the line asks for, or {@code null}
      * @param needId      the line of an appointment's needs this fills, or {@code null}
      */
-    public record RequestLine(Integer inventoryId, Integer itemId, Integer artId, int quantity, Integer needId) {}
+    public record RequestLine(
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            @Nullable Integer artId,
+            int quantity,
+            @Nullable Integer needId) {}
 
     /**
      * One thing a partner offers, counted.

@@ -264,7 +264,9 @@ public class FederatedBoardDiscoveryService implements FederationServer {
          */
         public static FederatedBoardDetail of(
                 Board board, BoardShareMode shareMode, String stationName, StationRepository stationRepository) {
-            var stationUid = stationRepository.resolveUid(board.stationId()).toString();
+            var stationUid = Objects.requireNonNull(
+                            stationRepository.resolveUid(board.stationId()), "a board's station exists")
+                    .toString();
             return new FederatedBoardDetail(
                     new RemoteBoard(
                             board.id(),

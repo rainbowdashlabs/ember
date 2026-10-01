@@ -55,7 +55,7 @@ public class StationTransferService {
      * @param signalledFrom  the destination as it named itself, or null or blank to use the one
      *                       recorded when the move started
      */
-    public void complete(int stationId, String signalledFrom) {
+    public void complete(int stationId, @Nullable String signalledFrom) {
         String destinationUrl = signalledFrom != null && !signalledFrom.isBlank()
                 ? signalledFrom
                 : exportService.findTransferTarget(stationId).orElse(null);

@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.federation.service.RefusedDestinationException;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
@@ -67,7 +68,7 @@ public class DiscoveryHttpClient {
      * Performs an unauthenticated GET and deserializes the response. Returns {@code null} on
      * non-2xx or transport failure.
      */
-    public <T> T get(String baseUrl, String path, Class<T> responseType) {
+    public <T> @Nullable T get(String baseUrl, String path, Class<T> responseType) {
         try {
             var request = HttpRequest.newBuilder()
                     .uri(URI.create(OutboundHttp.join(baseUrl, path)))
@@ -184,22 +185,13 @@ public class DiscoveryHttpClient {
      * @param problem why nothing came back, in a sentence an operator can act on, or {@code null}
      *         where something did
      */
-    public record Probe<T>(T value, String problem) {
+    public record Probe<T>(@Nullable T value, @Nullable String problem) {
         static <T> Probe<T> reachedWith(T value) {
             return new Probe<>(value, null);
         }
 
         static <T> Probe<T> stoppedBy(String problem) {
             return new Probe<>(null, problem);
-        }
-
-        /**
-         * Whether the peer answered with what was asked for.
-         *
-         * @return true when {@link #value} is there to be used
-         */
-        public boolean reached() {
-            return value != null;
         }
     }
 

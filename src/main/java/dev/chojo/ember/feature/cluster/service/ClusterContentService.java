@@ -19,6 +19,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,7 +127,8 @@ public class ClusterContentService {
      * @param accountId   the account creating it
      * @return the folder
      */
-    public KbFolder createFolder(int clusterId, Integer parentId, String name, String description, int accountId) {
+    public KbFolder createFolder(
+            int clusterId, @Nullable Integer parentId, String name, String description, int accountId) {
         if (name == null || name.isBlank()) throw new BadRequestResponse("A folder needs a name");
         int homeStationId = homeStationOf(clusterId);
         // Both columns are NOT NULL, and "no description" is a thing a caller may legitimately mean

@@ -478,11 +478,10 @@ public class NewsFederationService implements FederationServer {
     public void deleteFederatedComment(
             int stationId, UUID partnerStationUid, int commentId, FederatedCommentAuthor author) {
         var partner = requirePartner(stationId, partnerStationUid);
-        transport.send(
+        transport.deliver(
                 partner,
                 RemoteNewsRoutes.DELETE_COMMENT.at(commentId),
-                new RemoteNewsCommentDeleteRequest(author.memberUid()),
-                Void.class);
+                new RemoteNewsCommentDeleteRequest(author.memberUid()));
         log.info("Station {} deleted its comment {} at partner {}", stationId, commentId, partner.id());
     }
 

@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,7 +117,11 @@ public class ClusterDispatchService {
      *                            or when it has no chain for sending gear out
      */
     public ItemMovement dispatch(
-            int clusterId, UUID stationUid, List<Integer> itemIds, String reason, ItemMovementService.Actor actor) {
+            int clusterId,
+            UUID stationUid,
+            List<Integer> itemIds,
+            @Nullable String reason,
+            ItemMovementService.Actor actor) {
         if (itemIds.isEmpty()) throw new BadRequestResponse("Pick at least one piece to send");
         Station station =
                 stationRepository.findByUid(stationUid).orElseThrow(() -> new BadRequestResponse("No such station"));

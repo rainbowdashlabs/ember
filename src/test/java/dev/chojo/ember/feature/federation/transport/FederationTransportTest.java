@@ -27,7 +27,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -175,7 +174,7 @@ class FederationTransportTest {
         assertEquals(
                 List.of(new Answer(3, "many", 5)),
                 transport.sendList(local, POST_MANY.at(), new Body("many"), Answer.class));
-        assertNull(transport.send(local, PUT_NOTHING.at(1), new Body("x"), Void.class));
+        transport.deliver(local, PUT_NOTHING.at(1), new Body("x"));
     }
 
     @Test
@@ -195,7 +194,7 @@ class FederationTransportTest {
         servingRowIs(FederationStatus.ACTIVE);
         var local = partner(null, FederationStatus.ACTIVE);
 
-        assertThrows(RefusalResponse.class, () -> transport.send(local, POST_NOTHING.at(), new Body("x"), Void.class));
+        assertThrows(RefusalResponse.class, () -> transport.deliver(local, POST_NOTHING.at(), new Body("x")));
         transport.notify(local, POST_NOTHING.at(), new Body("x"));
         transport.notify(partner(null, FederationStatus.SUSPENDED), POST_NOTHING.at(), new Body("x"));
     }
@@ -234,7 +233,7 @@ class FederationTransportTest {
         var refused = assertThrows(RefusalResponse.class, () -> transport.get(remote, GET_ONE.at(1), Answer.class));
         assertEquals(Refusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
         assertThrows(RefusalResponse.class, () -> transport.send(remote, POST_ONE.at(1), new Body("x"), Answer.class));
-        assertThrows(RefusalResponse.class, () -> transport.send(remote, PUT_NOTHING.at(1), new Body("x"), Void.class));
+        assertThrows(RefusalResponse.class, () -> transport.deliver(remote, PUT_NOTHING.at(1), new Body("x")));
         assertTrue(transport
                 .sendList(remote, POST_MANY.at(), new Body("x"), Answer.class)
                 .isEmpty());
@@ -279,12 +278,16 @@ class FederationTransportTest {
         assertEquals(
                 1,
                 transport.sendList(remote, POST_MANY.at(), body, Answer.class).size());
-        assertNull(transport.send(remote, PUT_NOTHING.at(1), body, Void.class));
-        assertNull(transport.send(remote, DELETE.at(1), null, Void.class));
-        assertNull(transport.send(remote, DELETE_WITH_BODY.at(1), body, Void.class));
-        assertNull(transport.send(remote, POST_NOTHING.at(), body, Void.class));
+        transport.deliver(remote, PUT_NOTHING.at(1), body);
+        transport.deliver(remote, DELETE.at(1), null);
+        transport.deliver(remote, DELETE_WITH_BODY.at(1), body);
+        transport.deliver(remote, POST_NOTHING.at(), body);
+        verify(httpClient).put(host, PUT_NOTHING.at(1), body, servingUid, 1);
+        verify(httpClient).delete(host, DELETE.at(1), servingUid, 1);
+        verify(httpClient).delete(host, DELETE_WITH_BODY.at(1), body, servingUid, 1);
+        verify(httpClient).post(host, POST_NOTHING.at(), body, servingUid, 1);
         assertThrows(IllegalArgumentException.class, () -> transport.send(remote, DELETE.at(1), null, Answer.class));
-        assertThrows(IllegalArgumentException.class, () -> transport.send(remote, GET_ONE.at(1), null, Void.class));
+        assertThrows(IllegalArgumentException.class, () -> transport.deliver(remote, GET_ONE.at(1), null));
     }
 
     @Test

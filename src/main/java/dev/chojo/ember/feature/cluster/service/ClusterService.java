@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.storage.repository.ClusterStorageQuotaRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,7 +96,7 @@ public class ClusterService {
      * @param description a sentence about it, or {@code null}
      * @return the cluster
      */
-    public Cluster create(String name, String description) {
+    public Cluster create(String name, @Nullable String description) {
         if (name == null || name.isBlank()) throw new BadRequestResponse("A cluster needs a name");
 
         Station home = stationRepository.create(name.trim());
@@ -111,7 +112,7 @@ public class ClusterService {
      * Renames a cluster, keeping the home station in step. Federation resolves a partner's label from the
      * local station row, so the two drifting apart would show member stations the old name on shared content.
      */
-    public boolean rename(int clusterId, String name, String description) {
+    public boolean rename(int clusterId, String name, @Nullable String description) {
         if (name == null || name.isBlank()) throw new BadRequestResponse("A cluster needs a name");
         Cluster cluster =
                 clusterRepository.findById(clusterId).orElseThrow(() -> new BadRequestResponse("No such cluster"));
