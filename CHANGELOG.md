@@ -43,6 +43,7 @@
 - **Unpublished instance news reached station news managers.** A station's news managers saw the instance's draft news entries in their news list before they were published. Instance drafts now stay with the instance administrators until they are published.
 - **A station application could be confirmed without the confirmation mail.** Applying for a new station answered with the code that confirms the applicant's address, so the address could be confirmed without ever receiving the mail. The code now reaches the applicant only in that mail.
 - **News managers could remove comments in other stations.** A news manager could remove a comment on another station's news entry by its number. A comment can now only be removed from its own station; under news the instance published to every station, that is the station its author wrote from.
+- **Files of a station could be read by anyone signed in on the instance.** Somebody signed in who was no member of a station could open its media files, pictures and documents, list its media files and see its cluster by naming the station. These now answer only members of the station.
 
 ### Changes
 
