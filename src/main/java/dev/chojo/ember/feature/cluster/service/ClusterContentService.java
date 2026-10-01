@@ -102,8 +102,6 @@ public class ClusterContentService {
         return new MemberIdentity(stationRepository.requireUid(author.stationId()), author.uid());
     }
 
-    // -- Knowledge base --
-
     /**
      * The cluster's knowledge folders, which are the ones on its own station.
      *
@@ -123,7 +121,7 @@ public class ClusterContentService {
      * @param clusterId   the cluster
      * @param parentId    the folder to create it in, or {@code null} for the top
      * @param name        what it is called
-     * @param description a sentence about it
+     * @param description a sentence about it, or {@code null} for none, stored as empty
      * @param accountId   the account creating it
      * @return the folder
      */
@@ -131,7 +129,6 @@ public class ClusterContentService {
             int clusterId, @Nullable Integer parentId, String name, String description, int accountId) {
         if (name == null || name.isBlank()) throw new BadRequestResponse("A folder needs a name");
         int homeStationId = homeStationOf(clusterId);
-        // Both columns are NOT NULL, and "no description" is a thing a caller may legitimately mean
         KbFolder folder = knowledgeBaseService.createFolder(
                 homeStationId,
                 parentId,

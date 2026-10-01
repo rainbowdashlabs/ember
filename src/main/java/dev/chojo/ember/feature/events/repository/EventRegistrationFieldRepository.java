@@ -32,8 +32,6 @@ public class EventRegistrationFieldRepository {
     private static final String FIELD_COLUMNS = "id, event_id, name, field_type, config, position, overview";
     private static final String VALUE_COLUMNS = "registration_id, field_id, value";
 
-    // -- Questions --
-
     public List<EventRegistrationField> findByEvent(int eventId) {
         return query("""
                 SELECT %s
@@ -134,8 +132,6 @@ public class EventRegistrationFieldRepository {
                 .single(call().bind("id", fieldId))
                 .delete();
     }
-
-    // -- Answers --
 
     public List<RegistrationFieldValue> findValues(int registrationId) {
         return query("""

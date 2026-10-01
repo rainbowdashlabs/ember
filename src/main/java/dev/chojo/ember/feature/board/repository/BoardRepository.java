@@ -37,8 +37,6 @@ public class BoardRepository {
     private static final String EDIT_ACCESS_TABLE = "board_edit_access";
     private static final String BOARD_FK = "board_id";
 
-    // -- Board CRUD --
-
     public List<Board> findByStation(int stationId) {
         return query("SELECT %s FROM board WHERE station_id = :station_id ORDER BY created_at DESC;", BOARD_COLUMNS)
                 .single(call().bind("station_id", stationId))
@@ -95,8 +93,6 @@ public class BoardRepository {
                 row -> row.getInt("ticket_counter"));
     }
 
-    // -- Backlog --
-
     public BoardLane enableBacklog(int boardId) {
         var existing = findById(boardId).orElseThrow();
         Integer backlogLaneId = existing.backlogLaneId();
@@ -123,8 +119,6 @@ public class BoardRepository {
     public Optional<BoardLane> findLaneById(int laneId) {
         return SqlSupport.findById("board_lane", LANE_COLUMNS, laneId, BoardLane.map());
     }
-
-    // -- Lane CRUD --
 
     public List<BoardLane> findLanes(int boardId) {
         return query("SELECT %s FROM board_lane WHERE board_id = :board_id ORDER BY position;", LANE_COLUMNS)
@@ -172,8 +166,6 @@ public class BoardRepository {
                 .single(call().bind("board_id", boardId))
                 .delete();
     }
-
-    // -- Label CRUD --
 
     public List<BoardLabel> findLabels(int boardId) {
         return query("SELECT %s FROM board_label WHERE board_id = :board_id ORDER BY name;", LABEL_COLUMNS)
@@ -235,8 +227,6 @@ public class BoardRepository {
                 .all();
     }
 
-    // -- Field CRUD --
-
     public List<BoardFieldDefinition> findFields(int boardId) {
         return query("SELECT %s FROM board_field WHERE board_id = :board_id ORDER BY position;", FIELD_COLUMNS)
                 .single(call().bind("board_id", boardId))
@@ -264,8 +254,6 @@ public class BoardRepository {
                 .single(call().bind("board_id", boardId))
                 .delete();
     }
-
-    // -- Access restrictions --
 
     public void setViewAccess(
             int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {

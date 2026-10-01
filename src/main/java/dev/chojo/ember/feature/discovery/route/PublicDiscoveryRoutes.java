@@ -42,6 +42,8 @@ import org.slf4j.LoggerFactory;
  *   <li>{@code POST /discovery/peers} - receive a signed callback for one of our outbound
  *       pings.</li>
  * </ul>
+ *
+ * <p>The signing service is injected only so it is bound eagerly; the ping service is what uses it.
  */
 @Singleton
 public class PublicDiscoveryRoutes implements Routes {
@@ -69,10 +71,8 @@ public class PublicDiscoveryRoutes implements Routes {
         this.pingService = pingService;
         this.settingsService = settingsService;
         this.projectionService = projectionService;
-        // signingService is constructor-injected so it gets eagerly bound, even though the
-        // ping service is the actual user.
         @SuppressWarnings("unused")
-        var ignored = signingService;
+        var eagerlyBound = signingService;
     }
 
     @Override
@@ -120,6 +120,10 @@ public class PublicDiscoveryRoutes implements Routes {
         ctx.json(response);
     }
 
+    /**
+     * Takes a peer's ping off the request thread and always answers 204: the peer is never kept
+     * waiting while its signature is checked and this instance's peer list is compiled.
+     */
     @OpenApi(
             path = "/api/v1/discovery/ping",
             methods = HttpMethod.POST,
@@ -137,9 +141,6 @@ public class PublicDiscoveryRoutes implements Routes {
             ctx.status(HttpStatus.BAD_REQUEST);
             return;
         }
-        // The service validates the signature, drift, replay, then dispatches the callback
-        // asynchronously. Either way, we answer 204 - never block the peer waiting for our
-        // peer-list compilation.
         inboundLane.submit(() -> {
             try {
                 pingService.handleInboundPing(body, message, signature);
@@ -150,6 +151,10 @@ public class PublicDiscoveryRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    /**
+     * Handles a peer's callback on the request thread, since it only updates local state and fans
+     * out to no further network calls.
+     */
     @OpenApi(
             path = "/api/v1/discovery/peers",
             methods = HttpMethod.POST,
@@ -167,8 +172,6 @@ public class PublicDiscoveryRoutes implements Routes {
             ctx.status(HttpStatus.BAD_REQUEST);
             return;
         }
-        // Callbacks are processed synchronously: they only update local state, no further
-        // network calls fan out.
         boolean accepted = pingService.handleCallback(body, message, signature);
         ctx.status(accepted ? HttpStatus.NO_CONTENT : HttpStatus.BAD_REQUEST);
     }

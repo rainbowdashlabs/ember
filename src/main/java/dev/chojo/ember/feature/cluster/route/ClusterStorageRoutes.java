@@ -238,6 +238,10 @@ public class ClusterStorageRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    /**
+     * Hands a station a share of the pool. A screen that only knows about a total sends that one
+     * field, and a null total from it still hands the room back.
+     */
     @OpenApi(
             path = "/api/v1/cluster/storage/stations/{stationUid}",
             pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
@@ -253,8 +257,6 @@ public class ClusterStorageRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(DimensionsRequest.class);
         UUID stationUid = parseUid(ctx.pathParam("stationUid"));
-        // The screen that only knows about a total sends that one field and nothing else, and its meaning has
-        // not changed: null hands the room back
         if (request.onlyTotal() && request.totalBytes() == null) {
             quotaService.handBack(cluster.id(), stationUid);
         } else {

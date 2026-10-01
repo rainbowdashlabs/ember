@@ -52,8 +52,6 @@ public class FederationRepository {
     private static final String FEDERATION_CHANGE_LOG_COLUMNS =
             "id, station_id, content_type, content_id, change_type, changed_at";
 
-    // -- Partners --
-
     public List<FederationPartner> findPartners(int stationId) {
         return query(
                         "SELECT %s FROM federation_partner WHERE station_id = :station_id ORDER BY created_at DESC;",
@@ -345,8 +343,6 @@ public class FederationRepository {
                 .all();
     }
 
-    // -- Capabilities --
-
     public void upsertCapability(int partnerId, CapabilityType capability, Direction direction, boolean enabled) {
         query("""
                 INSERT INTO federation_capability(partner_id, capability, direction, enabled)
@@ -365,8 +361,6 @@ public class FederationRepository {
                 .map(FederationShare.mapKb())
                 .all();
     }
-
-    // -- KB Shares --
 
     public FederationShare createKbShare(
             int stationId, @Nullable Integer fileId, @Nullable Integer folderId, ShareScope shareScope) {
@@ -426,8 +420,6 @@ public class FederationRepository {
                 .all();
     }
 
-    // -- Quiz Shares --
-
     public FederationShare createQuizShare(int stationId, int catalogId, ShareScope shareScope) {
         return insertReturning(
                 """
@@ -456,8 +448,6 @@ public class FederationRepository {
                 .all();
     }
 
-    // -- Protocol Shares --
-
     public FederationShare createProtocolShare(int stationId, int protocolId, ShareScope shareScope) {
         return insertReturning(
                 """
@@ -485,8 +475,6 @@ public class FederationRepository {
                 .map(FederationMetadataCache.map())
                 .all();
     }
-
-    // -- Metadata Cache --
 
     public void upsertMetadataCache(
             int partnerId, ContentType contentType, int remoteId, String title, String description) {
@@ -540,8 +528,6 @@ public class FederationRepository {
                 .first();
     }
 
-    // -- Partner by remote station ID (for signature verification) --
-
     public Optional<FederationPartner> findPartnerByStationAndRemoteUid(int stationId, UUID remoteStationUid) {
         return query(
                         "SELECT %s FROM federation_partner WHERE station_id = :station_id AND partner_station_id = :partner_station_id::uuid LIMIT 1;",
@@ -559,8 +545,6 @@ public class FederationRepository {
                 .orElse(null);
     }
 
-    // -- Webhook URL --
-
     public void setWebhookUrl(int partnerId, String webhookUrl) {
         query("UPDATE federation_partner SET webhook_url = :webhook_url, updated_at = now() WHERE id = :id;")
                 .single(call().bind("id", partnerId).bind("webhook_url", webhookUrl))
@@ -573,8 +557,6 @@ public class FederationRepository {
                 .update();
     }
 
-    // -- Last Sync --
-
     public void logChange(int stationId, ContentType contentType, int contentId, ChangeType changeType) {
         query("""
                 INSERT INTO federation_change_log(station_id, content_type, content_id, change_type)
@@ -585,8 +567,6 @@ public class FederationRepository {
                         .bind("change_type", changeType))
                 .insert();
     }
-
-    // -- Change Log --
 
     public List<FederationChangeLog> findChangesSince(int stationId, Instant since) {
         return query(

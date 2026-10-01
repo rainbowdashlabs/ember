@@ -405,15 +405,14 @@ public class ClusterInventoryRoutes implements Routes {
         var request = ctx.bodyAsClass(DispatchRequest.class);
         if (request.stationUid() == null) throw Refusal.CLUSTER_DISPATCH_NEEDS_A_STATION.raise();
 
-        // Acting for the owner: this is the cluster's own store the gear is leaving
-        var actor = new ItemMovementService.Actor(
+        var actingForTheOwningCluster = new ItemMovementService.Actor(
                 session.memberOpt().map(StationMember::id).orElse(0), false, true);
         var movement = dispatchService.dispatch(
                 cluster.id(),
                 request.stationUid(),
                 request.itemIds() != null ? request.itemIds() : List.of(),
                 request.reason(),
-                actor);
+                actingForTheOwningCluster);
         ctx.status(HttpStatus.CREATED).json(movement);
     }
 

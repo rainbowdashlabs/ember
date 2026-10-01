@@ -158,6 +158,10 @@ public class ClusterMemberRoutes implements Routes {
                 names(detail.resolved())));
     }
 
+    /**
+     * Releases an account from the cluster. The member is read through the service first, so one
+     * cluster cannot remove another's people.
+     */
     @OpenApi(
             path = "/api/v1/cluster/members/{memberId}",
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
@@ -168,7 +172,6 @@ public class ClusterMemberRoutes implements Routes {
     private void remove(Context ctx) {
         Cluster cluster = requireActive(ctx);
         int memberId = pathInt(ctx, "memberId");
-        // Read it through the service first, so one cluster cannot remove another's people
         memberService.findMemberDetail(cluster.id(), memberId);
         clusterService.removeMember(memberId);
         ctx.status(HttpStatus.NO_CONTENT);

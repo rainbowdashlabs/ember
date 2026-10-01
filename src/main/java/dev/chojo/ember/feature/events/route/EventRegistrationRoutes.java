@@ -374,6 +374,10 @@ public class EventRegistrationRoutes implements Routes {
         ctx.json(toRegistrationResponses(ctx, regs));
     }
 
+    /**
+     * Registration history and fairness ranking. Both sides of the category choice stay boxed: an
+     * int on one side would unbox the category of an event that has none and answer 500.
+     */
     @OpenApi(
             path = "/api/v1/events/{eventId}/registration-stats",
             methods = HttpMethod.GET,
@@ -393,8 +397,6 @@ public class EventRegistrationRoutes implements Routes {
         int eventId = pathInt(ctx, "eventId");
         var event = visibility.requireVisibleEvent(session, eventId);
         String catParam = ctx.queryParam("categoryId");
-        // Both sides of the choice stay boxed. An int on one of them promotes the other, which
-        // unboxes the category of an event that has none and answers 500 for asking.
         Integer categoryId = catParam != null ? Integer.valueOf(catParam) : event.categoryId();
         String monthsParam = ctx.queryParam("months");
         int months = monthsParam != null ? Integer.parseInt(monthsParam) : 12;
@@ -658,6 +660,10 @@ public class EventRegistrationRoutes implements Routes {
         ctx.json(toRegistrationResponses(ctx, regs));
     }
 
+    /**
+     * Registers for an event. The deadline does not bind whoever runs the event: they are keeping
+     * its list, and somebody who rang up late is still somebody who is coming.
+     */
     @OpenApi(
             path = "/api/v1/events/{eventId}/register",
             methods = HttpMethod.POST,
@@ -680,8 +686,6 @@ public class EventRegistrationRoutes implements Routes {
             throw Refusal.EVENT_TAKES_NO_REGISTRATIONS.raise();
         }
 
-        // Whoever runs the event is not answering it, they are keeping its list: somebody who rang up
-        // after the deadline is still somebody who is coming, and the list has to be able to say so.
         boolean runsTheEvent = session.hasPermission(StationPermission.EVENT_MANAGER);
         if (!runsTheEvent
                 && event.registrationDeadline() != null

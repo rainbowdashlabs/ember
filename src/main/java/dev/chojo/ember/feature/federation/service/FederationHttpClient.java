@@ -188,8 +188,6 @@ public class FederationHttpClient {
         }
     }
 
-    // -- Generic typed methods --
-
     /**
      * Performs a signed GET and deserializes the response as a list of typed objects.
      * Returns an empty list on error or non-200 status.
@@ -373,8 +371,6 @@ public class FederationHttpClient {
     private String resolveStationName(int stationId) {
         return stationRepository.findById(stationId).map(Station::name).orElse("");
     }
-
-    // -- Internal HTTP primitives --
 
     /**
      * Converts a base URL like {@code https://ember.example.com} to the API prefix.

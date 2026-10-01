@@ -51,8 +51,6 @@ public class ContentContainerRepository {
         return SqlSupport.deleteById("content_container", containerId);
     }
 
-    // --- Rows and cells ---
-
     public List<ContentRow> findRows(int containerId) {
         return query("""
                 SELECT id, container_id, sort_order

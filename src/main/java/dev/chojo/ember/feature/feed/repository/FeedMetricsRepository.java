@@ -39,14 +39,12 @@ public class FeedMetricsRepository {
      */
     private static final int UA_MAX_LENGTH = 512;
 
-    // -- daily histogram --
-
     /**
      * Upserts a single feed render into the daily aggregate. {@code durationMs} is bucketed
-     * into the fixed histogram bins on the table.
+     * into the fixed histogram bins on the table. The bins are bound as {@code bucket_a} to
+     * {@code bucket_e} because named parameters may not contain digits.
      */
     public void recordRender(String type, int status, long durationMs, long entries) {
-        // SADU named parameters reject digits, so we use word-only names.
         query("""
                 INSERT INTO feed_metric_daily(day, type, status, count, total_duration_ms, total_entries,
                                               bucket_lt_50, bucket_lt_200, bucket_lt_1000, bucket_lt_5000, bucket_gte_5000)
@@ -101,8 +99,6 @@ public class FeedMetricsRepository {
                         row.getLong("bucket_gte_5000")))
                 .all();
     }
-
-    // -- user-agent aggregate --
 
     /**
      * Drops daily aggregates older than the configured retention.

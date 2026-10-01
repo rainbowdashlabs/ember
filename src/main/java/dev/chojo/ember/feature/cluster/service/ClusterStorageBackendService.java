@@ -106,8 +106,9 @@ public class ClusterStorageBackendService {
      * Saves the association's storage, as a new version or as new credentials for the one it has.
      *
      * <p>Two configurations naming the same destination are the same storage with a new secret, and rotating
-     * a secret must not copy a terabyte. Anything else is somewhere else, so it becomes the current version
-     * and everybody standing on the old one is out of place until they are carried across.
+     * a secret must not copy a terabyte: nobody moves, and only what was built for it is rebuilt. Anything
+     * else is somewhere else, so it becomes the current version and everybody standing on the old one is out
+     * of place until they are carried across.
      *
      * @param clusterId the association
      * @param config    the backend, with its credentials already encrypted
@@ -118,7 +119,6 @@ public class ClusterStorageBackendService {
         Optional<ClusterStorageConfig> current = configRepository.findCurrent(clusterId);
         if (current.isPresent() && current.get().config().destinationKey().equals(config.destinationKey())) {
             configRepository.updateInPlace(current.get().id(), config);
-            // The destination is the same and nobody moves, but what is built for it changed
             resolver.invalidateStations(placedStationIds(clusterId));
             log.info("Cluster {} storage kept its destination and took new credentials", clusterId);
             return configRepository.findById(current.get().id()).orElseThrow();
@@ -200,8 +200,8 @@ public class ClusterStorageBackendService {
         Policy policy = findPolicy(clusterId);
         if (policy.reach() != ClusterBackendReach.EVERY_STATION || policy.current() == null) return;
         boolean bringsOwn = stationConfigRepository.findOne(stationId).isPresent();
-        // A station bringing its own is opting out, which it may do unless the association has said otherwise
-        if (bringsOwn && !policy.locked()) return;
+        boolean optsOut = bringsOwn && !policy.locked();
+        if (optsOut) return;
 
         ClusterStorageConfig current = policy.current();
         migrationService.moveStation(
@@ -244,12 +244,11 @@ public class ClusterStorageBackendService {
                 || (isHome && policy.reach() == ClusterBackendReach.OWN_FILES);
 
         if (!clusterReaches) {
-            // Frozen: the association is not reaching for this station and has said nobody moves anything
             if (policy.locked()) return Expected.WHEREVER_IT_IS;
             return bringsOwn ? Expected.ITS_OWN : Expected.INSTANCE_DEFAULT;
         }
-        // A station that brought its own is opting out, which it may do while the association allows it
-        if (bringsOwn && !policy.locked()) return Expected.ITS_OWN;
+        boolean optsOut = bringsOwn && !policy.locked();
+        if (optsOut) return Expected.ITS_OWN;
         return Expected.THE_CLUSTERS;
     }
 

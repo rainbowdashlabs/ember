@@ -58,8 +58,6 @@ public class BoardTicketRepository {
     private static final String HISTORY_COLUMNS =
             "id, ticket_id, action, detail, actor_station_uid, actor_member_uid, created_at";
 
-    // -- Ticket CRUD --
-
     private static String preparePrefixQuery(String query) {
         return Arrays.stream(query.trim().split("\\s+"))
                 .filter(w -> !w.isBlank())
@@ -243,8 +241,6 @@ public class BoardTicketRepository {
                 .update();
     }
 
-    // -- Ticket links --
-
     public void reorderTickets(int laneId, List<Integer> orderedIds) {
         SqlSupport.reorder("board_ticket", "position", "lane_id", laneId, orderedIds);
     }
@@ -279,8 +275,6 @@ public class BoardTicketRepository {
                 .insert();
     }
 
-    // -- Transitions --
-
     public boolean deleteLink(int ticketId, int linkedTicketId) {
         boolean deleted = query(
                         "DELETE FROM board_ticket_link WHERE ticket_id = :ticket_id AND linked_ticket_id = :linked_ticket_id;")
@@ -314,8 +308,6 @@ public class BoardTicketRepository {
                                 StandardValueConverter.UUID_STRING))
                 .insert();
     }
-
-    // -- Checklist --
 
     public List<BoardTicketTransition> findTransitions(int ticketId) {
         return query(
@@ -361,8 +353,6 @@ public class BoardTicketRepository {
         SqlSupport.reorder("board_ticket_checklist_item", "position", "ticket_id", ticketId, orderedIds);
     }
 
-    // -- Watchers --
-
     /**
      * The federated identities watching a ticket. Translating them back to local member IDs is the
      * caller's job, since remote watchers have no local ID.
@@ -401,8 +391,6 @@ public class BoardTicketRepository {
                 .changed();
     }
 
-    // -- Weblinks --
-
     public boolean isWatching(int ticketId, MemberIdentity identity) {
         if (identity == null || identity.stationUid() == null || identity.memberUid() == null) return false;
         return SqlSupport.exists(
@@ -436,8 +424,6 @@ public class BoardTicketRepository {
                 BoardWeblink.map(),
                 WEBLINK_COLUMNS);
     }
-
-    // -- Attachments --
 
     public boolean deleteWeblink(int id) {
         return SqlSupport.deleteById("board_ticket_weblink", id);
@@ -482,8 +468,6 @@ public class BoardTicketRepository {
         return SqlSupport.findById("board_ticket_attachment", ATTACHMENT_COLUMNS, id, BoardTicketAttachment.map());
     }
 
-    // -- Search --
-
     public boolean deleteAttachment(int id) {
         return SqlSupport.deleteById("board_ticket_attachment", id);
     }
@@ -510,8 +494,6 @@ public class BoardTicketRepository {
     public int rebuildSearchVectors() {
         return query("UPDATE board_ticket SET title = title;").single().update().rows();
     }
-
-    // -- Field values --
 
     public List<BoardTicketFieldValue> findFieldValues(int ticketId) {
         return query("""
@@ -542,8 +524,6 @@ public class BoardTicketRepository {
                 .changed();
     }
 
-    // -- KB Links --
-
     public List<BoardTicketKbLink> findKbLinks(int ticketId) {
         return query("""
                 WITH RECURSIVE folder_path AS (
@@ -573,8 +553,6 @@ public class BoardTicketRepository {
         return SqlSupport.deleteById("board_ticket_kb_link", id);
     }
 
-    // -- History --
-
     public void logHistory(
             int ticketId, BoardTicketHistoryAction action, @Nullable String detail, @Nullable MemberIdentity actor) {
         query("""
@@ -602,8 +580,6 @@ public class BoardTicketRepository {
                 .map(BoardTicketHistory.map())
                 .all();
     }
-
-    // -- Activity feed --
 
     public List<BoardActivityEntry> findActivity(int ticketId) {
         return query("""

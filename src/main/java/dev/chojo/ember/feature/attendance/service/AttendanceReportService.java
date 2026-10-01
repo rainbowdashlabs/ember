@@ -87,8 +87,6 @@ public class AttendanceReportService {
         this.apiConfig = apiConfig;
     }
 
-    // -- Records for API responses --
-
     /**
      * Retrieves all report presets for a station.
      */
@@ -181,7 +179,6 @@ public class AttendanceReportService {
         var memberSessionCount = new LinkedHashMap<Integer, Integer>();
         var memberPresentCount = new LinkedHashMap<Integer, Integer>();
 
-        // Monthly tracking
         var monthlyHours = new LinkedHashMap<YearMonth, Map<Integer, Double>>();
         var monthlySessions = new LinkedHashMap<YearMonth, Map<Integer, Integer>>();
         var monthlyPresent = new LinkedHashMap<YearMonth, Map<Integer, Integer>>();
@@ -191,7 +188,6 @@ public class AttendanceReportService {
 
         for (var session : sessions) {
             var allEntries = attendanceRepository.findEntries(session.id());
-            // Total session counts: how many expected members, and how many of those are present
             var expectedEntries = allEntries.stream()
                     .filter(e -> e.source() == AttendanceEntry.EntrySource.EXPECTED)
                     .toList();
@@ -199,19 +195,18 @@ public class AttendanceReportService {
             int presentCount = (int) expectedEntries.stream()
                     .filter(e -> e.status() == AttendanceEntry.AttendanceStatus.PRESENT)
                     .count();
-            // Entries for the report: only PRESENT members matching the role/group filter
-            var filteredEntries = allEntries.stream()
+            var presentEntriesInFilter = allEntries.stream()
                     .filter(e -> memberIds.contains(e.memberId()))
                     .filter(e -> e.status() == AttendanceEntry.AttendanceStatus.PRESENT)
                     .toList();
-            if (filteredEntries.isEmpty()) continue;
+            if (presentEntriesInFilter.isEmpty()) continue;
 
             YearMonth ym = session.startTime() != null
                     ? YearMonth.from(session.startTime().atZone(zone))
                     : null;
 
             var entryDataList = new ArrayList<SessionMemberEntry>();
-            for (var entry : filteredEntries) {
+            for (var entry : presentEntriesInFilter) {
                 String name = resolveMemberName(entry.memberId(), memberNames);
                 Instant checkIn = entry.shownCheckIn(session.startTime());
                 Instant checkOut = entry.shownCheckOut(session.endTime());
@@ -282,7 +277,6 @@ public class AttendanceReportService {
         }
         memberSummaries.sort((a, b) -> a.name().compareToIgnoreCase(b.name()));
 
-        // Build monthly summaries
         var monthlySummaryList = new ArrayList<MonthSummary>();
         for (var ym : monthlyHours.keySet()) {
             var monthMembers = new ArrayList<MemberSummary>();
@@ -433,8 +427,6 @@ public class AttendanceReportService {
                 DocumentPeriod.of(period, from, zone, locale));
     }
 
-    // -- Presets --
-
     /**
      * What one entry adds to the hours, rounded the way the report was asked for.
      *
@@ -513,8 +505,6 @@ public class AttendanceReportService {
         return map;
     }
 
-    // -- Report Building --
-
     private String resolveMemberName(int memberId, Map<Integer, String> cache) {
         return cache.computeIfAbsent(memberId, id -> {
             var member = stationMemberRepository.findById(id);
@@ -528,8 +518,6 @@ public class AttendanceReportService {
             return name.isEmpty() ? acc.email() : name;
         });
     }
-
-    // -- PDF Export --
 
     private Locale resolveLocale(int stationId) {
         return StationFormat.localeOf(stationRepository.findById(stationId).orElse(null));

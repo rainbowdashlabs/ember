@@ -127,8 +127,6 @@ public class FormService {
         log.info("Updated form {} restriction mode to {}", formId, mode);
     }
 
-    // -- Forms --
-
     /**
      * Retrieves all forms for a station.
      *
@@ -561,8 +559,6 @@ public class FormService {
         return form.endAt() == null || !now.isAfter(form.endAt());
     }
 
-    // -- Questions --
-
     /**
      * Retrieves all questions for a form, ordered by position.
      *
@@ -895,8 +891,6 @@ public class FormService {
                 position);
     }
 
-    // -- Responses --
-
     /**
      * Retrieves all responses for a form.
      *
@@ -1099,8 +1093,6 @@ public class FormService {
         return repository.findAnswers(responseId);
     }
 
-    // -- Answers --
-
     /**
      * Retrieves every answer given to a form, each carrying the response it belongs to.
      *
@@ -1131,8 +1123,6 @@ public class FormService {
         restrictionService.setRestrictions(RestrictionType.FORM, formId, selection);
         log.info("Updated access restrictions for form {}", formId);
     }
-
-    // -- Restrictions --
 
     /**
      * Walks the form with the given answers and refuses them where anything is wrong.

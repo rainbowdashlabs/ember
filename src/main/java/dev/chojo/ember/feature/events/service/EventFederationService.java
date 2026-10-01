@@ -126,8 +126,6 @@ public class EventFederationService implements FederationServer {
         this.apiConfig = apiConfig;
     }
 
-    // -- Share management --
-
     /**
      * Configures federation sharing for an event.
      *
@@ -183,8 +181,6 @@ public class EventFederationService implements FederationServer {
     public List<Integer> findSharedEventIds(int partnerId, int stationId) {
         return federationRepository.findSharedEventIds(partnerId, stationId);
     }
-
-    // -- Registration --
 
     /**
      * Registers a federated member for an event occurrence.
@@ -456,8 +452,6 @@ public class EventFederationService implements FederationServer {
         return false;
     }
 
-    // -- Name cache --
-
     /**
      * Caches the display name for a federated member.
      *
@@ -489,8 +483,6 @@ public class EventFederationService implements FederationServer {
     public void invalidateName(int partnerId, UUID remoteMemberId) {
         federationRepository.invalidateName(partnerId, remoteMemberId);
     }
-
-    // -- Federated browsing (parallel fetch from all partners) --
 
     /**
      * Browses federated events from all active partners with parallel fetching.
@@ -545,8 +537,6 @@ public class EventFederationService implements FederationServer {
                 RemoteEventRoutes.GET_ATTACHMENT_CONTENT.at(eventId, attachmentId),
                 RemoteEventRoutes.RemoteAttachmentContent.class);
     }
-
-    // -- Serving partners --
 
     /**
      * The appointments this station shares with a partner.

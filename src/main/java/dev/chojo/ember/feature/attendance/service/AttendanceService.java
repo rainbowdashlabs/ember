@@ -146,8 +146,6 @@ public class AttendanceService {
                 .collect(Collectors.toSet());
     }
 
-    // -- Templates --
-
     public List<AttendanceTemplate> findTemplatesByStation(int stationId) {
         return attendanceRepository.findTemplatesByStation(stationId);
     }
@@ -184,8 +182,6 @@ public class AttendanceService {
         return false;
     }
 
-    // -- Template Groups --
-
     public List<TemplateGroup> findTemplateGroups(int templateId) {
         return attendanceRepository.findTemplateGroups(templateId);
     }
@@ -218,8 +214,6 @@ public class AttendanceService {
     public SessionAudience audienceOf(AttendanceSession session) {
         return audienceService.audienceOf(session);
     }
-
-    // -- Template Fields --
 
     public List<AttendanceTemplateField> createTemplateField(
             int templateId, String name, FieldType fieldType, AttendanceFieldConfig config, int position) {
@@ -264,8 +258,6 @@ public class AttendanceService {
         log.warn("Cannot delete attendance template field: field {} not found", fieldId);
         return Optional.empty();
     }
-
-    // -- Sessions --
 
     public List<SessionSummary> findSessionSummaries(int stationId) {
         return attendanceRepository.findSessionSummariesByStation(stationId);
@@ -360,6 +352,9 @@ public class AttendanceService {
     }
 
     /**
+     * Opens a sheet. Its fields are seeded in rising precedence: the template's starting answers,
+     * then the appointment's field defaults, then the appointment's own answers.
+     *
      * @param audience whom to enter instead of the template's own user types and groups, kept with the
      *     sheet; null or naming nobody where the template decides
      * @param eventDate which day of a repeating appointment the sheet is for, null where the sheet
@@ -378,7 +373,6 @@ public class AttendanceService {
             @Nullable LocalDate eventDate) {
         requireUsableSpan(startTime, endTime);
         requireUsableCountedMinutes(countedMinutes);
-        // Determine title and default times from the linked event
         String resolvedTitle = title;
         Instant resolvedStart = startTime;
         Instant resolvedEnd = endTime;
@@ -421,13 +415,11 @@ public class AttendanceService {
         var session = attendanceRepository.createSession(
                 templateId, resolvedStart, resolvedEnd, eventId, resolvedTitle, countedMinutes);
         log.info("Created attendance session {} for template {} (event {})", session.id(), templateId, eventId);
-        // Auto-populate field defaults from template field config
         var templateFields = fieldsById(templateId);
         for (var field : templateFields.values()) {
             String starting = field.config().startingAnswer();
             if (starting != null) writeSessionField(session.id(), field, starting);
         }
-        // Auto-populate field defaults from the linked event (overrides template defaults)
         if (eventId != null) {
             var defaults = eventFieldDefaultRepository.findByEvent(eventId);
             if (!defaults.isEmpty()) {
@@ -450,7 +442,6 @@ public class AttendanceService {
                 }
             }
         }
-        // The appointment's own answers stand above the defaults the sheet and the appointment carry
         if (eventId != null) takeEventFieldValues(session.id(), eventId, dayOf(session), false);
 
         keepAudience(session, audience);
@@ -794,8 +785,6 @@ public class AttendanceService {
         return false;
     }
 
-    // -- Session Fields (batch) --
-
     /**
      * Writes what a sheet says in its own fields.
      *
@@ -828,8 +817,6 @@ public class AttendanceService {
         log.info("Set {} session field values for attendance session {}", fields.size(), sessionId);
         return attendanceRepository.findSessionFields(sessionId);
     }
-
-    // -- Entries --
 
     /**
      * Whether the member had joined the station by the date the sheet is about.
@@ -1121,8 +1108,6 @@ public class AttendanceService {
     public Optional<MemberAbsence> findAbsenceById(int id) {
         return attendanceRepository.findAbsenceById(id);
     }
-
-    // -- Absences --
 
     public List<MemberAbsence> findAbsencesByMember(int memberId) {
         return attendanceRepository.findAbsencesByMember(memberId);

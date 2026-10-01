@@ -310,8 +310,6 @@ public class ClusterProfileFieldRepository {
         return SqlSupport.deleteById("cluster_profile_field", id);
     }
 
-    // -- Values --
-
     /**
      * What one member answered to the questions their station is actually asked.
      *

@@ -101,6 +101,10 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
                 .collect(Collectors.toCollection(HashSet::new));
     }
 
+    /**
+     * The members a mentioned event reaches: those registered where it requires registration, and
+     * otherwise everybody who can see it, minus those who declined.
+     */
     private Set<Integer> resolveEventMembers(BulkMentionedInComment event) {
         var stationEvent = eventRepository.findById(event.mentionTargetId()).orElse(null);
         if (stationEvent == null || stationEvent.stationId() != event.stationId()) return new HashSet<>();
@@ -121,7 +125,6 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
             return ids;
         }
 
-        // No registration required - notify all members who can see the event, minus declined
         var eligible = restrictionService.findMembersPassingRestriction(
                 RestrictionType.EVENT_VIEW, stationEvent.id(), stationEvent.stationId());
         if (eligible.isEmpty()) {

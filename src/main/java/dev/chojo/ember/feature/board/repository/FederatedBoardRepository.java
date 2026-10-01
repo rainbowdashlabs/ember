@@ -30,8 +30,6 @@ public class FederatedBoardRepository {
     private static final String BOOKMARK_COLUMNS =
             "id, member_id, partner_id, remote_board_uid, remote_board_name, remote_board_short_key, share_mode, created_at";
 
-    // -- Board Share --
-
     public FederationBoardShare createShare(int boardId) {
         return SqlSupport.insertReturning(
                 "INSERT INTO federation_board_share(board_id) VALUES (:board_id) RETURNING %s;",
@@ -50,8 +48,6 @@ public class FederatedBoardRepository {
                 .single(call().bind("board_id", boardId))
                 .delete();
     }
-
-    // -- Share Targets --
 
     public void setShareTarget(int shareId, int partnerId, BoardShareMode shareMode, StationUserType requiredUserType) {
         query("""
@@ -128,8 +124,6 @@ public class FederatedBoardRepository {
                 .all();
     }
 
-    // -- Federated Edit User Types --
-
     public void setFederatedEditUserTypes(int boardId, List<StationUserType> userTypes) {
         query("DELETE FROM federation_board_edit_user_type WHERE board_id = :board_id;")
                 .single(call().bind("board_id", boardId))
@@ -153,8 +147,6 @@ public class FederatedBoardRepository {
                 "SELECT 1 FROM federation_board_edit_user_type WHERE board_id = :board_id LIMIT 1;",
                 call().bind("board_id", boardId));
     }
-
-    // -- Bookmarks --
 
     public FederationBoardBookmark createBookmark(
             int memberId,
@@ -251,8 +243,6 @@ public class FederatedBoardRepository {
                         .bind("share_mode", shareMode))
                 .update();
     }
-
-    // -- Local Overrides --
 
     public void setLocalViewOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
         query("""

@@ -90,13 +90,16 @@ public class DiscoveryKeyService {
         }
     }
 
+    /**
+     * Restricts the key file to its owner. A filesystem without POSIX permissions is skipped
+     * silently: the file still sits in the discovery data directory, which the deployment is
+     * expected to keep owner-only.
+     */
     private static void tightenPermissions(Path path) {
         try {
             Files.setPosixFilePermissions(
                     path, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
         } catch (Exception ignored) {
-            // Non-POSIX filesystems (Windows in CI). Skip silently - the file is still inside
-            // data/discovery/ which is expected to be owner-owned by deployment.
         }
     }
 

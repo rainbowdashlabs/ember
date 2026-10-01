@@ -311,7 +311,8 @@ public class ClusterMemberManagementService {
     }
 
     /**
-     * Replaces what somebody may do at their station.
+     * Replaces what somebody may do at their station, outright rather than by diffing: what a cluster
+     * manager sends is the whole answer.
      *
      * @param clusterId      the cluster acting
      * @param memberId       the member
@@ -323,7 +324,6 @@ public class ClusterMemberManagementService {
         requireNotSelf(member, actorAccountId);
         requireNotStationOwner(member);
 
-        // Replace outright rather than diffing: what a cluster manager sends is the whole answer
         memberRepository.revokeAllPermissions(memberId);
         for (StationPermission permission : permissions) {
             memberRepository

@@ -144,7 +144,6 @@ public class AttendanceExportService {
                 attendanceRepository.findTemplateFields(session.get().templateId());
         var audience = audienceService.audienceOf(session.get());
 
-        // Resolve station from the template
         var template = attendanceRepository.findTemplateById(session.get().templateId());
         int stationId = template.map(AttendanceTemplate::stationId).orElse(0);
         var station = stationRepository.findById(stationId).orElse(null);

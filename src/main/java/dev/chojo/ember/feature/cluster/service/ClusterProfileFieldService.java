@@ -317,7 +317,8 @@ public class ClusterProfileFieldService {
      * <p>The database catches the exact duplicate. The interesting case is not exact: a question asked of
      * everybody and one of the same name asked of a group would both reach the stations in that group, and a
      * member there would be asked twice with two places to answer. So the check is what each of the two
-     * actually reaches, and whether those two sets meet.
+     * actually reaches, and whether those two sets meet. The scope plays no part: two of one name reaching
+     * one station are the same question asked twice, whoever each is put to.
      *
      * @param clusterId the association
      * @param fieldId   the question being edited, or {@code null} when it is being created
@@ -332,8 +333,6 @@ public class ClusterProfileFieldService {
 
         for (ClusterProfileField other : fieldRepository.findByCluster(clusterId)) {
             if (fieldId != null && other.id() == fieldId) continue;
-            // A question is written once, so two of the same name reaching one station collide
-            // whoever each is put to: they are the same question asked twice.
             if (!other.name().equalsIgnoreCase(name)) continue;
 
             for (int stationId : stationGroupRepository.findStationIdsReachedBy(clusterId, other.stationGroupId())) {

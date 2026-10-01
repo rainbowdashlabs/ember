@@ -176,6 +176,9 @@ public class ClusterService {
      * its content, the modules it denies, the look it sets and the gear it lends. Each of those is wired in
      * as it arrives, and each of them is undone again by {@link #releaseStation(int, int)}.
      *
+     * <p>The files move before the membership is written: a station taken in whose bytes stayed behind
+     * would resolve to storage they are not on, and a copy that cannot run leaves it unjoined instead.
+     *
      * @param clusterId the cluster
      * @param stationId the station joining it
      */
@@ -189,8 +192,6 @@ public class ClusterService {
             throw new BadRequestResponse("This station already belongs to another cluster");
         }
 
-        // The files first, and the membership after them: a station taken in whose bytes stayed behind
-        // resolves to storage they are not on, and a copy that cannot run leaves it unjoined instead
         storageBackendService.takeOverOnJoin(clusterId, stationId);
 
         stationRepository.setCluster(stationId, clusterId);
@@ -212,6 +213,10 @@ public class ClusterService {
      * cluster owns is put back in its own store rather than deleted: the station losing its cluster is not
      * the same as the gear ceasing to exist.
      *
+     * <p>The files move back first, for the same reason as on joining. The station's answers go, but the
+     * history of who changed what stays: an audit trail is not the cluster's to take away. The storage grant
+     * goes with the membership, and what the instance says about the station applies again.
+     *
      * @param clusterId the cluster letting go
      * @param stationId the station being released
      * @throws BadRequestResponse when that station does not answer to this cluster
@@ -223,17 +228,12 @@ public class ClusterService {
             throw new BadRequestResponse("That station does not belong to this cluster");
         }
 
-        // And on the way out the files come first as well, for the same reason in the other direction
         storageBackendService.handBackOnRelease(clusterId, stationId);
 
         itemHandoverService.recallFromStation(clusterId, stationId);
         federationService.removeClusterFederation(stationId);
-        // The answers go, the history of who changed what stays: an audit trail is not the cluster's to
-        // take away when it lets a station go
         fieldService.clearValuesOfStation(stationId);
         stationGroupService.forgetStation(stationId);
-        // The room went with the membership. What the instance says about the station stands again, untouched
-        // all along
         quotaRepository.deleteGrant(stationId);
         stationRepository.setCluster(stationId, null);
         log.info("Cluster {} released station {}", clusterId, stationId);

@@ -131,7 +131,6 @@ public class FormRoutes implements Routes {
      */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Management
         routes.get(prefix + "/forms", this::list, StationPermission.POLL_VIEW_RESULTS);
         routes.post(prefix + "/forms", this::create, StationPermission.POLL_CREATE);
         routes.get(prefix + "/forms/available", this::listAvailable, StationPermission.USER);
@@ -147,7 +146,6 @@ public class FormRoutes implements Routes {
         routes.get(prefix + "/forms/{id}/share-link", this::getShareLink, StationPermission.POLL_CREATE);
         routes.post(prefix + "/forms/{id}/share-link", this::replaceShareLink, StationPermission.POLL_CREATE);
 
-        // Questions
         routes.get(prefix + "/forms/{id}/questions", this::listQuestions, StationPermission.USER);
         routes.get(prefix + "/forms/{id}/pages", this::listPages, StationPermission.USER);
         routes.put(prefix + "/forms/{id}/questions", this::setQuestions, StationPermission.POLL_CREATE);
@@ -156,11 +154,9 @@ public class FormRoutes implements Routes {
                 this::countAnswersPerQuestion,
                 StationPermission.POLL_CREATE);
 
-        // Restrictions
         routes.get(prefix + "/forms/{id}/restrictions", this::getRestrictions, StationPermission.USER);
         routes.put(prefix + "/forms/{id}/restrictions", this::setRestrictions, StationPermission.POLL_CREATE);
 
-        // Responding
         routes.get(prefix + "/forms/{id}/my-response", this::getMyResponse, StationPermission.USER);
         routes.get(prefix + "/forms/{id}/eligible-members", this::getEligibleMembers, StationPermission.USER);
         routes.post(prefix + "/forms/{id}/respond", this::submitResponse, StationPermission.USER);
@@ -175,7 +171,6 @@ public class FormRoutes implements Routes {
         routes.put(prefix + "/forms/{id}/draft/{memberId}", this::saveDraftFor, StationPermission.USER);
         routes.delete(prefix + "/forms/{id}/draft/{memberId}", this::discardDraftFor, StationPermission.USER);
 
-        // Analytics
         routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, StationPermission.POLL_VIEW_RESULTS);
         routes.post(prefix + "/forms/{id}/analytics/query", this::queryAnalytics, StationPermission.POLL_VIEW_RESULTS);
         routes.get(prefix + "/forms/{id}/responses/export", this::exportResponses, StationPermission.POLL_VIEW_RESULTS);
@@ -185,8 +180,6 @@ public class FormRoutes implements Routes {
                 this::getResponseDetail,
                 StationPermission.POLL_VIEW_RESULTS);
     }
-
-    // -- Form CRUD --
 
     @OpenApi(
             path = "/api/v1/forms",
@@ -538,8 +531,6 @@ public class FormRoutes implements Routes {
         ctx.json(new ClearedFormResponses(formService.clearResponses(id)));
     }
 
-    // -- Questions --
-
     @OpenApi(
             path = "/api/v1/forms/{id}/questions",
             methods = HttpMethod.GET,
@@ -624,8 +615,6 @@ public class FormRoutes implements Routes {
         ctx.json(new FormLayout(formService.findPages(id), formService.findQuestions(id)));
     }
 
-    // -- Restrictions --
-
     @OpenApi(
             path = "/api/v1/forms/{id}/restrictions",
             methods = HttpMethod.GET,
@@ -666,8 +655,6 @@ public class FormRoutes implements Routes {
         }
         ctx.json(req);
     }
-
-    // -- Responding --
 
     @OpenApi(
             path = "/api/v1/forms/{id}/my-response",
@@ -1054,8 +1041,6 @@ public class FormRoutes implements Routes {
      */
     public record FormDraftResponse(@Nullable FormDraft draft) {}
 
-    // -- Analytics --
-
     @OpenApi(
             path = "/api/v1/forms/{id}/analytics",
             methods = HttpMethod.GET,
@@ -1155,8 +1140,6 @@ public class FormRoutes implements Routes {
         requireOwnedForm(formId, session);
         ctx.json(analyticsAssembler.getResponseDetail(formId, responseId));
     }
-
-    // -- Records --
 
     /**
      * Request body for creating or updating a form.

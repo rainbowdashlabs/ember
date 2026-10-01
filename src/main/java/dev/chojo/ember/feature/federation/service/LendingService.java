@@ -404,8 +404,6 @@ public class LendingService implements FederationServer {
         return repository.findRequestsByStation(stationRepository.requireUid(stationId));
     }
 
-    // -- Requests --
-
     public LendingRequestItem addRequestItem(
             int requestId,
             @Nullable Integer inventoryId,
@@ -852,8 +850,6 @@ public class LendingService implements FederationServer {
         return block;
     }
 
-    // -- Messages --
-
     public boolean deleteBlock(int blockId, int stationId) {
         boolean deleted = repository.deleteBlock(blockId, stationId);
         if (deleted) {
@@ -908,8 +904,6 @@ public class LendingService implements FederationServer {
     private String stationName(int stationId) {
         return stationRepository.findById(stationId).map(Station::name).orElse("?");
     }
-
-    // -- Blocks --
 
     /**
      * Builds a compact comma-separated summary of the items on a lending request, in the
@@ -1050,8 +1044,6 @@ public class LendingService implements FederationServer {
             return false;
         }
     }
-
-    // -- Federated available inventory (parallel fetch from all partners) --
 
     private @Nullable FederationPartner findPartnerForStation(int localStationId, UUID partnerStationUid) {
         var partners = federationService.findPartners(localStationId);

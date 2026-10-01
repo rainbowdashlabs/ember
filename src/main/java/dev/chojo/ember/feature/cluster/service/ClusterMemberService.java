@@ -64,8 +64,6 @@ public class ClusterMemberService {
         this.eventBus = eventBus;
     }
 
-    // -- Members --
-
     /**
      * Takes somebody on as a member of the association, making the account when Ember has never seen the
      * address.
@@ -173,8 +171,6 @@ public class ClusterMemberService {
         log.info("Cluster member {} now holds {} of their own", memberId, permissions);
         eventBus.publish(new ClusterMemberRoleChanged(memberId, cluster.name()));
     }
-
-    // -- Groups --
 
     public List<ClusterMemberGroup> findGroups(int clusterId) {
         return clusterRepository.findGroups(clusterId);

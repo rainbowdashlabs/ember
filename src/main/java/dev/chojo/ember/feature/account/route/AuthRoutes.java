@@ -41,6 +41,10 @@ import java.util.Objects;
 /**
  * Routes for authentication operations including registration, login, email verification,
  * password management, and email change confirmation.
+ *
+ * <p>The outcome switches of the password and email-change flows end in a throwing default: an
+ * outcome added later would otherwise fall out of the switch with nothing written, and an empty 200
+ * reads as success.
  */
 @Singleton
 public class AuthRoutes implements Routes {
@@ -96,6 +100,10 @@ public class AuthRoutes implements Routes {
         routes.post(prefix + "/auth/confirm-email-change", this::confirmEmailChange);
     }
 
+    /**
+     * Registers an account. A passwordless instance asks for no password: the verification mail's
+     * link is where the passkey is made.
+     */
     @OpenApi(
             path = "/api/v1/auth/register",
             methods = HttpMethod.POST,
@@ -112,8 +120,6 @@ public class AuthRoutes implements Routes {
     private void register(Context ctx) {
         RateLimits.enforce(rateLimiter.tryRegister(ctx.ip()));
         var request = ctx.bodyAsClass(RegisterRequest.class);
-        // On a passwordless instance no password is asked for: the account is created without
-        // one, and the verification mail's link is where the passkey is made.
         boolean passwordless = passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS;
         if (isBlank(request.email())
                 || isBlank(request.firstName())
@@ -219,8 +225,6 @@ public class AuthRoutes implements Routes {
             case TOKEN_INVALID -> throw Refusal.PASSWORD_SETUP_LINK_UNKNOWN.raise();
             case TOKEN_EXPIRED -> throw Refusal.PASSWORD_SETUP_LINK_EXPIRED.raise();
             case PASSWORDLESS_MODE -> throw Refusal.PASSWORDS_SWITCHED_OFF.raise();
-            // An outcome added later and not answered here would otherwise fall out of the switch
-            // with nothing written, and an empty 200 reads as a password that was set.
             default -> throw new IllegalStateException("Unhandled set-password outcome: " + result.outcome());
         }
     }
@@ -399,8 +403,6 @@ public class AuthRoutes implements Routes {
             case NEW_PASSWORD_BREACHED -> throw Refusal.CHANGED_PASSWORD_BREACHED.raise();
             case NO_PASSWORD_SET -> throw Refusal.ACCOUNT_HAS_NO_PASSWORD.raise();
             case CURRENT_PASSWORD_WRONG -> throw Refusal.CURRENT_PASSWORD_WRONG.raise();
-            // An outcome added later and not answered here would otherwise fall out of the switch
-            // with nothing written, and an empty 200 reads as a password that changed.
             default -> throw new IllegalStateException("Unhandled change-password outcome: " + outcome);
         }
     }
@@ -429,13 +431,9 @@ public class AuthRoutes implements Routes {
                                 "Confirmation received. Waiting for the other address to confirm before the change takes effect."));
             case DUPLICATE -> throw Refusal.EMAIL_CHANGE_ADDRESS_TAKEN.raise();
             case INVALID -> throw Refusal.EMAIL_CHANGE_LINK_NOT_GOOD.raise();
-            // An outcome added later and not answered here would otherwise fall out of the switch
-            // with nothing written, and an empty 200 reads as an address that changed.
             default -> throw new IllegalStateException("Unhandled email-change outcome: " + result);
         }
     }
-
-    // -- Request/Response records --
 
     /**
      * Request body for self-registration with optional station registration code.

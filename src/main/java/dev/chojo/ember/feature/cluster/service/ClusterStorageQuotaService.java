@@ -71,8 +71,6 @@ public class ClusterStorageQuotaService {
         this.eventBus = eventBus;
     }
 
-    // -- The pool --
-
     /**
      * The pool the instance grants the cluster.
      *
@@ -84,8 +82,6 @@ public class ClusterStorageQuotaService {
         clusterRepository.setStoragePool(clusterId, poolBytes);
         log.info("Cluster {} was granted a pool of {}", clusterId, poolBytes);
     }
-
-    // -- Defaults --
 
     /**
      * What the cluster gives a station it has granted nothing of its own.
@@ -119,8 +115,6 @@ public class ClusterStorageQuotaService {
         quotaRepository.setDefaults(defaults);
         log.info("Cluster {} set the room it gives its stations by default", defaults.clusterId());
     }
-
-    // -- Tiers --
 
     public List<ClusterStorageQuotaPreset> findPresets(int clusterId) {
         requireCluster(clusterId);
@@ -230,8 +224,6 @@ public class ClusterStorageQuotaService {
         log.info("Cluster {} put {} station(s) on the tier '{}'", clusterId, stationIds.size(), preset.name());
     }
 
-    // -- Grants --
-
     /**
      * Hands one station its share of the pool, in as many of the seven dimensions as the cluster cares about.
      *
@@ -318,8 +310,6 @@ public class ClusterStorageQuotaService {
         log.info("Cluster {} gave station {} a quota of {}", cluster.id(), station.id(), quotaBytes);
     }
 
-    // -- What it all adds up to --
-
     /**
      * The whole picture: the pool, what has been promised out of it, and every station with what it was
      * granted, what that resolves to and what it is actually using.
@@ -363,8 +353,6 @@ public class ClusterStorageQuotaService {
         return new Overview(
                 cluster.storagePoolBytes(), handedOut, quotaRepository.findDefaults(clusterId), presets, stations);
     }
-
-    // -- Guards --
 
     private Cluster requireCluster(int clusterId) {
         return clusterRepository.findById(clusterId).orElseThrow(() -> new NotFoundResponse("No such cluster"));

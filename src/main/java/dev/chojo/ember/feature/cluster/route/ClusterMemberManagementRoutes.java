@@ -58,6 +58,10 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  * <p>Everything here is guarded by {@code CLUSTER_MEMBER_MANAGER} on the way in and by the service's two
  * refusals on the way through: nobody edits their own membership from here, and nobody edits a station's
  * owner from here.
+ *
+ * <p>A change is signed by the acting person's own member row on the cluster's station, the only member
+ * row a person acting for a cluster has. Creating a member takes the station in the path, because a member
+ * belongs to one and the cluster is standing in for it.
  */
 @Singleton
 public class ClusterMemberManagementRoutes implements Routes {
@@ -85,7 +89,6 @@ public class ClusterMemberManagementRoutes implements Routes {
                 prefix + "/cluster/members/manage/stations",
                 this::listStations,
                 ClusterPermission.CLUSTER_MEMBER_MANAGER);
-        // The station is in the path because a member belongs to one and the cluster is standing in for it
         routes.post(
                 prefix + "/cluster/members/manage/stations/{stationUid}/members",
                 this::createMember,
@@ -176,7 +179,6 @@ public class ClusterMemberManagementRoutes implements Routes {
                 file.filename(),
                 file.contentType(),
                 data,
-                // The cluster member's own row on the cluster's station, which is the only one they have
                 session.memberOpt().map(StationMember::id).orElse(null));
         ctx.status(HttpStatus.CREATED)
                 .json(new MemberDocumentSummary(
@@ -264,8 +266,6 @@ public class ClusterMemberManagementRoutes implements Routes {
             entries.add(new FieldValueEntry(value.fieldId(), value.value(), parseOrigin(value.origin())));
         }
 
-        // The change is signed by the cluster member's own row on the cluster's station, which is the only
-        // member row a person acting for a cluster has.
         managementService.updateMemberProfile(
                 cluster.id(),
                 pathInt(ctx, "memberId"),

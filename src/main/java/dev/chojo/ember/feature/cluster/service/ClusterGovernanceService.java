@@ -66,8 +66,6 @@ public class ClusterGovernanceService {
         this.eventBus = eventBus;
     }
 
-    // -- Public wiki --
-
     /**
      * Whether the cluster's wiki stands on the public web, and how.
      *
@@ -124,8 +122,6 @@ public class ClusterGovernanceService {
                 .orElseThrow(() -> new NotFoundResponse("No such station"));
     }
 
-    // -- Modules --
-
     /**
      * What the cluster denies of one group of its stations, or of all of them.
      *
@@ -166,8 +162,9 @@ public class ClusterGovernanceService {
 
         for (StationModule module : newlyDenied) {
             for (Station station : reached(clusterId, stationGroupId)) {
-                // Only the stations that had it switched on lose anything they can see
-                if (stationRepository.findDisabledModules(station.id()).contains(module)) continue;
+                boolean alreadySwitchedOffThere =
+                        stationRepository.findDisabledModules(station.id()).contains(module);
+                if (alreadySwitchedOffThere) continue;
                 eventBus.publish(new ClusterModuleDenied(station.id(), cluster.name(), module));
             }
         }
@@ -190,8 +187,6 @@ public class ClusterGovernanceService {
                 .isPresent();
         if (!own) throw new BadRequestResponse("That group of stations belongs to another association");
     }
-
-    // -- Look and feel --
 
     /**
      * Sets the look the cluster hands its stations, and pushes it out.

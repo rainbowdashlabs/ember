@@ -163,11 +163,7 @@ public class AttendanceRoutes implements Routes {
                 StationPermission.ATTENDANCE_READ);
         routes.get(prefix + "/attendance/sessions/{id}", this::getSession, StationPermission.ATTENDANCE_READ);
         routes.put(prefix + "/attendance/sessions/{id}", this::updateSession, StationPermission.ATTENDANCE_EDIT);
-        // Whoever may take an attendance may throw one away again: a sheet opened for the wrong
-        // appointment is a mistake made while taking it, and is undone by the same person on the spot.
         routes.delete(prefix + "/attendance/sessions/{id}", this::deleteSession, StationPermission.ATTENDANCE_EDIT);
-        // Reopening a closed sheet is the one thing an ordinary taker may not do, because the point
-        // of closing is that the appointment stops being everybody's to change.
         routes.post(
                 prefix + "/attendance/sessions/{id}/unlock", this::unlockSession, StationPermission.ATTENDANCE_MANAGER);
         routes.post(prefix + "/attendance/sessions/{id}/lock", this::lockSession, StationPermission.ATTENDANCE_MANAGER);
@@ -209,13 +205,11 @@ public class AttendanceRoutes implements Routes {
                 this::exportPdf,
                 StationPermission.ATTENDANCE_MANAGER);
 
-        // Report export
         routes.get(prefix + "/attendance/report/preview", this::reportPreview, StationPermission.ATTENDANCE_EXPORT);
         routes.get(prefix + "/attendance/report/export", this::reportExport, StationPermission.ATTENDANCE_EXPORT);
         routes.get(
                 prefix + "/attendance/report/export.csv", this::reportExportCsv, StationPermission.ATTENDANCE_EXPORT);
 
-        // Saved report presets
         routes.get(prefix + "/attendance/report/presets", this::listPresets, StationPermission.ATTENDANCE_EXPORT);
         routes.post(prefix + "/attendance/report/presets", this::createPreset, StationPermission.ATTENDANCE_EXPORT);
         routes.delete(
@@ -242,7 +236,6 @@ public class AttendanceRoutes implements Routes {
                 StationPermission.ATTENDANCE_MANAGER,
                 StationPermission.MEMBER_EDIT);
 
-        // Self-service absence management
         routes.get(prefix + "/profile/absences", this::listMyAbsences, StationPermission.USER);
         routes.post(prefix + "/profile/absences", this::createMyAbsence, StationPermission.USER);
         routes.delete(prefix + "/profile/absences/{id}", this::deleteMyAbsence, StationPermission.USER);
@@ -298,8 +291,6 @@ public class AttendanceRoutes implements Routes {
     private @Nullable String resolveCreatedByName(@Nullable Integer createdBy) {
         return createdBy == null ? null : memberNames.called(createdBy);
     }
-
-    // -- Templates --
 
     /**
      * Converts a {@link MemberAbsence} entity to an {@link AbsenceResponse} with resolved creator name.
@@ -413,8 +404,6 @@ public class AttendanceRoutes implements Routes {
         });
     }
 
-    // -- Template Groups --
-
     @OpenApi(
             path = "/api/v1/attendance/templates/{id}",
             methods = HttpMethod.DELETE,
@@ -434,8 +423,6 @@ public class AttendanceRoutes implements Routes {
             throw Refusal.ATTENDANCE_TEMPLATE_NOT_HERE_TO_DELETE.raise();
         }
     }
-
-    // -- Template Fields --
 
     @OpenApi(
             path = "/api/v1/attendance/templates/{templateId}/groups",
@@ -541,8 +528,6 @@ public class AttendanceRoutes implements Routes {
                     throw Refusal.ATTENDANCE_FIELD_NOT_HERE_TO_CHANGE.raise();
                 });
     }
-
-    // -- Sessions --
 
     @OpenApi(
             path = "/api/v1/attendance/templates/{templateId}/fields/{fieldId}",
@@ -701,6 +686,10 @@ public class AttendanceRoutes implements Routes {
                 .values());
     }
 
+    /**
+     * Reopens a closed sheet. The one thing an ordinary taker may not do, because the point of
+     * closing is that the appointment stops being everybody's to change.
+     */
     @OpenApi(
             path = "/api/v1/attendance/sessions/{id}/unlock",
             methods = HttpMethod.POST,
@@ -761,8 +750,10 @@ public class AttendanceRoutes implements Routes {
                 });
     }
 
-    // -- Session Fields --
-
+    /**
+     * Throws a sheet away. Whoever may take an attendance may do so: a sheet opened for the wrong
+     * appointment is a mistake made while taking it, undone by the same person on the spot.
+     */
     @OpenApi(
             path = "/api/v1/attendance/sessions/{id}",
             methods = HttpMethod.DELETE,
@@ -797,8 +788,6 @@ public class AttendanceRoutes implements Routes {
         verifySessionOwnership(sessionId, userSession);
         ctx.json(attendanceService.findSessionFields(sessionId));
     }
-
-    // -- Entries --
 
     @OpenApi(
             path = "/api/v1/attendance/sessions/{sessionId}/fields",
@@ -905,8 +894,6 @@ public class AttendanceRoutes implements Routes {
         return new EntryTime(id, time);
     }
 
-    // -- Entry Status --
-
     @OpenApi(
             path = "/api/v1/attendance/entries/{id}",
             methods = HttpMethod.DELETE,
@@ -989,8 +976,6 @@ public class AttendanceRoutes implements Routes {
         verifySessionOwnership(sessionId, StationSession.from(ctx));
         ctx.json(attendanceService.syncFromEvent(sessionId));
     }
-
-    // -- Report --
 
     @OpenApi(
             path = "/api/v1/attendance/sessions/{sessionId}/export",
@@ -1185,8 +1170,6 @@ public class AttendanceRoutes implements Routes {
                         request.rounding()));
     }
 
-    // -- Absences --
-
     @OpenApi(
             path = "/api/v1/attendance/report/presets/{id}",
             methods = HttpMethod.DELETE,
@@ -1265,8 +1248,6 @@ public class AttendanceRoutes implements Routes {
                         request.memberId(), request.absentFrom(), request.absentUntil(), request.reason(), null));
     }
 
-    // -- Self-service absences --
-
     @OpenApi(
             path = "/api/v1/attendance/absences/{id}",
             methods = HttpMethod.DELETE,
@@ -1304,7 +1285,6 @@ public class AttendanceRoutes implements Routes {
         StationSession session = atStation.get();
         var absences = new ArrayList<>(
                 attendanceService.findAbsencesByMember(session.member().id()));
-        // Include managed members' absences
         if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
             for (int mid :
                     attendanceService.findManagedMemberIds(session.member().id())) {
@@ -1336,7 +1316,6 @@ public class AttendanceRoutes implements Routes {
             throw Refusal.MY_ABSENCE_ENDS_BEFORE_IT_STARTS.raise();
         }
 
-        // Determine which members to create absences for
         var memberIds = new ArrayList<Integer>();
         List<Integer> requestedMemberIds = req.memberIds();
         if (requestedMemberIds != null && !requestedMemberIds.isEmpty()) {
@@ -1379,7 +1358,6 @@ public class AttendanceRoutes implements Routes {
         if (absence.isEmpty()) {
             throw Refusal.MY_ABSENCE_NOT_HERE.raise();
         }
-        // Allow deleting own or managed members' absences
         int absMemberId = absence.get().memberId();
         boolean isOwn = session.member().id() == absMemberId;
         boolean manages = session.hasPermission(StationPermission.MEMBER_GUARDIAN)
@@ -1392,8 +1370,6 @@ public class AttendanceRoutes implements Routes {
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // -- Request/Response records --
 
     /**
      * Request body for creating or updating an attendance template.

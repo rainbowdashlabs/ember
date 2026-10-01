@@ -65,7 +65,6 @@ public class ClusterFieldRoutes implements Routes {
         routes.put(prefix + "/cluster/fields/{fieldId}", this::update, ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.delete(prefix + "/cluster/fields/{fieldId}", this::delete, ClusterPermission.CLUSTER_FIELD_EDIT);
 
-        // Who a field is asked of, which is what makes one definition serve several audiences.
         routes.put(
                 prefix + "/cluster/fields/{fieldId}/assignments", this::assign, ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.delete(
@@ -263,6 +262,11 @@ public class ClusterFieldRoutes implements Routes {
         ctx.json(new FieldValuesRequest(fieldService.findValues(cluster.id(), pathInt(ctx, "memberId"))));
     }
 
+    /**
+     * Fills in answers for one cluster member. A cluster member is no station member, so the change
+     * is recorded against whoever the session is at its station, or against the member themselves
+     * when the cluster manager has no station membership.
+     */
     @OpenApi(
             path = "/api/v1/cluster/fields/member/{memberId}",
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
@@ -275,8 +279,6 @@ public class ClusterFieldRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(FieldValuesRequest.class);
-        // A cluster member is no station member, so the change is recorded against whoever the session is at
-        // its station, or against the member themselves when the cluster manager has no station membership
         int changedBy = session.memberOpt().map(StationMember::id).orElseGet(() -> pathInt(ctx, "memberId"));
         fieldService.setValues(
                 cluster.id(),

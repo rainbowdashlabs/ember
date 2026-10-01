@@ -89,8 +89,6 @@ public class FederationService {
         }
     }
 
-    // -- Pairing Code --
-
     /**
      * Generates a discovery/pairing code: ember-BASE64(stationUid)-BASE64(host).
      * Stateless - entering this creates a PENDING request that the target station must accept.
@@ -123,7 +121,6 @@ public class FederationService {
     public Optional<PairingCodeParts> parsePairingCode(String code) {
         if (!code.startsWith("ember-")) return Optional.empty();
         String rest = code.substring("ember-".length());
-        // Split into exactly 2 or 3 parts: encodedUid, encodedHost, [token]
         String[] segments = rest.split("-", 3);
         if (segments.length < 2) return Optional.empty();
         try {
@@ -363,8 +360,6 @@ public class FederationService {
         return changes;
     }
 
-    // -- Partner Management --
-
     /**
      * Creates a pending pair request from the requesting station to the target station.
      * This shows up on the target station's federation page for approval.
@@ -391,16 +386,13 @@ public class FederationService {
         }
 
         int requestingStationId = partner.stationId();
-        // partner.partnerStationId() is now a UUID - resolve back to int for local station lookup
         int targetStationId = stationRepository
                 .findByUid(partner.partnerStationId())
                 .orElseThrow()
                 .id();
 
-        // Delete the pending request record
         repository.deletePartner(partnerId);
 
-        // Create full bidirectional federation with fresh keypairs
         var keyPair = generateKeyPair();
         return acceptInvite(targetStationId, requestingStationId, encodePublicKey(keyPair), null, null);
     }
@@ -423,7 +415,8 @@ public class FederationService {
 
     /**
      * Accepts a federation invite on the same instance (or cross-instance).
-     * Creates bidirectional partner records with optional remote host URLs.
+     * Creates bidirectional partner records with optional remote host URLs, every capability
+     * enabled in both directions.
      *
      * @param acceptingStationId   the station accepting the invite
      * @param initiatingStationId  the station that created the invite
@@ -442,17 +435,14 @@ public class FederationService {
         UUID acceptingUid = resolveStationUid(acceptingStationId);
         UUID initiatingUid = resolveStationUid(initiatingStationId);
 
-        // Create partner record: initiating -> accepting (from initiating's POV, accepting may be remote)
         var partner = repository.createPartner(
                 initiatingStationId, acceptingUid, null, initiatingPublicKey, acceptingRemoteHost);
         repository.activatePartner(partner.id(), acceptingPublicKey);
 
-        // Create reverse partner record: accepting -> initiating (from accepting's POV, initiating may be remote)
         var reverse = repository.createPartner(
                 acceptingStationId, initiatingUid, null, acceptingPublicKey, initiatingRemoteHost);
         repository.activatePartner(reverse.id(), initiatingPublicKey);
 
-        // Initialize default capabilities (all enabled for both directions)
         for (var cap : CapabilityType.values()) {
             for (var dir : Direction.values()) {
                 repository.upsertCapability(partner.id(), cap, dir, true);
@@ -499,19 +489,21 @@ public class FederationService {
      * @param newHost    the new base URL (null if the station moved to the same instance)
      */
     public void updateRemoteHost(UUID stationUid, String newHost) {
-        // We need to find all records across ALL stations where partner_station_id = stationUid
-        // and update their remote_host
         repository.updateRemoteHostForPartnerStation(stationUid, newHost);
         log.info("Updated remote host for partners pointing at station {} to {}", stationUid, newHost);
     }
 
+    /**
+     * Ends a federation on both sides, deleting the partner station's reverse record as well.
+     *
+     * @param partnerId the partner record to end
+     * @return {@code true} if the record was deleted
+     */
     public boolean endFederation(int partnerId) {
         requireDeletable(partnerId);
-        // Find and delete the reverse partner too
         var partner = repository.findPartnerById(partnerId);
         if (partner.isPresent()) {
             var p = partner.get();
-            // Find reverse: look up the partner station by UUID, then find its partners
             var partnerStation = stationRepository.findByUid(p.partnerStationId());
             if (partnerStation.isPresent()) {
                 UUID ourUid = resolveStationUid(p.stationId());
@@ -531,8 +523,6 @@ public class FederationService {
         }
         return deleted;
     }
-
-    // -- Pairs a cluster owns --
 
     /**
      * Wires a station into its cluster's federation.
@@ -652,8 +642,6 @@ public class FederationService {
         log.info("Set federation capability {} {} to {} for partner {}", capability, direction, enabled, partnerId);
     }
 
-    // -- Capabilities --
-
     /**
      * Whether a capability is effectively usable with a partner: the admin toggle is on and
      * the partner's last presented contract vector matches this build for the core surface
@@ -719,8 +707,6 @@ public class FederationService {
         return share;
     }
 
-    // -- Sharing --
-
     public boolean deleteKbShare(int id, int stationId) {
         boolean deleted = repository.deleteKbShare(id, stationId);
         if (deleted) {
@@ -771,20 +757,18 @@ public class FederationService {
         return deleted;
     }
 
-    // Available for remote sync - not yet called from routes
+    // TODO: wire into remote sync; no route calls this yet
     public List<FederationMetadataCache> getCachedMetadata(int partnerId, ContentType contentType) {
         return repository.findCachedMetadata(partnerId, contentType);
     }
 
-    // Available for remote sync - not yet called from routes
+    // TODO: wire into remote sync; no route calls this yet
     public void refreshMetadataCache(int partnerId, ContentType contentType, List<FederationMetadataCache> entries) {
         for (var entry : entries) {
             repository.upsertMetadataCache(
                     partnerId, contentType, entry.remoteId(), entry.title(), entry.description());
         }
     }
-
-    // -- Metadata Cache --
 
     /**
      * Logs a content change for federation sync polling.
@@ -799,8 +783,6 @@ public class FederationService {
     public List<FederationChangeLog> getChangesSince(int stationId, Instant since) {
         return repository.findChangesSince(stationId, since);
     }
-
-    // -- Change Tracking --
 
     private String generateRandomToken() {
         return RandomTokens.code(PAIRING_TOKEN_ALPHABET, 12);

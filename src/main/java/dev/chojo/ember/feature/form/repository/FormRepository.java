@@ -62,8 +62,6 @@ public class FormRepository {
             "id, form_id, member_id, submitted_by, submitted_at, updated_at, submitter_hash, acknowledged_at, acknowledged_by, path";
     private static final String ANSWER_COLUMNS = "id, response_id, question_id, value";
 
-    // -- Forms --
-
     /**
      * Retrieves all forms for a station, ordered by creation date descending.
      *
@@ -381,8 +379,6 @@ public class FormRepository {
                 .changed();
     }
 
-    // -- Questions --
-
     /**
      * Retrieves all questions for a form, page by page and in their order on each page.
      *
@@ -611,8 +607,6 @@ public class FormRepository {
     public boolean deleteQuestion(int id) {
         return SqlSupport.deleteById("form_question", id);
     }
-
-    // -- Responses --
 
     /**
      * Retrieves all responses for a form, ordered by submission time.
@@ -890,8 +884,6 @@ public class FormRepository {
                 call().bind("form_id", formId).bind("member_id", memberId));
     }
 
-    // -- Answers --
-
     /**
      * Retrieves all answers for a specific response.
      *
@@ -974,8 +966,6 @@ public class FormRepository {
                         .bind("value", value.toJson()))
                 .insert();
     }
-
-    // -- Restrictions --
 
     /**
      * Updates the restriction mode for a form.

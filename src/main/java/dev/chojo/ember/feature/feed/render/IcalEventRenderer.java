@@ -128,8 +128,6 @@ public class IcalEventRenderer {
                 || managed.stream().anyMatch(r -> r.status() == RegistrationStatus.ACCEPTED);
     }
 
-    // -- description body --
-
     /**
      * Builds the entries for the given event, applying registration metadata, location, and the
      * localised description body. Honours the verbose/images flags from the context.
@@ -137,6 +135,8 @@ public class IcalEventRenderer {
      * <p>An appointment called off as a whole is one entry marked cancelled. A series with single
      * dates called off is its own entry followed by one override per such date, each marked
      * cancelled, so a calendar crosses out those dates and keeps the others.
+     *
+     * <p>A compact entry carries just the event's text and a link, so the source can still be opened.
      *
      * @return the entries, none for a series that falls on no date at all
      */
@@ -157,7 +157,6 @@ public class IcalEventRenderer {
             vevent.add(ImmutableStatus.VEVENT_CANCELLED);
         }
 
-        // Load the event's custom fields once and split into a location candidate + the rest.
         var fields = eventFieldService.findByEvent(
                 event.id(), ctx.calendar().dateInView(event).orElse(null));
         var location = firstLocation(fields);
@@ -173,7 +172,6 @@ public class IcalEventRenderer {
             String description = buildDescription(event, fields, deepLink, altogether, ctx);
             if (!description.isBlank()) vevent.add(new Description(description));
         } else {
-            // Compact mode: just the description plus a link so users can still open the source.
             String text = event.description();
             String description = (text != null ? text.trim() + "\n\n" : "") + deepLink;
             vevent.add(new Description(description.stripTrailing()));
@@ -199,8 +197,11 @@ public class IcalEventRenderer {
         return overrides;
     }
 
-    // -- helpers --
-
+    /**
+     * The verbose description. Location fields are left out, since they already sit on the location
+     * property; member fields show the names the reader knows rather than internal ids; and a trailing
+     * link opens the source in clients that show no URL.
+     */
     private String buildDescription(
             StationEvent event,
             List<AppointmentField> fields,
@@ -223,12 +224,9 @@ public class IcalEventRenderer {
                 ctx.locale(), "ical", "eventType." + event.eventType().name(), null);
         appendLine(sb, ctx.locale(), "label.eventType", typeLabel);
 
-        // Render custom field values (skip LOCATION - already on the LOCATION property).
         for (var field : fields) {
             if (field.fieldType() == FieldType.LOCATION) continue;
             if (field.value() == null || field.value().isBlank()) continue;
-            // A member field holds internal ids, which say nothing in a calendar entry, so the
-            // service resolves them to the names the reader knows.
             String value = eventFieldService.displayValue(field);
             if (value.isBlank()) continue;
             sb.append(field.name()).append(": ").append(value).append("\n");
@@ -253,7 +251,6 @@ public class IcalEventRenderer {
                     ctx.locale(), "ical", "status." + (status != null ? status.name() : "NONE"), null);
             appendLine(sb, ctx.locale(), "label.status", withSymbol(statusLabel, status));
 
-            // Per-managed-member status, one line each, in stable order.
             var managed = ctx.managedStatusByEvent().getOrDefault(event.id(), List.of());
             int acceptedCount = 0;
             for (var m : managed) {
@@ -277,7 +274,6 @@ public class IcalEventRenderer {
             }
         }
 
-        // Trailing web link so users can open the source even when URL isn't shown by the client.
         String linkLabel = notificationText.resolveLocalized(ctx.locale(), "ical", "label.link", null);
         sb.append("\n").append(linkLabel).append(": ").append(deepLink);
 

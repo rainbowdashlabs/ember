@@ -37,8 +37,6 @@ public class FederatedBoardService {
         this.repository = repository;
     }
 
-    // -- Board Sharing --
-
     public void shareBoard(int boardId, List<PartnerShareConfig> partnerConfigs) {
         var share = repository.findShare(boardId).orElseGet(() -> repository.createShare(boardId));
         repository.clearShareTargets(share.id());
@@ -88,8 +86,6 @@ public class FederatedBoardService {
         return repository.findShareMode(boardId, partnerId).isPresent();
     }
 
-    // -- Access Control --
-
     public boolean canFederatedWrite(int boardId, int partnerId) {
         return repository
                 .findShareMode(boardId, partnerId)
@@ -125,8 +121,6 @@ public class FederatedBoardService {
         log.info("Created board bookmark {} for member {} (partner {})", bookmark.id(), memberId, partnerId);
         return bookmark;
     }
-
-    // -- Bookmarks --
 
     public void deleteBookmark(int bookmarkId, int memberId) {
         repository.deleteBookmark(bookmarkId, memberId);
@@ -173,8 +167,6 @@ public class FederatedBoardService {
                 remoteBoardUid,
                 describe(access));
     }
-
-    // -- Local Overrides --
 
     public void setLocalEditOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
         repository.setLocalEditOverride(partnerId, remoteBoardUid, access);

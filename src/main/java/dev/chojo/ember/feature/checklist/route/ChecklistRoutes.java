@@ -491,6 +491,10 @@ public class ChecklistRoutes implements Routes {
         return entry;
     }
 
+    /**
+     * The whole list for its screen. A list that follows nothing has nothing to measure its rows
+     * against, so every row counts as inside its filter rather than none.
+     */
     private ChecklistDetailResponse buildDetail(Checklist checklist) {
         var columns = checklistService.findColumns(checklist.id());
         var aliveEntries = checklistService.findEntries(checklist.id(), false);
@@ -500,8 +504,6 @@ public class ChecklistRoutes implements Routes {
         var entryResponses = aliveEntries.stream()
                 .map(entry -> {
                     String name = memberNameResolver.called(entry.memberId());
-                    // A list that follows nothing has nothing to measure its rows against, so it
-                    // marks none of them rather than marking all of them.
                     boolean inFilter =
                             !membership.following() || membership.memberIds().contains(entry.memberId());
                     return new EntryResponse(

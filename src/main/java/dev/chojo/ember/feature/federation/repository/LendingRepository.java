@@ -44,8 +44,6 @@ public class LendingRepository {
     private static final String INVENTORY_BLOCK_COLUMNS =
             "id, station_id, inventory_id, item_id, block_from, block_to, reason";
 
-    // -- Lending Requests --
-
     public LendingRequest createRequest(
             UUID requestingStationUid,
             UUID owningStationUid,
@@ -187,8 +185,6 @@ public class LendingRepository {
                 .changed();
     }
 
-    // -- Lending Request Items --
-
     public LendingRequestItem addRequestItem(
             int requestId,
             @Nullable Integer inventoryId,
@@ -321,8 +317,6 @@ public class LendingRepository {
                 LENDING_MESSAGE_COLUMNS);
     }
 
-    // -- Messages --
-
     public List<LendingMessage> findMessagesByRequest(int requestId) {
         return query(
                         "SELECT %s FROM federation_lending_message WHERE request_id = :request_id ORDER BY created_at;",
@@ -371,8 +365,6 @@ public class LendingRepository {
                 InventoryBlock.map(),
                 INVENTORY_BLOCK_COLUMNS);
     }
-
-    // -- Inventory Blocks --
 
     public List<InventoryBlock> findBlocksByStation(int stationId) {
         return query(

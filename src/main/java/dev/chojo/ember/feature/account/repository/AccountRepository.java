@@ -379,8 +379,6 @@ public class AccountRepository {
                 .update();
     }
 
-    // -- Instance User Type --
-
     /**
      * Checks whether any account in the system is an administrator.
      */
@@ -469,8 +467,6 @@ public class AccountRepository {
     public boolean delete(int id) {
         return SqlSupport.deleteById("account", id);
     }
-
-    // -- Credentials --
 
     /**
      * Finds the password credential for an account.
@@ -614,8 +610,6 @@ public class AccountRepository {
                 .changed();
     }
 
-    // -- Tokens --
-
     /**
      * Finds a token by its token string.
      *
@@ -741,8 +735,6 @@ public class AccountRepository {
                 .delete()
                 .changed();
     }
-
-    // -- Sessions --
 
     /**
      * Deletes every recovery / verification token for an account. Used on a successful
@@ -1202,8 +1194,6 @@ public class AccountRepository {
                 .delete()
                 .changed();
     }
-
-    // -- GDPR Consent --
 
     /**
      * Records a GDPR consent entry for an account with version information and client metadata.

@@ -54,6 +54,14 @@ public class BatchEventService {
         this.eventBus = eventBus;
     }
 
+    /**
+     * Creates one event per row. Each is created without its own announcement, and one aggregate
+     * announcement covers the whole batch, so members get a single notification.
+     *
+     * @param stationId the station the events belong to
+     * @param request   the rows and what they share
+     * @return the events created
+     */
     public List<StationEvent> createBatch(int stationId, BatchRequest request) {
         request.rows().forEach(row -> nameOf(row, request));
         var fieldDefs = resolveFieldDefs(request);
@@ -64,8 +72,6 @@ public class BatchEventService {
             Instant endTime = row.endTime();
             String eventName = nameOf(row, request);
 
-            // Use createWithoutEvent to suppress per-row EventCreated fan-out - we emit one
-            // aggregate EventsBatchCreated below so users get a single notification.
             var event = crudService.createWithoutEvent(
                     stationId,
                     eventName,

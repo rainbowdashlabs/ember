@@ -110,6 +110,10 @@ public class ClusterRoutes implements Routes {
         ctx.json(toResponse(requireActive(ctx)));
     }
 
+    /**
+     * Renames the cluster. An absent auto-federate setting means unchanged, so a caller that only
+     * wanted to rename does not silently rewire the mesh.
+     */
     @OpenApi(
             path = "/api/v1/cluster",
             methods = HttpMethod.PUT,
@@ -121,7 +125,6 @@ public class ClusterRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(ClusterRequest.class);
         clusterService.rename(cluster.id(), request.name(), request.description());
-        // Absent means unchanged, so a caller that only wanted to rename does not silently rewire the mesh
         Boolean autoFederate = request.autoFederate();
         if (autoFederate != null && autoFederate != cluster.autoFederate()) {
             clusterService.setAutoFederate(cluster.id(), autoFederate);

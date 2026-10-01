@@ -137,7 +137,8 @@ public class DiscoveryPingService {
 
     /**
      * Inbound ping handler. Validates signature, replay-protects the nonce, and schedules
-     * the asynchronous callback.
+     * the asynchronous callback. The callback URL is the sender's choice, so it has to be a public
+     * endpoint before anything is sent to it.
      *
      * @param rawBody         raw request body bytes (used for signature verification)
      * @param message         parsed body
@@ -147,14 +148,12 @@ public class DiscoveryPingService {
         if (!settingsService.isEnabled()) return;
         if (message == null || message.from() == null || message.nonce() == null) return;
 
-        // Drift check
         Instant now = Instant.now();
         if (!SignedRequests.withinDrift(message.issuedAt(), now, MAX_DRIFT)) {
             log.debug("Discarding ping from {} due to drift", message.from().baseUrl());
             return;
         }
 
-        // Blocklist
         if (blocklistRepository.contains(
                         BlocklistKind.PUBLIC_KEY, message.from().publicKey())
                 || blocklistRepository.contains(
@@ -162,7 +161,6 @@ public class DiscoveryPingService {
             return;
         }
 
-        // Signature
         if (signatureHeader == null
                 || !signingService.verify(
                         rawBody, signatureHeader, message.from().publicKey())) {
@@ -171,7 +169,6 @@ public class DiscoveryPingService {
             return;
         }
 
-        // Callback target must be a public endpoint (SSRF guard on the attacker-chosen URL).
         if (message.callbackUrl() == null || !urlValidator.isAllowed(message.callbackUrl())) {
             log.debug(
                     "Rejecting ping from {} - callback URL not permitted",
@@ -188,7 +185,6 @@ public class DiscoveryPingService {
             return;
         }
 
-        // Remember the peer (or refresh observed URL)
         peerRepository.upsert(
                 message.from().publicKey(),
                 message.from().baseUrl(),
@@ -196,7 +192,6 @@ public class DiscoveryPingService {
                 PeerSource.GOSSIP,
                 null);
 
-        // Dispatch the callback asynchronously so the inbound request returns 204 immediately.
         scheduler.later("discovery-callback", CALLBACK_DELAY, () -> sendCallback(message));
     }
 
@@ -236,7 +231,6 @@ public class DiscoveryPingService {
             return false;
         }
 
-        // The peer that answered is itself a confirmed peer.
         peerRepository.upsert(
                 message.from().publicKey(),
                 message.from().baseUrl(),
@@ -259,16 +253,19 @@ public class DiscoveryPingService {
         return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
     }
 
+    /**
+     * Stores the peers a callback announced, once each and never this instance itself. A peer whose
+     * base URL is not a public endpoint is never stored, since the scheduler would later ping it; it
+     * and an undecodable key both count against the announcer's reputation.
+     */
     private void mergeAnnouncedPeers(String announcerKey, List<PeerAnnouncement> announcements) {
         if (announcements == null || announcements.isEmpty()) return;
 
-        // Dedupe on publicKey within this batch (the wire allows duplicates) before touching
-        // the DB.
         Set<String> seen = new HashSet<>();
         List<PeerAnnouncement> unique = new ArrayList<>();
         for (var ann : announcements) {
             if (ann == null || ann.publicKey() == null) continue;
-            if (ann.publicKey().equals(keyService.publicKeyBase64())) continue; // never add ourselves
+            if (ann.publicKey().equals(keyService.publicKeyBase64())) continue;
             if (seen.add(ann.publicKey())) unique.add(ann);
         }
 
@@ -277,13 +274,10 @@ public class DiscoveryPingService {
                     || blocklistRepository.contains(BlocklistKind.BASE_URL, ann.baseUrl())) {
                 continue;
             }
-            // Never persist a peer whose base URL points at a private/loopback address; the
-            // scheduler would later ping it (persistent SSRF).
             if (ann.baseUrl() == null || !urlValidator.isAllowed(ann.baseUrl())) {
                 reputationService.recordInvalidAnnouncement(announcerKey);
                 continue;
             }
-            // Validate the public key is decodable; reject (and ding announcer reputation) if not.
             try {
                 DiscoveryKeyService.decodePeerPublicKey(ann.publicKey());
             } catch (Exception e) {
@@ -304,13 +298,12 @@ public class DiscoveryPingService {
             String announcerInstanceId = keyService.instanceId();
             List<PeerAnnouncement> announcements = new ArrayList<>(peers.size());
             for (var p : peers) {
-                if (p.publicKey().equals(ping.from().publicKey())) continue; // don't announce them back
+                if (p.publicKey().equals(ping.from().publicKey())) continue;
                 announcements.add(new PeerAnnouncement(
                         p.baseUrl(), p.publicKey(), p.instanceId(), announcerInstanceId, p.lastSeenAt()));
             }
             var message = new DiscoveryCallbackMessage(selfIdentity(), ping.nonce(), Instant.now(), announcements);
             String callbackUrl = ping.callbackUrl();
-            // Extract baseUrl from callbackUrl by stripping the /api/v1/discovery/peers suffix.
             String baseUrl = stripCallbackSuffix(callbackUrl);
             boolean ok = httpClient.signedPost(baseUrl, CALLBACK_PATH, message);
             if (!ok) {

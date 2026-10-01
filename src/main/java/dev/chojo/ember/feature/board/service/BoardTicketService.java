@@ -80,8 +80,6 @@ public class BoardTicketService {
         return ticketRepository.findByBoard(boardId);
     }
 
-    // -- Ticket CRUD --
-
     public List<BoardTicket> findByBoardAndLane(int boardId, int laneId) {
         return ticketRepository.findByBoardAndLane(boardId, laneId);
     }
@@ -202,16 +200,13 @@ public class BoardTicketService {
             MemberIdentity actorIdentity =
                     memberIdentityFactory.local(board != null ? board.stationId() : 0, actorMemberId);
 
-            // Log history
             String oldName = memberNameResolver.resolve(oldAssignee);
             String newName = memberNameResolver.resolve(assignee);
             String detail = (oldName != null ? oldName : "-") + " → " + (newName != null ? newName : "-");
             ticketRepository.logHistory(ticketId, BoardTicketHistoryAction.ASSIGNEE_CHANGED, detail, actorIdentity);
 
-            // Notify watchers
             notifyWatchers(ticketId, oldTicket.boardId(), "Zuweisung geändert", actorMemberId);
 
-            // Notify unassigned member
             if (oldAssignee != null) {
                 var oldMemberId =
                         stationMemberService.resolveId(board != null ? board.stationId() : 0, oldAssignee.memberUid());
@@ -228,7 +223,6 @@ public class BoardTicketService {
                         List.of(id))));
             }
 
-            // Notify newly assigned member
             if (assignee != null) {
                 var newMemberId =
                         stationMemberService.resolveId(board != null ? board.stationId() : 0, assignee.memberUid());
@@ -281,7 +275,6 @@ public class BoardTicketService {
                 notifyWatchers(
                         ticketId, ticket.boardId(), "Verschoben nach " + (toLane != null ? toLane.name() : "?"), null);
             }
-            // Auto-assign from lane_assignee fields
             if (ticket != null) {
                 var board = boardRepository.findById(ticket.boardId()).orElse(null);
                 var fields = boardRepository.findFields(ticket.boardId());
@@ -313,8 +306,6 @@ public class BoardTicketService {
     public List<BoardTicketLink> findLinks(int ticketId) {
         return ticketRepository.findLinks(ticketId);
     }
-
-    // -- Links --
 
     public void linkTickets(int ticketId, int linkedTicketId, LinkType linkType, @Nullable MemberIdentity actor) {
         if (ticketId == linkedTicketId) {
@@ -360,13 +351,9 @@ public class BoardTicketService {
         return ticketRepository.findTransitions(ticketId);
     }
 
-    // -- Transitions --
-
     public List<BoardChecklistItem> findChecklistItems(int ticketId) {
         return ticketRepository.findChecklistItems(ticketId);
     }
-
-    // -- Checklist --
 
     public BoardChecklistItem addChecklistItem(int ticketId, String title, int actorMemberId) {
         int position = ticketRepository.findChecklistItems(ticketId).size();
@@ -422,8 +409,6 @@ public class BoardTicketService {
         return weblink;
     }
 
-    // -- Weblinks --
-
     public boolean deleteWeblink(int id) {
         boolean deleted = ticketRepository.deleteWeblink(id);
         if (deleted) {
@@ -441,8 +426,6 @@ public class BoardTicketService {
     public Optional<BoardTicketAttachment> findAttachmentById(int id) {
         return ticketRepository.findAttachmentById(id);
     }
-
-    // -- Attachments --
 
     public BoardTicketAttachment uploadAttachment(
             int stationId,
@@ -494,8 +477,6 @@ public class BoardTicketService {
         addWatcher(ticketId, stationMemberService.resolveIdentity(memberId));
     }
 
-    // -- Watchers --
-
     public void addWatcher(int ticketId, MemberIdentity identity) {
         ticketRepository.addWatcher(ticketId, identity);
         log.debug("Ticket {} is now watched by {}", ticketId, identity);
@@ -524,8 +505,6 @@ public class BoardTicketService {
         log.info("Field {} of ticket {} was filled in", fieldId, ticketId);
     }
 
-    // -- Field values --
-
     public boolean deleteFieldValue(int ticketId, int fieldId) {
         boolean deleted = ticketRepository.deleteFieldValue(ticketId, fieldId);
         if (deleted) log.info("Field {} of ticket {} was cleared", fieldId, ticketId);
@@ -543,8 +522,6 @@ public class BoardTicketService {
         return link;
     }
 
-    // -- KB Links --
-
     public void removeKbLink(int id) {
         ticketRepository.removeKbLink(id);
         log.info("Removed knowledge link {} from its ticket", id);
@@ -557,8 +534,6 @@ public class BoardTicketService {
     public List<BoardTicketHistory> findHistory(int ticketId) {
         return ticketRepository.findHistory(ticketId);
     }
-
-    // -- History --
 
     public List<BoardActivityEntry> findActivity(int ticketId) {
         return ticketRepository.findActivity(ticketId);

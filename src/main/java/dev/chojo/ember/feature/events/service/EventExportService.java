@@ -95,7 +95,6 @@ public class EventExportService {
         var eventCategories = categoryRepository.findByStation(stationId);
         var calendar = occurrenceCalendar.forStation(stationId);
 
-        // Build column headers in order
         var columnHeaders = columns.stream().map(ExportColumn::label).toList();
 
         var expandedEvents = expandEvents(allEvents, from, to, calendar);
