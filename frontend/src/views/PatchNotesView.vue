@@ -16,7 +16,7 @@ import {renderMarkdown} from '@/util/markdown'
 import {formatDateLong, formatDateTime} from '@/util/format'
 import client from '@/api/client'
 import {getChangelog} from '@/api/system'
-import type {ChangelogEntry} from '@/api/generated/schema'
+import type {ChangelogEntry, PublicConfigResponse} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
@@ -38,12 +38,12 @@ function versionNumber(version: string): string {
 }
 
 const {loading, error} = useAsyncLoader(async () => {
-    const [changelog, config] = await Promise.all([
+    const [changelog, runningVersion] = await Promise.all([
         getChangelog(),
-        client.get<{version?: string}>('/public/config').then(res => res.data).catch(() => ({version: ''})),
+        client.get<PublicConfigResponse>('/public/config').then(res => res.data.version).catch(() => ''),
     ])
     entries.value = changelog
-    currentVersion.value = versionNumber(config.version ?? '')
+    currentVersion.value = versionNumber(runningVersion)
 }, {errorMessageKey: 'patchNotes.fetchError'})
 </script>
 

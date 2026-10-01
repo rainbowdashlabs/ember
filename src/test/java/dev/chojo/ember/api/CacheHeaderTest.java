@@ -27,6 +27,7 @@ class CacheHeaderTest {
 
     /** A route answering every address the cases ask about, so what is judged is the address alone. */
     private static final Routes ANSWERING = (routes, prefix) -> {
+        routes.get(prefix + "/public/config", ctx -> ctx.json(new Version("26.13.7")));
         routes.get(prefix + "/public/kb/{station}/{article}", ctx -> ctx.json(new Version("26.13.7")));
         routes.get(prefix + "/public/waiting-list/entry/{token}", ctx -> ctx.json(new Version("26.13.7")));
         routes.get(prefix + "/public/pages/files/{file}", ctx -> ctx.result(new byte[] {1}));

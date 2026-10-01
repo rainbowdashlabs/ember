@@ -10,6 +10,7 @@ import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 import AppLink from '@/components/navigation/AppLink.vue'
 import UpdateNotice from '@/components/layout/UpdateNotice.vue'
 import client from '@/api/client'
+import type {PublicConfigResponse} from '@/api/generated/schema'
 
 /**
  * The footer of every page. The way to the discovery page shows at every width; what a layout puts
@@ -20,8 +21,8 @@ const version = ref('')
 
 onMounted(async () => {
   try {
-    const res = await client.get<{ version?: string }>('/public/config')
-    version.value = res.data.version ?? ''
+    const res = await client.get<PublicConfigResponse>('/public/config')
+    version.value = res.data.version
   } catch { /* ignore */ }
 })
 </script>

@@ -13005,6 +13005,37 @@
         }
       }
     },
+    "/api/v1/dev/errors" : {
+      "post" : {
+        "summary" : "Write an error the frontend ran into to the development error log",
+        "tags" : [ "Development" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DevErrorReport"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dev/reset" : {
+      "post" : {
+        "summary" : "Throw every piece of data away and seed the instance again",
+        "tags" : [ "Development" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/v1/discovery/peers" : {
       "post" : {
         "summary" : "Receive a peer's signed answer to one of this instance's pings",
@@ -31762,6 +31793,24 @@
         } ]
       }
     },
+    "/api/v1/public/config" : {
+      "get" : {
+        "summary" : "Tell where the demo is, whether this is one, and which version runs",
+        "tags" : [ "Public" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/public/confirm-station-delete" : {
       "get" : {
         "summary" : "Confirm and execute station deletion",
@@ -46403,6 +46452,23 @@
           }
         }
       },
+      "DevErrorReport" : {
+        "type" : "object",
+        "properties" : {
+          "source" : {
+            "type" : [ "string", "null" ]
+          },
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "stack" : {
+            "type" : [ "string", "null" ]
+          },
+          "context" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "DeviceCodeRequest" : {
         "type" : "object",
         "properties" : {
@@ -60229,6 +60295,21 @@
           }
         },
         "required" : [ "currentFolder", "folders", "files" ]
+      },
+      "PublicConfigResponse" : {
+        "type" : "object",
+        "properties" : {
+          "demoUrl" : {
+            "type" : "string"
+          },
+          "demo" : {
+            "type" : "boolean"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "demoUrl", "demo", "version" ]
       },
       "PublicEventDetail" : {
         "type" : "object",

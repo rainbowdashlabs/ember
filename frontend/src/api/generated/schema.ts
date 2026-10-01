@@ -16979,6 +16979,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dev/errors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Write an error the frontend ran into to the development error log */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DevErrorReport"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dev/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Throw every piece of data away and seed the instance again */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/discovery/peers": {
         parameters: {
             query?: never;
@@ -41686,6 +41758,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tell where the demo is, whether this is one, and which version runs */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicConfigResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/confirm-station-delete": {
         parameters: {
             query?: never;
@@ -55718,6 +55826,12 @@ export interface components {
         DependencyRequest: {
             dependencies?: components["schemas"]["DependencyEntry"][] | null;
         };
+        DevErrorReport: {
+            context?: string | null;
+            message?: string | null;
+            source?: string | null;
+            stack?: string | null;
+        };
         DeviceCodeRequest: {
             code?: string;
             /** Format: int32 */
@@ -60605,6 +60719,11 @@ export interface components {
             files: components["schemas"]["KbFile"][];
             folders: components["schemas"]["KbFolder"][];
         };
+        PublicConfigResponse: {
+            demo: boolean;
+            demoUrl: string;
+            version: string;
+        };
         PublicEventDetail: {
             cancelled: boolean;
             cancelledDates: components["schemas"]["LocalDate"][];
@@ -64428,6 +64547,7 @@ export type DeniedModulesResponse = components['schemas']['DeniedModulesResponse
 export type DenyRequest = components['schemas']['DenyRequest'];
 export type DependencyEntry = components['schemas']['DependencyEntry'];
 export type DependencyRequest = components['schemas']['DependencyRequest'];
+export type DevErrorReport = components['schemas']['DevErrorReport'];
 export type DeviceCodeRequest = components['schemas']['DeviceCodeRequest'];
 export type DeviceEnrollBeginRequest = components['schemas']['DeviceEnrollBeginRequest'];
 export type DeviceEnrollFinishRequest = components['schemas']['DeviceEnrollFinishRequest'];
@@ -65085,6 +65205,7 @@ export type ProviderTestRequest = components['schemas']['ProviderTestRequest'];
 export type ProvisionedMemberResponse = components['schemas']['ProvisionedMemberResponse'];
 export type PublicBlogEntry = components['schemas']['PublicBlogEntry'];
 export type PublicBrowseResponse = components['schemas']['PublicBrowseResponse'];
+export type PublicConfigResponse = components['schemas']['PublicConfigResponse'];
 export type PublicEventDetail = components['schemas']['PublicEventDetail'];
 export type PublicEventResponse = components['schemas']['PublicEventResponse'];
 export type PublicForm = components['schemas']['PublicForm'];

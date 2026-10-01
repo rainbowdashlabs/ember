@@ -4,12 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed} from 'vue'
+import type {PublicConfigResponse} from '@/api/generated/schema'
 
-/** What the instance tells anyone who asks, before they have signed in. */
-export interface PublicConfig {
-    demoUrl?: string
-    demo?: boolean
-}
+/**
+ * What the instance tells anyone who asks, before they have signed in. Any part may be missing, because
+ * a request that failed is read as the empty configuration.
+ */
+export type PublicConfig = Partial<PublicConfigResponse>
 
 /**
  * The public instance configuration, fetched once per request.

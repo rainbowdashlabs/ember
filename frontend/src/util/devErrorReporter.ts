@@ -3,6 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import type {DevErrorReport} from '@/api/generated/schema'
+
 const DEV = import.meta.env.DEV
 
 function reportError(source: string, message: string, stack: string, context: string) {
@@ -10,7 +12,7 @@ function reportError(source: string, message: string, stack: string, context: st
     fetch('/api/v1/dev/errors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source, message, stack, context }),
+        body: JSON.stringify({ source, message, stack, context } satisfies DevErrorReport),
     }).catch(() => { /* ignore - dev endpoint may not be available */ })
 }
 

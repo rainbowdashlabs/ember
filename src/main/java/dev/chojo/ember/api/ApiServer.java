@@ -66,8 +66,6 @@ import tools.jackson.databind.exc.MismatchedInputException;
 import tools.jackson.databind.exc.UnrecognizedPropertyException;
 import tools.jackson.databind.exc.ValueInstantiationException;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -485,19 +483,6 @@ public class ApiServer {
 
             config.routes.get(ApiDocumentation.PATH, ApiDocumentation.load());
 
-            // Public endpoints
-            config.routes.get(
-                    API_PREFIX + "/public/config",
-                    ctx -> ctx.json(new PublicConfigResponse(
-                            apiConfig.demoUrl() != null ? apiConfig.demoUrl() : "",
-                            demoConfig.enabled() || demoConfig.dev(),
-                            loadAppVersion())));
-
-            if (demoConfig.dev()) {
-                config.routes.post(API_PREFIX + "/dev/errors", this::handleDevErrorReport);
-                config.routes.post(API_PREFIX + "/dev/reset", this::handleDevReset);
-            }
-
             for (Routes route : routes) {
                 route.register(config.routes, API_PREFIX);
             }
@@ -587,38 +572,6 @@ public class ApiServer {
         if (method == HandlerType.POST && path.matches("/api/v1/ai/providers/[^/]+/models")) {
             throw new BadRequestResponse("External AI calls are disabled in demo mode");
         }
-    }
-
-    /**
-     * Writes an error the frontend reports on a development instance to the development error log.
-     */
-    private void handleDevErrorReport(@NotNull Context ctx) {
-        record ErrorReport(String source, String message, String stack, String context) {}
-        var report = ctx.bodyAsClass(ErrorReport.class);
-        DevErrorWriter.writeFrontend(
-                report.source() != null ? report.source() : "unknown",
-                report.message() != null ? report.message() : "",
-                report.stack() != null ? report.stack() : "",
-                report.context() != null ? report.context() : "");
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    /**
-     * Throws the data away and seeds it again, so a test run starts from the state the seeder
-     * describes rather than from whatever the run before it left behind.
-     *
-     * <p>Registered only while the backend runs with {@code demo.dev}, alongside the password-free
-     * login that serves the same purpose. It is destructive by design and has no place anywhere a
-     * real station's data lives.
-     *
-     * <p>A wipe that fails answers with the failure rather than with success, because the end-to-end
-     * suite asks for this before every run and stops when it is refused. Told that a database it
-     * never got was fresh, it would run its stories against whatever the run before left.
-     */
-    private void handleDevReset(@NotNull Context ctx) {
-        log.info("Dev reset requested, discarding all data and seeding again");
-        demoService.resetAndSeed();
-        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     /**
@@ -1196,17 +1149,4 @@ public class ApiServer {
         if (body == null || body.isEmpty()) return;
         ctx.header("ETag", "\"" + Sha256.hexPrefix(body, 16) + "\"");
     }
-
-    private String loadAppVersion() {
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream("version")) {
-            if (is != null) {
-                return new String(is.readAllBytes(), StandardCharsets.UTF_8).strip();
-            }
-        } catch (Exception e) {
-            log.warn("Failed to read version resource", e);
-        }
-        return "unknown";
-    }
-
-    public record PublicConfigResponse(String demoUrl, boolean demo, String version) {}
 }
