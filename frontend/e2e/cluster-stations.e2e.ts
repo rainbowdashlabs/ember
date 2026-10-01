@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {MADE_BY_A_STORY} from './fixtures/cluster'
+import {MADE_BY_A_STORY, stationUnder} from './fixtures/cluster'
 import {demoSignIn, sessionHeaders} from './fixtures/session'
 import {
     test,
@@ -134,8 +134,11 @@ test.describe('Cluster stations', () => {
      * Released on a station the story makes for the purpose. Letting go of a seeded member station would
      * take the subject of every other cluster story away with it, and what this is about is the release
      * rather than which station it happened to.
+     *
+     * The station side is read by the person who runs the station, because what a station answers to is
+     * its own members' business and nobody else's.
      */
-    test('the cluster releases a station', async ({adminPage: page}) => {
+    test('the cluster releases a station', async ({adminPage: page, browser, request}) => {
         await page.goto('/cross-station')
         await enterCluster(page)
         const headers = await apiHeaders(page)
@@ -143,9 +146,7 @@ test.describe('Cluster stations', () => {
         const withCluster = {...headers, 'X-Cluster-Id': cluster.uid}
 
         const name = `${MADE_BY_A_STORY}Löschzug Abgang ${test.info().workerIndex}-${Date.now()}`
-        const made = await page.request.post('/api/v1/cluster/stations', {headers: withCluster, data: {name}})
-        expect(made.ok()).toBeTruthy()
-        const station = await made.json()
+        const station = await stationUnder(page, browser, request, withCluster, name)
 
         await page.goto('/cluster/stations')
         await expect(page.getByText(name)).toBeVisible()
@@ -157,10 +158,12 @@ test.describe('Cluster stations', () => {
         await expect(page.getByText(name)).toHaveCount(0)
 
         // And the station itself no longer answers to anybody, which is the half the station side sees
-        const after = await page.request.get('/api/v1/station/cluster',
-            {headers: {...headers, 'X-Station-Id': station.uid}})
-        expect(after.ok()).toBeTruthy()
+        const after = await station.page.request.get('/api/v1/station/cluster',
+            {headers: await apiHeaders(station.page)})
+        expect(after.ok(), `the station's manager reads its cluster (${after.status()})`).toBeTruthy()
         expect((await after.json()).clusterUid).toBeFalsy()
+
+        await station.page.context().close()
     })
 
     /**
