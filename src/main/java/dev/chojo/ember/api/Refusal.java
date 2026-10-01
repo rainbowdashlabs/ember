@@ -2122,6 +2122,9 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "Inventories do not offer that type of field, so nothing was saved"),
 
+    /** A chain of steps that went before whether it waits for the member's receipt could be written. */
+    FLOW_RECEIPT_NOT_CHANGED(Area.INVENTORY, 275, HttpStatus.NOT_FOUND, Sentences.FLOW_NOT_HERE),
+
     /** A movement started on a chain whose steps, once those a loss report skips are left out, are none. */
     MOVEMENT_FLOW_HAS_NO_STEPS(
             Area.INVENTORY,

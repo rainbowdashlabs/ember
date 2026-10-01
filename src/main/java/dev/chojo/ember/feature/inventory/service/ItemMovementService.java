@@ -427,7 +427,8 @@ public class ItemMovementService {
                 actor.memberId(),
                 corrected.state(),
                 reason);
-        return corrected;
+        confirmReceiptsThatDoNotWait(movementId);
+        return movementRepository.findById(movementId).orElseThrow();
     }
 
     private void applyCorrectedCustody(ItemMovement movement, StepSubject subject, @Nullable ItemCustody custody) {
@@ -679,6 +680,47 @@ public class ItemMovementService {
             throw Refusal.MOVEMENT_STATION_STEP_NOT_FORCED.raise();
         }
 
+        walk(movement, step, ackKind, actor.memberIdOrNull(), note, pickedItemId);
+        log.info(
+                "Step '{}' of movement {} acknowledged by member {} as {}",
+                step.label(),
+                movementId,
+                actor.memberId(),
+                ackKind);
+        confirmReceiptsThatDoNotWait(movementId);
+        ItemMovement walked = movementRepository.findById(movementId).orElseThrow();
+        eventBus.publish(new MovementAdvanced(
+                walked.stationId(),
+                walked.id(),
+                walked.memberId(),
+                walked.inventoryId(),
+                inventoryName(walked.inventoryId()),
+                step.label(),
+                actor.memberId(),
+                actorOfCurrentStep(walked),
+                owningCluster(walked)));
+        return walked;
+    }
+
+    /**
+     * Moves the pieces a step is about, writes it into the log and puts the movement on the step after it,
+     * or closes it where there is none.
+     *
+     * @param movement     the movement as it stood before the step
+     * @param step         the step being walked, which is the one it stands on
+     * @param ackKind      how the step came to be acknowledged
+     * @param changedBy    the member the log names, or {@code null}
+     * @param note         what was written alongside
+     * @param pickedItemId the arriving item, when this is the step that names it
+     */
+    private void walk(
+            ItemMovement movement,
+            MovementFlowStep step,
+            AckKind ackKind,
+            @Nullable Integer changedBy,
+            @Nullable String note,
+            @Nullable Integer pickedItemId) {
+        int movementId = movement.id();
         Integer subjectItemId = movement.itemFor(step.subject());
         if (movement.lostReport() && step.subject() == StepSubject.OUTGOING) subjectItemId = null;
         if (step.picksItem()) {
@@ -699,7 +741,7 @@ public class ItemMovementService {
             }
         }
 
-        movementRepository.createLog(movementId, step.id(), step.label(), ackKind, actor.memberIdOrNull(), note);
+        movementRepository.createLog(movementId, step.id(), step.label(), ackKind, changedBy, note);
 
         MovementFlowStep next = nextStepAfter(movement, step.position());
         if (next == null) {
@@ -711,24 +753,56 @@ public class ItemMovementService {
         } else {
             movementRepository.moveToStep(movementId, next.id());
         }
-        log.info(
-                "Step '{}' of movement {} acknowledged by member {} as {}",
-                step.label(),
-                movementId,
-                actor.memberId(),
-                ackKind);
-        ItemMovement walked = movementRepository.findById(movementId).orElseThrow();
-        eventBus.publish(new MovementAdvanced(
-                walked.stationId(),
-                walked.id(),
-                walked.memberId(),
-                walked.inventoryId(),
-                inventoryName(walked.inventoryId()),
-                step.label(),
-                actor.memberId(),
-                actorOfCurrentStep(walked),
-                owningCluster(walked)));
-        return walked;
+    }
+
+    /**
+     * Confirms the member's receipt for them wherever the movement now stands on one its chain does not wait
+     * for, and keeps going while the step after it is another.
+     *
+     * <p>Called wherever a movement arrives on a step: after a step is walked, after a correction and after it
+     * is moved onto another chain or a chain written again. The confirmation is written in the member's name
+     * and marked as automatic. Nothing is announced for it, so the member is never asked to confirm a step that
+     * has already confirmed itself; whoever is told about the step before it is told where the movement stands
+     * now.
+     *
+     * @param movementId the movement
+     */
+    private void confirmReceiptsThatDoNotWait(int movementId) {
+        ItemMovement movement = movementRepository.findById(movementId).orElseThrow();
+        MovementFlowStep step = currentStep(movement);
+        while (movement.state() == MovementState.OPEN && step != null && confirmsItself(movement, step)) {
+            walk(movement, step, AckKind.AUTO_CONFIRMED, movement.memberId(), null, null);
+            log.info(
+                    "Step '{}' of movement {} confirmed for member {} automatically",
+                    step.label(),
+                    movementId,
+                    movement.memberId());
+            movement = movementRepository.findById(movementId).orElseThrow();
+            step = currentStep(movement);
+        }
+    }
+
+    /**
+     * Whether a step is the member confirming a piece they received, on a chain that does not wait for that.
+     *
+     * <p>A receipt is the member's own step that leaves the piece with them. The step a chain opens with is
+     * never one, even where it reads the same: it is the member asking for something, which a movement is only
+     * ever put back on and never reaches. One that names the arriving piece still waits while nobody has named
+     * it, because confirming it would have to invent which piece arrived.
+     *
+     * @param movement the movement
+     * @param step     the step it stands on
+     * @return whether the step is confirmed for the member as soon as it is reached
+     */
+    private boolean confirmsItself(ItemMovement movement, MovementFlowStep step) {
+        if (movement.memberId() == null || movement.flowId() == null) return false;
+        if (step.actor() != StepActor.MEMBER || step.custodyAfter() != ItemCustody.WITH_MEMBER) return false;
+        if (opensTheChain(step)) return false;
+        if (step.picksItem() && movement.incomingItemId() == null) return false;
+        return flowService
+                .findFlow(movement.flowId())
+                .map(MovementFlow::skipMemberReceipt)
+                .orElse(false);
     }
 
     /**
@@ -1319,6 +1393,23 @@ public class ItemMovementService {
                 belongsOn,
                 lands.id(),
                 lands.label());
+        confirmReceiptsThatDoNotWait(movement.id());
+    }
+
+    /**
+     * Writes a chain again from its preset, then confirms the receipts the chain does not wait for on the
+     * movements it carried across.
+     *
+     * @param flowId        the chain to write again
+     * @param actorMemberId who asked for it
+     * @param chosen        where the movements the preset does not answer for are to land
+     * @see MovementFlowService#restoreToPreset(int, Integer, List)
+     */
+    public void restoreChain(int flowId, Integer actorMemberId, List<MovementFlowService.ChosenLanding> chosen) {
+        flowService.restoreToPreset(flowId, actorMemberId, chosen);
+        for (var open : movementRepository.findOpenOnFlow(flowId)) {
+            confirmReceiptsThatDoNotWait(open.id());
+        }
     }
 
     private ItemMovement openMovement(int movementId) {

@@ -50,7 +50,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
  * else's to leave alone, and every chain is editable.
  */
 const cards = computed<FlowResponse[]>(() =>
-  flows.value.map(flow => ({...flow, ownedByCluster: false, problem: null})))
+  flows.value.map(flow => ({...flow, ownedByCluster: false, skipMemberReceipt: false, problem: null})))
 
 /**
  * Runs one change and reloads. Refusals are shown rather than swallowed: a step cannot be changed while

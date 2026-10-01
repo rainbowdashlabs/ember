@@ -41,6 +41,7 @@ async function chain(
     steps: Record<string, unknown>[],
     purpose = 'RETURN',
     ownerKind = 'CLUSTER',
+    party = 'STORE',
 ) {
     const flow = await page.request.post('/api/v1/movement-flows', {headers, data: {name, purpose}})
     expect(flow.ok()).toBeTruthy()
@@ -54,7 +55,7 @@ async function chain(
     }
 
     const bound = await page.request.put('/api/v1/movement-flow-bindings',
-        {headers, data: {inventoryId, ownerKind, purpose, flowId}})
+        {headers, data: {inventoryId, ownerKind, purpose, party, flowId}})
     expect(bound.ok()).toBeTruthy()
     return {flowId, stepIds}
 }
@@ -214,6 +215,54 @@ test.describe('Movement flows', () => {
 
         expect((await forBorrowed.json()).steps.length, 'the borrowed piece walks the longer chain').toBe(3)
         expect((await forOwn.json()).steps.length, 'and the station\'s own the shorter one').toBe(2)
+    })
+
+    /**
+     * ITM-53 - A chain that skips the member's receipt confirms it for them.
+     *
+     * The switch on the chain's card is what says so, and only that chain stops waiting. The movement then
+     * ends as soon as the station has handed the piece over, and its history names the member's step as
+     * confirmed automatically rather than as something the member pressed.
+     */
+    test('a chain that skips the member\'s receipt confirms it for them', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const {inventoryId, item, stamp} = await ownGround(page, headers, 'RECEIPT', 'STATION')
+        const name = `Quittung ${stamp}`
+        const {flowId} = await chain(page, headers, inventoryId, name,
+            [{label: 'Angefordert', actor: 'MEMBER', subject: 'INCOMING', custodyAfter: 'WITH_OWNER',
+                picksItem: false},
+             {label: 'Ausgegeben', actor: 'STATION', subject: 'INCOMING', custodyAfter: 'WITH_MEMBER',
+                 picksItem: true},
+             {label: 'Erhalten', actor: 'MEMBER', subject: 'INCOMING', custodyAfter: 'WITH_MEMBER',
+                 picksItem: false}], 'ISSUE', 'STATION', 'MEMBER')
+
+        await page.goto('/station/inventory/flows')
+        const toggle = page.getByTestId('flow-card').filter({hasText: name}).getByRole('switch')
+        await expect(toggle).toHaveAttribute('aria-checked', 'false')
+        await toggle.click()
+        await expect(toggle).toHaveAttribute('aria-checked', 'true')
+        const saved = await page.request.get(`/api/v1/movement-flows/${flowId}`, {headers}).then(r => r.json())
+        expect(saved.skipMemberReceipt, 'the switch is saved on the chain').toBe(true)
+
+        const members = await page.request.get('/api/v1/station-members', {headers}).then(r => r.json())
+        const member = (Array.isArray(members) ? members : members.members ?? [])
+            .find((m: {userType: string}) => m.userType === 'MEMBER')
+        const started = await page.request.post('/api/v1/movements', {headers, data: {
+            purpose: 'ISSUE', memberId: member.id, inventoryId, pickedItemId: item.id, reason: 'Erstausstattung'}})
+        expect(started.ok(), await started.text()).toBeTruthy()
+        const opened = await started.json()
+        const handOver = opened.steps.find((s: {current: boolean}) => s.current)
+        expect(handOver.label).toBe('Ausgegeben')
+
+        const handed = await page.request.post(`/api/v1/movements/${opened.movement.id}/acknowledge`,
+            {headers, data: {stepId: handOver.id, note: '', pickedItemId: item.id}})
+        expect(handed.ok(), await handed.text()).toBeTruthy()
+
+        const done = await page.request.get(`/api/v1/movements/${opened.movement.id}`, {headers})
+            .then(r => r.json())
+        expect(done.movement.state, 'nothing is left waiting on the member').toBe('DONE')
+        const receipt = done.steps.find((s: {label: string}) => s.label === 'Erhalten')
+        expect(receipt.ackKind, 'and the history says it confirmed itself').toBe('AUTO_CONFIRMED')
     })
 
     /**

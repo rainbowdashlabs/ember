@@ -12,7 +12,10 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 import type {BindingResponse, ChosenLanding, FlowResponse, StepRequest} from '@/api/generated/schema'
+import {StepActor} from '@/api/movements'
+import {ItemCustody} from '@/api/inventory'
 import FlowDiagram from '@/components/movement/FlowDiagram.vue'
 import FlowStepRow from './FlowStepRow.vue'
 import AddStepForm from './AddStepForm.vue'
@@ -32,6 +35,8 @@ const props = defineProps<{
   failure?: Failure | null
   /** The combination this chain serves, absent for one the station wrote itself. */
   binding?: BindingResponse
+  /** Whether the screen saves the member receipt setting, which only a station's own chains carry. */
+  offersReceiptSetting?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -41,6 +46,8 @@ const emit = defineEmits<{
   saveStep: [stepId: number, step: StepRequest]
   reorder: [flowId: number, stepIds: number[]]
   restore: [flowId: number, mappings: ChosenLanding[]]
+  /** Whether the member's receipt of a piece confirms itself on this chain. */
+  memberReceipt: [flowId: number, skip: boolean]
   /** A refusal the restore dialog read for itself, shown where every other refusal about this chain is. */
   restoreRefused: [flowId: number, failure: Failure | null]
 }>()
@@ -78,6 +85,16 @@ const editable = computed(() => !props.flow.ownedByCluster && !props.flow.archiv
 const restorable = computed(() => editable.value && props.binding !== undefined)
 
 /**
+ * The member receipt setting is offered only on a chain that has a receipt to skip: a live step after the
+ * first in which the member confirms that the piece is now with them.
+ */
+const receiptSkippable = computed(() =>
+    props.offersReceiptSetting === true
+    && editable.value
+    && liveSteps.value.slice(1).some(step =>
+        step.actor === StepActor.MEMBER && step.custodyAfter === ItemCustody.WITH_MEMBER))
+
+/**
  * What is worth saying about a chain besides its name.
  *
  * <p>The purpose is one of them only where the combination is not shown, since that line already
@@ -97,7 +114,7 @@ const marks = computed(() =>
 </script>
 
 <template>
-  <NeutralContainer class="space-y-2" :class="props.flow.archived ? 'opacity-60' : ''">
+  <NeutralContainer class="space-y-2" :class="props.flow.archived ? 'opacity-60' : ''" data-testid="flow-card">
     <div class="flex items-start justify-between gap-2">
       <div class="space-y-1">
         <SubHeader>{{ props.flow.name }}</SubHeader>
@@ -134,6 +151,16 @@ const marks = computed(() =>
     <Alert v-if="props.flow.problem && !props.flow.archived" variant="error" data-testid="flow-problem">
       {{ problemText(props.flow.problem) }}
     </Alert>
+
+    <ToggleSetting
+        v-if="receiptSkippable"
+        :disabled="props.busy"
+        :hint="t('flows.skipMemberReceiptHint')"
+        :label="t('flows.skipMemberReceipt')"
+        :model-value="props.flow.skipMemberReceipt"
+        data-testid="flow-skip-member-receipt"
+        @update:model-value="(skip: boolean) => emit('memberReceipt', props.flow.id, skip)"
+    />
 
     <MutedText v-if="!expanded" size="sm" tag="div">
       {{ t('flows.stepCount', {count: props.flow.steps.filter(s => !s.archived).length}) }}

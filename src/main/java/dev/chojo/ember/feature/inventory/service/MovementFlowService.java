@@ -903,6 +903,23 @@ public class MovementFlowService {
         return renamed;
     }
 
+    /**
+     * Says whether a chain waits for the member to confirm a piece they received.
+     *
+     * <p>Only steps reached from now on follow it. A movement already waiting on such a step keeps waiting,
+     * because nobody reached that step after the change and the record would otherwise claim a confirmation
+     * at a moment when nothing happened.
+     *
+     * @param flowId the chain
+     * @param skip   whether the receipt is confirmed for the member as soon as a movement reaches it
+     * @return whether the chain exists
+     */
+    public boolean setSkipMemberReceipt(int flowId, boolean skip) {
+        boolean changed = flowRepository.setSkipMemberReceipt(flowId, skip);
+        if (changed) log.info("Movement flow {} {} the member's receipt", flowId, skip ? "skips" : "waits for");
+        return changed;
+    }
+
     public boolean archiveFlow(int flowId) {
         requireNoOpenMovement(flowId);
         boolean archived = flowRepository.archiveFlow(flowId);

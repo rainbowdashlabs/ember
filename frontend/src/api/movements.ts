@@ -72,6 +72,7 @@ export const AckKind = {
     ASSERTED: 'ASSERTED',
     FORCED: 'FORCED',
     CORRECTED: 'CORRECTED',
+    AUTO_CONFIRMED: 'AUTO_CONFIRMED',
 } as const satisfies Record<AckKindName, AckKindName>
 
 export type MovementPartyName = Schemas['MovementParty']
@@ -248,6 +249,15 @@ export async function createFlow(data: FlowRequest): Promise<FlowResponse> {
 
 export async function renameFlow(id: number, data: FlowRequest): Promise<FlowResponse> {
     const res = await client.put<FlowResponse>(`/movement-flows/${id}`, data)
+    return res.data
+}
+
+/**
+ * Says whether a chain confirms the member's receipt of a piece for them as soon as a movement reaches it.
+ * Answers with the chain as it now stands.
+ */
+export async function setMemberReceipt(id: number, skipMemberReceipt: boolean): Promise<FlowResponse> {
+    const res = await client.put<FlowResponse>(`/movement-flows/${id}/member-receipt`, {skipMemberReceipt})
     return res.data
 }
 

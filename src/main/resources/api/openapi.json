@@ -28326,6 +28326,52 @@
         } ]
       }
     },
+    "/api/v1/movement-flows/{id}/member-receipt" : {
+      "put" : {
+        "summary" : "Say whether a flow confirms the member's receipt of a piece for them",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FlowResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MemberReceiptRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/movement-flows/{id}/restore" : {
       "post" : {
         "summary" : "Write a flow again from the preset for the combination it is bound to",
@@ -40486,7 +40532,7 @@
       },
       "AckKind" : {
         "type" : "string",
-        "enum" : [ "CONFIRMED", "ASSERTED", "FORCED", "CORRECTED" ]
+        "enum" : [ "CONFIRMED", "ASSERTED", "FORCED", "CORRECTED", "AUTO_CONFIRMED" ]
       },
       "AcknowledgeAllResponse" : {
         "type" : "object",
@@ -50025,6 +50071,9 @@
           "ownedByCluster" : {
             "type" : "boolean"
           },
+          "skipMemberReceipt" : {
+            "type" : "boolean"
+          },
           "problem" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/FlowProblem"
@@ -50039,7 +50088,7 @@
             }
           }
         },
-        "required" : [ "id", "name", "purpose", "archived", "ownedByCluster", "problem", "steps" ]
+        "required" : [ "id", "name", "purpose", "archived", "ownedByCluster", "skipMemberReceipt", "problem", "steps" ]
       },
       "FolderRequest" : {
         "type" : "object",
@@ -56366,6 +56415,14 @@
           }
         },
         "required" : [ "fieldId", "value", "origin" ]
+      },
+      "MemberReceiptRequest" : {
+        "type" : "object",
+        "properties" : {
+          "skipMemberReceipt" : {
+            "type" : "boolean"
+          }
+        }
       },
       "MemberRequirement" : {
         "type" : "object",

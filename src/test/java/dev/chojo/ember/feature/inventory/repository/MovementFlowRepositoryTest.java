@@ -22,6 +22,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Pointing a binding at a flow, alone and with several saves of the same binding arriving together. */
@@ -101,6 +102,22 @@ class MovementFlowRepositoryTest extends RepositoryTestBase {
         CompletableFuture.allOf(saves.toArray(CompletableFuture[]::new)).get();
 
         assertTrue(flows.contains(boundToInventory().orElseThrow()));
+    }
+
+    /** A new chain waits for the member's receipt, and the setting reads back as it was written. */
+    @Test
+    void aChainWaitsForTheReceiptUntilToldOtherwise() {
+        int flowId = movementFlowRepo
+                .createFlow(station.id(), "Quittung", MovementPurpose.ISSUE)
+                .id();
+        assertFalse(movementFlowRepo.findFlowById(flowId).orElseThrow().skipMemberReceipt());
+
+        assertTrue(movementFlowRepo.setSkipMemberReceipt(flowId, true));
+        assertTrue(movementFlowRepo.findFlowById(flowId).orElseThrow().skipMemberReceipt());
+
+        assertTrue(movementFlowRepo.setSkipMemberReceipt(flowId, false));
+        assertFalse(movementFlowRepo.findFlowById(flowId).orElseThrow().skipMemberReceipt());
+        assertFalse(movementFlowRepo.setSkipMemberReceipt(-1, true), "a chain that is not there changes nothing");
     }
 
     private static void bindInventory(int flowId) {

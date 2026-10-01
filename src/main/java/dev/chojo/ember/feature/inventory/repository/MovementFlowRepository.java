@@ -30,7 +30,8 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class MovementFlowRepository {
-    private static final String FLOW_COLUMNS = "id, station_id, cluster_id, name, purpose, archived";
+    private static final String FLOW_COLUMNS =
+            "id, station_id, cluster_id, name, purpose, archived, skip_member_receipt";
     private static final String STEP_COLUMNS =
             "id, flow_id, position, label, actor, subject, custody_after, picks_item, archived";
     private static final String BINDING_COLUMNS = "station_id, inventory_id, owner_kind, purpose, party, flow_id";
@@ -65,6 +66,20 @@ public class MovementFlowRepository {
     public boolean renameFlow(int id, String name) {
         return query("UPDATE movement_flow SET name = :name WHERE id = :id;")
                 .single(call().bind("name", name).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Says whether the member's confirmation of a received piece confirms itself on this chain.
+     *
+     * @param id   the chain
+     * @param skip whether the receipt is confirmed for the member as soon as a movement reaches it
+     * @return whether the chain exists
+     */
+    public boolean setSkipMemberReceipt(int id, boolean skip) {
+        return query("UPDATE movement_flow SET skip_member_receipt = :skip WHERE id = :id;")
+                .single(call().bind("skip", skip).bind("id", id))
                 .update()
                 .changed();
     }

@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
+import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService.ChosenLanding;
 import dev.chojo.ember.feature.inventory.service.MovementTargeting;
@@ -52,11 +53,14 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class MovementFlowRoutes implements Routes {
     private final MovementFlowService flowService;
+    private final ItemMovementService movementService;
     private final MovementTargeting targeting;
 
     @Inject
-    public MovementFlowRoutes(MovementFlowService flowService, MovementTargeting targeting) {
+    public MovementFlowRoutes(
+            MovementFlowService flowService, ItemMovementService movementService, MovementTargeting targeting) {
         this.flowService = flowService;
+        this.movementService = movementService;
         this.targeting = targeting;
     }
 
@@ -72,6 +76,10 @@ public class MovementFlowRoutes implements Routes {
         routes.post(prefix + "/movement-flows", this::createFlow, StationPermission.INVENTORY_MANAGER);
         routes.put(prefix + "/movement-flows/{id}", this::renameFlow, StationPermission.INVENTORY_MANAGER);
         routes.delete(prefix + "/movement-flows/{id}", this::archiveFlow, StationPermission.INVENTORY_MANAGER);
+        routes.put(
+                prefix + "/movement-flows/{id}/member-receipt",
+                this::setMemberReceipt,
+                StationPermission.INVENTORY_MANAGER);
         routes.post(prefix + "/movement-flows/{id}/steps", this::addStep, StationPermission.INVENTORY_MANAGER);
         routes.put(prefix + "/movement-flows/{id}/step-order", this::reorderSteps, StationPermission.INVENTORY_MANAGER);
         routes.get(
@@ -231,6 +239,31 @@ public class MovementFlowRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int id = requireOwnFlow(pathInt(ctx, "id"), session);
         if (!flowService.archiveFlow(id)) throw Refusal.FLOW_NOT_ARCHIVED.raise();
+        ctx.json(flowAsItStands(id));
+    }
+
+    /**
+     * Says whether the chain waits for the member to confirm a piece they received, or confirms it for them
+     * as soon as a movement reaches that step.
+     */
+    @OpenApi(
+            path = "/api/v1/movement-flows/{id}/member-receipt",
+            methods = HttpMethod.PUT,
+            summary = "Say whether a flow confirms the member's receipt of a piece for them",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MemberReceiptRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FlowResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setMemberReceipt(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        int id = requireOwnFlow(pathInt(ctx, "id"), session);
+        var request = ctx.bodyAsClass(MemberReceiptRequest.class);
+        if (!flowService.setSkipMemberReceipt(id, request.skipMemberReceipt())) {
+            throw Refusal.FLOW_RECEIPT_NOT_CHANGED.raise();
+        }
         ctx.json(flowAsItStands(id));
     }
 
@@ -414,7 +447,7 @@ public class MovementFlowRoutes implements Routes {
         int flowId = requireOwnFlow(pathInt(ctx, "id"), session);
         var request = ctx.body().isBlank() ? null : ctx.bodyAsClass(RestoreRequest.class);
         var mappings = request == null || request.mappings() == null ? List.<ChosenLanding>of() : request.mappings();
-        flowService.restoreToPreset(flowId, session.member().id(), mappings);
+        movementService.restoreChain(flowId, session.member().id(), mappings);
         ctx.json(flowAsItStands(flowId));
     }
 
@@ -454,6 +487,7 @@ public class MovementFlowRoutes implements Routes {
                 flow.purpose(),
                 flow.archived(),
                 flow.clusterId() != null,
+                flow.skipMemberReceipt(),
                 flowService.problemOf(flow.id()).orElse(null),
                 flowService.findAllSteps(flow.id()).stream().map(this::toStep).toList());
     }
@@ -495,8 +529,16 @@ public class MovementFlowRoutes implements Routes {
     public record RestoreRequest(List<ChosenLanding> mappings) {}
 
     /**
+     * @param skipMemberReceipt whether the member's confirmation of a received piece is confirmed for them
+     *                          as soon as a movement on the chain reaches it
+     */
+    public record MemberReceiptRequest(boolean skipMemberReceipt) {}
+
+    /**
      * @param ownedByCluster whether the flow belongs to the body above the station rather than to
      *                       the station, in which case it is shown and named but not edited here
+     * @param skipMemberReceipt whether the member's confirmation of a received piece is confirmed for them
+     *                          as soon as a movement reaches it, rather than waited for
      * @param problem        what stops this chain from being walked, or null when nothing does. A
      *                       chain under construction says so here rather than only when somebody
      *                       tries to use it, and it is named rather than worded so the reader is
@@ -508,6 +550,7 @@ public class MovementFlowRoutes implements Routes {
             MovementPurpose purpose,
             boolean archived,
             boolean ownedByCluster,
+            boolean skipMemberReceipt,
             @Nullable FlowProblem problem,
             List<StepResponse> steps) {}
 

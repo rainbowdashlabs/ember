@@ -30,6 +30,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryFlows.orderText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryFlows.receiptTitle')">
+      <p>{{ t('helpCenter.inventoryFlows.receiptText') }}</p>
+      <p>{{ t('helpCenter.inventoryFlows.receiptWaitingText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.inventoryFlows.restoreTitle')">
       <p>{{ t('helpCenter.inventoryFlows.restoreText') }}</p>
       <p>{{ t('helpCenter.inventoryFlows.restoreMovingText') }}</p>

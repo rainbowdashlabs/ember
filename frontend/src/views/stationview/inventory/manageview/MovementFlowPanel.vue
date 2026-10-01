@@ -170,6 +170,7 @@ function createFlow() {
             :busy="busy"
             :failure="flowFailures[flow.id]"
             :flow="flow"
+            offers-receipt-setting
             @add-step="(flowId: number, step: StepRequest) => runOnFlow(flowId, () => addStep(flowId, step))"
             @archive-step="(stepId: number) => runOnFlow(flow.id, () => movements.archiveStep(stepId))"
             @archive-flow="(flowId: number) => runOnFlow(flowId, () => movements.archiveFlow(flowId))"
@@ -177,6 +178,7 @@ function createFlow() {
             @reorder="(flowId: number, stepIds: number[]) => runOnFlow(flowId, () => movements.reorderSteps(flowId, stepIds))"
             @restore="(flowId: number, mappings: ChosenLanding[]) => runOnFlow(flowId, () => movements.restoreFlow(flowId, mappings))"
             @restore-refused="showFlowFailure"
+            @member-receipt="(flowId: number, skip: boolean) => runOnFlow(flowId, () => movements.setMemberReceipt(flowId, skip))"
         />
       </div>
 

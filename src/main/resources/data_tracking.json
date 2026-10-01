@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:2c202e75c960573a79768f914c63221ae9e1c5402cf1ee9d932f15f36272660a",
-  "generatedAt": "2026-10-01T15:44:25Z",
+  "schemaHash": "sha256:4e13a0e0237d40cc9b0e5de77c0a842ce15bf372ca6e854fcf02a212a98f7971",
+  "generatedAt": "2026-10-01T20:54:51Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -13932,7 +13932,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "CONFIRMED when the party that owns the step said so itself, ASSERTED when the station said so for an owner that does not use Ember, FORCED when the flow owner overrode a party that could have answered and did not."
+          "description": "CONFIRMED when the party that owns the step said so itself, ASSERTED when the station said so for an owner that does not use Ember, FORCED when the flow owner overrode a party that could have answered and did not, CORRECTED when somebody put the movement where it should have been, AUTO_CONFIRMED when the chain confirmed a member's receipt for them as soon as it was reached."
         },
         {
           "name": "changed_by",
@@ -16807,7 +16807,7 @@
     "movement_flow": {
       "feature": "inventory",
       "scope": "STATION",
-      "tableHash": "sha256:fb0b2ca94cc962576805f70dfc08f3172bbb98e7db5368c242beedd71781183f",
+      "tableHash": "sha256:017e8634cc7582d1e978408d651b56379fd822bab6c56f891bf7550530248d4b",
       "columns": [
         {
           "name": "id",
@@ -16850,6 +16850,13 @@
           "nullable": false,
           "verified": true,
           "description": "Whether the flow is retired. Retired flows are not offered to new movements and still render in the history of the ones that walked them."
+        },
+        {
+          "name": "skip_member_receipt",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether a step in which the member confirms receiving a piece is confirmed for them as soon as a movement reaches it, instead of waiting for them."
         }
       ],
       "foreignKeys": [

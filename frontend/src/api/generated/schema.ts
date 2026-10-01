@@ -36380,6 +36380,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/movement-flows/{id}/member-receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Say whether a flow confirms the member's receipt of a piece for them */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MemberReceiptRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FlowResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/movement-flows/{id}/restore": {
         parameters: {
             query?: never;
@@ -53863,7 +53914,7 @@ export interface components {
             title?: string;
         };
         /** @enum {string} */
-        AckKind: "CONFIRMED" | "ASSERTED" | "FORCED" | "CORRECTED";
+        AckKind: "CONFIRMED" | "ASSERTED" | "FORCED" | "CORRECTED" | "AUTO_CONFIRMED";
         AcknowledgeAllResponse: {
             /** Format: int32 */
             acknowledged: number;
@@ -57190,6 +57241,7 @@ export interface components {
             ownedByCluster: boolean;
             problem: components["schemas"]["FlowProblem"] | null;
             purpose: components["schemas"]["MovementPurpose"];
+            skipMemberReceipt: boolean;
             steps: components["schemas"]["StepResponse"][];
         };
         FolderRequest: {
@@ -59473,6 +59525,9 @@ export interface components {
             fieldId: number;
             origin: string;
             value: string | null;
+        };
+        MemberReceiptRequest: {
+            skipMemberReceipt?: boolean;
         };
         MemberRequirement: {
             /** Format: int32 */
@@ -65141,6 +65196,7 @@ export type MemberProfileRequest = components['schemas']['MemberProfileRequest']
 export type MemberProfileResponse = components['schemas']['MemberProfileResponse'];
 export type MemberProfileValueRequest = components['schemas']['MemberProfileValueRequest'];
 export type MemberProfileValueResponse = components['schemas']['MemberProfileValueResponse'];
+export type MemberReceiptRequest = components['schemas']['MemberReceiptRequest'];
 export type MemberRequirement = components['schemas']['MemberRequirement'];
 export type MemberRequirements = components['schemas']['MemberRequirements'];
 export type MemberSearchResult = components['schemas']['MemberSearchResult'];

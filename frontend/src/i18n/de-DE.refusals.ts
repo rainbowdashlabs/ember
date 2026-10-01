@@ -804,6 +804,7 @@ export default {
     'I-112': PROCUREMENT_NOT_HERE,
     'I-113': CHANGE_SAVED_BUT_NOT_READ_BACK,
     'I-114': 'Inventare bieten diesen Feldtyp nicht an, es wurde nichts gespeichert',
+    'I-275': FLOW_NOT_HERE,
     'I-115': 'Dieser Ablauf hat keine Schritte, die Bewegung wurde nicht begonnen',
     'I-116': 'Eine Korrektur der Bewegung braucht eine Begründung, es wurde nichts geändert',
     'I-117': MOVEMENT_NOT_HERE,

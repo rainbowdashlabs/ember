@@ -908,3 +908,12 @@ COMMENT ON COLUMN ember_schema.event_field.field_type
     IS 'What kind of answer it takes, by its shared type name, such as TEXT, NUMBER, LOCATION or MEMBER_LIST_OF_GROUP.';
 COMMENT ON COLUMN ember_schema.event_registration_field.field_type
     IS 'What kind of answer it takes, by its shared type name, such as TEXT, NUMBER, CHOICE or MEMBER.';
+
+ALTER TABLE ember_schema.movement_flow
+    ADD COLUMN skip_member_receipt BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN ember_schema.movement_flow.skip_member_receipt
+    IS 'Whether a step in which the member confirms receiving a piece is confirmed for them as soon as a movement reaches it, instead of waiting for them.';
+
+COMMENT ON COLUMN ember_schema.item_movement_log.ack_kind
+    IS 'CONFIRMED when the party that owns the step said so itself, ASSERTED when the station said so for an owner that does not use Ember, FORCED when the flow owner overrode a party that could have answered and did not, CORRECTED when somebody put the movement where it should have been, AUTO_CONFIRMED when the chain confirmed a member''s receipt for them as soon as it was reached.';

@@ -16,9 +16,17 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param name      what the flow is called where it is configured
  * @param purpose   what kind of movement the flow is for
  * @param archived  whether the flow is retired from new movements
+ * @param skipMemberReceipt whether a step in which the member confirms receiving a piece confirms itself as
+ *                          soon as a movement reaches it, rather than waiting for the member
  */
 public record MovementFlow(
-        int id, Integer stationId, Integer clusterId, String name, MovementPurpose purpose, boolean archived) {
+        int id,
+        Integer stationId,
+        Integer clusterId,
+        String name,
+        MovementPurpose purpose,
+        boolean archived,
+        boolean skipMemberReceipt) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -29,6 +37,7 @@ public record MovementFlow(
                 row.getObject("cluster_id", Integer.class),
                 row.getString("name"),
                 row.getEnum("purpose", MovementPurpose.class),
-                row.getBoolean("archived"));
+                row.getBoolean("archived"),
+                row.getBoolean("skip_member_receipt"));
     }
 }

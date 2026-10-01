@@ -6632,6 +6632,9 @@ export default {
         restoreUncertainHint: 'Für die markierten Schritte ließ sich kein Schritt der neuen Kette sicher '
             + 'zuordnen. Wähle selbst, wo es weitergeht.',
         restoreAction: 'Zurücksetzen',
+        skipMemberReceipt: 'Erhalt ohne Bestätigung des Mitglieds',
+        skipMemberReceiptHint: 'Schritte, in denen das Mitglied den Erhalt eines Teils bestätigt, werden beim '
+            + 'Erreichen automatisch für das Mitglied bestätigt. Bewegungen, die schon darauf warten, bleiben stehen.',
         newFlow: 'Neuer Ablauf',
         newFlowPlaceholder: 'z. B. Tausch, kurz',
         purpose: 'Zweck',
@@ -6769,6 +6772,7 @@ export default {
             ASSERTED: 'von der Wache vermerkt',
             FORCED: 'erzwungen',
             CORRECTED: 'von Hand richtiggestellt',
+            AUTO_CONFIRMED: 'automatisch bestätigt',
         },
         subject: {
             OUTGOING: 'Abgehendes Teil',
