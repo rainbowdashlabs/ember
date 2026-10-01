@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.twofactor.service.WebAuthnCeremonies.CeremonyStar
 import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -166,7 +167,7 @@ public class DeviceRequestService {
      * else would answer whether an address exists here.
      */
     public CreatedRequest createRequest(
-            DeviceRequestPurpose purpose, String identifier, String userAgent, String country) {
+            DeviceRequestPurpose purpose, String identifier, @Nullable String userAgent, @Nullable String country) {
         String code = newCode();
         String pollSecret = newSecret();
         int matchNumber = newMatchNumber();
@@ -300,7 +301,8 @@ public class DeviceRequestService {
      * exactly one thing exactly once; a ceremony that fails after the claim burns it, and the
      * way forward is a fresh request rather than a second try on a spent token.
      */
-    public boolean finishEnrollment(String enrollToken, String challengeToken, String credentialJson, String country) {
+    public boolean finishEnrollment(
+            String enrollToken, String challengeToken, String credentialJson, @Nullable String country) {
         Optional<DeviceRequest> claimed =
                 repository.claimByToken(tokenHasher.hash(enrollToken), DeviceRequestPurpose.ENROL_PASSKEY);
         if (claimed.isEmpty()) return false;
@@ -341,7 +343,7 @@ public class DeviceRequestService {
      * what outlives it. It is written against the account that was signed in, because that is whose
      * access is in question, and names the approver so the two can be told apart afterwards.
      */
-    public Optional<LoginResult> claimSignIn(String claimToken, String userAgent, String location) {
+    public Optional<LoginResult> claimSignIn(String claimToken, @Nullable String userAgent, @Nullable String location) {
         Optional<DeviceRequest> claimed =
                 repository.claimByToken(tokenHasher.hash(claimToken), DeviceRequestPurpose.SIGN_IN);
         if (claimed.isEmpty()) return Optional.empty();
@@ -383,7 +385,11 @@ public class DeviceRequestService {
      * can judge.
      */
     public CreatedRequest createStepUpRequest(
-            int accountId, int sessionId, StepUpCategory category, String userAgent, String country) {
+            int accountId,
+            int sessionId,
+            StepUpCategory category,
+            @Nullable String userAgent,
+            @Nullable String country) {
         String code = newCode();
         String pollSecret = newSecret();
         int matchNumber = newMatchNumber();
@@ -512,5 +518,8 @@ public class DeviceRequestService {
      * @param purpose what that token buys, so the asking device knows which ceremony follows.
      *         {@code null} where there is nothing yet to buy
      */
-    public record PollResult(PollStatus status, String claimToken, DeviceRequestPurpose purpose) {}
+    public record PollResult(
+            PollStatus status,
+            @Nullable String claimToken,
+            @Nullable DeviceRequestPurpose purpose) {}
 }

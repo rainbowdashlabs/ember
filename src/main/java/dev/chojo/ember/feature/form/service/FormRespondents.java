@@ -190,7 +190,7 @@ public class FormRespondents {
             for (var value : profileFields.findValuesOfField(field.id())) {
                 if (!memberIds.contains(value.memberId())) continue;
                 var answer = value.plainValue();
-                if (answer == null || answer.isBlank()) continue;
+                if (answer.isBlank()) continue;
                 byMember.computeIfAbsent(value.memberId(), _ -> new HashMap<>()).put(field.id(), answer);
             }
         }

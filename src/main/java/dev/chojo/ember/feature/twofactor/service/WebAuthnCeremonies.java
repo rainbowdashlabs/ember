@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.twofactor.entity.WebAuthnCredential;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
 import dev.chojo.ember.util.RandomTokens;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +126,7 @@ public final class WebAuthnCeremonies {
      * without it. Returns the new factor, or empty on any failure.
      */
     public Optional<TwoFactorFactor> finishRegistration(
-            int accountId, String optionsJson, String credentialJson, String label, CredentialRole role) {
+            int accountId, String optionsJson, String credentialJson, @Nullable String label, CredentialRole role) {
         PublicKeyCredentialCreationOptions options;
         try {
             options = PublicKeyCredentialCreationOptions.fromJson(optionsJson);
@@ -187,7 +188,7 @@ public final class WebAuthnCeremonies {
      * which leaves the choice to the browser's own account picker. The challenge carries the
      * account when one is known, and none for a passwordless sign-in.
      */
-    public CeremonyStart startAssertion(CredentialRole role, Integer accountId, ChallengePurpose purpose) {
+    public CeremonyStart startAssertion(CredentialRole role, @Nullable Integer accountId, ChallengePurpose purpose) {
         var options = StartAssertionOptions.builder()
                 .userVerification(role.userVerification())
                 .timeout(timeoutMillis());
@@ -285,7 +286,7 @@ public final class WebAuthnCeremonies {
         return challengeRepository.consume(token).filter(stored -> !stored.isExpired() && stored.purpose() == purpose);
     }
 
-    private String persistChallenge(Integer accountId, ChallengePurpose purpose, String optionsJson) {
+    private String persistChallenge(@Nullable Integer accountId, ChallengePurpose purpose, String optionsJson) {
         String token = newChallengeToken();
         challengeRepository.create(
                 token, purpose, accountId, optionsJson, Instant.now().plus(CHALLENGE_TTL));
@@ -309,7 +310,7 @@ public final class WebAuthnCeremonies {
      * the AAGUID or reports the all-zero one (e.g. a U2F-only fallback or a {@code none}
      * attestation).
      */
-    static UUID aaguidToUuid(ByteArray aaguid) {
+    static @Nullable UUID aaguidToUuid(ByteArray aaguid) {
         if (aaguid == null) return null;
         byte[] bytes = aaguid.getBytes();
         if (bytes.length != 16) return null;

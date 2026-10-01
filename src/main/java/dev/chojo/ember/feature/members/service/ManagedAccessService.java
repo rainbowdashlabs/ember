@@ -197,7 +197,11 @@ public class ManagedAccessService {
      * same guardian sets that member's password today.
      */
     public PasskeyEnrollmentService.IssuedCode issuePasskeyCode(
-            int guardianMemberId, int memberId, int actorAccountId, String userAgent, String country) {
+            int guardianMemberId,
+            int memberId,
+            int actorAccountId,
+            @Nullable String userAgent,
+            @Nullable String country) {
         StationMember member = requireManaged(guardianMemberId, memberId);
         var account = account(member);
         if (account.hasRealEmail()) {

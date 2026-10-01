@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -333,14 +334,13 @@ public class AdminNewsRoutes implements Routes {
      * asking is what makes the answer possible.
      */
     private SystemCommentResponse toCommentResponse(Comment comment) {
-        var author = comment.author();
-        var resolved = author != null ? memberNameResolver.resolveDisplay(author) : null;
+        var resolved = memberNameResolver.resolveDisplay(comment.author());
         return new SystemCommentResponse(
                 comment.id(),
                 comment.targetId(),
                 comment.parentId(),
-                resolved != null ? resolved.identity() : null,
-                resolved != null && resolved.name() != null ? resolved.name() : "",
+                resolved.identity(),
+                Objects.requireNonNullElse(resolved.name(), ""),
                 comment.content(),
                 comment.deleted(),
                 comment.createdAt());

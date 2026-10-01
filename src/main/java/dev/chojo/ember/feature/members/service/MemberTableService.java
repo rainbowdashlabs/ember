@@ -146,7 +146,7 @@ public class MemberTableService {
     }
 
     /** The header a requested column is drawn under, or null where this reader may not have it. */
-    private MemberTable.MemberTableHeader headerOf(
+    private MemberTable.@Nullable MemberTableHeader headerOf(
             MemberTableColumn column,
             Map<Integer, ProfileField> readable,
             Map<Integer, MemberTableQuestion> questions) {
@@ -263,7 +263,8 @@ public class MemberTableService {
             var source = ageSourceOf(field, readable);
             if (source == null) return "";
             var born = values.getOrDefault(source.id(), Map.of()).get(memberId);
-            return ageOf(born, field.config() == null ? null : field.config().ageMode(), station);
+            var config = field.config();
+            return ageOf(born, config == null ? null : config.ageMode(), station);
         }
         var stored = values.getOrDefault(fieldId, Map.of()).get(memberId);
         if (stored == null || stored.isBlank()) return "";
@@ -280,7 +281,7 @@ public class MemberTableService {
      * <p>A station that asks how old its people are on the last day of the year is asking who turns
      * old enough this year, which is a different question from who is old enough today.
      */
-    private String ageOf(String born, String ageMode, Station station) {
+    private String ageOf(@Nullable String born, @Nullable String ageMode, Station station) {
         if (born == null || born.isBlank()) return "";
         try {
             var day = LocalDate.parse(born.length() > 10 ? born.substring(0, 10) : born);
@@ -328,7 +329,7 @@ public class MemberTableService {
             this.type = type;
         }
 
-        static Builtin of(String key) {
+        static @Nullable Builtin of(String key) {
             for (var builtin : values()) {
                 if (builtin.key.equals(key)) return builtin;
             }
@@ -353,8 +354,7 @@ public class MemberTableService {
                                 .reduce((a, b) -> a + ", " + b)
                                 .orElse("");
                     case EMAIL -> member.email() == null ? "" : member.email();
-                    case JOIN_DATE ->
-                        member.joinDate() == null ? "" : member.joinDate().format(DAY);
+                    case JOIN_DATE -> member.joinDate().format(DAY);
                     case REGISTRATION_STATUS -> people.registrationStatus().getOrDefault(member.id(), "");
                 };
             }

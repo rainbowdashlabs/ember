@@ -26,6 +26,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -118,7 +119,10 @@ public class ManagedMemberService {
         var values = profileFieldService.findValues(memberId).stream()
                 .filter(v -> v.origin() == FieldOrigin.STATION)
                 .filter(v -> fieldIds.contains(v.fieldId()))
-                .map(v -> new ProfileFieldValue(memberId, v.fieldId(), v.value()))
+                .flatMap(
+                        v -> Optional.ofNullable(v.value())
+                                .map(answer -> new ProfileFieldValue(memberId, v.fieldId(), answer))
+                                .stream())
                 .toList();
         return new MemberProfile(fields, values);
     }

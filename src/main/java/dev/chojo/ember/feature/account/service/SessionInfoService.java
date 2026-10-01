@@ -193,7 +193,7 @@ public class SessionInfoService {
      * station's defaults and the member's personal preferences. Falls back to the instance defaults
      * when the session has no member or no resolvable station.
      */
-    private ThemeInfo resolveTheme(UserSession session, Station currentStation) {
+    private ThemeInfo resolveTheme(UserSession session, @Nullable Station currentStation) {
         var theming = config.theming();
         if (session.member() != null && session.stationId() != null) {
             var userSettings =

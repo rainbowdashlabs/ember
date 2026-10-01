@@ -55,7 +55,8 @@ public class TwoFactorAdminService {
      * @param userAgent      the caller's browser, for the audit log
      * @param country        the caller's country, for the audit log
      */
-    public void resetForStation(int stationId, int targetId, int actorAccountId, String userAgent, String country) {
+    public void resetForStation(
+            int stationId, int targetId, int actorAccountId, @Nullable String userAgent, @Nullable String country) {
         if (memberRepository.findByStationAndAccount(stationId, targetId).isEmpty()) {
             throw Refusal.MEMBER_NOT_YOURS_TO_RESET.raise();
         }
@@ -77,7 +78,7 @@ public class TwoFactorAdminService {
      * @param limit  how many at most, held between 1 and 50
      * @return the accounts found
      */
-    public List<AccountSearchResult> searchAccounts(String search, String uid, int limit) {
+    public List<AccountSearchResult> searchAccounts(@Nullable String search, @Nullable String uid, int limit) {
         if (uid != null && !uid.isBlank()) {
             UUID lookup;
             try {
@@ -109,7 +110,7 @@ public class TwoFactorAdminService {
      * @param offset    how many to skip
      * @return the entries, newest first
      */
-    public AuditResponse audit(Integer accountId, int limit, int offset) {
+    public AuditResponse audit(@Nullable Integer accountId, int limit, int offset) {
         int size = limit <= 0 || limit > 200 ? 50 : limit;
         int skip = Math.max(0, offset);
         List<TwoFactorAuditEntry> entries = accountId != null

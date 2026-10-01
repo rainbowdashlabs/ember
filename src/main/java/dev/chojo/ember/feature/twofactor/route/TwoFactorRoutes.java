@@ -44,6 +44,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -525,7 +526,8 @@ public class TwoFactorRoutes implements Routes {
     /** Puts the session the second factor earned into the cookie; the body only says how long it lasts. */
     private void answerSession(Context ctx, LoginResult session) {
         sessionCookies.issue(ctx, session);
-        ctx.json(new LoginResultResponse(null, session.expiresAt()));
+        ctx.json(new LoginResultResponse(
+                null, Objects.requireNonNull(session.expiresAt(), "a minted session carries its expiry")));
     }
 
     /**
@@ -534,7 +536,8 @@ public class TwoFactorRoutes implements Routes {
      * to the API origin, and {@code Secure} outside dev / demo mode. Returns the new row's id
      * so the caller can attach it to the freshly-minted session.
      */
-    private Integer issueTrustedDeviceIfRequested(Context ctx, int accountId, Integer rememberDeviceDays) {
+    private @Nullable Integer issueTrustedDeviceIfRequested(
+            Context ctx, int accountId, @Nullable Integer rememberDeviceDays) {
         if (rememberDeviceDays == null || rememberDeviceDays <= 0) return null;
         var issued = trustedDeviceService.issue(accountId, rememberDeviceDays, ctx.userAgent());
         long maxAge =

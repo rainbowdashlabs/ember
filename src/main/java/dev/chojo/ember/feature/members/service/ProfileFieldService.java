@@ -289,7 +289,7 @@ public class ProfileFieldService {
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
-            String width) {
+            @Nullable String width) {
         requireSingleBirthDate(stationId, fieldType, 0);
         String chosen = nameFor(stationId, fieldType, name);
         requireUsableDefault(chosen, fieldType, config);
@@ -307,7 +307,7 @@ public class ProfileFieldService {
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
-            String width,
+            @Nullable String width,
             boolean keepOnArchive) {
         var existing = profileFieldRepository.findById(id);
         if (existing.isEmpty()) {
@@ -410,9 +410,9 @@ public class ProfileFieldService {
             int fieldId,
             ProfileFieldScope role,
             int position,
-            String widthOverride,
-            Boolean readonlyOverride,
-            Boolean requiredOverride) {
+            @Nullable String widthOverride,
+            @Nullable Boolean readonlyOverride,
+            @Nullable Boolean requiredOverride) {
         profileFieldRepository.assignToRole(fieldId, role, position, widthOverride, readonlyOverride, requiredOverride);
         log.info("Profile field {} is asked of {}", fieldId, role);
     }
@@ -431,9 +431,9 @@ public class ProfileFieldService {
             int fieldId,
             int groupId,
             int position,
-            String widthOverride,
-            Boolean readonlyOverride,
-            Boolean requiredOverride) {
+            @Nullable String widthOverride,
+            @Nullable Boolean readonlyOverride,
+            @Nullable Boolean requiredOverride) {
         profileFieldRepository.assignToGroup(
                 fieldId, groupId, position, widthOverride, readonlyOverride, requiredOverride);
         log.info("Profile field {} is asked of group {}", fieldId, groupId);

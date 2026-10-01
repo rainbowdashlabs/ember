@@ -133,8 +133,9 @@ public class PasskeyAdminRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = PasskeysConfigResponse.class)))
     private void updateConfig(Context ctx) {
         var request = ctx.bodyAsClass(PasskeysConfigRequest.class);
-        if (request.mode() == null) throw Refusal.PASSKEY_MODE_UNKNOWN.raise();
-        var result = adminService.setMode(request.mode());
+        var mode = request.mode();
+        if (mode == null) throw Refusal.PASSKEY_MODE_UNKNOWN.raise();
+        var result = adminService.setMode(mode);
         switch (result.outcome()) {
             case NO_MAIL_PROOF -> throw Refusal.PASSWORDLESS_NEEDS_WORKING_MAIL.raise();
             case ACCOUNTS_DEPEND -> throw Refusal.PASSWORDLESS_ACCOUNTS_DEPEND.raise();

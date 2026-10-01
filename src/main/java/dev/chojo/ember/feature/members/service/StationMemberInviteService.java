@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,11 +68,11 @@ public class StationMemberInviteService {
      */
     public ProvisionedMember provision(
             int stationId,
-            String email,
+            @Nullable String email,
             String firstName,
             String lastName,
             StationUserType userType,
-            Integer groupId,
+            @Nullable Integer groupId,
             SetupMail setupMail) {
         AccountInviteService.Invited invited;
         try {

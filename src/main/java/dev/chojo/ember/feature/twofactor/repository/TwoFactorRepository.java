@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
 import dev.chojo.ember.feature.twofactor.entity.WebAuthnCredential;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -493,11 +494,11 @@ public class TwoFactorRepository {
      */
     public TwoFactorPolicy upsertPolicy(
             TwoFactorPolicy.PolicyScope scope,
-            Integer stationId,
-            StationUserType userType,
+            @Nullable Integer stationId,
+            @Nullable StationUserType userType,
             boolean required,
             short graceDays,
-            Integer createdBy) {
+            @Nullable Integer createdBy) {
         return insertReturning(
                 """
                 INSERT INTO two_factor_policy (scope, station_id, user_type, required, grace_days, created_by)
@@ -529,7 +530,7 @@ public class TwoFactorRepository {
      * much as the time: a route that must rest on somebody proving themselves at the keyboard has to
      * be able to tell that apart from a session another device vouched for.
      */
-    public boolean setTwoFactorVerified(int sessionId, StepUpProof proof, StepUpCategory category) {
+    public boolean setTwoFactorVerified(int sessionId, StepUpProof proof, @Nullable StepUpCategory category) {
         return query("""
                 UPDATE account_session
                 SET two_factor_verified_at = now(), two_factor_proof = :proof, two_factor_category = :category
@@ -560,11 +561,11 @@ public class TwoFactorRepository {
 
     public void audit(
             int accountId,
-            Integer actorId,
+            @Nullable Integer actorId,
             TwoFactorEvent event,
-            TwoFactorKind factorKind,
-            String userAgent,
-            String country) {
+            @Nullable TwoFactorKind factorKind,
+            @Nullable String userAgent,
+            @Nullable String country) {
         query("""
                 INSERT INTO account_2fa_audit (account_id, actor_id, event, factor_kind, user_agent, country)
                 VALUES (:account_id, :actor_id, CAST(:event AS two_factor_event),

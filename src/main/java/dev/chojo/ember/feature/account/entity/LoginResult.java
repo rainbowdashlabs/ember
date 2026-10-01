@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.account.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 
 /**
@@ -17,14 +19,14 @@ import java.time.Instant;
  */
 public record LoginResult(
         boolean success,
-        String message,
-        String token,
-        Instant expiresAt,
+        @Nullable String message,
+        @Nullable String token,
+        @Nullable Instant expiresAt,
         boolean passwordChangeRequired,
         boolean addressRequired,
         boolean twoFactorRequired,
-        String preAuthToken,
-        Instant preAuthTokenExpiresAt) {
+        @Nullable String preAuthToken,
+        @Nullable Instant preAuthTokenExpiresAt) {
 
     public static LoginResult failure(String message) {
         return new LoginResult(false, message, null, null, false, false, false, null, null);

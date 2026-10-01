@@ -21,6 +21,7 @@ import dev.chojo.ember.util.sql.PermissionHolderSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -218,6 +219,7 @@ public class StationMemberRepository {
     public List<RichMember> findRichMembers(int stationId, boolean includeFormer) {
         return query("""
                 SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former, sm.user_type, sm.join_date,
+                       (SELECT s.uid FROM station s WHERE s.id = sm.station_id) AS station_uid,
                        %s AS name,
                        coalesce(a.first_name, sm.display_name, '') AS first_name,
                        coalesce(a.last_name, '') AS last_name,
@@ -419,7 +421,7 @@ public class StationMemberRepository {
      * small cap. Empty {@code search} returns the most recently joined active members so the
      * picker has something to show on first focus. Returns active members only (former excluded).
      */
-    public List<PickerMember> searchForPicker(int stationId, String search, int limit) {
+    public List<PickerMember> searchForPicker(int stationId, @Nullable String search, int limit) {
         boolean hasSearch = search != null && !search.isBlank();
         String order = hasSearch ? "display_name" : "sm.join_date DESC";
         var where = WhereBuilder.create()
@@ -615,7 +617,7 @@ public class StationMemberRepository {
      * @param nickname the name, or null to give them their register name back
      * @param setBy the member who wrote it
      */
-    public void setNickname(int id, String nickname, int setBy) {
+    public void setNickname(int id, @Nullable String nickname, int setBy) {
         query("""
                 UPDATE station_member
                 SET nickname = :nickname, nickname_set_by = :set_by, nickname_set_at = now()

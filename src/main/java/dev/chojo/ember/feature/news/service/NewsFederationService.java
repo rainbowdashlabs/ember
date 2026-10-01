@@ -516,8 +516,7 @@ public class NewsFederationService implements FederationServer {
     }
 
     private String authorName(News news) {
-        var resolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
-        return resolved != null && resolved.name() != null ? resolved.name() : "";
+        return Objects.requireNonNullElse(memberNameResolver.resolve(news.author()), "");
     }
 
     private static String publishedAt(News news) {

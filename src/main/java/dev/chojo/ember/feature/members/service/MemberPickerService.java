@@ -45,7 +45,7 @@ public class MemberPickerService {
      * @param limit     how many at most, held between 1 and 20
      * @return the members found
      */
-    public List<MemberSearchResult> search(int stationId, String search, String uid, int limit) {
+    public List<MemberSearchResult> search(int stationId, @Nullable String search, @Nullable String uid, int limit) {
         if (uid != null && !uid.isBlank()) {
             UUID lookup;
             try {

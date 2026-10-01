@@ -37,6 +37,7 @@ import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -340,7 +341,7 @@ public class ExpiryReminderService implements TaskSource {
         return member.accountId() != null && permissionResolver.resolve(member).contains(StationPermission.LOGIN);
     }
 
-    private static LocalDate dayOf(String stored) {
+    private static @Nullable LocalDate dayOf(String stored) {
         if (stored == null || stored.isBlank()) return null;
         try {
             return LocalDate.parse(stored.length() > 10 ? stored.substring(0, 10) : stored);

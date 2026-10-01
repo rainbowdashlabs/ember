@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.twofactor.service.WebAuthnService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
@@ -66,7 +67,7 @@ class TwoFactorRoutesTest {
         when(signIn.waitingAccount(eq("pre-auth"), any())).thenReturn(ACCOUNT);
         when(rateLimiter.tryTwoFactor(anyString(), anyInt())).thenReturn(Optional.empty());
         when(auth.createVerifiedSessionForAccount(eq(ACCOUNT), any(), any(), any(), anyBoolean()))
-                .thenReturn(mock(LoginResult.class));
+                .thenReturn(LoginResult.success("session", Instant.now().plusSeconds(3600)));
     }
 
     @Test

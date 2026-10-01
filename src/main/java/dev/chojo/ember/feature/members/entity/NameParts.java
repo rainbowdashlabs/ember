@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.entity;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The halves a member's name is written from, and the four ways of writing them.
@@ -25,7 +26,11 @@ import dev.chojo.ember.feature.account.entity.Account;
  *     read them
  * @param frozen the whole name of somebody who has left, absent for everybody else
  */
-public record NameParts(String firstName, String lastName, String nickname, String frozen) {
+public record NameParts(
+        @Nullable String firstName,
+        @Nullable String lastName,
+        @Nullable String nickname,
+        @Nullable String frozen) {
 
     private static final NameParts UNKNOWN = new NameParts(null, null, null, null);
 
@@ -40,7 +45,7 @@ public record NameParts(String firstName, String lastName, String nickname, Stri
      * <p>A nickname that only repeats the register's first name is dropped here rather than at every
      * reader, so that nobody is ever written as {@code Maximilian "Maximilian" Hoffmann}.
      */
-    public static NameParts of(String firstName, String lastName, String nickname) {
+    public static NameParts of(String firstName, String lastName, @Nullable String nickname) {
         String first = blankToNull(firstName);
         String called = blankToNull(nickname);
         if (called != null && called.equalsIgnoreCase(first)) called = null;
@@ -110,7 +115,7 @@ public record NameParts(String firstName, String lastName, String nickname, Stri
         return first + " " + lastName;
     }
 
-    private static String blankToNull(String value) {
+    private static @Nullable String blankToNull(@Nullable String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
 }

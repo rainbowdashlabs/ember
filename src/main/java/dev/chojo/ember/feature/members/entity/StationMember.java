@@ -49,9 +49,9 @@ public record StationMember(
             int id,
             int stationId,
             UUID uid,
-            Integer accountId,
+            @Nullable Integer accountId,
             boolean former,
-            Instant formerAt,
+            @Nullable Instant formerAt,
             String displayName,
             StationUserType userType,
             LocalDate joinDate) {
@@ -79,7 +79,7 @@ public record StationMember(
                         : null,
                 row.getString("display_name"),
                 row.getEnum("user_type", StationUserType.class),
-                row.getDate("join_date") != null ? row.getDate("join_date").toLocalDate() : null,
+                row.getObject("join_date", LocalDate.class),
                 row.getString("nickname"));
     }
 }

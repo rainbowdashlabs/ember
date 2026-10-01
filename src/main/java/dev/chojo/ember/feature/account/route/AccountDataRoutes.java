@@ -25,6 +25,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -76,7 +77,7 @@ public class AccountDataRoutes implements Routes {
      * <p>Their name is in it, because the usual reason for asking is to hand the file to somebody
      * else, and a folder of files all called the same thing helps nobody.
      */
-    private static String dataExportName(UserSession session, String locale) {
+    private static String dataExportName(UserSession session, @Nullable String locale) {
         String language = "en".equals(locale) ? "en" : "de";
         String filename = DocumentName.of(
                 "zip",

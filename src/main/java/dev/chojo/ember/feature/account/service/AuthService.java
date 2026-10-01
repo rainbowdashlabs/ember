@@ -35,6 +35,7 @@ import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
 import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -367,7 +368,8 @@ public class AuthService {
      * @param location  the client's location (e.g. country code)
      * @return why the password was refused, or the session that follows from it
      */
-    public SetPasswordResult setPasswordAndSignIn(String token, String password, String userAgent, String location) {
+    public SetPasswordResult setPasswordAndSignIn(
+            String token, String password, @Nullable String userAgent, @Nullable String location) {
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
         Integer accountId = tokenOpt.map(AccountToken::accountId).orElse(null);
 
@@ -397,7 +399,8 @@ public class AuthService {
      *                where the password was refused, and where it was accepted but the account
      *                cannot be signed in yet, which leaves the sign-in form to say why.
      */
-    public record SetPasswordResult(SetPasswordOutcome outcome, LoginResult login) {}
+    public record SetPasswordResult(
+            SetPasswordOutcome outcome, @Nullable LoginResult login) {}
 
     /**
      * Outcome of {@link #setPassword(String, String)}. Surfaces distinct rejection reasons so
@@ -672,7 +675,7 @@ public class AuthService {
      * @param location  the client's location (e.g. country code)
      * @return the login result containing a session token or password change token, or a failure message
      */
-    public LoginResult login(String email, String password, String userAgent, String location) {
+    public LoginResult login(String email, String password, @Nullable String userAgent, @Nullable String location) {
         return login(email, password, userAgent, location, null);
     }
 
@@ -688,7 +691,7 @@ public class AuthService {
      * top of the route-level gate so the path stays inert if a future code change ever exposes
      * it outside the dev / demo origin.
      */
-    public LoginResult loginAsDemo(String email, String userAgent, String location) {
+    public LoginResult loginAsDemo(String email, @Nullable String userAgent, @Nullable String location) {
         if (!demo.dev() && !demo.enabled()) {
             return LoginResult.failure("Quick login is only available in dev or demo mode");
         }
@@ -709,7 +712,11 @@ public class AuthService {
      * is minted immediately.
      */
     public LoginResult login(
-            String email, String password, String userAgent, String location, String trustedDeviceCookie) {
+            String email,
+            String password,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable String trustedDeviceCookie) {
         return login(email, password, userAgent, location, trustedDeviceCookie, false);
     }
 
@@ -720,9 +727,9 @@ public class AuthService {
     public LoginResult login(
             String identifier,
             String password,
-            String userAgent,
-            String location,
-            String trustedDeviceCookie,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable String trustedDeviceCookie,
             boolean trustedDevice) {
         Optional<Account> accountOpt = findByLoginName(identifier);
         Optional<AccountCredential> credOpt = accountOpt.flatMap(a -> accountRepository.findCredential(a.id()));
@@ -777,7 +784,8 @@ public class AuthService {
      * @param accountId the account the passkey assertion resolved to
      * @return a session, or what has to happen before there can be one
      */
-    public LoginResult admitPasskeyAccount(int accountId, String userAgent, String location, boolean trustedDevice) {
+    public LoginResult admitPasskeyAccount(
+            int accountId, @Nullable String userAgent, @Nullable String location, boolean trustedDevice) {
         Optional<Account> accountOpt = accountRepository.findById(accountId);
         if (accountOpt.isEmpty()) {
             return LoginResult.failure("Sign-in failed");
@@ -821,7 +829,7 @@ public class AuthService {
      * @param accountId whose session it becomes, which is not always who approved it
      * @return a session, or what has to happen before there can be one
      */
-    public LoginResult admitVouchedForAccount(int accountId, String userAgent, String location) {
+    public LoginResult admitVouchedForAccount(int accountId, @Nullable String userAgent, @Nullable String location) {
         Optional<Account> accountOpt = accountRepository.findById(accountId);
         if (accountOpt.isEmpty()) {
             return LoginResult.failure("Sign-in failed");
@@ -868,9 +876,9 @@ public class AuthService {
     private LoginResult admitVerifiedAccount(
             Account account,
             boolean forcePasswordChange,
-            String userAgent,
-            String location,
-            String trustedDeviceCookie,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable String trustedDeviceCookie,
             boolean trustedDevice) {
         // Force password change - issue a one-time token instead of a session
         if (forcePasswordChange) {
@@ -970,7 +978,8 @@ public class AuthService {
      * @param email     the address as it was typed
      * @return what became of it, and the session where there is one
      */
-    public AddressResult setRequiredAddress(String token, String email, String userAgent, String location) {
+    public AddressResult setRequiredAddress(
+            String token, String email, @Nullable String userAgent, @Nullable String location) {
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
         if (tokenOpt.isEmpty() || tokenOpt.get().tokenType() != TokenType.FORCE_ADDRESS) {
             return new AddressResult(AddressOutcome.TOKEN_INVALID, null);
@@ -1020,7 +1029,8 @@ public class AuthService {
     /**
      * @param login the session the address earned, or null where the address was refused
      */
-    public record AddressResult(AddressOutcome outcome, LoginResult login) {}
+    public record AddressResult(
+            AddressOutcome outcome, @Nullable LoginResult login) {}
 
     /**
      * Hands a session a new token and pushes back its expiry, which is what a password change does to
@@ -1037,7 +1047,7 @@ public class AuthService {
      * @param location  the client's location
      * @return a new login result with a fresh token, or failure if the session is invalid or expired
      */
-    public LoginResult rotateSession(String token, String userAgent, String location) {
+    public LoginResult rotateSession(String token, @Nullable String userAgent, @Nullable String location) {
         if (token == null || token.isBlank()) {
             return LoginResult.failure("No session");
         }
@@ -1376,7 +1386,11 @@ public class AuthService {
      * Without it somebody with two-factor enabled would tick it and still get the short session.
      */
     public LoginResult createVerifiedSessionForAccount(
-            int accountId, String userAgent, String location, Integer deviceTrustId, boolean trustedDevice) {
+            int accountId,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable Integer deviceTrustId,
+            boolean trustedDevice) {
         return createSession(accountId, userAgent, location, Instant.now(), deviceTrustId, trustedDevice);
     }
 
@@ -1418,7 +1432,7 @@ public class AuthService {
      *                         does not log the user out of their own browser;
      *                         {@code null} to kill every session
      */
-    private void invalidateAfterPasswordRotation(int accountId, String keepSessionToken) {
+    private void invalidateAfterPasswordRotation(int accountId, @Nullable String keepSessionToken) {
         if (keepSessionToken == null || keepSessionToken.isBlank()) {
             accountRepository.deleteSessionsByAccount(accountId);
         } else {
@@ -1460,11 +1474,12 @@ public class AuthService {
      * @param location  the client's location
      * @return a successful login result with the session token
      */
-    private LoginResult createSession(int accountId, String userAgent, String location) {
+    private LoginResult createSession(int accountId, @Nullable String userAgent, @Nullable String location) {
         return createSession(accountId, userAgent, location, null, null, false);
     }
 
-    private LoginResult createSession(int accountId, String userAgent, String location, boolean trustedDevice) {
+    private LoginResult createSession(
+            int accountId, @Nullable String userAgent, @Nullable String location, boolean trustedDevice) {
         return createSession(accountId, userAgent, location, null, null, trustedDevice);
     }
 
@@ -1480,10 +1495,10 @@ public class AuthService {
      */
     private LoginResult createSession(
             int accountId,
-            String userAgent,
-            String location,
-            Instant twoFactorVerifiedAt,
-            Integer deviceTrustId,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable Instant twoFactorVerifiedAt,
+            @Nullable Integer deviceTrustId,
             boolean trustedDevice) {
         if ((demo.dev() || demo.enabled()) && demo.stableSessionTokens()) {
             // In dev/demo mode, use the email as a stable session token so sessions survive restarts.
@@ -1530,7 +1545,7 @@ public class AuthService {
      * address as a stable one. Two sessions sharing a token there would mean this one replaced the
      * very session that approved it, which is the opposite of what happened.
      */
-    private LoginResult createVouchedSession(int accountId, String userAgent, String location) {
+    private LoginResult createVouchedSession(int accountId, @Nullable String userAgent, @Nullable String location) {
         String token = generateToken();
         Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(false), ChronoUnit.MINUTES);
         accountRepository.createVouchedSession(accountId, token, expiresAt, userAgent, location);

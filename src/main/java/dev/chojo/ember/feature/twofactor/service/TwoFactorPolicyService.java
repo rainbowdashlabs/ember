@@ -81,7 +81,7 @@ public class TwoFactorPolicyService {
     }
 
     public TwoFactorPolicy setInstancePolicy(
-            StationUserType userType, boolean required, short graceDays, Integer createdBy) {
+            @Nullable StationUserType userType, boolean required, short graceDays, @Nullable Integer createdBy) {
         var policy = repository.upsertPolicy(
                 TwoFactorPolicy.PolicyScope.INSTANCE, null, userType, required, clampGrace(graceDays), createdBy);
         log.info(
@@ -94,7 +94,11 @@ public class TwoFactorPolicyService {
     }
 
     public TwoFactorPolicy setStationPolicy(
-            int stationId, StationUserType userType, boolean required, short graceDays, Integer createdBy) {
+            int stationId,
+            @Nullable StationUserType userType,
+            boolean required,
+            short graceDays,
+            @Nullable Integer createdBy) {
         var policy = repository.upsertPolicy(
                 TwoFactorPolicy.PolicyScope.STATION, stationId, userType, required, clampGrace(graceDays), createdBy);
         log.info(

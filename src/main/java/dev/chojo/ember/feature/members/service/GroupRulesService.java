@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,7 @@ public class GroupRulesService {
      * @param by        who is asking
      * @return the new group
      */
-    public MemberGroup create(int stationId, String name, GroupRules rules, UserSession by) {
+    public MemberGroup create(int stationId, String name, @Nullable GroupRules rules, UserSession by) {
         var group = Transactions.call(() -> {
             var created = groupRepository.create(stationId, name);
             if (rules != null) apply(created, rules, false, by);
@@ -89,9 +90,9 @@ public class GroupRulesService {
     public MemberGroup update(
             MemberGroup group,
             String name,
-            String color,
+            @Nullable String color,
             int position,
-            GroupRules rules,
+            @Nullable GroupRules rules,
             boolean removeNonMatching,
             UserSession by) {
         var updated = Transactions.call(() -> {

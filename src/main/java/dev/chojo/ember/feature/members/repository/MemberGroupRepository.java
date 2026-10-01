@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -187,7 +188,7 @@ public class MemberGroupRepository {
     /**
      * Updates a member group's name, color, and position.
      */
-    public boolean update(int id, String name, String color, int position) {
+    public boolean update(int id, String name, @Nullable String color, int position) {
         return query("UPDATE member_group SET name = :name, color = :color, position = :position WHERE id = :id;")
                 .single(call().bind("name", name)
                         .bind("color", color)

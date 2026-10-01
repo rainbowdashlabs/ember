@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.account.entity;
 
 import dev.chojo.ember.api.auth.InstanceUserType;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -17,7 +18,8 @@ import java.util.UUID;
  * @param account the created account on success, an opaque echo account on a
  *                masked-success response, {@code null} on failure
  */
-public record RegistrationResult(boolean success, String message, Account account) {
+public record RegistrationResult(
+        boolean success, @Nullable String message, @Nullable Account account) {
     /**
      * Creates a failed registration result with an error message.
      */

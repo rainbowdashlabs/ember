@@ -18,6 +18,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.LoginResult;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -35,6 +36,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * Routes for authentication operations including registration, login, email verification,
@@ -67,7 +69,7 @@ public class AuthRoutes implements Routes {
     }
 
     /** Answers a sign-in: the session goes into the cookie, and the body says what was decided. */
-    private void answerSignIn(Context ctx, LoginResult login) {
+    private void answerSignIn(Context ctx, @Nullable LoginResult login) {
         sessionCookies.issue(ctx, login);
         ctx.status(HttpStatus.OK).json(LoginResponse.of(login));
     }
@@ -126,17 +128,18 @@ public class AuthRoutes implements Routes {
                 request.lastName(),
                 request.password(),
                 request.registrationCode());
-        if (!result.success()) {
+        Account account = result.account();
+        if (!result.success() || account == null) {
             throw Refusal.REGISTRATION_REFUSED.raise();
         }
 
         ctx.status(HttpStatus.CREATED)
                 .json(new RegisterResponse(
-                        result.account().id(),
-                        result.account().email(),
-                        result.account().firstName(),
-                        result.account().lastName(),
-                        result.account().emailVerified()));
+                        account.id(),
+                        account.email(),
+                        account.firstName(),
+                        account.lastName(),
+                        account.emailVerified()));
     }
 
     @OpenApi(
@@ -559,12 +562,18 @@ public class AuthRoutes implements Routes {
          * Whatever the sign-in decided, said the way the API says it: a session, or the one step
          * still standing in the way of one.
          */
-        public static LoginResponse of(LoginResult login) {
+        public static LoginResponse of(@Nullable LoginResult login) {
             if (login == null || !login.success()) return none();
-            if (login.passwordChangeRequired()) return passwordChange(login.token(), login.expiresAt());
-            if (login.addressRequired()) return address(login.token(), login.expiresAt());
-            if (login.twoFactorRequired()) return twoFactor(login.preAuthToken(), login.preAuthTokenExpiresAt());
-            return session(login.expiresAt());
+            if (login.twoFactorRequired()) {
+                return twoFactor(
+                        Objects.requireNonNull(login.preAuthToken(), "a factor step carries its token"),
+                        Objects.requireNonNull(login.preAuthTokenExpiresAt(), "a factor step carries its expiry"));
+            }
+            String token = Objects.requireNonNull(login.token(), "every other success carries a token");
+            Instant expiresAt = Objects.requireNonNull(login.expiresAt(), "every other success carries an expiry");
+            if (login.passwordChangeRequired()) return passwordChange(token, expiresAt);
+            if (login.addressRequired()) return address(token, expiresAt);
+            return session(expiresAt);
         }
     }
 }

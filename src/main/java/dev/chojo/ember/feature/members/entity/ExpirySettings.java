@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.members.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -25,7 +27,7 @@ import java.util.Objects;
 public record ExpirySettings(
         int warnFromDays,
         List<Integer> reminderDays,
-        Integer repeatEveryDays,
+        @Nullable Integer repeatEveryDays,
         boolean remindMember,
         boolean remindManagement) {
     /** How close a date is when it starts to show, where the field does not say. */

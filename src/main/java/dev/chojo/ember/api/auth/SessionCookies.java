@@ -13,6 +13,7 @@ import jakarta.inject.Singleton;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -67,7 +68,10 @@ public class SessionCookies {
     public void issue(Context ctx, LoginResult login) {
         if (login != null && login.isSession()) {
             csrfGuard.requireOwnOrigin(ctx);
-            issue(ctx, login.token(), login.expiresAt());
+            issue(
+                    ctx,
+                    Objects.requireNonNull(login.token(), "a session carries its token"),
+                    Objects.requireNonNull(login.expiresAt(), "a session carries its expiry"));
         }
     }
 

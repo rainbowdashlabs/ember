@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +74,7 @@ public class FormerMemberService {
      *
      * @return null if OK, error message otherwise
      */
-    public String canMarkFormer(int memberId) {
+    public @Nullable String canMarkFormer(int memberId) {
         var member = memberRepository.findById(memberId).orElse(null);
         if (member == null) return "Member not found";
         if (member.former()) return "Member is already former";

@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.devicerequest.entity.DeviceRequest;
 import dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -51,8 +52,8 @@ public class DeviceRequestRepository {
             Integer namedAccountId,
             int matchNumber,
             List<Integer> matchChoices,
-            String userAgent,
-            String country,
+            @Nullable String userAgent,
+            @Nullable String country,
             Instant expiresAt) {
         return query("""
                 INSERT INTO device_request (purpose, code_hash, poll_secret_hash, named_account_id,
@@ -88,8 +89,8 @@ public class DeviceRequestRepository {
             StepUpCategory category,
             int matchNumber,
             List<Integer> matchChoices,
-            String userAgent,
-            String country,
+            @Nullable String userAgent,
+            @Nullable String country,
             Instant expiresAt) {
         return query("""
                 INSERT INTO device_request (purpose, code_hash, poll_secret_hash, requesting_account_id,

@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.twofactor.service.WebAuthnCeremonies.CeremonyStar
 import dev.chojo.ember.feature.twofactor.service.WebAuthnCeremonies.VerifiedAssertion;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,9 +62,9 @@ public class WebAuthnService {
             int accountId,
             String challengeToken,
             String credentialJson,
-            String label,
-            String userAgent,
-            String country) {
+            @Nullable String label,
+            @Nullable String userAgent,
+            @Nullable String country) {
         Optional<WebAuthnChallenge> challenge =
                 ceremonies.consumeChallenge(challengeToken, ChallengePurpose.REGISTRATION, accountId);
         if (challenge.isEmpty()) {

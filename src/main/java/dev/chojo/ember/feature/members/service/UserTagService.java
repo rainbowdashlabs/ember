@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +49,7 @@ public class UserTagService {
         return tagRepository.findByStation(stationId);
     }
 
-    public boolean update(int id, String name, String color, boolean visible, int position) {
+    public boolean update(int id, String name, @Nullable String color, boolean visible, int position) {
         boolean updated = tagRepository.update(id, name, color, visible, position);
         if (updated) {
             log.info("User tag updated: id={}, name='{}', visible={}", id, name, visible);

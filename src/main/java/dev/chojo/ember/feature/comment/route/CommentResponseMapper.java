@@ -56,7 +56,8 @@ public final class CommentResponseMapper {
         if (comment.deleted()) {
             return removed(scope, comment);
         }
-        return live(scope, comment, resolver.enrichDisplay(comment.author()), null);
+        MemberIdentity author = comment.author();
+        return live(scope, comment, author != null ? resolver.enrichDisplay(author) : null, null);
     }
 
     private static CommentResponse withResolvedName(MemberNameResolver resolver, Scope scope, Comment comment) {

@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -190,7 +191,7 @@ public class ProfileFieldChangeRepository {
     /**
      * Acknowledge a change with optional comment.
      */
-    public ProfileFieldChangeAcknowledgement acknowledge(int changeId, int acknowledgedBy, String comment) {
+    public ProfileFieldChangeAcknowledgement acknowledge(int changeId, int acknowledgedBy, @Nullable String comment) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO profile_field_change_acknowledgement(change_id, acknowledged_by, comment)

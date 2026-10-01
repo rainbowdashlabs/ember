@@ -125,7 +125,8 @@ public class StepUpRoutes implements Routes {
         }
         RateLimits.enforce(rateLimiter.tryDevicePoll(ctx.ip(), request.pollSecret()));
         var result = deviceRequestService.poll(request.pollSecret(), Set.of(DeviceRequestPurpose.STEP_UP));
-        if (result.claimToken() != null && deviceRequestService.claimStepUp(result.claimToken())) {
+        String claimToken = result.claimToken();
+        if (claimToken != null && deviceRequestService.claimStepUp(claimToken)) {
             auditService.record(
                     session.accountId(),
                     null,

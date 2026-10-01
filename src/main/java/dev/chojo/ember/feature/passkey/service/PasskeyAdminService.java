@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.twofactor.service.RelyingParties;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,7 +94,8 @@ public class PasskeyAdminService {
      * where a passkey has completed a sign-in ceremony; ends no sessions and revokes nothing
      * else, so it is a small step rather than a cliff.
      */
-    public RetireOutcome retirePassword(int accountId, Integer actorAccountId, String userAgent, String country) {
+    public RetireOutcome retirePassword(
+            int accountId, Integer actorAccountId, @Nullable String userAgent, @Nullable String country) {
         if (accountRepository.findCredential(accountId).isEmpty()) return RetireOutcome.NO_PASSWORD;
         if (!passkeyRepository.hasTriedSignInPasskey(accountId)) return RetireOutcome.NO_TRIED_PASSKEY;
         accountRepository.deleteCredential(accountId);
@@ -108,7 +110,8 @@ public class PasskeyAdminService {
      * it passed over: an operator who ends sixty sessions on a Tuesday has a Tuesday nobody
      * forgets, which is why this one ends none at all.
      */
-    public BulkRetireResult retireAllEligible(Integer actorAccountId, String userAgent, String country) {
+    public BulkRetireResult retireAllEligible(
+            Integer actorAccountId, @Nullable String userAgent, @Nullable String country) {
         int total = passkeyRepository.adoptionFigures().accountsWithPassword();
         int retired = 0;
         for (int accountId : passkeyRepository.listRetireEligibleAccounts()) {

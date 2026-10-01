@@ -23,6 +23,7 @@ import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -269,7 +270,7 @@ public class GroupMembershipService {
      * @param wrongType the refusal for a group that does not take the type
      */
     public void requireAdmits(
-            int stationId, Integer groupId, StationUserType userType, Refusal notHere, Refusal wrongType) {
+            int stationId, @Nullable Integer groupId, StationUserType userType, Refusal notHere, Refusal wrongType) {
         if (groupId == null) return;
         var group = groupRepository
                 .findById(groupId)

@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.devicerequest.entity.DeviceRequest;
 import dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Who may answer a code another device is showing, and whose name the answer is given in.
@@ -55,7 +56,7 @@ public class DeviceApprovalGuards {
      * @param accountId the account reading the request
      * @return the name of whoever raised the step-up, or null
      */
-    public String stepUpSubject(int accountId, DeviceRequest open) {
+    public @Nullable String stepUpSubject(int accountId, DeviceRequest open) {
         if (!open.is(DeviceRequestPurpose.STEP_UP)) return null;
         Integer requester = open.requestingAccountId();
         if (requester == null || requester == accountId) return null;

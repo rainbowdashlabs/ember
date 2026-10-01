@@ -407,6 +407,7 @@ public class MemberGroupRoutes implements Routes {
             int position,
             @Nullable GroupRulesRequest rules,
             boolean removeNonMatching) {
+        @Nullable
         GroupRules groupRules() {
             return rules == null ? null : new GroupRules(rules.groupSetId(), Set.copyOf(rules.userTypes()));
         }

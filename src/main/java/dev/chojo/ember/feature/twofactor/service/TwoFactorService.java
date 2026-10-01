@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,7 +148,11 @@ public class TwoFactorService {
      * that as a 404. Reset never fails partially - the audit row is the source of truth even
      * if the email enqueue throws.
      */
-    public boolean resetAccount2FA(int targetAccountId, Integer actorAccountId, String userAgent, String country) {
+    public boolean resetAccount2FA(
+            int targetAccountId,
+            @Nullable Integer actorAccountId,
+            @Nullable String userAgent,
+            @Nullable String country) {
         var target = accountRepository.findById(targetAccountId);
         if (target.isEmpty()) return false;
 
@@ -206,7 +211,12 @@ public class TwoFactorService {
     }
 
     public boolean confirmTotpEnrollment(
-            int accountId, String secret, String code, List<String> recoveryCodes, String userAgent, String country) {
+            int accountId,
+            String secret,
+            String code,
+            List<String> recoveryCodes,
+            @Nullable String userAgent,
+            @Nullable String country) {
         if (totpService.matchStep(secret, code).isEmpty()) {
             return false;
         }
@@ -236,7 +246,7 @@ public class TwoFactorService {
      * disabled so the user is fully unenrolled. A sign-in-only passkey is not reachable here:
      * it is not a second factor, and its removal has rules of its own.
      */
-    public boolean removeFactor(int accountId, int factorId, String userAgent, String country) {
+    public boolean removeFactor(int accountId, int factorId, @Nullable String userAgent, @Nullable String country) {
         var factors = repository.findActiveSecondFactorFactors(accountId);
         var target = factors.stream().filter(f -> f.id() == factorId).findFirst();
         if (target.isEmpty()) return false;
@@ -276,7 +286,7 @@ public class TwoFactorService {
         return renamed;
     }
 
-    public boolean removeTotpFactor(int accountId, String userAgent, String country) {
+    public boolean removeTotpFactor(int accountId, @Nullable String userAgent, @Nullable String country) {
         var factor = repository.findActiveFactor(accountId, TwoFactorKind.TOTP);
         if (factor.isEmpty()) return false;
 
@@ -291,7 +301,7 @@ public class TwoFactorService {
         return true;
     }
 
-    public List<String> regenerateBackupCodes(int accountId, String userAgent, String country) {
+    public List<String> regenerateBackupCodes(int accountId, @Nullable String userAgent, @Nullable String country) {
         var existing = repository.findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES);
         existing.ifPresent(f -> repository.disableFactor(f.id()));
 
@@ -316,7 +326,8 @@ public class TwoFactorService {
      * them in plaintext (caller shows them once). Returns empty when the account already has a
      * backup-code factor.
      */
-    public List<String> issueInitialBackupCodesIfMissing(int accountId, String userAgent, String country) {
+    public List<String> issueInitialBackupCodesIfMissing(
+            int accountId, @Nullable String userAgent, @Nullable String country) {
         if (repository.findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES).isPresent()) {
             return List.of();
         }

@@ -21,6 +21,7 @@ import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -140,7 +141,7 @@ public class AccountRepository {
      * @param username         the name, as typed
      * @param exceptAccountId  the account the name may already belong to, or null to ask about anybody
      */
-    public boolean usernameTaken(String username, Integer exceptAccountId) {
+    public boolean usernameTaken(String username, @Nullable Integer exceptAccountId) {
         return query("""
                 SELECT 1
                 FROM account
@@ -157,7 +158,7 @@ public class AccountRepository {
      *
      * @param username the name, or null to leave the address as the only way in
      */
-    public boolean updateUsername(int accountId, String username) {
+    public boolean updateUsername(int accountId, @Nullable String username) {
         return query("UPDATE account SET username = :username WHERE id = :id;")
                 .single(call().bind("id", accountId).bind("username", username))
                 .update()
@@ -185,7 +186,7 @@ public class AccountRepository {
      * @param limit  the maximum number of rows to return
      * @return matching picker rows
      */
-    public List<PickerAccount> searchForPicker(String search, int limit) {
+    public List<PickerAccount> searchForPicker(@Nullable String search, int limit) {
         boolean hasSearch = search != null && !search.isBlank();
         String order = hasSearch ? "display_name" : "id DESC";
         var where = WhereBuilder.create().like("""
@@ -239,7 +240,7 @@ public class AccountRepository {
      * @param lastName  the last name
      * @return the created account
      */
-    public Account create(String email, String firstName, String lastName) {
+    public Account create(@Nullable String email, String firstName, String lastName) {
         return create(email, firstName, lastName, null);
     }
 
@@ -252,7 +253,8 @@ public class AccountRepository {
      * @param creatingStationId  the station that initiated the creation, or {@code null}
      * @return the created account
      */
-    public Account create(String email, String firstName, String lastName, Integer creatingStationId) {
+    public Account create(
+            @Nullable String email, String firstName, String lastName, @Nullable Integer creatingStationId) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
@@ -278,7 +280,7 @@ public class AccountRepository {
      * @param emailVerified whether the email should be marked as already verified
      * @return the created account
      */
-    public Account create(String email, String firstName, String lastName, boolean emailVerified) {
+    public Account create(@Nullable String email, String firstName, String lastName, boolean emailVerified) {
         return create(email, firstName, lastName, emailVerified, null);
     }
 
@@ -293,7 +295,11 @@ public class AccountRepository {
      * @return the created account
      */
     public Account create(
-            String email, String firstName, String lastName, boolean emailVerified, Integer creatingStationId) {
+            @Nullable String email,
+            String firstName,
+            String lastName,
+            boolean emailVerified,
+            @Nullable Integer creatingStationId) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
@@ -682,7 +688,7 @@ public class AccountRepository {
      * @return the insertion result
      */
     public InsertionResult createToken(
-            int accountId, String token, TokenType tokenType, String metadata, Instant expiresAt) {
+            int accountId, String token, TokenType tokenType, @Nullable String metadata, Instant expiresAt) {
         return query("""
                 INSERT
                         INTO
@@ -796,7 +802,8 @@ public class AccountRepository {
      * @param userAgent the client's user agent string
      * @param location  the client's location (e.g. country code)
      */
-    public void createSession(int accountId, String token, Instant expiresAt, String userAgent, String location) {
+    public void createSession(
+            int accountId, String token, Instant expiresAt, @Nullable String userAgent, @Nullable String location) {
         createSession(accountId, token, expiresAt, userAgent, location, null, null);
     }
 
@@ -880,7 +887,7 @@ public class AccountRepository {
      * trusted device, and a mark it carries for life saying it may never vouch for anybody else.
      */
     public void createVouchedSession(
-            int accountId, String token, Instant expiresAt, String userAgent, String location) {
+            int accountId, String token, Instant expiresAt, @Nullable String userAgent, @Nullable String location) {
         query("""
                 INSERT
                 INTO
@@ -904,10 +911,10 @@ public class AccountRepository {
             int accountId,
             String token,
             Instant expiresAt,
-            String userAgent,
-            String location,
-            Instant twoFactorVerifiedAt,
-            Integer deviceTrustId) {
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable Instant twoFactorVerifiedAt,
+            @Nullable Integer deviceTrustId) {
         return createSession(
                 accountId, token, expiresAt, userAgent, location, twoFactorVerifiedAt, deviceTrustId, false);
     }
@@ -921,10 +928,10 @@ public class AccountRepository {
             int accountId,
             String token,
             Instant expiresAt,
-            String userAgent,
-            String location,
-            Instant twoFactorVerifiedAt,
-            Integer deviceTrustId,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable Instant twoFactorVerifiedAt,
+            @Nullable Integer deviceTrustId,
             boolean trustedDevice) {
         return query("""
                 INSERT
@@ -965,10 +972,10 @@ public class AccountRepository {
             int accountId,
             String token,
             Instant expiresAt,
-            String userAgent,
-            String location,
-            Instant twoFactorVerifiedAt,
-            Integer deviceTrustId,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable Instant twoFactorVerifiedAt,
+            @Nullable Integer deviceTrustId,
             boolean trustedDevice) {
         return query("""
                 INSERT
@@ -1011,7 +1018,7 @@ public class AccountRepository {
      * @param location  the current location, or {@code null} to keep the existing value
      * @return {@code true} if the session row was written
      */
-    public boolean touchSession(String token, String userAgent, String location) {
+    public boolean touchSession(String token, @Nullable String userAgent, @Nullable String location) {
         return query("""
                 UPDATE account_session
                 SET
@@ -1215,8 +1222,8 @@ public class AccountRepository {
             String privacyVersion,
             String tosVersion,
             String ipAddress,
-            String country,
-            String userAgent) {
+            @Nullable String country,
+            @Nullable String userAgent) {
         query("""
                 INSERT
                         INTO

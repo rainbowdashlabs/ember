@@ -57,7 +57,7 @@ public class TwoFactorAdminRoutes implements Routes {
 
     // -- Instance scope --
 
-    private static short clampGraceDays(Integer requested) {
+    private static short clampGraceDays(@Nullable Integer requested) {
         if (requested == null) return 7;
         int v = requested;
         if (v < 0) v = 0;
@@ -72,7 +72,7 @@ public class TwoFactorAdminRoutes implements Routes {
 
     // -- Station scope --
 
-    private static Integer actorMemberId(Context ctx) {
+    private static @Nullable Integer actorMemberId(Context ctx) {
         UserSession session = UserSession.from(ctx);
         return session.memberOpt().map(StationMember::id).orElse(null);
     }

@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -66,7 +67,7 @@ public class UserTagRepository {
     /**
      * Updates a tag's name, color, visibility, and position.
      */
-    public boolean update(int id, String name, String color, boolean visible, int position) {
+    public boolean update(int id, String name, @Nullable String color, boolean visible, int position) {
         return query("""
                 UPDATE user_tag
                 SET

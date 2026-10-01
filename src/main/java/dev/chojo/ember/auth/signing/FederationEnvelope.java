@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.auth.signing;
 
+import org.jspecify.annotations.Nullable;
+
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -41,7 +43,7 @@ public record FederationEnvelope(
      * @param query the raw query, may be {@code null}
      * @return the canonical form
      */
-    public static String canonicalPathWithQuery(String path, String query) {
+    public static String canonicalPathWithQuery(@Nullable String path, @Nullable String query) {
         String safePath = path == null ? "" : path;
         if (query == null || query.isEmpty()) {
             return safePath;
@@ -70,7 +72,7 @@ public record FederationEnvelope(
      * @param query the raw query, may be {@code null}
      * @return true when a parameter name repeats
      */
-    public static boolean hasDuplicateQueryKeys(String query) {
+    public static boolean hasDuplicateQueryKeys(@Nullable String query) {
         if (query == null || query.isEmpty()) {
             return false;
         }

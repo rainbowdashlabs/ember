@@ -49,6 +49,8 @@ import static org.slf4j.LoggerFactory.getLogger;
  * @param profileValues        a map of field ID to field value for profile fields
  * @param profileComplete      whether the member has answered every question their profile requires of them,
  *                             which the list marks beside their name when they have not
+ * @param identity             who the member is across stations; read bare from the row and given its display
+ *                             details before it is sent
  */
 public record RichMember(
         int id,
@@ -84,28 +86,31 @@ public record RichMember(
      * Creates a row mapping for database result set conversion.
      */
     public static RowMapping<RichMember> map() {
-        return row -> new RichMember(
-                row.getInt("id"),
-                row.getInt("station_id"),
-                row.get("uid", StandardValueConverter.UUID_STRING),
-                row.getObject("account_id", Integer.class),
-                row.getString("name"),
-                row.getString("first_name"),
-                row.getString("last_name"),
-                row.getString("nickname"),
-                row.getString("email"),
-                row.getBoolean("account_setup_pending"),
-                row.get("setup_mail_expires_at", StandardValueConverter.INSTANT_TIMESTAMP),
-                row.getEnum("mail_reaches", MailReaches.class),
-                row.getBoolean("former"),
-                row.getEnum("user_type", StationUserType.class),
-                row.getDate("join_date") != null ? row.getDate("join_date").toLocalDate() : null,
-                parseJson(row.getString("roles"), STRING_LIST, List.of()),
-                parseJson(row.getString("groups"), GROUP_LIST, List.of()),
-                parseJson(row.getString("tags"), TAG_LIST, List.of()),
-                parseJson(row.getString("profile_values"), STRING_MAP, Map.of()),
-                row.getBoolean("profile_complete"),
-                null);
+        return row -> {
+            UUID uid = row.get("uid", StandardValueConverter.UUID_STRING);
+            return new RichMember(
+                    row.getInt("id"),
+                    row.getInt("station_id"),
+                    uid,
+                    row.getObject("account_id", Integer.class),
+                    row.getString("name"),
+                    row.getString("first_name"),
+                    row.getString("last_name"),
+                    row.getString("nickname"),
+                    row.getString("email"),
+                    row.getBoolean("account_setup_pending"),
+                    row.get("setup_mail_expires_at", StandardValueConverter.INSTANT_TIMESTAMP),
+                    row.getEnum("mail_reaches", MailReaches.class),
+                    row.getBoolean("former"),
+                    row.getEnum("user_type", StationUserType.class),
+                    row.getObject("join_date", LocalDate.class),
+                    parseJson(row.getString("roles"), STRING_LIST, List.of()),
+                    parseJson(row.getString("groups"), GROUP_LIST, List.of()),
+                    parseJson(row.getString("tags"), TAG_LIST, List.of()),
+                    parseJson(row.getString("profile_values"), STRING_MAP, Map.of()),
+                    row.getBoolean("profile_complete"),
+                    new MemberIdentity(row.get("station_uid", StandardValueConverter.UUID_STRING), uid));
+        };
     }
 
     private static <T> T parseJson(String json, TypeReference<T> type, T fallback) {

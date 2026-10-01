@@ -12,6 +12,7 @@ import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,7 @@ public class NicknameService {
      * @throws BadRequestResponse where the name is longer than {@link #MAX_LENGTH} or carries a line
      *     break
      */
-    public void set(int memberId, String nickname, int actorId, Set<StationPermission> permissions) {
+    public void set(int memberId, @Nullable String nickname, int actorId, Set<StationPermission> permissions) {
         var member = memberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
         requireMayWrite(memberId, actorId, permissions);
 
@@ -102,7 +103,7 @@ public class NicknameService {
         }
     }
 
-    private static String clean(String nickname) {
+    private static @Nullable String clean(@Nullable String nickname) {
         if (nickname == null) return null;
         String trimmed = nickname.trim();
         if (trimmed.isEmpty()) return null;

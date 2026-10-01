@@ -63596,34 +63596,38 @@
         "type" : "object",
         "properties" : {
           "userTypes" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "items" : {
               "$ref" : "#/components/schemas/StationUserType"
             }
           },
           "groupIds" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "items" : {
               "type" : "integer",
               "format" : "int32"
             }
           },
           "tagIds" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "items" : {
               "type" : "integer",
               "format" : "int32"
             }
           },
           "memberIds" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "items" : {
               "type" : "integer",
               "format" : "int32"
             }
           },
           "mode" : {
-            "$ref" : "#/components/schemas/RestrictionMode"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionMode"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },

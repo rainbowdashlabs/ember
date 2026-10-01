@@ -22,6 +22,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +72,7 @@ public class StationMemberService {
         return memberRepository.findById(id);
     }
 
-    public UUID resolveUid(int memberId) {
+    public @Nullable UUID resolveUid(int memberId) {
         return lookupService.resolveUid(memberId);
     }
 
@@ -167,7 +168,7 @@ public class StationMemberService {
             int memberId,
             List<Integer> desiredPermissionIds,
             Set<StationPermission> callerPermissions,
-            Integer callerMemberId) {
+            @Nullable Integer callerMemberId) {
         List<Permission> allPermissions = memberRepository.findAllPermissions();
         List<Permission> currentPermissions = memberRepository.findPermissions(memberId);
         var currentIds = currentPermissions.stream().map(Permission::id).toList();

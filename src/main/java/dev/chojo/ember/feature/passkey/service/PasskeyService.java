@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.twofactor.service.WebAuthnCeremonies.CeremonyStar
 import dev.chojo.ember.feature.twofactor.service.WebAuthnCeremonies.VerifiedAssertion;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +78,11 @@ public class PasskeyService {
      * enrolment it is.
      */
     public Optional<TwoFactorFactor> finishDeviceEnrollment(
-            int accountId, String challengeToken, String credentialJson, String userAgent, String country) {
+            int accountId,
+            String challengeToken,
+            String credentialJson,
+            @Nullable String userAgent,
+            @Nullable String country) {
         Optional<WebAuthnChallenge> challenge =
                 ceremonies.consumeChallenge(challengeToken, ChallengePurpose.DEVICE_ENROLLMENT, accountId);
         if (challenge.isEmpty()) {
@@ -99,7 +104,7 @@ public class PasskeyService {
      * as the device enrolment, recorded as the ordinary enrolment it is.
      */
     public Optional<TwoFactorFactor> finishTokenEnrollment(
-            int accountId, String challengeToken, String credentialJson, String country) {
+            int accountId, String challengeToken, String credentialJson, @Nullable String country) {
         Optional<WebAuthnChallenge> challenge =
                 ceremonies.consumeChallenge(challengeToken, ChallengePurpose.DEVICE_ENROLLMENT, accountId);
         if (challenge.isEmpty()) {
@@ -120,9 +125,9 @@ public class PasskeyService {
             int accountId,
             String challengeToken,
             String credentialJson,
-            String label,
-            String userAgent,
-            String country) {
+            @Nullable String label,
+            @Nullable String userAgent,
+            @Nullable String country) {
         Optional<WebAuthnChallenge> challenge =
                 ceremonies.consumeChallenge(challengeToken, ChallengePurpose.REGISTRATION, accountId);
         if (challenge.isEmpty()) {
@@ -141,9 +146,9 @@ public class PasskeyService {
             int accountId,
             WebAuthnChallenge challenge,
             String credentialJson,
-            String label,
-            String userAgent,
-            String country,
+            @Nullable String label,
+            @Nullable String userAgent,
+            @Nullable String country,
             TwoFactorEvent auditEvent) {
         Optional<TwoFactorFactor> factor = ceremonies.finishRegistration(
                 accountId, challenge.optionsJson(), credentialJson, label, CredentialRole.PASSKEY);
@@ -170,7 +175,7 @@ public class PasskeyService {
      * empty.
      */
     public Optional<Integer> finishSignIn(
-            String challengeToken, String credentialJson, String userAgent, String country) {
+            String challengeToken, String credentialJson, @Nullable String userAgent, @Nullable String country) {
         Optional<WebAuthnChallenge> challenge =
                 ceremonies.consumeChallenge(challengeToken, ChallengePurpose.PASSKEY_SIGN_IN);
         if (challenge.isEmpty()) {

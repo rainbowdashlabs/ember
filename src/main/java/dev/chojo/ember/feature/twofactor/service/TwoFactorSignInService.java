@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The second half of signing in: the sign-in that waits for a second factor after the password,
@@ -114,5 +115,10 @@ public class TwoFactorSignInService {
      * @param userAgent the browser it came from
      * @param country   the country the edge placed it in, or null
      */
-    public record Attempt(String factor, String proof, String ip, String userAgent, String country) {}
+    public record Attempt(
+            String factor,
+            String proof,
+            String ip,
+            @Nullable String userAgent,
+            @Nullable String country) {}
 }

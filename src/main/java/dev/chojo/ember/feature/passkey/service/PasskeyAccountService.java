@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +90,7 @@ public class PasskeyAccountService {
      * nothing to switch on, so the removal is refused instead; a valve that opens onto
      * nothing is worse than a locked door, because it looks like it worked.
      */
-    public RemovalOutcome remove(int accountId, int factorId, String userAgent, String country) {
+    public RemovalOutcome remove(int accountId, int factorId, @Nullable String userAgent, @Nullable String country) {
         Optional<PasskeyListEntry> entry = passkeyRepository.findForAccount(accountId, factorId);
         if (entry.isEmpty()) return RemovalOutcome.NOT_FOUND;
 
@@ -118,7 +119,8 @@ public class PasskeyAccountService {
      * everything D6 and the review demand: the instance mode, a reachable address for the way
      * back, and at least one passkey that has completed a sign-in ceremony.
      */
-    public SwitchOutcome setPasswordLogin(int accountId, boolean enabled, String userAgent, String country) {
+    public SwitchOutcome setPasswordLogin(
+            int accountId, boolean enabled, @Nullable String userAgent, @Nullable String country) {
         Optional<AccountCredential> credential = accountRepository.findCredential(accountId);
         if (credential.isEmpty()) return SwitchOutcome.NO_PASSWORD;
 

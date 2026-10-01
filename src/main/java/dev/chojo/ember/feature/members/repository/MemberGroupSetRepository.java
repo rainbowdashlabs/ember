@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.repository;
 import dev.chojo.ember.feature.members.entity.MemberGroupSet;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +48,7 @@ public class MemberGroupSetRepository {
      * @param exceptId  a set to leave out, the one being renamed, or {@code null}
      * @return {@code true} where the name is taken
      */
-    public boolean nameTaken(int stationId, String name, Integer exceptId) {
+    public boolean nameTaken(int stationId, String name, @Nullable Integer exceptId) {
         return SqlSupport.exists(
                 """
                 SELECT 1 FROM member_group_set

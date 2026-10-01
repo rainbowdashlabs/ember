@@ -11,6 +11,7 @@ import com.yubico.webauthn.data.AttestationConveyancePreference;
 import com.yubico.webauthn.data.RelyingPartyIdentity;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,7 +96,7 @@ public final class WebAuthnRelyingPartyFactory {
      * Parses {@code baseUrl} and returns the host, or {@code null} when the URL is malformed
      * or the host fails RFC 3986 parsing (e.g. contains underscores). Never throws.
      */
-    private static String safeHost(String baseUrl) {
+    private static @Nullable String safeHost(String baseUrl) {
         if (baseUrl == null || baseUrl.isBlank()) return null;
         try {
             return URI.create(baseUrl).getHost();
@@ -113,7 +114,7 @@ public final class WebAuthnRelyingPartyFactory {
         };
     }
 
-    private static String blankToNull(String s) {
+    private static @Nullable String blankToNull(@Nullable String s) {
         return s == null || s.isBlank() ? null : s;
     }
 }

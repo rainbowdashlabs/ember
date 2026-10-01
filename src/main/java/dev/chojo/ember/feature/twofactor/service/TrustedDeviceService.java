@@ -12,12 +12,14 @@ import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -55,13 +57,15 @@ public class TrustedDeviceService {
 
     /**
      * Creates a trusted-device row for {@code accountId}. {@code requestedDays} is clamped to
-     * {@code [1, maxDays]}; values ≤ 0 are rejected by the caller.
+     * {@code [1, maxDays]}; values ≤ 0 are rejected by the caller. A client that sends no user agent
+     * is stored with an empty one, since every trusted device row names one.
      */
-    public Issued issue(int accountId, int requestedDays, String userAgent) {
+    public Issued issue(int accountId, int requestedDays, @Nullable String userAgent) {
         int days = Math.clamp(requestedDays, 1, settings.trustedDeviceMaxDays());
         String token = newToken();
         Instant trustedUntil = Instant.now().plus(Duration.ofDays(days));
-        var device = repository.createTrustedDevice(accountId, tokenHasher.hash(token), userAgent, trustedUntil);
+        var device = repository.createTrustedDevice(
+                accountId, tokenHasher.hash(token), Objects.requireNonNullElse(userAgent, ""), trustedUntil);
         log.info("Trusted device issued for account {} (device {}, {} days)", accountId, device.id(), days);
         return new Issued(token, device);
     }

@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.regex.Pattern;
 
@@ -46,7 +47,7 @@ public class LoginNameService {
      * @return the trimmed name, or null to leave the address as the only way in
      * @throws BadRequestResponse when the name is malformed or already somebody else's
      */
-    public String validated(String username, Integer accountId) {
+    public @Nullable String validated(@Nullable String username, @Nullable Integer accountId) {
         if (username == null || username.isBlank()) return null;
         String name = username.trim();
         if (name.length() < MIN_LENGTH || name.length() > MAX_LENGTH) {
@@ -69,7 +70,7 @@ public class LoginNameService {
      *
      * @throws BadRequestResponse when the name is malformed, taken, or the only way into the account
      */
-    public String validatedFor(Account account, String username) {
+    public @Nullable String validatedFor(Account account, @Nullable String username) {
         String name = validated(username, account.id());
         if (name == null && account.username() != null && !account.hasRealEmail()) {
             throw new BadRequestResponse("This account signs in with its username; set an email address first");

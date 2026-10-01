@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.twofactor.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.api.auth.StationUserType;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -29,7 +30,7 @@ public record TwoFactorPolicy(
         int id,
         PolicyScope scope,
         Integer stationId,
-        StationUserType userType,
+        @Nullable StationUserType userType,
         boolean required,
         short graceDays,
         Integer createdBy,

@@ -68,6 +68,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -781,9 +782,7 @@ public class NewsRoutes implements Routes {
                         n.publicUid(),
                         n.title(),
                         n.contentHtml(),
-                        n.author() != null
-                                ? memberNameResolver.resolveDisplay(n.author()).name()
-                                : "",
+                        Objects.requireNonNullElse(memberNameResolver.resolve(n.author()), ""),
                         n.publishedAt(),
                         attachmentsByNews.getOrDefault(n.id(), List.of()),
                         n.contentMode(),
@@ -887,9 +886,7 @@ public class NewsRoutes implements Routes {
         if (news.stationId() != stationId || !news.publicBlog() || news.publishedAt() == null || news.restricted()) {
             throw Refusal.PUBLIC_BLOG_ENTRY_NOT_HERE.raise();
         }
-        var authorName = news.author() != null
-                ? memberNameResolver.resolveDisplay(news.author()).name()
-                : "";
+        var authorName = Objects.requireNonNullElse(memberNameResolver.resolve(news.author()), "");
         ctx.json(new PublicBlogEntry(
                 news.id(),
                 news.publicUid(),

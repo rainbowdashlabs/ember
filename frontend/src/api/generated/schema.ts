@@ -61871,11 +61871,11 @@ export interface components {
             userTypes: components["schemas"]["StationUserType"][];
         };
         RestrictionSelection: {
-            groupIds?: number[];
-            memberIds?: number[];
-            mode?: components["schemas"]["RestrictionMode"];
-            tagIds?: number[];
-            userTypes?: components["schemas"]["StationUserType"][];
+            groupIds?: number[] | null;
+            memberIds?: number[] | null;
+            mode?: components["schemas"]["RestrictionMode"] | null;
+            tagIds?: number[] | null;
+            userTypes?: components["schemas"]["StationUserType"][] | null;
         };
         /** @enum {string} */
         RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE";

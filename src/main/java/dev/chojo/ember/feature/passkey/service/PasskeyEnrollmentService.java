@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.twofactor.service.WebAuthnCeremonies.CeremonyStar
 import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,7 +127,11 @@ public class PasskeyEnrollmentService {
      * log line.
      */
     public IssuedCode issueCodeWithQr(
-            int targetAccountId, Integer actorAccountId, Duration ttl, String userAgent, String country) {
+            int targetAccountId,
+            Integer actorAccountId,
+            Duration ttl,
+            @Nullable String userAgent,
+            @Nullable String country) {
         String code = issueCode(targetAccountId, ttl);
         auditService.record(
                 targetAccountId,
@@ -185,7 +190,7 @@ public class PasskeyEnrollmentService {
      * spent twice however the ceremony ends. A door that came through the verification mail also
      * verifies the address, because reaching it proved the same thing the mail was for.
      */
-    public boolean finish(String rawToken, String challengeToken, String credentialJson, String country) {
+    public boolean finish(String rawToken, String challengeToken, String credentialJson, @Nullable String country) {
         Optional<Door> doorOpt = findDoor(rawToken);
         if (doorOpt.isEmpty()) return false;
         Door door = doorOpt.get();
@@ -214,7 +219,8 @@ public class PasskeyEnrollmentService {
      *
      * @return whether anybody could be mailed; when not, the QR code in the room is the way
      */
-    public boolean onboardAgain(int targetAccountId, int actorAccountId, String userAgent, String country) {
+    public boolean onboardAgain(
+            int targetAccountId, int actorAccountId, @Nullable String userAgent, @Nullable String country) {
         int disabled = passkeyRepository.disableSignInPasskeys(targetAccountId);
         accountRepository.deleteSessionsByAccount(targetAccountId);
         accountRepository.deleteAllTokens(targetAccountId);

@@ -104,12 +104,13 @@ public class MemberRoutes implements Routes {
     private void onboardAgain(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(AccountActionRequest.class);
-        if (request.accountId() == null) {
+        Integer accountId = request.accountId();
+        if (accountId == null) {
             throw Refusal.ACCOUNT_NOT_NAMED_ON_ONBOARDING_AGAIN.raise();
         }
-        memberAccounts.actionableAccount(request.accountId(), session, Refusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN);
+        memberAccounts.actionableAccount(accountId, session, Refusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN);
         boolean mailed = enrollmentService.onboardAgain(
-                request.accountId(), session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
+                accountId, session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         ctx.json(new OnboardAgainResponse(mailed));
     }
 

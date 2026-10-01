@@ -145,13 +145,14 @@ public class AvatarRoutes implements Routes {
         if (file == null) {
             throw Refusal.AVATAR_UPLOAD_MISSING_FILE.raise();
         }
-        if (!ALLOWED_AVATAR_TYPES.contains(file.contentType())) {
+        String contentType = file.contentType();
+        if (contentType == null || !ALLOWED_AVATAR_TYPES.contains(contentType)) {
             throw Refusal.AVATAR_NOT_A_PICTURE.raise("PNG, JPEG and WebP are accepted");
         }
         UUID accountUid = requireOwnAvatarUid(session);
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            avatarService.store(accountUid, data, file.contentType(), apiConfig.maxImageSizeBytes());
+            avatarService.store(accountUid, data, contentType, apiConfig.maxImageSizeBytes());
             ctx.json(new MessageResponse("Avatar updated"));
         } catch (IllegalArgumentException e) {
             throw Failures.readable(e.getMessage())

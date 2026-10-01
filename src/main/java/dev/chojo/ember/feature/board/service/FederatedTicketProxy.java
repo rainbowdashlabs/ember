@@ -498,15 +498,19 @@ public class FederatedTicketProxy implements FederationServer {
     private List<TicketSummary> summarize(List<BoardTicket> tickets) {
         return tickets.stream()
                 .map(TicketSummary::of)
-                .map(t -> t.assignee() != null ? t.withAssignee(memberNameResolver.enrichDisplay(t.assignee())) : t)
+                .map(t -> {
+                    MemberIdentity assignee = t.assignee();
+                    return assignee != null ? t.withAssignee(memberNameResolver.enrichDisplay(assignee)) : t;
+                })
                 .toList();
     }
 
     private BoardTicket enrichTicket(BoardTicket ticket) {
-        MemberIdentity assignee =
-                ticket.assignee() != null ? memberNameResolver.enrichDisplay(ticket.assignee()) : null;
-        MemberIdentity creator = ticket.creator() != null ? memberNameResolver.enrichDisplay(ticket.creator()) : null;
-        return ticket.withIdentities(assignee, creator);
+        return ticket.withIdentities(enriched(ticket.assignee()), enriched(ticket.creator()));
+    }
+
+    private @Nullable MemberIdentity enriched(@Nullable MemberIdentity identity) {
+        return identity != null ? memberNameResolver.enrichDisplay(identity) : null;
     }
 
     private static @Nullable String nameOf(@Nullable TicketPriority priority) {

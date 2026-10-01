@@ -212,7 +212,7 @@ public class MemberNameResolver {
      * Resolves a display name from a MemberIdentity.
      * Tries local member resolution first, then federated name cache, then station name fallback.
      */
-    public String resolve(MemberIdentity identity) {
+    public @Nullable String resolve(@Nullable MemberIdentity identity) {
         if (identity == null) return null;
 
         // Try local: resolve the member UUID back to an internal ID via station lookup
@@ -239,7 +239,7 @@ public class MemberNameResolver {
         return null;
     }
 
-    public ResolvedMember resolveDisplay(MemberIdentity identity) {
+    public ResolvedMember resolveDisplay(@Nullable MemberIdentity identity) {
         if (identity == null) return new ResolvedMember(null, null);
         var enriched = enrichDisplay(identity);
         var name = resolve(identity);
@@ -313,7 +313,8 @@ public class MemberNameResolver {
      * Resolves both the display name and enriched identity (with nameColor and displayTag) in one call.
      * This is the preferred method for building API responses.
      */
-    public record ResolvedMember(MemberIdentity identity, String name) {}
+    public record ResolvedMember(
+            @Nullable MemberIdentity identity, @Nullable String name) {}
 
     private record DisplayData(
             @Nullable String name,
