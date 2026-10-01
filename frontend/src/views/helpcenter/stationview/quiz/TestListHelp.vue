@@ -11,9 +11,22 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import BulletList from '@/components/typography/BulletList.vue'
 import {StationPermission} from '@/api/types'
-import DummyTestList from '@/views/helpcenter/stationview/quiz/testlisthelp/DummyTestList.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
+import TestList from '@/views/stationview/quiz/testlistview/TestList.vue'
+import {sampleSubmitted, sampleTests} from '@/views/helpcenter/stationview/quiz/fixtures'
 
 const {t} = useI18n()
+
+const tabs = [
+  {key: 'tests', label: t('quiz.tests.tabTests')},
+  {key: 'results', label: t('quiz.tests.tabResults')},
+]
+
+/** The member's view of the list has no attempt dates to show. */
+function noDate(): null {
+  return null
+}
 </script>
 
 <template>
@@ -27,7 +40,24 @@ const {t} = useI18n()
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.quiz.testListExampleTitle')">
-      <DummyTestList />
+      <div class="space-y-3">
+        <HelpPermissionGuard :permissions="[StationPermission.TEST_CONFIGURE]" :label="t('helpCenter.permissionLabel.testConfigure')">
+          <div class="flex items-center justify-end">
+            <PrimaryButton :icon="['fas', 'plus']" disabled>{{ t('quiz.tests.create') }}</PrimaryButton>
+          </div>
+        </HelpPermissionGuard>
+        <TabBar :model-value="'tests'" :tabs="tabs"/>
+        <TestList
+          :tests="sampleTests"
+          :is-mobile="false"
+          :can-configure="false"
+          :can-read-results="false"
+          :submitted-for="sampleSubmitted"
+          :attempt-count-for="() => 0"
+          :attempt-started-at-for="noDate"
+          :attempt-submitted-at-for="noDate"
+        />
+      </div>
     </HelpSection>
 
     <HelpPermissionGuard :permissions="[StationPermission.TEST_CONFIGURE]" :label="t('helpCenter.permissionLabel.testConfigure')">

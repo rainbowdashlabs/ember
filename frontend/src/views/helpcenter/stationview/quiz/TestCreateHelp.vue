@@ -19,9 +19,18 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import DummySectionsSystem from '@/views/helpcenter/stationview/quiz/testcreatehelp/DummySectionsSystem.vue'
+import TestSectionsEditor from '@/views/stationview/quiz/testbuilderview/TestSectionsEditor.vue'
+import {sampleCatalogs, sampleSectionDrafts} from '@/views/helpcenter/stationview/quiz/fixtures'
 
 const { t } = useI18n()
+
+/** The help offers no categories to pick, so every source reads from the whole catalog. */
+function noCategories() {
+  return []
+}
+
+/** Choosing another catalog changes nothing in the help. */
+function ignoreCatalogChange() {}
 </script>
 
 <template>
@@ -79,7 +88,15 @@ const { t } = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <DummySectionsSystem />
+    <HelpSection :title="t('helpCenter.quizTestCreate.sectionsTitle')">
+      <p>{{ t('helpCenter.quizTestCreate.sectionsText') }}</p>
+      <TestSectionsEditor
+        :sections="sampleSectionDrafts"
+        :catalogs="sampleCatalogs"
+        :get-categories-for-catalog="noCategories"
+        :on-catalog-change="ignoreCatalogChange"
+      />
+    </HelpSection>
 
     <HelpSection :title="t('helpCenter.quizTestCreate.nextTitle')">
       <p>{{ t('helpCenter.quizTestCreate.nextText') }}</p>

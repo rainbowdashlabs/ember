@@ -10,7 +10,8 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
-import DummyToolbar from '@/views/helpcenter/stationview/knowledge/editorhelp/DummyToolbar.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EditorToolbar from '@/components/input/markdowneditor/EditorToolbar.vue'
 
 const {t} = useI18n()
 
@@ -90,7 +91,9 @@ Normaler Absatztext darunter.`)
 
     <HelpSection :title="t('helpCenter.kb.editor.toolbarTitle')">
       <p>{{ t('helpCenter.kb.editor.toolbarText') }}</p>
-      <DummyToolbar class="mt-3" />
+      <NeutralContainer class="mt-3">
+        <EditorToolbar :editor="undefined"/>
+      </NeutralContainer>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.kb.editor.formattingTitle')">

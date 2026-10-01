@@ -21,12 +21,12 @@ import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {knowledgeBase} from '@/api'
-import {formatDateTime} from '@/util/format'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {KbFile, KbFileVersion, KbVersionResponse} from '@/api/generated/schema'
 import {ContentMode} from '@/api/news'
 import {STATION_KB_ROUTES, type KbRoutes} from './knowledgebaseview/useKbNavigation'
+import KbVersionList from './kbversionsview/KbVersionList.vue'
 
 const props = defineProps<{
     /** The pages this knowledge base is mounted on, which differ when an association opens its own. */
@@ -114,38 +114,12 @@ watch(loaded, (isLoaded) => {
                 <PageHeader class="text-xl font-bold">{{ t('kb.versions') }} - {{ file?.name }}</PageHeader>
             </div>
 
-            <div v-if="versions.length === 0" class="text-[var(--text-muted)] text-center py-8">
-                {{ t('kb.noContent') }}
-            </div>
-
-            <div v-else class="flex flex-col gap-3">
-                <NeutralContainer
-                    v-for="version in versions"
-                    :key="version.id"
-                    data-testid="kb-version"
-                    :data-version="version.version"
-                    class="flex flex-col sm:flex-row sm:items-center gap-3"
-                >
-                    <div class="flex-1">
-                        <span class="font-semibold">{{ t('kb.version') }} {{ version.version }}</span>
-                        <span class="text-sm text-[var(--text-muted)] ml-2">
-                            {{ formatDateTime(version.createdAt) }}
-                        </span>
-                        <span
-                            v-if="version.createdByName"
-                            class="text-sm text-[var(--text-muted)]"
-                        >, {{ version.createdByName }}</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <SecondaryButton @click="viewVersion(version)">
-                            <font-awesome-icon :icon="['fas', 'eye']"/>
-                        </SecondaryButton>
-                        <PrimaryButton v-if="canRevert" @click="requestRevert(version)">
-                            {{ t('kb.revert') }}
-                        </PrimaryButton>
-                    </div>
-                </NeutralContainer>
-            </div>
+            <KbVersionList
+                :versions="versions"
+                :can-revert="canRevert"
+                @view="viewVersion"
+                @revert="requestRevert"
+            />
 
             <Alert v-if="!canRevert" variant="info" class="mt-3">{{ t('kb.revertUnavailableForBlocks') }}</Alert>
 
