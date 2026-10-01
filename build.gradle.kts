@@ -247,10 +247,6 @@ tasks {
         maxHeapSize = "1g"
         environment("TESTCONTAINERS_RYUK_DISABLED", "true")
         systemProperty("jdk.httpclient.allowRestrictedHeaders", "host")
-        systemProperty(
-            "refusal.baseline.update",
-            providers.systemProperty("refusal.baseline.update").getOrElse("false"),
-        )
     }
 
     withType<JavaCompile>().configureEach {
