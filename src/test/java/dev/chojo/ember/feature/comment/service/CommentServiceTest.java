@@ -207,6 +207,33 @@ class CommentServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void anAnswerTakesItsParentsOccurrenceDateWhateverItWasSentWith() {
+        var day = LocalDate.of(2026, 3, 14);
+        var parent = service.create(
+                session(alice),
+                CommentEntityType.EVENT,
+                eventId,
+                writer(alice, "Alice"),
+                new NewComment(null, day, "An diesem Tag"));
+
+        var undated = service.create(
+                session(bob),
+                CommentEntityType.EVENT,
+                eventId,
+                writer(bob, "Bob"),
+                new NewComment(parent.id(), null, "Antwort ohne Tag"));
+        var otherDay = service.create(
+                session(bob),
+                CommentEntityType.EVENT,
+                eventId,
+                writer(bob, "Bob"),
+                new NewComment(parent.id(), day.plusDays(7), "Antwort mit anderem Tag"));
+
+        assertEquals(day, undated.eventDate());
+        assertEquals(day, otherDay.eventDate());
+    }
+
+    @Test
     void anAnswerToACommentOnAnotherTargetIsRefused() {
         var elsewhereComment = service.create(
                 session(alice),

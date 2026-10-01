@@ -186,11 +186,11 @@ public class CommentService {
     }
 
     private Comment store(TargetInfo target, CommentWriter writer, NewComment comment) {
-        requireParentOn(target, comment.parentId());
+        var parent = requireParentOn(target, comment.parentId());
         var stored = repository.create(
                 target.type(),
                 target.id(),
-                comment.eventDate(),
+                parent.isPresent() ? parent.get().eventDate() : comment.eventDate(),
                 comment.parentId(),
                 writer.identity(),
                 comment.content());
@@ -205,16 +205,19 @@ public class CommentService {
     }
 
     /**
-     * Refuses an answer to a comment that is not on the same target, which would otherwise tell the
-     * author of a comment elsewhere about it and open the wrong page for them.
+     * The comment an answer replies to, refusing one that is not on the same target, which would
+     * otherwise tell the author of a comment elsewhere about it and open the wrong page for them.
+     *
+     * <p>An answer takes its parent's occurrence date, whatever it was sent with: a thread belongs to
+     * the one date its first comment is about, and the whole-appointment view sends answers without one.
+     *
+     * @return the parent, or empty for a comment that answers nothing
      */
-    private void requireParentOn(TargetInfo target, @Nullable Integer parentId) {
-        if (parentId == null) return;
-        boolean onTarget = repository
-                .findById(target.type(), parentId)
-                .filter(parent -> parent.targetId() == target.id())
-                .isPresent();
-        if (!onTarget) throw Refusal.COMMENT_PARENT_ELSEWHERE.raise();
+    private Optional<Comment> requireParentOn(TargetInfo target, @Nullable Integer parentId) {
+        if (parentId == null) return Optional.empty();
+        var parent = repository.findById(target.type(), parentId).filter(found -> found.targetId() == target.id());
+        if (parent.isEmpty()) throw Refusal.COMMENT_PARENT_ELSEWHERE.raise();
+        return parent;
     }
 
     private void announceCreated(TargetInfo target, Comment comment, CommentWriter writer) {
