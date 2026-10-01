@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.maps.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.maps.entity.GeocodingProvider;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsGeocodingConfig;
 import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -57,17 +57,17 @@ class MapsConfigServiceTest extends RepositoryTestBase {
     @Test
     void updateRejectsMissingApiKeyForRequiredProvider() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.updateTilesConfig(new MapsTilesConfig(MapTileProvider.MAPBOX, "", "", "", 0, 19)));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.updateTilesConfig(new MapsTilesConfig(MapTileProvider.MAPTILER, null, "", "", 0, 19)));
     }
 
     @Test
     void updateRejectsCustomProviderWithoutTemplate() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.updateTilesConfig(new MapsTilesConfig(MapTileProvider.CUSTOM, "", "", "", 0, 19)));
     }
 
@@ -81,23 +81,21 @@ class MapsConfigServiceTest extends RepositoryTestBase {
     @Test
     void updateRejectsInvertedZoomRange() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.updateTilesConfig(new MapsTilesConfig(MapTileProvider.OSM, "", "", "", 18, 5)));
     }
 
     @Test
     void updateRejectsNullConfig() {
-        assertThrows(BadRequestResponse.class, () -> service.updateTilesConfig(null));
-        assertThrows(BadRequestResponse.class, () -> service.updateGeocodingConfig(null));
+        assertThrows(RefusalResponse.class, () -> service.updateTilesConfig(null));
+        assertThrows(RefusalResponse.class, () -> service.updateGeocodingConfig(null));
     }
 
     @Test
     void updateRejectsConfigWithNullProvider() {
         assertThrows(
-                BadRequestResponse.class,
-                () -> service.updateTilesConfig(new MapsTilesConfig(null, "", "", "", 0, 19)));
-        assertThrows(
-                BadRequestResponse.class, () -> service.updateGeocodingConfig(new MapsGeocodingConfig(null, "", "")));
+                RefusalResponse.class, () -> service.updateTilesConfig(new MapsTilesConfig(null, "", "", "", 0, 19)));
+        assertThrows(RefusalResponse.class, () -> service.updateGeocodingConfig(new MapsGeocodingConfig(null, "", "")));
     }
 
     @Test
@@ -112,8 +110,8 @@ class MapsConfigServiceTest extends RepositoryTestBase {
     void updateTileCacheMaxMb() {
         service.updateTileCacheMaxMb(250);
         assertEquals(250, service.tileCacheMaxMb());
-        assertThrows(BadRequestResponse.class, () -> service.updateTileCacheMaxMb(-1));
-        assertThrows(BadRequestResponse.class, () -> service.updateTileCacheMaxMb(99_999));
+        assertThrows(RefusalResponse.class, () -> service.updateTileCacheMaxMb(-1));
+        assertThrows(RefusalResponse.class, () -> service.updateTileCacheMaxMb(99_999));
     }
 
     @Test

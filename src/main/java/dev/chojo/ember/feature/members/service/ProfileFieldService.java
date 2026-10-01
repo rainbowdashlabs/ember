@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -38,7 +39,6 @@ import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.QuestionCheck;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -366,14 +366,13 @@ public class ProfileFieldService {
      * @param stationId  the station the field belongs to
      * @param fieldType  the type the field is about to carry
      * @param excludedId the field being updated, so it does not clash with itself; 0 when creating
-     * @throws BadRequestResponse if the station already has a date of birth
+     * @throws RefusalResponse if the station already has a date of birth
      */
     private void requireSingleBirthDate(int stationId, FieldType fieldType, int excludedId) {
         if (fieldType != FieldType.BIRTH_DATE) return;
         for (ProfileField other : profileFieldRepository.findAllByStationAndType(stationId, FieldType.BIRTH_DATE)) {
             if (other.id() == excludedId) continue;
-            throw new BadRequestResponse("This station already asks for a date of birth: " + other.name()
-                    + ". Assign that one to whoever else should be asked.");
+            throw Refusal.PROFILE_BIRTH_DATE_ALREADY_ASKED.raise(other.name());
         }
     }
 
@@ -573,14 +572,14 @@ public class ProfileFieldService {
     /**
      * Refuses a field set up to start from a value it would then refuse as an answer.
      *
-     * @throws BadRequestResponse naming the field and what is wrong with its starting value
+     * @throws RefusalResponse naming the field and what is wrong with its starting value
      */
     private void requireUsableDefault(String name, FieldType fieldType, ProfileFieldConfig config) {
         new ProfileField(0, 0, name, fieldType, config, false, false, null, false)
                 .question()
                 .flatMap(QuestionCheck::defaultValue)
                 .ifPresent(problem -> {
-                    throw new BadRequestResponse(problem.message());
+                    throw Refusal.PROFILE_DEFAULT_NOT_ACCEPTED.raise(problem.message());
                 });
     }
 

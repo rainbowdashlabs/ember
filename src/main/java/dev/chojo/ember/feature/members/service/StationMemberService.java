@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -18,8 +19,6 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.util.PermissionValidation;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -174,7 +173,7 @@ public class StationMemberService {
         if (callerMemberId != null && callerMemberId == memberId) {
             for (Permission existing : currentPermissions) {
                 if (!desiredPermissionIds.contains(existing.id())) {
-                    throw new ForbiddenResponse("You cannot remove your own permissions");
+                    throw Refusal.MEMBER_OWN_PERMISSION_NOT_REMOVABLE.raise();
                 }
             }
         }
@@ -189,7 +188,7 @@ public class StationMemberService {
                 if (adminPerm.isPresent()
                         && currentIds.contains(adminPerm.get().id())
                         && !desiredPermissionIds.contains(adminPerm.get().id())) {
-                    throw new ForbiddenResponse("The station owner must keep the Station Administrator permission");
+                    throw Refusal.MEMBER_OWNER_KEEPS_ADMINISTRATION.raise();
                 }
             }
         }
@@ -209,7 +208,7 @@ public class StationMemberService {
         if (addingLogin && accountId != null) {
             var account = accountRepository.findById(accountId).orElse(null);
             if (account == null || account.email() == null) {
-                throw new BadRequestResponse("Cannot grant LOGIN permission: account has no email address");
+                throw Refusal.MEMBER_SIGN_IN_NEEDS_AN_ADDRESS.raise();
             }
         }
 
@@ -337,9 +336,9 @@ public class StationMemberService {
      * adults who manage themselves, so allowing a guardian relationship there is rejected.
      */
     private void requireManageableType(int memberId) {
-        var member = memberRepository.findById(memberId).orElseThrow(() -> new BadRequestResponse("Member not found"));
+        var member = memberRepository.findById(memberId).orElseThrow(Refusal.MEMBER_NOT_HERE_FOR_GUARDIANS::raise);
         if (member.userType() != StationUserType.MEMBER && member.userType() != StationUserType.TRIAL) {
-            throw new BadRequestResponse("Guardians can only be assigned to members of type MEMBER or TRIAL");
+            throw Refusal.MEMBER_TYPE_TAKES_NO_GUARDIANS.raise();
         }
     }
 }

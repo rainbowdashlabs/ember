@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
@@ -13,7 +15,6 @@ import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionCheck;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -76,7 +77,7 @@ public class EventFieldDefaultService {
      * typed here is measured; the ones that carry a property of the appointment across, its name or
      * its date, are whatever the appointment says.
      *
-     * @throws BadRequestResponse naming the field and what is wrong with the value
+     * @throws RefusalResponse naming the field and what is wrong with the value
      */
     private void requireAnswerable(int eventId, List<EventFieldDefault> defaults) {
         var questions = sheetQuestions(eventId);
@@ -85,7 +86,7 @@ public class EventFieldDefaultService {
             var question = questions.get(chosen.fieldId());
             if (question == null) continue;
             QuestionCheck.answerIfGiven(question, chosen.value()).ifPresent(problem -> {
-                throw new BadRequestResponse(problem.message());
+                throw Refusal.EVENT_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.message());
             });
         }
     }

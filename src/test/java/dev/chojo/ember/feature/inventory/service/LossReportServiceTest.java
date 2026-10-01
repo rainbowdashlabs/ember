@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -16,7 +17,6 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -168,11 +168,11 @@ class LossReportServiceTest extends RepositoryTestBase {
 
         clusterInventoryService.setLossReportRequires(cluster.id(), LossReportRequirement.DOCUMENT);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> lossReportService.report(station.id(), itemId, null, null, memberId),
                 "a note is short of what was asked for");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> lossReportService.report(station.id(), itemId, "Weg", null, memberId),
                 "and so is a note without the document");
 
@@ -209,7 +209,7 @@ class LossReportServiceTest extends RepositoryTestBase {
                         cluster.id())
                 .id();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> lossReportService.report(station.id(), held, "Weg", null, memberId),
                 "gear nobody has reported missing is not a loss");
 
@@ -219,7 +219,7 @@ class LossReportServiceTest extends RepositoryTestBase {
                 .id();
         itemCustodyService.markLost(own, null, null);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> lossReportService.report(station.id(), own, "Weg", null, memberId),
                 "the station's own loss has nobody to report it to");
         assertFalse(lossReportService.requirementFor(own).isPresent());

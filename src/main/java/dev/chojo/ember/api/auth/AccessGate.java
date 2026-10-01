@@ -8,6 +8,8 @@ package dev.chojo.ember.api.auth;
 import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
@@ -15,11 +17,8 @@ import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.DemoService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.Handler;
-import io.javalin.http.UnauthorizedResponse;
 import io.javalin.security.RouteRole;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -98,7 +97,7 @@ public class AccessGate implements Handler {
 
         String token = SessionCookies.token(ctx).orElse(null);
         if (token == null) {
-            throw new UnauthorizedResponse("Not signed in");
+            throw Refusal.ROUTE_NEEDS_SIGN_IN.raise();
         }
 
         Station station = requestedStation(ctx);
@@ -106,7 +105,7 @@ public class AccessGate implements Handler {
 
         Optional<UserSession> sessionOpt = sessionGate.admit(ctx, token, station, cluster);
         if (sessionOpt.isEmpty()) {
-            throw new UnauthorizedResponse("Invalid or expired session");
+            throw Refusal.SIGN_IN_SESSION_NOT_VALID.raise();
         }
 
         UserSession session = sessionOpt.get();
@@ -139,7 +138,7 @@ public class AccessGate implements Handler {
     /**
      * The station the {@code X-Station-Id} header names, or null when the request names none.
      *
-     * @throws BadRequestResponse when the header is no id or names no station here
+     * @throws RefusalResponse when the header is no id or names no station here
      */
     private @Nullable Station requestedStation(Context ctx) {
         String stationIdHeader = ctx.header("X-Station-Id");
@@ -148,19 +147,19 @@ public class AccessGate implements Handler {
             var uid = UUID.fromString(stationIdHeader);
             Station station = stationRepository.findByUid(uid).orElse(null);
             if (station == null) {
-                throw new BadRequestResponse("Unknown station");
+                throw Refusal.REQUESTED_STATION_NOT_HERE.raise();
             }
             return station;
         } catch (IllegalArgumentException e) {
             log.warn("Invalid X-Station-Id header value", e);
-            throw new BadRequestResponse("Invalid X-Station-Id header");
+            throw Refusal.REQUESTED_STATION_NOT_AN_IDENTITY.raise();
         }
     }
 
     /**
      * The cluster the {@code X-Cluster-Id} header names, or null when the request names none.
      *
-     * @throws BadRequestResponse when the header is no id or names no cluster here
+     * @throws RefusalResponse when the header is no id or names no cluster here
      */
     private @Nullable Cluster requestedCluster(Context ctx) {
         String clusterIdHeader = ctx.header("X-Cluster-Id");
@@ -168,10 +167,10 @@ public class AccessGate implements Handler {
         try {
             return clusterRepository
                     .findByUid(UUID.fromString(clusterIdHeader))
-                    .orElseThrow(() -> new BadRequestResponse("Unknown cluster"));
+                    .orElseThrow(Refusal.REQUESTED_CLUSTER_NOT_HERE::raise);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid X-Cluster-Id header value", e);
-            throw new BadRequestResponse("Invalid X-Cluster-Id header");
+            throw Refusal.REQUESTED_CLUSTER_NOT_AN_IDENTITY.raise();
         }
     }
 
@@ -210,7 +209,7 @@ public class AccessGate implements Handler {
                     : session.permissions();
             ctx.header("X-Required-Permissions", routeRoles.toString());
             ctx.header("X-User-Permissions", held.toString());
-            throw new ForbiddenResponse("Insufficient permissions. Required: " + routeRoles + ", Current: " + held);
+            throw Refusal.ROUTE_PERMISSION_MISSING.raise();
         }
 
         if (stepUpCategory != null) {

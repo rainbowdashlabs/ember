@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -33,8 +34,6 @@ import dev.chojo.ember.tracking.OutputShape;
 import dev.chojo.ember.tracking.engine.GenericTableImporter;
 import dev.chojo.ember.tracking.engine.GenericTableImporter.IdRemapper;
 import dev.chojo.ember.tracking.engine.TableOrder;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -184,11 +183,10 @@ public class StationImportService {
     public void importStationInto(int targetStationId, Map<String, Object> bundle) {
         stationRepository.findById(targetStationId).ifPresent(station -> {
             if (station.stationKind() == StationKind.CLUSTER_HOME) {
-                throw new BadRequestResponse("A cluster's home station cannot be imported into");
+                throw Refusal.STATION_IMPORT_INTO_CLUSTER_HOME.raise();
             }
             if (station.clusterId() != null) {
-                throw new BadRequestResponse(
-                        "A station that belongs to a cluster cannot be overwritten from an archive.");
+                throw Refusal.STATION_IMPORT_INTO_CLUSTER_MEMBER.raise();
             }
         });
         Map<String, Object> stationData = asMap(bundle.get("station"));
@@ -243,7 +241,7 @@ public class StationImportService {
         Map<String, Object> stationPage = fetchStationPage(client);
         Map<String, Object> stationData = asMap(stationPage.get("station"));
         if (stationData == null) {
-            throw new BadRequestResponse("Remote station table missing 'station' field");
+            throw Refusal.STATION_IMPORT_SOURCE_HAS_NO_STATION.raise();
         }
 
         String stationName = asString(stationData.get("name"), "Imported Station");
@@ -282,9 +280,8 @@ public class StationImportService {
         }
         aiKeyTransfer.adopt(stationId, stationPage, token);
 
-        Station target = stationRepository
-                .findById(stationId)
-                .orElseThrow(() -> new BadRequestResponse("Target station not found"));
+        Station target =
+                stationRepository.findById(stationId).orElseThrow(Refusal.STATION_IMPORT_TARGET_NOT_HERE::raise);
         var progress = new ImportProgress(stationId, target.uid(), target.name(), buildPhases(), baseUrl, token);
         activeImports.put(stationId, progress);
         importLane.submit(() -> runRemoteImport(stationId, stationData, client, progress));
@@ -302,10 +299,10 @@ public class StationImportService {
     public ImportResult retryFailedImport(UUID stationUid) {
         ImportProgress failed = getProgressByUid(stationUid);
         if (failed == null) {
-            throw new NotFoundResponse("No import progress for that station");
+            throw Refusal.STATION_IMPORT_NOTHING_TO_RETRY.raise();
         }
         if (failed.status() != ImportProgress.Status.FAILED) {
-            throw new BadRequestResponse("Import is not in FAILED state");
+            throw Refusal.STATION_IMPORT_NOT_FAILED.raise();
         }
         try {
             stationRepository.delete(failed.stationId());
@@ -325,7 +322,7 @@ public class StationImportService {
     private String normalizeSource(String sourceUrl) {
         String baseUrl = sourceUrl.replaceAll("/+$", "");
         if (!urlValidator.isAllowed(baseUrl)) {
-            throw new BadRequestResponse(RemoteUrlValidator.rejectReason());
+            throw Refusal.STATION_IMPORT_SOURCE_NOT_PUBLIC.raise();
         }
         return baseUrl;
     }
@@ -350,21 +347,15 @@ public class StationImportService {
         try {
             remoteHash = client.fetchSchemaHash();
         } catch (TransferSourceClient.TransferSourceException e) {
-            throw new BadRequestResponse(e.getMessage());
+            log.warn("The import source at {} could not be read: {}", baseUrl, e.getMessage());
+            throw Refusal.STATION_IMPORT_SOURCE_NOT_READ.raise();
         }
         if (remoteHash == null || remoteHash.isBlank()) {
-            throw new BadRequestResponse("""
-                    Cannot import: remote instance did not provide a schemaHash.
-                    Upgrade the source instance to a version that supports schema parity checks.""");
+            throw Refusal.STATION_IMPORT_SOURCE_TOO_OLD.raise();
         }
         if (!remoteHash.equals(localHash)) {
-            throw new BadRequestResponse("""
-                    Cannot import station bundle: schema hash mismatch.
-                      Source schema: %s
-                      This instance: %s
-                    Both instances must be on the same DB schema version.
-                    Update the importing instance to match, or re-export from a matching instance.
-                    """.formatted(remoteHash, localHash));
+            log.warn("Import source {} has schema {}, this instance {}", baseUrl, remoteHash, localHash);
+            throw Refusal.STATION_IMPORT_SCHEMA_DIFFERS.raise();
         }
         log.info("schema hash verified against source at {}", baseUrl);
     }

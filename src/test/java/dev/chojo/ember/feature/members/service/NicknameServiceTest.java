@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -91,7 +92,8 @@ class NicknameServiceTest {
      */
     @Test
     void nobodyElseMay() {
-        assertThrows(ForbiddenResponse.class, () -> service.set(MEMBER, "Kleiner", STRANGER, NONE));
+        var refused = assertThrows(RefusalResponse.class, () -> service.set(MEMBER, "Kleiner", STRANGER, NONE));
+        assertEquals(Refusal.NICKNAME_NOT_YOURS_TO_SET, refused.refusal());
         verify(memberRepository, never()).setNickname(anyInt(), org.mockito.ArgumentMatchers.any(), anyInt());
         assertFalse(service.mayWrite(MEMBER, STRANGER, NONE));
         assertTrue(service.mayWrite(MEMBER, GUARDIAN, NONE));
@@ -123,7 +125,9 @@ class NicknameServiceTest {
     /** A name is a name, not a paragraph and not two lines. */
     @Test
     void aNameIsBoundedAndIsOneLine() {
-        assertThrows(BadRequestResponse.class, () -> service.set(MEMBER, "x".repeat(61), MEMBER, NONE));
-        assertThrows(BadRequestResponse.class, () -> service.set(MEMBER, "Max\nMustermann", MEMBER, NONE));
+        var tooLong = assertThrows(RefusalResponse.class, () -> service.set(MEMBER, "x".repeat(61), MEMBER, NONE));
+        var twoLines = assertThrows(RefusalResponse.class, () -> service.set(MEMBER, "Max\nMustermann", MEMBER, NONE));
+        assertEquals(Refusal.NICKNAME_TOO_LONG, tooLong.refusal());
+        assertEquals(Refusal.NICKNAME_NOT_ONE_LINE, twoLines.refusal());
     }
 }

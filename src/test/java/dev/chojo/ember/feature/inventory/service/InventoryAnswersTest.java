@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -14,7 +16,6 @@ import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -109,7 +110,7 @@ class InventoryAnswersTest extends RepositoryTestBase {
         assertEquals("{\"fields\": {\"count\": {\"kind\": \"NUMBER\", \"value\": 3}}}", storedMetadata(piece));
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> written(
                         FieldType.NUMBER,
                         count,
@@ -121,7 +122,7 @@ class InventoryAnswersTest extends RepositoryTestBase {
     @Test
     void aNumberOutsideItsBoundsIsRefused() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> written(
                         FieldType.NUMBER,
                         bounds("0", "20"),
@@ -139,9 +140,10 @@ class InventoryAnswersTest extends RepositoryTestBase {
         var piece = written(FieldType.CHOICE, options, false, "colour", new ItemFieldValues.ItemEnumValue("blue"));
         assertEquals("{\"fields\": {\"colour\": {\"kind\": \"CHOICE\", \"value\": \"blue\"}}}", storedMetadata(piece));
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> written(FieldType.CHOICE, options, false, "colour", new ItemFieldValues.ItemEnumValue("Blau")));
+        assertEquals(Refusal.INVENTORY_ITEM_FIELD_VALUE_NOT_ACCEPTED, refused.refusal());
     }
 
     /** A choice kept before the field types shared their names still reads as the same choice. */

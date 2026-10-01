@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.Test;
@@ -29,9 +31,9 @@ class StationReadOnlyGuardTest {
         Mockito.when(repo.isReadOnlyForTransfer(7)).thenReturn(true);
         var guard = new StationReadOnlyGuard(repo);
 
-        var ex = assertThrows(StationReadOnlyForTransferException.class, () -> guard.requireWritable(7));
+        var ex = assertThrows(RefusalResponse.class, () -> guard.requireWritable(7));
+        assertEquals(Refusal.STATION_READ_ONLY_FOR_BACKGROUND_WRITE, ex.refusal());
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE.getCode(), ex.getStatus());
-        assertEquals("7", ex.getDetails().get("stationId"));
     }
 
     @Test
@@ -43,13 +45,5 @@ class StationReadOnlyGuardTest {
 
         assertTrue(guard.isWritable(1));
         assertFalse(guard.isWritable(2));
-    }
-
-    @Test
-    void instanceReadOnlyForMigrationExceptionCarriesServiceUnavailable() {
-        var ex = new InstanceReadOnlyForMigrationException();
-        assertEquals(HttpStatus.SERVICE_UNAVAILABLE.getCode(), ex.getStatus());
-        assertTrue(ex.getMessage().toLowerCase().contains("migrat"));
-        assertTrue(ex.getDetails().isEmpty());
     }
 }

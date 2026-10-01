@@ -234,6 +234,55 @@ public enum Refusal {
     /** A partner putting a label on a shared ticket, or taking it off, that is not a label of its board. */
     REMOTE_LABEL_NOT_ON_BOARD(Area.FEDERATION, 40, HttpStatus.NOT_FOUND, "That label is not on this board"),
 
+    /** A partner route reached without a signature this instance accepted. */
+    FEDERATION_REQUEST_NOT_SIGNED(
+            Area.FEDERATION, 41, HttpStatus.FORBIDDEN, "That request was not signed by a partner this instance knows"),
+
+    /** Content asked of a partner whose partnership is not active. */
+    FEDERATION_PARTNER_NOT_ACTIVE(
+            Area.FEDERATION, 42, HttpStatus.BAD_REQUEST, "That partner station is not active at the moment"),
+
+    /** A cluster's own connection paused, which would stop its content arriving. */
+    FEDERATION_CLUSTER_PARTNER_NOT_PAUSABLE(
+            Area.FEDERATION,
+            43,
+            HttpStatus.BAD_REQUEST,
+            "This connection carries the cluster's own content and cannot be paused, so nothing was changed"),
+
+    /** A cluster's connection ended by the station, when it ends only with the membership. */
+    FEDERATION_CLUSTER_PARTNER_NOT_DELETABLE(
+            Area.FEDERATION,
+            44,
+            HttpStatus.BAD_REQUEST,
+            "This connection belongs to the cluster and ends when the station leaves it, so nothing was changed"),
+
+    /**
+     * An inventory an offer is written on that is not here, or is not this station's. One code for
+     * both: telling them apart would say that another station keeps an inventory under that number.
+     */
+    SHARE_INVENTORY_NOT_HERE(Area.FEDERATION, 45, HttpStatus.NOT_FOUND, Sentences.INVENTORY_NOT_HERE),
+
+    /** An offer written on an inventory that holds only gear of the body above the station. */
+    SHARE_INVENTORY_NOT_THE_STATIONS(
+            Area.FEDERATION,
+            46,
+            HttpStatus.BAD_REQUEST,
+            "This inventory belongs to the body above the station, which the station cannot lend from, so "
+                    + "nothing was saved"),
+
+    /** A kind of gear an offer is written on, which is not here. */
+    SHARE_ITEM_KIND_NOT_HERE(Area.FEDERATION, 47, HttpStatus.NOT_FOUND, Sentences.ITEM_KIND_NOT_HERE),
+
+    /** A piece of gear an offer is written on, which is not here. */
+    SHARE_ITEM_NOT_HERE(Area.FEDERATION, 48, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
+
+    /** Gear asked for from a station that does not lend to the asking one. */
+    LENDING_PARTNER_DOES_NOT_LEND(
+            Area.FEDERATION, 49, HttpStatus.FORBIDDEN, "That station does not lend gear to yours"),
+
+    /** Gear set aside for a lending request that the station only holds and does not own. */
+    LENDING_GEAR_NOT_THE_STATIONS(Area.FEDERATION, 50, HttpStatus.FORBIDDEN, "That gear is not this station's to lend"),
+
     /** What a beacon has gathered, asked for on an instance that is not a beacon. */
     BEACON_NOT_RECEIVING(Area.BEACON, 1, HttpStatus.NOT_FOUND, Sentences.BEACON_NOT_RECEIVING),
 
@@ -304,8 +353,56 @@ public enum Refusal {
             Area.BEACON, 21, HttpStatus.BAD_REQUEST, "A picture delivery arrived without a picture"),
 
     /** A delivery of figures written to a protocol version newer than this beacon reads. */
-    BEACON_INTAKE_PROTOCOL_TOO_NEW(
-            Area.BEACON, 22, HttpStatus.BAD_REQUEST, "This beacon does not speak that version of the protocol yet"),
+    BEACON_INTAKE_PROTOCOL_TOO_NEW(Area.BEACON, 22, HttpStatus.BAD_REQUEST, Sentences.BEACON_PROTOCOL_TOO_NEW),
+
+    /** A delivery to the beacon that does not say when it was sent or carries no one-time number. */
+    BEACON_DELIVERY_ENVELOPE_INCOMPLETE(
+            Area.BEACON,
+            23,
+            HttpStatus.BAD_REQUEST,
+            "A delivery has to say when it was sent and carry a one-time number"),
+
+    /** A signed delivery written to a protocol version newer than this beacon reads. */
+    BEACON_DELIVERY_PROTOCOL_TOO_NEW(Area.BEACON, 24, HttpStatus.BAD_REQUEST, Sentences.BEACON_PROTOCOL_TOO_NEW),
+
+    /** A signed delivery sent too long before or after now to be trusted. */
+    BEACON_DELIVERY_OUT_OF_TIME(
+            Area.BEACON, 25, HttpStatus.FORBIDDEN, "That delivery was sent too long before or after now"),
+
+    /** A signed delivery addressed to another beacon, or to nothing that reads as an address. */
+    BEACON_DELIVERY_FOR_ANOTHER_BEACON(
+            Area.BEACON, 26, HttpStatus.FORBIDDEN, "That delivery was addressed to another beacon"),
+
+    /** A signed delivery that has already arrived once. */
+    BEACON_DELIVERY_ALREADY_TAKEN(Area.BEACON, 27, HttpStatus.FORBIDDEN, "That delivery has already arrived once"),
+
+    /** A fault delivered without the fingerprint it is filed under. */
+    BEACON_FAULT_FINGERPRINT_MISSING(Area.BEACON, 28, HttpStatus.BAD_REQUEST, "A fault has to carry its fingerprint"),
+
+    /** A report delivered with nothing written in it. */
+    BEACON_REPORT_MESSAGE_MISSING(Area.BEACON, 29, HttpStatus.BAD_REQUEST, "A report needs something written in it"),
+
+    /** A delivery of figures with no entries in it. */
+    BEACON_FIGURES_WITHOUT_SUBJECTS(
+            Area.BEACON, 30, HttpStatus.BAD_REQUEST, "A delivery of figures needs at least one entry"),
+
+    /** A delivery of figures with more entries than a beacon takes. */
+    BEACON_FIGURES_TOO_MANY_SUBJECTS(
+            Area.BEACON,
+            31,
+            HttpStatus.BAD_REQUEST,
+            "That delivery of figures carries more entries than a beacon takes"),
+
+    /** A delivery of figures that does not name a day it is for. */
+    BEACON_FIGURES_DAY_MISSING(
+            Area.BEACON, 32, HttpStatus.BAD_REQUEST, "A delivery of figures has to name the day it is for"),
+
+    /** A delivery of figures for a day that has not happened yet. */
+    BEACON_FIGURES_DAY_IN_THE_FUTURE(
+            Area.BEACON,
+            33,
+            HttpStatus.BAD_REQUEST,
+            "A delivery of figures cannot be for a day that has not happened yet"),
 
     /** The appointment a line of equipment hangs on, which is not here. */
     EQUIPMENT_APPOINTMENT_NOT_HERE(Area.EQUIPMENT, 1, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
@@ -639,6 +736,73 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "Attendance sheets do not offer that type, so nothing was saved"),
 
+    /** A field of an attendance sheet set up to start from a value it would not take as an answer. */
+    ATTENDANCE_FIELD_DEFAULT_NOT_ACCEPTED(
+            Area.ATTENDANCE, 48, HttpStatus.BAD_REQUEST, Sentences.QUESTION_DEFAULT_NOT_ACCEPTED),
+
+    /** An attendance sheet that ends before, or at the moment, it starts. */
+    ATTENDANCE_SHEET_ENDS_BEFORE_IT_STARTS(
+            Area.ATTENDANCE, 49, HttpStatus.BAD_REQUEST, "The sheet has to end after it starts, so nothing was saved"),
+
+    /** An attendance sheet running longer than a sheet may, raised with the longest it may run. */
+    ATTENDANCE_SHEET_TOO_LONG(
+            Area.ATTENDANCE,
+            50,
+            HttpStatus.BAD_REQUEST,
+            "The sheet runs longer than a sheet may, so nothing was saved. The longest it may run is"),
+
+    /** The hours a sheet counts a presence as, given as a negative number. */
+    ATTENDANCE_COUNTED_HOURS_NEGATIVE(
+            Area.ATTENDANCE,
+            51,
+            HttpStatus.BAD_REQUEST,
+            "The hours a sheet counts as cannot be negative, so nothing was saved"),
+
+    /** The hours a sheet counts a presence as, given as more than a sheet may count, raised with the most. */
+    ATTENDANCE_COUNTED_HOURS_TOO_MANY(
+            Area.ATTENDANCE,
+            52,
+            HttpStatus.BAD_REQUEST,
+            "The hours a sheet counts as are more than it may count, so nothing was saved. The most it may count is"),
+
+    /** A field of a sheet filled in with something it does not take. */
+    ATTENDANCE_SHEET_ANSWER_NOT_ACCEPTED(
+            Area.ATTENDANCE,
+            53,
+            HttpStatus.BAD_REQUEST,
+            "That answer does not suit this field of the sheet, so nothing was saved"),
+
+    /**
+     * Anything written to an attendance sheet that is closed. One code for every way of writing to
+     * one, because a closed sheet refuses them all for the same reason.
+     */
+    ATTENDANCE_SHEET_CLOSED(
+            Area.ATTENDANCE,
+            54,
+            HttpStatus.BAD_REQUEST,
+            "This attendance sheet is closed and has to be reopened first, so nothing was changed"),
+
+    /** A member put on a sheet for a day before they joined the station. */
+    ATTENDANCE_MEMBER_NOT_YET_JOINED(
+            Area.ATTENDANCE,
+            55,
+            HttpStatus.BAD_REQUEST,
+            "The member had not joined the station on this date, so nothing was saved"),
+
+    /** A saved report that names neither a user type nor a group. */
+    ATTENDANCE_REPORT_PRESET_SELECTS_NOBODY(
+            Area.ATTENDANCE,
+            56,
+            HttpStatus.BAD_REQUEST,
+            "A saved report has to name at least one user type or group, so nothing was saved"),
+
+    /** A saved report whose user types or groups include an empty entry. */
+    ATTENDANCE_REPORT_PRESET_EMPTY_ENTRY(
+            Area.ATTENDANCE,
+            57,
+            HttpStatus.BAD_REQUEST,
+            "A saved report cannot name an empty entry, so nothing was saved"),
+
     /** A body arrived that is not JSON at all. */
     BODY_NOT_JSON(Area.BODY, 1, HttpStatus.BAD_REQUEST, "The request body is not valid JSON, so nothing was saved"),
 
@@ -884,6 +1048,20 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "An article can only show a news entry every member may read, so nothing was saved"),
 
+    /** A file hung on a news entry that is not in the media library. */
+    NEWS_ATTACHMENT_FILE_NOT_HERE(Area.NEWS, 58, HttpStatus.BAD_REQUEST, Sentences.FILE_NOT_HERE),
+
+    /** A file hung on a news entry that belongs to another station's media library. */
+    NEWS_ATTACHMENT_FILE_ELSEWHERE(
+            Area.NEWS, 59, HttpStatus.BAD_REQUEST, "That file belongs to another station, so nothing was attached"),
+
+    /** The partner whose entry is commented on, not a partner of this station any more. */
+    NEWS_COMMENT_PARTNER_NOT_HERE(Area.NEWS, 60, HttpStatus.NOT_FOUND, Sentences.PARTNER_STATION_NOT_HERE),
+
+    /** Blocks saved onto a news entry that is not built from them. */
+    NEWS_ENTRY_NOT_BUILT_FROM_BLOCKS(
+            Area.NEWS, 61, HttpStatus.BAD_REQUEST, "This entry is not built from blocks, so nothing was saved"),
+
     /**
      * A board that is not here, or one the reader may not see.
      *
@@ -1065,6 +1243,23 @@ public enum Refusal {
     /** The value of a required ticket field, being cleared. */
     TICKET_FIELD_VALUE_REQUIRED(
             Area.BOARDS, 57, HttpStatus.BAD_REQUEST, "This field has to be filled in, so it was not cleared"),
+
+    /** The partner a shared board is reached through, not a partner of this station any more. */
+    BOARD_PARTNER_NOT_HERE(Area.BOARDS, 58, HttpStatus.NOT_FOUND, Sentences.PARTNER_STATION_NOT_HERE),
+
+    /** A ticket handed to somebody who is not a member of the board's station. */
+    BOARD_TICKET_ASSIGNEE_NOT_A_MEMBER(
+            Area.BOARDS,
+            59,
+            HttpStatus.BAD_REQUEST,
+            "The person the ticket is handed to is not a member of the board's station, so nothing was saved"),
+
+    /** A ticket handed to somebody who may not work on the board. */
+    BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT(
+            Area.BOARDS,
+            60,
+            HttpStatus.BAD_REQUEST,
+            "The person the ticket is handed to cannot work on this board, so nothing was saved"),
 
     /** Documents at all, at a station that has switched them off. */
     DOCUMENTS_SWITCHED_OFF(Area.DOCUMENTS, 1, HttpStatus.NOT_FOUND, "This station does not keep documents"),
@@ -1388,14 +1583,115 @@ public enum Refusal {
      * the station check right behind it answer alike, because telling them apart would say that the
      * mailbox is at a station the reader may not see.
      */
-    MAILBOX_NOT_HERE(Area.MAIL_IMPORT, 2, HttpStatus.NOT_FOUND, "That mailbox is not here any more"),
+    MAILBOX_NOT_HERE(Area.MAIL_IMPORT, 2, HttpStatus.NOT_FOUND, Sentences.MAILBOX_NOT_HERE),
 
     /**
      * A rule that is gone, or hangs off a mailbox of another station. One code deliberately, for the
      * same reason the mailbox has one: the lookup and the station check behind it answer alike, and
      * telling them apart would say that the rule is at a station the reader may not see.
      */
-    MAILBOX_RULE_NOT_HERE(Area.MAIL_IMPORT, 3, HttpStatus.NOT_FOUND, "That mailbox rule is not here any more"),
+    MAILBOX_RULE_NOT_HERE(Area.MAIL_IMPORT, 3, HttpStatus.NOT_FOUND, Sentences.MAILBOX_RULE_NOT_HERE),
+
+    /** A mailbox, gone between being saved and being read back. */
+    MAILBOX_NOT_HERE_AFTER_SAVE(Area.MAIL_IMPORT, 4, HttpStatus.NOT_FOUND, Sentences.MAILBOX_NOT_HERE),
+
+    /** A mailbox rule, gone between being saved and being read back. */
+    MAILBOX_RULE_NOT_HERE_AFTER_SAVE(Area.MAIL_IMPORT, 5, HttpStatus.NOT_FOUND, Sentences.MAILBOX_RULE_NOT_HERE),
+
+    /** A mailbox set up without a password. */
+    MAILBOX_PASSWORD_MISSING(
+            Area.MAIL_IMPORT, 6, HttpStatus.BAD_REQUEST, "A mailbox needs a password, so nothing was saved"),
+
+    /** A mailbox password changed to nothing. */
+    MAILBOX_PASSWORD_MISSING_ON_CHANGE(
+            Area.MAIL_IMPORT, 7, HttpStatus.BAD_REQUEST, "A mailbox needs a password, so nothing was changed"),
+
+    /** A mailbox run by hand on an instance that has reading mail switched off. */
+    MAILBOX_RUN_SWITCHED_OFF(
+            Area.MAIL_IMPORT,
+            8,
+            HttpStatus.BAD_REQUEST,
+            "Reading mail into documents is switched off on this instance"),
+
+    /** A mailbox rule saved without a name. */
+    MAILBOX_RULE_NAME_MISSING(Area.MAIL_IMPORT, 9, HttpStatus.BAD_REQUEST, "A rule needs a name, so nothing was saved"),
+
+    /** A mailbox rule saved with a name longer than a rule keeps. */
+    MAILBOX_RULE_NAME_TOO_LONG(
+            Area.MAIL_IMPORT, 10, HttpStatus.BAD_REQUEST, "The name of the rule is too long, so nothing was saved"),
+
+    /** A mailbox rule saved without a sender it trusts, which would accept nothing. */
+    MAILBOX_RULE_SENDERS_MISSING(
+            Area.MAIL_IMPORT,
+            11,
+            HttpStatus.BAD_REQUEST,
+            "A rule has to say which senders it trusts, or it accepts nothing, so nothing was saved"),
+
+    /** A sender on a mailbox rule that is neither an address nor a domain. */
+    MAILBOX_RULE_SENDER_NOT_A_PATTERN(
+            Area.MAIL_IMPORT,
+            12,
+            HttpStatus.BAD_REQUEST,
+            "A sender has to be an address or a domain written as *@domain, so nothing was saved"),
+
+    /** A mailbox rule saved without a kind of file it takes. */
+    MAILBOX_RULE_FILE_KINDS_MISSING(
+            Area.MAIL_IMPORT,
+            13,
+            HttpStatus.BAD_REQUEST,
+            "A rule has to say which kinds of file it takes, so nothing was saved"),
+
+    /** A kind of file on a mailbox rule that the import cannot recognise. */
+    MAILBOX_RULE_FILE_KIND_UNKNOWN(
+            Area.MAIL_IMPORT,
+            14,
+            HttpStatus.BAD_REQUEST,
+            "That is not a kind of file the import can recognise, so nothing was saved"),
+
+    /** A mailbox rule that moves messages without naming the folder to move them to. */
+    MAILBOX_RULE_FOLDER_MISSING(
+            Area.MAIL_IMPORT,
+            15,
+            HttpStatus.BAD_REQUEST,
+            "Moving a message needs a folder to move it to, so nothing was saved"),
+
+    /** A mailbox whose host this instance may not connect to, or not in the way it was set up. */
+    MAILBOX_HOST_NOT_REACHABLE(
+            Area.MAIL_IMPORT,
+            16,
+            HttpStatus.BAD_REQUEST,
+            "This instance will not connect to that mailbox, so nothing was saved"),
+
+    /** A mailbox password given on an instance with no key to keep it safe with. */
+    MAILBOX_PASSWORD_CANNOT_BE_KEPT(
+            Area.MAIL_IMPORT,
+            17,
+            HttpStatus.BAD_REQUEST,
+            "This instance has no encryption key set up, so a mailbox password cannot be kept safely "
+                    + "and nothing was saved"),
+
+    /** A mailbox saved without a name. */
+    MAILBOX_NAME_MISSING(Area.MAIL_IMPORT, 18, HttpStatus.BAD_REQUEST, "A mailbox needs a name, so nothing was saved"),
+
+    /** A mailbox saved with a name longer than a mailbox keeps. */
+    MAILBOX_NAME_TOO_LONG(
+            Area.MAIL_IMPORT, 19, HttpStatus.BAD_REQUEST, "The name of the mailbox is too long, so nothing was saved"),
+
+    /** A mailbox saved without the server it is read from. */
+    MAILBOX_HOST_MISSING(
+            Area.MAIL_IMPORT, 20, HttpStatus.BAD_REQUEST, "A mailbox needs a server, so nothing was saved"),
+
+    /** A mailbox saved with a server name longer than a mailbox keeps. */
+    MAILBOX_HOST_TOO_LONG(
+            Area.MAIL_IMPORT, 21, HttpStatus.BAD_REQUEST, "The server name is too long, so nothing was saved"),
+
+    /** A mailbox saved without the user it signs in as. */
+    MAILBOX_USER_MISSING(
+            Area.MAIL_IMPORT, 22, HttpStatus.BAD_REQUEST, "A mailbox needs a user name, so nothing was saved"),
+
+    /** A mailbox saved with a user name longer than a mailbox keeps. */
+    MAILBOX_USER_TOO_LONG(
+            Area.MAIL_IMPORT, 23, HttpStatus.BAD_REQUEST, "The user name is too long, so nothing was saved"),
 
     /** A piece of gear asked for by a route that then checks which station it is at. */
     ITEM_NOT_HERE(Area.INVENTORY, 1, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
@@ -1823,6 +2119,851 @@ public enum Refusal {
             114,
             HttpStatus.BAD_REQUEST,
             "Inventories do not offer that type of field, so nothing was saved"),
+
+    /** A movement started on a chain whose steps, once those a loss report skips are left out, are none. */
+    MOVEMENT_FLOW_HAS_NO_STEPS(
+            Area.INVENTORY,
+            115,
+            HttpStatus.BAD_REQUEST,
+            "That chain of steps has no steps to walk, so the movement was not started"),
+
+    /** A correction to a movement sent without the reason it has to carry. */
+    MOVEMENT_CORRECTION_NEEDS_A_REASON(
+            Area.INVENTORY,
+            116,
+            HttpStatus.BAD_REQUEST,
+            "Correcting a movement needs a reason saying why, so nothing was changed"),
+
+    /** A correction to a movement that is not here. */
+    MOVEMENT_NOT_HERE_TO_CORRECT(Area.INVENTORY, 117, HttpStatus.BAD_REQUEST, Sentences.MOVEMENT_NOT_HERE),
+
+    /** A correction to a movement whose chain of steps has since been removed. */
+    MOVEMENT_FLOW_GONE_BEFORE_CORRECTION(Area.INVENTORY, 118, HttpStatus.BAD_REQUEST, Sentences.MOVEMENT_FLOW_GONE),
+
+    /** A movement started on a piece of gear that has since been removed. */
+    MOVEMENT_PIECE_NOT_HERE(
+            Area.INVENTORY,
+            119,
+            HttpStatus.BAD_REQUEST,
+            "That piece of gear is no longer recorded, so no movement was started"),
+
+    /** A movement started on a piece that is already leaving on another open movement. */
+    MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT(
+            Area.INVENTORY,
+            120,
+            HttpStatus.BAD_REQUEST,
+            "This piece of gear is already on another movement, so finish or call that one off first"),
+
+    /** A movement started on a piece another open movement has already promised to somebody. */
+    MOVEMENT_PIECE_ALREADY_PROMISED(
+            Area.INVENTORY,
+            121,
+            HttpStatus.BAD_REQUEST,
+            "This piece of gear is promised to another movement, so finish or call that one off first"),
+
+    /** An exchange started in an inventory of different things, which has nothing to swap a piece for. */
+    MOVEMENT_NOTHING_TO_SWAP_FOR(
+            Area.INVENTORY,
+            122,
+            HttpStatus.BAD_REQUEST,
+            "This inventory holds different things, so there is nothing to swap a piece for"),
+
+    /** A step forced without the note saying why. */
+    MOVEMENT_FORCE_NEEDS_A_NOTE(
+            Area.INVENTORY,
+            123,
+            HttpStatus.BAD_REQUEST,
+            "Forcing a step needs a note saying why, so nothing was changed"),
+
+    /** A step acknowledged or forced that is not the one the movement stands on. */
+    MOVEMENT_NOT_ON_THAT_STEP(
+            Area.INVENTORY,
+            124,
+            HttpStatus.BAD_REQUEST,
+            "The movement is not standing on that step any more, so nothing was changed"),
+
+    /** The step a movement stands on, gone from its chain before it could be walked. */
+    MOVEMENT_STEP_GONE(Area.INVENTORY, 125, HttpStatus.BAD_REQUEST, Sentences.FLOW_STEP_NOT_HERE),
+
+    /** A step forced that belongs to the station itself, which can simply acknowledge it. */
+    MOVEMENT_STATION_STEP_NOT_FORCED(
+            Area.INVENTORY,
+            126,
+            HttpStatus.BAD_REQUEST,
+            "This step is the station's own, so acknowledge it rather than forcing it"),
+
+    /** A step that names the arriving piece, walked without naming one. */
+    MOVEMENT_STEP_NEEDS_THE_ARRIVING_PIECE(
+            Area.INVENTORY,
+            127,
+            HttpStatus.BAD_REQUEST,
+            "This step names the piece of gear that arrives, so choose it first"),
+
+    /** A movement called off by somebody whose turn it no longer is and who no longer holds the piece. */
+    MOVEMENT_NOT_YOURS_TO_CANCEL(
+            Area.INVENTORY,
+            128,
+            HttpStatus.FORBIDDEN,
+            "This movement is not on your side any more, so it was not called off"),
+
+    /** A step walked on a movement that is not here. */
+    MOVEMENT_NOT_HERE_TO_WALK(Area.INVENTORY, 129, HttpStatus.BAD_REQUEST, Sentences.MOVEMENT_NOT_HERE),
+
+    /** A step walked on a movement that is already finished or called off. */
+    MOVEMENT_ALREADY_CLOSED(
+            Area.INVENTORY,
+            130,
+            HttpStatus.BAD_REQUEST,
+            "This movement is already finished or called off, so nothing was changed"),
+
+    /** A step walked on a movement whose chain of steps has since been removed. */
+    MOVEMENT_FLOW_GONE(Area.INVENTORY, 131, HttpStatus.BAD_REQUEST, Sentences.MOVEMENT_FLOW_GONE),
+
+    /** A step acknowledged by somebody it does not belong to. */
+    MOVEMENT_STEP_NOT_YOUR_TURN(
+            Area.INVENTORY,
+            132,
+            HttpStatus.FORBIDDEN,
+            "This step is for somebody else to take, so nothing was changed"),
+
+    /** A movement moved onto the chain it belongs on, which has no steps to stand on. */
+    MOVEMENT_RECHAIN_FLOW_HAS_NO_STEPS(
+            Area.INVENTORY,
+            133,
+            HttpStatus.BAD_REQUEST,
+            "The chain this movement belongs on has no steps to stand on, so nothing was changed"),
+
+    /** A movement moved onto its chain without a step, where the chain does not say on its own where it stands. */
+    MOVEMENT_RECHAIN_LANDING_NOT_CLEAR(
+            Area.INVENTORY,
+            134,
+            HttpStatus.BAD_REQUEST,
+            "The chain this movement belongs on does not say where it would stand, so choose the step"),
+
+    /** A movement moved onto its chain at a step the chain does not have. */
+    MOVEMENT_RECHAIN_LANDING_OUT_OF_RANGE(
+            Area.INVENTORY,
+            135,
+            HttpStatus.BAD_REQUEST,
+            "The chain this movement belongs on has no step at that place, so nothing was changed"),
+
+    /** A movement moved onto another chain that is not here. */
+    MOVEMENT_NOT_HERE_TO_RECHAIN(Area.INVENTORY, 136, HttpStatus.BAD_REQUEST, Sentences.MOVEMENT_NOT_HERE),
+
+    /** A movement moved onto another chain after it has finished. */
+    MOVEMENT_FINISHED_BEFORE_RECHAIN(
+            Area.INVENTORY,
+            137,
+            HttpStatus.BAD_REQUEST,
+            "That movement has finished, so the chain under it no longer decides anything"),
+
+    /** A chain written again from its preset that is not here. */
+    MOVEMENT_FLOW_NOT_HERE_TO_RESTORE(Area.INVENTORY, 138, HttpStatus.BAD_REQUEST, Sentences.FLOW_NOT_HERE),
+
+    /** A chain written again from its preset that belongs to the association above the station. */
+    MOVEMENT_FLOW_RESTORE_BELONGS_TO_ASSOCIATION(
+            Area.INVENTORY,
+            139,
+            HttpStatus.BAD_REQUEST,
+            "That chain belongs to the association above the station, so the station cannot write it again"),
+
+    /** A chain written again from its preset while nothing is bound to it. */
+    MOVEMENT_FLOW_RESTORE_NOT_BOUND(
+            Area.INVENTORY,
+            140,
+            HttpStatus.BAD_REQUEST,
+            "Nothing is bound to that chain, so there is no preset to write it from"),
+
+    /** A chain written again from its preset where no preset covers what it is bound to. */
+    MOVEMENT_FLOW_RESTORE_NO_PRESET(
+            Area.INVENTORY,
+            141,
+            HttpStatus.BAD_REQUEST,
+            "No preset covers what that chain is bound to, so there is none to write it from"),
+
+    /** A chain written again while movements on one of its steps have nowhere to land in the new one. */
+    MOVEMENT_FLOW_RESTORE_LANDING_MISSING(
+            Area.INVENTORY,
+            142,
+            HttpStatus.BAD_REQUEST,
+            "Some movements have nowhere to stand in the new chain, so say where they land"),
+
+    /** A landing for a chain written again that names no step to land on. */
+    MOVEMENT_FLOW_RESTORE_LANDING_NAMES_NO_STEP(
+            Area.INVENTORY,
+            143,
+            HttpStatus.BAD_REQUEST,
+            "Every landing has to name the step it lands on, so nothing was changed"),
+
+    /** A landing given for a step of the chain no movement stands on. */
+    MOVEMENT_FLOW_RESTORE_LANDING_FOR_EMPTY_STEP(
+            Area.INVENTORY,
+            144,
+            HttpStatus.BAD_REQUEST,
+            "No movement stands on that step, so it needs no landing and nothing was changed"),
+
+    /** A landing on a step the preset does not write. */
+    MOVEMENT_FLOW_RESTORE_LANDING_OUT_OF_RANGE(
+            Area.INVENTORY,
+            145,
+            HttpStatus.BAD_REQUEST,
+            "The preset has no step at that place to land on, so nothing was changed"),
+
+    /** Two landings given for the movements on the same step. */
+    MOVEMENT_FLOW_RESTORE_LANDING_TWICE(
+            Area.INVENTORY,
+            146,
+            HttpStatus.BAD_REQUEST,
+            "A step was given two landings, and its movements can only stand on one, so nothing was changed"),
+
+    /** A movement asked for a combination of owner, purpose and party no chain is bound to at the station. */
+    MOVEMENT_FLOW_NOT_BOUND(Area.INVENTORY, 147, HttpStatus.BAD_REQUEST, Sentences.NO_FLOW_FOR_THIS_MOVEMENT),
+
+    /** A step of a chain changed that is not here. */
+    MOVEMENT_FLOW_STEP_NOT_HERE_TO_CHANGE(Area.INVENTORY, 148, HttpStatus.BAD_REQUEST, Sentences.FLOW_STEP_NOT_HERE),
+
+    /** A step of a chain archived that is not here. */
+    MOVEMENT_FLOW_STEP_NOT_HERE_TO_ARCHIVE(Area.INVENTORY, 149, HttpStatus.BAD_REQUEST, Sentences.FLOW_STEP_NOT_HERE),
+
+    /** A chain whose purpose was asked for, gone between being named and being read. */
+    MOVEMENT_FLOW_NOT_HERE_FOR_PURPOSE(Area.INVENTORY, 150, HttpStatus.BAD_REQUEST, Sentences.FLOW_NOT_HERE),
+
+    /** A chain bound to a combination that is not here. */
+    MOVEMENT_FLOW_NOT_HERE_TO_BIND(Area.INVENTORY, 151, HttpStatus.BAD_REQUEST, Sentences.FLOW_NOT_HERE),
+
+    /** A chain bound at a station it does not belong to. */
+    MOVEMENT_FLOW_NOT_YOURS_TO_BIND(
+            Area.INVENTORY, 152, HttpStatus.BAD_REQUEST, "That chain belongs to somebody else, so it was not bound"),
+
+    /** A chain bound to a combination whose purpose is not the chain's own. */
+    MOVEMENT_FLOW_BOUND_TO_OTHER_PURPOSE(
+            Area.INVENTORY,
+            153,
+            HttpStatus.BAD_REQUEST,
+            "That chain is for a different kind of movement, so it was not bound"),
+
+    /** A piece handed out at the counter that an open movement has promised to somebody. */
+    CUSTODY_PIECE_PROMISED(
+            Area.INVENTORY,
+            154,
+            HttpStatus.BAD_REQUEST,
+            "This piece of gear is promised to a movement, so hand it over there or call that one off"),
+
+    /** A piece handed out that is missing, with a partner, or otherwise somewhere it cannot be handed out of. */
+    CUSTODY_NOT_HANDED_OUT_FROM_HERE(
+            Area.INVENTORY,
+            155,
+            HttpStatus.BAD_REQUEST,
+            "This piece of gear cannot be handed out from where it is now, so nothing was changed"),
+
+    /** Gear borrowed from a partner station marked missing here rather than on the lending request. */
+    CUSTODY_BORROWED_NOT_MARKED_LOST(
+            Area.INVENTORY, 156, HttpStatus.BAD_REQUEST, Sentences.BORROWED_GEAR_LOST_AT_PARTNER),
+
+    /** A step that hands gear to a member, walked on a movement that names no member. */
+    CUSTODY_STEP_NAMES_NO_MEMBER(
+            Area.INVENTORY,
+            157,
+            HttpStatus.BAD_REQUEST,
+            "This step hands the gear to a member but the movement names none, so nothing was changed"),
+
+    /** A loss reported for a piece of gear that is not here. */
+    LOSS_REPORT_PIECE_NOT_HERE(Area.INVENTORY, 158, HttpStatus.BAD_REQUEST, Sentences.ITEM_NOT_HERE),
+
+    /** A loss reported for gear that is not recorded as missing. */
+    LOSS_REPORT_PIECE_NOT_MISSING(
+            Area.INVENTORY,
+            159,
+            HttpStatus.BAD_REQUEST,
+            "This gear is not recorded as missing, so there is nothing to report"),
+
+    /** A loss reported for gear the station owns itself, which has nobody above it to report to. */
+    LOSS_REPORT_STATION_OWNS_IT(
+            Area.INVENTORY,
+            160,
+            HttpStatus.BAD_REQUEST,
+            "The station owns this gear itself, so there is nobody to report it to"),
+
+    /** A loss reported for gear whose owning association is not here. */
+    LOSS_REPORT_OWNER_NOT_HERE(
+            Area.INVENTORY,
+            161,
+            HttpStatus.BAD_REQUEST,
+            "The association that owns this gear is not here to answer, so nothing was reported"),
+
+    /** A loss reported without the note the owning association asks for. */
+    LOSS_REPORT_NEEDS_A_NOTE(
+            Area.INVENTORY,
+            162,
+            HttpStatus.BAD_REQUEST,
+            "The association that owns this gear asks for a note with a loss report, so nothing was reported"),
+
+    /** A loss reported without the document the owning association asks for. */
+    LOSS_REPORT_NEEDS_A_DOCUMENT(
+            Area.INVENTORY,
+            163,
+            HttpStatus.BAD_REQUEST,
+            "The association that owns this gear asks for a document with a loss report, so nothing was reported"),
+
+    /** A line of a stock-taking that names a size the inventory does not have. */
+    INTAKE_SIZE_NOT_IN_INVENTORY(
+            Area.INVENTORY,
+            164,
+            HttpStatus.BAD_REQUEST,
+            "A line names a size this inventory does not have, so nothing was taken in"),
+
+    /** A line of a stock-taking that names a member who is not at the station. */
+    INTAKE_MEMBER_NOT_AT_STATION(
+            Area.INVENTORY,
+            165,
+            HttpStatus.BAD_REQUEST,
+            "A line names a member who is not at this station, so nothing was taken in"),
+
+    /** A stock-taking that gives the same number to two of its lines. */
+    INTAKE_NUMBER_TWICE(
+            Area.INVENTORY, 166, HttpStatus.BAD_REQUEST, "A number appears twice in the list, so nothing was taken in"),
+
+    /** A line of a stock-taking whose number is already on another piece of gear. */
+    INTAKE_NUMBER_TAKEN(
+            Area.INVENTORY,
+            167,
+            HttpStatus.BAD_REQUEST,
+            "A number in the list is already on another piece of gear, so nothing was taken in"),
+
+    /** The kinds sharing a key across stations, asked for a kind that is not here. */
+    ART_NOT_HERE_TO_MATCH(Area.INVENTORY, 168, HttpStatus.NOT_FOUND, Sentences.ITEM_KIND_NOT_HERE),
+
+    /** A kind created under a name the inventory already has. */
+    ART_NAME_TAKEN_ON_CREATE(Area.INVENTORY, 169, HttpStatus.BAD_REQUEST, Sentences.ART_NAME_TAKEN),
+
+    /** A kind changed to a name another kind of the inventory already has. */
+    ART_NAME_TAKEN_ON_CHANGE(Area.INVENTORY, 170, HttpStatus.BAD_REQUEST, Sentences.ART_NAME_TAKEN),
+
+    /** A kind changed that is not here. */
+    ART_NOT_HERE_TO_CHANGE(Area.INVENTORY, 171, HttpStatus.NOT_FOUND, Sentences.ITEM_KIND_NOT_HERE),
+
+    /** Kinds written for an inventory that is not here. */
+    ART_INVENTORY_NOT_HERE(Area.INVENTORY, 172, HttpStatus.NOT_FOUND, Sentences.INVENTORY_NOT_HERE),
+
+    /** Kinds written for an inventory of one thing in many copies, which is ordered by its sizes instead. */
+    ART_INVENTORY_UNIFORM(
+            Area.INVENTORY,
+            173,
+            HttpStatus.BAD_REQUEST,
+            "Only an inventory of different things has kinds, and this one holds one thing in many copies"),
+
+    /** A kind created or changed with no name. */
+    ART_NEEDS_A_NAME(Area.INVENTORY, 174, HttpStatus.BAD_REQUEST, "A kind needs a name, so nothing was saved"),
+
+    /** A kind assigned or merged that is not here. */
+    ART_NOT_HERE(Area.INVENTORY, 175, HttpStatus.NOT_FOUND, Sentences.ITEM_KIND_NOT_HERE),
+
+    /** A kind assigned or merged within an inventory it does not belong to. */
+    ART_IN_ANOTHER_INVENTORY(
+            Area.INVENTORY,
+            176,
+            HttpStatus.BAD_REQUEST,
+            "That kind belongs to another inventory, so nothing was changed"),
+
+    /** Gear given a kind or merged that is not here. */
+    ART_PIECE_NOT_HERE(Area.INVENTORY, 177, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
+
+    /** Gear given a kind of an inventory it does not belong to. */
+    ART_PIECE_IN_ANOTHER_INVENTORY(
+            Area.INVENTORY,
+            178,
+            HttpStatus.BAD_REQUEST,
+            "That piece of gear belongs to another inventory, so nothing was changed"),
+
+    /** A colour for a kind or piece of gear that is not written as a hash and six hexadecimal digits. */
+    GLYPH_COLOUR_NOT_READABLE(
+            Area.INVENTORY,
+            179,
+            HttpStatus.BAD_REQUEST,
+            "A colour is written as # followed by six digits or letters from a to f, so nothing was saved"),
+
+    /** A tag created at a station with a name that is blank once trimmed. */
+    INVENTORY_TAG_NAME_MISSING_ON_CREATE(Area.INVENTORY, 180, HttpStatus.BAD_REQUEST, Sentences.TAG_NAME_MISSING),
+
+    /** A tag renamed to a name that is blank once trimmed. */
+    INVENTORY_TAG_NAME_MISSING_ON_CHANGE(Area.INVENTORY, 181, HttpStatus.BAD_REQUEST, Sentences.TAG_NAME_MISSING),
+
+    /** A tag renamed onto the name another tag of the station already carries. */
+    INVENTORY_TAG_NAME_TAKEN(
+            Area.INVENTORY,
+            182,
+            HttpStatus.BAD_REQUEST,
+            "The station already has a tag of that name, so nothing was saved"),
+
+    /** A tag that went between being renamed and being read back. */
+    INVENTORY_TAG_NOT_HERE_AFTER_CHANGE(Area.INVENTORY, 183, HttpStatus.NOT_FOUND, Sentences.INVENTORY_TAG_NOT_HERE),
+
+    /**
+     * A tag renamed that is gone or belongs to another station. One code for both, so the answer
+     * does not say that a tag exists elsewhere.
+     */
+    INVENTORY_TAG_NOT_HERE_ON_CHANGE(Area.INVENTORY, 184, HttpStatus.NOT_FOUND, Sentences.INVENTORY_TAG_NOT_HERE),
+
+    /**
+     * A tag deleted that is gone or belongs to another station. One code for both, so the answer
+     * does not say that a tag exists elsewhere.
+     */
+    INVENTORY_TAG_NOT_HERE_ON_DELETE(Area.INVENTORY, 185, HttpStatus.NOT_FOUND, Sentences.INVENTORY_TAG_NOT_HERE),
+
+    /**
+     * A piece of gear whose tags were asked for that is gone, sits in an inventory that is gone, or
+     * belongs to another station. One code for all three, so the answer does not say it exists
+     * elsewhere.
+     */
+    INVENTORY_TAG_ITEM_NOT_HERE_ON_READ(Area.INVENTORY, 186, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
+
+    /**
+     * A piece of gear given new tags that is gone, sits in an inventory that is gone, or belongs to
+     * another station. One code for all three, so the answer does not say it exists elsewhere.
+     */
+    INVENTORY_TAG_ITEM_NOT_HERE_ON_TAGGING(Area.INVENTORY, 187, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
+
+    /**
+     * An inventory whose tags were asked for that is gone or belongs to another station. One code
+     * for both, so the answer does not say it exists elsewhere.
+     */
+    INVENTORY_TAG_INVENTORY_NOT_HERE(Area.INVENTORY, 188, HttpStatus.NOT_FOUND, Sentences.INVENTORY_NOT_HERE),
+
+    /** A self-check answer taken as it stands that first needs the member's record putting right. */
+    SELF_CHECK_REVIEW_RECORD_NEEDS_PUTTING_RIGHT(
+            Area.INVENTORY,
+            189,
+            HttpStatus.BAD_REQUEST,
+            "This answer needs the record putting right before it can be taken, so nothing was changed"),
+
+    /** A self-check answer somebody else settled between being read and being taken. */
+    SELF_CHECK_REVIEW_SETTLED_BEFORE_TAKING(
+            Area.INVENTORY, 190, HttpStatus.CONFLICT, Sentences.SELF_CHECK_ANSWER_ALREADY_SETTLED),
+
+    /** A record put right for a self-check answer that does not say the record is wrong. */
+    SELF_CHECK_REVIEW_NOTHING_TO_PUT_RIGHT(
+            Area.INVENTORY,
+            191,
+            HttpStatus.BAD_REQUEST,
+            "This answer does not ask for the record to be put right, so nothing was changed"),
+
+    /** A self-check answer somebody else settled while its record was being put right. */
+    SELF_CHECK_REVIEW_SETTLED_BEFORE_CORRECTING(
+            Area.INVENTORY, 192, HttpStatus.CONFLICT, Sentences.SELF_CHECK_ANSWER_ALREADY_SETTLED),
+
+    /** A self-check answer sent back to the member without a reason. */
+    SELF_CHECK_REVIEW_REASON_MISSING(
+            Area.INVENTORY,
+            193,
+            HttpStatus.BAD_REQUEST,
+            "Say why the answer cannot be settled, so nothing was sent back"),
+
+    /** A self-check answer somebody else settled before it could be sent back. */
+    SELF_CHECK_REVIEW_SETTLED_BEFORE_SENDING_BACK(
+            Area.INVENTORY, 194, HttpStatus.CONFLICT, Sentences.SELF_CHECK_ANSWER_ALREADY_SETTLED),
+
+    /** A record put right for a self-check answer without saying what the member actually holds. */
+    SELF_CHECK_REVIEW_CORRECTION_MISSING(
+            Area.INVENTORY,
+            195,
+            HttpStatus.BAD_REQUEST,
+            "Say what the member is actually holding, so nothing was changed"),
+
+    /**
+     * A self-check submission about the reviewer's own gear, which they may not sign off. Also the
+     * reason the review screen gives for not offering the sign-off.
+     */
+    SELF_CHECK_REVIEW_OF_OWN_GEAR(Area.INVENTORY, 196, HttpStatus.FORBIDDEN, "This submission is about your own gear"),
+
+    /**
+     * A self-check submission the reviewer handed in themselves, which they may not sign off. Also
+     * the reason the review screen gives for not offering the sign-off.
+     */
+    SELF_CHECK_REVIEW_OF_OWN_SUBMISSION(
+            Area.INVENTORY, 197, HttpStatus.FORBIDDEN, "You entered this submission yourself"),
+
+    /** A self-check answer the reviewer entered themselves, which they may not settle. */
+    SELF_CHECK_REVIEW_OF_OWN_ANSWER(Area.INVENTORY, 198, HttpStatus.FORBIDDEN, "You entered this answer yourself"),
+
+    /**
+     * A self-check under review that is gone or belongs to another station. One code for both, so
+     * the answer does not say that it exists elsewhere.
+     */
+    SELF_CHECK_REVIEW_TASK_NOT_HERE(Area.INVENTORY, 199, HttpStatus.NOT_FOUND, Sentences.SELF_CHECK_NOT_HERE),
+
+    /**
+     * A self-check answer under review that is gone or belongs to another submission. One code for
+     * both, so the answer does not say that it exists elsewhere.
+     */
+    SELF_CHECK_REVIEW_ANSWER_NOT_HERE(Area.INVENTORY, 200, HttpStatus.NOT_FOUND, "That answer is not here any more"),
+
+    /** A self-check answer settled on a submission that has not been handed in, or is finished. */
+    SELF_CHECK_REVIEW_TASK_NOT_WAITING(
+            Area.INVENTORY, 201, HttpStatus.CONFLICT, "This self-check is not waiting to be read"),
+
+    /** A self-check answer settled that was already settled when it was opened for settling. */
+    SELF_CHECK_REVIEW_ANSWER_ALREADY_SETTLED(
+            Area.INVENTORY, 202, HttpStatus.CONFLICT, Sentences.SELF_CHECK_ANSWER_ALREADY_SETTLED),
+
+    /** A check of a member's gear begun while another checker already holds that member. */
+    INVENTORY_CHECK_MEMBER_ALREADY_LOCKED(
+            Area.INVENTORY, 203, HttpStatus.CONFLICT, Sentences.INVENTORY_CHECK_MEMBER_TAKEN),
+
+    /** A check of a member's gear begun at the moment another checker took the same member. */
+    INVENTORY_CHECK_MEMBER_LOCKED_MEANWHILE(
+            Area.INVENTORY, 204, HttpStatus.CONFLICT, Sentences.INVENTORY_CHECK_MEMBER_TAKEN),
+
+    /** A record put right against an inventory that is gone. */
+    INVENTORY_CHECK_CORRECTION_INVENTORY_NOT_HERE(
+            Area.INVENTORY, 205, HttpStatus.NOT_FOUND, Sentences.INVENTORY_NOT_HERE),
+
+    /** A record put right with a new piece in an inventory of both owners, naming neither. */
+    INVENTORY_CHECK_CORRECTION_OWNER_MISSING(
+            Area.INVENTORY,
+            206,
+            HttpStatus.BAD_REQUEST,
+            "This inventory holds gear of both owners, so say whose the new piece is"),
+
+    /** A record put right with a new piece written down as a partner station's. */
+    INVENTORY_CHECK_CORRECTION_OWNED_BY_PARTNER(
+            Area.INVENTORY,
+            207,
+            HttpStatus.BAD_REQUEST,
+            "A new piece cannot be written down as a partner station's, so nothing was changed"),
+
+    /** A free piece picked to put a record right that is gone. */
+    INVENTORY_CHECK_PICKED_ITEM_NOT_HERE(Area.INVENTORY, 208, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
+
+    /** A free piece picked to put a record right that sits in another inventory. */
+    INVENTORY_CHECK_PICKED_ITEM_IN_OTHER_INVENTORY(
+            Area.INVENTORY,
+            209,
+            HttpStatus.BAD_REQUEST,
+            "That piece of gear sits in another inventory, so nothing was changed"),
+
+    /** A piece picked to put a record right that somebody already holds. */
+    INVENTORY_CHECK_PICKED_ITEM_TAKEN(
+            Area.INVENTORY,
+            210,
+            HttpStatus.BAD_REQUEST,
+            "That piece of gear is already with somebody, so nothing was changed"),
+
+    /** The piece a correction takes off a member's record, gone by the time it is taken off. */
+    INVENTORY_CHECK_REPLACED_ITEM_NOT_HERE(Area.INVENTORY, 211, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
+
+    /** The piece a correction takes off a member's record, which is not on that member's record. */
+    INVENTORY_CHECK_REPLACED_ITEM_NOT_THE_MEMBERS(
+            Area.INVENTORY, 212, HttpStatus.BAD_REQUEST, Sentences.ITEM_NOT_ON_MEMBERS_RECORD),
+
+    /** Self-checks handed out without naming a single member. */
+    SELF_CHECK_NO_MEMBER_NAMED(
+            Area.INVENTORY, 213, HttpStatus.BAD_REQUEST, "Name at least one member to ask, so nothing was handed out"),
+
+    /** A self-check handed to a member who is not of this station. */
+    SELF_CHECK_MEMBER_NOT_OF_STATION(
+            Area.INVENTORY, 214, HttpStatus.BAD_REQUEST, "One of those members is not of this station"),
+
+    /** A self-check handed to a member who has left the station. */
+    SELF_CHECK_FOR_FORMER_MEMBER(
+            Area.INVENTORY, 215, HttpStatus.BAD_REQUEST, "A former member cannot be asked to check their gear"),
+
+    /** Self-check answers saved with nothing in them. */
+    SELF_CHECK_NOTHING_SAID(
+            Area.INVENTORY, 216, HttpStatus.BAD_REQUEST, "Give at least one answer, so nothing was saved"),
+
+    /** A self-check handed in that was handed in at the same moment from somewhere else. */
+    SELF_CHECK_ALREADY_HANDED_IN(
+            Area.INVENTORY, 217, HttpStatus.CONFLICT, "This self-check has already been handed in"),
+
+    /** A report held back on a self-check about a piece of gear that is gone. */
+    SELF_CHECK_HELD_BACK_ITEM_NOT_HERE(Area.INVENTORY, 218, HttpStatus.BAD_REQUEST, Sentences.ITEM_NOT_HERE),
+
+    /** A report held back on a self-check about a piece that is not on the member's record. */
+    SELF_CHECK_HELD_BACK_ITEM_NOT_THE_MEMBERS(
+            Area.INVENTORY, 219, HttpStatus.BAD_REQUEST, Sentences.ITEM_NOT_ON_MEMBERS_RECORD),
+
+    /** A loss held back on a self-check about gear borrowed from a partner station. */
+    SELF_CHECK_HELD_BACK_LOSS_OF_BORROWED_GEAR(
+            Area.INVENTORY, 220, HttpStatus.BAD_REQUEST, Sentences.BORROWED_GEAR_LOST_AT_PARTNER),
+
+    /** A report held back on a self-check before the size the member holds has been saved. */
+    SELF_CHECK_HELD_BACK_WITHOUT_SAVED_SIZE(
+            Area.INVENTORY,
+            221,
+            HttpStatus.BAD_REQUEST,
+            "Save the size you are actually holding before reporting anything about this piece"),
+
+    /** A second report of the same kind held back on a self-check about the same piece. */
+    SELF_CHECK_HELD_BACK_ALREADY_REPORTED(
+            Area.INVENTORY,
+            222,
+            HttpStatus.BAD_REQUEST,
+            "This has already been reported for this piece of gear, so nothing was saved"),
+
+    /** A swap held back on a self-check for a piece whose inventory is gone. */
+    SELF_CHECK_HELD_BACK_INVENTORY_NOT_HERE(
+            Area.INVENTORY, 223, HttpStatus.BAD_REQUEST, Sentences.INVENTORY_NOT_HERE_BEHIND_ITEM),
+
+    /** A swap held back on a self-check for gear that is not kept by size. */
+    SELF_CHECK_HELD_BACK_SWAP_WITHOUT_SIZES(
+            Area.INVENTORY, 224, HttpStatus.BAD_REQUEST, "This kind of gear is not swapped by size"),
+
+    /** A swap held back on a self-check asking for a size the gear does not come in. */
+    SELF_CHECK_HELD_BACK_SIZE_NOT_OFFERED(
+            Area.INVENTORY, 225, HttpStatus.BAD_REQUEST, Sentences.SELF_CHECK_SIZE_NOT_OFFERED),
+
+    /**
+     * A self-check that is gone or belongs to another station, opened by the member answering it.
+     * One code for both, so the answer does not say that it exists elsewhere.
+     */
+    SELF_CHECK_NOT_HERE(Area.INVENTORY, 226, HttpStatus.NOT_FOUND, Sentences.SELF_CHECK_NOT_HERE),
+
+    /** A self-check of a member the caller does not answer for. */
+    SELF_CHECK_NOT_YOURS_TO_ANSWER(
+            Area.INVENTORY, 227, HttpStatus.FORBIDDEN, "This self-check belongs to somebody you do not answer for"),
+
+    /** A self-check answered or handed in after it was handed in or closed. */
+    SELF_CHECK_CLOSED(
+            Area.INVENTORY, 228, HttpStatus.CONFLICT, "This self-check no longer takes answers, so nothing was saved"),
+
+    /** A self-check answer that says nothing at all. */
+    SELF_CHECK_ANSWER_EMPTY(
+            Area.INVENTORY, 229, HttpStatus.BAD_REQUEST, "Every answer has to say something, so nothing was saved"),
+
+    /** A self-check answer meant for an empty place, given about a piece of gear. */
+    SELF_CHECK_PLACE_ANSWER_ON_A_PIECE(
+            Area.INVENTORY,
+            230,
+            HttpStatus.BAD_REQUEST,
+            "That answer is about an empty place, not about a piece of gear"),
+
+    /** A self-check answer about a piece of gear that is gone. */
+    SELF_CHECK_ANSWERED_ITEM_NOT_HERE(Area.INVENTORY, 231, HttpStatus.BAD_REQUEST, Sentences.ITEM_NOT_HERE),
+
+    /** A self-check answer about a piece that is not on the member's record. */
+    SELF_CHECK_ANSWERED_ITEM_NOT_THE_MEMBERS(
+            Area.INVENTORY, 232, HttpStatus.BAD_REQUEST, Sentences.ITEM_NOT_ON_MEMBERS_RECORD),
+
+    /** A self-check answer saying the station's own gear is missing, which belongs with the losses. */
+    SELF_CHECK_OWN_GEAR_MISSING_NOT_REPORTED_HERE(
+            Area.INVENTORY,
+            233,
+            HttpStatus.BAD_REQUEST,
+            "Report the station's own gear as missing where losses are reported"),
+
+    /** A self-check answer saying a piece turned up that nobody reported missing. */
+    SELF_CHECK_TURNED_UP_BUT_NOT_MISSING(
+            Area.INVENTORY,
+            234,
+            HttpStatus.BAD_REQUEST,
+            "This piece of gear is not recorded as missing, so it cannot have turned up"),
+
+    /** A self-check answer meant for a piece of gear, given without naming one. */
+    SELF_CHECK_PIECE_ANSWER_WITHOUT_PIECE(
+            Area.INVENTORY,
+            235,
+            HttpStatus.BAD_REQUEST,
+            "That answer is about a piece of gear, and no piece was named"),
+
+    /** A self-check answer about an empty place that does not say which place. */
+    SELF_CHECK_PLACE_NOT_NAMED(
+            Area.INVENTORY, 236, HttpStatus.BAD_REQUEST, "An answer about an empty place has to say which one"),
+
+    /** A self-check answer about gear of a kind the member is not asked to hold. */
+    SELF_CHECK_KIND_NOT_ASKED_OF_MEMBER(
+            Area.INVENTORY, 237, HttpStatus.BAD_REQUEST, "Nothing of this kind is asked of this member"),
+
+    /** A self-check answer about an empty place the member does not have. */
+    SELF_CHECK_PLACE_NOT_THERE(Area.INVENTORY, 238, HttpStatus.BAD_REQUEST, "This member has no such empty place"),
+
+    /** A number typed on a self-check answer that is not about something the member holds. */
+    SELF_CHECK_NUMBER_ON_WRONG_ANSWER(
+            Area.INVENTORY, 239, HttpStatus.BAD_REQUEST, "Only a place you are holding something for takes a number"),
+
+    /** A size given on a self-check answer that does not say what the member actually holds. */
+    SELF_CHECK_SIZE_ON_WRONG_ANSWER(
+            Area.INVENTORY,
+            240,
+            HttpStatus.BAD_REQUEST,
+            "Only an answer that says what the member actually holds takes a size"),
+
+    /** A size given on a self-check answer that the gear does not come in. */
+    SELF_CHECK_ANSWERED_SIZE_NOT_OFFERED(
+            Area.INVENTORY, 241, HttpStatus.BAD_REQUEST, Sentences.SELF_CHECK_SIZE_NOT_OFFERED),
+
+    /** A size added to an inventory that is gone. */
+    INVENTORY_NOT_HERE_FOR_SIZE(Area.INVENTORY, 242, HttpStatus.BAD_REQUEST, Sentences.INVENTORY_NOT_HERE),
+
+    /** A size added to an inventory that holds different things rather than one thing in many copies. */
+    INVENTORY_SIZE_ON_A_COLLECTION(
+            Area.INVENTORY,
+            243,
+            HttpStatus.BAD_REQUEST,
+            "This inventory holds different things, so it keeps no size list and nothing was saved"),
+
+    /** A requirement written for an inventory that is gone. */
+    INVENTORY_NOT_HERE_FOR_REQUIREMENT(Area.INVENTORY, 244, HttpStatus.BAD_REQUEST, Sentences.INVENTORY_NOT_HERE),
+
+    /** A requirement written for an inventory that holds different things. */
+    INVENTORY_REQUIREMENT_ON_A_COLLECTION(
+            Area.INVENTORY,
+            245,
+            HttpStatus.BAD_REQUEST,
+            "This inventory holds different things, so a requirement does not apply to it and nothing was saved"),
+
+    /** More of something ordered for an inventory that is gone. */
+    INVENTORY_NOT_HERE_FOR_ORDER(Area.INVENTORY, 246, HttpStatus.BAD_REQUEST, Sentences.INVENTORY_NOT_HERE),
+
+    /** More of something ordered for an inventory that holds different things. */
+    INVENTORY_ORDER_ON_A_COLLECTION(
+            Area.INVENTORY,
+            247,
+            HttpStatus.BAD_REQUEST,
+            "This inventory holds different things, so more of it cannot be ordered and nothing was saved"),
+
+    /** The shelf for borrowed gear deleted while something is still on it. */
+    INVENTORY_BORROWED_SHELF_NOT_EMPTY(
+            Area.INVENTORY,
+            248,
+            HttpStatus.BAD_REQUEST,
+            "This shelf still holds gear belonging to somebody else, so it was not deleted"),
+
+    /** A piece of gear written straight onto the shelf for borrowed gear. */
+    INVENTORY_BORROWED_SHELF_ON_CREATE(
+            Area.INVENTORY, 249, HttpStatus.BAD_REQUEST, Sentences.BORROWED_SHELF_ONLY_BORROWED),
+
+    /** A piece of gear with a named owner written straight onto the shelf for borrowed gear. */
+    INVENTORY_BORROWED_SHELF_ON_OWNED_CREATE(
+            Area.INVENTORY, 250, HttpStatus.BAD_REQUEST, Sentences.BORROWED_SHELF_ONLY_BORROWED),
+
+    /** A piece of gear moved onto the shelf for borrowed gear. */
+    INVENTORY_BORROWED_SHELF_ON_MOVE(
+            Area.INVENTORY, 251, HttpStatus.BAD_REQUEST, Sentences.BORROWED_SHELF_ONLY_BORROWED),
+
+    /** A piece of gear written down by hand as a partner station's. */
+    INVENTORY_PARTNER_GEAR_BY_HAND(
+            Area.INVENTORY,
+            252,
+            HttpStatus.BAD_REQUEST,
+            "Gear belonging to a partner station arrives by handover, not by hand, so nothing was saved"),
+
+    /** A piece of gear created with a kind that belongs to another inventory. */
+    INVENTORY_ITEM_KIND_ELSEWHERE_ON_CREATE(
+            Area.INVENTORY, 253, HttpStatus.BAD_REQUEST, Sentences.INVENTORY_KIND_ELSEWHERE),
+
+    /** A piece of gear changed to a kind that belongs to another inventory. */
+    INVENTORY_ITEM_KIND_ELSEWHERE_ON_CHANGE(
+            Area.INVENTORY, 254, HttpStatus.BAD_REQUEST, Sentences.INVENTORY_KIND_ELSEWHERE),
+
+    /** A piece of gear created in an inventory that is gone, found while checking its owner. */
+    INVENTORY_NOT_HERE_FOR_OWNER_CHECK(Area.INVENTORY, 255, HttpStatus.BAD_REQUEST, Sentences.INVENTORY_NOT_HERE),
+
+    /** The station's own gear written into an inventory that only holds gear of the body above it. */
+    INVENTORY_HOLDS_NO_STATION_GEAR(
+            Area.INVENTORY,
+            256,
+            HttpStatus.BAD_REQUEST,
+            "This inventory does not hold the station's own gear, so nothing was saved"),
+
+    /** Gear of the body above the station written into an inventory that only holds the station's own. */
+    INVENTORY_HOLDS_NO_ASSOCIATION_GEAR(
+            Area.INVENTORY,
+            257,
+            HttpStatus.BAD_REQUEST,
+            "This inventory does not hold gear owned by the association, so nothing was saved"),
+
+    /** A requirement naming a group of stations for an inventory that is gone. */
+    INVENTORY_NOT_HERE_FOR_REQUIREMENT_GROUP(Area.INVENTORY, 258, HttpStatus.BAD_REQUEST, Sentences.INVENTORY_NOT_HERE),
+
+    /** A requirement naming a group of stations that is gone. */
+    INVENTORY_REQUIREMENT_GROUP_NOT_HERE(
+            Area.INVENTORY,
+            259,
+            HttpStatus.BAD_REQUEST,
+            "That group of stations is not here any more, so nothing was saved"),
+
+    /** A requirement naming a group of stations filed by another association. */
+    INVENTORY_REQUIREMENT_GROUP_OF_ANOTHER_ASSOCIATION(
+            Area.INVENTORY,
+            260,
+            HttpStatus.BAD_REQUEST,
+            "A requirement can only name a group of stations of the association that wrote it"),
+
+    /** Gear recorded as an association's in an inventory that is gone. */
+    INVENTORY_NOT_HERE_FOR_ASSOCIATION_CHECK(Area.INVENTORY, 261, HttpStatus.BAD_REQUEST, Sentences.INVENTORY_NOT_HERE),
+
+    /** Gear recorded as belonging to an association the station does not answer to. */
+    INVENTORY_GEAR_OF_ANOTHER_ASSOCIATION(
+            Area.INVENTORY,
+            262,
+            HttpStatus.BAD_REQUEST,
+            "Gear can only be recorded as belonging to the association this station answers to"),
+
+    /** A value on a piece of gear that the field describing it does not take. */
+    INVENTORY_ITEM_FIELD_VALUE_NOT_ACCEPTED(
+            Area.INVENTORY, 263, HttpStatus.BAD_REQUEST, "That value does not suit this field, so nothing was saved"),
+
+    /** A piece of gear moved that went before the move reached it. */
+    INVENTORY_ITEM_NOT_HERE_TO_MOVE(Area.INVENTORY, 264, HttpStatus.NOT_FOUND, Sentences.ITEM_NOT_HERE),
+
+    /** A piece of gear moved into an inventory that is gone. */
+    INVENTORY_MOVE_TARGET_NOT_HERE(Area.INVENTORY, 265, HttpStatus.BAD_REQUEST, Sentences.INVENTORY_NOT_HERE),
+
+    /** A piece of gear moved out of an inventory that is gone. */
+    INVENTORY_MOVE_SOURCE_NOT_HERE(
+            Area.INVENTORY, 266, HttpStatus.BAD_REQUEST, Sentences.INVENTORY_NOT_HERE_BEHIND_ITEM),
+
+    /** A piece of gear moved into an inventory of another station. */
+    INVENTORY_MOVE_TO_ANOTHER_STATION(
+            Area.INVENTORY,
+            267,
+            HttpStatus.BAD_REQUEST,
+            "A piece of gear can only be moved into an inventory of the same station"),
+
+    /** A new piece made and handed out from an inventory that is gone. */
+    INVENTORY_NOT_HERE_TO_HAND_OUT_NEW(Area.INVENTORY, 268, HttpStatus.NOT_FOUND, Sentences.INVENTORY_NOT_HERE),
+
+    /** Gear borrowed from a partner station, described anew by the station holding it. */
+    INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_DESCRIBE(
+            Area.INVENTORY,
+            269,
+            HttpStatus.FORBIDDEN,
+            "This gear belongs to a partner station and can only be described by them"),
+
+    /** Gear borrowed from a partner station, moved by the station holding it. */
+    INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_MOVE(
+            Area.INVENTORY,
+            270,
+            HttpStatus.FORBIDDEN,
+            "This gear belongs to a partner station and can only be moved by them"),
+
+    /** Gear borrowed from a partner station, deleted by the station holding it. */
+    INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_DELETE(
+            Area.INVENTORY,
+            271,
+            HttpStatus.FORBIDDEN,
+            "This gear belongs to a partner station and can only be deleted by them"),
+
+    /** Gear of the body above the station, described anew by somebody other than that body. */
+    INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE(
+            Area.INVENTORY,
+            272,
+            HttpStatus.FORBIDDEN,
+            "This gear belongs to the body above the station and can only be described by them"),
+
+    /** Gear of the body above the station, moved by somebody other than that body. */
+    INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_MOVE(
+            Area.INVENTORY,
+            273,
+            HttpStatus.FORBIDDEN,
+            "This gear belongs to the body above the station and can only be moved by them"),
+
+    /** Gear of the body above the station, deleted by somebody other than that body. */
+    INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DELETE(
+            Area.INVENTORY,
+            274,
+            HttpStatus.FORBIDDEN,
+            "This gear belongs to the body above the station and can only be deleted by them"),
 
     /** A registration whose answers were to be changed and is gone. */
     EVENT_REGISTRATION_NOT_HERE_ON_FIELD_CHANGE(
@@ -2293,6 +3434,205 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "Appointments do not offer that type of field, so none was created"),
 
+    /**
+     * A question answered on one date of an appointment that is not here, or one that belongs to
+     * another appointment. One code for both: the lookup reaches every question on the instance.
+     */
+    APPOINTMENT_FIELD_NOT_HERE_FOR_DATE_ANSWER(Area.EVENTS, 114, HttpStatus.NOT_FOUND, Sentences.FIELD_NOT_HERE),
+
+    /** An answer for one date given to a question that is answered on the appointment as a whole. */
+    APPOINTMENT_FIELD_NOT_PER_DATE(
+            Area.EVENTS, 115, HttpStatus.BAD_REQUEST, "This question is not answered per date, so nothing was saved"),
+
+    /** An answer for one date that the question does not take. */
+    APPOINTMENT_DATE_ANSWER_NOT_ACCEPTED(
+            Area.EVENTS, 116, HttpStatus.BAD_REQUEST, "That answer does not suit this question, so nothing was saved"),
+
+    /** An answer for one date that went between being saved and being read back. */
+    APPOINTMENT_DATE_ANSWER_NOT_HERE_AFTER_SAVE(
+            Area.EVENTS, 117, HttpStatus.NOT_FOUND, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
+
+    /** A question of an appointment filled in with something it does not take. */
+    APPOINTMENT_FIELD_VALUE_NOT_ACCEPTED(
+            Area.EVENTS, 118, HttpStatus.BAD_REQUEST, "That value does not suit this question, so nothing was saved"),
+
+    /**
+     * A question somebody put themselves in that is not here, or one that belongs to another
+     * appointment. One code for both: the lookup reaches every question on the instance.
+     */
+    APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION(Area.EVENTS, 119, HttpStatus.NOT_FOUND, Sentences.FIELD_NOT_HERE),
+
+    /** Somebody putting themselves in a question that names no members. */
+    APPOINTMENT_FIELD_NAMES_NO_MEMBERS(
+            Area.EVENTS,
+            120,
+            HttpStatus.BAD_REQUEST,
+            "Only a question that names members can be stood in, so nothing was changed"),
+
+    /** Somebody putting themselves in a question nobody may put themselves in. */
+    APPOINTMENT_FIELD_SELF_REGISTRATION_OFF(
+            Area.EVENTS,
+            121,
+            HttpStatus.BAD_REQUEST,
+            "Nobody can put themselves in this question, so nothing was changed"),
+
+    /** A member putting themselves in a question who is not here any more. */
+    APPOINTMENT_SELF_REGISTRATION_MEMBER_NOT_HERE(Area.EVENTS, 122, HttpStatus.BAD_REQUEST, Sentences.MEMBER_NOT_HERE),
+
+    /** A question somebody put themselves in that went before it could be read back. */
+    APPOINTMENT_FIELD_NOT_HERE_AFTER_SELF_REGISTRATION(
+            Area.EVENTS, 123, HttpStatus.NOT_FOUND, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
+
+    /** Somebody putting themselves in a single-member question somebody else already stands in. */
+    APPOINTMENT_FIELD_SLOT_TAKEN(
+            Area.EVENTS,
+            124,
+            HttpStatus.CONFLICT,
+            "Somebody else already stands in this question, so nothing was changed"),
+
+    /** Somebody putting themselves in a question narrowed to a group, user type or tag they are outside. */
+    APPOINTMENT_FIELD_NOT_OPEN_TO_YOU(
+            Area.EVENTS, 125, HttpStatus.FORBIDDEN, "This question is not open to you, so nothing was changed"),
+
+    /** Somebody putting themselves in a question that lost the group, user type or tag it is narrowed to. */
+    APPOINTMENT_FIELD_NARROWING_LOST(
+            Area.EVENTS,
+            126,
+            HttpStatus.BAD_REQUEST,
+            "This question cannot be stood in as it is set up, so nothing was changed"),
+
+    /** Somebody putting themselves in a question answered per date without naming the date. */
+    APPOINTMENT_FIELD_DATE_MISSING(
+            Area.EVENTS,
+            127,
+            HttpStatus.BAD_REQUEST,
+            "This question is answered per date, so give the date. Nothing was changed"),
+
+    /** The appointment behind a question somebody put themselves in, gone in the meantime. */
+    APPOINTMENT_NOT_HERE_FOR_SELF_REGISTRATION(Area.EVENTS, 128, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
+
+    /** Somebody putting themselves in a question of an appointment that has stopped taking people. */
+    REGISTRATION_CLOSED_ON_SELF_REGISTRATION(Area.EVENTS, 129, HttpStatus.BAD_REQUEST, Sentences.REGISTRATION_CLOSED),
+
+    /** A file too large to be handed to a partner station along with an appointment. */
+    EVENT_FILE_TOO_LARGE_FOR_PARTNER(
+            Area.EVENTS, 130, HttpStatus.BAD_REQUEST, "This file is too large to hand to a partner station"),
+
+    /**
+     * A file attached to an appointment that is not in the library, or one from another station's
+     * library. One code for both: the lookup reaches every file on the instance.
+     */
+    EVENT_FILE_TO_ATTACH_NOT_HERE(Area.EVENTS, 131, HttpStatus.BAD_REQUEST, Sentences.NOT_HERE_OR_NOT_YOURS),
+
+    /** A value an appointment writes into a field of its attendance sheet that the field does not take. */
+    EVENT_FIELD_DEFAULT_NOT_ACCEPTED(
+            Area.EVENTS,
+            132,
+            HttpStatus.BAD_REQUEST,
+            "That value does not suit the field of the attendance sheet, so nothing was saved"),
+
+    /** An appointment a partner registered a member for that is not here any more. */
+    EVENT_NOT_HERE_FOR_PARTNER_REGISTRATION(Area.EVENTS, 133, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
+
+    /** A partner registering a member for an appointment that takes no registrations. */
+    EVENT_TAKES_NO_PARTNER_REGISTRATIONS(
+            Area.EVENTS, 134, HttpStatus.BAD_REQUEST, "This appointment does not take registrations"),
+
+    /** A partner registering a member after the appointment stopped taking people. */
+    REGISTRATION_CLOSED_TO_PARTNER(Area.EVENTS, 135, HttpStatus.BAD_REQUEST, Sentences.REGISTRATION_CLOSED),
+
+    /** A comment on an appointment changed by a partner instance after it had gone. */
+    REMOTE_EVENT_COMMENT_NOT_HERE_ON_UPDATE(Area.EVENTS, 136, HttpStatus.NOT_FOUND, Sentences.COMMENT_NOT_HERE),
+
+    /** A comment on an appointment by another member, changed by a partner instance. */
+    REMOTE_EVENT_COMMENT_NOT_YOURS_TO_EDIT(
+            Area.EVENTS, 137, HttpStatus.FORBIDDEN, Sentences.NEWS_COMMENT_NOT_YOURS_TO_EDIT),
+
+    /** A comment on an appointment that went while a partner instance was changing it. */
+    REMOTE_EVENT_COMMENT_NOT_HERE_AFTER_UPDATE(Area.EVENTS, 138, HttpStatus.NOT_FOUND, Sentences.COMMENT_NOT_HERE),
+
+    /** A comment on an appointment deleted by a partner instance after it had gone. */
+    REMOTE_EVENT_COMMENT_NOT_HERE_ON_DELETE(Area.EVENTS, 139, HttpStatus.NOT_FOUND, Sentences.COMMENT_NOT_HERE),
+
+    /** A comment on an appointment by another member, deleted by a partner instance. */
+    REMOTE_EVENT_COMMENT_NOT_YOURS_TO_DELETE(
+            Area.EVENTS, 140, HttpStatus.FORBIDDEN, Sentences.NEWS_COMMENT_NOT_YOURS_TO_DELETE),
+
+    /** An answer to a registration question that the appointment does not ask. */
+    REGISTRATION_ANSWER_TO_UNKNOWN_QUESTION(
+            Area.EVENTS,
+            141,
+            HttpStatus.BAD_REQUEST,
+            "That answers a question this appointment does not ask, so nothing was saved"),
+
+    /** A registration question left unanswered, or answered with something it does not take. */
+    REGISTRATION_ANSWER_NOT_ACCEPTED(
+            Area.EVENTS,
+            142,
+            HttpStatus.BAD_REQUEST,
+            "An answer to the registration questions is missing or does not suit its question, so nothing was saved"),
+
+    /** A registration question of an appointment set up to start from a value it would not take. */
+    REGISTRATION_QUESTION_DEFAULT_NOT_ACCEPTED(
+            Area.EVENTS, 143, HttpStatus.BAD_REQUEST, Sentences.QUESTION_DEFAULT_NOT_ACCEPTED),
+
+    /** A registration question of an appointment template set up to start from a value it would not take. */
+    EVENT_TEMPLATE_REGISTRATION_DEFAULT_NOT_ACCEPTED(
+            Area.EVENTS, 144, HttpStatus.BAD_REQUEST, Sentences.QUESTION_DEFAULT_NOT_ACCEPTED),
+
+    /** A question of an appointment template set up to start from a value it would not take. */
+    EVENT_TEMPLATE_FIELD_DEFAULT_NOT_ACCEPTED(
+            Area.EVENTS, 145, HttpStatus.BAD_REQUEST, Sentences.QUESTION_DEFAULT_NOT_ACCEPTED),
+
+    /** A new appointment that ends before it starts. */
+    EVENT_ENDS_BEFORE_IT_STARTS_ON_CREATE(
+            Area.EVENTS, 146, HttpStatus.BAD_REQUEST, Sentences.EVENT_ENDS_BEFORE_IT_STARTS),
+
+    /** An appointment changed so that it ends before it starts. */
+    EVENT_ENDS_BEFORE_IT_STARTS_ON_CHANGE(
+            Area.EVENTS, 147, HttpStatus.BAD_REQUEST, Sentences.EVENT_ENDS_BEFORE_IT_STARTS),
+
+    /** A series given both a last day and a number of times to end after. */
+    EVENT_SERIES_END_GIVEN_TWICE(
+            Area.EVENTS,
+            148,
+            HttpStatus.BAD_REQUEST,
+            "A series ends on a day or after a number of times, not both, so nothing was saved"),
+
+    /** An end to its repetition given to an appointment that does not repeat. */
+    EVENT_SERIES_END_ON_ONE_OFF(
+            Area.EVENTS,
+            149,
+            HttpStatus.BAD_REQUEST,
+            "Only a repeating appointment has an end to its repetition, so nothing was saved"),
+
+    /** A series told to take place fewer than once. */
+    EVENT_SERIES_COUNT_BELOW_ONE(
+            Area.EVENTS,
+            150,
+            HttpStatus.BAD_REQUEST,
+            "A series that repeats takes place at least once, so nothing was saved"),
+
+    /** A series told to end on a day before its first. */
+    EVENT_SERIES_ENDS_BEFORE_IT_STARTS(
+            Area.EVENTS, 151, HttpStatus.BAD_REQUEST, "A series cannot end before it starts, so nothing was saved"),
+
+    /** A registration given a new status while a question of the appointment holds the place. */
+    REGISTRATION_HELD_BY_A_FIELD_ON_STATUS_CHANGE(
+            Area.EVENTS, 152, HttpStatus.BAD_REQUEST, Sentences.REGISTRATION_HELD_BY_A_FIELD),
+
+    /** A registration withdrawn while a question of the appointment holds the place. */
+    REGISTRATION_HELD_BY_A_FIELD_ON_WITHDRAWAL(
+            Area.EVENTS, 153, HttpStatus.BAD_REQUEST, Sentences.REGISTRATION_HELD_BY_A_FIELD),
+
+    /** A registration turned down while a question of the appointment holds the place. */
+    REGISTRATION_HELD_BY_A_FIELD_ON_REFUSAL(
+            Area.EVENTS, 154, HttpStatus.BAD_REQUEST, Sentences.REGISTRATION_HELD_BY_A_FIELD),
+
+    /** A member saying they will not come while a question of the appointment holds their place. */
+    REGISTRATION_HELD_BY_A_FIELD_ON_DECLINE(
+            Area.EVENTS, 155, HttpStatus.BAD_REQUEST, Sentences.REGISTRATION_HELD_BY_A_FIELD),
+
     /** A list of comments asked for on a day that is not a date. */
     COMMENT_DAY_NOT_A_DATE(Area.COMMENTS, 1, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),
 
@@ -2440,8 +3780,7 @@ public enum Refusal {
     FORM_REACH_NOT_SAID(Area.FORMS, 27, HttpStatus.BAD_REQUEST, "Say how far the form is to reach"),
 
     /** The link of a form the station's own members answer, which is not sent by one. */
-    INTERNAL_FORM_HAS_NO_LINK(
-            Area.FORMS, 28, HttpStatus.BAD_REQUEST, "A form for the station's own members is not sent by link"),
+    INTERNAL_FORM_HAS_NO_LINK(Area.FORMS, 28, HttpStatus.BAD_REQUEST, Sentences.INTERNAL_FORM_HAS_NO_LINK),
 
     /** Replacing a link that has been replaced by somebody else in the meantime. */
     FORM_LINK_ALREADY_REPLACED(
@@ -2620,6 +3959,39 @@ public enum Refusal {
             69,
             HttpStatus.FORBIDDEN,
             "Only the member and whoever looks after them can see or keep an answer that was not sent"),
+
+    /** A new link asked for a form the station's own members answer, which is not sent by one. */
+    FORM_INTERNAL_HAS_NO_LINK(Area.FORMS, 70, HttpStatus.BAD_REQUEST, Sentences.INTERNAL_FORM_HAS_NO_LINK),
+
+    /** How far it reaches, set on a form the station's own members answer. */
+    FORM_INTERNAL_HAS_NO_REACH(
+            Area.FORMS,
+            71,
+            HttpStatus.BAD_REQUEST,
+            "A form for the station's own members is not reached from outside at all, so nothing was saved"),
+
+    /** Who may answer, narrowed on a form that is not here any more. */
+    FORM_NOT_HERE_FOR_RESTRICTIONS(Area.FORMS, 72, HttpStatus.NOT_FOUND, Sentences.FORM_NOT_HERE),
+
+    /** Who may answer, narrowed on a form answered from outside the station. */
+    FORM_FROM_OUTSIDE_HAS_NO_RESTRICTIONS(
+            Area.FORMS,
+            73,
+            HttpStatus.BAD_REQUEST,
+            "A form answered from outside the station has nobody to narrow it to, so nothing was saved"),
+
+    /** Results asked to be grouped without saying by what. */
+    FORM_RESULTS_GROUPING_MISSING(Area.FORMS, 74, HttpStatus.BAD_REQUEST, "Say what to group the results by"),
+
+    /** Results grouped by a profile question that is not here or cannot be grouped by. */
+    FORM_RESULTS_GROUPING_FIELD_NOT_HERE(
+            Area.FORMS, 75, HttpStatus.BAD_REQUEST, "The results cannot be grouped by that profile question"),
+
+    /** A form whose results were asked for, gone before they could be counted. */
+    FORM_NOT_HERE_FOR_ANALYTICS(Area.FORMS, 76, HttpStatus.NOT_FOUND, "That form is not here any more"),
+
+    /** One response to a form opened, which the form does not have. */
+    FORM_RESPONSE_NOT_HERE(Area.FORMS, 77, HttpStatus.NOT_FOUND, "That answer to the form is not here any more"),
 
     /** An invite that is used up or past its date. */
     WAITING_LIST_INVITE_NO_LONGER_VALID(
@@ -2875,7 +4247,31 @@ public enum Refusal {
     NOT_A_MEMBER_OF_THIS_STATION(Area.GENERAL, 16, HttpStatus.FORBIDDEN, "You are not a member of this station"),
 
     /** A request to something only somebody signed in may do, with no session behind it. */
-    NOT_SIGNED_IN(Area.GENERAL, 17, HttpStatus.UNAUTHORIZED, "Sign in before doing this"),
+    NOT_SIGNED_IN(Area.GENERAL, 17, HttpStatus.UNAUTHORIZED, Sentences.SIGN_IN_FIRST),
+
+    /** Any request from one address far more often than the instance answers for anybody. */
+    REQUESTS_TOO_OFTEN(Area.GENERAL, 18, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A request to a route that needs a signed-in caller, sent without any session. */
+    ROUTE_NEEDS_SIGN_IN(Area.GENERAL, 19, HttpStatus.UNAUTHORIZED, Sentences.SIGN_IN_FIRST),
+
+    /** A session that has ended, been signed out or never existed. */
+    SIGN_IN_SESSION_NOT_VALID(Area.GENERAL, 20, HttpStatus.UNAUTHORIZED, "Your sign-in has ended. Sign in again"),
+
+    /** A request naming a station in its header that is not on this instance. */
+    REQUESTED_STATION_NOT_HERE(Area.GENERAL, 21, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_HERE),
+
+    /** A request whose station header does not read as a station's identity. */
+    REQUESTED_STATION_NOT_AN_IDENTITY(Area.GENERAL, 22, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_AN_IDENTITY),
+
+    /** A request naming a cluster in its header that is not on this instance. */
+    REQUESTED_CLUSTER_NOT_HERE(Area.GENERAL, 23, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_HERE),
+
+    /** A request whose cluster header does not read as a cluster's identity. */
+    REQUESTED_CLUSTER_NOT_AN_IDENTITY(Area.GENERAL, 24, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_AN_IDENTITY),
+
+    /** A route asked for by somebody holding none of the permissions it needs. */
+    ROUTE_PERMISSION_MISSING(Area.GENERAL, 25, HttpStatus.FORBIDDEN, "You do not have the permission this needs"),
 
     /** An order for a cluster's questions, sent without saying which audience the order is for. */
     CLUSTER_FIELD_ORDER_NEEDS_AN_AUDIENCE(
@@ -3176,11 +4572,523 @@ public enum Refusal {
     CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE(Area.CLUSTERS, 70, HttpStatus.BAD_REQUEST, Sentences.EXPIRY_OUT_OF_RANGE),
 
     /** An association question saved with a default its own answers would not take. */
-    CLUSTER_PROFILE_DEFAULT_NOT_ACCEPTED(
+    CLUSTER_PROFILE_DEFAULT_NOT_ACCEPTED(Area.CLUSTERS, 71, HttpStatus.BAD_REQUEST, Sentences.DEFAULT_NOT_SUITING),
+
+    /** A station asking to join a cluster, asked by somebody other than its owner. */
+    CLUSTER_APPLICATION_NOT_BY_STATION_OWNER(
             Area.CLUSTERS,
-            71,
+            72,
+            HttpStatus.FORBIDDEN,
+            "Only the station's owner can ask to join a cluster, so nothing was sent"),
+
+    /** A cluster's own station asking to join a cluster. */
+    CLUSTER_APPLICATION_FROM_CLUSTER_HOME(
+            Area.CLUSTERS,
+            73,
             HttpStatus.BAD_REQUEST,
-            "That default does not suit this question, so nothing was saved"),
+            "A cluster's own station cannot join another cluster, so nothing was sent"),
+
+    /** A station asking to join a cluster while it already belongs to one. */
+    CLUSTER_APPLICATION_STATION_ALREADY_JOINED(
+            Area.CLUSTERS,
+            74,
+            HttpStatus.BAD_REQUEST,
+            "This station already belongs to a cluster, so nothing was sent"),
+
+    /** A station asking to join a cluster while a request of its own is still waiting. */
+    CLUSTER_APPLICATION_ALREADY_WAITING(
+            Area.CLUSTERS,
+            75,
+            HttpStatus.BAD_REQUEST,
+            "This station already has a request to join waiting, so nothing was sent"),
+
+    /** A request to join taken back by somebody other than the station's owner. */
+    CLUSTER_APPLICATION_WITHDRAWN_NOT_BY_STATION_OWNER(
+            Area.CLUSTERS,
+            76,
+            HttpStatus.FORBIDDEN,
+            "Only the station's owner can take its request back, so nothing was changed"),
+
+    /** A request to join approved for a station that joined some cluster after asking. */
+    CLUSTER_APPLICATION_STATION_JOINED_MEANWHILE(
+            Area.CLUSTERS,
+            77,
+            HttpStatus.BAD_REQUEST,
+            "This station has joined a cluster in the meantime, so nothing was changed"),
+
+    /** A request to join withdrawn, approved or denied after it was already decided. */
+    CLUSTER_APPLICATION_ALREADY_DECIDED(
+            Area.CLUSTERS,
+            78,
+            HttpStatus.BAD_REQUEST,
+            "That request to join has already been decided, so nothing was changed"),
+
+    /**
+     * A request to join that is not here, or one addressed to another cluster.
+     *
+     * <p>One code for both on purpose: telling them apart would say that a station asked to join a
+     * cluster the reader does not act for.
+     */
+    CLUSTER_APPLICATION_NOT_HERE(Area.CLUSTERS, 79, HttpStatus.NOT_FOUND, "That request to join is not here any more"),
+
+    /** The station behind a request to join, gone while the request was being handled. */
+    CLUSTER_APPLICATION_STATION_NOT_HERE(Area.CLUSTERS, 80, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
+
+    /** The cluster a request to join is about, gone while it was being handled. */
+    CLUSTER_APPLICATION_CLUSTER_NOT_HERE(Area.CLUSTERS, 81, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
+
+    /** A folder in the cluster's knowledge base written down without a name. */
+    CLUSTER_KB_FOLDER_NEEDS_A_NAME(
+            Area.CLUSTERS, 82, HttpStatus.BAD_REQUEST, "A folder needs a name, so nothing was saved"),
+
+    /** An article in the cluster's knowledge base written down without a name. */
+    CLUSTER_KB_ARTICLE_NEEDS_A_NAME(Area.CLUSTERS, 83, HttpStatus.BAD_REQUEST, Sentences.KB_ARTICLE_NEEDS_A_NAME),
+
+    /**
+     * A cluster article removed that is not here, or one kept at another station.
+     *
+     * <p>One code for both on purpose: telling them apart would say that the article exists somewhere
+     * the cluster has no business with.
+     */
+    CLUSTER_KB_ARTICLE_NOT_HERE(Area.CLUSTERS, 84, HttpStatus.NOT_FOUND, Sentences.KB_ARTICLE_NOT_HERE),
+
+    /** A cluster that is not here, asked for its knowledge base. */
+    CLUSTER_KB_CLUSTER_NOT_HERE(Area.CLUSTERS, 85, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
+
+    /** A cluster that is not here, asked for the gear in its store. */
+    CLUSTER_DISPATCH_CLUSTER_NOT_HERE(Area.CLUSTERS, 86, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_HERE),
+
+    /** Gear sent out by a cluster that has no chain of its own for sending gear out. */
+    CLUSTER_DISPATCH_WITHOUT_CHAIN(
+            Area.CLUSTERS,
+            87,
+            HttpStatus.BAD_REQUEST,
+            "This cluster has no chain for sending gear out yet, so nothing was sent. Add one under its inventory "
+                    + "settings"),
+
+    /** Gear sent out with no piece picked. */
+    CLUSTER_DISPATCH_WITHOUT_GEAR(
+            Area.CLUSTERS, 88, HttpStatus.BAD_REQUEST, "Pick at least one piece of gear to send, so nothing was sent"),
+
+    /** Gear sent out to a station that is not here. */
+    CLUSTER_DISPATCH_STATION_NOT_HERE(Area.CLUSTERS, 89, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_HERE),
+
+    /** Gear sent out to a station that does not belong to the sending cluster. */
+    CLUSTER_DISPATCH_STATION_NOT_IN_CLUSTER(
+            Area.CLUSTERS,
+            90,
+            HttpStatus.BAD_REQUEST,
+            "That station does not belong to this cluster, so nothing was sent"),
+
+    /** Gear sent out that is not resting in the cluster's own store. */
+    CLUSTER_DISPATCH_GEAR_NOT_IN_STORE(
+            Area.CLUSTERS,
+            91,
+            HttpStatus.BAD_REQUEST,
+            "Some of that gear is not in the cluster's store, so nothing was sent"),
+
+    /** The station a cluster keeps its own things on, gone while the cluster still names it. */
+    CLUSTER_GOVERNANCE_HOME_STATION_NOT_HERE(
+            Area.CLUSTERS, 92, HttpStatus.NOT_FOUND, "The cluster's own station is not here any more"),
+
+    /** Modules switched off or read through a group of stations that is gone or belongs to another cluster. */
+    CLUSTER_GOVERNANCE_STATION_GROUP_NOT_OWN(
+            Area.CLUSTERS, 93, HttpStatus.BAD_REQUEST, "That group of stations is not one of this cluster's"),
+
+    /** A cluster that is not here, asked about what it allows its stations. */
+    CLUSTER_GOVERNANCE_CLUSTER_NOT_HERE(Area.CLUSTERS, 94, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
+
+    /** A second chain added for a kind of movement the cluster already has a chain for. */
+    CLUSTER_INVENTORY_FLOW_PURPOSE_TAKEN(
+            Area.CLUSTERS,
+            95,
+            HttpStatus.BAD_REQUEST,
+            "Nothing was saved, as that kind of movement already has a chain, which has to be archived first"),
+
+    /**
+     * A cluster chain that is not here, or one belonging to another cluster or a station.
+     *
+     * <p>One code for both on purpose: telling them apart would say that the chain exists somewhere
+     * the cluster has no business with.
+     */
+    CLUSTER_INVENTORY_FLOW_NOT_HERE(Area.CLUSTERS, 96, HttpStatus.NOT_FOUND, Sentences.FLOW_NOT_HERE),
+
+    /** A step of a cluster chain that is not here. */
+    CLUSTER_INVENTORY_FLOW_STEP_NOT_HERE(Area.CLUSTERS, 97, HttpStatus.NOT_FOUND, Sentences.FLOW_STEP_NOT_HERE),
+
+    /** A cluster that is not here, asked about its gear. */
+    CLUSTER_INVENTORY_CLUSTER_NOT_HERE(Area.CLUSTERS, 98, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
+
+    /** A word recommended to stations that the cluster already recommends to them. */
+    CLUSTER_INVENTORY_TAG_TAKEN_ON_CREATE(Area.CLUSTERS, 99, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_TAG_TAKEN),
+
+    /** A recommended word changed into one the cluster already recommends to the same stations. */
+    CLUSTER_INVENTORY_TAG_TAKEN_ON_CHANGE(Area.CLUSTERS, 100, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_TAG_TAKEN),
+
+    /** A recommended word that went between being changed and being read back. */
+    CLUSTER_INVENTORY_TAG_NOT_HERE_AFTER_CHANGE(
+            Area.CLUSTERS, 101, HttpStatus.NOT_FOUND, Sentences.CLUSTER_TAG_NOT_HERE),
+
+    /** A word recommended to stations without any word in it. */
+    CLUSTER_INVENTORY_TAG_NEEDS_A_NAME(
+            Area.CLUSTERS, 102, HttpStatus.BAD_REQUEST, "A tag needs a name, so nothing was saved"),
+
+    /**
+     * A recommended word that is not here, or one another cluster recommends.
+     *
+     * <p>One code for both on purpose: telling them apart would say what another cluster recommends.
+     */
+    CLUSTER_INVENTORY_TAG_NOT_HERE(Area.CLUSTERS, 103, HttpStatus.NOT_FOUND, Sentences.CLUSTER_TAG_NOT_HERE),
+
+    /**
+     * A member taken on at a station that is not here or does not belong to the cluster.
+     *
+     * <p>One code for both on purpose: telling them apart would say that a station exists outside the
+     * cluster.
+     */
+    CLUSTER_MANAGED_MEMBER_STATION_NOT_HERE(Area.CLUSTERS, 104, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
+
+    /** Documents read or filed by a cluster at a station that keeps no documents. */
+    CLUSTER_MANAGED_STATION_KEEPS_NO_DOCUMENTS(
+            Area.CLUSTERS, 105, HttpStatus.BAD_REQUEST, "This station keeps no documents"),
+
+    /**
+     * A document a cluster asked for that is not here, or one about nobody at its stations.
+     *
+     * <p>One code for both on purpose: telling them apart would say what is filed at a station outside
+     * the cluster.
+     */
+    CLUSTER_MANAGED_DOCUMENT_NOT_HERE(Area.CLUSTERS, 106, HttpStatus.NOT_FOUND, Sentences.DOCUMENT_NOT_HERE),
+
+    /** A document a cluster may read whose file is gone from storage. */
+    CLUSTER_MANAGED_DOCUMENT_FILE_NOT_HERE(
+            Area.CLUSTERS, 107, HttpStatus.NOT_FOUND, "The file of that document is not here any more"),
+
+    /**
+     * A member a cluster reached for who is not here, whose station is gone, or who belongs to a
+     * station outside the cluster.
+     *
+     * <p>One code for all three on purpose: telling them apart would say that somebody is a member of a
+     * station outside the cluster.
+     */
+    CLUSTER_MANAGED_MEMBER_NOT_HERE(Area.CLUSTERS, 108, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
+
+    /** A cluster manager changing their own membership at a station from the cluster. */
+    CLUSTER_MANAGED_MEMBER_IS_YOURSELF(
+            Area.CLUSTERS,
+            109,
+            HttpStatus.FORBIDDEN,
+            "Your own membership cannot be changed from the cluster, so nothing was changed"),
+
+    /** A cluster manager changing a station's owner from the cluster. */
+    CLUSTER_MANAGED_MEMBER_OWNS_STATION(
+            Area.CLUSTERS,
+            110,
+            HttpStatus.FORBIDDEN,
+            "A station's owner can only be changed at their own station, so nothing was changed"),
+
+    /** A person added to a cluster that is not here. */
+    CLUSTER_MEMBER_ADDED_TO_NO_CLUSTER(Area.CLUSTERS, 111, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
+
+    /** A person added to a cluster without an address. */
+    CLUSTER_MEMBER_ADDRESS_MISSING(
+            Area.CLUSTERS,
+            112,
+            HttpStatus.BAD_REQUEST,
+            "Give the email address of the person to add, so nothing was saved"),
+
+    /** A group of cluster members being made without a name. */
+    CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CREATE(
+            Area.CLUSTERS, 113, HttpStatus.BAD_REQUEST, Sentences.GROUP_NAME_MISSING),
+
+    /** A group of cluster members being renamed to nothing. */
+    CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CHANGE(
+            Area.CLUSTERS, 114, HttpStatus.BAD_REQUEST, Sentences.GROUP_NAME_MISSING),
+
+    /** A permission given to a group of cluster members that this instance does not keep. */
+    CLUSTER_MEMBER_GROUP_PERMISSION_UNKNOWN(
+            Area.CLUSTERS,
+            115,
+            HttpStatus.BAD_REQUEST,
+            "That is not a permission a group can carry, so nothing was saved"),
+
+    /** A cluster that is not here, asked about its members or groups. */
+    CLUSTER_MEMBER_CLUSTER_NOT_HERE(Area.CLUSTERS, 116, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
+
+    /**
+     * A cluster member that is not here, or one of another cluster.
+     *
+     * <p>One code for both on purpose: telling them apart would say who belongs to another cluster.
+     */
+    CLUSTER_MEMBER_NOT_HERE(Area.CLUSTERS, 117, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
+
+    /**
+     * A group of cluster members that is not here, or one of another cluster.
+     *
+     * <p>One code for both on purpose: telling them apart would say which groups another cluster keeps.
+     */
+    CLUSTER_MEMBER_GROUP_NOT_HERE(Area.CLUSTERS, 118, HttpStatus.NOT_FOUND, Sentences.GROUP_NOT_HERE),
+
+    /** A cluster being created with no name. */
+    CLUSTER_NEEDS_A_NAME_ON_CREATE(Area.CLUSTERS, 119, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NEEDS_A_NAME),
+
+    /** A cluster being renamed to no name at all. */
+    CLUSTER_NEEDS_A_NAME_ON_RENAME(Area.CLUSTERS, 120, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NEEDS_A_NAME),
+
+    /** A cluster that went before it could be renamed. */
+    CLUSTER_GONE_BEFORE_RENAME(Area.CLUSTERS, 121, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_HERE),
+
+    /** A cluster that went before it could be deleted. */
+    CLUSTER_GONE_BEFORE_DELETE(Area.CLUSTERS, 122, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_HERE),
+
+    /** A cluster asked to be deleted while stations still belong to it. */
+    CLUSTER_STILL_HAS_STATIONS(
+            Area.CLUSTERS,
+            123,
+            HttpStatus.BAD_REQUEST,
+            "Stations still belong to this cluster. Release them first, so nothing was deleted"),
+
+    /** A station the cluster creates for itself, given no name. */
+    CLUSTER_NEW_STATION_NEEDS_A_NAME(Area.CLUSTERS, 124, HttpStatus.BAD_REQUEST, Sentences.STATION_NEEDS_A_NAME),
+
+    /** A cluster's own station put forward to join another cluster. */
+    CLUSTER_HOME_STATION_CANNOT_JOIN(
+            Area.CLUSTERS,
+            125,
+            HttpStatus.BAD_REQUEST,
+            "A cluster's own station cannot join another cluster, so nothing was changed"),
+
+    /** A station taken into a cluster while it still belongs to another one. */
+    CLUSTER_STATION_ALREADY_IN_ANOTHER(
+            Area.CLUSTERS,
+            126,
+            HttpStatus.BAD_REQUEST,
+            "That station already belongs to another cluster, so nothing was changed"),
+
+    /** A station a cluster lets go that never belonged to it. */
+    CLUSTER_RELEASE_STATION_NOT_IN_IT(Area.CLUSTERS, 127, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_IN_CLUSTER),
+
+    /** An account taken on by a cluster it already acts for. */
+    CLUSTER_ACCOUNT_ALREADY_A_MEMBER(
+            Area.CLUSTERS,
+            128,
+            HttpStatus.BAD_REQUEST,
+            "That account is already a member of this cluster, so nothing was changed"),
+
+    /** A permission granted to a cluster member that the instance keeps no record of. */
+    CLUSTER_PERMISSION_NOT_KNOWN_ON_GRANT(
+            Area.CLUSTERS, 129, HttpStatus.BAD_REQUEST, "That permission is not known here, so nothing was granted"),
+
+    /** The cluster a station is being created in, taken in by or released from, gone before the change. */
+    CLUSTER_GONE_FOR_STATION_CHANGE(Area.CLUSTERS, 130, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_HERE),
+
+    /** The station a cluster is taking in or letting go, gone before the change. */
+    CLUSTER_STATION_GONE_FOR_CHANGE(Area.CLUSTERS, 131, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_HERE),
+
+    /** A group of stations removed while questions are still asked of it. */
+    CLUSTER_STATION_GROUP_STILL_ASKED_QUESTIONS(
+            Area.CLUSTERS,
+            132,
+            HttpStatus.BAD_REQUEST,
+            "Questions are still asked of this group. Point them somewhere else first, so nothing was removed"),
+
+    /** A group of stations removed while modules are still switched off for it. */
+    CLUSTER_STATION_GROUP_STILL_HAS_MODULES_OFF(
+            Area.CLUSTERS,
+            133,
+            HttpStatus.BAD_REQUEST,
+            "Modules are still switched off for this group. Switch them back on first, so nothing was removed"),
+
+    /** A group of stations removed while words are still recommended to it. */
+    CLUSTER_STATION_GROUP_STILL_RECOMMENDED_TAGS(
+            Area.CLUSTERS,
+            134,
+            HttpStatus.BAD_REQUEST,
+            "Tags are still recommended to this group. Point them somewhere else first, so nothing was removed"),
+
+    /** A group of stations removed while stock requirements still count at it. */
+    CLUSTER_STATION_GROUP_STILL_COUNTS_REQUIREMENTS(
+            Area.CLUSTERS,
+            135,
+            HttpStatus.BAD_REQUEST,
+            "Stock requirements still count at this group. Point them somewhere else first, so nothing was removed"),
+
+    /** A station filed under a group that is not here at all. */
+    CLUSTER_STATION_GROUP_STATION_GONE(Area.CLUSTERS, 136, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_HERE),
+
+    /** A station filed under a group of a cluster it does not belong to. */
+    CLUSTER_STATION_GROUP_STATION_NOT_IN_CLUSTER(
+            Area.CLUSTERS, 137, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_IN_CLUSTER),
+
+    /** A cluster's own station filed under one of its groups. */
+    CLUSTER_STATION_GROUP_TAKES_NO_HOME_STATION(
+            Area.CLUSTERS,
+            138,
+            HttpStatus.BAD_REQUEST,
+            "The cluster's own station is not one of its stations, so nothing was saved"),
+
+    /** The cluster behind its groups of stations, gone before the change. */
+    CLUSTER_STATION_GROUP_CLUSTER_GONE(Area.CLUSTERS, 139, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
+
+    /**
+     * A group of stations that is not here, or one of another cluster.
+     *
+     * <p>One code for both on purpose: telling them apart would say that the group exists at a
+     * cluster the reader does not act for.
+     */
+    CLUSTER_STATION_GROUP_NOT_HERE(
+            Area.CLUSTERS, 140, HttpStatus.NOT_FOUND, "That group of stations is not here any more"),
+
+    /** A group of stations given no name. */
+    CLUSTER_STATION_GROUP_NEEDS_A_NAME(
+            Area.CLUSTERS, 141, HttpStatus.BAD_REQUEST, "A group of stations needs a name, so nothing was saved"),
+
+    /** A group of stations given a name another group of the same cluster already has. */
+    CLUSTER_STATION_GROUP_NAME_TAKEN(
+            Area.CLUSTERS,
+            142,
+            HttpStatus.BAD_REQUEST,
+            "This cluster already has a group of stations by that name, so nothing was saved"),
+
+    /** A tier of room handed out without naming a station to hand it to. */
+    CLUSTER_QUOTA_TIER_NAMES_NO_STATION(
+            Area.CLUSTERS,
+            143,
+            HttpStatus.BAD_REQUEST,
+            "Choose at least one station to hand the tier to, so nothing was changed"),
+
+    /** A tier handed to stations that would together take more room than the cluster has left. */
+    CLUSTER_QUOTA_TIER_MORE_THAN_POOL(Area.CLUSTERS, 144, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_POOL_TOO_SMALL),
+
+    /** Room granted to a station that would take more than the cluster has left. */
+    CLUSTER_QUOTA_GRANT_MORE_THAN_POOL(Area.CLUSTERS, 145, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_POOL_TOO_SMALL),
+
+    /** The cluster behind the room it hands out, gone before the change. */
+    CLUSTER_QUOTA_CLUSTER_GONE(Area.CLUSTERS, 146, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
+
+    /**
+     * A tier of room that is not here, or one of another cluster.
+     *
+     * <p>One code for both on purpose: telling them apart would say that the tier exists at a
+     * cluster the reader does not act for.
+     */
+    CLUSTER_QUOTA_TIER_NOT_HERE(Area.CLUSTERS, 147, HttpStatus.NOT_FOUND, "That tier is not here any more"),
+
+    /** A station named by its identity for room from the cluster, which no station here has. */
+    CLUSTER_QUOTA_STATION_NOT_KNOWN(Area.CLUSTERS, 148, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
+
+    /** A station given room by the cluster that is not here any more. */
+    CLUSTER_QUOTA_STATION_GONE(Area.CLUSTERS, 149, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
+
+    /** Room handed to a station that does not belong to the cluster. */
+    CLUSTER_QUOTA_STATION_NOT_IN_CLUSTER(Area.CLUSTERS, 150, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_IN_CLUSTER),
+
+    /** A tier of room given no name. */
+    CLUSTER_QUOTA_TIER_NEEDS_A_NAME(
+            Area.CLUSTERS, 151, HttpStatus.BAD_REQUEST, "A tier needs a name, so nothing was saved"),
+
+    /** A tier of room given a name another tier of the same cluster already has. */
+    CLUSTER_QUOTA_TIER_NAME_TAKEN(
+            Area.CLUSTERS,
+            152,
+            HttpStatus.BAD_REQUEST,
+            "This cluster already has a tier by that name, so nothing was saved"),
+
+    /** Room set to less than nothing, which is a typing mistake. */
+    CLUSTER_QUOTA_ROOM_BELOW_NOTHING(
+            Area.CLUSTERS, 153, HttpStatus.BAD_REQUEST, "Room cannot be less than nothing, so nothing was saved"),
+
+    /** A reach chosen for the cluster's storage before any storage has been set up. */
+    CLUSTER_STORAGE_REACH_WITHOUT_STORAGE(
+            Area.CLUSTERS,
+            154,
+            HttpStatus.BAD_REQUEST,
+            "Set up the cluster's storage before deciding what it is for, so nothing was saved"),
+
+    /** A station's files moved that are already where the cluster's storage says they belong. */
+    CLUSTER_STORAGE_STATION_ALREADY_IN_PLACE(
+            Area.CLUSTERS,
+            155,
+            HttpStatus.BAD_REQUEST,
+            "That station's files are already where they belong, so nothing was moved"),
+
+    /** A station's files moved onto the cluster's storage when the cluster keeps none. */
+    CLUSTER_STORAGE_NONE_TO_MOVE_ONTO(
+            Area.CLUSTERS,
+            156,
+            HttpStatus.BAD_REQUEST,
+            "This cluster keeps no storage to move the files onto, so nothing was moved"),
+
+    /** A station's files moved by the cluster when they stand on storage the station brought itself. */
+    CLUSTER_STORAGE_STATION_OWN_STORAGE(
+            Area.CLUSTERS,
+            157,
+            HttpStatus.BAD_REQUEST,
+            "That station keeps its files on storage of its own, which only the station can change. Nothing was moved"),
+
+    /** The cluster whose storage is being set or used, gone before the change. */
+    CLUSTER_STORAGE_CLUSTER_GONE(Area.CLUSTERS, 158, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
+
+    /** A station whose files the cluster moves, gone before the move. */
+    CLUSTER_STORAGE_STATION_GONE(Area.CLUSTERS, 159, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
+
+    /** A station whose files the cluster moves that does not belong to the cluster. */
+    CLUSTER_STORAGE_STATION_NOT_IN_CLUSTER(
+            Area.CLUSTERS, 160, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_IN_CLUSTER),
+
+    /** An answer written to a cluster question that is not asked of the member's station. */
+    CLUSTER_PROFILE_FIELD_NOT_ASKED_AT_STATION(
+            Area.CLUSTERS,
+            161,
+            HttpStatus.BAD_REQUEST,
+            "That question is not asked of this member's station, so nothing was saved"),
+
+    /** A cluster question pointed at a group of stations of another cluster. */
+    CLUSTER_PROFILE_FIELD_GROUP_NOT_OWN(
+            Area.CLUSTERS,
+            162,
+            HttpStatus.BAD_REQUEST,
+            "That group of stations belongs to another cluster, so nothing was saved"),
+
+    /** A cluster question named like another one that reaches some of the same stations. */
+    CLUSTER_PROFILE_FIELD_NAME_REACHES_TWICE(
+            Area.CLUSTERS,
+            163,
+            HttpStatus.BAD_REQUEST,
+            "A question of that name already reaches a station this one would reach, so nothing was saved"),
+
+    /** A cluster question given no name. */
+    CLUSTER_PROFILE_FIELD_NEEDS_A_NAME(
+            Area.CLUSTERS, 164, HttpStatus.BAD_REQUEST, "A question needs a name, so nothing was saved"),
+
+    /** A cluster question of a type a cluster does not ask, which is the date of birth a station asks itself. */
+    CLUSTER_PROFILE_FIELD_TYPE_NOT_OFFERED(
+            Area.CLUSTERS,
+            165,
+            HttpStatus.BAD_REQUEST,
+            "A station asks for the date of birth itself, so a cluster cannot ask for it as well. Nothing was saved"),
+
+    /** The cluster behind its questions, gone before the request was carried out. */
+    CLUSTER_PROFILE_FIELD_CLUSTER_GONE(Area.CLUSTERS, 166, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
+
+    /**
+     * A cluster question that is not here, or one of another cluster.
+     *
+     * <p>One code for both on purpose: telling them apart would say that the question exists at a
+     * cluster the reader does not act for.
+     */
+    CLUSTER_PROFILE_FIELD_NOT_HERE(Area.CLUSTERS, 167, HttpStatus.NOT_FOUND, Sentences.PROFILE_FIELD_NOT_HERE),
+
+    /**
+     * A member whose cluster answers are asked for whose station is gone, or belongs to another cluster.
+     *
+     * <p>One code for both on purpose: telling them apart would say that the member exists at a
+     * cluster the reader does not act for.
+     */
+    CLUSTER_PROFILE_FIELD_MEMBER_NOT_IN_CLUSTER(Area.CLUSTERS, 168, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
+
+    /** A member whose cluster answers are asked for who is not here any more. */
+    CLUSTER_PROFILE_FIELD_MEMBER_GONE(Area.CLUSTERS, 169, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
 
     /**
      * A file in the media library that is gone, or one held back from this reader. The two are one
@@ -3233,6 +5141,14 @@ public enum Refusal {
 
     /** A tag that could not be taken off a file. */
     FILE_TAG_NOT_HERE_ON_REMOVAL(Area.MEDIA_LIBRARY, 16, HttpStatus.NOT_FOUND, Sentences.FILE_TAG_NOT_HERE),
+
+    /** A file in the media library deleted while news entries or appointments still hand it out, naming them. */
+    MEDIA_FILE_STILL_ATTACHED(
+            Area.MEDIA_LIBRARY,
+            23,
+            HttpStatus.BAD_REQUEST,
+            "That file is still attached to news entries or appointments, so it was not deleted. "
+                    + "Detach it there first. Places it is attached to"),
 
     /**
      * A folder or an article of the wiki that the reader's reach does not cover. Answered as though
@@ -3499,6 +5415,96 @@ public enum Refusal {
     /** A presentation that could not be read back after the file behind it was replaced. */
     KB_FILE_NOT_HERE_AFTER_REUPLOAD(
             Area.KNOWLEDGE_BASE, 71, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
+
+    /** An upload or a file of another kind turned into an article built from blocks. */
+    KB_ONLY_WRITTEN_ARTICLES_TAKE_BLOCKS(
+            Area.KNOWLEDGE_BASE,
+            72,
+            HttpStatus.BAD_REQUEST,
+            "Only a written article can be built from blocks, so nothing was changed"),
+
+    /** Blocks saved onto an article that is not built from them. */
+    KB_ARTICLE_NOT_BUILT_FROM_BLOCKS(
+            Area.KNOWLEDGE_BASE,
+            73,
+            HttpStatus.BAD_REQUEST,
+            "This article is not built from blocks, so nothing was saved"),
+
+    /**
+     * An entry of this station marked as a favourite that is not here, belongs to another station,
+     * or is closed to the reader. One code for all three, as the wiki gives one answer for them.
+     */
+    KB_FAVOURITE_ENTRY_NOT_HERE_OR_NOT_YOURS(
+            Area.KNOWLEDGE_BASE, 74, HttpStatus.NOT_FOUND, Sentences.NOT_HERE_OR_NOT_YOURS),
+
+    /** A favourite of this station's entry that could not be read back after being marked. */
+    KB_FAVOURITE_NOT_READ_BACK_AFTER_MARKING(
+            Area.KNOWLEDGE_BASE, 75, HttpStatus.NOT_FOUND, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
+
+    /** A partner favourite asked for with a kind of entry that does not live at a partner station. */
+    KB_FAVOURITE_TARGET_NOT_AT_A_PARTNER(
+            Area.KNOWLEDGE_BASE, 76, HttpStatus.NOT_FOUND, "That is not an entry at a partner station"),
+
+    /** A favourite of a partner's entry that could not be read back after being marked. */
+    KB_PARTNER_FAVOURITE_NOT_READ_BACK_AFTER_MARKING(
+            Area.KNOWLEDGE_BASE, 77, HttpStatus.NOT_FOUND, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
+
+    /** A partner folder marked as a favourite that the partner's answer does not name. */
+    PARTNER_KB_FOLDER_NOT_IN_ITS_TRAIL(Area.KNOWLEDGE_BASE, 78, HttpStatus.NOT_FOUND, Sentences.FOLDER_NOT_HERE),
+
+    /** The partner a favourite is kept for, not a partner of this station any more. */
+    KB_FAVOURITE_PARTNER_NOT_HERE(Area.KNOWLEDGE_BASE, 79, HttpStatus.NOT_FOUND, Sentences.PARTNER_STATION_NOT_HERE),
+
+    /** The partner whose article is commented on, not a partner of this station any more. */
+    KB_COMMENT_PARTNER_NOT_HERE(Area.KNOWLEDGE_BASE, 80, HttpStatus.NOT_FOUND, Sentences.PARTNER_STATION_NOT_HERE),
+
+    /** A comment a partner's member changes or removes on an article here, which is not here. */
+    REMOTE_KB_COMMENT_NOT_HERE(Area.KNOWLEDGE_BASE, 81, HttpStatus.NOT_FOUND, Sentences.KB_COMMENT_NOT_HERE),
+
+    /** A comment on an article here that a partner's member removes without having written it. */
+    REMOTE_KB_COMMENT_NOT_YOURS_TO_DELETE(
+            Area.KNOWLEDGE_BASE, 82, HttpStatus.FORBIDDEN, Sentences.NEWS_COMMENT_NOT_YOURS_TO_DELETE),
+
+    /** A comment on an article here that a partner's member changes without having written it. */
+    REMOTE_KB_COMMENT_NOT_YOURS_TO_EDIT(
+            Area.KNOWLEDGE_BASE, 83, HttpStatus.FORBIDDEN, Sentences.NEWS_COMMENT_NOT_YOURS_TO_EDIT),
+
+    /**
+     * An article a partner asks for that is not here, belongs to another station, or is not shared
+     * with it. One code for all three: telling them apart would let a partner count the articles it
+     * was never shown.
+     */
+    REMOTE_KB_FILE_NOT_SHARED(Area.KNOWLEDGE_BASE, 84, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
+
+    /**
+     * A folder a partner opens that is not here, belongs to another station, or is not shared with
+     * it. One code for all three, for the same reason.
+     */
+    REMOTE_KB_FOLDER_NOT_SHARED(Area.KNOWLEDGE_BASE, 85, HttpStatus.NOT_FOUND, Sentences.FOLDER_NOT_HERE),
+
+    /** Who an entry is shared with, said for both an article and a folder at once, or for neither. */
+    KB_AUDIENCE_NEEDS_ONE_ENTRY(
+            Area.KNOWLEDGE_BASE,
+            86,
+            HttpStatus.BAD_REQUEST,
+            "Name either an article or a folder, so nothing was saved"),
+
+    /** An entry shared with every partner while the folder above it reaches named stations only. */
+    KB_SHARE_WIDER_THAN_ITS_FOLDER(
+            Area.KNOWLEDGE_BASE,
+            87,
+            HttpStatus.BAD_REQUEST,
+            "The folder above this is shared with named stations only, so nothing was saved"),
+
+    /** An entry shared with a station the folder above it does not reach. */
+    KB_SHARE_NAMES_STATIONS_ITS_FOLDER_DOES_NOT(
+            Area.KNOWLEDGE_BASE,
+            88,
+            HttpStatus.BAD_REQUEST,
+            "The folder above this does not reach every station named, so nothing was saved"),
+
+    /** A partner's file asked for as a PDF that has no written body to print. */
+    PARTNER_KB_ONLY_WRITTEN_AS_PDF(Area.KNOWLEDGE_BASE, 89, HttpStatus.BAD_REQUEST, Sentences.KB_ONLY_WRITTEN_AS_PDF),
 
     /** An avatar asked for by somebody who may not see it, or of somebody who has none. */
     AVATAR_NOT_HERE(Area.MEMBERS, 1, HttpStatus.NOT_FOUND, Sentences.PICTURE_NOT_HERE),
@@ -4083,6 +6089,190 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "The member profile does not offer that type of question, so nothing was saved"),
 
+    /** Registering far more often from one address than a person could. */
+    REGISTERING_TOO_OFTEN(Area.MEMBERS, 150, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Confirming an email address far more often from one address than a person could. */
+    EMAIL_VERIFYING_TOO_OFTEN(Area.MEMBERS, 151, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Asking for the confirmation mail again far more often than a person could. */
+    VERIFICATION_MAIL_TOO_OFTEN(Area.MEMBERS, 152, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Setting a password through a link far more often from one address than a person could. */
+    PASSWORD_SETTING_TOO_OFTEN(Area.MEMBERS, 153, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Setting a sign-in address through a link far more often from one address than a person could. */
+    ADDRESS_SETTING_TOO_OFTEN(Area.MEMBERS, 154, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Checking whether a password link still holds far more often than a person could. */
+    PASSWORD_LINK_CHECKED_TOO_OFTEN(Area.MEMBERS, 155, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Asking for a password reset far more often than a person could. */
+    PASSWORD_RESET_TOO_OFTEN(Area.MEMBERS, 156, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Signing in with a password far more often than a person could. */
+    SIGN_IN_TOO_OFTEN(Area.MEMBERS, 157, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Changing one's own password far more often than a person could. */
+    PASSWORD_CHANGE_TOO_OFTEN(Area.MEMBERS, 158, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Confirming a change of email address far more often than a person could. */
+    EMAIL_CHANGE_CONFIRMED_TOO_OFTEN(Area.MEMBERS, 159, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A profile answer sent in a shape no answer is written in. */
+    PROFILE_ANSWER_NOT_READABLE(
+            Area.MEMBERS,
+            160,
+            HttpStatus.BAD_REQUEST,
+            "That is not an answer this field can take, so nothing was saved"),
+
+    /** A permission named for a member or a group that no permission answers to. */
+    MEMBER_PERMISSION_UNKNOWN(
+            Area.MEMBERS, 161, HttpStatus.BAD_REQUEST, "That permission does not exist, so nothing was saved"),
+
+    /** A permission handed to a member or a group by somebody who does not hold it themselves. */
+    MEMBER_PERMISSION_NOT_YOURS_TO_GRANT(
+            Area.MEMBERS,
+            162,
+            HttpStatus.FORBIDDEN,
+            "You cannot hand out a permission you do not hold yourself, so nothing was saved"),
+
+    /** A member taking away one of their own permissions. */
+    MEMBER_OWN_PERMISSION_NOT_REMOVABLE(
+            Area.MEMBERS, 163, HttpStatus.FORBIDDEN, "You cannot take away your own permissions, so nothing was saved"),
+
+    /** The permission to administer the station, taken from whoever owns it. */
+    MEMBER_OWNER_KEEPS_ADMINISTRATION(
+            Area.MEMBERS,
+            164,
+            HttpStatus.FORBIDDEN,
+            "Whoever owns the station keeps the permission to administer it, so nothing was saved"),
+
+    /** Signing in switched on for a member whose account has no address to sign in with. */
+    MEMBER_SIGN_IN_NEEDS_AN_ADDRESS(
+            Area.MEMBERS,
+            165,
+            HttpStatus.BAD_REQUEST,
+            "Signing in needs an email address on the account, so nothing was saved"),
+
+    /** The member somebody is to look after, gone before the guardians were written. */
+    MEMBER_NOT_HERE_FOR_GUARDIANS(Area.MEMBERS, 166, HttpStatus.BAD_REQUEST, Sentences.MEMBER_NOT_HERE),
+
+    /** A guardian given to a member who is neither a member nor a trial member, and so looks after themselves. */
+    MEMBER_TYPE_TAKES_NO_GUARDIANS(
+            Area.MEMBERS,
+            167,
+            HttpStatus.BAD_REQUEST,
+            "Only members and trial members can be given a guardian, so nothing was saved"),
+
+    /** A passkey code a guardian asked for, for a member with an address of their own. */
+    MANAGED_MEMBER_HAS_OWN_ADDRESS(
+            Area.MEMBERS, 168, HttpStatus.FORBIDDEN, "This member has an address of their own: the way in is by mail"),
+
+    /** Signing in switched on for a member in somebody's care, at an instance that has no permission for it. */
+    MANAGED_SIGN_IN_PERMISSION_MISSING(
+            Area.MEMBERS, 169, HttpStatus.BAD_REQUEST, "Signing in cannot be switched on here, so nothing was changed"),
+
+    /** Signing in switched on for a member in somebody's care who has neither an address nor a username. */
+    MANAGED_SIGN_IN_NEEDS_A_NAME_OR_ADDRESS(
+            Area.MEMBERS,
+            170,
+            HttpStatus.BAD_REQUEST,
+            "Give this member an email address or a username before letting them sign in, so nothing was changed"),
+
+    /** A member in somebody's care who has no account to give access to. */
+    MANAGED_MEMBER_HAS_NO_ACCOUNT(Area.MEMBERS, 171, HttpStatus.BAD_REQUEST, "This member has no account yet"),
+
+    /** The account of a member in somebody's care, gone between the member and the account being read. */
+    MANAGED_ACCOUNT_NOT_HERE(Area.MEMBERS, 172, HttpStatus.NOT_FOUND, Sentences.ACCOUNT_NOT_HERE),
+
+    /** A guardian reaching for the access of a member they do not look after. */
+    MANAGED_MEMBER_NOT_YOURS(Area.MEMBERS, 173, HttpStatus.FORBIDDEN, Sentences.MEMBER_NOT_YOURS),
+
+    /** A member a guardian looks after, gone before their access was read. */
+    MANAGED_MEMBER_NOT_HERE(Area.MEMBERS, 174, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
+
+    /** A guardian reaching for the access of somebody who is neither a member nor a trial member. */
+    MANAGED_MEMBER_TYPE_NOT_MANAGED(
+            Area.MEMBERS, 175, HttpStatus.FORBIDDEN, "Only members and trial members are looked after this way"),
+
+    /** The member a nickname is written for, gone before it was written. */
+    NICKNAME_MEMBER_NOT_HERE(Area.MEMBERS, 176, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
+
+    /** A nickname written by somebody who is neither the member, nor looks after them, nor keeps the members. */
+    NICKNAME_NOT_YOURS_TO_SET(
+            Area.MEMBERS,
+            177,
+            HttpStatus.FORBIDDEN,
+            "Only the member, whoever looks after them, or whoever keeps the station's members may set the "
+                    + "nickname, so nothing was saved"),
+
+    /** A nickname longer than one is kept. */
+    NICKNAME_TOO_LONG(
+            Area.MEMBERS, 178, HttpStatus.BAD_REQUEST, "A nickname is at most 60 characters, so nothing was saved"),
+
+    /** A nickname with a line break in it. */
+    NICKNAME_NOT_ONE_LINE(Area.MEMBERS, 179, HttpStatus.BAD_REQUEST, "A nickname is one line, so nothing was saved"),
+
+    /** A username shorter or longer than one is kept. */
+    USERNAME_LENGTH_NOT_TAKEN(
+            Area.MEMBERS,
+            180,
+            HttpStatus.BAD_REQUEST,
+            "A username is between 3 and 32 characters long, so nothing was saved"),
+
+    /** A username with a character in it that a username does not hold, an at sign among them. */
+    USERNAME_CHARACTERS_NOT_TAKEN(
+            Area.MEMBERS,
+            181,
+            HttpStatus.BAD_REQUEST,
+            "A username holds only letters, digits, dots, hyphens and underscores, so nothing was saved"),
+
+    /** A username another account already signs in with. */
+    USERNAME_TAKEN(
+            Area.MEMBERS,
+            182,
+            HttpStatus.BAD_REQUEST,
+            "That username already belongs to another account, so nothing was saved"),
+
+    /** A username taken away from an account that has nothing else to sign in with. */
+    USERNAME_IS_THE_ONLY_WAY_IN(
+            Area.MEMBERS,
+            183,
+            HttpStatus.BAD_REQUEST,
+            "This account signs in with its username alone. Give it an email address before taking the "
+                    + "username away"),
+
+    /** An account writing its own address without confirming it, which is the way an account is taken over. */
+    OWN_ADDRESS_NOT_WRITTEN_UNCONFIRMED(
+            Area.MEMBERS,
+            184,
+            HttpStatus.FORBIDDEN,
+            "Your own address is changed by confirming the new one, so nothing was saved"),
+
+    /** The account an address is written onto, gone before it was written. */
+    ACCOUNT_NOT_HERE_ON_ADDRESS_WRITE(Area.MEMBERS, 185, HttpStatus.NOT_FOUND, Sentences.ACCOUNT_NOT_HERE),
+
+    /** An address written onto an account that is not one, or one nothing can be delivered to. */
+    ADDRESS_NOT_GOOD_ON_ADDRESS_WRITE(
+            Area.MEMBERS,
+            186,
+            HttpStatus.BAD_REQUEST,
+            "That is not an address anything can be sent to, so nothing was saved"),
+
+    /** An address written onto an account that another account already carries. */
+    ADDRESS_TAKEN_ON_ADDRESS_WRITE(Area.MEMBERS, 187, HttpStatus.BAD_REQUEST, Sentences.ADDRESS_BELONGS_TO_ANOTHER),
+
+    /** A second date of birth asked for at a station that already asks for one, named after it. */
+    PROFILE_BIRTH_DATE_ALREADY_ASKED(
+            Area.MEMBERS,
+            188,
+            HttpStatus.BAD_REQUEST,
+            "This station already asks for the date of birth in another question, so nothing was saved"),
+
+    /** A profile question saved with a default its own answers would not take, naming what is wrong. */
+    PROFILE_DEFAULT_NOT_ACCEPTED(Area.MEMBERS, 189, HttpStatus.BAD_REQUEST, Sentences.DEFAULT_NOT_SUITING),
+
     /** Asking to set an instance up far more often than a person could. */
     SETUP_TOO_OFTEN(Area.INSTALLATION, 1, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
 
@@ -4263,6 +6453,107 @@ public enum Refusal {
     /** A look the instance is to start every station from that is not one of the looks on offer. */
     THEME_FEEL_UNKNOWN(Area.SYSTEM, 35, HttpStatus.BAD_REQUEST, Sentences.LOOK_NOT_OFFERED),
 
+    /** An action the public demo blocks outright by its address. */
+    DEMO_BLOCKS_ACTION(
+            Area.SYSTEM, 36, HttpStatus.BAD_REQUEST, "This is switched off in the demo, so nothing was done"),
+
+    /** An upload to an address the public demo answers reads on but takes no writes at. */
+    DEMO_BLOCKS_UPLOAD(Area.SYSTEM, 37, HttpStatus.BAD_REQUEST, Sentences.DEMO_UPLOADS_OFF),
+
+    /** Creating or deleting a station on the public demo. */
+    DEMO_BLOCKS_STATION_MANAGEMENT(
+            Area.SYSTEM,
+            38,
+            HttpStatus.BAD_REQUEST,
+            "Adding and removing stations is switched off in the demo, so nothing was changed"),
+
+    /** Changing the roles of a member or a group on the public demo. */
+    DEMO_BLOCKS_ROLE_CHANGES(
+            Area.SYSTEM,
+            39,
+            HttpStatus.BAD_REQUEST,
+            "Changing roles is switched off in the demo, so nothing was changed"),
+
+    /** Setting up a security key on the public demo, which would lock the demo account behind it. */
+    DEMO_BLOCKS_SECURITY_KEY_SETUP(
+            Area.SYSTEM,
+            40,
+            HttpStatus.BAD_REQUEST,
+            "Setting up a security key is switched off in the demo, so nothing was saved"),
+
+    /** Accepting an invite to a station on the public demo. */
+    DEMO_BLOCKS_ACCEPTING_INVITES(
+            Area.SYSTEM,
+            41,
+            HttpStatus.BAD_REQUEST,
+            "Accepting invites is switched off in the demo, so nothing was done"),
+
+    /** Signing up for a public waiting list on the public demo. */
+    DEMO_BLOCKS_PUBLIC_WAITING_LIST_SIGN_UP(
+            Area.SYSTEM,
+            42,
+            HttpStatus.BAD_REQUEST,
+            "Signing up for a waiting list is switched off in the demo, so nothing was saved"),
+
+    /** A file uploaded to a page on the public demo. */
+    DEMO_BLOCKS_PAGE_UPLOADS(Area.SYSTEM, 43, HttpStatus.BAD_REQUEST, Sentences.DEMO_UPLOADS_OFF),
+
+    /** A folder icon or an article picture uploaded to the knowledge base on the public demo. */
+    DEMO_BLOCKS_KB_UPLOADS(Area.SYSTEM, 44, HttpStatus.BAD_REQUEST, Sentences.DEMO_UPLOADS_OFF),
+
+    /** Probing another instance from the public demo. */
+    DEMO_BLOCKS_PEER_PROBES(
+            Area.SYSTEM,
+            45,
+            HttpStatus.BAD_REQUEST,
+            "Reaching out to other instances is switched off in the demo, so nothing was done"),
+
+    /** Asking another station to lend gear on the public demo. */
+    DEMO_BLOCKS_LENDING(
+            Area.SYSTEM,
+            46,
+            HttpStatus.BAD_REQUEST,
+            "Borrowing from other stations is switched off in the demo, so nothing was saved"),
+
+    /** Asking an AI provider for its models on the public demo. */
+    DEMO_BLOCKS_AI_CALLS(
+            Area.SYSTEM,
+            47,
+            HttpStatus.BAD_REQUEST,
+            "Calling AI providers is switched off in the demo, so nothing was done"),
+
+    /** Mail settings tested on the instance with a recipient that is plainly not an address. */
+    INSTANCE_TEST_MAIL_RECIPIENT_NOT_AN_ADDRESS(
+            Area.SYSTEM, 48, HttpStatus.BAD_REQUEST, "That is not an email address, so nothing was sent"),
+
+    /** The picture of a problem report that arrived but could not be kept. */
+    PROBLEM_PICTURE_NOT_KEPT(
+            Area.SYSTEM, 49, HttpStatus.BAD_REQUEST, "The picture could not be kept, so the report was not sent"),
+
+    /** The picture of a problem report that does not read as a picture at all. */
+    PROBLEM_PICTURE_NOT_READABLE(
+            Area.SYSTEM, 50, HttpStatus.BAD_REQUEST, "The picture could not be read, so the report was not sent"),
+
+    /** The picture of a problem report that was announced and has nothing in it. */
+    PROBLEM_PICTURE_EMPTY(Area.SYSTEM, 51, HttpStatus.BAD_REQUEST, "The picture is empty, so the report was not sent"),
+
+    /** The picture of a problem report larger than a report takes. */
+    PROBLEM_PICTURE_TOO_LARGE(
+            Area.SYSTEM, 52, HttpStatus.BAD_REQUEST, "The picture is too large, so the report was not sent"),
+
+    /** The picture of a problem report that is neither a PNG nor a WebP. */
+    PROBLEM_PICTURE_KIND_NOT_TAKEN(
+            Area.SYSTEM,
+            53,
+            HttpStatus.BAD_REQUEST,
+            "A report only takes a picture as PNG or WebP, so the report was not sent"),
+
+    /** Data tracking changed for a table it keeps no record of. */
+    TRACKED_TABLE_NOT_HERE_TO_UPDATE(Area.SYSTEM, 54, HttpStatus.BAD_REQUEST, Sentences.TRACKED_TABLE_NOT_HERE),
+
+    /** Every column of a table marked checked where data tracking keeps no record of the table. */
+    TRACKED_TABLE_NOT_HERE_TO_VERIFY(Area.SYSTEM, 55, HttpStatus.BAD_REQUEST, Sentences.TRACKED_TABLE_NOT_HERE),
+
     /**
      * A station's files that could not be carried to the storage it asked for.
      *
@@ -4392,6 +6683,69 @@ public enum Refusal {
     /** A file asked for on behalf of a station moving away that is not here any more. */
     TRANSFER_FILE_NOT_HERE(Area.STORAGE, 23, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
 
+    /** A change at the caller's own station while that station is moving to another instance. */
+    STATION_READ_ONLY_FOR_TRANSFER(
+            Area.STORAGE, 24, HttpStatus.SERVICE_UNAVAILABLE, Sentences.STATION_BEING_TRANSFERRED),
+
+    /** A change to a station's storage quota or usage by an administrator while that station is moving. */
+    STATION_READ_ONLY_FOR_TRANSFER_ON_ADMIN_STORAGE(
+            Area.STORAGE, 25, HttpStatus.SERVICE_UNAVAILABLE, Sentences.STATION_BEING_TRANSFERRED),
+
+    /** Work outside a request, such as a scheduled job or a partner's call, at a station that is moving. */
+    STATION_READ_ONLY_FOR_BACKGROUND_WRITE(
+            Area.STORAGE, 26, HttpStatus.SERVICE_UNAVAILABLE, Sentences.STATION_BEING_TRANSFERRED),
+
+    /** A file stored for a station that is moving to another instance. */
+    STATION_READ_ONLY_FOR_FILE_WRITE(
+            Area.STORAGE, 27, HttpStatus.SERVICE_UNAVAILABLE, Sentences.STATION_BEING_TRANSFERRED),
+
+    /** A file stored while the instance moves all its files to another storage. */
+    INSTANCE_STORAGE_MOVING(
+            Area.STORAGE,
+            28,
+            HttpStatus.SERVICE_UNAVAILABLE,
+            "The instance is moving its files to another storage, so nothing was saved. Try again once the move is done"),
+
+    /** The storage of a moving station asked for with a transfer code that is not good. */
+    TRANSFER_TOKEN_NOT_GOOD_ON_BACKEND(Area.STORAGE, 29, HttpStatus.FORBIDDEN, Sentences.TRANSFER_TOKEN_NOT_GOOD),
+
+    /** The storage of a moving station asked for a second time, when it is handed over once only. */
+    TRANSFER_BACKEND_ALREADY_HANDED_OVER(
+            Area.STORAGE,
+            30,
+            HttpStatus.TOO_MANY_REQUESTS,
+            "The storage of this move has already been handed over, and it is handed over only once"),
+
+    /** The files of a moving station listed with a transfer code that is not good. */
+    TRANSFER_TOKEN_NOT_GOOD_ON_FILE_LIST(Area.STORAGE, 31, HttpStatus.FORBIDDEN, Sentences.TRANSFER_TOKEN_NOT_GOOD),
+
+    /** One file of a moving station asked for with a transfer code that is not good. */
+    TRANSFER_TOKEN_NOT_GOOD_ON_FILE(Area.STORAGE, 32, HttpStatus.FORBIDDEN, Sentences.TRANSFER_TOKEN_NOT_GOOD),
+
+    /** One file of a moving station asked for without saying which. */
+    TRANSFER_FILE_KEY_MISSING(Area.STORAGE, 33, HttpStatus.BAD_REQUEST, "Say which file is wanted"),
+
+    /** An account's picture asked for with a transfer code that is not good. */
+    TRANSFER_TOKEN_NOT_GOOD_ON_AVATAR(Area.STORAGE, 34, HttpStatus.FORBIDDEN, Sentences.TRANSFER_TOKEN_NOT_GOOD),
+
+    /** An account's picture asked for during a move where the account has none. */
+    TRANSFER_AVATAR_NOT_HERE(Area.STORAGE, 35, HttpStatus.NOT_FOUND, "That account has no picture to carry over"),
+
+    /** Files of a moving station asked for without saying which kind. */
+    TRANSFER_FILE_KIND_MISSING(Area.STORAGE, 36, HttpStatus.BAD_REQUEST, "Say which kind of file is wanted"),
+
+    /** Files of a moving station asked for by a kind no instance keeps. */
+    TRANSFER_FILE_KIND_UNKNOWN(
+            Area.STORAGE, 37, HttpStatus.BAD_REQUEST, "That is not a kind of file this instance keeps"),
+
+    /** Files of a moving station asked for by a kind that belongs to the instance, not to a station. */
+    TRANSFER_FILE_KIND_NOT_A_STATIONS(
+            Area.STORAGE, 38, HttpStatus.BAD_REQUEST, "That kind of file does not belong to a station"),
+
+    /** Files of a moving station asked for by a kind that does not move with a station. */
+    TRANSFER_FILE_KIND_NOT_MOVABLE(
+            Area.STORAGE, 39, HttpStatus.BAD_REQUEST, "That kind of file does not move with a station"),
+
     /** Traffic figures for the whole instance asked for without one end of the stretch of time. */
     TRAFFIC_SPAN_MISSING(Area.TRAFFIC, 1, HttpStatus.BAD_REQUEST, Sentences.TRAFFIC_SPAN_MISSING),
 
@@ -4439,6 +6793,39 @@ public enum Refusal {
     /** Pieces of the map asked for faster than one address may ask for them. */
     MAP_TILES_TOO_OFTEN(Area.MAPS, 6, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
 
+    /** A map setting saved without choosing where the map pictures come from. */
+    MAP_TILE_PROVIDER_MISSING(
+            Area.MAPS, 7, HttpStatus.BAD_REQUEST, "Choose where the map comes from, so nothing was saved"),
+
+    /** A map setting whose closest and farthest zoom do not make a range the map is served at. */
+    MAP_ZOOM_RANGE_NOT_GOOD(
+            Area.MAPS,
+            8,
+            HttpStatus.BAD_REQUEST,
+            "The zoom has to run from 0 to at most 22, smallest first, so nothing was saved"),
+
+    /** A map provider that needs a key, chosen without one. */
+    MAP_TILE_PROVIDER_KEY_MISSING(
+            Area.MAPS, 9, HttpStatus.BAD_REQUEST, "That map provider needs a key, so nothing was saved"),
+
+    /** A map of its own chosen without the address its pictures are fetched from. */
+    MAP_TILE_ADDRESS_MISSING(
+            Area.MAPS,
+            10,
+            HttpStatus.BAD_REQUEST,
+            "A map of your own needs the address its pictures come from, so nothing was saved"),
+
+    /** An address search setting saved without choosing who answers the search. */
+    MAP_GEOCODING_PROVIDER_MISSING(
+            Area.MAPS, 11, HttpStatus.BAD_REQUEST, "Choose who looks up addresses, so nothing was saved"),
+
+    /** A map cache size below nothing or above what an instance may keep. */
+    MAP_TILE_CACHE_SIZE_OUT_OF_RANGE(
+            Area.MAPS,
+            12,
+            HttpStatus.BAD_REQUEST,
+            "The map cache has to be between 0 and 10000 MB, so nothing was saved"),
+
     /**
      * A delivery report from a mail provider whose key opens nothing, or whose signature does not
      * match what it carries. One code deliberately: two would tell whoever is trying the addresses
@@ -4452,6 +6839,35 @@ public enum Refusal {
             1,
             HttpStatus.BAD_REQUEST,
             "Say which version of the terms was agreed to, so nothing was written down"),
+
+    /** Consent given without saying which version of the consent text was clicked through. */
+    LEGAL_CONSENT_VERSION_MISSING(
+            Area.LEGAL,
+            2,
+            HttpStatus.BAD_REQUEST,
+            "Say which version of the consent text was agreed to, so nothing was saved"),
+
+    /** Consent given without saying which version of the privacy policy was clicked through. */
+    LEGAL_PRIVACY_VERSION_MISSING(
+            Area.LEGAL,
+            3,
+            HttpStatus.BAD_REQUEST,
+            "Say which version of the privacy policy was agreed to, so nothing was saved"),
+
+    /** Consent given without saying which version of the terms of service was clicked through. */
+    LEGAL_TERMS_VERSION_MISSING(
+            Area.LEGAL,
+            4,
+            HttpStatus.BAD_REQUEST,
+            "Say which version of the terms of service was agreed to, so nothing was saved"),
+
+    /** Consent given to legal documents that have changed since the form was loaded. */
+    LEGAL_DOCUMENTS_CHANGED(
+            Area.LEGAL,
+            5,
+            HttpStatus.BAD_REQUEST,
+            "The legal documents have changed since the form was loaded, so nothing was saved. "
+                    + "Reload the page and agree again"),
 
     /**
      * A feed link that opens nothing, or that stands for a member who has since gone. One code
@@ -4677,6 +7093,46 @@ public enum Refusal {
             HttpStatus.CONFLICT,
             "Some accounts would have no way in without a passkey, so the mode was left as it was"),
 
+    /** A passkey set up on another device, asked for far more often than a person could. */
+    PASSKEY_DEVICE_REQUEST_TOO_OFTEN(Area.PASSKEYS, 43, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A sign-in through another device asked for far more often than a person could. */
+    PASSKEY_SIGN_IN_REQUEST_TOO_OFTEN(Area.PASSKEYS, 44, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A sign-in another device approved, collected far more often than a person could. */
+    PASSKEY_SIGN_IN_CLAIM_TOO_OFTEN(Area.PASSKEYS, 45, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Waiting on another device's approval, asked after far more often than a screen would. */
+    PASSKEY_DEVICE_POLL_TOO_OFTEN(Area.PASSKEYS, 46, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Setting up a passkey on an approved device, started far more often than a person could. */
+    PASSKEY_DEVICE_ENROLL_BEGIN_TOO_OFTEN(Area.PASSKEYS, 47, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Setting up a passkey on an approved device, finished far more often than a person could. */
+    PASSKEY_DEVICE_ENROLL_FINISH_TOO_OFTEN(
+            Area.PASSKEYS, 48, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A passkey setup link looked up far more often than a person could. */
+    PASSKEY_TOKEN_LOOKUP_TOO_OFTEN(Area.PASSKEYS, 49, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Setting up a passkey through a link, started far more often than a person could. */
+    PASSKEY_TOKEN_ENROLL_BEGIN_TOO_OFTEN(Area.PASSKEYS, 50, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Setting up a passkey through a link, finished far more often than a person could. */
+    PASSKEY_TOKEN_ENROLL_FINISH_TOO_OFTEN(Area.PASSKEYS, 51, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A code shown on another device, looked up far more often than a person could type one. */
+    PASSKEY_DEVICE_CODE_LOOKUP_TOO_OFTEN(Area.PASSKEYS, 52, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Another device approved far more often than a person could. */
+    PASSKEY_DEVICE_APPROVAL_TOO_OFTEN(Area.PASSKEYS, 53, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Signing in with a passkey, started far more often than a person could. */
+    PASSKEY_SIGN_IN_BEGIN_TOO_OFTEN(Area.PASSKEYS, 54, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Signing in with a passkey, finished far more often than a person could. */
+    PASSKEY_SIGN_IN_FINISH_TOO_OFTEN(Area.PASSKEYS, 55, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
     /** Setting up an app code on an account that already has a second factor. */
     ALREADY_ENROLLED_ON_TOTP_SETUP(
             Area.TWO_FACTOR, 1, HttpStatus.BAD_REQUEST, "A second factor is already set up on this account"),
@@ -4839,6 +7295,37 @@ public enum Refusal {
     /** A member's second factor a station administrator asked to clear that could not be cleared. */
     SECOND_FACTOR_NOT_RESET_ON_STATION(Area.TWO_FACTOR, 41, HttpStatus.NOT_FOUND, Sentences.SECOND_FACTOR_NOT_RESET),
 
+    /** A second factor proved at the sign-in step far more often than a person could. */
+    TWO_FACTOR_CODE_TOO_OFTEN(Area.TWO_FACTOR, 42, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A second factor proved again for a sensitive action far more often than a person could. */
+    TWO_FACTOR_STEP_UP_TOO_OFTEN(Area.TWO_FACTOR, 43, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A security key used to sign in far more often than a person could. */
+    SECURITY_KEY_SIGN_IN_TOO_OFTEN(Area.TWO_FACTOR, 44, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A security key used to confirm a sensitive action far more often than a person could. */
+    SECURITY_KEY_STEP_UP_TOO_OFTEN(Area.TWO_FACTOR, 45, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Another device asked to confirm a sensitive action far more often than a person could. */
+    STEP_UP_DEVICE_REQUEST_TOO_OFTEN(Area.TWO_FACTOR, 46, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Waiting on another device's confirmation, asked after far more often than a screen would. */
+    STEP_UP_DEVICE_POLL_TOO_OFTEN(Area.TWO_FACTOR, 47, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A sensitive action confirmed with the password far more often than a person could. */
+    STEP_UP_PASSWORD_TOO_OFTEN(Area.TWO_FACTOR, 48, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A sensitive action confirmed with a passkey far more often than a person could. */
+    STEP_UP_PASSKEY_TOO_OFTEN(Area.TWO_FACTOR, 49, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A session that another device vouched for, trying to vouch for a further one. */
+    VOUCHED_SESSION_CANNOT_VOUCH(
+            Area.TWO_FACTOR,
+            50,
+            HttpStatus.FORBIDDEN,
+            "A sign-in another device confirmed cannot confirm a further device. Use a device you signed in on yourself"),
+
     /** A page that went between the editor being opened and the save being asked for. */
     PAGE_NOT_HERE_ON_SAVE(Area.PAGES, 1, HttpStatus.NOT_FOUND, Sentences.PAGE_NOT_HERE),
 
@@ -4875,6 +7362,60 @@ public enum Refusal {
      * owed nothing about which of the two it was.
      */
     PAGE_LINK_UNKNOWN(Area.PAGES, 11, HttpStatus.NOT_FOUND, "No page is reached by this link"),
+
+    /** A page filed under one that is reached by its link alone. */
+    PAGE_UNDER_A_LINK_ONLY_PAGE(
+            Area.PAGES,
+            27,
+            HttpStatus.BAD_REQUEST,
+            "A page reached by its link alone cannot hold pages under it, so nothing was saved"),
+
+    /** A page reached by its link alone, filed under another page. */
+    PAGE_LINK_ONLY_UNDER_ANOTHER(
+            Area.PAGES,
+            28,
+            HttpStatus.BAD_REQUEST,
+            "A page reached by its link alone does not sit under another, so nothing was saved"),
+
+    /** A page with pages under it, made reachable by its link alone. */
+    PAGE_WITH_CHILDREN_NOT_LINK_ONLY(
+            Area.PAGES,
+            29,
+            HttpStatus.BAD_REQUEST,
+            "A page with pages under it cannot be reached by its link alone, so nothing was changed"),
+
+    /** A new link asked for on a page nobody outside the station can open. */
+    PAGE_LINK_NOT_FOR_A_CLOSED_PAGE(
+            Area.PAGES, 30, HttpStatus.BAD_REQUEST, "Nobody outside can open this page, so it has no link to replace"),
+
+    /** The page the site opens on, named from another station's pages. */
+    LANDING_PAGE_ELSEWHERE(
+            Area.PAGES, 31, HttpStatus.BAD_REQUEST, "That page belongs to another station, so nothing was changed"),
+
+    /** The page the site opens on, named from pages that are not public. */
+    LANDING_PAGE_NOT_PUBLIC(
+            Area.PAGES,
+            32,
+            HttpStatus.BAD_REQUEST,
+            "The page the site opens on has to be public, so nothing was changed"),
+
+    /** The page the site opens on, named from pages under another page. */
+    LANDING_PAGE_UNDER_ANOTHER(
+            Area.PAGES,
+            33,
+            HttpStatus.BAD_REQUEST,
+            "The page the site opens on cannot sit under another page, so nothing was changed"),
+
+    /** A page filed deeper than pages go. */
+    PAGE_TREE_TOO_DEEP(
+            Area.PAGES, 34, HttpStatus.BAD_REQUEST, "Pages go at most three levels deep, so nothing was saved"),
+
+    /** A block that only a page may hold, put into a news entry or a knowledge base article. */
+    CONTENT_BLOCK_ONLY_ON_PAGES(
+            Area.PAGES,
+            35,
+            HttpStatus.BAD_REQUEST,
+            "That block can only be used on a page, not in a news entry or an article, so nothing was saved"),
 
     /** An answer written on a paper that is no longer being sat. */
     QUIZ_ALREADY_HANDED_IN(
@@ -5153,6 +7694,48 @@ public enum Refusal {
     /** A catalog to generate questions or answers for that is gone or belongs to another station. */
     AI_GENERATION_CATALOG_NOT_HERE(Area.QUIZZES, 73, HttpStatus.NOT_FOUND, Sentences.QUIZ_CATALOG_NOT_HERE),
 
+    /** The example catalog sheet Ember ships, missing from the build. Ours to look into. */
+    QUIZ_CATALOG_EXAMPLE_MISSING(
+            Area.QUIZZES, 74, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.QUIZ_CATALOG_EXAMPLE_NOT_READ),
+
+    /** The example catalog sheet Ember ships, found but not read. Ours to look into. */
+    QUIZ_CATALOG_EXAMPLE_NOT_READ(
+            Area.QUIZZES, 75, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.QUIZ_CATALOG_EXAMPLE_NOT_READ),
+
+    /** A catalog file uploaded that is not a single object at all. */
+    QUIZ_CATALOG_FILE_NOT_AN_OBJECT(Area.QUIZZES, 76, HttpStatus.BAD_REQUEST, Sentences.QUIZ_CATALOG_FILE_NOT_ONE),
+
+    /** A catalog file uploaded that is neither the current kind nor the one earlier versions wrote. */
+    QUIZ_CATALOG_FILE_NOT_RECOGNISED(Area.QUIZZES, 77, HttpStatus.BAD_REQUEST, Sentences.QUIZ_CATALOG_FILE_NOT_ONE),
+
+    /** A catalog file of the current kind whose contents do not fit it. */
+    QUIZ_CATALOG_FILE_NOT_READ(Area.QUIZZES, 78, HttpStatus.BAD_REQUEST, Sentences.QUIZ_CATALOG_FILE_NOT_ONE),
+
+    /** A note about a question with nothing written in it. */
+    QUIZ_QUESTION_NOTE_EMPTY(
+            Area.QUIZZES, 79, HttpStatus.BAD_REQUEST, "Say what is wrong with the question, so nothing was sent"),
+
+    /** A sheet of questions to import that could not be read as a table. */
+    QUIZ_IMPORT_SHEET_NOT_READ(
+            Area.QUIZZES,
+            80,
+            HttpStatus.BAD_REQUEST,
+            "The sheet could not be read as a table, so nothing was imported"),
+
+    /** A row of a sheet to import naming a kind of question Ember does not know. */
+    QUIZ_IMPORT_QUESTION_TYPE_UNKNOWN(
+            Area.QUIZZES,
+            81,
+            HttpStatus.BAD_REQUEST,
+            "A row names a kind of question Ember does not know, so nothing was imported"),
+
+    /** A sheet to import without the column chosen to carry the questions. */
+    QUIZ_IMPORT_QUESTION_COLUMN_MISSING(
+            Area.QUIZZES,
+            82,
+            HttpStatus.BAD_REQUEST,
+            "The sheet has no column with the name chosen for the questions, so nothing was imported"),
+
     /** A procedure nobody but the people it was handed to may open, read by somebody else. */
     PROCEDURE_NOT_PUBLIC(Area.PROCEDURES, 1, HttpStatus.FORBIDDEN, Sentences.PROCEDURE_NOT_YOURS),
 
@@ -5370,6 +7953,149 @@ public enum Refusal {
     /** A first station asked for without a name. */
     FIRST_STATION_NEEDS_A_NAME(Area.STATIONS, 47, HttpStatus.BAD_REQUEST, Sentences.STATION_NEEDS_A_NAME),
 
+    /** A station's mail settings tested with a recipient that is plainly not an address. */
+    STATION_TEST_MAIL_RECIPIENT_NOT_AN_ADDRESS(
+            Area.STATIONS, 48, HttpStatus.BAD_REQUEST, "That is not an email address, so nothing was sent"),
+
+    /** A station location saved with no location in the request at all. */
+    STATION_LOCATION_MISSING(Area.STATIONS, 49, HttpStatus.BAD_REQUEST, "Give the location, so nothing was saved"),
+
+    /** A station location given one coordinate without the other. */
+    STATION_LOCATION_HALF_PINNED(
+            Area.STATIONS,
+            50,
+            HttpStatus.BAD_REQUEST,
+            "Give both the latitude and the longitude, or neither, so nothing was saved"),
+
+    /** A station location with a latitude north of the north pole or south of the south pole. */
+    STATION_LATITUDE_OUT_OF_RANGE(
+            Area.STATIONS,
+            51,
+            HttpStatus.BAD_REQUEST,
+            "The latitude has to lie between -90 and 90, so nothing was saved"),
+
+    /** A station location with a longitude beyond the date line either way. */
+    STATION_LONGITUDE_OUT_OF_RANGE(
+            Area.STATIONS,
+            52,
+            HttpStatus.BAD_REQUEST,
+            "The longitude has to lie between -180 and 180, so nothing was saved"),
+
+    /** A station location whose country is not written as a two-letter country code. */
+    STATION_COUNTRY_NOT_A_CODE(
+            Area.STATIONS,
+            53,
+            HttpStatus.BAD_REQUEST,
+            "Give the country as its two capital letters, such as DE, so nothing was saved"),
+
+    /** A station location whose address line is longer than a location keeps. */
+    STATION_ADDRESS_LINE_TOO_LONG(
+            Area.STATIONS, 54, HttpStatus.BAD_REQUEST, "The street and number are too long, so nothing was saved"),
+
+    /** A station location whose postal code is longer than a location keeps. */
+    STATION_POSTAL_CODE_TOO_LONG(
+            Area.STATIONS, 55, HttpStatus.BAD_REQUEST, "The postal code is too long, so nothing was saved"),
+
+    /** A station location whose city is longer than a location keeps. */
+    STATION_CITY_TOO_LONG(Area.STATIONS, 56, HttpStatus.BAD_REQUEST, "The city is too long, so nothing was saved"),
+
+    /** The location of a station that is not here, asked for to show it. */
+    STATION_NOT_HERE_FOR_LOCATION(Area.STATIONS, 57, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_HERE),
+
+    /** An archive imported into a cluster's home station, which holds what its cluster owns. */
+    STATION_IMPORT_INTO_CLUSTER_HOME(
+            Area.STATIONS,
+            58,
+            HttpStatus.BAD_REQUEST,
+            "A cluster's home station cannot be imported into, so nothing was changed"),
+
+    /** An archive imported over a station that belongs to a cluster. */
+    STATION_IMPORT_INTO_CLUSTER_MEMBER(
+            Area.STATIONS,
+            59,
+            HttpStatus.BAD_REQUEST,
+            "A station that belongs to a cluster cannot be overwritten from an archive, so nothing was changed"),
+
+    /** A station brought over from another instance whose answer carried no station at all. */
+    STATION_IMPORT_SOURCE_HAS_NO_STATION(
+            Area.STATIONS,
+            60,
+            HttpStatus.BAD_REQUEST,
+            "The other instance sent no station to bring over, so nothing was imported"),
+
+    /** The station just made for an import from another instance, gone before the import could start. */
+    STATION_IMPORT_TARGET_NOT_HERE(
+            Area.STATIONS,
+            61,
+            HttpStatus.BAD_REQUEST,
+            "The station the import was to go into is not here any more, so nothing was imported"),
+
+    /** A failed import tried again for a station no import is known for. */
+    STATION_IMPORT_NOTHING_TO_RETRY(
+            Area.STATIONS,
+            62,
+            HttpStatus.NOT_FOUND,
+            "No import is known for that station, so there is nothing to retry"),
+
+    /** An import tried again that has not failed. */
+    STATION_IMPORT_NOT_FAILED(
+            Area.STATIONS, 63, HttpStatus.BAD_REQUEST, "Only an import that failed can be tried again"),
+
+    /** An import from an address that is not a public HTTPS address. */
+    STATION_IMPORT_SOURCE_NOT_PUBLIC(
+            Area.STATIONS, 64, HttpStatus.BAD_REQUEST, Sentences.FEDERATION_ADDRESS_NOT_PUBLIC),
+
+    /** An import from another instance that could not tell which version it runs. */
+    STATION_IMPORT_SOURCE_NOT_READ(
+            Area.STATIONS,
+            65,
+            HttpStatus.BAD_REQUEST,
+            "The other instance could not be asked which version it runs, so nothing was imported. "
+                    + "The reason is in the instance log"),
+
+    /** An import from an instance too old to say which version it runs. */
+    STATION_IMPORT_SOURCE_TOO_OLD(
+            Area.STATIONS,
+            66,
+            HttpStatus.BAD_REQUEST,
+            "The other instance is too old to bring a station over from, so nothing was imported. "
+                    + "Update it first"),
+
+    /** An import from an instance that runs a different version than this one. */
+    STATION_IMPORT_SCHEMA_DIFFERS(
+            Area.STATIONS,
+            67,
+            HttpStatus.BAD_REQUEST,
+            "The two instances do not run the same version, so nothing was imported. "
+                    + "Update the older one and try again"),
+
+    /** A cluster's home station put up to move to another instance. */
+    STATION_TRANSFER_OF_CLUSTER_HOME(
+            Area.STATIONS, 68, HttpStatus.BAD_REQUEST, "A cluster's home station cannot be moved to another instance"),
+
+    /** A station that belongs to a cluster put up to move to another instance. */
+    STATION_TRANSFER_OF_CLUSTER_MEMBER(
+            Area.STATIONS,
+            69,
+            HttpStatus.BAD_REQUEST,
+            "A station that belongs to a cluster cannot be moved to another instance. Leave the cluster first"),
+
+    /** An onboarding task ticked off that no task of that level is called. */
+    ONBOARDING_TASK_UNKNOWN(Area.STATIONS, 70, HttpStatus.BAD_REQUEST, "That is not a step of getting started"),
+
+    /** An onboarding task ticked off by hand that finishes itself once it is really done. */
+    ONBOARDING_TASK_FINISHES_ITSELF(
+            Area.STATIONS,
+            71,
+            HttpStatus.BAD_REQUEST,
+            "This step ticks itself off once it is actually done, so nothing was changed"),
+
+    /** A station's onboarding task marked by a member who is not here any more. */
+    ONBOARDING_MEMBER_NOT_HERE(Area.STATIONS, 72, HttpStatus.BAD_REQUEST, Sentences.MEMBER_NOT_HERE),
+
+    /** A station whose look was saved, gone before the save reached it. */
+    STATION_NOT_HERE_FOR_LOOK(Area.STATIONS, 73, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
+
     /** An invite asked for without saying which station it is for. */
     INVITE_NEEDS_A_STATION(Area.DISCOVERY, 1, HttpStatus.BAD_REQUEST, Sentences.NO_STATION_CHOSEN),
 
@@ -5583,7 +8309,55 @@ public enum Refusal {
 
     /** The same, at the moment a public sign-up is sent rather than when the form is drawn. */
     PUBLIC_WAITING_LIST_NOT_HERE_ON_REGISTRATION(
-            Area.WAITING_LISTS, 21, HttpStatus.NOT_FOUND, Sentences.WAITING_LIST_NOT_HERE);
+            Area.WAITING_LISTS, 21, HttpStatus.NOT_FOUND, Sentences.WAITING_LIST_NOT_HERE),
+
+    /** A second date of birth question added to a waiting list that already asks one. */
+    WAITING_LIST_SECOND_BIRTH_DATE_ON_CREATE(
+            Area.WAITING_LISTS, 52, HttpStatus.BAD_REQUEST, Sentences.WAITING_LIST_HAS_A_BIRTH_DATE),
+
+    /** A question of a waiting list changed into a second date of birth question. */
+    WAITING_LIST_SECOND_BIRTH_DATE_ON_CHANGE(
+            Area.WAITING_LISTS, 53, HttpStatus.BAD_REQUEST, Sentences.WAITING_LIST_HAS_A_BIRTH_DATE),
+
+    /** Somebody taking their own entry off a list after it has moved past waiting or being invited. */
+    WAITING_LIST_ENTRY_NO_LONGER_REMOVABLE(
+            Area.WAITING_LISTS,
+            54,
+            HttpStatus.CONFLICT,
+            "This entry can no longer be taken off the list, so nothing was changed"),
+
+    /** An answer to a waiting list question that it does not take, given through an invite code. */
+    WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_INVITE(
+            Area.WAITING_LISTS, 55, HttpStatus.BAD_REQUEST, Sentences.WAITING_LIST_ANSWER_NOT_ACCEPTED),
+
+    /** An answer to a waiting list question that it does not take, given as an entry is written down. */
+    WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_CREATE(
+            Area.WAITING_LISTS, 56, HttpStatus.BAD_REQUEST, Sentences.WAITING_LIST_ANSWER_NOT_ACCEPTED),
+
+    /** An answer to a waiting list question that it does not take, given as an entry is changed. */
+    WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_CHANGE(
+            Area.WAITING_LISTS, 57, HttpStatus.BAD_REQUEST, Sentences.WAITING_LIST_ANSWER_NOT_ACCEPTED),
+
+    /** An answer to an invitation the entry no longer holds, because it has moved on. */
+    WAITING_LIST_INVITATION_NO_LONGER_OPEN(
+            Area.WAITING_LISTS,
+            58,
+            HttpStatus.CONFLICT,
+            "This invitation can no longer be answered, so nothing was saved"),
+
+    /** An answer that names an appointment or a date the entry is not invited to. */
+    WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER(
+            Area.WAITING_LISTS,
+            59,
+            HttpStatus.CONFLICT,
+            "This answer is about a different appointment than the invitation, so nothing was saved"),
+
+    /** A sign-up from somebody younger than the list takes registrations from. */
+    WAITING_LIST_REGISTRANT_TOO_YOUNG(
+            Area.WAITING_LISTS,
+            60,
+            HttpStatus.BAD_REQUEST,
+            "This list does not take registrations at this age yet, so nothing was saved");
 
     private final Area area;
     private final int number;
@@ -6054,6 +8828,59 @@ public enum Refusal {
         private static final String WAITING_LIST_ENTRY_NOT_HERE = "That entry is not here any more";
         private static final String WAITING_LIST_FIELD_NOT_HERE = "That question is not on this waiting list any more";
         private static final String WAITING_LIST_INVITE_UNKNOWN = "No waiting list is reached by this invite";
+        private static final String SIGN_IN_FIRST = "Sign in before doing this";
+        private static final String DEFAULT_NOT_SUITING =
+                "That default does not suit this question, so nothing was saved";
+        private static final String BORROWED_GEAR_LOST_AT_PARTNER =
+                "This gear belongs to a partner station. Tell them on the lending request it came in on";
+        private static final String BEACON_PROTOCOL_TOO_NEW =
+                "This beacon does not speak that version of the protocol yet";
+        private static final String DEMO_UPLOADS_OFF =
+                "Uploading files is switched off in the demo, so nothing was saved";
+        private static final String STATION_BEING_TRANSFERRED =
+                "This station is moving to another instance, so nothing can be changed until the move is done";
+        private static final String CLUSTER_TAG_TAKEN =
+                "The cluster already recommends that word to these stations, so nothing was saved";
+        private static final String CLUSTER_TAG_NOT_HERE = "That recommended word is not here any more";
+        private static final String CLUSTER_NEEDS_A_NAME = "A cluster needs a name, so nothing was saved";
+        private static final String STATION_NOT_IN_CLUSTER =
+                "That station does not belong to this cluster, so nothing was changed";
+        private static final String CLUSTER_POOL_TOO_SMALL =
+                "That is more room than the cluster has left to hand out, so nothing was changed";
+        private static final String MOVEMENT_NOT_HERE = "That movement is not here any more";
+        private static final String MOVEMENT_FLOW_GONE =
+                "The chain of steps this movement walked is not here any more, so nothing was changed";
+        private static final String ART_NAME_TAKEN =
+                "This inventory already has a kind by that name, so nothing was saved";
+        private static final String INVENTORY_TAG_NOT_HERE = "That tag is not here any more";
+        private static final String SELF_CHECK_NOT_HERE = "That self-check is not here any more";
+        private static final String SELF_CHECK_ANSWER_ALREADY_SETTLED = "Somebody has already settled this answer";
+        private static final String ITEM_NOT_ON_MEMBERS_RECORD = "That piece of gear is not on this member's record";
+        private static final String INVENTORY_CHECK_MEMBER_TAKEN = "Somebody else is already checking this member";
+        private static final String SELF_CHECK_SIZE_NOT_OFFERED = "That size is not one this kind of gear comes in";
+        private static final String BORROWED_SHELF_ONLY_BORROWED =
+                "This shelf only holds gear borrowed from a partner station, so nothing was saved";
+        private static final String INVENTORY_KIND_ELSEWHERE =
+                "That kind of gear belongs to another inventory, so nothing was saved";
+        private static final String QUESTION_DEFAULT_NOT_ACCEPTED =
+                "A question cannot start from a value it would not take as an answer, so nothing was saved";
+        private static final String EVENT_ENDS_BEFORE_IT_STARTS =
+                "An appointment cannot end before it starts, so nothing was saved";
+        private static final String INTERNAL_FORM_HAS_NO_LINK =
+                "A form for the station's own members is not sent by link";
+        private static final String QUIZ_CATALOG_EXAMPLE_NOT_READ =
+                "The example sheet could not be read. This is a fault in Ember; please report it";
+        private static final String QUIZ_CATALOG_FILE_NOT_ONE =
+                "That file is not a catalog export, so nothing was imported";
+        private static final String WAITING_LIST_HAS_A_BIRTH_DATE =
+                "This list already asks for a date of birth, so nothing was saved";
+        private static final String WAITING_LIST_ANSWER_NOT_ACCEPTED =
+                "An answer does not suit its question on this list, so nothing was saved";
+        private static final String REGISTRATION_HELD_BY_A_FIELD =
+                "This place comes from a question of the appointment and is taken back there, so nothing was changed";
+        private static final String PARTNER_STATION_NOT_HERE = "That partner station is not here any more";
+        private static final String MAILBOX_NOT_HERE = "That mailbox is not here any more";
+        private static final String MAILBOX_RULE_NOT_HERE = "That mailbox rule is not here any more";
 
         private Sentences() {}
     }

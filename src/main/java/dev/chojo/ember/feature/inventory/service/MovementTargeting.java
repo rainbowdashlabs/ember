@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -15,7 +17,6 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -191,7 +192,8 @@ public class MovementTargeting {
     public Target belongsOn(ItemMovement movement) {
         try {
             return of(movement);
-        } catch (BadRequestResponse unbound) {
+        } catch (RefusalResponse unbound) {
+            if (unbound.refusal() != Refusal.MOVEMENT_FLOW_NOT_BOUND) throw unbound;
             return new Target(
                     ownerOf(movement.outgoingItemId(), movement.incomingItemId(), movement.inventoryId()),
                     owningClusterOf(

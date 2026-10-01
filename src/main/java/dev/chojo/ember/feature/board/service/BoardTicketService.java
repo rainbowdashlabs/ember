@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
 import dev.chojo.ember.feature.board.entity.BoardActivityEntry;
@@ -28,7 +29,6 @@ import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -127,9 +127,9 @@ public class BoardTicketService {
         if (board == null) return;
         int memberId = stationMemberService
                 .resolveId(board.stationId(), assignee.memberUid())
-                .orElseThrow(() -> new BadRequestResponse("The assignee is not a member of the board's station"));
+                .orElseThrow(Refusal.BOARD_TICKET_ASSIGNEE_NOT_A_MEMBER::raise);
         if (!boardService.findMembersWhoMayEdit(boardId, board.stationId()).contains(memberId)) {
-            throw new BadRequestResponse("The assignee has no write access to this board");
+            throw Refusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT.raise();
         }
     }
 

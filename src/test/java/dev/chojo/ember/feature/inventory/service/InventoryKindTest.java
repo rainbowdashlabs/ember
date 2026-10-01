@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -15,7 +17,6 @@ import dev.chojo.ember.feature.inventory.entity.SwitchBlockerKind;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -105,7 +106,9 @@ class InventoryKindTest extends RepositoryTestBase {
     @Test
     void aRequirementIsRefusedOnADrawerOfDifferentThings() {
         int id = drawer("Sonstiges");
-        assertThrows(BadRequestResponse.class, () -> service.createRequirement(id, StationUserType.MEMBER, 0, null, 1));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.createRequirement(id, StationUserType.MEMBER, 0, null, 1));
+        assertEquals(Refusal.INVENTORY_REQUIREMENT_ON_A_COLLECTION, refused.refusal());
         assertTrue(service.findAllRequirementsByStation(station.id()).stream()
                 .noneMatch(requirement -> requirement.inventoryId() == id));
         service.delete(id);
@@ -114,9 +117,10 @@ class InventoryKindTest extends RepositoryTestBase {
     @Test
     void anOrderIsRefusedOnADrawerOfDifferentThings() {
         int id = drawer("Spiele");
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> procurementService.create(station.id(), id, member.id(), null, "Drei mehr wovon?"));
+        assertEquals(Refusal.INVENTORY_ORDER_ON_A_COLLECTION, refused.refusal());
         service.delete(id);
     }
 
@@ -125,14 +129,15 @@ class InventoryKindTest extends RepositoryTestBase {
         int id = drawer("Leibchen");
         var item = inventoryRepo.createItem(id, "LB-001", "Laminiergerät", null, null);
         itemCustodyService.assignToMember(item.id(), member.id(), "");
-        assertThrows(BadRequestResponse.class, () -> swapOf(item.id(), id));
+        assertThrows(RefusalResponse.class, () -> swapOf(item.id(), id));
         service.delete(id);
     }
 
     @Test
     void aSizeListIsRefusedOnADrawerOfDifferentThings() {
         int id = drawer("Pager");
-        assertThrows(BadRequestResponse.class, () -> service.createSize(id, "M", 0, null));
+        var refused = assertThrows(RefusalResponse.class, () -> service.createSize(id, "M", 0, null));
+        assertEquals(Refusal.INVENTORY_SIZE_ON_A_COLLECTION, refused.refusal());
         assertTrue(service.findSizes(id).isEmpty());
         service.delete(id);
     }
@@ -335,7 +340,8 @@ class InventoryKindTest extends RepositoryTestBase {
                 .id();
         var item = inventoryRepo.createItem(from, "ST-" + NAMES.incrementAndGet(), "Sporttasche", null, null);
 
-        assertThrows(BadRequestResponse.class, () -> service.moveItem(item.id(), elsewhere, null));
+        var refused = assertThrows(RefusalResponse.class, () -> service.moveItem(item.id(), elsewhere, null));
+        assertEquals(Refusal.INVENTORY_MOVE_TO_ANOTHER_STATION, refused.refusal());
         assertEquals(from, inventoryRepo.findItemById(item.id()).orElseThrow().inventoryId());
 
         service.delete(from);

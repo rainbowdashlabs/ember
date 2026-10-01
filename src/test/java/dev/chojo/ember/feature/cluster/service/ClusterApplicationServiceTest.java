@@ -5,13 +5,12 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.cluster.entity.ClusterApplicationStatus;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -59,9 +58,10 @@ class ClusterApplicationServiceTest extends RepositoryTestBase {
         OwnedStation owned = freshOwnedStation();
         int stranger = owned.ownerMemberId() + 10_000;
 
-        assertThrows(
-                ForbiddenResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.apply(clusterId, owned.station().id(), stranger));
+        assertEquals(Refusal.CLUSTER_APPLICATION_NOT_BY_STATION_OWNER, refused.refusal());
         assertTrue(service.findPendingForStation(owned.station().id()).isEmpty());
     }
 
@@ -118,7 +118,9 @@ class ClusterApplicationServiceTest extends RepositoryTestBase {
         var application = service.apply(clusterId, owned.station().id(), owned.ownerMemberId());
         service.approve(application.id(), clusterId, null);
 
-        assertThrows(BadRequestResponse.class, () -> service.deny(application.id(), clusterId, "zu spät", null));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.deny(application.id(), clusterId, "zu spät", null));
+        assertEquals(Refusal.CLUSTER_APPLICATION_ALREADY_DECIDED, refused.refusal());
     }
 
     @Test
@@ -129,9 +131,10 @@ class ClusterApplicationServiceTest extends RepositoryTestBase {
 
         service.apply(clusterId, owned.station().id(), owned.ownerMemberId());
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.apply(otherClusterId, owned.station().id(), owned.ownerMemberId()));
+        assertEquals(Refusal.CLUSTER_APPLICATION_ALREADY_WAITING, refused.refusal());
     }
 
     @Test
@@ -142,9 +145,10 @@ class ClusterApplicationServiceTest extends RepositoryTestBase {
 
         clusterService.joinStation(clusterId, owned.station().id());
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.apply(otherClusterId, owned.station().id(), owned.ownerMemberId()));
+        assertEquals(Refusal.CLUSTER_APPLICATION_STATION_ALREADY_JOINED, refused.refusal());
     }
 
     @Test
@@ -155,7 +159,9 @@ class ClusterApplicationServiceTest extends RepositoryTestBase {
 
         var application = service.apply(clusterId, owned.station().id(), owned.ownerMemberId());
 
-        assertThrows(NotFoundResponse.class, () -> service.approve(application.id(), otherClusterId, null));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.approve(application.id(), otherClusterId, null));
+        assertEquals(Refusal.CLUSTER_APPLICATION_NOT_HERE, refused.refusal());
     }
 
     @Test

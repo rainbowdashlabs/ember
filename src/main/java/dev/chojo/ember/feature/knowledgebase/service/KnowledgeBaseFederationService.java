@@ -49,9 +49,6 @@ import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.Rem
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -186,7 +183,8 @@ public class KnowledgeBaseFederationService implements FederationServer {
     }
 
     private void serveCommentDeletion(ServingPartner partner, int commentId, RemoteKbCommentDeleteRequest request) {
-        var comment = requireRemoteCommentAuthor(partner.row(), commentId, request.remoteMemberUid(), "delete");
+        var comment = requireRemoteCommentAuthor(
+                partner.row(), commentId, request.remoteMemberUid(), Refusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_DELETE);
         if (!commentService.delete(comment)) {
             throw Refusal.REMOTE_KB_COMMENT_NOT_DELETED.raise();
         }
@@ -354,7 +352,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * What a partner says about one of its files, kept beside a favourite of it so its tile can be
      * drawn without asking the partner every time.
      *
-     * @throws NotFoundResponse when the partner does not share the file with this station
+     * @throws RefusalResponse when the partner does not share the file with this station
      */
     public PartnerEntry describePartnerFile(int stationId, UUID partnerStationUid, int fileId) {
         return describe(stationId, partnerStationUid, getFederatedKbFile(stationId, partnerStationUid, fileId));
@@ -369,7 +367,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
     /**
      * What a partner says about one of its folders, kept beside a favourite of it.
      *
-     * @throws NotFoundResponse when the partner does not share the folder with this station, or
+     * @throws RefusalResponse when the partner does not share the folder with this station, or
      *     not with a reader of this kind
      */
     public PartnerEntry describePartnerFolder(
@@ -378,14 +376,14 @@ public class KnowledgeBaseFederationService implements FederationServer {
         var folder = level.trail().stream()
                 .filter(step -> step.remoteId() == folderId)
                 .findFirst()
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.PARTNER_KB_FOLDER_NOT_IN_ITS_TRAIL::raise);
         return new PartnerEntry(folder.title(), null, folder.stationName());
     }
 
     private String partnerName(int stationId, UUID partnerStationUid) {
         var partner = federationRepository
                 .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.KB_FAVOURITE_PARTNER_NOT_HERE::raise);
         return FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
     }
 
@@ -404,14 +402,14 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * @param fileId            the file to render
      * @param generatedBy       the name of the person requesting the export
      * @return the rendered PDF
-     * @throws BadRequestResponse when the file has no written body to render
+     * @throws RefusalResponse when the file has no written body to render
      */
     public RenderedPdf renderFederatedKbFilePdf(
             int localStationId, UUID partnerStationUid, int fileId, String generatedBy)
             throws IOException, InterruptedException {
         var file = getFederatedKbFile(localStationId, partnerStationUid, fileId);
         if (!KbPdfExportService.isExportable(file.fileType())) {
-            throw new BadRequestResponse("Only markdown and text files can be rendered as PDF");
+            throw Refusal.PARTNER_KB_ONLY_WRITTEN_AS_PDF.raise();
         }
         String content = getFederatedKbFileContent(localStationId, partnerStationUid, fileId);
         var partner = federationRepository
@@ -515,12 +513,12 @@ public class KnowledgeBaseFederationService implements FederationServer {
         var reachable = inheritedAim(stationId, parentOf(fileId, folderId));
         if (reachable != null) {
             if (scope != ShareScope.SPECIFIC) {
-                throw new BadRequestResponse("The folder above this is shared with named stations only");
+                throw Refusal.KB_SHARE_WIDER_THAN_ITS_FOLDER.raise();
             }
             var widened =
                     partnerIds.stream().filter(id -> !reachable.contains(id)).toList();
             if (!widened.isEmpty()) {
-                throw new BadRequestResponse("The folder above this does not reach every station named");
+                throw Refusal.KB_SHARE_NAMES_STATIONS_ITS_FOLDER_DOES_NOT.raise();
             }
         }
         return federationService.createKbShare(stationId, fileId, folderId, scope, partnerIds);
@@ -694,7 +692,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
             ShareScope scope,
             List<Integer> partnerIds) {
         if ((fileId == null) == (folderId == null)) {
-            throw new BadRequestResponse("Name either an article or a folder");
+            throw Refusal.KB_AUDIENCE_NEEDS_ONE_ENTRY.raise();
         }
         var existing = federationRepository.findKbShares(stationId).stream()
                 .filter(share -> fileId != null
@@ -825,9 +823,9 @@ public class KnowledgeBaseFederationService implements FederationServer {
 
     /** What is inside one shared folder of a serving station, refused unless a share reaching the reader covers it. */
     private RemoteKbBrowse folderLevel(int servingStationId, int folderId, Integer readingPartnerId) {
-        var folder = knowledgeBaseService.findFolder(folderId).orElseThrow(NotFoundResponse::new);
+        var folder = knowledgeBaseService.findFolder(folderId).orElseThrow(Refusal.REMOTE_KB_FOLDER_NOT_SHARED::raise);
         if (folder.stationId() != servingStationId || !isFolderShared(servingStationId, folderId, readingPartnerId)) {
-            throw new NotFoundResponse();
+            throw Refusal.REMOTE_KB_FOLDER_NOT_SHARED.raise();
         }
         return new RemoteKbBrowse(
                 knowledgeBaseService.findFolders(servingStationId, folderId).stream()
@@ -976,9 +974,9 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * shared folder, which is what the same-instance browse treats as shared too.
      */
     public KbFile fileForPartner(FederationPartner partner, int fileId) {
-        var file = knowledgeBaseService.findFile(fileId).orElseThrow(NotFoundResponse::new);
+        var file = knowledgeBaseService.findFile(fileId).orElseThrow(Refusal.REMOTE_KB_FILE_NOT_SHARED::raise);
         if (file.stationId() != partner.stationId() || !isSharedWithPartner(partner, file)) {
-            throw new NotFoundResponse();
+            throw Refusal.REMOTE_KB_FILE_NOT_SHARED.raise();
         }
         return file;
     }
@@ -1143,7 +1141,8 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * they are its author. An edit from a partner tells nobody here, as its comment did not either.
      */
     public Comment updateRemoteComment(FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
-        var comment = requireRemoteCommentAuthor(partner, commentId, remoteMemberUid, "edit");
+        var comment = requireRemoteCommentAuthor(
+                partner, commentId, remoteMemberUid, Refusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_EDIT);
         var updated = commentService
                 .update(comment, new CommentWriter(comment.author(), "", CommentOrigin.PARTNER), content)
                 .orElseThrow(Refusal.KB_COMMENT_NOT_HERE_AFTER_CHANGE::raise);
@@ -1155,15 +1154,15 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * Loads a comment and verifies it was written by the given federated member, answering
      * {@code 404} when it is absent and {@code 403} on an author mismatch.
      *
-     * @param action the verb used in the rejection message, for example {@code delete}
+     * @param notYours what refuses a member who did not write it, which names the change they tried
      */
     public Comment requireRemoteCommentAuthor(
-            FederationPartner partner, int commentId, UUID remoteMemberUid, String action) {
+            FederationPartner partner, int commentId, UUID remoteMemberUid, Refusal notYours) {
         var comment = requireComment(commentId);
         var expectedAuthor = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
         var author = comment.author();
         if (author == null || !author.sameMember(expectedAuthor)) {
-            throw new ForbiddenResponse("You can only " + action + " your own comments");
+            throw notYours.raise();
         }
         return comment;
     }
@@ -1253,11 +1252,13 @@ public class KnowledgeBaseFederationService implements FederationServer {
     private FederationPartner resolvePartner(int stationId, UUID partnerStationUid) {
         return federationRepository
                 .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
-                .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
+                .orElseThrow(Refusal.KB_COMMENT_PARTNER_NOT_HERE::raise);
     }
 
     private Comment requireComment(int commentId) {
-        return commentService.findById(CommentEntityType.KB, commentId).orElseThrow(NotFoundResponse::new);
+        return commentService
+                .findById(CommentEntityType.KB, commentId)
+                .orElseThrow(Refusal.REMOTE_KB_COMMENT_NOT_HERE::raise);
     }
 
     private int partnerStationId(FederationPartner partner) {

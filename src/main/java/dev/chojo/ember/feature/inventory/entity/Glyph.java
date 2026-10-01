@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
@@ -59,11 +60,11 @@ public record Glyph(@Nullable String icon, @Nullable String color) {
     /**
      * Refuses a colour nothing could paint, which is the one half of a glyph worth checking.
      *
-     * @throws BadRequestResponse when a colour is present and is not {@code #rrggbb}
+     * @throws RefusalResponse when a colour is present and is not {@code #rrggbb}
      */
     public void requirePaintable() {
         if (!validColor()) {
-            throw new BadRequestResponse("A colour is written as #rrggbb, and '%s' is not".formatted(color));
+            throw Refusal.GLYPH_COLOUR_NOT_READABLE.raise(color);
         }
     }
 
@@ -75,7 +76,7 @@ public record Glyph(@Nullable String icon, @Nullable String color) {
      * colours to everything that compares them and one colour to everybody looking at them.
      *
      * @return the normalised pair
-     * @throws BadRequestResponse when a colour is present and is not {@code #rrggbb}
+     * @throws RefusalResponse when a colour is present and is not {@code #rrggbb}
      */
     public Glyph paintable() {
         Glyph normalised = of(icon, color);

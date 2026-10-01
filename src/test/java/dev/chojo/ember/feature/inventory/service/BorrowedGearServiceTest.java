@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -30,8 +31,6 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -203,10 +202,9 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
         int requestId = lend(source);
         InventoryItem copy = onlyBorrowedRow();
 
-        assertThrows(
-                ForbiddenResponse.class, () -> inventoryService.updateItem(copy.id(), "X", "Neu", null, null, null));
-        assertThrows(ForbiddenResponse.class, () -> inventoryService.deleteItem(copy.id(), null));
-        assertThrows(ForbiddenResponse.class, () -> inventoryService.moveItem(copy.id(), inventoryId, null));
+        assertThrows(RefusalResponse.class, () -> inventoryService.updateItem(copy.id(), "X", "Neu", null, null, null));
+        assertThrows(RefusalResponse.class, () -> inventoryService.deleteItem(copy.id(), null));
+        assertThrows(RefusalResponse.class, () -> inventoryService.moveItem(copy.id(), inventoryId, null));
         assertTrue(
                 lending.findAssignableItems(borrower.id(), copy.inventoryId()).isEmpty(),
                 "a borrower cannot lend a partner's radio on to a third station");
@@ -220,7 +218,7 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
         int requestId = lend(source);
         InventoryItem copy = onlyBorrowedRow();
 
-        assertThrows(BadRequestResponse.class, () -> itemCustodyService.markLost(copy.id(), "weg", null));
+        assertThrows(RefusalResponse.class, () -> itemCustodyService.markLost(copy.id(), "weg", null));
         assertNull(inventoryRepo.findItemById(copy.id()).orElseThrow().lostAt());
 
         handBack(requestId, source);
@@ -238,8 +236,8 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
         assertEquals("Von anderen", renamed.name());
         assertTrue(renamed.borrowed());
 
-        assertThrows(BadRequestResponse.class, () -> inventoryService.delete(shelfId));
-        assertThrows(BadRequestResponse.class, () -> inventoryService.createItem(shelfId, "X", "Eigenes", null, null));
+        assertThrows(RefusalResponse.class, () -> inventoryService.delete(shelfId));
+        assertThrows(RefusalResponse.class, () -> inventoryService.createItem(shelfId, "X", "Eigenes", null, null));
 
         handBack(requestId, source);
         assertTrue(inventoryService.delete(shelfId));

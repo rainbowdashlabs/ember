@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -178,18 +180,20 @@ class KbFavouriteServiceTest extends RepositoryTestBase {
                 file.id(),
                 new RestrictionSelection(List.of(StationUserType.TEAM), List.of(), List.of(), List.of(), null));
 
-        assertThrows(
-                NotFoundResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> favourites.markLocal(station.id(), reader(), KbFavouriteTarget.FILE, file.id()));
+        assertEquals(Refusal.KB_FAVOURITE_ENTRY_NOT_HERE_OR_NOT_YOURS, refused.refusal());
     }
 
     @Test
     void anotherStationsFileCannotBeMarkedAsOneOfThisStations() {
         var foreign = file(otherStation.id(), "Fremd");
 
-        assertThrows(
-                NotFoundResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> favourites.markLocal(station.id(), reader(), KbFavouriteTarget.FILE, foreign.id()));
+        assertEquals(Refusal.KB_FAVOURITE_ENTRY_NOT_HERE_OR_NOT_YOURS, refused.refusal());
     }
 
     /** The name comes from the partner's answer, never from whatever the page sent. */

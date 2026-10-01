@@ -48,8 +48,6 @@ import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.sql.Transactions;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -213,7 +211,7 @@ public class WaitingListService implements TaskSource {
             boolean required,
             boolean isPublic) {
         requireOffered(fieldType);
-        requireSingleBirthDate(listId, fieldType, 0);
+        requireSingleBirthDate(listId, fieldType, 0, Refusal.WAITING_LIST_SECOND_BIRTH_DATE_ON_CREATE);
         var field = repository.createField(listId, name, fieldType, config, position, required, isPublic);
         log.info("Created waiting-list field {} on list {} (type {})", field.id(), listId, fieldType);
         return field;
@@ -230,7 +228,8 @@ public class WaitingListService implements TaskSource {
         requireOffered(fieldType);
         repository
                 .findFieldById(fieldId)
-                .ifPresent(field -> requireSingleBirthDate(field.listId(), fieldType, fieldId));
+                .ifPresent(field -> requireSingleBirthDate(
+                        field.listId(), fieldType, fieldId, Refusal.WAITING_LIST_SECOND_BIRTH_DATE_ON_CHANGE));
         var updated = repository.updateField(fieldId, name, fieldType, config, position, required, isPublic);
         if (updated.isPresent()) {
             log.info("Updated waiting-list field {}", fieldId);
@@ -256,15 +255,16 @@ public class WaitingListService implements TaskSource {
      * list to guess, and the guess would be silent.
      *
      * @param excludedId the field being changed, so it does not clash with itself; 0 when creating
+     * @param refusal    what the caller refuses a second date of birth with
      */
-    private void requireSingleBirthDate(int listId, FieldType fieldType, int excludedId) {
+    private void requireSingleBirthDate(int listId, FieldType fieldType, int excludedId, Refusal refusal) {
         if (fieldType != FieldType.BIRTH_DATE) return;
         findFieldsByList(listId).stream()
                 .filter(existing -> existing.fieldType() == FieldType.BIRTH_DATE)
                 .filter(existing -> existing.id() != excludedId)
                 .findFirst()
                 .ifPresent(existing -> {
-                    throw new BadRequestResponse("This list already has a date of birth field: " + existing.name());
+                    throw refusal.raise(existing.name());
                 });
     }
 
@@ -330,7 +330,7 @@ public class WaitingListService implements TaskSource {
             insertGuardians(entry.id(), guardians);
         }
 
-        writeAnswers(invite.listId(), entry.id(), fieldValues);
+        writeAnswers(invite.listId(), entry.id(), fieldValues, Refusal.WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_INVITE);
 
         String displayName = entry.fullName();
 
@@ -389,7 +389,7 @@ public class WaitingListService implements TaskSource {
      * keeps its wider reach, because somebody with a permission is standing behind it.
      *
      * @param token the entry's access token
-     * @throws ConflictResponse when the entry has moved past being a list entry
+     * @throws dev.chojo.ember.api.RefusalResponse when the entry has moved past being a list entry
      */
     public void removeByToken(String token) {
         repository
@@ -402,7 +402,7 @@ public class WaitingListService implements TaskSource {
                                         "Self-service removal refused for waiting-list entry {} (is {})",
                                         entry.id(),
                                         entry.status());
-                                throw new ConflictResponse("This entry can no longer be removed from the list");
+                                throw Refusal.WAITING_LIST_ENTRY_NO_LONGER_REMOVABLE.raise();
                             }
                             withdrawEntry(entry.id());
                             log.info("Removed waiting-list entry {} via self-service token", entry.id());
@@ -445,9 +445,11 @@ public class WaitingListService implements TaskSource {
      * reach is not what the check is for. Every answer is kept in the one shape its type is kept in,
      * and a blank one clears what the question held.
      *
-     * @throws BadRequestResponse naming the question and what is wrong with the answer
+     * @param refusal what the caller refuses an answer with
+     * @throws dev.chojo.ember.api.RefusalResponse naming the question and what is wrong with the
+     *                                             answer
      */
-    private void writeAnswers(int listId, int entryId, Map<Integer, JsonNode> fieldValues) {
+    private void writeAnswers(int listId, int entryId, Map<Integer, JsonNode> fieldValues, Refusal refusal) {
         if (fieldValues == null || fieldValues.isEmpty()) return;
         var fields = repository.findFieldsByList(listId).stream()
                 .collect(Collectors.toMap(WaitingListField::id, field -> field));
@@ -456,7 +458,7 @@ public class WaitingListService implements TaskSource {
             if (field == null) continue;
             QuestionCheck.answerIfGiven(field.question(), QuestionValues.read(answer.getValue()))
                     .ifPresent(problem -> {
-                        throw new BadRequestResponse(problem.message());
+                        throw refusal.raise(problem.message());
                     });
         }
         for (var answer : fieldValues.entrySet()) {
@@ -486,7 +488,7 @@ public class WaitingListService implements TaskSource {
         if (guardians != null) {
             insertGuardians(entry.id(), guardians);
         }
-        writeAnswers(listId, entry.id(), fieldValues);
+        writeAnswers(listId, entry.id(), fieldValues, Refusal.WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_CREATE);
         log.info("Created waiting-list entry {} on list {}", entry.id(), listId);
         return entry;
     }
@@ -506,7 +508,10 @@ public class WaitingListService implements TaskSource {
             insertGuardians(entryId, guardians);
         }
         if (fieldValues != null) {
-            repository.findEntryById(entryId).ifPresent(entry -> writeAnswers(entry.listId(), entryId, fieldValues));
+            repository
+                    .findEntryById(entryId)
+                    .ifPresent(entry -> writeAnswers(
+                            entry.listId(), entryId, fieldValues, Refusal.WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_CHANGE));
         }
         log.info("Updated waiting-list entry {}", entryId);
     }
@@ -617,7 +622,7 @@ public class WaitingListService implements TaskSource {
                 repository.findEntryByToken(token).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         if (entry.status() != WaitingListEntryStatus.INVITED) {
             log.info("Invitation answer refused for waiting-list entry {} (is {})", entry.id(), entry.status());
-            throw new ConflictResponse("This invitation can no longer be answered");
+            throw Refusal.WAITING_LIST_INVITATION_NO_LONGER_OPEN.raise();
         }
         requireAnswersTheCurrentInvitation(entry, eventId, date);
 
@@ -646,7 +651,7 @@ public class WaitingListService implements TaskSource {
                 : Integer.valueOf(current.eventId()).equals(eventId)
                         && current.date().equals(date);
         if (!matches) {
-            throw new ConflictResponse("This answer is about a different appointment");
+            throw Refusal.WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER.raise();
         }
     }
 
@@ -866,7 +871,7 @@ public class WaitingListService implements TaskSource {
         if (minAge == null) return;
         ageFromSubmitted(list.id(), values).ifPresent(age -> {
             if (age < minAge) {
-                throw new BadRequestResponse("This list takes registrations from age %d.".formatted(minAge));
+                throw Refusal.WAITING_LIST_REGISTRANT_TOO_YOUNG.raise("from age " + minAge);
             }
         });
     }

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.form.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
@@ -18,7 +19,6 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -88,7 +88,7 @@ public class FormAnalyticsAssembler {
      * @return the analytics
      */
     public FormAnalytics buildAnalytics(int formId, @Nullable FormResultQuery query) {
-        var form = formService.findById(formId).orElseThrow(NotFoundResponse::new);
+        var form = formService.findById(formId).orElseThrow(Refusal.FORM_NOT_HERE_FOR_ANALYTICS::raise);
         var questions = formService.findQuestions(formId);
         var answers = formService.findAllAnswersForForm(formId);
         var responses = formService.findResponses(formId);
@@ -176,7 +176,7 @@ public class FormAnalyticsAssembler {
         var response = formService.findResponses(formId).stream()
                 .filter(r -> r.id() == responseId)
                 .findFirst()
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.FORM_RESPONSE_NOT_HERE::raise);
         return new FormResponseDetail(toEntry(response), answers);
     }
 

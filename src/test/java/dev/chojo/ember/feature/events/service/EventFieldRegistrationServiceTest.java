@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
@@ -18,7 +19,6 @@ import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -218,10 +218,10 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
         eventFieldRegistrationService.reconcile(event.id());
         int registrationId = registrationOf(event.id(), memberA).orElseThrow().id();
 
-        assertThrows(BadRequestResponse.class, () -> registrationService.withdraw(registrationId));
-        assertThrows(BadRequestResponse.class, () -> registrationService.refuse(registrationId));
+        assertThrows(RefusalResponse.class, () -> registrationService.withdraw(registrationId));
+        assertThrows(RefusalResponse.class, () -> registrationService.refuse(registrationId));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> registrationService.updateStatus(registrationId, RegistrationStatus.DENIED));
     }
 
@@ -283,7 +283,7 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
         var field = memberField(event.id(), "", false);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> fieldService.toggleSelfRegistration(event.id(), field.id(), memberA, null, false));
         assertTrue(registrationOf(event.id(), memberA).isEmpty());
 
@@ -330,7 +330,7 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
     void anAnswerIsOnlyWrittenPerDateWhereTheQuestionSaysSo() {
         var event = oneTimeEvent(true, false);
         var field = memberField(event.id(), "", false);
-        assertThrows(BadRequestResponse.class, () -> fieldService.setValueOn(event.id(), field.id(), dayOf(event), ""));
+        assertThrows(RefusalResponse.class, () -> fieldService.setValueOn(event.id(), field.id(), dayOf(event), ""));
     }
 
     @Test

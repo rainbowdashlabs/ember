@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
@@ -20,10 +21,6 @@ import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionKind;
 import dev.chojo.ember.feature.question.QuestionProblem;
 import dev.chojo.ember.feature.question.QuestionValues;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -173,15 +170,14 @@ public class EventFieldService {
      * reach it: this is where the answer for one occurrence is given. Naming members here puts them
      * on that date's list, the same as naming them anywhere else does.
      *
-     * @throws NotFoundResponse   when the question does not belong to this appointment
-     * @throws BadRequestResponse when the question is not answered per date, or the answer is not one
-     *                            it takes
+     * @throws RefusalResponse when the question does not belong to this appointment, is not answered
+     *                         per date, or the answer is not one it takes
      */
     public AppointmentField setValueOn(int eventId, int fieldId, LocalDate date, @Nullable String value) {
-        var field = repository.findById(fieldId).orElseThrow(NotFoundResponse::new);
-        if (field.eventId() != eventId) throw new NotFoundResponse();
+        var field = repository.findById(fieldId).orElseThrow(Refusal.APPOINTMENT_FIELD_NOT_HERE_FOR_DATE_ANSWER::raise);
+        if (field.eventId() != eventId) throw Refusal.APPOINTMENT_FIELD_NOT_HERE_FOR_DATE_ANSWER.raise();
         if (!field.config().perDate()) {
-            throw new BadRequestResponse("Field is not answered per date");
+            throw Refusal.APPOINTMENT_FIELD_NOT_PER_DATE.raise();
         }
         var stored = repository
                 .findByIdOn(fieldId, date)
@@ -189,11 +185,13 @@ public class EventFieldService {
                 .orElse("");
         var keeping = NamedAlready.in(List.of(stored), eligibility);
         QuestionCheck.answerIfGiven(field.question(), value, keeping).ifPresent(problem -> {
-            throw new BadRequestResponse(problem.message());
+            throw Refusal.APPOINTMENT_DATE_ANSWER_NOT_ACCEPTED.raise(problem.message());
         });
         repository.updateValueOn(fieldId, date, QuestionValues.writeText(field.fieldType(), value));
         fieldRegistrationService.reconcile(eventId);
-        return repository.findByIdOn(fieldId, date).orElseThrow(NotFoundResponse::new);
+        return repository
+                .findByIdOn(fieldId, date)
+                .orElseThrow(Refusal.APPOINTMENT_DATE_ANSWER_NOT_HERE_AFTER_SAVE::raise);
     }
 
     /**
@@ -204,12 +202,12 @@ public class EventFieldService {
      * Nothing measured them once, so an appointment could carry a colour nobody offered and a day
      * that is not one, and every list and export carried it onward.
      *
-     * @throws BadRequestResponse naming the field and what is wrong with what stands in it
+     * @throws RefusalResponse naming the field and what is wrong with what stands in it
      */
     private static EventFieldDraft answered(EventFieldDraft field, MemberEligibility eligibility) {
         QuestionCheck.answerIfGiven(field.question(), field.value(), eligibility)
                 .ifPresent(problem -> {
-                    throw new BadRequestResponse(problem.message());
+                    throw Refusal.APPOINTMENT_FIELD_VALUE_NOT_ACCEPTED.raise(problem.message());
                 });
         return field.withValue(QuestionValues.writeText(field.fieldType(), field.value()));
     }
@@ -239,8 +237,8 @@ public class EventFieldService {
      * set.
      *
      * <p>List questions add the member when absent and remove them when present. Single-member
-     * questions take the slot when empty, clear it when the caller already holds it, and raise
-     * {@link ConflictResponse} when the slot belongs to someone else.
+     * questions take the slot when empty, clear it when the caller already holds it, and refuse when
+     * the slot belongs to someone else.
      *
      * <p>Who may put themselves in is the field's own business and not the appointment's. Standing
      * in one now holds a place on the list, so it is a second way onto it, and deliberately so: a
@@ -256,30 +254,34 @@ public class EventFieldService {
      *
      * @param runsTheEvent whoever keeps the appointment's list, for whom the closing date is not a
      *                     refusal: they are not answering the appointment, they are running it
-     * @throws NotFoundResponse   when the field does not exist on the given event
-     * @throws BadRequestResponse when the field is not a member question, when self-registration is not
-     *                            enabled, when the question lost the group, user type or tag it is
-     *                            narrowed to, or when the appointment has stopped taking people
-     * @throws ForbiddenResponse  when the caller is outside the group, user type or tag the question is
-     *                            narrowed to
-     * @throws ConflictResponse   when a single-member slot is already taken
+     * @throws RefusalResponse when the field does not exist on the given event, is not a member
+     *                         question, has self-registration switched off, lost the group, user type
+     *                         or tag it is narrowed to, when the appointment has stopped taking people,
+     *                         when the caller is outside what the question is narrowed to, or when a
+     *                         single-member slot is already taken
      */
     public AppointmentField toggleSelfRegistration(
             int eventId, int fieldId, int memberId, @Nullable LocalDate date, boolean runsTheEvent) {
-        var raw = repository.findById(fieldId).orElseThrow(NotFoundResponse::new);
+        var raw = repository
+                .findById(fieldId)
+                .orElseThrow(Refusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION::raise);
         LocalDate day = raw.config().perDate() ? requiredDay(date) : null;
-        var field = day != null ? repository.findByIdOn(fieldId, day).orElseThrow(NotFoundResponse::new) : raw;
+        var field = day != null
+                ? repository
+                        .findByIdOn(fieldId, day)
+                        .orElseThrow(Refusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION::raise)
+                : raw;
         if (field.eventId() != eventId) {
-            throw new NotFoundResponse();
+            throw Refusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION.raise();
         }
         if (!field.fieldType().namesMembers()) {
-            throw new BadRequestResponse("Field is not a member field");
+            throw Refusal.APPOINTMENT_FIELD_NAMES_NO_MEMBERS.raise();
         }
         if (!field.config().selfRegistration()) {
-            throw new BadRequestResponse("Self-registration is not enabled for this field");
+            throw Refusal.APPOINTMENT_FIELD_SELF_REGISTRATION_OFF.raise();
         }
         if (memberRepository.findById(memberId).isEmpty()) {
-            throw new BadRequestResponse("Member not found");
+            throw Refusal.APPOINTMENT_SELF_REGISTRATION_MEMBER_NOT_HERE.raise();
         }
 
         var ids = QuestionValues.memberIds(field.value());
@@ -298,21 +300,25 @@ public class EventFieldService {
         fieldRegistrationService.reconcile(eventId);
         log.info("Member {} toggled self-registration on event field {}", memberId, fieldId);
         return day != null
-                ? repository.findByIdOn(fieldId, day).orElseThrow(NotFoundResponse::new)
-                : repository.findById(fieldId).orElseThrow(NotFoundResponse::new);
+                ? repository
+                        .findByIdOn(fieldId, day)
+                        .orElseThrow(Refusal.APPOINTMENT_FIELD_NOT_HERE_AFTER_SELF_REGISTRATION::raise)
+                : repository
+                        .findById(fieldId)
+                        .orElseThrow(Refusal.APPOINTMENT_FIELD_NOT_HERE_AFTER_SELF_REGISTRATION::raise);
     }
 
     /**
      * The answer once the member stands in the question.
      *
-     * @throws ConflictResponse where a single-member question already names somebody else
+     * @throws RefusalResponse where a single-member question already names somebody else
      */
     private static String entered(AppointmentField field, List<Integer> ids, int memberId) {
         if (field.fieldType().kind().filter(QuestionKind::namesSeveralMembers).isPresent()) {
             ids.add(memberId);
             return QuestionValues.formatMembers(ids);
         }
-        if (!ids.isEmpty()) throw new ConflictResponse("Slot is already taken");
+        if (!ids.isEmpty()) throw Refusal.APPOINTMENT_FIELD_SLOT_TAKEN.raise();
         return QuestionValues.formatMember(memberId);
     }
 
@@ -326,22 +332,22 @@ public class EventFieldService {
      * Refuses somebody outside the group, user type or tag the question is narrowed to, by the same
      * check every other answer to it goes through.
      *
-     * @throws ForbiddenResponse  where the member is outside it
-     * @throws BadRequestResponse where the question lost what it is narrowed to
+     * @throws RefusalResponse where the member is outside it, or the question lost what it is
+     *                         narrowed to
      */
     private void requireEligible(AppointmentField field, int memberId) {
         QuestionCheck.answerIfGiven(field.question(), QuestionValues.formatMember(memberId), eligibility)
                 .ifPresent(problem -> {
                     if (problem.code() == QuestionProblem.Code.NOT_ELIGIBLE) {
-                        throw new ForbiddenResponse(problem.message());
+                        throw Refusal.APPOINTMENT_FIELD_NOT_OPEN_TO_YOU.raise(problem.message());
                     }
-                    throw new BadRequestResponse(problem.message());
+                    throw Refusal.APPOINTMENT_FIELD_NARROWING_LOST.raise(problem.message());
                 });
     }
 
     private static LocalDate requiredDay(@Nullable LocalDate date) {
         if (date == null) {
-            throw new BadRequestResponse("This question is answered per date, so a date is required");
+            throw Refusal.APPOINTMENT_FIELD_DATE_MISSING.raise();
         }
         return date;
     }
@@ -352,14 +358,16 @@ public class EventFieldService {
      * <p>The same refusal the sign-up button gives, in the same words, because it is the same
      * refusal: a field of an appointment cannot be a way past the date the appointment stopped at.
      *
-     * @throws BadRequestResponse where the closing date has gone by
+     * @throws RefusalResponse where the closing date has gone by
      */
     private void requireStillTakingPeople(int eventId) {
-        var event = eventRepository.findById(eventId).orElseThrow(NotFoundResponse::new);
+        var event = eventRepository
+                .findById(eventId)
+                .orElseThrow(Refusal.APPOINTMENT_NOT_HERE_FOR_SELF_REGISTRATION::raise);
         Instant deadline = event.registrationDeadline();
         if (!event.requiresRegistration() || deadline == null) return;
         if (Instant.now().isAfter(deadline)) {
-            throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
+            throw Refusal.REGISTRATION_CLOSED_ON_SELF_REGISTRATION.raise();
         }
     }
 }

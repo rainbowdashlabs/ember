@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.system.service.DataTrackingAdminService.TableUpdate;
 import dev.chojo.ember.tracking.ColumnEntry;
 import dev.chojo.ember.tracking.DataTracking;
@@ -14,7 +16,6 @@ import dev.chojo.ember.tracking.GdprExportContext;
 import dev.chojo.ember.tracking.TableEntry;
 import dev.chojo.ember.tracking.TrackingStatus;
 import dev.chojo.ember.tracking.TransferContext;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -109,8 +110,9 @@ class DataTrackingAdminServiceTest {
     @Test
     void updateTableRejectsUnknownTable() {
         var ex = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.updateTable("does_not_exist", new TableUpdate(null, null, null, null, null)));
+        assertEquals(Refusal.TRACKED_TABLE_NOT_HERE_TO_UPDATE, ex.refusal());
         assertTrue(ex.getMessage().contains("does_not_exist"));
     }
 
@@ -124,7 +126,8 @@ class DataTrackingAdminServiceTest {
 
     @Test
     void verifyAllColumnsRejectsUnknownTable() {
-        assertThrows(BadRequestResponse.class, () -> service.verifyAllColumns("does_not_exist"));
+        var ex = assertThrows(RefusalResponse.class, () -> service.verifyAllColumns("does_not_exist"));
+        assertEquals(Refusal.TRACKED_TABLE_NOT_HERE_TO_VERIFY, ex.refusal());
     }
 
     @Test

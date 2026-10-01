@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -16,9 +18,6 @@ import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -180,10 +179,11 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         var station = stationOf(cluster);
         int itemId = clusterItemAt(cluster, station);
 
-        assertThrows(
-                ForbiddenResponse.class,
+        var described = assertThrows(
+                RefusalResponse.class,
                 () -> inventoryService.updateItem(itemId, "HK-neu", "Anderer Helm", null, null, null));
-        assertThrows(ForbiddenResponse.class, () -> inventoryService.deleteItem(itemId, null));
+        assertEquals(Refusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE, described.refusal());
+        assertThrows(RefusalResponse.class, () -> inventoryService.deleteItem(itemId, null));
 
         var own = inventoryRepo.create(station.id(), "Eigenes", InventoryType.INTERNAL, false);
         var ownItem = inventoryRepo.createItem(own.id(), "EG-1", "Eigener Helm", null, null);
@@ -209,7 +209,7 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
 
         var other = freshCluster();
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> inventoryService.updateItem(itemId, "HK-fremd", "Fremder Helm", null, null, other.id()),
                 "another association is still a stranger to it");
 
@@ -229,8 +229,9 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         var flow = clusterInventoryService.createFlow(cluster.id(), "Ausgabe", MovementPurpose.ISSUE);
 
         var refused = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> clusterInventoryService.createFlow(cluster.id(), "Ausgabe neu", MovementPurpose.ISSUE));
+        assertEquals(Refusal.CLUSTER_INVENTORY_FLOW_PURPOSE_TAKEN, refused.refusal());
         assertTrue(refused.getMessage().contains("Ausgabe"), "and it says which one is in the way");
 
         var step = clusterInventoryService.addStep(
@@ -276,10 +277,12 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         var other = freshCluster();
         var flow = clusterInventoryService.createFlow(cluster.id(), "Ausgabe", MovementPurpose.ISSUE);
 
-        assertThrows(NotFoundResponse.class, () -> clusterInventoryService.renameFlow(other.id(), flow.id(), "Fremd"));
-        assertThrows(NotFoundResponse.class, () -> clusterInventoryService.archiveFlow(other.id(), flow.id()));
+        var renamed = assertThrows(
+                RefusalResponse.class, () -> clusterInventoryService.renameFlow(other.id(), flow.id(), "Fremd"));
+        assertEquals(Refusal.CLUSTER_INVENTORY_FLOW_NOT_HERE, renamed.refusal());
+        assertThrows(RefusalResponse.class, () -> clusterInventoryService.archiveFlow(other.id(), flow.id()));
         assertThrows(
-                NotFoundResponse.class,
+                RefusalResponse.class,
                 () -> clusterInventoryService.addStep(
                         other.id(),
                         flow.id(),
@@ -288,7 +291,7 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
                         StepSubject.OUTGOING,
                         ItemCustody.IN_TRANSIT,
                         false));
-        assertThrows(NotFoundResponse.class, () -> clusterInventoryService.findSteps(other.id(), flow.id()));
+        assertThrows(RefusalResponse.class, () -> clusterInventoryService.findSteps(other.id(), flow.id()));
 
         clusterService.delete(other.id());
         clusterService.delete(cluster.id());
@@ -436,11 +439,12 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         int n = NAMES.incrementAndGet();
         var inventory = inventoryRepo.create(station.id(), "Einsatzkleidung " + n, InventoryType.EXTERNAL, false);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> inventoryService.createItem(
                         inventory.id(), "STRANGE-" + n, "Helm", null, null, ItemOwner.CLUSTER, stranger.id()),
                 "A station answers to one body, so naming another one is a mistake rather than a choice");
+        assertEquals(Refusal.INVENTORY_GEAR_OF_ANOTHER_ASSOCIATION, refused.refusal());
 
         assertNotNull(
                 inventoryService.createItem(

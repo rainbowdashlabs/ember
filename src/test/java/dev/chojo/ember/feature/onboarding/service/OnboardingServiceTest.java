@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.onboarding.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -35,7 +36,6 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.SetupService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -243,7 +243,7 @@ class OnboardingServiceTest {
     @Test
     void aTaskThatReadsItsOwnAnswerCannotBeTickedOff() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.mark(
                         OnboardingLevel.MEMBER, "member.notifications", OnboardingTaskState.DONE, MEMBER, 1));
         verify(markRepository, never()).markForMember(anyInt(), eq("member.notifications"), eq("CONFIRMED"));
@@ -405,14 +405,14 @@ class OnboardingServiceTest {
     @Test
     void aTaskNobodyHasHeardOfIsRefused() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.mark(OnboardingLevel.MEMBER, "member.nonsense", OnboardingTaskState.SKIPPED, MEMBER, 1));
     }
 
     @Test
     void aTaskOfAnotherLevelIsRefused() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.mark(OnboardingLevel.MEMBER, "station.groups", OnboardingTaskState.SKIPPED, MEMBER, 1));
     }
 

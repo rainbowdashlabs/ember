@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -15,7 +17,6 @@ import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -129,17 +130,19 @@ class ClusterDispatchServiceTest extends RepositoryTestBase {
 
         var stranger = freshCluster();
         var strangersStation = stationOf(stranger);
-        assertThrows(
-                BadRequestResponse.class,
+        var wrongStation = assertThrows(
+                RefusalResponse.class,
                 () -> clusterDispatchService.dispatch(
                         cluster.id(), strangersStation.uid(), items, "Falsche Wache", owner()),
                 "a station that answers to somebody else is nobody to send to");
+        assertEquals(Refusal.CLUSTER_DISPATCH_STATION_NOT_IN_CLUSTER, wrongStation.refusal());
 
         var elsewhere = stock(stranger, 1);
-        assertThrows(
-                BadRequestResponse.class,
+        var foreignGear = assertThrows(
+                RefusalResponse.class,
                 () -> clusterDispatchService.dispatch(cluster.id(), station.uid(), elsewhere, "Fremd", owner()),
                 "gear another body owns is not this one's to send");
+        assertEquals(Refusal.CLUSTER_DISPATCH_GEAR_NOT_IN_STORE, foreignGear.refusal());
 
         clusterService.releaseStation(stranger.id(), strangersStation.id());
         stationRepo.delete(strangersStation.id());
@@ -161,11 +164,12 @@ class ClusterDispatchServiceTest extends RepositoryTestBase {
         assertTrue(
                 clusterDispatchService.sendable(cluster.id()).stream().noneMatch(item -> item.id() == items.getFirst()),
                 "a piece already in the post is not in the store");
-        assertThrows(
-                BadRequestResponse.class,
+        var again = assertThrows(
+                RefusalResponse.class,
                 () -> clusterDispatchService.dispatch(
                         cluster.id(), station.uid(), List.of(items.getFirst()), "Nochmal", owner()),
                 "and cannot be sent a second time");
+        assertEquals(Refusal.CLUSTER_DISPATCH_GEAR_NOT_IN_STORE, again.refusal());
 
         clusterService.releaseStation(cluster.id(), station.id());
         stationRepo.delete(station.id());
@@ -178,9 +182,9 @@ class ClusterDispatchServiceTest extends RepositoryTestBase {
         var items = stock(cluster, 1);
 
         var thrown = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> clusterDispatchService.dispatch(cluster.id(), station.uid(), items, "Ohne Ablauf", owner()));
-        assertTrue(thrown.getMessage().contains("chain"), "the message names what is missing");
+        assertEquals(Refusal.CLUSTER_DISPATCH_WITHOUT_CHAIN, thrown.refusal(), "the refusal names what is missing");
 
         clusterService.releaseStation(cluster.id(), station.id());
         stationRepo.delete(station.id());

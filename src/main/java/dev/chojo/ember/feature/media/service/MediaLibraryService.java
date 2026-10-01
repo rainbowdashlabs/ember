@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.media.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.entity.StationFileFolder;
@@ -17,7 +18,6 @@ import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.util.PixelBudget;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -292,8 +292,7 @@ public class MediaLibraryService {
         if (file == null) return false;
         int handedOut = references.handedOutBy(fileId);
         if (handedOut > 0) {
-            throw new BadRequestResponse("This file is attached to " + handedOut
-                    + " news entry/entries or event(s). Detach it there first.");
+            throw Refusal.MEDIA_FILE_STILL_ATTACHED.raise(String.valueOf(handedOut));
         }
         boolean deleted = fileRepository.delete(fileId);
         if (deleted) {

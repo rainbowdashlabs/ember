@@ -148,7 +148,7 @@ test.describe('Waiting lists', () => {
         await page.getByRole('combobox').first().selectOption('BIRTH_DATE')
         await page.getByRole('button', {name: 'Speichern'}).click()
 
-        await expect(page.getByText(/already has a date of birth field|Fehler/)).toBeVisible()
+        await expect(page.getByText(/schon ein Feld für das Geburtsdatum|Fehler/)).toBeVisible()
     })
 
     /**

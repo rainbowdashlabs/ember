@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.MovementTargeting.Target;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -54,7 +54,7 @@ class MovementBelongingTest {
     @Test
     void anUnboundCombinationFallsBackToTheChainItWalks() {
         when(flows.resolveFlow(anyInt(), any(), any(), any(), any(), any()))
-                .thenThrow(new BadRequestResponse("no chain"));
+                .thenThrow(Refusal.MOVEMENT_FLOW_NOT_BOUND.raise());
 
         var target = targeting.belongsOn(MovementGuardsTest.movement(1, 3, null, null));
 

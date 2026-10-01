@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -22,8 +23,6 @@ import dev.chojo.ember.feature.inventory.service.MovementFlowService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -268,8 +267,7 @@ public class ClusterInventoryService {
                 .filter(flow -> flow.purpose() == purpose)
                 .findFirst()
                 .ifPresent(flow -> {
-                    throw new BadRequestResponse("'%s' already walks every %s. Archive it before adding another."
-                            .formatted(flow.name(), purpose.name()));
+                    throw Refusal.CLUSTER_INVENTORY_FLOW_PURPOSE_TAKEN.raise(flow.name());
                 });
         return flowService.createClusterFlow(clusterId, name, purpose);
     }
@@ -358,14 +356,15 @@ public class ClusterInventoryService {
 
     /** A chain of another association, or of a station, is not this one's to change. */
     private void requireOwnFlow(int clusterId, int flowId) {
-        MovementFlow flow = flowService.findFlow(flowId).orElseThrow(() -> new NotFoundResponse("No such flow"));
+        MovementFlow flow = flowService.findFlow(flowId).orElseThrow(Refusal.CLUSTER_INVENTORY_FLOW_NOT_HERE::raise);
         if (flow.clusterId() == null || flow.clusterId() != clusterId) {
-            throw new NotFoundResponse("No such flow");
+            throw Refusal.CLUSTER_INVENTORY_FLOW_NOT_HERE.raise();
         }
     }
 
     private void requireOwnStep(int clusterId, int stepId) {
-        MovementFlowStep step = flowService.findStep(stepId).orElseThrow(() -> new NotFoundResponse("No such step"));
+        MovementFlowStep step =
+                flowService.findStep(stepId).orElseThrow(Refusal.CLUSTER_INVENTORY_FLOW_STEP_NOT_HERE::raise);
         requireOwnFlow(clusterId, step.flowId());
     }
 
@@ -420,7 +419,7 @@ public class ClusterInventoryService {
     }
 
     private void requireCluster(int clusterId) {
-        if (clusterRepository.findById(clusterId).isEmpty()) throw new NotFoundResponse("No such cluster");
+        if (clusterRepository.findById(clusterId).isEmpty()) throw Refusal.CLUSTER_INVENTORY_CLUSTER_NOT_HERE.raise();
     }
 
     /**

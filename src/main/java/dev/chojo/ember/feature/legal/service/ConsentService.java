@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.legal.entity.DocumentVersions;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
 import dev.chojo.ember.util.FilePaths;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -243,9 +243,9 @@ public class ConsentService {
      * @param privacyVersion the privacy policy version the submitter clicked through
      * @param tosVersion     the terms of service version the submitter clicked through
      * @return a populated {@link ConsentProof} ready to persist on the submission row
-     * @throws BadRequestResponse if any hash is missing or does not match the current
-     *                            published version (the caller's UI should refresh the
-     *                            documents and re-prompt)
+     * @throws dev.chojo.ember.api.RefusalResponse if any hash is missing or does not match the
+     *                                             current published version (the caller's UI
+     *                                             should refresh the documents and re-prompt)
      */
     public ConsentProof requireAcceptance(
             Context ctx,
@@ -253,21 +253,20 @@ public class ConsentService {
             @Nullable String privacyVersion,
             @Nullable String tosVersion) {
         if (consentVersion == null || consentVersion.isBlank()) {
-            throw new BadRequestResponse("consentVersion is required");
+            throw Refusal.LEGAL_CONSENT_VERSION_MISSING.raise();
         }
         if (privacyVersion == null || privacyVersion.isBlank()) {
-            throw new BadRequestResponse("privacyVersion is required");
+            throw Refusal.LEGAL_PRIVACY_VERSION_MISSING.raise();
         }
         if (tosVersion == null || tosVersion.isBlank()) {
-            throw new BadRequestResponse("tosVersion is required");
+            throw Refusal.LEGAL_TERMS_VERSION_MISSING.raise();
         }
 
         var current = getCurrentVersions();
         if (!current.consentVersion().equals(consentVersion)
                 || !current.privacyVersion().equals(privacyVersion)
                 || !current.tosVersion().equals(tosVersion)) {
-            throw new BadRequestResponse(
-                    "Legal documents have changed since the form was loaded. Please reload and accept again.");
+            throw Refusal.LEGAL_DOCUMENTS_CHANGED.raise();
         }
 
         String ipAddress = anonymizeIp(InetAddress.ofLiteral(ctx.ip()));

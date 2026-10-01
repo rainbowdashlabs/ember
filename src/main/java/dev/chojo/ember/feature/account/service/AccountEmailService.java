@@ -5,14 +5,13 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -95,11 +94,11 @@ public class AccountEmailService {
      *
      * @param callerAccountId the account asking for the change
      * @param accountId       the account whose address is being written
-     * @throws ForbiddenResponse when the two are the same account
+     * @throws RefusalResponse when the two are the same account
      */
     public boolean setEmailFor(int callerAccountId, int accountId, String email) {
         if (callerAccountId == accountId) {
-            throw new ForbiddenResponse("An account cannot write its own address without confirming it");
+            throw Refusal.OWN_ADDRESS_NOT_WRITTEN_UNCONFIRMED.raise();
         }
         return setEmail(accountId, email);
     }
@@ -110,15 +109,16 @@ public class AccountEmailService {
      * @param accountId the account
      * @param email     the new address
      * @return {@code true} when the address changed, {@code false} when it was already this one
-     * @throws NotFoundResponse   if the account does not exist
-     * @throws BadRequestResponse if the address is not one, or already belongs to another account
+     * @throws RefusalResponse if the account does not exist, the address is not one, or it already
+     *     belongs to another account
      */
     public boolean setEmail(int accountId, String email) {
-        Account account = accountRepository.findById(accountId).orElseThrow(NotFoundResponse::new);
+        Account account =
+                accountRepository.findById(accountId).orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_ADDRESS_WRITE::raise);
         String normalised = normalise(email);
         switch (problemWith(accountId, email)) {
-            case MALFORMED, UNREACHABLE -> throw new BadRequestResponse("A valid email address is required");
-            case TAKEN -> throw new BadRequestResponse("This email address already belongs to another account");
+            case MALFORMED, UNREACHABLE -> throw Refusal.ADDRESS_NOT_GOOD_ON_ADDRESS_WRITE.raise();
+            case TAKEN -> throw Refusal.ADDRESS_TAKEN_ON_ADDRESS_WRITE.raise();
             case NONE -> {}
         }
         if (normalised.equalsIgnoreCase(account.email())) return false;

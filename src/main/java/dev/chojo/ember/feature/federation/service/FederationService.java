@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
@@ -21,7 +22,6 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.RandomTokens;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -619,7 +619,7 @@ public class FederationService {
     private void requirePausable(int partnerId) {
         repository.findPartnerById(partnerId).ifPresent(partner -> {
             if (!partner.pausableByStation()) {
-                throw new BadRequestResponse("This connection carries the cluster's own content and cannot be paused");
+                throw Refusal.FEDERATION_CLUSTER_PARTNER_NOT_PAUSABLE.raise();
             }
         });
     }
@@ -627,8 +627,7 @@ public class FederationService {
     private void requireDeletable(int partnerId) {
         repository.findPartnerById(partnerId).ifPresent(partner -> {
             if (!partner.deletableByStation()) {
-                throw new BadRequestResponse(
-                        "This connection belongs to the cluster and ends when its membership does");
+                throw Refusal.FEDERATION_CLUSTER_PARTNER_NOT_DELETABLE.raise();
             }
         });
     }

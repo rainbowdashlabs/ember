@@ -133,6 +133,8 @@ class RefusalTest {
                         Refusal.QUIZ_PICTURE_NOT_PROCESSED,
                         Refusal.QUIZ_TEST_PDF_NOT_MADE,
                         Refusal.QUIZ_TEST_SOLUTION_PDF_NOT_MADE,
+                        Refusal.QUIZ_CATALOG_EXAMPLE_MISSING,
+                        Refusal.QUIZ_CATALOG_EXAMPLE_NOT_READ,
                         Refusal.PROTOCOL_RUN_NOT_EXPORTED,
                         Refusal.CHECKLIST_PDF_NOT_MADE,
                         Refusal.CHECKLIST_PDF_INTERRUPTED,

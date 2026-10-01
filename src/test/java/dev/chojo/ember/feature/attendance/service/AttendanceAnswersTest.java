@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
@@ -12,7 +13,6 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -108,7 +108,7 @@ class AttendanceAnswersTest extends RepositoryTestBase {
     }
 
     private static void refused(FieldType type, String config, String answer) {
-        assertThrows(BadRequestResponse.class, () -> kept(type, config, answer), answer + " under " + type);
+        assertThrows(RefusalResponse.class, () -> kept(type, config, answer), answer + " under " + type);
     }
 
     @Test

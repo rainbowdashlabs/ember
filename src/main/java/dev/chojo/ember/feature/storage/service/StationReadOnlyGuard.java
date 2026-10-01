@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -17,8 +18,8 @@ import org.slf4j.LoggerFactory;
  * instance. HTTP routes are covered by the centralised before-matched handler in
  * {@code ApiServer}; this helper exists for callers that run outside the request loop.
  *
- * <p>{@link #requireWritable(int)} throws {@link StationReadOnlyForTransferException} when the
- * station carries the read-only flag, which maps to HTTP 503 when surfaced through a Javalin
+ * <p>{@link #requireWritable(int)} raises {@link Refusal#STATION_READ_ONLY_FOR_BACKGROUND_WRITE} when
+ * the station carries the read-only flag, which answers HTTP 503 when surfaced through a Javalin
  * response and otherwise propagates as a runtime exception that the caller can swallow / log.
  */
 @Singleton
@@ -33,13 +34,13 @@ public class StationReadOnlyGuard {
     }
 
     /**
-     * Throws {@link StationReadOnlyForTransferException} when {@code stationId} is currently
-     * flagged read-only for an in-flight transfer.
+     * Raises {@link Refusal#STATION_READ_ONLY_FOR_BACKGROUND_WRITE} when {@code stationId} is
+     * currently flagged read-only for an in-flight transfer.
      */
     public void requireWritable(int stationId) {
         if (stationRepository.isReadOnlyForTransfer(stationId)) {
             log.warn("Refused write on station {}: station is read-only for transfer", stationId);
-            throw new StationReadOnlyForTransferException(stationId);
+            throw Refusal.STATION_READ_ONLY_FOR_BACKGROUND_WRITE.raise();
         }
     }
 

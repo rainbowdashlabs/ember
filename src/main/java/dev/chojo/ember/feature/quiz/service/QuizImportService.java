@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferCategory;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.util.CsvParser;
 import dev.chojo.ember.util.Json;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -51,8 +51,9 @@ public class QuizImportService {
      *
      * @param csvContent the decoded sheet
      * @param mappings   which column carries which field, plus the parsing separators
-     * @throws BadRequestResponse when the sheet cannot be parsed, the question column is missing,
-     *                            or a row names a question type Ember does not know
+     * @throws dev.chojo.ember.api.RefusalResponse when the sheet cannot be parsed, the question
+     *                                             column is missing, or a row names a question type
+     *                                             Ember does not know
      */
     public CsvDraft draft(String csvContent, CsvMappings mappings) {
         var parsed = parse(csvContent, mappings.separatorChar());
@@ -95,7 +96,7 @@ public class QuizImportService {
             return CsvParser.parse(csvContent, separator);
         } catch (IOException e) {
             log.warn("Failed to parse an uploaded sheet", e);
-            throw new BadRequestResponse("Failed to parse CSV");
+            throw Refusal.QUIZ_IMPORT_SHEET_NOT_READ.raise();
         }
     }
 
@@ -140,7 +141,7 @@ public class QuizImportService {
             case "ORDERING", "REIHENFOLGE" -> QuizQuestionType.ORDERING;
             case "IMAGE_TEXT" -> QuizQuestionType.IMAGE_TEXT;
             case "ENUMERATION", "AUFZÄHLUNG", "AUFZAEHLUNG" -> QuizQuestionType.ENUMERATION;
-            default -> throw new BadRequestResponse("Invalid question type: " + type);
+            default -> throw Refusal.QUIZ_IMPORT_QUESTION_TYPE_UNKNOWN.raise(type);
         };
     }
 
@@ -275,7 +276,7 @@ public class QuizImportService {
 
         private static ColumnIndex resolve(List<String> headers, CsvMappings mappings) {
             int question = headers.indexOf(mappings.questionColumn());
-            if (question < 0) throw new BadRequestResponse("Question column not found in CSV headers");
+            if (question < 0) throw Refusal.QUIZ_IMPORT_QUESTION_COLUMN_MISSING.raise(mappings.questionColumn());
             return new ColumnIndex(
                     question,
                     headers.indexOf(mappings.answerColumn()),

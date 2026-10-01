@@ -7,12 +7,13 @@ package dev.chojo.ember.feature.federation.contract;
 
 import dev.chojo.ember.api.FederationHeaders;
 import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.Handler;
 import io.javalin.http.HandlerType;
 import io.javalin.http.HttpStatus;
@@ -135,7 +136,9 @@ class FederationContractBinderTest {
     void anUnsignedRequestIsRefusedBeforeTheServingFunction() {
         var handlers = bind(registry());
         var unsigned = signedRequest(null);
-        assertThrows(ForbiddenResponse.class, () -> handlers.get(READ).handle(unsigned));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> handlers.get(READ).handle(unsigned));
+        assertEquals(Refusal.FEDERATION_REQUEST_NOT_SIGNED, refused.refusal());
     }
 
     @Test

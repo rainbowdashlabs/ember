@@ -192,7 +192,9 @@ public class PasskeyRoutes implements Routes {
     private void createDeviceRequest(Context ctx) {
         requirePasskeysOn();
         var identifier = ctx.bodyAsClass(DeviceIdentifierRequest.class);
-        RateLimits.enforce(rateLimiter.tryDeviceRequest(ctx.ip(), identifier.identifier()));
+        RateLimits.enforce(
+                Refusal.PASSKEY_DEVICE_REQUEST_TOO_OFTEN,
+                rateLimiter.tryDeviceRequest(ctx.ip(), identifier.identifier()));
         var request = deviceService.createRequest(
                 DeviceRequestPurpose.ENROL_PASSKEY,
                 identifier.identifier(),
@@ -227,7 +229,9 @@ public class PasskeyRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeviceRequestResponse.class)))
     private void createSignInRequest(Context ctx) {
         var identifier = ctx.bodyAsClass(DeviceIdentifierRequest.class);
-        RateLimits.enforce(rateLimiter.tryDeviceRequest(ctx.ip(), identifier.identifier()));
+        RateLimits.enforce(
+                Refusal.PASSKEY_SIGN_IN_REQUEST_TOO_OFTEN,
+                rateLimiter.tryDeviceRequest(ctx.ip(), identifier.identifier()));
         var request = deviceService.createRequest(
                 DeviceRequestPurpose.SIGN_IN, identifier.identifier(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         ctx.json(deviceRequestResponse(request));
@@ -244,7 +248,7 @@ public class PasskeyRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SignInClaimRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LoginResponse.class)))
     private void claimSignIn(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryDeviceClaim(ctx.ip()));
+        RateLimits.enforce(Refusal.PASSKEY_SIGN_IN_CLAIM_TOO_OFTEN, rateLimiter.tryDeviceClaim(ctx.ip()));
         var request = ctx.bodyAsClass(SignInClaimRequest.class);
         if (isBlank(request.claimToken())) {
             throw Refusal.DEVICE_SIGN_IN_CLAIM_MISSING.raise();
@@ -269,7 +273,8 @@ public class PasskeyRoutes implements Routes {
         if (isBlank(request.pollSecret())) {
             throw Refusal.DEVICE_POLL_SECRET_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryDevicePoll(ctx.ip(), request.pollSecret()));
+        RateLimits.enforce(
+                Refusal.PASSKEY_DEVICE_POLL_TOO_OFTEN, rateLimiter.tryDevicePoll(ctx.ip(), request.pollSecret()));
         var result = deviceService.poll(
                 request.pollSecret(), Set.of(DeviceRequestPurpose.ENROL_PASSKEY, DeviceRequestPurpose.SIGN_IN));
         ctx.json(new DevicePollResponse(result.status(), result.claimToken(), result.purpose()));
@@ -282,7 +287,7 @@ public class PasskeyRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CeremonyResponse.class)))
     private void beginDeviceEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
+        RateLimits.enforce(Refusal.PASSKEY_DEVICE_ENROLL_BEGIN_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(DeviceEnrollBeginRequest.class);
         if (isBlank(request.enrollToken())) {
             throw Refusal.DEVICE_ENROLMENT_TOKEN_MISSING.raise();
@@ -300,7 +305,7 @@ public class PasskeyRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void finishDeviceEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
+        RateLimits.enforce(Refusal.PASSKEY_DEVICE_ENROLL_FINISH_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(DeviceEnrollFinishRequest.class);
         if (isBlank(request.enrollToken()) || isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
             throw Refusal.DEVICE_ENROLMENT_DETAILS_MISSING.raise();
@@ -321,7 +326,7 @@ public class PasskeyRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokenEnrollLookupResponse.class)))
     private void lookupTokenEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
+        RateLimits.enforce(Refusal.PASSKEY_TOKEN_LOOKUP_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(TokenEnrollRequest.class);
         if (isBlank(request.token())) {
             throw Refusal.ENROLMENT_LINK_TOKEN_MISSING.raise();
@@ -337,7 +342,7 @@ public class PasskeyRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CeremonyResponse.class)))
     private void beginTokenEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
+        RateLimits.enforce(Refusal.PASSKEY_TOKEN_ENROLL_BEGIN_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(TokenEnrollRequest.class);
         if (isBlank(request.token())) {
             throw Refusal.ENROLMENT_LINK_TOKEN_MISSING_ON_BEGIN.raise();
@@ -353,7 +358,7 @@ public class PasskeyRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void finishTokenEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
+        RateLimits.enforce(Refusal.PASSKEY_TOKEN_ENROLL_FINISH_TOO_OFTEN, rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(TokenEnrollFinishRequest.class);
         if (isBlank(request.token()) || isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
             throw Refusal.ENROLMENT_LINK_DETAILS_MISSING.raise();
@@ -372,7 +377,9 @@ public class PasskeyRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeviceLookupResponse.class)))
     private void lookupDeviceRequest(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        RateLimits.enforce(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
+        RateLimits.enforce(
+                Refusal.PASSKEY_DEVICE_CODE_LOOKUP_TOO_OFTEN,
+                rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
         var request = ctx.bodyAsClass(DeviceCodeRequest.class);
         if (isBlank(request.code())) {
             throw Refusal.DEVICE_CODE_MISSING_ON_LOOKUP.raise();
@@ -456,7 +463,9 @@ public class PasskeyRoutes implements Routes {
             })
     private void approveDeviceRequest(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        RateLimits.enforce(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
+        RateLimits.enforce(
+                Refusal.PASSKEY_DEVICE_APPROVAL_TOO_OFTEN,
+                rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
         var request = ctx.bodyAsClass(DeviceCodeRequest.class);
         if (isBlank(request.code())) {
             throw Refusal.DEVICE_CODE_MISSING_ON_APPROVAL.raise();
@@ -508,7 +517,7 @@ public class PasskeyRoutes implements Routes {
             })
     private void beginSignIn(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryPasskeySignIn(ctx.ip()));
+        RateLimits.enforce(Refusal.PASSKEY_SIGN_IN_BEGIN_TOO_OFTEN, rateLimiter.tryPasskeySignIn(ctx.ip()));
         var start = passkeyService.startSignIn();
         ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
     }
@@ -529,7 +538,7 @@ public class PasskeyRoutes implements Routes {
             })
     private void finishSignIn(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryPasskeySignIn(ctx.ip()));
+        RateLimits.enforce(Refusal.PASSKEY_SIGN_IN_FINISH_TOO_OFTEN, rateLimiter.tryPasskeySignIn(ctx.ip()));
         var request = ctx.bodyAsClass(SignInFinishRequest.class);
         if (isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
             throw Refusal.PASSKEY_SIGN_IN_DETAILS_MISSING.raise();

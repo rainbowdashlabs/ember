@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -284,16 +284,16 @@ class ConsentServiceTest extends RepositoryTestBase {
 
         var current = service.getCurrentVersions();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.requireAcceptance(ctx, null, current.privacyVersion(), current.tosVersion()));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.requireAcceptance(ctx, "", current.privacyVersion(), current.tosVersion()));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.requireAcceptance(ctx, current.consentVersion(), null, current.tosVersion()));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.requireAcceptance(ctx, current.consentVersion(), current.privacyVersion(), null));
     }
 
@@ -307,7 +307,7 @@ class ConsentServiceTest extends RepositoryTestBase {
 
         var current = service.getCurrentVersions();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.requireAcceptance(ctx, "old-consent", current.privacyVersion(), current.tosVersion()));
     }
 

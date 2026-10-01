@@ -40,7 +40,6 @@ import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.Json;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -239,14 +238,15 @@ public class AttendanceService {
      * then refuse as an answer.
      *
      * @throws io.javalin.http.HttpResponseException {@link Refusal#ATTENDANCE_FIELD_TYPE_NOT_OFFERED}
-     * @throws BadRequestResponse                    naming the field and what is wrong with its
+     * @throws io.javalin.http.HttpResponseException {@link Refusal#ATTENDANCE_FIELD_DEFAULT_NOT_ACCEPTED}
+     *                                               naming the field and what is wrong with its
      *                                               starting value
      */
     private void requireUsable(String name, FieldType fieldType, AttendanceFieldConfig config) {
         if (!FieldTypes.ATTENDANCE.contains(fieldType)) throw Refusal.ATTENDANCE_FIELD_TYPE_NOT_OFFERED.raise();
         var field = new AttendanceTemplateField(0, 0, name, fieldType, config, 0);
         QuestionCheck.defaultValue(field.question()).ifPresent(problem -> {
-            throw new BadRequestResponse(problem.message());
+            throw Refusal.ATTENDANCE_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.message());
         });
     }
 
@@ -328,7 +328,7 @@ public class AttendanceService {
      * @param title          what it is called, null to take the appointment's or the template's name
      * @param countedMinutes what a whole presence counts as, null to let the times decide
      * @return the sheet
-     * @throws BadRequestResponse where the span or the counted minutes cannot be used
+     * @throws io.javalin.http.HttpResponseException where the span or the counted minutes cannot be used
      */
     public AttendanceSession createSession(
             int templateId,
@@ -696,7 +696,7 @@ public class AttendanceService {
      * @param title          what it is called
      * @param countedMinutes what a whole presence counts as, null to let the times decide
      * @return the sheet as it now stands, empty where there is none
-     * @throws BadRequestResponse where the span or the counted minutes cannot be used
+     * @throws io.javalin.http.HttpResponseException where the span or the counted minutes cannot be used
      */
     public Optional<AttendanceSession> updateSession(
             int id, Instant startTime, Instant endTime, @Nullable String title, @Nullable Integer countedMinutes) {
@@ -719,15 +719,15 @@ public class AttendanceService {
      *
      * @param startTime when the sheet begins, null where the caller left it to us
      * @param endTime   when it ends, read the same way
-     * @throws BadRequestResponse naming what is wrong with the span
+     * @throws io.javalin.http.HttpResponseException naming what is wrong with the span
      */
     private void requireUsableSpan(Instant startTime, Instant endTime) {
         if (startTime == null || endTime == null) return;
         if (!endTime.isAfter(startTime)) {
-            throw new BadRequestResponse("The sheet has to end after it starts");
+            throw Refusal.ATTENDANCE_SHEET_ENDS_BEFORE_IT_STARTS.raise();
         }
         if (Duration.between(startTime, endTime).compareTo(MAX_SESSION_LENGTH) > 0) {
-            throw new BadRequestResponse("The sheet may not run longer than " + MAX_SESSION_LENGTH.toDays() + " days");
+            throw Refusal.ATTENDANCE_SHEET_TOO_LONG.raise(MAX_SESSION_LENGTH.toDays() + " days");
         }
     }
 
@@ -763,16 +763,15 @@ public class AttendanceService {
      * Refuses a number of counted minutes that could not be worth anybody's presence.
      *
      * @param countedMinutes what a whole presence counts as, null where the times decide
-     * @throws BadRequestResponse naming what is wrong with the number
+     * @throws io.javalin.http.HttpResponseException naming what is wrong with the number
      */
     private void requireUsableCountedMinutes(@Nullable Integer countedMinutes) {
         if (countedMinutes == null) return;
         if (countedMinutes < 0) {
-            throw new BadRequestResponse("The hours a sheet counts as cannot be negative");
+            throw Refusal.ATTENDANCE_COUNTED_HOURS_NEGATIVE.raise();
         }
         if (countedMinutes > MAX_COUNTED_MINUTES) {
-            throw new BadRequestResponse(
-                    "The hours a sheet counts as may not exceed " + MAX_COUNTED_MINUTES / 60 + " hours");
+            throw Refusal.ATTENDANCE_COUNTED_HOURS_TOO_MANY.raise(MAX_COUNTED_MINUTES / 60 + " hours");
         }
     }
 
@@ -794,7 +793,7 @@ public class AttendanceService {
      * the sheet itself. Every answer is kept in the one shape its type is kept in, and a blank one
      * clears the field.
      *
-     * @throws BadRequestResponse naming the field and what is wrong with the answer
+     * @throws io.javalin.http.HttpResponseException naming the field and what is wrong with the answer
      */
     public List<AttendanceSessionField> setSessionFields(int sessionId, List<AttendanceFieldValueEntry> fields) {
         requireSessionOpen(sessionId);
@@ -807,7 +806,7 @@ public class AttendanceService {
             if (field == null) continue;
             QuestionCheck.answerIfGiven(field.question(), QuestionValues.read(entry.value()), memberEligibility)
                     .ifPresent(problem -> {
-                        throw new BadRequestResponse(problem.message());
+                        throw Refusal.ATTENDANCE_SHEET_ANSWER_NOT_ACCEPTED.raise(problem.message());
                     });
         }
         for (var entry : fields) {
@@ -853,7 +852,7 @@ public class AttendanceService {
      */
     private void requireSessionOpen(int sessionId) {
         if (!isSessionOpen(sessionId)) {
-            throw new BadRequestResponse("This attendance sheet is closed and has to be reopened first");
+            throw Refusal.ATTENDANCE_SHEET_CLOSED.raise();
         }
     }
 
@@ -928,7 +927,7 @@ public class AttendanceService {
     public List<AttendanceEntry> createEntry(int sessionId, int memberId, AttendanceEntry.EntrySource source) {
         requireSessionOpen(sessionId);
         if (!hadJoinedBy(dateOf(sessionId), memberId)) {
-            throw new BadRequestResponse("The member had not joined the station on this date");
+            throw Refusal.ATTENDANCE_MEMBER_NOT_YET_JOINED.raise();
         }
         AttendanceEntry.AttendanceStatus status;
         if (attendanceRepository.isAbsent(memberId)) {

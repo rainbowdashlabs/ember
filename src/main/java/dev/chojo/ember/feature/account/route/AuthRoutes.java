@@ -119,7 +119,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void register(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryRegister(ctx.ip()));
+        RateLimits.enforce(Refusal.REGISTERING_TOO_OFTEN, rateLimiter.tryRegister(ctx.ip()));
         var request = ctx.bodyAsClass(RegisterRequest.class);
         boolean passwordless = passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS;
         if (isBlank(request.email())
@@ -161,7 +161,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void verifyEmail(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryVerifyEmail(ctx.ip()));
+        RateLimits.enforce(Refusal.EMAIL_VERIFYING_TOO_OFTEN, rateLimiter.tryVerifyEmail(ctx.ip()));
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) {
             throw Refusal.EMAIL_VERIFICATION_TOKEN_MISSING.raise();
@@ -190,7 +190,8 @@ public class AuthRoutes implements Routes {
         if (isBlank(request.email())) {
             throw Refusal.RESEND_VERIFICATION_ADDRESS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryResendVerification(ctx.ip(), request.email()));
+        RateLimits.enforce(
+                Refusal.VERIFICATION_MAIL_TOO_OFTEN, rateLimiter.tryResendVerification(ctx.ip(), request.email()));
 
         authService.resendVerification(request.email());
         ctx.status(HttpStatus.OK)
@@ -211,7 +212,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setPassword(Context ctx) {
-        RateLimits.enforce(rateLimiter.trySetPassword(ctx.ip()));
+        RateLimits.enforce(Refusal.PASSWORD_SETTING_TOO_OFTEN, rateLimiter.trySetPassword(ctx.ip()));
         var request = ctx.bodyAsClass(SetPasswordRequest.class);
         if (isBlank(request.token()) || isBlank(request.password())) {
             throw Refusal.PASSWORD_SETUP_DETAILS_MISSING.raise();
@@ -243,7 +244,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setAddress(Context ctx) {
-        RateLimits.enforce(rateLimiter.trySetPassword(ctx.ip()));
+        RateLimits.enforce(Refusal.ADDRESS_SETTING_TOO_OFTEN, rateLimiter.trySetPassword(ctx.ip()));
         var request = ctx.bodyAsClass(SetAddressRequest.class);
         if (isBlank(request.token()) || isBlank(request.email())) {
             throw Refusal.ADDRESS_SETUP_DETAILS_MISSING.raise();
@@ -285,7 +286,7 @@ public class AuthRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = AuthService.TokenStatus.class)))
     private void passwordLinkStatus(Context ctx) {
-        RateLimits.enforce(rateLimiter.trySetPassword(ctx.ip()));
+        RateLimits.enforce(Refusal.PASSWORD_LINK_CHECKED_TOO_OFTEN, rateLimiter.trySetPassword(ctx.ip()));
         var request = ctx.bodyAsClass(TokenRequest.class);
         ctx.json(authService.checkPasswordToken(request.token()));
     }
@@ -307,7 +308,7 @@ public class AuthRoutes implements Routes {
         if (isBlank(request.email())) {
             throw Refusal.FORGOTTEN_PASSWORD_ADDRESS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryForgotPassword(ctx.ip(), request.email()));
+        RateLimits.enforce(Refusal.PASSWORD_RESET_TOO_OFTEN, rateLimiter.tryForgotPassword(ctx.ip(), request.email()));
 
         authService.requestPasswordReset(request.email());
         ctx.status(HttpStatus.OK).json(new MessageResponse("If the email exists, a password reset link has been sent"));
@@ -330,7 +331,7 @@ public class AuthRoutes implements Routes {
         if (isBlank(request.identifier()) || isBlank(request.password())) {
             throw Refusal.SIGN_IN_DETAILS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryLogin(ctx.ip(), request.identifier()));
+        RateLimits.enforce(Refusal.SIGN_IN_TOO_OFTEN, rateLimiter.tryLogin(ctx.ip(), request.identifier()));
 
         var result = authService.login(
                 request.identifier(),
@@ -398,7 +399,7 @@ public class AuthRoutes implements Routes {
             })
     private void changePassword(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        RateLimits.enforce(rateLimiter.tryChangePassword(session.accountId()));
+        RateLimits.enforce(Refusal.PASSWORD_CHANGE_TOO_OFTEN, rateLimiter.tryChangePassword(session.accountId()));
         var request = ctx.bodyAsClass(ChangePasswordRequest.class);
         if (isBlank(request.currentPassword()) || isBlank(request.newPassword())) {
             throw Refusal.PASSWORD_CHANGE_DETAILS_MISSING.raise();
@@ -432,7 +433,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400")
             })
     private void confirmEmailChange(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryConfirmEmailChange(ctx.ip()));
+        RateLimits.enforce(Refusal.EMAIL_CHANGE_CONFIRMED_TOO_OFTEN, rateLimiter.tryConfirmEmailChange(ctx.ip()));
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) throw Refusal.EMAIL_CHANGE_TOKEN_MISSING.raise();
         var result = authService.confirmEmailChange(request.token());

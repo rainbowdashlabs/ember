@@ -29,7 +29,6 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -706,7 +705,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         Instant start = Instant.now();
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> openSheet(templateId, start, start.minus(1, ChronoUnit.HOURS), null, "Rückwärts"));
     }
 
@@ -716,7 +715,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         Instant start = Instant.now();
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> openSheet(templateId, start, start.plus(40, ChronoUnit.DAYS), null, "Zu lang"));
     }
 
@@ -739,10 +738,9 @@ class AttendanceServiceTest extends RepositoryTestBase {
         Instant start = Instant.now();
         Instant end = start.plus(4, ChronoUnit.HOURS);
 
+        assertThrows(RefusalResponse.class, () -> service.createSession(templateId, start, end, null, "Negativ", -1));
         assertThrows(
-                BadRequestResponse.class, () -> service.createSession(templateId, start, end, null, "Negativ", -1));
-        assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createSession(templateId, start, end, null, "Zu viel", 60 * 24 * 40));
     }
 

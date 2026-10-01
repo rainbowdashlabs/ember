@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -16,7 +18,6 @@ import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -67,7 +68,7 @@ public class ClusterDispatchService {
      * @return its free stock
      */
     public List<InventoryItem> sendable(int clusterId) {
-        clusterRepository.findById(clusterId).orElseThrow(() -> new BadRequestResponse("No such body"));
+        clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_DISPATCH_CLUSTER_NOT_HERE::raise);
         return inventoryRepository.findItemsOwnedByCluster(clusterId).stream()
                 .filter(item -> item.custody() == ItemCustody.WITH_OWNER)
                 .toList();
@@ -83,14 +84,13 @@ public class ClusterDispatchService {
      * refusing the first step for a reason nobody could act on.
      *
      * @param clusterId the association
-     * @throws BadRequestResponse when it has defined no chain for sending gear out
+     * @throws RefusalResponse when it has defined no chain for sending gear out
      */
     private void requireOwnChain(int clusterId) {
         boolean hasIssueFlow = flowService.findClusterFlows(clusterId).stream()
                 .anyMatch(flow -> flow.purpose() == MovementPurpose.ISSUE);
         if (!hasIssueFlow) {
-            throw new BadRequestResponse(
-                    "This body has no chain for sending gear out yet. Add one under its inventory settings.");
+            throw Refusal.CLUSTER_DISPATCH_WITHOUT_CHAIN.raise();
         }
     }
 
@@ -113,8 +113,8 @@ public class ClusterDispatchService {
      * @param reason     what the association wrote about the consignment
      * @param actor      who is sending, acting for the owner
      * @return the movement carrying the lot
-     * @throws BadRequestResponse when the station is not the association's, when a piece is not its to send,
-     *                            or when it has no chain for sending gear out
+     * @throws RefusalResponse when the station is not the association's, when a piece is not its to send,
+     *                         or when it has no chain for sending gear out
      */
     public ItemMovement dispatch(
             int clusterId,
@@ -122,18 +122,18 @@ public class ClusterDispatchService {
             List<Integer> itemIds,
             @Nullable String reason,
             ItemMovementService.Actor actor) {
-        if (itemIds.isEmpty()) throw new BadRequestResponse("Pick at least one piece to send");
+        if (itemIds.isEmpty()) throw Refusal.CLUSTER_DISPATCH_WITHOUT_GEAR.raise();
         Station station =
-                stationRepository.findByUid(stationUid).orElseThrow(() -> new BadRequestResponse("No such station"));
+                stationRepository.findByUid(stationUid).orElseThrow(Refusal.CLUSTER_DISPATCH_STATION_NOT_HERE::raise);
         if (station.clusterId() == null || station.clusterId() != clusterId) {
-            throw new BadRequestResponse("That station does not answer to this body");
+            throw Refusal.CLUSTER_DISPATCH_STATION_NOT_IN_CLUSTER.raise();
         }
 
         List<InventoryItem> sending = sendable(clusterId).stream()
                 .filter(item -> itemIds.contains(item.id()))
                 .toList();
         if (sending.size() != itemIds.size()) {
-            throw new BadRequestResponse("Some of that gear is not resting in the store and cannot be sent");
+            throw Refusal.CLUSTER_DISPATCH_GEAR_NOT_IN_STORE.raise();
         }
         requireOwnChain(clusterId);
 

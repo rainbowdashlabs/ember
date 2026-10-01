@@ -79,18 +79,16 @@ public class ExceptionMapping {
 
         routes.exception(RefusalResponse.class, (err, ctx) -> {
             logFailure(ctx, err.getStatus(), err.getMessage(), err, devErrors);
+            if (err instanceof RateLimits.TooManyRequestsException refused) {
+                ctx.header("Retry-After", Long.toString(refused.retryAfterSeconds()));
+            }
             ctx.json(err.body()).status(err.getStatus());
         });
 
         routes.exception(HttpResponseException.class, (err, ctx) -> {
             int code = err.getStatus();
             logFailure(ctx, code, err.getMessage(), err, devErrors);
-            Long retryAfter = null;
-            if (err instanceof RateLimits.TooManyRequestsException refused) {
-                retryAfter = refused.retryAfterSeconds();
-                ctx.header("Retry-After", Long.toString(retryAfter));
-            }
-            ctx.json(new ErrorResponseWrapper(HttpStatus.forStatus(code).getMessage(), err.getMessage(), retryAfter))
+            ctx.json(new ErrorResponseWrapper(HttpStatus.forStatus(code).getMessage(), err.getMessage()))
                     .status(code);
         });
 

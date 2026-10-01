@@ -41,7 +41,6 @@ import dev.chojo.ember.feature.news.route.RemoteNewsRoutes.RemoteNewsCommentUpda
 import dev.chojo.ember.feature.news.route.RemoteNewsRoutes.RemoteNewsDetail;
 import dev.chojo.ember.feature.news.route.RemoteNewsRoutes.RemoteNewsSummary;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -482,7 +481,7 @@ public class NewsFederationService implements FederationServer {
     private FederationPartner requirePartner(int stationId, UUID partnerStationUid) {
         return partnerRepository
                 .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
-                .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
+                .orElseThrow(Refusal.NEWS_COMMENT_PARTNER_NOT_HERE::raise);
     }
 
     private CommentResponse toCommentResponse(Comment comment) {

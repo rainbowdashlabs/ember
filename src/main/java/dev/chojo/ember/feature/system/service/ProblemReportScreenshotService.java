@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.image.ImageFormat;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -66,7 +66,7 @@ public class ProblemReportScreenshotService {
             return Optional.of(stored.id());
         } catch (IOException e) {
             log.warn("The picture of a problem report could not be kept", e);
-            throw new BadRequestResponse("the picture could not be stored");
+            throw Refusal.PROBLEM_PICTURE_NOT_KEPT.raise();
         }
     }
 
@@ -99,10 +99,10 @@ public class ProblemReportScreenshotService {
         try {
             picture = Base64.getDecoder().decode(payload.strip());
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("the picture is not readable");
+            throw Refusal.PROBLEM_PICTURE_NOT_READABLE.raise();
         }
-        if (picture.length == 0) throw new BadRequestResponse("the picture is empty");
-        if (picture.length > MAX_BYTES) throw new BadRequestResponse("the picture is too large");
+        if (picture.length == 0) throw Refusal.PROBLEM_PICTURE_EMPTY.raise();
+        if (picture.length > MAX_BYTES) throw Refusal.PROBLEM_PICTURE_TOO_LARGE.raise();
         return picture;
     }
 
@@ -110,6 +110,6 @@ public class ProblemReportScreenshotService {
     private static ImageFormat formatOf(byte[] picture) {
         return ImageFormat.sniff(picture)
                 .filter(format -> format == ImageFormat.PNG || format == ImageFormat.WEBP)
-                .orElseThrow(() -> new BadRequestResponse("the picture is neither a PNG nor a WebP"));
+                .orElseThrow(Refusal.PROBLEM_PICTURE_KIND_NOT_TAKEN::raise);
     }
 }

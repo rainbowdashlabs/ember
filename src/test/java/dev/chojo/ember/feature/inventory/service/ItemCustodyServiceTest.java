@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -12,7 +14,6 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -169,8 +170,8 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
         itemCustodyService.markLost(itemId, null, null);
 
         var thrown = assertThrows(
-                BadRequestResponse.class, () -> itemCustodyService.assignToMember(itemId, member.id(), "Cus Tody"));
-        assertTrue(thrown.getMessage().contains("LOST"));
+                RefusalResponse.class, () -> itemCustodyService.assignToMember(itemId, member.id(), "Cus Tody"));
+        assertEquals(Refusal.CUSTODY_NOT_HANDED_OUT_FROM_HERE, thrown.refusal());
     }
 
     @Test
@@ -179,8 +180,7 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
         itemCustodyService.lendToPartner(itemId, null);
 
         assertEquals(ItemCustody.WITH_PARTNER, custodyOf(itemId));
-        assertThrows(
-                BadRequestResponse.class, () -> itemCustodyService.assignToMember(itemId, member.id(), "Cus Tody"));
+        assertThrows(RefusalResponse.class, () -> itemCustodyService.assignToMember(itemId, member.id(), "Cus Tody"));
         assertFalse(inventoryRepo.findUnassignedItems(mixedInventoryId).stream().anyMatch(i -> i.id() == itemId));
 
         itemCustodyService.returnFromPartner(itemId);

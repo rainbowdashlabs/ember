@@ -24,8 +24,6 @@ import dev.chojo.ember.feature.members.repository.ManagedLoginNoticeRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -211,17 +209,22 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
 
     @Test
     void anAddressThatBelongsToSomeoneElseIsRefused() {
-        assertThrows(BadRequestResponse.class, () -> service.setEmail(guardian.id(), child.id(), "stranger@test.com"));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.setEmail(guardian.id(), child.id(), "stranger@test.com"));
+        assertEquals(Refusal.ADDRESS_TAKEN_ON_ADDRESS_WRITE, refused.refusal());
     }
 
     @Test
     void nonsenseIsNotAnAddress() {
-        assertThrows(BadRequestResponse.class, () -> service.setEmail(guardian.id(), child.id(), "keine-adresse"));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.setEmail(guardian.id(), child.id(), "keine-adresse"));
+        assertEquals(Refusal.ADDRESS_NOT_GOOD_ON_ADDRESS_WRITE, refused.refusal());
     }
 
     @Test
     void signingInNeedsAnAddressOrANameFirst() {
-        assertThrows(BadRequestResponse.class, () -> service.setLogin(guardian.id(), child.id(), true));
+        var refused = assertThrows(RefusalResponse.class, () -> service.setLogin(guardian.id(), child.id(), true));
+        assertEquals(Refusal.MANAGED_SIGN_IN_NEEDS_A_NAME_OR_ADDRESS, refused.refusal());
     }
 
     @Test
@@ -278,7 +281,8 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
     void theNameThatIsTheOnlyWayInCannotBeTakenAway() {
         service.setUsername(guardian.id(), child.id(), "lena.sommer");
 
-        assertThrows(BadRequestResponse.class, () -> service.setUsername(guardian.id(), child.id(), ""));
+        var refused = assertThrows(RefusalResponse.class, () -> service.setUsername(guardian.id(), child.id(), ""));
+        assertEquals(Refusal.USERNAME_IS_THE_ONLY_WAY_IN, refused.refusal());
     }
 
     @Test
@@ -326,16 +330,21 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
 
     @Test
     void aMemberTheyDoNotManageIsNoneOfTheirBusiness() {
-        assertThrows(ForbiddenResponse.class, () -> service.get(guardian.id(), stranger.id()));
-        assertThrows(ForbiddenResponse.class, () -> service.setEmail(guardian.id(), stranger.id(), "neu@example.org"));
-        assertThrows(ForbiddenResponse.class, () -> service.setLogin(guardian.id(), stranger.id(), true));
+        var reading = assertThrows(RefusalResponse.class, () -> service.get(guardian.id(), stranger.id()));
+        var writing = assertThrows(
+                RefusalResponse.class, () -> service.setEmail(guardian.id(), stranger.id(), "neu@example.org"));
+        var switching = assertThrows(RefusalResponse.class, () -> service.setLogin(guardian.id(), stranger.id(), true));
+        assertEquals(Refusal.MANAGED_MEMBER_NOT_YOURS, reading.refusal());
+        assertEquals(Refusal.MANAGED_MEMBER_NOT_YOURS, writing.refusal());
+        assertEquals(Refusal.MANAGED_MEMBER_NOT_YOURS, switching.refusal());
     }
 
     @Test
     void aManagedMemberOfAnotherTypeIsRefused() {
         stationMemberRepo.setUserType(child.id(), StationUserType.TEAM);
         try {
-            assertThrows(ForbiddenResponse.class, () -> service.setLogin(guardian.id(), child.id(), true));
+            var refused = assertThrows(RefusalResponse.class, () -> service.setLogin(guardian.id(), child.id(), true));
+            assertEquals(Refusal.MANAGED_MEMBER_TYPE_NOT_MANAGED, refused.refusal());
         } finally {
             stationMemberRepo.setUserType(child.id(), StationUserType.MEMBER);
         }
@@ -358,9 +367,12 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
         org.mockito.Mockito.verify(enrollmentService).revokeCode(childAccount.id());
 
         service.setEmail(guardian.id(), child.id(), "lena-passkey@example.org");
-        assertThrows(
-                ForbiddenResponse.class,
-                () -> service.issuePasskeyCode(guardian.id(), child.id(), guardianAccount.id(), "ua", null),
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.issuePasskeyCode(guardian.id(), child.id(), guardianAccount.id(), "ua", null));
+        assertEquals(
+                Refusal.MANAGED_MEMBER_HAS_OWN_ADDRESS,
+                refused.refusal(),
                 "with an address of their own the mail path is theirs");
     }
 }

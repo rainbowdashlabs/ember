@@ -20,7 +20,6 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -181,7 +180,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 event.id(),
                 List.of(draft("Startnummer", FieldType.TEXT, registrant(true, null, null, null, null, false), true)));
-        assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(event.id(), Map.of()));
+        assertThrows(RefusalResponse.class, () -> service.resolveAnswers(event.id(), Map.of()));
         seedFields();
     }
 
@@ -189,23 +188,22 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
     @Order(5)
     void valueOutsideOptionsIsRefused() {
         assertThrows(
-                BadRequestResponse.class,
-                () -> service.resolveAnswers(event.id(), Map.of(fieldId("Shirtgröße"), "XXXL")));
+                RefusalResponse.class, () -> service.resolveAnswers(event.id(), Map.of(fieldId("Shirtgröße"), "XXXL")));
     }
 
     @Test
     @Order(6)
     void numberOutsideRangeIsRefused() {
         int guests = fieldId("Begleitpersonen");
-        assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(event.id(), Map.of(guests, "9")));
-        assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(event.id(), Map.of(guests, "-1")));
-        assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(event.id(), Map.of(guests, "drei")));
+        assertThrows(RefusalResponse.class, () -> service.resolveAnswers(event.id(), Map.of(guests, "9")));
+        assertThrows(RefusalResponse.class, () -> service.resolveAnswers(event.id(), Map.of(guests, "-1")));
+        assertThrows(RefusalResponse.class, () -> service.resolveAnswers(event.id(), Map.of(guests, "drei")));
     }
 
     @Test
     @Order(7)
     void unknownQuestionIsRefused() {
-        assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(event.id(), Map.of(-1, "x")));
+        assertThrows(RefusalResponse.class, () -> service.resolveAnswers(event.id(), Map.of(-1, "x")));
     }
 
     @Test
@@ -297,7 +295,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
 
         int startNumber = fieldId("Startnummer");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.resolveAnswers(event.id(), Map.of()),
                 "a required question is required whoever may read its answer");
         assertEquals(

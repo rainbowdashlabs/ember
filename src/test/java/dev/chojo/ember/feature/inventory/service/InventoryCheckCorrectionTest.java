@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -14,7 +16,6 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -173,9 +174,9 @@ class InventoryCheckCorrectionTest extends RepositoryTestBase {
         int inventoryId = inventory("Gemischtes", InventoryType.MIXED);
         var old = held(inventoryId, "G-1", ItemOwner.STATION, null);
 
-        assertThrows(
-                BadRequestResponse.class,
-                () -> service.correct(member.id(), makesANewPiece(inventoryId, old.id(), null)));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.correct(member.id(), makesANewPiece(inventoryId, old.id(), null)));
+        assertEquals(Refusal.INVENTORY_CHECK_CORRECTION_OWNER_MISSING, refused.refusal());
 
         var corrected = service.correct(member.id(), makesANewPiece(inventoryId, old.id(), ItemOwner.STATION));
         assertEquals(ItemOwner.STATION, corrected.ownerKind(), "and takes the owner it was told");
@@ -200,10 +201,11 @@ class InventoryCheckCorrectionTest extends RepositoryTestBase {
         var old = held(inventoryId, "Ha-1", ItemOwner.STATION, null);
         var theirs = held(inventoryId, "Ha-2", ItemOwner.STATION, null);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.correct(
                         member.id(), new ItemCorrection(inventoryId, old.id(), theirs.id(), null, null, null, null)));
+        assertEquals(Refusal.INVENTORY_CHECK_PICKED_ITEM_TAKEN, refused.refusal());
     }
 
     /**
@@ -276,8 +278,9 @@ class InventoryCheckCorrectionTest extends RepositoryTestBase {
         int inventoryId = inventory("Gurte", InventoryType.INTERNAL);
         var loose = inventoryRepo.createItem(inventoryId, "Gu-1", "Gurt", null, null);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.correct(member.id(), makesANewPiece(inventoryId, loose.id(), null)));
+        assertEquals(Refusal.INVENTORY_CHECK_REPLACED_ITEM_NOT_THE_MEMBERS, refused.refusal());
     }
 }

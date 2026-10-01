@@ -276,7 +276,7 @@ public class TwoFactorRoutes implements Routes {
         }
 
         int accountId = signIn.waitingAccount(request.preAuthToken(), Refusal.SIGN_IN_NOT_WAITING_ON_A_FACTOR);
-        RateLimits.enforce(rateLimiter.tryTwoFactor(ctx.ip(), accountId));
+        RateLimits.enforce(Refusal.TWO_FACTOR_CODE_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), accountId));
         signIn.verify(
                 accountId,
                 request.preAuthToken(),
@@ -363,7 +363,8 @@ public class TwoFactorRoutes implements Routes {
         if (!twoFactorService.isEnrolled(session.accountId())) {
             throw Refusal.NOT_ENROLLED_ON_STEP_UP.raise();
         }
-        RateLimits.enforce(rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
+        RateLimits.enforce(
+                Refusal.TWO_FACTOR_STEP_UP_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
 
         boolean verified;
         TwoFactorKind kind;
@@ -500,7 +501,7 @@ public class TwoFactorRoutes implements Routes {
             throw Refusal.SECURITY_KEY_SIGN_IN_DETAILS_MISSING.raise();
         }
         int accountId = consumeReadOnlyPreAuth(request.preAuthToken());
-        RateLimits.enforce(rateLimiter.tryTwoFactor(ctx.ip(), accountId));
+        RateLimits.enforce(Refusal.SECURITY_KEY_SIGN_IN_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), accountId));
         if (!webAuthnService.finishAssertion(accountId, request.challengeToken(), request.credentialJson())) {
             throw Refusal.SECURITY_KEY_SIGN_IN_REFUSED.raise();
         }
@@ -576,7 +577,8 @@ public class TwoFactorRoutes implements Routes {
         if (request.challengeToken() == null || request.credentialJson() == null) {
             throw Refusal.SECURITY_KEY_STEP_UP_DETAILS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
+        RateLimits.enforce(
+                Refusal.SECURITY_KEY_STEP_UP_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
         if (!webAuthnService.finishAssertion(session.accountId(), request.challengeToken(), request.credentialJson())) {
             throw Refusal.SECURITY_KEY_STEP_UP_REFUSED.raise();
         }

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventChanged;
 import dev.chojo.ember.event.events.EventCreated;
@@ -17,7 +19,6 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -262,7 +263,7 @@ public class EventCrudService {
             @Nullable Integer minRegistrations,
             @Nullable Integer thresholdDays,
             @Nullable Integer registrationCloseDays) {
-        requireUsableSpan(startTime, endTime);
+        requireUsableSpan(startTime, endTime, Refusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CREATE);
         var event = eventRepository.create(
                 stationId,
                 name,
@@ -319,7 +320,7 @@ public class EventCrudService {
             @Nullable Integer minRegistrations,
             @Nullable Integer thresholdDays,
             @Nullable Integer registrationCloseDays) {
-        requireUsableSpan(startTime, endTime);
+        requireUsableSpan(startTime, endTime, Refusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CHANGE);
         var before = eventRepository.findById(id).orElse(null);
         if (eventRepository.update(
                 id,
@@ -359,12 +360,13 @@ public class EventCrudService {
      *
      * @param startTime when it begins, null where none was given
      * @param endTime   when it ends, read the same way
-     * @throws BadRequestResponse where the end lies before the start
+     * @param refusal   what the caller refuses a backwards span with
+     * @throws RefusalResponse where the end lies before the start
      */
-    private void requireUsableSpan(Instant startTime, Instant endTime) {
+    private void requireUsableSpan(Instant startTime, Instant endTime, Refusal refusal) {
         if (startTime == null || endTime == null) return;
         if (endTime.isBefore(startTime)) {
-            throw new BadRequestResponse("An appointment cannot end before it starts");
+            throw refusal.raise();
         }
     }
 
@@ -387,18 +389,18 @@ public class EventCrudService {
             return Optional.empty();
         }
         if (until != null && count != null) {
-            throw new BadRequestResponse("A series ends on a day or after a number of times, not both");
+            throw Refusal.EVENT_SERIES_END_GIVEN_TWICE.raise();
         }
         if ((until != null || count != null) && !event.isRecurring()) {
-            throw new BadRequestResponse("Only a repeating appointment has an end to its repetition");
+            throw Refusal.EVENT_SERIES_END_ON_ONE_OFF.raise();
         }
         if (count != null && count < 1) {
-            throw new BadRequestResponse("A series that repeats takes place at least once");
+            throw Refusal.EVENT_SERIES_COUNT_BELOW_ONE.raise();
         }
         if (until != null
                 && event.startTime() != null
                 && until.isBefore(event.startTime().atZone(ZoneOffset.UTC).toLocalDate())) {
-            throw new BadRequestResponse("A series cannot end before it starts");
+            throw Refusal.EVENT_SERIES_ENDS_BEFORE_IT_STARTS.raise();
         }
 
         eventRepository.updateRepeatEnd(id, until, count);

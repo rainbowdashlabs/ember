@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.maps.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsGeocodingConfig;
 import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -41,18 +41,18 @@ public class MapsConfigService {
 
     private static void validate(MapsTilesConfig config) {
         if (config == null || config.provider() == null) {
-            throw new BadRequestResponse("provider required");
+            throw Refusal.MAP_TILE_PROVIDER_MISSING.raise();
         }
         if (config.minZoom() < 0 || config.maxZoom() > 22 || config.minZoom() > config.maxZoom()) {
-            throw new BadRequestResponse("zoom range must satisfy 0 <= minZoom <= maxZoom <= 22");
+            throw Refusal.MAP_ZOOM_RANGE_NOT_GOOD.raise();
         }
         if (config.provider().requiresApiKey()
                 && (config.apiKey() == null || config.apiKey().isBlank())) {
-            throw new BadRequestResponse(config.provider() + " requires an API key");
+            throw Refusal.MAP_TILE_PROVIDER_KEY_MISSING.raise();
         }
         if (config.provider() == MapTileProvider.CUSTOM
                 && (config.urlTemplate() == null || config.urlTemplate().isBlank())) {
-            throw new BadRequestResponse("CUSTOM provider requires a urlTemplate");
+            throw Refusal.MAP_TILE_ADDRESS_MISSING.raise();
         }
     }
 
@@ -69,7 +69,7 @@ public class MapsConfigService {
     }
 
     /**
-     * Persists a new tile config. Throws {@link BadRequestResponse} when the provider
+     * Persists a new tile config. Refuses when the provider
      * requires an API key but none was supplied, when the zoom range is inverted, or when
      * {@link MapTileProvider#CUSTOM} is selected without a non-empty URL template.
      */
@@ -81,7 +81,7 @@ public class MapsConfigService {
 
     public void updateGeocodingConfig(MapsGeocodingConfig config) {
         if (config == null || config.provider() == null) {
-            throw new BadRequestResponse("provider required");
+            throw Refusal.MAP_GEOCODING_PROVIDER_MISSING.raise();
         }
         settings.set(KEY_GEOCODING, config.toJson());
         log.info("Updated maps geocoding config: provider {}", config.provider());
@@ -89,7 +89,7 @@ public class MapsConfigService {
 
     public void updateTileCacheMaxMb(int maxMb) {
         if (maxMb < 0 || maxMb > MAX_TILE_CACHE_MB) {
-            throw new BadRequestResponse("max cache size must be between 0 and " + MAX_TILE_CACHE_MB + " MB");
+            throw Refusal.MAP_TILE_CACHE_SIZE_OUT_OF_RANGE.raise();
         }
         settings.set(KEY_CACHE_MB, Integer.toString(maxMb));
         log.info("Updated maps tile cache size: {} MB", maxMb);

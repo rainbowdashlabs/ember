@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.util;
 
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import org.junit.jupiter.api.Test;
 import tools.jackson.core.JacksonException;
 
@@ -37,6 +38,9 @@ class JsonTest {
 
     @Test
     void aTextThatIsNoDocumentIsABadRequest() {
-        assertThrows(BadRequestResponse.class, () -> Json.document("{"));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> Json.document("{", Refusal.PROFILE_ANSWER_NOT_READABLE));
+
+        assertEquals(Refusal.PROFILE_ANSWER_NOT_READABLE, refused.refusal());
     }
 }

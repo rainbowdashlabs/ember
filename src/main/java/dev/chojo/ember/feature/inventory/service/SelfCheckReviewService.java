@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
@@ -38,10 +40,6 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -142,9 +140,8 @@ public class SelfCheckReviewService {
      * @param stationId  the reviewer's station
      * @param reviewerId the reviewer
      * @return the submission as it now stands
-     * @throws BadRequestResponse when the answer cannot be settled without the record being put
-     *                            right first
-     * @throws ConflictResponse   when somebody else settled it in the meantime
+     * @throws RefusalResponse when the answer cannot be settled without the record being put right
+     *                         first, or when somebody else settled it in the meantime
      */
     public SelfCheckReview take(int taskId, int rowId, int stationId, int reviewerId) {
         SelfCheck task = require(taskId, stationId);
@@ -153,10 +150,10 @@ public class SelfCheckReviewService {
         SelfCheckSettlement settlement = settlementOf(row);
         if (settlement == SelfCheckSettlement.NEEDS_RECORD_PUT_RIGHT
                 || settlement == SelfCheckSettlement.NEEDS_A_PIECE_NAMED) {
-            throw new BadRequestResponse("This answer needs the record putting right before it can be taken");
+            throw Refusal.SELF_CHECK_REVIEW_RECORD_NEEDS_PUTTING_RIGHT.raise();
         }
         if (!repository.take(rowId, reviewerId)) {
-            throw new ConflictResponse("Somebody has already settled this answer");
+            throw Refusal.SELF_CHECK_REVIEW_SETTLED_BEFORE_TAKING.raise();
         }
         letGoOfWhatWaited(row, "settled without the record being put right");
         apply(row, settlement, reviewerId);
@@ -182,12 +179,12 @@ public class SelfCheckReviewService {
         SelfCheckSettlement settlement = settlementOf(row);
         if (settlement != SelfCheckSettlement.NEEDS_RECORD_PUT_RIGHT
                 && settlement != SelfCheckSettlement.NEEDS_A_PIECE_NAMED) {
-            throw new BadRequestResponse("This answer does not ask for the record to be put right");
+            throw Refusal.SELF_CHECK_REVIEW_NOTHING_TO_PUT_RIGHT.raise();
         }
         InventoryItem replacement = checkService.correct(task.memberId(), withOldPieceOf(row, correction));
         repository.repointRow(rowId, replacement.id(), replacement.inventoryId());
         if (!repository.take(rowId, reviewerId)) {
-            throw new ConflictResponse("Somebody has already settled this answer");
+            throw Refusal.SELF_CHECK_REVIEW_SETTLED_BEFORE_CORRECTING.raise();
         }
         log.info(
                 "Self-check {} row {} corrected onto piece {} by member {}",
@@ -287,10 +284,10 @@ public class SelfCheckReviewService {
         requireArmsLength(task, row, reviewerId);
         String written = reason == null ? "" : reason.strip();
         if (written.isEmpty()) {
-            throw new BadRequestResponse("Say why the answer cannot be settled");
+            throw Refusal.SELF_CHECK_REVIEW_REASON_MISSING.raise();
         }
         if (!repository.refuse(rowId, written, reviewerId)) {
-            throw new ConflictResponse("Somebody has already settled this answer");
+            throw Refusal.SELF_CHECK_REVIEW_SETTLED_BEFORE_SENDING_BACK.raise();
         }
         letGoOfWhatWaited(row, "sent back");
         tellTheMember(task, row, written);
@@ -410,7 +407,7 @@ public class SelfCheckReviewService {
      * size onto a record the member had already answered that question for.
      */
     private static ItemCorrection withOldPieceOf(SelfCheckRow row, ItemCorrection correction) {
-        if (correction == null) throw new BadRequestResponse("Say what the member is actually holding");
+        if (correction == null) throw Refusal.SELF_CHECK_REVIEW_CORRECTION_MISSING.raise();
         return new ItemCorrection(
                 correction.inventoryId(),
                 row.answer() == SelfCheckAnswer.WRONG_RECORD ? row.itemId() : null,
@@ -488,7 +485,7 @@ public class SelfCheckReviewService {
         for (RequiredInventoryItem required : gear.required()) {
             free.put(required.inventoryId(), inventoryRepository.findUnassignedItems(required.inventoryId()));
         }
-        String refusal = approvalRefusal(task, reviewerId);
+        Refusal refusal = approvalRefusal(task, reviewerId);
         return new SelfCheckReview(
                 task,
                 gear.memberName(),
@@ -500,7 +497,7 @@ public class SelfCheckReviewService {
                 gear.assigned(),
                 free,
                 refusal == null,
-                refusal == null ? "" : refusal);
+                refusal == null ? "" : refusal.message());
     }
 
     private SelfCheckReviewRow reviewRow(SelfCheck task, SelfCheckRow row) {
@@ -557,41 +554,45 @@ public class SelfCheckReviewService {
      * cannot hand themselves a task and approve it, and a guardian who answered for a member cannot
      * approve what they wrote.
      */
-    private static @Nullable String approvalRefusal(SelfCheck task, int reviewerId) {
-        if (task.memberId() == reviewerId) return "This submission is about your own gear";
+    private static @Nullable Refusal approvalRefusal(SelfCheck task, int reviewerId) {
+        if (task.memberId() == reviewerId) return Refusal.SELF_CHECK_REVIEW_OF_OWN_GEAR;
         Integer submittedBy = task.submittedBy();
         if (submittedBy != null && submittedBy == reviewerId) {
-            return "You entered this submission yourself";
+            return Refusal.SELF_CHECK_REVIEW_OF_OWN_SUBMISSION;
         }
         return null;
     }
 
     private void requireArmsLength(SelfCheck task, SelfCheckRow row, int reviewerId) {
-        String refusal = approvalRefusal(task, reviewerId);
-        if (refusal != null) throw new ForbiddenResponse(refusal);
+        Refusal refusal = approvalRefusal(task, reviewerId);
+        if (refusal != null) throw refusal.raise();
         Integer answeredBy = row.answeredBy();
         if (answeredBy != null && answeredBy == reviewerId) {
-            throw new ForbiddenResponse("You entered this answer yourself");
+            throw Refusal.SELF_CHECK_REVIEW_OF_OWN_ANSWER.raise();
         }
     }
 
+    /**
+     * The station's own submission, refused alike whether it is gone or another station's, so the
+     * answer does not say that it exists elsewhere.
+     */
     private SelfCheck require(int taskId, int stationId) {
         return repository
                 .findById(taskId)
                 .filter(task -> task.stationId() == stationId)
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.SELF_CHECK_REVIEW_TASK_NOT_HERE::raise);
     }
 
     private SelfCheckRow requireOutstanding(SelfCheck task, int rowId) {
         SelfCheckRow row = repository
                 .findRow(rowId)
                 .filter(candidate -> candidate.taskId() == task.id())
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.SELF_CHECK_REVIEW_ANSWER_NOT_HERE::raise);
         if (task.state() != SelfCheckState.SUBMITTED) {
-            throw new ConflictResponse("This task is not waiting to be read");
+            throw Refusal.SELF_CHECK_REVIEW_TASK_NOT_WAITING.raise();
         }
         if (row.state() != SelfCheckRowState.OUTSTANDING) {
-            throw new ConflictResponse("Somebody has already settled this answer");
+            throw Refusal.SELF_CHECK_REVIEW_ANSWER_ALREADY_SETTLED.raise();
         }
         return row;
     }

@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.content.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentContainer;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -154,7 +154,7 @@ public class ContentBlockService {
 
     private void requireAllowed(CellContentType type, Scope scope) {
         if (scope == Scope.PAGE || type.availableInArticles()) return;
-        throw new BadRequestResponse("This block is not available in an article: " + type);
+        throw Refusal.CONTENT_BLOCK_ONLY_ON_PAGES.raise();
     }
 
     /**

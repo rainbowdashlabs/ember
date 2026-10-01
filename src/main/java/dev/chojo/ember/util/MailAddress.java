@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.util;
 
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 
 /**
  * The check an address gets before a relay is asked to carry a message to it.
@@ -21,13 +22,16 @@ public final class MailAddress {
     /**
      * Returns the address with surrounding space removed.
      *
-     * @throws BadRequestResponse when the value is plainly not an address
+     * @param value   the address as it was typed
+     * @param refusal what the caller refuses with when the value is no address, naming the value
+     * @return the address, trimmed
+     * @throws RefusalResponse when the value is plainly not an address
      */
-    public static String require(String value) {
+    public static String require(String value, Refusal refusal) {
         String trimmed = value == null ? "" : value.trim();
         int at = trimmed.indexOf('@');
         if (at <= 0 || at == trimmed.length() - 1 || trimmed.contains(" ")) {
-            throw new BadRequestResponse("Not an email address: " + trimmed);
+            throw refusal.raise(trimmed);
         }
         return trimmed;
     }

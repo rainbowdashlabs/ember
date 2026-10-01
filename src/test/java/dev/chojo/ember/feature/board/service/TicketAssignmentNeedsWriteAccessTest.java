@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
@@ -20,7 +22,6 @@ import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -123,8 +124,8 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
 
     @Test
     void creatingATicketForSomebodyWhoMayNotWriteIsRefused() {
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> ticketService.createTicket(
                         boardId,
                         laneId,
@@ -134,12 +135,13 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
                         TicketPriority.MEDIUM,
                         null,
                         identity(writer)));
+        assertEquals(Refusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT, refused.refusal());
     }
 
     @Test
     void updatingATicketOntoSomebodyWhoMayNotWriteIsRefused() {
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> ticketService.updateTicket(
                         ticketId,
                         "Zu vergeben",
@@ -148,12 +150,14 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
                         TicketPriority.MEDIUM,
                         null,
                         identity(writer)));
+        assertEquals(Refusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT, refused.refusal());
     }
 
     @Test
     void handingATicketToSomebodyWhoMayNotWriteIsRefused() {
-        assertThrows(
-                BadRequestResponse.class, () -> ticketService.assignTicket(ticketId, identity(outsider), writer.id()));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> ticketService.assignTicket(ticketId, identity(outsider), writer.id()));
+        assertEquals(Refusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT, refused.refusal());
 
         assertNull(ticketService.findById(ticketId).orElseThrow().assignee(), "the ticket stayed on nobody");
     }

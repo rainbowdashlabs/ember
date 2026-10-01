@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -22,7 +23,6 @@ import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService.ChosenLanding;
 import dev.chojo.ember.feature.inventory.service.MovementTargeting;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -139,7 +139,8 @@ public class MovementFlowRoutes implements Routes {
         MovementTargeting.Target target;
         try {
             target = targeting.resolve(session.stationId(), purpose, memberId, outgoing, incoming, inventoryId);
-        } catch (BadRequestResponse refused) {
+        } catch (RefusalResponse refused) {
+            if (refused.refusal() != Refusal.MOVEMENT_FLOW_NOT_BOUND) throw refused;
             throw Refusal.NO_FLOW_FOR_THIS_MOVEMENT.raise();
         }
         MovementFlow flow =

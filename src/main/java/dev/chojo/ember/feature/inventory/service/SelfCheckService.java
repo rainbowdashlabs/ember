@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -28,10 +30,6 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -98,22 +96,22 @@ public class SelfCheckService {
      * @param dueOn       the day the answers are wanted by, or {@code null}
      * @param handedOutBy the checker handing them out
      * @return the tasks that were created
-     * @throws BadRequestResponse when no member was named, or one of them is not of this station or
-     *                            has left it
+     * @throws RefusalResponse when no member was named, or one of them is not of this station or has
+     *                         left it
      */
     public List<SelfCheck> handOut(
             int stationId, @Nullable List<Integer> memberIds, @Nullable LocalDate dueOn, int handedOutBy) {
         if (memberIds == null || memberIds.isEmpty()) {
-            throw new BadRequestResponse("Name at least one member to ask");
+            throw Refusal.SELF_CHECK_NO_MEMBER_NAMED.raise();
         }
         List<SelfCheck> handed = new ArrayList<>();
         for (int memberId : new LinkedHashSet<>(memberIds)) {
             var member = stationMemberRepository
                     .findById(memberId)
                     .filter(m -> m.stationId() == stationId)
-                    .orElseThrow(() -> new BadRequestResponse("This member is not of this station"));
+                    .orElseThrow(Refusal.SELF_CHECK_MEMBER_NOT_OF_STATION::raise);
             if (member.former()) {
-                throw new BadRequestResponse("A former member cannot be asked to check their gear");
+                throw Refusal.SELF_CHECK_FOR_FORMER_MEMBER.raise();
             }
             if (repository.countUnfinishedForMembers(List.of(memberId)) > 0) continue;
             SelfCheck task = repository.create(stationId, memberId, handedOutBy, dueOn);
@@ -216,16 +214,16 @@ public class SelfCheckService {
      * @param guardian  whether the caller holds the guardian permission
      * @param answers   what they said
      * @return the answers as they now stand
-     * @throws ConflictResponse   when the task no longer takes answers
-     * @throws BadRequestResponse when an answer is about gear that is not the member's, or says
-     *                            something that cannot be said about that piece
+     * @throws RefusalResponse when the task no longer takes answers, or an answer is about gear that
+     *                         is not the member's or says something that cannot be said about that
+     *                         piece
      */
     public List<SelfCheckRow> answer(
             int taskId, int stationId, int memberId, boolean guardian, List<SelfCheckAnswerInput> answers) {
         SelfCheck task = require(taskId, stationId, memberId, guardian);
         requireOpen(task);
         if (answers == null || answers.isEmpty()) {
-            throw new BadRequestResponse("Say something before saving");
+            throw Refusal.SELF_CHECK_NOTHING_SAID.raise();
         }
         var required = checkService.getRequiredItems(stationId, task.memberId());
         for (SelfCheckAnswerInput input : answers) {
@@ -238,13 +236,13 @@ public class SelfCheckService {
      * Hands the task in.
      *
      * @return the task as it now stands
-     * @throws ConflictResponse when somebody has already handed it in
+     * @throws RefusalResponse when somebody has already handed it in
      */
     public SelfCheck submit(int taskId, int stationId, int memberId, boolean guardian) {
         SelfCheck task = require(taskId, stationId, memberId, guardian);
         requireOpen(task);
         if (!repository.submit(taskId, memberId)) {
-            throw new ConflictResponse("This task has already been handed in");
+            throw Refusal.SELF_CHECK_ALREADY_HANDED_IN.raise();
         }
         log.info("Self-check {} submitted by member {}", taskId, memberId);
         announceSubmission(task, memberId);
@@ -294,8 +292,8 @@ public class SelfCheckService {
      * @param newSizeId the size an exchange asks for, ignored on a loss
      * @param words     the note on a loss, the reason on an exchange
      * @return the report as it was written down
-     * @throws BadRequestResponse when the piece is not the member's, when nothing on that line asks
-     *                            for a size to be put right, or when such a report is already waiting
+     * @throws RefusalResponse when the piece is not the member's, when nothing on that line asks for a
+     *                         size to be put right, or when such a report is already waiting
      */
     public SelfCheckRaised holdBack(
             int taskId,
@@ -308,15 +306,13 @@ public class SelfCheckService {
             @Nullable String words) {
         SelfCheck task = require(taskId, stationId, memberId, guardian);
         requireOpen(task);
-        InventoryItem item = inventoryRepository
-                .findItemById(itemId)
-                .orElseThrow(() -> new BadRequestResponse("This piece does not exist"));
+        InventoryItem item =
+                inventoryRepository.findItemById(itemId).orElseThrow(Refusal.SELF_CHECK_HELD_BACK_ITEM_NOT_HERE::raise);
         if (!Objects.equals(item.assignedTo(), task.memberId())) {
-            throw new BadRequestResponse("This piece is not on this member's record");
+            throw Refusal.SELF_CHECK_HELD_BACK_ITEM_NOT_THE_MEMBERS.raise();
         }
         if (kind == SelfCheckRaisedKind.LOSS && item.borrowed()) {
-            throw new BadRequestResponse(
-                    "This gear belongs to a partner station. Tell them on the lending request it came in on");
+            throw Refusal.SELF_CHECK_HELD_BACK_LOSS_OF_BORROWED_GEAR.raise();
         }
         SelfCheckRow row = correctedSizeRow(taskId, itemId);
         requireNothingLikeItYet(taskId, kind, itemId);
@@ -344,8 +340,7 @@ public class SelfCheckService {
                 .filter(row -> Integer.valueOf(itemId).equals(row.itemId()))
                 .filter(row -> row.answer() == SelfCheckAnswer.WRONG_RECORD && row.sizeId() != null)
                 .findFirst()
-                .orElseThrow(() -> new BadRequestResponse(
-                        "Save the size you are actually holding before reporting anything about this piece"));
+                .orElseThrow(Refusal.SELF_CHECK_HELD_BACK_WITHOUT_SAVED_SIZE::raise);
     }
 
     /**
@@ -359,7 +354,7 @@ public class SelfCheckService {
                 .anyMatch(raised ->
                         raised.kind() == kind && Integer.valueOf(itemId).equals(raised.itemId()));
         if (already) {
-            throw new BadRequestResponse("This has already been reported for this piece");
+            throw Refusal.SELF_CHECK_HELD_BACK_ALREADY_REPORTED.raise();
         }
     }
 
@@ -370,13 +365,13 @@ public class SelfCheckService {
     private @Nullable Integer wantedSize(InventoryItem item, @Nullable Integer newSizeId) {
         if (!inventoryRepository
                 .findById(item.inventoryId())
-                .orElseThrow(() -> new BadRequestResponse("This inventory does not exist"))
+                .orElseThrow(Refusal.SELF_CHECK_HELD_BACK_INVENTORY_NOT_HERE::raise)
                 .homogeneous()) {
-            throw new BadRequestResponse("This kind of gear is not swapped by size");
+            throw Refusal.SELF_CHECK_HELD_BACK_SWAP_WITHOUT_SIZES.raise();
         }
         if (newSizeId == null) return null;
         if (inventoryRepository.findSizes(item.inventoryId()).stream().noneMatch(size -> size.id() == newSizeId)) {
-            throw new BadRequestResponse("This size is not one this kind of gear comes in");
+            throw Refusal.SELF_CHECK_HELD_BACK_SIZE_NOT_OFFERED.raise();
         }
         return newSizeId;
     }
@@ -404,16 +399,16 @@ public class SelfCheckService {
         SelfCheck task = repository
                 .findById(taskId)
                 .filter(t -> t.stationId() == stationId)
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.SELF_CHECK_NOT_HERE::raise);
         if (!reach(memberId, guardian).contains(task.memberId())) {
-            throw new ForbiddenResponse("This check belongs to somebody you do not answer for");
+            throw Refusal.SELF_CHECK_NOT_YOURS_TO_ANSWER.raise();
         }
         return task;
     }
 
     private static void requireOpen(SelfCheck task) {
         if (!task.open()) {
-            throw new ConflictResponse("This check no longer takes answers");
+            throw Refusal.SELF_CHECK_CLOSED.raise();
         }
     }
 
@@ -435,7 +430,7 @@ public class SelfCheckService {
     private void write(
             SelfCheck task, SelfCheckAnswerInput input, List<RequiredInventoryItem> required, int enteredBy) {
         if (input == null || input.answer() == null) {
-            throw new BadRequestResponse("Every answer has to say something");
+            throw Refusal.SELF_CHECK_ANSWER_EMPTY.raise();
         }
         String note = input.note() == null ? "" : input.note().strip();
         if (input.itemId() != null) {
@@ -447,19 +442,19 @@ public class SelfCheckService {
 
     private void writeAboutPiece(SelfCheck task, SelfCheckAnswerInput input, String note, int enteredBy) {
         if (!input.answer().aboutAPiece()) {
-            throw new BadRequestResponse("That answer is about an empty place, not about a piece");
+            throw Refusal.SELF_CHECK_PLACE_ANSWER_ON_A_PIECE.raise();
         }
         InventoryItem item = inventoryRepository
                 .findItemById(input.itemId())
-                .orElseThrow(() -> new BadRequestResponse("This piece does not exist"));
+                .orElseThrow(Refusal.SELF_CHECK_ANSWERED_ITEM_NOT_HERE::raise);
         if (!Objects.equals(item.assignedTo(), task.memberId())) {
-            throw new BadRequestResponse("This piece is not on this member's record");
+            throw Refusal.SELF_CHECK_ANSWERED_ITEM_NOT_THE_MEMBERS.raise();
         }
         if (input.answer() == SelfCheckAnswer.DO_NOT_HAVE_IT && !item.borrowed()) {
-            throw new BadRequestResponse("Say a piece the station owns is missing where losses are reported");
+            throw Refusal.SELF_CHECK_OWN_GEAR_MISSING_NOT_REPORTED_HERE.raise();
         }
         if (input.answer() == SelfCheckAnswer.TURNED_UP && item.custody() != ItemCustody.LOST) {
-            throw new BadRequestResponse("This piece is not recorded as missing, so it cannot have turned up");
+            throw Refusal.SELF_CHECK_TURNED_UP_BUT_NOT_MISSING.raise();
         }
         Integer sizeId =
                 statedSize(input, inventoryRepository.findSizes(item.inventoryId()), SelfCheckAnswer.WRONG_RECORD);
@@ -491,17 +486,17 @@ public class SelfCheckService {
             String note,
             int enteredBy) {
         if (input.answer().aboutAPiece()) {
-            throw new BadRequestResponse("That answer is about a piece, and no piece was named");
+            throw Refusal.SELF_CHECK_PIECE_ANSWER_WITHOUT_PIECE.raise();
         }
         if (input.inventoryId() == null || input.slot() == null || input.slot() < 0) {
-            throw new BadRequestResponse("An answer about an empty place has to say which one");
+            throw Refusal.SELF_CHECK_PLACE_NOT_NAMED.raise();
         }
         RequiredInventoryItem gap = required.stream()
                 .filter(r -> r.inventoryId() == input.inventoryId())
                 .findFirst()
-                .orElseThrow(() -> new BadRequestResponse("Nothing of this kind is asked of this member"));
+                .orElseThrow(Refusal.SELF_CHECK_KIND_NOT_ASKED_OF_MEMBER::raise);
         if (input.slot() >= gap.requiredQuantity() - gap.assignedQuantity()) {
-            throw new BadRequestResponse("This member has no such empty place");
+            throw Refusal.SELF_CHECK_PLACE_NOT_THERE.raise();
         }
         String typed = typedIdentifier(input);
         Integer sizeId = statedSize(input, gap.sizes(), SelfCheckAnswer.HAVE_ONE);
@@ -519,7 +514,7 @@ public class SelfCheckService {
         String typed = Objects.requireNonNullElse(input.typedInternalId(), "").strip();
         if (typed.isEmpty()) return null;
         if (input.answer() != SelfCheckAnswer.HAVE_ONE) {
-            throw new BadRequestResponse("Only a place you are holding something for takes a number");
+            throw Refusal.SELF_CHECK_NUMBER_ON_WRONG_ANSWER.raise();
         }
         return typed;
     }
@@ -546,10 +541,10 @@ public class SelfCheckService {
         Integer sizeId = input.sizeId();
         if (sizeId == null) return null;
         if (input.answer() != takesASize) {
-            throw new BadRequestResponse("Only an answer that says what the member actually holds takes a size");
+            throw Refusal.SELF_CHECK_SIZE_ON_WRONG_ANSWER.raise();
         }
         if (sizes.stream().noneMatch(size -> size.id() == sizeId)) {
-            throw new BadRequestResponse("This size is not one this kind of gear comes in");
+            throw Refusal.SELF_CHECK_ANSWERED_SIZE_NOT_OFFERED.raise();
         }
         return sizeId;
     }

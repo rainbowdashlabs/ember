@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.service.SetupMail;
@@ -20,9 +22,6 @@ import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -30,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -100,14 +100,14 @@ public class ClusterMemberManagementService {
      * @param email      their address, or {@code null} when they are not meant to sign in
      * @param userType   what they are at that station
      * @return the new membership
-     * @throws NotFoundResponse when the station does not answer to this cluster
+     * @throws RefusalResponse when the station does not answer to this cluster
      */
     public StationMemberInviteService.ProvisionedMember createMember(
             int clusterId, UUID stationUid, String firstName, String lastName, String email, StationUserType userType) {
         Station station = stationRepository
                 .findByUid(stationUid)
                 .filter(candidate -> candidate.clusterId() != null && candidate.clusterId() == clusterId)
-                .orElseThrow(() -> new NotFoundResponse("No such station"));
+                .orElseThrow(Refusal.CLUSTER_MANAGED_MEMBER_STATION_NOT_HERE::raise);
 
         String address = email != null && !email.isBlank() ? email.trim() : null;
 
@@ -142,7 +142,7 @@ public class ClusterMemberManagementService {
      */
     private void requireDocuments(int stationId) {
         if (stationRepository.findDisabledModules(stationId).contains(StationModule.DOCUMENTS)) {
-            throw new BadRequestResponse("This station keeps no documents");
+            throw Refusal.CLUSTER_MANAGED_STATION_KEEPS_NO_DOCUMENTS.raise();
         }
     }
 
@@ -193,16 +193,10 @@ public class ClusterMemberManagementService {
      */
     public Document requireDocumentOfCluster(int clusterId, int documentId) {
         Document document =
-                documentRepository.findById(documentId).orElseThrow(() -> new NotFoundResponse("No such document"));
-        boolean reachable = documentRepository.membersOf(documentId).stream().anyMatch(memberId -> {
-            try {
-                requireMemberOfCluster(clusterId, memberId);
-                return true;
-            } catch (NotFoundResponse e) {
-                return false;
-            }
-        });
-        if (!reachable) throw new NotFoundResponse("No such document");
+                documentRepository.findById(documentId).orElseThrow(Refusal.CLUSTER_MANAGED_DOCUMENT_NOT_HERE::raise);
+        boolean reachable = documentRepository.membersOf(documentId).stream()
+                .anyMatch(memberId -> memberOfCluster(clusterId, memberId).isPresent());
+        if (!reachable) throw Refusal.CLUSTER_MANAGED_DOCUMENT_NOT_HERE.raise();
         return document;
     }
 
@@ -210,7 +204,7 @@ public class ClusterMemberManagementService {
      * The bytes of a document the cluster may read.
      */
     public byte[] readDocument(Document document) {
-        return documentService.read(document).orElseThrow(() -> new NotFoundResponse("No such document"));
+        return documentService.read(document).orElseThrow(Refusal.CLUSTER_MANAGED_DOCUMENT_FILE_NOT_HERE::raise);
     }
 
     /**
@@ -363,15 +357,21 @@ public class ClusterMemberManagementService {
      * The member, checked to actually belong to a station of this cluster.
      */
     private StationMember requireMemberOfCluster(int clusterId, int memberId) {
-        StationMember member =
-                memberRepository.findById(memberId).orElseThrow(() -> new NotFoundResponse("No such member"));
-        Station station = stationRepository
+        return memberOfCluster(clusterId, memberId).orElseThrow(Refusal.CLUSTER_MANAGED_MEMBER_NOT_HERE::raise);
+    }
+
+    /**
+     * The member, where they belong to a station of this cluster.
+     *
+     * @param clusterId the cluster
+     * @param memberId  the member
+     * @return the member, empty when they are gone or belong to a station outside the cluster
+     */
+    private Optional<StationMember> memberOfCluster(int clusterId, int memberId) {
+        return memberRepository.findById(memberId).filter(member -> stationRepository
                 .findById(member.stationId())
-                .orElseThrow(() -> new NotFoundResponse("No such member"));
-        if (station.clusterId() == null || station.clusterId() != clusterId) {
-            throw new NotFoundResponse("No such member");
-        }
-        return member;
+                .filter(station -> station.clusterId() != null && station.clusterId() == clusterId)
+                .isPresent());
     }
 
     /**
@@ -383,14 +383,14 @@ public class ClusterMemberManagementService {
     private static void requireNotSelf(StationMember member, int actorAccountId) {
         Integer accountId = member.accountId();
         if (accountId != null && accountId == actorAccountId) {
-            throw new ForbiddenResponse("You cannot edit your own membership from the cluster");
+            throw Refusal.CLUSTER_MANAGED_MEMBER_IS_YOURSELF.raise();
         }
     }
 
     private void requireNotStationOwner(StationMember member) {
         stationRepository.findById(member.stationId()).ifPresent(station -> {
             if (station.isOwnedBy(member.id())) {
-                throw new ForbiddenResponse("A station's owner cannot be edited from the cluster");
+                throw Refusal.CLUSTER_MANAGED_MEMBER_OWNS_STATION.raise();
             }
         });
     }

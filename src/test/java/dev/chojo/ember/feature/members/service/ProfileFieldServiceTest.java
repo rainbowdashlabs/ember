@@ -22,7 +22,6 @@ import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -608,7 +607,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         assertEquals(3, service.findAssignments(birthDate.id()).size(), "one question, three audiences");
 
         var refused = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.create(
                         station.id(),
                         "Noch ein Geburtstag",
@@ -618,7 +617,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                         false,
                         null),
                 "a second date of birth is a duplicate, not a different question");
-        assertTrue(refused.getMessage().contains("already asks"));
+        assertEquals(Refusal.PROFILE_BIRTH_DATE_ALREADY_ASKED, refused.refusal());
 
         profileFieldRepo.delete(birthDate.id());
     }
@@ -648,7 +647,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         var birthDate = ask("Geburtsdatum", FieldType.BIRTH_DATE, "{}", ProfileFieldScope.MEMBER, 50);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.create(
                         station.id(),
                         "Zweites Geburtsdatum",
@@ -661,7 +660,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
 
         var plain = ask("Eintrittsdatum", FieldType.DATE, "{}", ProfileFieldScope.MEMBER, 52);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.update(
                         plain.id(),
                         plain.name(),

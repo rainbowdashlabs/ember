@@ -5,12 +5,13 @@
  */
 package dev.chojo.ember.feature.board.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -40,12 +41,10 @@ public class FederatedBoardLocator {
      *
      * @param partnerId the partner record id
      * @return the partner
-     * @throws NotFoundResponse when no such partner exists
+     * @throws RefusalResponse when no such partner exists
      */
     public FederationPartner requirePartner(int partnerId) {
-        return federationRepository
-                .findPartnerById(partnerId)
-                .orElseThrow(() -> new NotFoundResponse("Partner not found: " + partnerId));
+        return federationRepository.findPartnerById(partnerId).orElseThrow(Refusal.BOARD_PARTNER_NOT_HERE::raise);
     }
 
     /**

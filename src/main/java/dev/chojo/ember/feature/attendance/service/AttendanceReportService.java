@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -26,7 +27,6 @@ import dev.chojo.ember.util.DocumentPeriod;
 import dev.chojo.ember.util.DocumentWord;
 import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -100,7 +100,8 @@ public class AttendanceReportService {
      * <p>A missing list counts as an empty one, but a preset needs at least one user type or at
      * least one group: a filter that selects nobody is not worth saving.
      *
-     * @throws BadRequestResponse when the preset selects neither, or a list carries an empty entry
+     * @throws dev.chojo.ember.api.RefusalResponse when the preset selects neither, or a list carries
+     *                                             an empty entry
      */
     public AttendanceReportPreset createPreset(
             int stationId,
@@ -112,7 +113,7 @@ public class AttendanceReportService {
         var types = presetSelection(userTypes);
         var groups = presetSelection(groupIds);
         if (types.isEmpty() && groups.isEmpty()) {
-            throw new BadRequestResponse("userTypes or groupIds is required");
+            throw Refusal.ATTENDANCE_REPORT_PRESET_SELECTS_NOBODY.raise();
         }
         var preset = attendanceRepository.createPreset(stationId, name, types, groups, period, rounding);
         log.info("Created attendance report preset {} for station {}", preset.id(), stationId);
@@ -134,7 +135,7 @@ public class AttendanceReportService {
     private static <T> List<T> presetSelection(List<T> selection) {
         if (selection == null) return List.of();
         if (selection.stream().anyMatch(Objects::isNull)) {
-            throw new BadRequestResponse("A preset selection cannot contain an empty entry");
+            throw Refusal.ATTENDANCE_REPORT_PRESET_EMPTY_ENTRY.raise();
         }
         return selection.stream().distinct().toList();
     }

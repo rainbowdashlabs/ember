@@ -43,8 +43,6 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -390,7 +388,9 @@ class NewsFederationServiceTest extends RepositoryTestBase {
 
         federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.SUSPENDED);
 
-        assertThrows(BadRequestResponse.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 42));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 42));
+        assertEquals(Refusal.FEDERATION_PARTNER_NOT_ACTIVE, refused.refusal());
 
         federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.ACTIVE);
     }
@@ -575,9 +575,10 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(66)
     void federatedCommentsRejectUnknownPartner() {
-        assertThrows(
-                NotFoundResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.listFederatedComments(stationB.id(), UUID.randomUUID(), news2.id()));
+        assertEquals(Refusal.NEWS_COMMENT_PARTNER_NOT_HERE, refused.refusal());
     }
 
     @Test

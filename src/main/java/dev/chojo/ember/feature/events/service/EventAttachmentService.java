@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -61,7 +61,7 @@ public class EventAttachmentService {
      * the question is asked of what the row says rather than of what has already been loaded.
      */
     public static void requireSizeToTravel(long fileSize, long limit) {
-        if (fileSize > limit) throw new BadRequestResponse("This file is too large to hand to a partner station");
+        if (fileSize > limit) throw Refusal.EVENT_FILE_TOO_LARGE_FOR_PARTNER.raise();
     }
 
     /**
@@ -113,9 +113,9 @@ public class EventAttachmentService {
      * station, because an attachment is a reference into that station's library and nothing else.
      */
     public EventAttachment attach(int eventId, int stationId, int fileId, @Nullable String label, boolean internal) {
-        var file = media.findFile(fileId).orElseThrow(() -> new BadRequestResponse("Unknown file"));
+        var file = media.findFile(fileId).orElseThrow(Refusal.EVENT_FILE_TO_ATTACH_NOT_HERE::raise);
         if (!Objects.equals(file.stationId(), stationId)) {
-            throw new BadRequestResponse("File belongs to another station");
+            throw Refusal.EVENT_FILE_TO_ATTACH_NOT_HERE.raise();
         }
         var attachment = repository.attach(eventId, fileId, blankToNull(label), internal);
         log.info(

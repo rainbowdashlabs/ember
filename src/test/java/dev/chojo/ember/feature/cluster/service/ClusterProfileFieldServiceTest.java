@@ -13,8 +13,6 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -254,7 +252,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 null);
 
         var refused = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> clusterProfileFieldService.create(
                         clusterId,
                         "Funkrufname",
@@ -266,7 +264,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         true,
                         false,
                         reaching.id()));
-        assertTrue(refused.getMessage().contains("already reaches"));
+        assertEquals(Refusal.CLUSTER_PROFILE_FIELD_NAME_REACHES_TWICE, refused.refusal());
 
         clusterProfileFieldService.create(
                 clusterId,
@@ -290,7 +288,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
 
         var refused = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> clusterProfileFieldService.create(
                         clusterId,
                         "Geburtstag",
@@ -302,7 +300,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         true,
                         false,
                         null));
-        assertTrue(refused.getMessage().contains("collide"));
+        assertEquals(Refusal.CLUSTER_PROFILE_FIELD_TYPE_NOT_OFFERED, refused.refusal());
     }
 
     /** An association asks for an expiry date as a station does, and keeps its settings. */
@@ -357,7 +355,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> clusterProfileFieldService.create(
                         clusterId,
                         "  ",
@@ -428,7 +426,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 clusterProfileFieldService.findValues(clusterId, memberId).isEmpty(),
                 "an answer nobody is asked for any more is shown nowhere");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "false"), memberId),
                 "and nobody may write one either");
 
@@ -479,7 +477,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var elsewhere = stationOf(otherClusterId);
         int memberId = memberAt(elsewhere);
 
-        assertThrows(NotFoundResponse.class, () -> clusterProfileFieldService.findValues(clusterId, memberId));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> clusterProfileFieldService.findValues(clusterId, memberId));
+        assertEquals(Refusal.CLUSTER_PROFILE_FIELD_MEMBER_NOT_IN_CLUSTER, refused.refusal());
 
         clusterService.releaseStation(otherClusterId, elsewhere.id());
         stationRepo.delete(elsewhere.id());
@@ -544,7 +544,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 false,
                 null);
 
-        assertThrows(NotFoundResponse.class, () -> clusterProfileFieldService.delete(clusterId, field.id()));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> clusterProfileFieldService.delete(clusterId, field.id()));
+        assertEquals(Refusal.CLUSTER_PROFILE_FIELD_NOT_HERE, refused.refusal());
     }
 
     @Test

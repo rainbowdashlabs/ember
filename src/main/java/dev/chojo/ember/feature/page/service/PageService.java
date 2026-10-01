@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.page.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
@@ -25,7 +27,6 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.HtmlSanitizer.Policy;
 import dev.chojo.ember.util.Markdown;
 import dev.chojo.ember.util.RandomTokens;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -102,7 +103,7 @@ public class PageService {
     private void refuseUnlistedParent(int parentId) {
         pageRepository.findById(parentId).ifPresent(parent -> {
             if (parent.visibility() == PageVisibility.UNLISTED) {
-                throw new BadRequestResponse("A page reached by its link alone cannot hold pages under it");
+                throw Refusal.PAGE_UNDER_A_LINK_ONLY_PAGE.raise();
             }
         });
     }
@@ -253,7 +254,7 @@ public class PageService {
             refuseUnlistedParent(parentId);
         }
         if (parentId != null && page.visibility() == PageVisibility.UNLISTED) {
-            throw new BadRequestResponse("A page reached by its link alone does not sit under another");
+            throw Refusal.PAGE_LINK_ONLY_UNDER_ANOTHER.raise();
         }
 
         if (pageRepository.slugExists(page.stationId(), slug, pageId)) {
@@ -281,13 +282,13 @@ public class PageService {
      * @param pageId     the page
      * @param visibility what it becomes
      * @return whether anything changed
-     * @throws BadRequestResponse where the page still has children and is leaving the tree
+     * @throws RefusalResponse where the page still has children and is leaving the tree
      */
     public boolean setVisibility(int pageId, PageVisibility visibility) {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return false;
         if (visibility == PageVisibility.UNLISTED && pageRepository.hasChildren(pageId)) {
-            throw new BadRequestResponse("A page with pages under it cannot be reached by a link alone");
+            throw Refusal.PAGE_WITH_CHILDREN_NOT_LINK_ONLY.raise();
         }
 
         boolean minting = visibility == PageVisibility.UNLISTED;
@@ -334,14 +335,14 @@ public class PageService {
      * @param expected the link the caller was shown, so two administrators cannot take it in turns
      *                 to end each other's without being told
      * @return the new link, or empty where the page has since been given a different one
-     * @throws BadRequestResponse where nobody outside the station could open the page anyway, so a
-     *                            link to it would be one that leads nowhere
+     * @throws RefusalResponse where nobody outside the station could open the page anyway, so a
+     *                         link to it would be one that leads nowhere
      */
     public Optional<String> replaceShareToken(int pageId, String expected) {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return Optional.empty();
         if (!page.visibility().reachable()) {
-            throw new BadRequestResponse("A page nobody outside can open is not reached by a link either");
+            throw Refusal.PAGE_LINK_NOT_FOR_A_CLOSED_PAGE.raise();
         }
         String replacement = RandomTokens.urlSafe(32);
         if (!pageRepository.replaceShareToken(pageId, expected, replacement)) return Optional.empty();
@@ -417,13 +418,13 @@ public class PageService {
             var page =
                     pageRepository.findById(pageId).orElseThrow(() -> new IllegalArgumentException("Page not found"));
             if (page.stationId() != stationId) {
-                throw new BadRequestResponse("Page does not belong to station");
+                throw Refusal.LANDING_PAGE_ELSEWHERE.raise();
             }
             if (!page.visibility().listed()) {
-                throw new BadRequestResponse("A landing page has to be public");
+                throw Refusal.LANDING_PAGE_NOT_PUBLIC.raise();
             }
             if (page.parentId() != null) {
-                throw new BadRequestResponse("Landing page cannot be a subpage");
+                throw Refusal.LANDING_PAGE_UNDER_ANOTHER.raise();
             }
         }
         pageRepository.setLandingPage(stationId, pageId);
@@ -583,7 +584,7 @@ public class PageService {
     private void validateDepth(int parentId, int additionalLevels) {
         int depthBelowParent = pageRepository.depth(parentId) + 1;
         if (depthBelowParent + additionalLevels > MAX_DEPTH) {
-            throw new BadRequestResponse("Page hierarchy exceeds maximum depth of " + MAX_DEPTH);
+            throw Refusal.PAGE_TREE_TOO_DEEP.raise();
         }
     }
 }

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.form.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
@@ -25,7 +27,6 @@ import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -214,7 +215,8 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
 
     @Test
     void getResponseDetailThrowsForUnknownResponse() {
-        assertThrows(NotFoundResponse.class, () -> assembler.getResponseDetail(formId, 99999));
+        var refused = assertThrows(RefusalResponse.class, () -> assembler.getResponseDetail(formId, 99999));
+        assertEquals(Refusal.FORM_RESPONSE_NOT_HERE, refused.refusal());
     }
 
     @Test

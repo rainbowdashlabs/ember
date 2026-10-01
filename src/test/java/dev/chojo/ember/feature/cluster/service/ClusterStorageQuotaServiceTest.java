@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService.Dimensions;
 import dev.chojo.ember.feature.storage.entity.ClusterQuotaDefaults;
 import dev.chojo.ember.feature.storage.entity.QuotaOrigin;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -48,8 +48,8 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
 
         clusterStorageQuotaService.setTotal(clusterId, first.id(), 800L);
         var refused = assertThrows(
-                BadRequestResponse.class, () -> clusterStorageQuotaService.setTotal(clusterId, second.id(), 300L));
-        assertTrue(refused.getMessage().contains("more than the cluster has left"));
+                RefusalResponse.class, () -> clusterStorageQuotaService.setTotal(clusterId, second.id(), 300L));
+        assertEquals(Refusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL, refused.refusal());
 
         clusterStorageQuotaService.setTotal(clusterId, second.id(), 200L);
         var overview = clusterStorageQuotaService.findOverview(clusterId);
@@ -84,8 +84,8 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
 
         clusterStorageQuotaService.setTotal(clusterId, cluster.homeStationId(), 600L);
         var refused = assertThrows(
-                BadRequestResponse.class, () -> clusterStorageQuotaService.setTotal(clusterId, station.id(), 500L));
-        assertTrue(refused.getMessage().contains("more than the cluster has left"));
+                RefusalResponse.class, () -> clusterStorageQuotaService.setTotal(clusterId, station.id(), 500L));
+        assertEquals(Refusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL, refused.refusal());
 
         clusterStorageQuotaService.setTotal(clusterId, station.id(), 400L);
         var overview = clusterStorageQuotaService.findOverview(clusterId);
@@ -143,10 +143,18 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         int otherClusterId = freshCluster();
         var station = clusterService.createStation(otherClusterId, "Wache Fremd " + NAMES.incrementAndGet());
 
-        assertThrows(BadRequestResponse.class, () -> clusterStorageQuotaService.setTotal(clusterId, station.id(), 10L));
-        assertThrows(
-                BadRequestResponse.class,
-                () -> clusterStorageQuotaService.setGrant(clusterId, station.uid(), total(10L)));
+        assertEquals(
+                Refusal.CLUSTER_QUOTA_STATION_NOT_IN_CLUSTER,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> clusterStorageQuotaService.setTotal(clusterId, station.id(), 10L))
+                        .refusal());
+        assertEquals(
+                Refusal.CLUSTER_QUOTA_STATION_NOT_IN_CLUSTER,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> clusterStorageQuotaService.setGrant(clusterId, station.uid(), total(10L)))
+                        .refusal());
 
         clusterService.releaseStation(otherClusterId, station.id());
         stationRepo.delete(station.id());
@@ -156,13 +164,15 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
     void roomCannotBeHandedToAStationThatDoesNotExist() {
         int clusterId = freshCluster();
 
-        assertThrows(NotFoundResponse.class, () -> clusterStorageQuotaService.setTotal(clusterId, 999_999, 1L));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> clusterStorageQuotaService.setTotal(clusterId, 999_999, 1L));
+        assertEquals(Refusal.CLUSTER_QUOTA_STATION_GONE, refused.refusal());
     }
 
     @Test
     void aClusterThatIsNotThereHandsOutNothing() {
-        assertThrows(NotFoundResponse.class, () -> clusterStorageQuotaService.setStoragePool(999_999, 1L));
-        assertThrows(NotFoundResponse.class, () -> clusterStorageQuotaService.findOverview(999_999));
+        assertThrows(RefusalResponse.class, () -> clusterStorageQuotaService.setStoragePool(999_999, 1L));
+        assertThrows(RefusalResponse.class, () -> clusterStorageQuotaService.findOverview(999_999));
     }
 
     @Test
@@ -191,9 +201,9 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
         var station = clusterService.createStation(clusterId, "Wache Negativ " + NAMES.incrementAndGet());
 
-        assertThrows(
-                BadRequestResponse.class,
-                () -> clusterStorageQuotaService.setGrant(clusterId, station.uid(), total(-1L)));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> clusterStorageQuotaService.setGrant(clusterId, station.uid(), total(-1L)));
+        assertEquals(Refusal.CLUSTER_QUOTA_ROOM_BELOW_NOTHING, refused.refusal());
 
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
@@ -245,14 +255,15 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
         clusterStorageQuotaService.createPreset(clusterId, "Standard", GIB, GIB, GIB, GIB, GIB, 1024, 1024);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var unnamed = assertThrows(
+                RefusalResponse.class,
                 () -> clusterStorageQuotaService.createPreset(clusterId, "  ", GIB, GIB, GIB, GIB, GIB, 1024, 1024));
+        assertEquals(Refusal.CLUSTER_QUOTA_TIER_NEEDS_A_NAME, unnamed.refusal());
         var refused = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> clusterStorageQuotaService.createPreset(
                         clusterId, "standard", GIB, GIB, GIB, GIB, GIB, 1024, 1024));
-        assertTrue(refused.getMessage().contains("already has a tier"));
+        assertEquals(Refusal.CLUSTER_QUOTA_TIER_NAME_TAKEN, refused.refusal());
     }
 
     @Test
@@ -262,9 +273,16 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         var tier = clusterStorageQuotaService.createPreset(
                 otherClusterId, "Fremde Stufe", GIB, GIB, GIB, GIB, GIB, 1024, 1024);
 
-        assertThrows(NotFoundResponse.class, () -> clusterStorageQuotaService.deletePreset(clusterId, tier.id()));
-        assertThrows(
-                NotFoundResponse.class, () -> clusterStorageQuotaService.applyPreset(clusterId, tier.id(), List.of()));
+        assertEquals(
+                Refusal.CLUSTER_QUOTA_TIER_NOT_HERE,
+                assertThrows(RefusalResponse.class, () -> clusterStorageQuotaService.deletePreset(clusterId, tier.id()))
+                        .refusal());
+        assertEquals(
+                Refusal.CLUSTER_QUOTA_TIER_NOT_HERE,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> clusterStorageQuotaService.applyPreset(clusterId, tier.id(), List.of()))
+                        .refusal());
         assertFalse(clusterStorageQuotaService.findPresets(clusterId).stream()
                 .anyMatch(preset -> preset.id() == tier.id()));
     }
@@ -278,9 +296,9 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         var tier = clusterStorageQuotaService.createPreset(clusterId, "Gross", 3 * GIB, GIB, GIB, GIB, GIB, 1024, 1024);
 
         var refused = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> clusterStorageQuotaService.applyPreset(clusterId, tier.id(), List.of(first.uid(), second.uid())));
-        assertTrue(refused.getMessage().contains("more than the cluster has left"));
+        assertEquals(Refusal.CLUSTER_QUOTA_TIER_MORE_THAN_POOL, refused.refusal());
 
         clusterStorageQuotaService.applyPreset(clusterId, tier.id(), List.of(first.uid()));
         var grant = clusterStorageQuotaRepo.findGrant(first.id()).orElseThrow();

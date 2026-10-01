@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -47,13 +48,11 @@ public class ItemCustodyService {
      * without walking a chain, so the promise has to be read here or it is no promise at all.
      *
      * @param itemId the piece about to be handed over
-     * @throws BadRequestResponse naming the movement that promised it
+     * @throws RefusalResponse when a movement has promised it
      */
     private void requireNobodyIsWaitingForIt(int itemId) {
         movementRepository.findOpenByIncomingItem(itemId).ifPresent(open -> {
-            throw new BadRequestResponse(
-                    "This piece is promised to movement %d, so hand it over there or call that one off"
-                            .formatted(open.id()));
+            throw Refusal.CUSTODY_PIECE_PROMISED.raise();
         });
     }
 
@@ -64,7 +63,7 @@ public class ItemCustodyService {
      * @param memberId   the member receiving it
      * @param memberName the member's display name for the history
      * @return the updated item, or empty if the item was not found
-     * @throws BadRequestResponse if the item is in a custody it cannot be handed out of
+     * @throws RefusalResponse if the item is in a custody it cannot be handed out of
      */
     public Optional<InventoryItem> assignToMember(int itemId, int memberId, String memberName) {
         var found = inventoryRepository.findItemById(itemId);
@@ -74,8 +73,7 @@ public class ItemCustodyService {
         }
         var item = found.get();
         if (!item.custody().assignable()) {
-            throw new BadRequestResponse("Item %d cannot be handed out: it is %s"
-                    .formatted(itemId, item.custody().name()));
+            throw Refusal.CUSTODY_NOT_HANDED_OUT_FROM_HERE.raise();
         }
         requireNobodyIsWaitingForIt(itemId);
 
@@ -160,7 +158,7 @@ public class ItemCustodyService {
      * @param note   what whoever reported it wrote, or {@code null} when they wrote nothing
      * @param noteBy who wrote that note, which is the guardian when one acted for a member
      * @return the updated item, or empty if the item was not found
-     * @throws BadRequestResponse if the item is borrowed from a federation partner
+     * @throws RefusalResponse if the item is borrowed from a federation partner
      */
     public Optional<InventoryItem> markLost(int itemId, @Nullable String note, @Nullable Integer noteBy) {
         var found = inventoryRepository.findItemById(itemId);
@@ -170,8 +168,7 @@ public class ItemCustodyService {
         }
         var item = found.get();
         if (item.borrowed()) {
-            throw new BadRequestResponse(
-                    "This gear belongs to a partner station. Tell them on the lending request it came in on");
+            throw Refusal.CUSTODY_BORROWED_NOT_MARKED_LOST.raise();
         }
         Integer custodian = item.custodyStationId();
         Integer holder = custodian != null ? custodian : stationOf(item);
@@ -289,7 +286,7 @@ public class ItemCustodyService {
      * @param stepStationId the station running the movement, which is where the item is once a step leaves
      *                      it at a station; for a cluster's gear it differs from the inventory's station
      * @return the updated item, or empty if the item was not found
-     * @throws BadRequestResponse if the step hands an item to a member the movement does not name
+     * @throws RefusalResponse if the step hands an item to a member the movement does not name
      */
     public Optional<InventoryItem> applyStepCustody(
             int itemId,
@@ -304,7 +301,7 @@ public class ItemCustodyService {
         }
         var item = found.get();
         if (custody == ItemCustody.WITH_MEMBER) {
-            if (memberId == null) throw new BadRequestResponse("This step hands the item to a member, but names none");
+            if (memberId == null) throw Refusal.CUSTODY_STEP_NAMES_NO_MEMBER.raise();
             return writeAssignment(item, memberId, "");
         }
 

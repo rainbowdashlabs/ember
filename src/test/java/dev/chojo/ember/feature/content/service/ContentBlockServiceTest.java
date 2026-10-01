@@ -5,12 +5,13 @@
  */
 package dev.chojo.ember.feature.content.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -73,9 +74,10 @@ class ContentBlockServiceTest extends RepositoryTestBase {
         var container = blocks.create(station.id());
         try {
             var withheld = List.of(row(CellContentType.BLOG_SIGNUP, "", new CellConfig.BlogSignupConfig("A", "B")));
-            assertThrows(
-                    BadRequestResponse.class,
+            var refused = assertThrows(
+                    RefusalResponse.class,
                     () -> blocks.save(container.id(), withheld, ContentBlockService.Scope.ARTICLE));
+            assertEquals(Refusal.CONTENT_BLOCK_ONLY_ON_PAGES, refused.refusal());
             assertDoesNotThrow(() -> blocks.save(container.id(), withheld, ContentBlockService.Scope.PAGE));
         } finally {
             blocks.delete(container.id());
@@ -91,7 +93,7 @@ class ContentBlockServiceTest extends RepositoryTestBase {
                     CellConfig.MAPPER.readTree("{\"rows\":[{\"cells\":[{\"contentType\":\"MEMBER_SPOTLIGHT\"}]}]}"));
             var rows = List.of(row(CellContentType.NESTED_ROWS, "", nested));
             assertThrows(
-                    BadRequestResponse.class,
+                    RefusalResponse.class,
                     () -> blocks.save(container.id(), rows, ContentBlockService.Scope.ARTICLE),
                     "a withheld block one level down is still withheld");
 

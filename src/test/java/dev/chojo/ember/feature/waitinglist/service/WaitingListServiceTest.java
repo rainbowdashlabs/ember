@@ -31,8 +31,6 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -559,10 +557,11 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var invited = service.inviteEntry(
                 entry.id(), new WaitingListInvitation(second.id(), LocalDate.of(2026, 5, 19), null));
 
-        assertThrows(
-                ConflictResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.answerInvitation(
                         invited.accessToken(), first.id(), LocalDate.of(2026, 5, 12), WaitingListAnswer.COMING, null));
+        assertEquals(Refusal.WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER, refused.refusal());
     }
 
     @Test
@@ -573,7 +572,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 19), null));
 
         assertThrows(
-                ConflictResponse.class,
+                RefusalResponse.class,
                 () -> service.answerInvitation(
                         invited.accessToken(), event.id(), LocalDate.of(2026, 5, 12), WaitingListAnswer.COMING, null));
     }
@@ -583,9 +582,10 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var entry = service.createEntry(listId, "Neu", "Weiter", guardians("", "weiter@test.com"), Map.of(), "");
         var testing = service.moveToTesting(invite(entry.id()).id());
 
-        assertThrows(
-                ConflictResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.answerInvitation(testing.accessToken(), null, null, WaitingListAnswer.COMING, null));
+        assertEquals(Refusal.WAITING_LIST_INVITATION_NO_LONGER_OPEN, refused.refusal());
     }
 
     @Test
@@ -1145,7 +1145,10 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var joined = service.moveToJoined(
                 service.moveToTesting(invite(entry.id()).id()).id());
 
-        assertThrows(ConflictResponse.class, () -> service.removeByToken(joined.accessToken()));
+        assertEquals(
+                Refusal.WAITING_LIST_ENTRY_NO_LONGER_REMOVABLE,
+                assertThrows(RefusalResponse.class, () -> service.removeByToken(joined.accessToken()))
+                        .refusal());
 
         assertTrue(service.findEntryById(joined.id()).isPresent());
         assertTrue(stationMemberRepo.findById(joined.memberId()).isPresent());
@@ -1288,8 +1291,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 false,
                 true);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.createEntry(
                         listId,
                         "Falsch",
@@ -1297,8 +1300,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
                         guardians("", "falsch@test.com"),
                         Map.of(dateField.id(), StringNode.valueOf("irgendwann")),
                         ""));
+        assertEquals(Refusal.WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_CREATE, refused.refusal());
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createEntry(
                         listId,
                         "Falsch",
@@ -1757,8 +1761,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
         service.createField(
                 list, "Geburtstag", FieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
 
-        assertThrows(
-                io.javalin.http.BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.createField(
                         list,
                         "Noch ein Geburtstag",
@@ -1767,6 +1771,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                         1,
                         true,
                         true));
+        assertEquals(Refusal.WAITING_LIST_SECOND_BIRTH_DATE_ON_CREATE, refused.refusal());
     }
 
     /** Declaring the one that is already the birth date to be the birth date is not a clash. */
@@ -1787,9 +1792,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 list, "Geburtstag", FieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
         var actual = service.findById(list).orElseThrow();
 
-        assertThrows(
-                io.javalin.http.BadRequestResponse.class,
-                () -> service.requireOldEnoughToRegister(actual, bornYearsAgo(field.id(), 10)));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.requireOldEnoughToRegister(actual, bornYearsAgo(field.id(), 10)));
+        assertEquals(Refusal.WAITING_LIST_REGISTRANT_TOO_YOUNG, refused.refusal());
         assertDoesNotThrow(() -> service.requireOldEnoughToRegister(actual, bornYearsAgo(field.id(), 13)));
     }
 

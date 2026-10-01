@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.page.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -25,7 +27,6 @@ import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -215,13 +216,15 @@ class PageServiceTest extends RepositoryTestBase {
         assertThrows(IllegalArgumentException.class, () -> service.setLandingPage(station.id(), 99999));
 
         service.setVisibility(pageId, PageVisibility.DRAFT);
-        assertThrows(BadRequestResponse.class, () -> service.setLandingPage(station.id(), pageId));
+        var draft = assertThrows(RefusalResponse.class, () -> service.setLandingPage(station.id(), pageId));
+        assertEquals(Refusal.LANDING_PAGE_NOT_PUBLIC, draft.refusal());
 
         service.setVisibility(pageId, PageVisibility.UNLISTED);
-        assertThrows(
-                BadRequestResponse.class,
+        var unlisted = assertThrows(
+                RefusalResponse.class,
                 () -> service.setLandingPage(station.id(), pageId),
                 "a page nobody can find is no landing page either");
+        assertEquals(Refusal.LANDING_PAGE_NOT_PUBLIC, unlisted.refusal());
         service.setVisibility(pageId, PageVisibility.PUBLIC);
     }
 
@@ -264,9 +267,10 @@ class PageServiceTest extends RepositoryTestBase {
         service.setVisibility(childPageId, PageVisibility.PUBLIC);
         var grandchild = service.create(station.id(), "Grandchild", childPageId, member.id());
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.create(station.id(), "GreatGrandchild", grandchild.id(), member.id()));
+        assertEquals(Refusal.PAGE_TREE_TOO_DEEP, refused.refusal());
 
         service.deletePage(grandchild.id());
     }
@@ -287,7 +291,8 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(17)
     void aPageWithChildrenCannotBeReachedByALinkAlone() {
-        assertThrows(BadRequestResponse.class, () -> service.setVisibility(pageId, PageVisibility.UNLISTED));
+        var refused = assertThrows(RefusalResponse.class, () -> service.setVisibility(pageId, PageVisibility.UNLISTED));
+        assertEquals(Refusal.PAGE_WITH_CHILDREN_NOT_LINK_ONLY, refused.refusal());
     }
 
     @Test
@@ -296,10 +301,11 @@ class PageServiceTest extends RepositoryTestBase {
         var alone = service.create(station.id(), "Einladung", null, member.id());
         service.setVisibility(alone.id(), PageVisibility.UNLISTED);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.create(station.id(), "Darunter", alone.id(), member.id()),
                 "nothing is filed under a page that is not in the tree");
+        assertEquals(Refusal.PAGE_UNDER_A_LINK_ONLY_PAGE, refused.refusal());
         assertTrue(service.shareToken(alone.id()).isPresent());
         assertTrue(
                 service.listListedPages(station.id()).stream().noneMatch(p -> p.id() == alone.id()),
@@ -492,7 +498,8 @@ class PageServiceTest extends RepositoryTestBase {
     void aDraftIsGivenNoLink() {
         int id = service.create(station.id(), "No Link Yet", null, member.id()).id();
         assertTrue(service.shareToken(id).isEmpty());
-        assertThrows(BadRequestResponse.class, () -> service.replaceShareToken(id, null));
+        var refused = assertThrows(RefusalResponse.class, () -> service.replaceShareToken(id, null));
+        assertEquals(Refusal.PAGE_LINK_NOT_FOR_A_CLOSED_PAGE, refused.refusal());
         service.deletePage(id);
     }
 

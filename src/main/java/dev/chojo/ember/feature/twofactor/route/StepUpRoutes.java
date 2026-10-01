@@ -90,7 +90,9 @@ public class StepUpRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeviceStepUpBeginResponse.class)))
     private void beginDeviceStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        RateLimits.enforce(rateLimiter.tryStepUpDeviceRequest(ctx.ip(), session.accountId()));
+        RateLimits.enforce(
+                Refusal.STEP_UP_DEVICE_REQUEST_TOO_OFTEN,
+                rateLimiter.tryStepUpDeviceRequest(ctx.ip(), session.accountId()));
         if (!twoFactorService
                 .availableProofs(session.accountId(), session.sessionId())
                 .contains(StepUpProof.ANOTHER_DEVICE)) {
@@ -123,7 +125,8 @@ public class StepUpRoutes implements Routes {
         if (request.pollSecret() == null || request.pollSecret().isBlank()) {
             throw Refusal.DEVICE_STEP_UP_POLL_SECRET_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryDevicePoll(ctx.ip(), request.pollSecret()));
+        RateLimits.enforce(
+                Refusal.STEP_UP_DEVICE_POLL_TOO_OFTEN, rateLimiter.tryDevicePoll(ctx.ip(), request.pollSecret()));
         var result = deviceRequestService.poll(request.pollSecret(), Set.of(DeviceRequestPurpose.STEP_UP));
         String claimToken = result.claimToken();
         if (claimToken != null && deviceRequestService.claimStepUp(claimToken)) {
@@ -170,7 +173,8 @@ public class StepUpRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = StepUpVerifiedResponse.class)))
     private void passwordStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        RateLimits.enforce(rateLimiter.tryPasswordStepUp(ctx.ip(), session.accountId()));
+        RateLimits.enforce(
+                Refusal.STEP_UP_PASSWORD_TOO_OFTEN, rateLimiter.tryPasswordStepUp(ctx.ip(), session.accountId()));
 
         var request = ctx.bodyAsClass(PasswordStepUpRequest.class);
         if (request.password() == null || request.password().isBlank()) {
@@ -232,7 +236,7 @@ public class StepUpRoutes implements Routes {
         if (request.challengeToken() == null || request.credentialJson() == null) {
             throw Refusal.PASSKEY_STEP_UP_DETAILS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
+        RateLimits.enforce(Refusal.STEP_UP_PASSKEY_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
         if (!passkeyService.finishStepUp(session.accountId(), request.challengeToken(), request.credentialJson())) {
             auditService.record(
                     session.accountId(),

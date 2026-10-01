@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -16,7 +18,6 @@ import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.ConflictResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -313,7 +314,9 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         var otherAccount = accountRepo.create("other-checker-svc@test.com", "Other", "Checker");
         var otherMember = stationMemberRepo.create(station.id(), otherAccount.id());
 
-        assertThrows(ConflictResponse.class, () -> service.startCheck(station.id(), target.id(), otherMember.id()));
+        var locked = assertThrows(
+                RefusalResponse.class, () -> service.startCheck(station.id(), target.id(), otherMember.id()));
+        assertEquals(Refusal.INVENTORY_CHECK_MEMBER_ALREADY_LOCKED, locked.refusal());
 
         service.cancelCheck(target.id(), checker.id());
         stationMemberRepo.delete(otherMember.id());

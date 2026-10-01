@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer;
 import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
@@ -14,7 +16,6 @@ import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.util.Json;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -169,8 +170,14 @@ class QuizCatalogTransferServiceTest {
 
     @Test
     void refusesABodyThatIsNotACatalogFile() {
-        assertThrows(BadRequestResponse.class, () -> service.read(json("{\"something\": 1}")));
-        assertThrows(BadRequestResponse.class, () -> service.read(json("[]")));
+        assertEquals(
+                Refusal.QUIZ_CATALOG_FILE_NOT_RECOGNISED,
+                assertThrows(RefusalResponse.class, () -> service.read(json("{\"something\": 1}")))
+                        .refusal());
+        assertEquals(
+                Refusal.QUIZ_CATALOG_FILE_NOT_AN_OBJECT,
+                assertThrows(RefusalResponse.class, () -> service.read(json("[]")))
+                        .refusal());
     }
 
     @Test

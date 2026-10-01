@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountNameRequiredException;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -80,9 +80,10 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
     @Test
     void anEmptyAddressIsNotAnInvitation() {
         int clusterId = freshCluster();
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.addByEmail(clusterId, "  ", ClusterUserType.CLUSTER_USER, "Erika", "Leer"));
+        assertEquals(Refusal.CLUSTER_MEMBER_ADDRESS_MISSING, refused.refusal());
     }
 
     @Test
@@ -195,7 +196,7 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
         var elsewhere = service.createGroup(freshCluster(), "Fremde Gruppe");
 
         assertThrows(
-                NotFoundResponse.class, () -> service.setMemberGroups(clusterId, member.id(), Set.of(elsewhere.id())));
+                RefusalResponse.class, () -> service.setMemberGroups(clusterId, member.id(), Set.of(elsewhere.id())));
     }
 
     @Test
@@ -216,7 +217,8 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
     void aGroupNeedsAName() {
         int clusterId = freshCluster();
 
-        assertThrows(BadRequestResponse.class, () -> service.createGroup(clusterId, "  "));
+        var refused = assertThrows(RefusalResponse.class, () -> service.createGroup(clusterId, "  "));
+        assertEquals(Refusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CREATE, refused.refusal());
     }
 
     @Test
@@ -226,10 +228,10 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
         var member = clusterService.addMember(otherClusterId, freshAccount().id(), ClusterUserType.CLUSTER_USER);
         var group = service.createGroup(otherClusterId, "Fremd");
 
-        assertThrows(NotFoundResponse.class, () -> service.findMemberDetail(clusterId, member.id()));
-        assertThrows(NotFoundResponse.class, () -> service.findGroupDetail(clusterId, group.id()));
+        assertThrows(RefusalResponse.class, () -> service.findMemberDetail(clusterId, member.id()));
+        assertThrows(RefusalResponse.class, () -> service.findGroupDetail(clusterId, group.id()));
         assertThrows(
-                NotFoundResponse.class,
+                RefusalResponse.class,
                 () -> service.setUserType(clusterId, member.id(), ClusterUserType.CLUSTER_ADMIN));
     }
 
@@ -241,7 +243,7 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
         var group = service.createGroup(clusterId, "Eigene");
 
         assertThrows(
-                NotFoundResponse.class, () -> service.setGroupMembers(clusterId, group.id(), Set.of(stranger.id())));
+                RefusalResponse.class, () -> service.setGroupMembers(clusterId, group.id(), Set.of(stranger.id())));
     }
 
     @Test
@@ -279,7 +281,8 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
         var group = service.createGroup(clusterId, "Vorher");
 
-        assertThrows(BadRequestResponse.class, () -> service.renameGroup(clusterId, group.id(), " "));
+        var refused = assertThrows(RefusalResponse.class, () -> service.renameGroup(clusterId, group.id(), " "));
+        assertEquals(Refusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CHANGE, refused.refusal());
     }
 
     @Test

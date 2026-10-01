@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -17,7 +18,6 @@ import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -119,7 +119,7 @@ class WaitingListAnswersTest extends RepositoryTestBase {
     }
 
     private void refused(FieldType type, String config, JsonNode answer) {
-        assertThrows(BadRequestResponse.class, () -> kept(type, config, false, answer), answer + " under " + type);
+        assertThrows(RefusalResponse.class, () -> kept(type, config, false, answer), answer + " under " + type);
     }
 
     @Test

@@ -5,12 +5,11 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.cluster.entity.ClusterInventoryTag;
 import dev.chojo.ember.feature.cluster.entity.RecommendedTag;
 import dev.chojo.ember.feature.cluster.repository.ClusterInventoryTagRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryTagRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -92,7 +91,7 @@ public class ClusterInventoryTagService {
             int clusterId, String name, @Nullable String color, @Nullable Integer stationGroupId) {
         String wanted = requireName(name);
         if (clusterTagRepository.findByName(clusterId, stationGroupId, wanted).isPresent()) {
-            throw new BadRequestResponse("The association already recommends that word to these stations");
+            throw Refusal.CLUSTER_INVENTORY_TAG_TAKEN_ON_CREATE.raise();
         }
         var tag = clusterTagRepository.create(clusterId, wanted, color, stationGroupId);
         log.info("Cluster item tag {} created for cluster {}: '{}'", tag.id(), clusterId, tag.name());
@@ -121,10 +120,12 @@ public class ClusterInventoryTagService {
         String wanted = requireName(name);
         var clash = clusterTagRepository.findByName(clusterId, stationGroupId, wanted);
         if (clash.isPresent() && clash.get().id() != tag.id()) {
-            throw new BadRequestResponse("The association already recommends that word to these stations");
+            throw Refusal.CLUSTER_INVENTORY_TAG_TAKEN_ON_CHANGE.raise();
         }
         clusterTagRepository.update(id, wanted, color, position, stationGroupId);
-        return clusterTagRepository.findById(id).orElseThrow(NotFoundResponse::new);
+        return clusterTagRepository
+                .findById(id)
+                .orElseThrow(Refusal.CLUSTER_INVENTORY_TAG_NOT_HERE_AFTER_CHANGE::raise);
     }
 
     /**
@@ -142,13 +143,13 @@ public class ClusterInventoryTagService {
 
     private static String requireName(String name) {
         String wanted = name == null ? "" : name.strip();
-        if (wanted.isEmpty()) throw new BadRequestResponse("A tag needs a name");
+        if (wanted.isEmpty()) throw Refusal.CLUSTER_INVENTORY_TAG_NEEDS_A_NAME.raise();
         return wanted;
     }
 
     private ClusterInventoryTag requireOwnTag(int clusterId, int id) {
-        var tag = clusterTagRepository.findById(id).orElseThrow(NotFoundResponse::new);
-        if (tag.clusterId() != clusterId) throw new NotFoundResponse();
+        var tag = clusterTagRepository.findById(id).orElseThrow(Refusal.CLUSTER_INVENTORY_TAG_NOT_HERE::raise);
+        if (tag.clusterId() != clusterId) throw Refusal.CLUSTER_INVENTORY_TAG_NOT_HERE.raise();
         return tag;
     }
 }

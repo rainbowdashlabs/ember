@@ -36,7 +36,6 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
-import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -799,7 +798,8 @@ class LendingServiceTest extends RepositoryTestBase {
                 inventoryRepo.createItem(inv.id(), "HELD-001", "Kreis-Jacke", null, null, ItemOwner.CLUSTER, clusterId);
         var line = lineOn(stationA, inv.id(), null);
 
-        assertThrows(ForbiddenResponse.class, () -> service.assignItem(line, held.id(), stationA.id()));
+        var refused = assertThrows(RefusalResponse.class, () -> service.assignItem(line, held.id(), stationA.id()));
+        assertEquals(Refusal.LENDING_GEAR_NOT_THE_STATIONS, refused.refusal());
     }
 
     /**
@@ -824,7 +824,8 @@ class LendingServiceTest extends RepositoryTestBase {
         var foreign = inventoryRepo.createItem(inv.id(), "FOR-001", "Fremde Leiter", null, null);
         var line = lineOn(stationA, inv.id(), null);
 
-        assertThrows(ForbiddenResponse.class, () -> service.assignItem(line, foreign.id(), stationA.id()));
+        var refused = assertThrows(RefusalResponse.class, () -> service.assignItem(line, foreign.id(), stationA.id()));
+        assertEquals(Refusal.LENDING_GEAR_NOT_THE_STATIONS, refused.refusal());
     }
 
     /**
@@ -937,7 +938,7 @@ class LendingServiceTest extends RepositoryTestBase {
                     .entries();
             assertTrue(results.stream().noneMatch(e -> stationA.uid().equals(e.stationId())));
             assertThrows(
-                    ForbiddenResponse.class,
+                    RefusalResponse.class,
                     () -> service.createRequest(
                             stationB.id(),
                             stationA.id(),
@@ -961,7 +962,7 @@ class LendingServiceTest extends RepositoryTestBase {
         var stranger = stationRepo.create("LendSvcStranger");
 
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.createRequest(
                         stationB.id(),
                         stranger.id(),

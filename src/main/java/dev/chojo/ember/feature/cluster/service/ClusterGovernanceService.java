@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterModuleDenied;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
@@ -15,8 +16,6 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -119,7 +118,7 @@ public class ClusterGovernanceService {
     private Station homeStation(int clusterId) {
         return stationRepository
                 .findById(requireCluster(clusterId).homeStationId())
-                .orElseThrow(() -> new NotFoundResponse("No such station"));
+                .orElseThrow(Refusal.CLUSTER_GOVERNANCE_HOME_STATION_NOT_HERE::raise);
     }
 
     /**
@@ -185,7 +184,7 @@ public class ClusterGovernanceService {
                 .findById(stationGroupId)
                 .filter(group -> group.clusterId() == clusterId)
                 .isPresent();
-        if (!own) throw new BadRequestResponse("That group of stations belongs to another association");
+        if (!own) throw Refusal.CLUSTER_GOVERNANCE_STATION_GROUP_NOT_OWN.raise();
     }
 
     /**
@@ -250,6 +249,6 @@ public class ClusterGovernanceService {
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(() -> new NotFoundResponse("No such cluster"));
+        return clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_GOVERNANCE_CLUSTER_NOT_HERE::raise);
     }
 }

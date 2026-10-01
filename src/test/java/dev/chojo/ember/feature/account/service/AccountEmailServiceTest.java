@@ -5,14 +5,14 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -73,12 +73,14 @@ class AccountEmailServiceTest extends RepositoryTestBase {
 
     @Test
     void anAddressThatIsNotOneIsRefused() {
-        assertThrows(BadRequestResponse.class, () -> service.setEmail(account.id(), "no-at-sign"));
+        var refused = assertThrows(RefusalResponse.class, () -> service.setEmail(account.id(), "no-at-sign"));
+        assertEquals(Refusal.ADDRESS_NOT_GOOD_ON_ADDRESS_WRITE, refused.refusal());
     }
 
     @Test
     void anAddressAnotherAccountHasIsRefused() {
-        assertThrows(BadRequestResponse.class, () -> service.setEmail(account.id(), other.email()));
+        var refused = assertThrows(RefusalResponse.class, () -> service.setEmail(account.id(), other.email()));
+        assertEquals(Refusal.ADDRESS_TAKEN_ON_ADDRESS_WRITE, refused.refusal());
     }
 
     /**
@@ -107,9 +109,9 @@ class AccountEmailServiceTest extends RepositoryTestBase {
         accountRepo.setInstanceUserType(account.id(), InstanceUserType.ADMINISTRATOR);
         String before = accountRepo.findById(account.id()).orElseThrow().email();
 
-        assertThrows(
-                ForbiddenResponse.class,
-                () -> service.setEmailFor(account.id(), account.id(), "self-service@test.com"));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.setEmailFor(account.id(), account.id(), "self-service@test.com"));
+        assertEquals(Refusal.OWN_ADDRESS_NOT_WRITTEN_UNCONFIRMED, refused.refusal());
 
         assertEquals(before, accountRepo.findById(account.id()).orElseThrow().email());
         accountRepo.setInstanceUserType(account.id(), InstanceUserType.USER);
@@ -121,6 +123,6 @@ class AccountEmailServiceTest extends RepositoryTestBase {
         assertEquals(
                 AccountEmailService.AddressProblem.UNREACHABLE,
                 service.problemWith(account.id(), "somebody@made.local"));
-        assertThrows(BadRequestResponse.class, () -> service.setEmail(account.id(), "somebody@made.local"));
+        assertThrows(RefusalResponse.class, () -> service.setEmail(account.id(), "somebody@made.local"));
     }
 }

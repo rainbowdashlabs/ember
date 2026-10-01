@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -21,8 +23,6 @@ import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -433,7 +433,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
         int ownerStep = movement.currentStepId();
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.acknowledge(movement.id(), ownerStep, team, "", null),
                 "the station cannot say the cluster has taken it");
 
@@ -563,7 +563,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         ItemMovement movement = announceExchange(old);
         itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
 
-        assertThrows(ForbiddenResponse.class, () -> itemMovementService.cancel(movement.id(), kid, "Doch nicht"));
+        assertThrows(RefusalResponse.class, () -> itemMovementService.cancel(movement.id(), kid, "Doch nicht"));
     }
 
     /**
@@ -634,9 +634,9 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 null);
 
         var refused = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.force(fresh.id(), fresh.currentStepId(), team, "Keine Antwort", null));
-        assertTrue(refused.getMessage().contains("station's own"));
+        assertEquals(Refusal.MOVEMENT_STATION_STEP_NOT_FORCED, refused.refusal());
 
         itemMovementService.decline(fresh.id(), team, "Aufgeräumt");
         itemMovementService.decline(movement.id(), team, "Aufgeräumt");
@@ -647,7 +647,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         int old = itemWithMember(ItemOwner.STATION);
         ItemMovement movement = announceExchange(old);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.force(movement.id(), movement.currentStepId(), team, "  ", null));
         itemMovementService.decline(movement.id(), team, "Aufgeräumt");
     }
@@ -658,7 +658,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         ItemMovement movement = announceExchange(old);
 
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.acknowledge(movement.id(), movement.currentStepId(), kid, "", null));
 
         itemMovementService.decline(movement.id(), team, "Aufgeräumt");
@@ -670,8 +670,8 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         ItemMovement movement = walkToEnd(announceExchange(old), item(ItemOwner.STATION));
         assertEquals(MovementState.DONE, movement.state());
 
-        assertThrows(BadRequestResponse.class, () -> itemMovementService.acknowledge(movement.id(), 1, team, "", null));
-        assertThrows(BadRequestResponse.class, () -> itemMovementService.decline(movement.id(), team, "zu spät"));
+        assertThrows(RefusalResponse.class, () -> itemMovementService.acknowledge(movement.id(), 1, team, "", null));
+        assertThrows(RefusalResponse.class, () -> itemMovementService.decline(movement.id(), team, "zu spät"));
     }
 
     @Test
@@ -681,8 +681,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         var steps = itemMovementService.stepsOf(movement);
         int last = steps.getLast().id();
 
-        assertThrows(
-                BadRequestResponse.class, () -> itemMovementService.acknowledge(movement.id(), last, team, "", null));
+        assertThrows(RefusalResponse.class, () -> itemMovementService.acknowledge(movement.id(), last, team, "", null));
 
         itemMovementService.decline(movement.id(), team, "Aufgeräumt");
     }
@@ -696,8 +695,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
         int standing = takenBack.currentStepId();
         assertThrows(
-                BadRequestResponse.class,
-                () -> itemMovementService.acknowledge(takenBack.id(), standing, team, "", null));
+                RefusalResponse.class, () -> itemMovementService.acknowledge(takenBack.id(), standing, team, "", null));
 
         itemMovementService.decline(takenBack.id(), team, "Aufgeräumt");
     }
@@ -841,7 +839,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         assertEquals(StepActor.MEMBER, waiting.actor());
         var acting = anotherStationsHand;
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.acknowledge(movementId, waitingId, acting, "", null),
                 "the station cannot say for somebody else that they have it");
 
@@ -988,7 +986,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 shelf);
 
         var second = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.create(
                         station.id(),
                         MovementPurpose.ISSUE,
@@ -1001,10 +999,10 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                         "Doppelt versprochen",
                         team,
                         shelf));
-        assertTrue(second.getMessage().contains(String.valueOf(planned.id())), "it names the movement holding it");
+        assertEquals(Refusal.MOVEMENT_PIECE_ALREADY_PROMISED, second.refusal());
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemCustodyService.assignToMember(shelf, member.id(), "Move Ment"),
                 "and the counter cannot hand it to somebody else either");
     }
@@ -1039,18 +1037,18 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         var movement = announceExchange(itemWithMember(ItemOwner.STATION));
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.rechain(movement.id(), 99, member.id()),
                 "that flow has no hundredth step");
 
         var closed = itemMovementService.cancel(movement.id(), team, "Doch nicht");
         assertEquals(MovementState.CANCELLED, closed.state());
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.planRechain(movement.id()),
                 "a movement that has finished is not walking anything any more");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.rechain(movement.id(), 0, member.id()),
                 "and so there is nothing to move it onto");
     }
@@ -1086,7 +1084,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         var correction = new ItemMovementService.Correction(ItemCustody.AT_STATION, null, false, null);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.correct(movement.id(), correction, team, " "),
                 "a tidied record without a reason is a record nobody can read afterwards");
     }
@@ -1145,7 +1143,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         int gone = itemWithMember(ItemOwner.STATION);
         inventoryRepo.deleteItem(gone);
 
-        assertThrows(BadRequestResponse.class, () -> announceExchange(gone), "there is nothing to swap");
+        assertThrows(RefusalResponse.class, () -> announceExchange(gone), "there is nothing to swap");
     }
 
     /** A piece promised to one movement cannot be promised to a second one. */
@@ -1166,7 +1164,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 promised);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.create(
                         station.id(),
                         MovementPurpose.ISSUE,

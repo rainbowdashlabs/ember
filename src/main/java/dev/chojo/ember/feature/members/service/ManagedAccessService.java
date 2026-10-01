@@ -17,9 +17,6 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -205,7 +202,7 @@ public class ManagedAccessService {
         StationMember member = requireManaged(guardianMemberId, memberId);
         var account = account(member);
         if (account.hasRealEmail()) {
-            throw new ForbiddenResponse("This member has an address of their own; the mail path is theirs");
+            throw Refusal.MANAGED_MEMBER_HAS_OWN_ADDRESS.raise();
         }
         return enrollmentService.issueCodeWithQr(
                 account.id(), actorAccountId, PasskeyEnrollmentService.QR_TTL, userAgent, country);
@@ -241,12 +238,11 @@ public class ManagedAccessService {
         var account = account(member);
         var permission = memberRepository
                 .findPermissionByName(StationPermission.LOGIN)
-                .orElseThrow(() -> new BadRequestResponse("The login permission does not exist"));
+                .orElseThrow(Refusal.MANAGED_SIGN_IN_PERMISSION_MISSING::raise);
 
         if (enabled) {
             if (!canSignIn(account)) {
-                throw new BadRequestResponse(
-                        "Set an email address or a username before allowing this member to sign in");
+                throw Refusal.MANAGED_SIGN_IN_NEEDS_A_NAME_OR_ADDRESS.raise();
             }
             if (!hasLogin(memberId)) {
                 memberRepository.grantPermission(memberId, permission.id());
@@ -273,9 +269,9 @@ public class ManagedAccessService {
     private Account account(StationMember member) {
         Integer accountId = member.accountId();
         if (accountId == null) {
-            throw new BadRequestResponse("This member has no account");
+            throw Refusal.MANAGED_MEMBER_HAS_NO_ACCOUNT.raise();
         }
-        return accountRepository.findById(accountId).orElseThrow(NotFoundResponse::new);
+        return accountRepository.findById(accountId).orElseThrow(Refusal.MANAGED_ACCOUNT_NOT_HERE::raise);
     }
 
     /**
@@ -323,11 +319,11 @@ public class ManagedAccessService {
         boolean manages =
                 memberService.findManaged(guardianMemberId).stream().anyMatch(managed -> managed.id() == memberId);
         if (!manages) {
-            throw new ForbiddenResponse("You do not manage this member");
+            throw Refusal.MANAGED_MEMBER_NOT_YOURS.raise();
         }
-        StationMember member = memberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
+        StationMember member = memberRepository.findById(memberId).orElseThrow(Refusal.MANAGED_MEMBER_NOT_HERE::raise);
         if (member.userType() != StationUserType.MEMBER && member.userType() != StationUserType.TRIAL) {
-            throw new ForbiddenResponse("Only members and trial members are managed this way");
+            throw Refusal.MANAGED_MEMBER_TYPE_NOT_MANAGED.raise();
         }
         return member;
     }

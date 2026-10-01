@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.api.RefusalResponse;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -50,10 +50,10 @@ class GlyphTest {
     @Test
     void onlyRrggbbIsPaintable() {
         assertDoesNotThrow(Glyph.of(null, "#abcdef")::requirePaintable);
-        assertThrows(BadRequestResponse.class, Glyph.of(null, "#abc")::requirePaintable);
-        assertThrows(BadRequestResponse.class, Glyph.of(null, "2563eb")::requirePaintable);
-        assertThrows(BadRequestResponse.class, Glyph.of(null, "rebeccapurple")::requirePaintable);
-        assertThrows(BadRequestResponse.class, Glyph.of(null, "#2563ebff")::requirePaintable);
+        assertThrows(RefusalResponse.class, Glyph.of(null, "#abc")::requirePaintable);
+        assertThrows(RefusalResponse.class, Glyph.of(null, "2563eb")::requirePaintable);
+        assertThrows(RefusalResponse.class, Glyph.of(null, "rebeccapurple")::requirePaintable);
+        assertThrows(RefusalResponse.class, Glyph.of(null, "#2563ebff")::requirePaintable);
     }
 
     @Test
@@ -66,6 +66,6 @@ class GlyphTest {
     void paintableNormalisesWhatItChecks() {
         assertEquals(new Glyph("shirt", "#2563eb"), new Glyph("shirt", "#2563EB").paintable());
         assertEquals(Glyph.NONE, new Glyph("", "  ").paintable());
-        assertThrows(BadRequestResponse.class, new Glyph("shirt", "blau")::paintable);
+        assertThrows(RefusalResponse.class, new Glyph("shirt", "blau")::paintable);
     }
 }

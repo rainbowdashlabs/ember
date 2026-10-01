@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -15,8 +16,6 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -127,7 +126,7 @@ public class ClusterContentService {
      */
     public KbFolder createFolder(
             int clusterId, @Nullable Integer parentId, String name, String description, int accountId) {
-        if (name == null || name.isBlank()) throw new BadRequestResponse("A folder needs a name");
+        if (name == null || name.isBlank()) throw Refusal.CLUSTER_KB_FOLDER_NEEDS_A_NAME.raise();
         int homeStationId = homeStationOf(clusterId);
         KbFolder folder = knowledgeBaseService.createFolder(
                 homeStationId,
@@ -163,7 +162,7 @@ public class ClusterContentService {
      */
     public KbFile createArticle(
             int clusterId, Integer folderId, String name, String description, String content, int accountId) {
-        if (name == null || name.isBlank()) throw new BadRequestResponse("An article needs a name");
+        if (name == null || name.isBlank()) throw Refusal.CLUSTER_KB_ARTICLE_NEEDS_A_NAME.raise();
         int homeStationId = homeStationOf(clusterId);
         KbFile file = knowledgeBaseService.createMarkdownFile(
                 homeStationId,
@@ -184,13 +183,13 @@ public class ClusterContentService {
      */
     public void deleteArticle(int clusterId, int fileId) {
         int homeStationId = homeStationOf(clusterId);
-        KbFile file = knowledgeBaseService.findFile(fileId).orElseThrow(() -> new NotFoundResponse("No such article"));
-        if (file.stationId() != homeStationId) throw new NotFoundResponse("No such article");
+        KbFile file = knowledgeBaseService.findFile(fileId).orElseThrow(Refusal.CLUSTER_KB_ARTICLE_NOT_HERE::raise);
+        if (file.stationId() != homeStationId) throw Refusal.CLUSTER_KB_ARTICLE_NOT_HERE.raise();
         trashService.deleteFile(fileId, null);
         log.info("Cluster {} withdrew knowledge article {}", clusterId, fileId);
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(() -> new NotFoundResponse("No such cluster"));
+        return clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_KB_CLUSTER_NOT_HERE::raise);
     }
 }

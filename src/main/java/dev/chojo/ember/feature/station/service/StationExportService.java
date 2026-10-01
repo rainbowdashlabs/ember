@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.service;
 
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.federation.service.StationKeyTransfer;
@@ -17,7 +18,6 @@ import dev.chojo.ember.tracking.engine.GenericTableExporter;
 import dev.chojo.ember.tracking.engine.TableOrder;
 import dev.chojo.ember.util.Json;
 import dev.chojo.ember.util.RandomTokens;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -105,11 +105,10 @@ public class StationExportService {
     private void requireTransferable(int stationId) {
         stationRepository.findById(stationId).ifPresent(station -> {
             if (station.stationKind() == StationKind.CLUSTER_HOME) {
-                throw new BadRequestResponse("A cluster's home station cannot be transferred");
+                throw Refusal.STATION_TRANSFER_OF_CLUSTER_HOME.raise();
             }
             if (station.clusterId() != null) {
-                throw new BadRequestResponse(
-                        "A station that belongs to a cluster cannot be transferred. Leave the cluster first.");
+                throw Refusal.STATION_TRANSFER_OF_CLUSTER_MEMBER.raise();
             }
         });
     }

@@ -82,11 +82,13 @@ class ExceptionMappingTest {
 
     @Test
     void aRateLimitSaysWhenToTryAgain() {
-        var response = answer(ctx -> RateLimits.enforce(Optional.of(30L)));
+        var response = answer(ctx -> RateLimits.enforce(Refusal.REQUESTS_TOO_OFTEN, Optional.of(30L)));
 
         assertEquals(429, response.code());
         assertEquals("30", header(response, "Retry-After"));
-        assertEquals(30, json(response).path("retryAfterSeconds").asInt());
+        var body = json(response);
+        assertEquals(30, body.path("retryAfterSeconds").asInt());
+        assertEquals(Refusal.REQUESTS_TOO_OFTEN.code(), body.path("code").asString());
     }
 
     @Test

@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -36,9 +38,6 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -121,7 +120,7 @@ public class InventoryCheckService {
      * @param memberId  the member to check
      * @param lockedBy  the member performing the check
      * @return the current check state including required items, assigned items, and unassigned items
-     * @throws ConflictResponse if the member is already locked by a different checker
+     * @throws RefusalResponse if the member is already locked by a different checker
      */
     public MemberCheckState startCheck(int stationId, int memberId, int lockedBy) {
         boolean begun = acquireLock(stationId, memberId, lockedBy);
@@ -170,14 +169,14 @@ public class InventoryCheckService {
         var existingLock = checkRepository.findLock(memberId);
         if (existingLock.isPresent()) {
             if (existingLock.get().lockedBy() != lockedBy) {
-                throw new ConflictResponse("Member is already being checked by another user");
+                throw Refusal.INVENTORY_CHECK_MEMBER_ALREADY_LOCKED.raise();
             }
             return false;
         }
         checkRepository.releaseLockByLocker(lockedBy);
         Optional<InventoryCheckLock> lock = checkRepository.acquireLock(stationId, memberId, lockedBy);
         if (lock.isEmpty()) {
-            throw new ConflictResponse("Member is already being checked by another user");
+            throw Refusal.INVENTORY_CHECK_MEMBER_LOCKED_MEANWHILE.raise();
         }
         log.info("Started check on member {} by member {} (station={})", memberId, lockedBy, stationId);
         return true;
@@ -534,14 +533,14 @@ public class InventoryCheckService {
      * @param memberId   the member being checked
      * @param correction what the member actually holds
      * @return the piece the member holds once the record agrees with them
-     * @throws NotFoundResponse   if the inventory or either piece is unknown
-     * @throws BadRequestResponse if the old piece is not the member's, the new one is not free, or a
-     *                            mixed inventory was not told who owns the new piece
+     * @throws RefusalResponse if the inventory or either piece is unknown, the old piece is not the
+     *                         member's, the new one is not free, or a mixed inventory was not told who
+     *                         owns the new piece
      */
     public InventoryItem correct(int memberId, ItemCorrection correction) {
         Inventory inventory = inventoryRepository
                 .findById(correction.inventoryId())
-                .orElseThrow(() -> new NotFoundResponse("This inventory does not exist"));
+                .orElseThrow(Refusal.INVENTORY_CHECK_CORRECTION_INVENTORY_NOT_HERE::raise);
         ItemOwner owner = ownerOfNewPiece(inventory, correction);
         InventoryItem replacement = correction.picksFromStock()
                 ? fromStock(correction.pickedItemId(), inventory.id())
@@ -586,10 +585,10 @@ public class InventoryCheckService {
             case EXTERNAL -> ItemOwner.CLUSTER;
             case MIXED -> {
                 if (correction.ownerKind() == null) {
-                    throw new BadRequestResponse("This inventory holds both owners, so the new piece needs one named");
+                    throw Refusal.INVENTORY_CHECK_CORRECTION_OWNER_MISSING.raise();
                 }
                 if (correction.ownerKind() == ItemOwner.PARTNER_STATION) {
-                    throw new BadRequestResponse("A new piece cannot be written down as a partner station's");
+                    throw Refusal.INVENTORY_CHECK_CORRECTION_OWNED_BY_PARTNER.raise();
                 }
                 yield correction.ownerKind();
             }
@@ -603,12 +602,12 @@ public class InventoryCheckService {
     private InventoryItem fromStock(int itemId, int inventoryId) {
         InventoryItem item = inventoryRepository
                 .findItemById(itemId)
-                .orElseThrow(() -> new NotFoundResponse("This piece does not exist"));
+                .orElseThrow(Refusal.INVENTORY_CHECK_PICKED_ITEM_NOT_HERE::raise);
         if (item.inventoryId() != inventoryId) {
-            throw new BadRequestResponse("This piece sits in another inventory");
+            throw Refusal.INVENTORY_CHECK_PICKED_ITEM_IN_OTHER_INVENTORY.raise();
         }
         if (item.assignedTo() != null) {
-            throw new BadRequestResponse("This piece is already with somebody");
+            throw Refusal.INVENTORY_CHECK_PICKED_ITEM_TAKEN.raise();
         }
         return item;
     }
@@ -631,10 +630,10 @@ public class InventoryCheckService {
     private void release(int itemId, int memberId) {
         InventoryItem item = inventoryRepository
                 .findItemById(itemId)
-                .orElseThrow(() -> new NotFoundResponse("This piece does not exist"));
+                .orElseThrow(Refusal.INVENTORY_CHECK_REPLACED_ITEM_NOT_HERE::raise);
         Integer holder = item.assignedTo();
         if (holder == null || holder != memberId) {
-            throw new BadRequestResponse("This piece is not on this member's record");
+            throw Refusal.INVENTORY_CHECK_REPLACED_ITEM_NOT_THE_MEMBERS.raise();
         }
         if (item.custody() == ItemCustody.LOST) {
             inventoryRepository.markSpellCorrected(itemId, memberId);

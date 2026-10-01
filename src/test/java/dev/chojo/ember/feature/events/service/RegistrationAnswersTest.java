@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -155,6 +154,6 @@ class RegistrationAnswersTest extends RepositoryTestBase {
     void aDecimalIsRefusedWhereANumberIsAsked() {
         int field = ask(FieldType.NUMBER);
 
-        assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(eventId, Map.of(field, "1.5")));
+        assertThrows(RefusalResponse.class, () -> service.resolveAnswers(eventId, Map.of(field, "1.5")));
     }
 }

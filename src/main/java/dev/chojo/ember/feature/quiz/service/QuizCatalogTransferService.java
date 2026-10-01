@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferCategory;
@@ -16,7 +17,6 @@ import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.util.Json;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -105,13 +105,13 @@ public class QuizCatalogTransferService {
      * earlier versions wrote, which carried the catalog's fields at the top level and addressed
      * categories by the database id of the station that exported them.
      *
-     * @throws BadRequestResponse when the body is not a catalog file at all
+     * @throws dev.chojo.ember.api.RefusalResponse when the body is not a catalog file at all
      */
     public CatalogTransfer read(JsonNode body) {
-        if (body == null || !body.isObject()) throw new BadRequestResponse("The file is not a catalog export");
+        if (body == null || !body.isObject()) throw Refusal.QUIZ_CATALOG_FILE_NOT_AN_OBJECT.raise();
         if (body.has("catalog")) return readCurrent(body);
         if (body.has("name")) return readLegacy(body);
-        throw new BadRequestResponse("The file is not a catalog export");
+        throw Refusal.QUIZ_CATALOG_FILE_NOT_RECOGNISED.raise();
     }
 
     /**
@@ -206,7 +206,7 @@ public class QuizCatalogTransferService {
             return Json.CONFIG_MAPPER.treeToValue(body, CatalogTransfer.class);
         } catch (Exception e) {
             log.warn("Rejected a catalog file that does not fit the transfer shape", e);
-            throw new BadRequestResponse("The file is not a catalog export");
+            throw Refusal.QUIZ_CATALOG_FILE_NOT_READ.raise();
         }
     }
 

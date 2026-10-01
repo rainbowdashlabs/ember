@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.form.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.form.service.FormRespondents.Respondent;
 import dev.chojo.ember.feature.form.service.FormResultQuery.ResultGrouping;
@@ -13,7 +14,6 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.question.FieldType;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -90,7 +90,7 @@ public class FormResultGrouping {
      * @return the groups, in display order
      */
     public List<Bucket> split(int stationId, List<Respondent> respondents, ResultGrouping grouping) {
-        if (grouping == null || grouping.by() == null) throw new BadRequestResponse("Nothing to group by");
+        if (grouping == null || grouping.by() == null) throw Refusal.FORM_RESULTS_GROUPING_MISSING.raise();
         var buckets =
                 switch (grouping.by()) {
                     case USER_TYPE ->
@@ -132,7 +132,7 @@ public class FormResultGrouping {
         var field = FormRespondents.groupableFields(profileFields.findByStation(stationId)).stream()
                 .filter(candidate -> fieldId != null && candidate.id() == fieldId)
                 .findFirst()
-                .orElseThrow(() -> new BadRequestResponse("Unknown profile field to group by"));
+                .orElseThrow(Refusal.FORM_RESULTS_GROUPING_FIELD_NOT_HERE::raise);
         Function<Respondent, String> answer =
                 respondent -> respondent.fieldValues().get(field.id());
         if (field.fieldType() == FieldType.NUMBER && FormResultQuery.notEmpty(grouping.bounds())) {

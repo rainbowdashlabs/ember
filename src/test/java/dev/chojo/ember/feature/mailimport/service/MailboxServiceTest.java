@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.mailimport.service;
 
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.mailimport.entity.MailRuleAction;
@@ -19,8 +20,6 @@ import dev.chojo.ember.feature.mailimport.route.MailImportRoutes.RuleRequest;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -147,7 +146,7 @@ class MailboxServiceTest extends RepositoryTestBase {
         assertTrue(service.canStorePasswords());
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> withoutAKey.create(
                         station.id(),
                         "Archiv",
@@ -165,7 +164,7 @@ class MailboxServiceTest extends RepositoryTestBase {
     @Test
     void aMailboxNeedsAHostAUserAndAPassword() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.create(
                         station.id(),
                         "Archiv",
@@ -179,7 +178,7 @@ class MailboxServiceTest extends RepositoryTestBase {
                         15,
                         Instant.now()));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.create(
                         station.id(),
                         "  ",
@@ -193,7 +192,7 @@ class MailboxServiceTest extends RepositoryTestBase {
                         15,
                         Instant.now()));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.create(
                         station.id(),
                         "Archiv",
@@ -207,7 +206,7 @@ class MailboxServiceTest extends RepositoryTestBase {
                         15,
                         Instant.now()));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.create(
                         station.id(),
                         "Archiv",
@@ -221,7 +220,7 @@ class MailboxServiceTest extends RepositoryTestBase {
                         15,
                         Instant.now()));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.create(
                         station.id(),
                         "x".repeat(500),
@@ -244,7 +243,7 @@ class MailboxServiceTest extends RepositoryTestBase {
     @Test
     void anAddressInsideTheDeploymentIsRefused() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> publicHostsOnly.create(
                         station.id(),
                         "Innen",
@@ -263,7 +262,7 @@ class MailboxServiceTest extends RepositoryTestBase {
     @Test
     void anUnencryptedMailboxIsOnlyOfferedOnYourOwnNetwork() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.create(
                         station.id(),
                         "Offen",
@@ -330,9 +329,9 @@ class MailboxServiceTest extends RepositoryTestBase {
     @Test
     void aMailboxThatIsNotThereIsNotFound() {
         assertTrue(service.find(-1).isEmpty());
-        assertThrows(NotFoundResponse.class, () -> service.require(-1));
+        assertThrows(RefusalResponse.class, () -> service.require(-1));
         assertTrue(service.findRule(-1).isEmpty());
-        assertThrows(NotFoundResponse.class, () -> service.requireRule(-1));
+        assertThrows(RefusalResponse.class, () -> service.requireRule(-1));
     }
 
     /**
@@ -344,11 +343,11 @@ class MailboxServiceTest extends RepositoryTestBase {
         var mailbox = service.require(mailboxId());
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createRule(
                         mailbox, ruleRequest(List.of(), List.of("application/pdf"), MailRuleAction.NOTHING, null)));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createRule(
                         mailbox, ruleRequest(null, List.of("application/pdf"), MailRuleAction.NOTHING, null)));
     }
@@ -358,15 +357,15 @@ class MailboxServiceTest extends RepositoryTestBase {
         var mailbox = service.require(mailboxId());
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createRule(
                         mailbox, ruleRequest(List.of("*"), List.of("application/pdf"), MailRuleAction.NOTHING, null)));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createRule(
                         mailbox, ruleRequest(List.of(".*"), List.of("application/pdf"), MailRuleAction.NOTHING, null)));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createRule(
                         mailbox,
                         ruleRequest(
@@ -378,15 +377,15 @@ class MailboxServiceTest extends RepositoryTestBase {
         var mailbox = service.require(mailboxId());
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createRule(
                         mailbox, ruleRequest(List.of("*@musterstadt.de"), List.of(), MailRuleAction.NOTHING, null)));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createRule(
                         mailbox, ruleRequest(List.of("*@musterstadt.de"), null, MailRuleAction.NOTHING, null)));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createRule(
                         mailbox,
                         ruleRequest(
@@ -401,7 +400,7 @@ class MailboxServiceTest extends RepositoryTestBase {
         var mailbox = service.require(mailboxId());
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createRule(
                         mailbox,
                         ruleRequest(
@@ -489,14 +488,14 @@ class MailboxServiceTest extends RepositoryTestBase {
         assertEquals(60, changed.intervalMinutes());
         assertTrue(changed.verifyDkim(), "what the mailbox demands of a sender is changed with the rest");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.update(
                         id, "Offen", "8.8.8.8", 143, MailSecurity.NONE, "wer", "INBOX", false, true, 60, Instant.now()),
                 "the same host rules hold when a mailbox is changed as when it is written");
 
         service.updatePassword(id, "ein neues Kennwort");
-        assertThrows(BadRequestResponse.class, () -> service.updatePassword(id, " "));
-        assertThrows(BadRequestResponse.class, () -> withoutAKey.updatePassword(id, "egal"));
+        assertThrows(RefusalResponse.class, () -> service.updatePassword(id, " "));
+        assertThrows(RefusalResponse.class, () -> withoutAKey.updatePassword(id, "egal"));
 
         assertTrue(service.resume(id));
         assertTrue(service.delete(id));

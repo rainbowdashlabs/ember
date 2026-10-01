@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
@@ -16,7 +17,6 @@ import dev.chojo.ember.feature.inventory.entity.VisibleRequirement;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -248,12 +248,12 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Order(58)
     void aColourNothingCouldPaintIsRefused() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.create(
                         station.id(), "Bunt", InventoryType.INTERNAL, false, true, Glyph.of("shirt", "blau")));
         var inv = service.create(station.id(), "Bunt", InventoryType.INTERNAL, false, true);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.update(
                         inv.id(), "Bunt", InventoryType.INTERNAL, false, true, Glyph.of("shirt", "#12345")));
         service.delete(inv.id());
@@ -418,7 +418,7 @@ class InventoryServiceTest extends RepositoryTestBase {
         var otherCluster = clusterRepo.create("Kreisverband Fremd", null, otherHome.id());
         var otherGroup = clusterStationGroupRepo.create(otherCluster.id(), "Fremde Gruppe");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createRequirement(theirs.id(), StationUserType.MEMBER, 0, otherGroup.id(), 1),
                 "and no association can aim a requirement with another's filing");
 

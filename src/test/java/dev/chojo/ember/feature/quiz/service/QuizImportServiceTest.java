@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvDraftQuestion;
 import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvMappings;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -214,19 +215,24 @@ class QuizImportServiceTest {
 
     @Test
     void rejectsASheetWithoutTheQuestionColumn() {
-        assertThrows(BadRequestResponse.class, () -> service.draft("Titel,Antwort\nA,x\n", mappings("Typ", null)));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.draft("Titel,Antwort\nA,x\n", mappings("Typ", null)));
+        assertEquals(Refusal.QUIZ_IMPORT_QUESTION_COLUMN_MISSING, refused.refusal());
     }
 
     @Test
     void rejectsAnUnknownQuestionType() {
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.draft("Frage,Antwort,Typ\nA,x,Kreuzwortraetsel\n", mappings("Typ", null)));
+        assertEquals(Refusal.QUIZ_IMPORT_QUESTION_TYPE_UNKNOWN, refused.refusal());
     }
 
     @Test
     void rejectsAnUnparsableSheet() {
-        assertThrows(BadRequestResponse.class, () -> service.draft("\"Frage,Antwort\nA,x\n", mappings("Typ", null)));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.draft("\"Frage,Antwort\nA,x\n", mappings("Typ", null)));
+        assertEquals(Refusal.QUIZ_IMPORT_SHEET_NOT_READ, refused.refusal());
     }
 
     @Test

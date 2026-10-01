@@ -5,10 +5,9 @@
  */
 package dev.chojo.ember.feature.members.util;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.Permission;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 
 import java.util.Collection;
 import java.util.List;
@@ -58,10 +57,10 @@ public final class PermissionValidation {
             Permission perm = allPermissions.stream()
                     .filter(p -> p.id() == permissionId)
                     .findFirst()
-                    .orElseThrow(() -> new BadRequestResponse("Unknown permission ID: " + permissionId));
+                    .orElseThrow(() -> Refusal.MEMBER_PERMISSION_UNKNOWN.raise(String.valueOf(permissionId)));
 
             if (!currentIds.contains(permissionId) && !callerPermissions.contains(perm.permission())) {
-                throw new ForbiddenResponse("Cannot grant permission you do not have: " + perm.permission());
+                throw Refusal.MEMBER_PERMISSION_NOT_YOURS_TO_GRANT.raise();
             }
         }
     }

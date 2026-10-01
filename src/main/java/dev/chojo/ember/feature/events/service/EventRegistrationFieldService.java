@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
@@ -16,7 +17,6 @@ import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.MemberEligibility;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionValues;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -57,7 +57,7 @@ public class EventRegistrationFieldService {
      *
      * @throws io.javalin.http.HttpResponseException where a new question asks for a kind of answer
      *                                               the registration form does not offer
-     * @throws BadRequestResponse                    naming a question whose default it would refuse
+     * @throws RefusalResponse                       naming a question whose default it would refuse
      */
     public void replaceFields(int eventId, List<RegistrationFieldDraft> fields) {
         var asked = repository.findByEvent(eventId).stream()
@@ -98,19 +98,21 @@ public class EventRegistrationFieldService {
      *
      * @param fields      the questions as they are being written
      * @param eligibility who passes the group, user type or tag a member question is narrowed to
-     * @throws BadRequestResponse naming the question and what is wrong with its default
+     * @param refusal     what the caller refuses a default with
+     * @throws RefusalResponse naming the question and what is wrong with its default
      */
-    static void requireUsableDefaults(List<RegistrationFieldDraft> fields, MemberEligibility eligibility) {
+    static void requireUsableDefaults(
+            List<RegistrationFieldDraft> fields, MemberEligibility eligibility, Refusal refusal) {
         for (var field : fields) {
             var question = field.config().asQuestion(field.name(), field.fieldType());
             QuestionCheck.defaultValue(question, eligibility).ifPresent(problem -> {
-                throw new BadRequestResponse(problem.message());
+                throw refusal.raise(problem.message());
             });
         }
     }
 
     private void requireUsableDefaults(List<RegistrationFieldDraft> fields) {
-        requireUsableDefaults(fields, eligibility);
+        requireUsableDefaults(fields, eligibility, Refusal.REGISTRATION_QUESTION_DEFAULT_NOT_ACCEPTED);
     }
 
     /**
@@ -154,7 +156,7 @@ public class EventRegistrationFieldService {
      * @param eventId the event being registered for
      * @param answers the answers keyed by question id, as submitted
      * @return the value to store per question id
-     * @throws BadRequestResponse when a question is unanswered, unknown, or answered out of range
+     * @throws RefusalResponse when a question is unanswered, unknown, or answered out of range
      */
     public Map<Integer, String> resolveAnswers(int eventId, Map<Integer, String> answers) {
         var fields = repository.findByEvent(eventId);
@@ -245,7 +247,7 @@ public class EventRegistrationFieldService {
      * @param registrationId     the registration being updated
      * @param answers            the answers keyed by question id, as submitted
      * @param readsHiddenAnswers whether the caller may read the answers kept for organisers
-     * @throws BadRequestResponse when a question is unanswered, unknown, or answered out of range
+     * @throws RefusalResponse when a question is unanswered, unknown, or answered out of range
      */
     public void replaceAnswers(
             int eventId, int registrationId, Map<Integer, String> answers, boolean readsHiddenAnswers) {
@@ -280,14 +282,14 @@ public class EventRegistrationFieldService {
      * @param answers     the answers as submitted, keyed by question id
      * @param eligibility who passes the group, user type or tag a member question is narrowed to
      * @return the value to store per question id
-     * @throws BadRequestResponse when a question is unanswered, unknown, or answered out of range
+     * @throws RefusalResponse when a question is unanswered, unknown, or answered out of range
      */
     private static Map<Integer, String> validate(
             List<EventRegistrationField> fields, Map<Integer, String> answers, MemberEligibility eligibility) {
         var known = fields.stream().map(EventRegistrationField::id).collect(Collectors.toSet());
         for (Integer fieldId : answers.keySet()) {
             if (!known.contains(fieldId)) {
-                throw new BadRequestResponse("Unknown registration field " + fieldId);
+                throw Refusal.REGISTRATION_ANSWER_TO_UNKNOWN_QUESTION.raise(String.valueOf(fieldId));
             }
         }
 
@@ -296,7 +298,7 @@ public class EventRegistrationFieldService {
             String value = answers.get(field.id());
             if (isBlank(value)) value = field.config().defaultValue();
             QuestionCheck.answer(field.question(), value, eligibility).ifPresent(problem -> {
-                throw new BadRequestResponse(problem.message());
+                throw Refusal.REGISTRATION_ANSWER_NOT_ACCEPTED.raise(problem.message());
             });
             if (isBlank(value)) continue;
             resolved.put(field.id(), QuestionValues.writeText(field.fieldType(), value));

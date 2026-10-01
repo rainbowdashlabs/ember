@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ProcurementCreated;
 import dev.chojo.ember.event.events.ProcurementFulfilled;
@@ -20,7 +21,6 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -81,7 +81,8 @@ public class ProcurementService {
                 .filter(inventory -> inventory.stationId() == stationId)
                 .map(Inventory::name)
                 .orElseThrow(Refusal.INVENTORY_NOT_HERE_ON_PROCUREMENT::raise);
-        inventoryService.requireHomogeneous(inventoryId, "ordering more");
+        inventoryService.requireHomogeneous(
+                inventoryId, Refusal.INVENTORY_NOT_HERE_FOR_ORDER, Refusal.INVENTORY_ORDER_ON_A_COLLECTION);
         var procurement = procurementRepository.create(stationId, inventoryId, memberId, sizeId, notes);
         if (memberId != null) {
             eventBus.publish(new ProcurementCreated(stationId, memberId, inventoryId, inventoryName));
@@ -189,7 +190,11 @@ public class ProcurementService {
                     reasonFor(proc),
                     new ItemMovementService.Actor(memberId, true),
                     item.id());
-        } catch (BadRequestResponse noChain) {
+        } catch (RefusalResponse noChain) {
+            if (noChain.refusal() != Refusal.MOVEMENT_FLOW_NOT_BOUND
+                    && noChain.refusal() != Refusal.MOVEMENT_FLOW_HAS_NO_STEPS) {
+                throw noChain;
+            }
             log.info(
                     "Procurement {} handed over directly: no chain serves an issue here ({})",
                     proc.id(),

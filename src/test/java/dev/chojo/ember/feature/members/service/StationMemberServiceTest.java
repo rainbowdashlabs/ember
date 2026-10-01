@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -12,8 +14,6 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -112,10 +112,11 @@ class StationMemberServiceTest extends RepositoryTestBase {
         var adminPerm = stationMemberRepo
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow();
-        assertThrows(
-                ForbiddenResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.setPermissions(
                         member2.id(), List.of(adminPerm.id()), EnumSet.of(StationPermission.MEMBER_MANAGER), null));
+        assertEquals(Refusal.MEMBER_PERMISSION_NOT_YOURS_TO_GRANT, refused.refusal());
     }
 
     @Test
@@ -250,13 +251,14 @@ class StationMemberServiceTest extends RepositoryTestBase {
 
         var loginPerm =
                 stationMemberRepo.findPermissionByName(StationPermission.LOGIN).orElseThrow();
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.setPermissions(
                         noEmailMember.id(),
                         List.of(loginPerm.id()),
                         EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.LOGIN),
                         null));
+        assertEquals(Refusal.MEMBER_SIGN_IN_NEEDS_AN_ADDRESS, refused.refusal());
 
         service.delete(noEmailMember.id());
         accountRepo.delete(noEmailAccount.id());
@@ -275,13 +277,14 @@ class StationMemberServiceTest extends RepositoryTestBase {
                 EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
                 null);
 
-        assertThrows(
-                ForbiddenResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.setPermissions(
                         member3.id(),
                         List.of(),
                         EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
                         member3.id()));
+        assertEquals(Refusal.MEMBER_OWN_PERMISSION_NOT_REMOVABLE, refused.refusal());
 
         service.delete(member3.id());
         accountRepo.delete(account3.id());
@@ -329,13 +332,14 @@ class StationMemberServiceTest extends RepositoryTestBase {
                 null);
         stationRepo.setOwner(ownerStation.id(), ownerMember.id());
 
-        assertThrows(
-                ForbiddenResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.setPermissions(
                         ownerMember.id(),
                         List.of(userPerm.id()),
                         EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
                         null));
+        assertEquals(Refusal.MEMBER_OWNER_KEEPS_ADMINISTRATION, refused.refusal());
 
         stationRepo.setOwner(ownerStation.id(), null);
         service.delete(ownerMember.id());
@@ -347,7 +351,9 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Order(29)
     void setManagedRejectsNonManageableUserType() {
         stationMemberRepo.setUserType(member2.id(), StationUserType.TEAM);
-        assertThrows(BadRequestResponse.class, () -> service.setManaged(member1.id(), List.of(member2.id())));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.setManaged(member1.id(), List.of(member2.id())));
+        assertEquals(Refusal.MEMBER_TYPE_TAKES_NO_GUARDIANS, refused.refusal());
         stationMemberRepo.setUserType(member2.id(), StationUserType.MEMBER);
     }
 

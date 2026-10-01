@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageBackendService.Expected;
@@ -21,7 +23,6 @@ import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.StorageMigrationService;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -125,9 +126,9 @@ class ClusterStorageBackendServiceTest extends RepositoryTestBase {
     void aReachWithNowhereToReachIsRefused() {
         var cluster = clusterService.create("Kreisverband Speicher " + NAMES.incrementAndGet(), null);
 
-        assertThrows(
-                BadRequestResponse.class,
-                () -> service.setPolicy(cluster.id(), ClusterBackendReach.EVERY_STATION, false));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.setPolicy(cluster.id(), ClusterBackendReach.EVERY_STATION, false));
+        assertEquals(Refusal.CLUSTER_STORAGE_REACH_WITHOUT_STORAGE, refused.refusal());
 
         clusterService.delete(cluster.id());
     }
@@ -246,7 +247,8 @@ class ClusterStorageBackendServiceTest extends RepositoryTestBase {
         service.moveStation(cluster.id(), station.id());
 
         assertTrue(rowFor(cluster.id(), station.id()).inPlace());
-        assertThrows(BadRequestResponse.class, () -> service.moveStation(cluster.id(), station.id()));
+        var refused = assertThrows(RefusalResponse.class, () -> service.moveStation(cluster.id(), station.id()));
+        assertEquals(Refusal.CLUSTER_STORAGE_STATION_ALREADY_IN_PLACE, refused.refusal());
 
         placements.remove(station.id());
         clusterService.releaseStation(cluster.id(), station.id());
@@ -293,7 +295,8 @@ class ClusterStorageBackendServiceTest extends RepositoryTestBase {
         service.setBackend(cluster.id(), backend("fremd"));
         service.setPolicy(cluster.id(), ClusterBackendReach.EVERY_STATION, false);
 
-        assertThrows(BadRequestResponse.class, () -> service.moveStation(cluster.id(), station.id()));
+        var refused = assertThrows(RefusalResponse.class, () -> service.moveStation(cluster.id(), station.id()));
+        assertEquals(Refusal.CLUSTER_STORAGE_STATION_NOT_IN_CLUSTER, refused.refusal());
 
         clusterService.releaseStation(other.id(), station.id());
         stationRepo.delete(station.id());

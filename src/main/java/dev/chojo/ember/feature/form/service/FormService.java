@@ -39,8 +39,6 @@ import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.system.service.RequirementsService;
 import dev.chojo.ember.util.RandomTokens;
 import dev.chojo.ember.util.sql.Transactions;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -480,7 +478,7 @@ public class FormService {
         var form = repository.findById(id).orElse(null);
         if (form == null) return Optional.empty();
         if (form.purpose() == FormPurpose.INTERNAL) {
-            throw new BadRequestResponse("A form for the station's own members is not sent by link");
+            throw Refusal.FORM_INTERNAL_HAS_NO_LINK.raise();
         }
         String replacement = RandomTokens.urlSafe(32);
         if (!repository.replaceShareToken(id, expected, replacement)) return Optional.empty();
@@ -506,7 +504,7 @@ public class FormService {
         var form = repository.findById(id).orElse(null);
         if (form == null) return false;
         if (form.purpose() == FormPurpose.INTERNAL) {
-            throw new BadRequestResponse("A form for the station's own members is not reached from outside at all");
+            throw Refusal.FORM_INTERNAL_HAS_NO_REACH.raise();
         }
         boolean changed = repository.updateVisibility(id, visibility);
         if (changed) log.info("Form {} visibility set to {}", id, visibility);
@@ -1113,12 +1111,13 @@ public class FormService {
      *
      * @param formId    the form ID
      * @param selection the restriction selection to apply
-     * @throws BadRequestResponse where the form is answered from outside the station
+     * @throws dev.chojo.ember.api.RefusalResponse where the form is not here, or is answered from
+     *                                             outside the station
      */
     public void setRestrictions(int formId, RestrictionSelection selection) {
-        var form = repository.findById(formId).orElseThrow(NotFoundResponse::new);
+        var form = repository.findById(formId).orElseThrow(Refusal.FORM_NOT_HERE_FOR_RESTRICTIONS::raise);
         if (form.purpose() != FormPurpose.INTERNAL) {
-            throw new BadRequestResponse("A form answered from outside the station has nobody to narrow it to");
+            throw Refusal.FORM_FROM_OUTSIDE_HAS_NO_RESTRICTIONS.raise();
         }
         restrictionService.setRestrictions(RestrictionType.FORM, formId, selection);
         log.info("Updated access restrictions for form {}", formId);

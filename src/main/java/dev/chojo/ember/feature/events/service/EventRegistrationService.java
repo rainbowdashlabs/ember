@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.AwaitingAnswer;
@@ -19,7 +21,6 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepositor
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -251,7 +252,10 @@ public class EventRegistrationService {
      * @return true if the registration was updated
      */
     public boolean updateStatus(int id, RegistrationStatus status) {
-        registrationRepository.findById(id).ifPresent(EventRegistrationService::requireNotHeldByAField);
+        registrationRepository
+                .findById(id)
+                .ifPresent(registration ->
+                        requireNotHeldByAField(registration, Refusal.REGISTRATION_HELD_BY_A_FIELD_ON_STATUS_CHANGE));
         if (!registrationRepository.updateStatus(id, status)) {
             log.warn("Cannot update registration status: registration {} not found", id);
             return false;
@@ -285,11 +289,12 @@ public class EventRegistrationService {
      * as long as the question names the member, and taking it back here would be undone by the next
      * time the two are compared. The way off the list is out of the question.
      *
-     * @throws BadRequestResponse where the registration is held by a question
+     * @param refusal what the caller refuses a place held by a question with
+     * @throws RefusalResponse where the registration is held by a question
      */
-    private static void requireNotHeldByAField(EventRegistration registration) {
+    private static void requireNotHeldByAField(EventRegistration registration, Refusal refusal) {
         if (registration.fromField()) {
-            throw new BadRequestResponse("This place comes from a field of the appointment and is taken back there");
+            throw refusal.raise();
         }
     }
 
@@ -318,7 +323,7 @@ public class EventRegistrationService {
             log.warn("Cannot withdraw registration: registration {} not found", id);
             return false;
         }
-        requireNotHeldByAField(registration);
+        requireNotHeldByAField(registration, Refusal.REGISTRATION_HELD_BY_A_FIELD_ON_WITHDRAWAL);
         if (!registrationRepository.recordAnswer(id, RegistrationStatus.WITHDRAWN)) return false;
         log.info("Withdrew registration {}", id);
         announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
@@ -365,7 +370,7 @@ public class EventRegistrationService {
             log.warn("Cannot refuse registration: registration {} not found", id);
             return false;
         }
-        requireNotHeldByAField(registration);
+        requireNotHeldByAField(registration, Refusal.REGISTRATION_HELD_BY_A_FIELD_ON_REFUSAL);
         var status = refusalFor(registration.status());
         if (!registrationRepository.recordAnswer(id, status)) return false;
         log.info("Recorded {} for registration {}", status, id);
@@ -434,7 +439,7 @@ public class EventRegistrationService {
                 .filter(r -> r.memberId() == memberId)
                 .findFirst()
                 .orElse(null);
-        if (existing != null) requireNotHeldByAField(existing);
+        if (existing != null) requireNotHeldByAField(existing, Refusal.REGISTRATION_HELD_BY_A_FIELD_ON_DECLINE);
         var heldBefore = existing == null ? null : existing.status();
         var status = refusalFor(heldBefore);
         var result = registrationRepository.create(eventId, memberId, eventDate, status, createdBy);

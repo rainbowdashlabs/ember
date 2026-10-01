@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.util.Json;
-import io.javalin.http.BadRequestResponse;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
@@ -40,10 +39,10 @@ public final class ProfileAnswers {
      *
      * @param sent the answer as a JSON document, or null
      * @return the answer as plain text, empty where nothing was said
-     * @throws BadRequestResponse where it is not a JSON document
+     * @throws RefusalResponse where it is not a JSON document
      */
     public static String said(@Nullable String sent) {
-        return QuestionValues.read(Json.document(sent));
+        return QuestionValues.read(Json.document(sent, Refusal.PROFILE_ANSWER_NOT_READABLE));
     }
 
     /**

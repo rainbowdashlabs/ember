@@ -43,9 +43,6 @@ import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -208,7 +205,7 @@ public class EventFederationService implements FederationServer {
      */
     public EventFederationRegistration registerFederated(
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        var event = crudService.findById(eventId).orElseThrow(Refusal.EVENT_NOT_HERE_FOR_PARTNER_REGISTRATION::raise);
         requireOpenForRegistration(event, eventDate);
         boolean somebodyChooses = event.requiresConfirmation()
                 || federationRepository.findPartnerPlaces(eventId, partnerId).partnerConfirms();
@@ -244,11 +241,11 @@ public class EventFederationService implements FederationServer {
      */
     private void requireOpenForRegistration(StationEvent event, LocalDate eventDate) {
         if (!event.requiresRegistration()) {
-            throw new BadRequestResponse("Event does not require registration");
+            throw Refusal.EVENT_TAKES_NO_PARTNER_REGISTRATIONS.raise();
         }
         occurrenceCalendar.dateToAnswerFor(event, eventDate);
         if (event.registrationDeadline() != null && Instant.now().isAfter(event.registrationDeadline())) {
-            throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
+            throw Refusal.REGISTRATION_CLOSED_TO_PARTNER.raise();
         }
     }
 
@@ -871,11 +868,16 @@ public class EventFederationService implements FederationServer {
      */
     public CommentResponse updateRemoteComment(
             FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
-        var comment = requireCommentAuthor(commentId, partner, remoteMemberUid, "edit");
+        var comment = requireCommentAuthor(
+                commentId,
+                partner,
+                remoteMemberUid,
+                Refusal.REMOTE_EVENT_COMMENT_NOT_HERE_ON_UPDATE,
+                Refusal.REMOTE_EVENT_COMMENT_NOT_YOURS_TO_EDIT);
         var author = Objects.requireNonNull(comment.author(), "a comment without an author is refused as not theirs");
         var updated = commentService
                 .update(comment, CommentWriter.partner(author, ""), content)
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.REMOTE_EVENT_COMMENT_NOT_HERE_AFTER_UPDATE::raise);
         log.info("Comment {} on an event edited (partner {})", commentId, partner.id());
         return toCommentResponse(updated);
     }
@@ -884,7 +886,12 @@ public class EventFederationService implements FederationServer {
      * Deletes a comment from a remote federated partner after verifying ownership.
      */
     public boolean deleteRemoteComment(FederationPartner partner, int commentId, UUID remoteMemberUid) {
-        var comment = requireCommentAuthor(commentId, partner, remoteMemberUid, "delete");
+        var comment = requireCommentAuthor(
+                commentId,
+                partner,
+                remoteMemberUid,
+                Refusal.REMOTE_EVENT_COMMENT_NOT_HERE_ON_DELETE,
+                Refusal.REMOTE_EVENT_COMMENT_NOT_YOURS_TO_DELETE);
         boolean deleted = commentService.delete(comment);
         if (deleted) log.info("Comment {} on an event deleted (partner {})", commentId, partner.id());
         return deleted;
@@ -947,16 +954,19 @@ public class EventFederationService implements FederationServer {
     }
 
     /**
-     * Verifies the comment exists and was authored by the given federated member, throwing
-     * {@link NotFoundResponse} when absent and {@link ForbiddenResponse} on an author mismatch.
+     * Verifies the comment exists and was authored by the given federated member.
+     *
+     * @param missing  what to refuse with when the comment is not here
+     * @param notYours what to refuse with when somebody else wrote it
      */
-    private Comment requireCommentAuthor(int commentId, FederationPartner partner, UUID memberUid, String action) {
+    private Comment requireCommentAuthor(
+            int commentId, FederationPartner partner, UUID memberUid, Refusal missing, Refusal notYours) {
         var comment =
-                commentService.findById(CommentEntityType.EVENT, commentId).orElseThrow(NotFoundResponse::new);
+                commentService.findById(CommentEntityType.EVENT, commentId).orElseThrow(missing::raise);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), memberUid);
         var author = comment.author();
         if (author == null || !author.sameMember(expectedIdentity)) {
-            throw new ForbiddenResponse("You can only " + action + " your own comments");
+            throw notYours.raise();
         }
         return comment;
     }

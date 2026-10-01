@@ -639,7 +639,7 @@ public class AdminSettingsRoutes implements Routes {
         String error = emailService.sendTestMailThrough(
                 null,
                 position,
-                MailAddress.require(recipient),
+                MailAddress.require(recipient, Refusal.INSTANCE_TEST_MAIL_RECIPIENT_NOT_AN_ADDRESS),
                 account.firstName(),
                 mailLocaleService.forAccount(account.id()));
         ctx.json(new MailTestResponse(error == null, error));

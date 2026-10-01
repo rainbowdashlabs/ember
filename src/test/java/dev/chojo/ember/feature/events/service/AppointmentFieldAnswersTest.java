@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
@@ -13,7 +14,6 @@ import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -105,7 +105,7 @@ class AppointmentFieldAnswersTest extends RepositoryTestBase {
 
     private static void refused(FieldType type, String config, String value) {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.replaceFields(
                         eventId,
                         List.of(new EventFieldDraft(
@@ -197,7 +197,7 @@ class AppointmentFieldAnswersTest extends RepositoryTestBase {
                         null,
                         false))));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.replaceFields(
                         eventId,
                         List.of(new EventFieldDraft(
@@ -233,7 +233,7 @@ class AppointmentFieldAnswersTest extends RepositoryTestBase {
                         null,
                         "M"))));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> templates.replaceFields(
                         templateId,
                         List.of(new AppointmentTemplateFieldDraft(
@@ -246,7 +246,7 @@ class AppointmentFieldAnswersTest extends RepositoryTestBase {
                                 null,
                                 "XL"))));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> templates.replaceFields(
                         templateId,
                         List.of(new AppointmentTemplateFieldDraft(
@@ -265,7 +265,7 @@ class AppointmentFieldAnswersTest extends RepositoryTestBase {
         int templateId = templates.create(station.id(), "Vorlage Gruppe").id();
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> templates.replaceFields(
                         templateId,
                         List.of(new AppointmentTemplateFieldDraft(

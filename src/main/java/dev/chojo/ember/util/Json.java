@@ -6,7 +6,8 @@
 package dev.chojo.ember.util;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
@@ -46,16 +47,17 @@ public final class Json {
      * Reads client text bound for a JSONB column, so text that is not a document is a bad request rather
      * than a failed statement.
      *
-     * @param value the text as it arrived, or null
+     * @param value   the text as it arrived, or null
+     * @param refusal what the caller refuses with when the text is not a document
      * @return the document, or null
-     * @throws BadRequestResponse when the text is not a JSON document
+     * @throws RefusalResponse when the text is not a JSON document
      */
-    public static @Nullable JsonNode document(@Nullable String value) {
+    public static @Nullable JsonNode document(@Nullable String value, Refusal refusal) {
         if (value == null) return null;
         try {
             return MAPPER.readTree(value);
         } catch (JacksonException notADocument) {
-            throw new BadRequestResponse("The value is not a valid answer for this field");
+            throw refusal.raise();
         }
     }
 

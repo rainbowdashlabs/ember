@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
@@ -19,7 +20,6 @@ import dev.chojo.ember.feature.question.MemberEligibility;
 import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -183,7 +183,7 @@ public class EventTemplateService {
      *
      * @throws io.javalin.http.HttpResponseException where a new question asks for a kind of answer
      *                                               the registration form does not offer
-     * @throws BadRequestResponse                    naming a question whose default it would refuse
+     * @throws RefusalResponse                       naming a question whose default it would refuse
      */
     public void replaceRegistrationFields(int templateId, List<RegistrationFieldDraft> fields) {
         var stored = repository.findRegistrationFields(templateId);
@@ -198,7 +198,8 @@ public class EventTemplateService {
                         stored.stream()
                                 .map(field -> field.config().defaultValue())
                                 .toList(),
-                        eligibility));
+                        eligibility),
+                Refusal.EVENT_TEMPLATE_REGISTRATION_DEFAULT_NOT_ACCEPTED);
         repository.replaceRegistrationFields(templateId, fields);
         log.info("Event template {} now asks {} registration question(s)", templateId, fields.size());
     }
@@ -213,11 +214,11 @@ public class EventTemplateService {
      * the next save, though they may have left the group since.
      *
      * @param keeping who passes a narrowing, the members the template already started from included
-     * @throws BadRequestResponse naming the question and what is wrong with its starting value
+     * @throws RefusalResponse naming the question and what is wrong with its starting value
      */
     private static void requireUsableDefault(Question question, MemberEligibility keeping) {
         QuestionCheck.defaultValue(question, keeping).ifPresent(problem -> {
-            throw new BadRequestResponse(problem.message());
+            throw Refusal.EVENT_TEMPLATE_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.message());
         });
     }
 

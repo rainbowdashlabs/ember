@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.LendingMessageSent;
 import dev.chojo.ember.event.events.LendingRequested;
@@ -49,7 +50,6 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLocationService;
-import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -273,12 +273,12 @@ public class LendingService implements FederationServer {
      * @param requestingStationId the station asking for gear
      * @param owningUid           the station it wants the gear from
      * @return the partnership the request travels along
-     * @throws ForbiddenResponse when the two stations do not lend with each other
+     * @throws RefusalResponse when the two stations do not lend with each other
      */
     private FederationPartner requireLendingPartner(int requestingStationId, UUID owningUid) {
         var partner = findPartnerForStation(requestingStationId, owningUid);
         if (partner == null || !lendsWith(partner)) {
-            throw new ForbiddenResponse("This station does not lend gear to yours");
+            throw Refusal.LENDING_PARTNER_DOES_NOT_LEND.raise();
         }
         return partner;
     }
@@ -470,7 +470,7 @@ public class LendingService implements FederationServer {
      * @param requestItemId  the line of the request being filled
      * @param assignedItemId the piece being set aside
      * @param stationId      the station doing the lending, whose gear it has to be
-     * @throws ForbiddenResponse when the piece is not this station's to lend
+     * @throws RefusalResponse when the piece is not this station's to lend
      */
     public boolean assignItem(int requestItemId, int assignedItemId, int stationId) {
         requireLendable(stationId, assignedItemId);
@@ -505,13 +505,13 @@ public class LendingService implements FederationServer {
      *
      * @param stationId the station doing the lending
      * @param itemId    the item somebody wants to lend out
-     * @throws ForbiddenResponse when the item is not this station's to lend
+     * @throws RefusalResponse when the item is not this station's to lend
      */
     private void requireLendable(int stationId, int itemId) {
         var item = inventoryRepository.findItemById(itemId).orElse(null);
         if (item == null) return;
         if (!isLendable(lenderAt(stationId), item)) {
-            throw new ForbiddenResponse("This gear is not this station's to lend");
+            throw Refusal.LENDING_GEAR_NOT_THE_STATIONS.raise();
         }
     }
 

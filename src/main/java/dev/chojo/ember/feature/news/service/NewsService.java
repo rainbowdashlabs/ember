@@ -37,7 +37,6 @@ import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.HtmlSanitizer.Policy;
 import dev.chojo.ember.util.Markdown;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -393,7 +392,7 @@ public class NewsService {
         if (news == null) return Optional.empty();
         Integer containerId = news.containerId();
         if (news.contentMode() != ContentMode.RICH || containerId == null) {
-            throw new BadRequestResponse("This entry is not built from blocks");
+            throw Refusal.NEWS_ENTRY_NOT_BUILT_FROM_BLOCKS.raise();
         }
 
         blocks.save(containerId, rows, ContentBlockService.Scope.ARTICLE);

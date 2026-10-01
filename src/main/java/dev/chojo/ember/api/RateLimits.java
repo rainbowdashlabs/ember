@@ -5,10 +5,6 @@
  */
 package dev.chojo.ember.api;
 
-import io.javalin.http.HttpResponseException;
-import io.javalin.http.HttpStatus;
-
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -22,35 +18,45 @@ import java.util.Optional;
  *
  * <p>The refusal carries the seconds instead, and the one exception handler that turns these into
  * JSON writes both the header and the body field. Setting it there rather than here is what makes
- * it impossible for a route to refuse without saying how long.
+ * it impossible for a route to refuse without saying how long. Each limited route names its own
+ * refusal, so a report says which limit it ran into.
  */
 public final class RateLimits {
-    static final String MESSAGE = "Too many requests, please try again later";
-
     private RateLimits() {}
 
     /**
      * Refuses the request when the limiter said to, and does nothing when it did not.
      *
+     * @param refusal    what the route refuses with when the limit is reached
      * @param retryAfter what the limiter said, empty where it admitted the request
      * @throws TooManyRequestsException when the limiter refused
      */
-    public static void enforce(Optional<Long> retryAfter) {
+    public static void enforce(Refusal refusal, Optional<Long> retryAfter) {
         if (retryAfter.isEmpty()) return;
-        throw new TooManyRequestsException(retryAfter.get());
+        throw new TooManyRequestsException(refusal, retryAfter.get());
     }
 
     /** A refusal that knows how long it is asking for, so the answer can say it. */
-    public static class TooManyRequestsException extends HttpResponseException {
+    public static class TooManyRequestsException extends RefusalResponse {
         private final long retryAfterSeconds;
 
-        TooManyRequestsException(long retryAfterSeconds) {
-            super(HttpStatus.TOO_MANY_REQUESTS.getCode(), MESSAGE, Map.of());
+        TooManyRequestsException(Refusal refusal, long retryAfterSeconds) {
+            super(refusal, refusal.message());
             this.retryAfterSeconds = retryAfterSeconds;
         }
 
+        /**
+         * How long the caller is asked to wait before trying again.
+         *
+         * @return the wait in whole seconds
+         */
         public long retryAfterSeconds() {
             return retryAfterSeconds;
+        }
+
+        @Override
+        public Object body() {
+            return ErrorResponseWrapper.of(refusal(), getMessage(), retryAfterSeconds);
         }
     }
 }

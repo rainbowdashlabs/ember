@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterQuotaChanged;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
@@ -19,8 +21,6 @@ import dev.chojo.ember.feature.storage.entity.StorageUsage;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageQuotaRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -124,7 +124,7 @@ public class ClusterStorageQuotaService {
     /**
      * Adds a tier the cluster can hand to its stations.
      *
-     * @throws BadRequestResponse when the name is blank or already taken in this cluster
+     * @throws RefusalResponse when the name is blank or already taken in this cluster
      */
     public ClusterStorageQuotaPreset createPreset(
             int clusterId,
@@ -190,13 +190,13 @@ public class ClusterStorageQuotaService {
      * @param clusterId   the cluster
      * @param presetId    the tier
      * @param stationUids the stations to put on it
-     * @throws BadRequestResponse when a station is not this cluster's, or the cluster would be promising more
+     * @throws RefusalResponse when a station is not this cluster's, or the cluster would be promising more
      *                            than it has
      */
     public void applyPreset(int clusterId, int presetId, List<UUID> stationUids) {
         Cluster cluster = requireCluster(clusterId);
         var preset = requirePreset(clusterId, presetId);
-        if (stationUids == null || stationUids.isEmpty()) throw new BadRequestResponse("No station named");
+        if (stationUids == null || stationUids.isEmpty()) throw Refusal.CLUSTER_QUOTA_TIER_NAMES_NO_STATION.raise();
 
         List<Integer> stationIds = stationUids.stream()
                 .map(uid -> requireStationOf(cluster, uid).id())
@@ -211,9 +211,7 @@ public class ClusterStorageQuotaService {
                     .sum();
             long promised = others + preset.total() * stationIds.size();
             if (promised > cluster.storagePoolBytes()) {
-                throw new BadRequestResponse(
-                        "That is more than the cluster has left. Its pool is %d bytes and %d would be handed out."
-                                .formatted(cluster.storagePoolBytes(), promised));
+                throw Refusal.CLUSTER_QUOTA_TIER_MORE_THAN_POOL.raise();
             }
         }
 
@@ -233,7 +231,7 @@ public class ClusterStorageQuotaService {
      * @param clusterId  the cluster
      * @param stationUid the station receiving the room, which may be the cluster's own store
      * @param grant      the seven dimensions, any of them {@code null} to fall back to the cluster's defaults
-     * @throws BadRequestResponse when that station is not this cluster's, or the pool will not stretch
+     * @throws RefusalResponse when that station is not this cluster's, or the pool will not stretch
      */
     public void setGrant(int clusterId, UUID stationUid, Dimensions grant) {
         Cluster cluster = requireCluster(clusterId);
@@ -355,12 +353,12 @@ public class ClusterStorageQuotaService {
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(() -> new NotFoundResponse("No such cluster"));
+        return clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_QUOTA_CLUSTER_GONE::raise);
     }
 
     private ClusterStorageQuotaPreset requirePreset(int clusterId, int presetId) {
-        var preset = quotaRepository.findPreset(presetId).orElseThrow(() -> new NotFoundResponse("No such tier"));
-        if (preset.clusterId() != clusterId) throw new NotFoundResponse("No such tier");
+        var preset = quotaRepository.findPreset(presetId).orElseThrow(Refusal.CLUSTER_QUOTA_TIER_NOT_HERE::raise);
+        if (preset.clusterId() != clusterId) throw Refusal.CLUSTER_QUOTA_TIER_NOT_HERE.raise();
         return preset;
     }
 
@@ -372,16 +370,15 @@ public class ClusterStorageQuotaService {
      */
     private Station requireStationOf(Cluster cluster, UUID stationUid) {
         Station station =
-                stationRepository.findByUid(stationUid).orElseThrow(() -> new NotFoundResponse("No such station"));
+                stationRepository.findByUid(stationUid).orElseThrow(Refusal.CLUSTER_QUOTA_STATION_NOT_KNOWN::raise);
         return requireStation(cluster, station.id());
     }
 
     private Station requireStation(Cluster cluster, int stationId) {
-        Station station =
-                stationRepository.findById(stationId).orElseThrow(() -> new NotFoundResponse("No such station"));
+        Station station = stationRepository.findById(stationId).orElseThrow(Refusal.CLUSTER_QUOTA_STATION_GONE::raise);
         boolean ownStore = station.id() == cluster.homeStationId();
         if (!ownStore && (station.clusterId() == null || station.clusterId() != cluster.id())) {
-            throw new BadRequestResponse("That station does not belong to this cluster");
+            throw Refusal.CLUSTER_QUOTA_STATION_NOT_IN_CLUSTER.raise();
         }
         return station;
     }
@@ -397,14 +394,12 @@ public class ClusterStorageQuotaService {
         if (pool == null || totalBytes == null) return;
         long othersTotal = quotaRepository.sumGrantedTotals(cluster.id(), stationId);
         if (othersTotal + totalBytes > pool) {
-            throw new BadRequestResponse(
-                    "That is more than the cluster has left. Its pool is %d bytes and %d are already handed out."
-                            .formatted(pool, othersTotal));
+            throw Refusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL.raise();
         }
     }
 
     private static String requireName(String name) {
-        if (name == null || name.isBlank()) throw new BadRequestResponse("A tier needs a name");
+        if (name == null || name.isBlank()) throw Refusal.CLUSTER_QUOTA_TIER_NEEDS_A_NAME.raise();
         return name.trim();
     }
 
@@ -412,13 +407,13 @@ public class ClusterStorageQuotaService {
         boolean taken = quotaRepository.findPresets(clusterId).stream()
                 .anyMatch(
                         preset -> preset.id() != exceptPresetId && preset.name().equalsIgnoreCase(name));
-        if (taken) throw new BadRequestResponse("This cluster already has a tier called '%s'".formatted(name));
+        if (taken) throw Refusal.CLUSTER_QUOTA_TIER_NAME_TAKEN.raise(name);
     }
 
     /** Room is a size, and a size below zero is a typing mistake rather than a rule anybody meant. */
     private static void requirePositive(Long... values) {
         for (Long value : values) {
-            if (value != null && value < 0) throw new BadRequestResponse("Room cannot be less than nothing");
+            if (value != null && value < 0) throw Refusal.CLUSTER_QUOTA_ROOM_BELOW_NOTHING.raise();
         }
     }
 

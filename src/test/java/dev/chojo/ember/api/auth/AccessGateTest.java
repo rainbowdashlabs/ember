@@ -8,6 +8,8 @@ package dev.chojo.ember.api.auth;
 import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -16,10 +18,7 @@ import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.DemoService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.UnauthorizedResponse;
 import io.javalin.security.RouteRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -114,7 +113,9 @@ class AccessGateTest {
     void aRouteWithRolesRefusesARequestThatIsNotSignedIn() {
         route(StationPermission.LOGIN);
 
-        assertThrows(UnauthorizedResponse.class, () -> gate.handle(ctx));
+        var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
+
+        assertEquals(Refusal.ROUTE_NEEDS_SIGN_IN, refused.refusal());
     }
 
     @Test
@@ -123,7 +124,9 @@ class AccessGateTest {
         when(ctx.cookie(SessionCookies.SESSION_COOKIE)).thenReturn(TOKEN);
         when(sessionGate.admit(ctx, TOKEN, null, null)).thenReturn(Optional.empty());
 
-        assertThrows(UnauthorizedResponse.class, () -> gate.handle(ctx));
+        var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
+
+        assertEquals(Refusal.SIGN_IN_SESSION_NOT_VALID, refused.refusal());
     }
 
     @Test
@@ -133,9 +136,9 @@ class AccessGateTest {
         when(ctx.header("X-Station-Id")).thenReturn(STATION_UID.toString());
         when(stations.findByUid(STATION_UID)).thenReturn(Optional.empty());
 
-        var refused = assertThrows(BadRequestResponse.class, () -> gate.handle(ctx));
+        var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
-        assertEquals("Unknown station", refused.getMessage());
+        assertEquals(Refusal.REQUESTED_STATION_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -144,9 +147,9 @@ class AccessGateTest {
         when(ctx.cookie(SessionCookies.SESSION_COOKIE)).thenReturn(TOKEN);
         when(ctx.header("X-Station-Id")).thenReturn("not-an-id");
 
-        var refused = assertThrows(BadRequestResponse.class, () -> gate.handle(ctx));
+        var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
-        assertEquals("Invalid X-Station-Id header", refused.getMessage());
+        assertEquals(Refusal.REQUESTED_STATION_NOT_AN_IDENTITY, refused.refusal());
     }
 
     @Test
@@ -156,9 +159,9 @@ class AccessGateTest {
         when(ctx.header("X-Cluster-Id")).thenReturn(CLUSTER_UID.toString());
         when(clusters.findByUid(CLUSTER_UID)).thenReturn(Optional.empty());
 
-        var refused = assertThrows(BadRequestResponse.class, () -> gate.handle(ctx));
+        var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
-        assertEquals("Unknown cluster", refused.getMessage());
+        assertEquals(Refusal.REQUESTED_CLUSTER_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -167,9 +170,9 @@ class AccessGateTest {
         when(ctx.cookie(SessionCookies.SESSION_COOKIE)).thenReturn(TOKEN);
         when(ctx.header("X-Cluster-Id")).thenReturn("not-an-id");
 
-        var refused = assertThrows(BadRequestResponse.class, () -> gate.handle(ctx));
+        var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
-        assertEquals("Invalid X-Cluster-Id header", refused.getMessage());
+        assertEquals(Refusal.REQUESTED_CLUSTER_NOT_AN_IDENTITY, refused.refusal());
     }
 
     @Test
@@ -227,8 +230,9 @@ class AccessGateTest {
         UserSession session = TestSessions.member(5, StationPermission.LOGIN);
         signedInAs(session);
 
-        assertThrows(ForbiddenResponse.class, () -> gate.handle(ctx));
+        var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
+        assertEquals(Refusal.ROUTE_PERMISSION_MISSING, refused.refusal());
         verify(ctx).header("X-User-Permissions", session.permissions().toString());
     }
 
@@ -239,7 +243,7 @@ class AccessGateTest {
         UserSession session = TestSessions.clusterMember(3);
         signedInAs(session);
 
-        assertThrows(ForbiddenResponse.class, () -> gate.handle(ctx));
+        assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
         verify(ctx).header("X-Required-Permissions", Set.of(wanted).toString());
         verify(ctx).header("X-User-Permissions", session.clusterPermissions().toString());
@@ -261,7 +265,7 @@ class AccessGateTest {
         route(InstancePermission.ADMINISTRATOR, StepUpCategory.INSTANCE_CONFIG);
         signedInAs(TestSessions.member(5, StationPermission.LOGIN));
 
-        assertThrows(ForbiddenResponse.class, () -> gate.handle(ctx));
+        assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
         verify(stepUpGuard, never()).require(any(), any());
     }

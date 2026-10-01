@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterItemIssued;
 import dev.chojo.ember.event.events.MovementAdvanced;
@@ -29,8 +31,6 @@ import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementItemRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -308,7 +308,7 @@ public class ItemMovementService {
         Integer ownerClusterId = target.ownerClusterId();
         int flowId = target.flowId();
         List<MovementFlowStep> steps = walkable(flowService.findActiveSteps(flowId), lostReport);
-        if (steps.isEmpty()) throw new BadRequestResponse("That flow has no steps to walk");
+        if (steps.isEmpty()) throw Refusal.MOVEMENT_FLOW_HAS_NO_STEPS.raise();
 
         MovementFlowStep first = steps.getFirst();
         Integer promised = namesIncomingItem(first) ? null : pickedItemId;
@@ -385,15 +385,15 @@ public class ItemMovementService {
      * @param actor      who is correcting it
      * @param reason     why, which is mandatory and goes into the log
      * @return the corrected movement
-     * @throws BadRequestResponse when the reason is missing or the movement's flow is gone
+     * @throws RefusalResponse when the reason is missing or the movement's flow is gone
      */
     public ItemMovement correct(int movementId, Correction correction, Actor actor, String reason) {
         if (reason == null || reason.isBlank()) {
-            throw new BadRequestResponse("Correcting a movement needs a reason saying why");
+            throw Refusal.MOVEMENT_CORRECTION_NEEDS_A_REASON.raise();
         }
         ItemMovement movement =
-                movementRepository.findById(movementId).orElseThrow(() -> new BadRequestResponse("No such movement"));
-        if (movement.flowId() == null) throw new BadRequestResponse("The flow this movement walked is gone");
+                movementRepository.findById(movementId).orElseThrow(Refusal.MOVEMENT_NOT_HERE_TO_CORRECT::raise);
+        if (movement.flowId() == null) throw Refusal.MOVEMENT_FLOW_GONE_BEFORE_CORRECTION.raise();
 
         if (correction.detachArrival()) movementRepository.setIncomingItem(movementId, null);
         applyCorrectedCustody(movement, StepSubject.OUTGOING, correction.outgoing());
@@ -471,7 +471,7 @@ public class ItemMovementService {
      * two exchanges raised for the same jacket, and both of them then drifted.
      *
      * @param outgoingItemId the piece that would be setting out, or {@code null} when nothing does
-     * @throws BadRequestResponse naming the movement that already has it
+     * @throws RefusalResponse when another movement already has it
      */
     /**
      * Refuses a piece that another open movement is already about, on either of its ends.
@@ -502,7 +502,7 @@ public class ItemMovementService {
     private void requireItIsStillThere(@Nullable Integer itemId) {
         if (itemId == null) return;
         if (inventoryRepository.findItemById(itemId).isEmpty()) {
-            throw new BadRequestResponse("That piece is no longer recorded, so nothing can be started on it");
+            throw Refusal.MOVEMENT_PIECE_NOT_HERE.raise();
         }
     }
 
@@ -514,12 +514,10 @@ public class ItemMovementService {
     private void requireFree(@Nullable Integer itemId) {
         if (itemId == null) return;
         movementRepository.findOpenByOutgoingItem(itemId).ifPresent(open -> {
-            throw new BadRequestResponse(
-                    "This piece is already on movement %d, so finish or call that one off first".formatted(open.id()));
+            throw Refusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT.raise();
         });
         movementRepository.findOpenByIncomingItem(itemId).ifPresent(open -> {
-            throw new BadRequestResponse(
-                    "This piece is promised to movement %d, so finish or call that one off first".formatted(open.id()));
+            throw Refusal.MOVEMENT_PIECE_ALREADY_PROMISED.raise();
         });
     }
 
@@ -536,9 +534,7 @@ public class ItemMovementService {
         if (purpose != MovementPurpose.EXCHANGE || inventoryId == null) return;
         inventoryRepository.findById(inventoryId).ifPresent(inventory -> {
             if (!inventory.homogeneous()) {
-                throw new BadRequestResponse(
-                        "%s holds a drawer of different things, so there is nothing to swap a piece for"
-                                .formatted(inventory.name()));
+                throw Refusal.MOVEMENT_NOTHING_TO_SWAP_FOR.raise(inventory.name());
             }
         });
     }
@@ -643,13 +639,13 @@ public class ItemMovementService {
      * mandatory and the log says the step was forced for good, because an unresponsive counterparty
      * must not be able to freeze an item in the post forever.
      *
-     * @throws BadRequestResponse when the note is missing, or when the step is the station's own and
-     *                            can simply be acknowledged
+     * @throws RefusalResponse when the note is missing, or when the step is the station's own and
+     *                         can simply be acknowledged
      */
     public ItemMovement force(
             int movementId, int stepId, Actor actor, @Nullable String note, @Nullable Integer pickedItemId) {
         if (note == null || note.isBlank()) {
-            throw new BadRequestResponse("Forcing a step needs a note saying why");
+            throw Refusal.MOVEMENT_FORCE_NEEDS_A_NOTE.raise();
         }
         return applyStep(movementId, stepId, actor, note, pickedItemId, true);
     }
@@ -671,23 +667,23 @@ public class ItemMovementService {
             boolean forced) {
         ItemMovement movement = requireOpen(movementId);
         if (movement.currentStepId() == null || movement.currentStepId() != stepId) {
-            throw new BadRequestResponse("That is not the step this movement is standing on");
+            throw Refusal.MOVEMENT_NOT_ON_THAT_STEP.raise();
         }
         MovementFlowStep step = flowService.findAllSteps(movement.flowId()).stream()
                 .filter(s -> s.id() == stepId)
                 .findFirst()
-                .orElseThrow(() -> new BadRequestResponse("That step is gone"));
+                .orElseThrow(Refusal.MOVEMENT_STEP_GONE::raise);
 
         AckKind ackKind = forced ? AckKind.FORCED : requireTurn(movement, step, actor);
         if (forced && step.actor() == StepActor.STATION) {
-            throw new BadRequestResponse("This step is the station's own: acknowledge it rather than forcing it");
+            throw Refusal.MOVEMENT_STATION_STEP_NOT_FORCED.raise();
         }
 
         Integer subjectItemId = movement.itemFor(step.subject());
         if (movement.lostReport() && step.subject() == StepSubject.OUTGOING) subjectItemId = null;
         if (step.picksItem()) {
             Integer named = pickedItemId != null ? pickedItemId : movement.incomingItemId();
-            if (named == null) throw new BadRequestResponse("This step names the arriving item, so name it");
+            if (named == null) throw Refusal.MOVEMENT_STEP_NEEDS_THE_ARRIVING_PIECE.raise();
             movementRepository.setIncomingItem(movementId, named);
             subjectItemId = named;
         } else if (step.subject() == StepSubject.INCOMING && promisedButNotYetNamed(movement, step)) {
@@ -773,7 +769,7 @@ public class ItemMovementService {
         ItemMovement movement = requireOpen(movementId);
         MovementFlowStep step = currentStep(movement);
         if (step != null && !mayAct(movement, step, actor) && !stillHoldsIt(movement, actor)) {
-            throw new ForbiddenResponse("This movement is not on your side any more");
+            throw Refusal.MOVEMENT_NOT_YOURS_TO_CANCEL.raise();
         }
         String itemName = itemName(movement.outgoingItemId());
         boolean away = hasLeftTheStation(movement.outgoingItemId());
@@ -1016,12 +1012,12 @@ public class ItemMovementService {
 
     private ItemMovement requireOpen(int movementId) {
         ItemMovement movement =
-                movementRepository.findById(movementId).orElseThrow(() -> new BadRequestResponse("No such movement"));
+                movementRepository.findById(movementId).orElseThrow(Refusal.MOVEMENT_NOT_HERE_TO_WALK::raise);
         if (movement.state().closed()) {
-            throw new BadRequestResponse("This movement is already %s".formatted(movement.state()));
+            throw Refusal.MOVEMENT_ALREADY_CLOSED.raise();
         }
         if (movement.flowId() == null) {
-            throw new BadRequestResponse("The flow this movement walked is gone");
+            throw Refusal.MOVEMENT_FLOW_GONE.raise();
         }
         return movement;
     }
@@ -1078,7 +1074,7 @@ public class ItemMovementService {
      */
     private AckKind requireTurn(ItemMovement movement, MovementFlowStep step, Actor actor) {
         if (!mayAct(movement, step, actor)) {
-            throw new ForbiddenResponse("This step belongs to the %s".formatted(step.actor()));
+            throw Refusal.MOVEMENT_STEP_NOT_YOUR_TURN.raise();
         }
         return step.actor() == StepActor.OWNER && !actor.ownerRights() ? AckKind.ASSERTED : AckKind.CONFIRMED;
     }
@@ -1238,7 +1234,7 @@ public class ItemMovementService {
      *
      * @param movementId the movement
      * @return the chain it belongs on and where it would stand
-     * @throws BadRequestResponse when the movement is not open, or no chain is bound for what it is
+     * @throws RefusalResponse when the movement is not open, or no chain is bound for what it is
      */
     public RechainPlan planRechain(int movementId) {
         ItemMovement movement = openMovement(movementId);
@@ -1280,14 +1276,14 @@ public class ItemMovementService {
      * @param stepIndex     the step of the new chain it lands on, or {@code null} to take the one
      *                      that means what its own meant, which has to be the only one that does
      * @param actorMemberId who asked, which the entry its log gets names
-     * @throws BadRequestResponse when the movement is not open, when no chain is bound for what it
-     *                            is, or when no step is named and none means the same
+     * @throws RefusalResponse when the movement is not open, when no chain is bound for what it
+     *                         is, or when no step is named and none means the same
      */
     public void rechain(int movementId, @Nullable Integer stepIndex, @Nullable Integer actorMemberId) {
         ItemMovement movement = openMovement(movementId);
         int belongsOn = chainItBelongsOn(movement);
         var steps = flowService.findActiveSteps(belongsOn);
-        if (steps.isEmpty()) throw new BadRequestResponse("That chain has no steps to stand on");
+        if (steps.isEmpty()) throw Refusal.MOVEMENT_RECHAIN_FLOW_HAS_NO_STEPS.raise();
 
         MovementFlowStep standing = movement.currentStepId() == null
                 ? null
@@ -1296,14 +1292,12 @@ public class ItemMovementService {
         if (landing == null) {
             OptionalInt certain = sameMeaning(standing, steps);
             if (certain.isEmpty()) {
-                throw new BadRequestResponse(
-                        "The chain it belongs on does not say on its own where it would stand, so it has to be told");
+                throw Refusal.MOVEMENT_RECHAIN_LANDING_NOT_CLEAR.raise();
             }
             landing = certain.getAsInt();
         }
         if (landing < 0 || landing >= steps.size()) {
-            throw new BadRequestResponse(
-                    "That chain has %d steps, so there is no step %d to stand on".formatted(steps.size(), landing));
+            throw Refusal.MOVEMENT_RECHAIN_LANDING_OUT_OF_RANGE.raise();
         }
 
         MovementFlowStep lands = steps.get(landing);
@@ -1329,10 +1323,9 @@ public class ItemMovementService {
 
     private ItemMovement openMovement(int movementId) {
         ItemMovement movement =
-                movementRepository.findById(movementId).orElseThrow(() -> new BadRequestResponse("No such movement"));
+                movementRepository.findById(movementId).orElseThrow(Refusal.MOVEMENT_NOT_HERE_TO_RECHAIN::raise);
         if (movement.state() != MovementState.OPEN) {
-            throw new BadRequestResponse(
-                    "That movement has finished, so the chain under it no longer decides anything");
+            throw Refusal.MOVEMENT_FINISHED_BEFORE_RECHAIN.raise();
         }
         return movement;
     }

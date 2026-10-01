@@ -47,8 +47,6 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -651,7 +649,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 null);
         try {
             assertThrows(
-                    BadRequestResponse.class,
+                    RefusalResponse.class,
                     () -> service.registerFederated(
                             openHouse.id(), partnerId, REMOTE_MEMBER_3, LocalDate.of(2026, 7, 9)),
                     "an appointment with no list has none for a visitor either");
@@ -897,7 +895,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var created = service.createRemoteComment(
                 localPartner, eventId, REMOTE_MEMBER_1, "Alice Remote", null, "My comment", null);
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.updateRemoteComment(localPartner, created.id(), REMOTE_MEMBER_2, "Hacked!"));
     }
 
@@ -906,7 +904,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     void updateRemoteCommentNotFederated() {
         var localComment = localComment("Local comment");
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.updateRemoteComment(localPartner, localComment.id(), REMOTE_MEMBER_1, "Edited"));
     }
 
@@ -925,8 +923,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var created =
                 service.createRemoteComment(localPartner, eventId, REMOTE_MEMBER_1, "Alice", null, "My comment", null);
         assertThrows(
-                ForbiddenResponse.class,
-                () -> service.deleteRemoteComment(localPartner, created.id(), REMOTE_MEMBER_2));
+                RefusalResponse.class, () -> service.deleteRemoteComment(localPartner, created.id(), REMOTE_MEMBER_2));
     }
 
     @Test
@@ -934,7 +931,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     void deleteRemoteCommentNotFederated() {
         var localComment = localComment("Local comment to delete");
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.deleteRemoteComment(localPartner, localComment.id(), REMOTE_MEMBER_1));
     }
 
@@ -1194,7 +1191,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         int commentId = createResult.id();
 
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.updateFederatedComment(
                         stationB.id(), stationA.uid(), commentId, REMOTE_MEMBER_2, "Wrong owner"));
     }
@@ -1268,7 +1265,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         int commentId = createResult.id();
 
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.deleteFederatedComment(stationB.id(), stationA.uid(), commentId, REMOTE_MEMBER_2));
     }
 

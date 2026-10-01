@@ -155,7 +155,7 @@ test.describe('Cluster inventory screens', () => {
         const name = `Ausgabe ${Date.now()}`
         await page.getByTestId('cluster-flow-name').fill(name)
         await page.getByTestId('cluster-flow-create').click()
-        await expect(page.getByText(/already walks every/i)).toBeVisible({timeout: 15000})
+        await expect(page.getByText(/gibt es schon einen Ablauf/i)).toBeVisible({timeout: 15000})
 
         const presets = await page.request
             .get('/api/v1/cluster/inventory/flows', {headers: own.headers})

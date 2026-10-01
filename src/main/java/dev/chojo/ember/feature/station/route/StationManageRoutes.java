@@ -521,7 +521,7 @@ public class StationManageRoutes implements Routes {
         String error = emailService.sendTestMailThrough(
                 session.stationId(),
                 position,
-                MailAddress.require(recipient),
+                MailAddress.require(recipient, Refusal.STATION_TEST_MAIL_RECIPIENT_NOT_AN_ADDRESS),
                 account.firstName(),
                 mailLocaleService.forAccount(account.id()));
         ctx.json(new MailTestResponse(error == null, error));

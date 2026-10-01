@@ -27,7 +27,6 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.SlugGenerator;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -197,7 +196,7 @@ public class StationService {
             String customThemeColors,
             ThemeFeel defaultFeel,
             boolean allowUserFeel) {
-        Station current = stationRepository.findById(id).orElseThrow(NotFoundResponse::new);
+        Station current = stationRepository.findById(id).orElseThrow(Refusal.STATION_NOT_HERE_FOR_LOOK::raise);
         Locks locks = lookAndFeelLocks(id);
         stationRepository.updateThemeSettings(
                 id,

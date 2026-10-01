@@ -5,10 +5,11 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -34,14 +35,14 @@ public class FederationEntityResolver {
      * @param partnerStationUid the partner station
      * @return the partner row
      * @throws IllegalArgumentException when the station holds no row for that partner
-     * @throws BadRequestResponse       when the partnership is not active
+     * @throws RefusalResponse          when the partnership is not active
      */
     public FederationPartner requireActivePartner(int localStationId, UUID partnerStationUid) {
         var partner = federationRepository
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
         if (partner.status() != FederationStatus.ACTIVE) {
-            throw new BadRequestResponse("Partner is not active");
+            throw Refusal.FEDERATION_PARTNER_NOT_ACTIVE.raise();
         }
         return partner;
     }

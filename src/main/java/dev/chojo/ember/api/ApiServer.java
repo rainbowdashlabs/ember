@@ -15,7 +15,6 @@ import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.insights.service.RefererDomainExtractor;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.storage.service.StationReadOnlyForTransferException;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
 import dev.chojo.ember.feature.traffic.service.StationResolver;
@@ -28,7 +27,6 @@ import io.javalin.compression.CompressionStrategy;
 import io.javalin.compression.Gzip;
 import io.javalin.config.JavalinConfig;
 import io.javalin.config.SizeUnit;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import io.javalin.http.HttpStatus;
@@ -480,53 +478,53 @@ public class ApiServer {
         var method = ctx.method();
 
         if (DEMO_BLOCKED_PATHS.contains(path)) {
-            throw new BadRequestResponse("This action is disabled in demo mode");
+            throw Refusal.DEMO_BLOCKS_ACTION.raise();
         }
 
         if (method != HandlerType.GET && DEMO_BLOCKED_WRITE_PATHS.contains(path)) {
-            throw new BadRequestResponse("This action is disabled in demo mode");
+            throw Refusal.DEMO_BLOCKS_UPLOAD.raise();
         }
 
         if (path.startsWith("/api/v1/admin/stations") && (method == HandlerType.POST || method == HandlerType.DELETE)) {
-            throw new BadRequestResponse("Station management is disabled in demo mode");
+            throw Refusal.DEMO_BLOCKS_STATION_MANAGEMENT.raise();
         }
 
         if (method == HandlerType.PUT
                 && (path.matches("/api/v1/station-members/\\d+/roles") || path.matches("/api/v1/groups/\\d+/roles"))) {
-            throw new BadRequestResponse("Role changes are disabled in demo mode");
+            throw Refusal.DEMO_BLOCKS_ROLE_CHANGES.raise();
         }
 
         if (path.startsWith("/api/v1/account/2fa/webauthn/register/")) {
-            throw new BadRequestResponse("Security-key setup is disabled in demo mode");
+            throw Refusal.DEMO_BLOCKS_SECURITY_KEY_SETUP.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/public/station-invite/[^/]+/accept")) {
-            throw new BadRequestResponse("Accepting invites is disabled in demo mode");
+            throw Refusal.DEMO_BLOCKS_ACCEPTING_INVITES.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/public/station/[^/]+/waitlists/[^/]+/register")) {
-            throw new BadRequestResponse("Public waiting-list registration is disabled in demo mode");
+            throw Refusal.DEMO_BLOCKS_PUBLIC_WAITING_LIST_SIGN_UP.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/pages/\\d+/files")) {
-            throw new BadRequestResponse("File uploads are disabled in demo mode");
+            throw Refusal.DEMO_BLOCKS_PAGE_UPLOADS.raise();
         }
 
         if (method == HandlerType.POST
                 && (path.matches("/api/v1/kb/folders/\\d+/icon") || path.matches("/api/v1/kb/files/\\d+/images"))) {
-            throw new BadRequestResponse("File uploads are disabled in demo mode");
+            throw Refusal.DEMO_BLOCKS_KB_UPLOADS.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/admin/discovery/peers/probe")) {
-            throw new BadRequestResponse("External probes are disabled in demo mode");
+            throw Refusal.DEMO_BLOCKS_PEER_PROBES.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/lending/requests")) {
-            throw new BadRequestResponse("Cross-station lending is disabled in demo mode");
+            throw Refusal.DEMO_BLOCKS_LENDING.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/ai/providers/[^/]+/models")) {
-            throw new BadRequestResponse("External AI calls are disabled in demo mode");
+            throw Refusal.DEMO_BLOCKS_AI_CALLS.raise();
         }
     }
 
@@ -552,7 +550,7 @@ public class ApiServer {
             Integer stationId = session == null ? null : session.stationId();
             if (stationId == null) return;
             if (stationRepository.isReadOnlyForTransfer(stationId)) {
-                throw new StationReadOnlyForTransferException(stationId);
+                throw Refusal.STATION_READ_ONLY_FOR_TRANSFER.raise();
             }
             return;
         }
@@ -571,7 +569,7 @@ public class ApiServer {
             if (stationOpt.isEmpty()) return;
             int stationId = stationOpt.get().id();
             if (stationRepository.isReadOnlyForTransfer(stationId)) {
-                throw new StationReadOnlyForTransferException(stationId);
+                throw Refusal.STATION_READ_ONLY_FOR_TRANSFER_ON_ADMIN_STORAGE.raise();
             }
         }
     }
@@ -614,7 +612,7 @@ public class ApiServer {
         if (ctx.path().startsWith(API_PREFIX + "/remote/")) return;
 
         boolean expensivePath = ctx.path().contains("/ai/");
-        RateLimits.enforce(globalRateLimiter.check(ctx.ip(), expensivePath));
+        RateLimits.enforce(Refusal.REQUESTS_TOO_OFTEN, globalRateLimiter.check(ctx.ip(), expensivePath));
     }
 
     /**

@@ -26,8 +26,6 @@ import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -258,7 +256,7 @@ public class ClusterProfileFieldService {
         for (var entry : values.entrySet()) {
             ClusterProfileField field = requireField(clusterId, entry.getKey());
             if (!reachingHere.contains(field.id())) {
-                throw new BadRequestResponse("That question is not asked of this member's station");
+                throw Refusal.CLUSTER_PROFILE_FIELD_NOT_ASKED_AT_STATION.raise();
             }
             String oldValue = before.getOrDefault(field.id(), "null");
             String said = ProfileAnswers.said(entry.getValue());
@@ -308,7 +306,7 @@ public class ClusterProfileFieldService {
                 .findById(stationGroupId)
                 .filter(group -> group.clusterId() == clusterId)
                 .isPresent();
-        if (!own) throw new BadRequestResponse("That group of stations belongs to another association");
+        if (!own) throw Refusal.CLUSTER_PROFILE_FIELD_GROUP_NOT_OWN.raise();
     }
 
     /**
@@ -337,9 +335,7 @@ public class ClusterProfileFieldService {
 
             for (int stationId : stationGroupRepository.findStationIdsReachedBy(clusterId, other.stationGroupId())) {
                 if (reached.contains(stationId)) {
-                    throw new BadRequestResponse(
-                            "A question called '%s' already reaches a station this one would reach as well"
-                                    .formatted(name));
+                    throw Refusal.CLUSTER_PROFILE_FIELD_NAME_REACHES_TWICE.raise(name);
                 }
             }
         }
@@ -366,10 +362,9 @@ public class ClusterProfileFieldService {
      * and an association does not is the date of birth, which is why the refusal names it.
      */
     private static void requireUsable(String name, FieldType fieldType, ProfileFieldConfig config) {
-        if (name == null || name.isBlank()) throw new BadRequestResponse("A field needs a name");
+        if (name == null || name.isBlank()) throw Refusal.CLUSTER_PROFILE_FIELD_NEEDS_A_NAME.raise();
         if (!FieldTypes.ASSOCIATION.contains(fieldType)) {
-            throw new BadRequestResponse(
-                    "A station declares its own date of birth field, and a second one would collide with it");
+            throw Refusal.CLUSTER_PROFILE_FIELD_TYPE_NOT_OFFERED.raise();
         }
         if (config != null && ExpirySettings.outOfRange(config)) {
             throw Refusal.CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE.raise();
@@ -384,13 +379,13 @@ public class ClusterProfileFieldService {
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(() -> new NotFoundResponse("No such cluster"));
+        return clusterRepository.findById(clusterId).orElseThrow(Refusal.CLUSTER_PROFILE_FIELD_CLUSTER_GONE::raise);
     }
 
     private ClusterProfileField requireField(int clusterId, int fieldId) {
         ClusterProfileField field =
-                fieldRepository.findById(fieldId).orElseThrow(() -> new NotFoundResponse("No such field"));
-        if (field.clusterId() != clusterId) throw new NotFoundResponse("No such field");
+                fieldRepository.findById(fieldId).orElseThrow(Refusal.CLUSTER_PROFILE_FIELD_NOT_HERE::raise);
+        if (field.clusterId() != clusterId) throw Refusal.CLUSTER_PROFILE_FIELD_NOT_HERE.raise();
         return field;
     }
 
@@ -401,16 +396,16 @@ public class ClusterProfileFieldService {
     private void requireMemberOfCluster(int clusterId, int memberId) {
         Station station = stationRepository
                 .findById(stationOf(memberId))
-                .orElseThrow(() -> new NotFoundResponse("No such member"));
+                .orElseThrow(Refusal.CLUSTER_PROFILE_FIELD_MEMBER_NOT_IN_CLUSTER::raise);
         if (station.clusterId() == null || station.clusterId() != clusterId) {
-            throw new NotFoundResponse("No such member");
+            throw Refusal.CLUSTER_PROFILE_FIELD_MEMBER_NOT_IN_CLUSTER.raise();
         }
     }
 
     private int stationOf(int memberId) {
         return memberRepository
                 .findById(memberId)
-                .orElseThrow(() -> new NotFoundResponse("No such member"))
+                .orElseThrow(Refusal.CLUSTER_PROFILE_FIELD_MEMBER_GONE::raise)
                 .stationId();
     }
 }

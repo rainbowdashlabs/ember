@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -86,17 +86,17 @@ class AttendanceReportPresetTest extends RepositoryTestBase {
     @Test
     void aPresetSelectingNobodyIsRefused() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createPreset(station.id(), "Nobody", List.of(), List.of(), "month", "exact"));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createPreset(station.id(), "Nobody", null, null, "month", "exact"));
     }
 
     @Test
     void anEmptyEntryInASelectionIsRefused() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createPreset(
                         station.id(),
                         "Hole",

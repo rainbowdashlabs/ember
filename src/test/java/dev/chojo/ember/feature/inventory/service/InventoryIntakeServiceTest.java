@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryIntakeRow;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
@@ -13,7 +15,6 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -107,18 +108,20 @@ class InventoryIntakeServiceTest extends RepositoryTestBase {
     @Test
     void aRefusalNamesTheLineItIsOn() {
         var wrongSize = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> intake.takeStock(inventoryId, station.id(), "Jacke", List.of(row(member.id(), null, 999_999))));
-        assertTrue(wrongSize.getMessage().contains("Line 1"), wrongSize.getMessage());
+        assertEquals(Refusal.INTAKE_SIZE_NOT_IN_INVENTORY, wrongSize.refusal());
+        assertTrue(wrongSize.getMessage().contains("line 1"), wrongSize.getMessage());
 
         var stranger = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> intake.takeStock(
                         inventoryId,
                         station.id(),
                         "Jacke",
                         List.of(row(member.id(), "S-1", sizeId), row(999_999, "S-2", sizeId))));
-        assertTrue(stranger.getMessage().contains("Line 2"), stranger.getMessage());
+        assertEquals(Refusal.INTAKE_MEMBER_NOT_AT_STATION, stranger.refusal());
+        assertTrue(stranger.getMessage().contains("line 2"), stranger.getMessage());
     }
 
     /** Nothing is written when one line cannot be: half a stock-taking is worse than none. */
@@ -127,7 +130,7 @@ class InventoryIntakeServiceTest extends RepositoryTestBase {
         int before = inventoryRepo.findStock(inventoryId).size();
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> intake.takeStock(
                         inventoryId,
                         station.id(),
@@ -142,17 +145,17 @@ class InventoryIntakeServiceTest extends RepositoryTestBase {
         intake.takeStock(inventoryId, station.id(), "Stiefel", List.of(row(member.id(), "ST-1", sizeId)));
 
         var again = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> intake.takeStock(inventoryId, station.id(), "Stiefel", List.of(row(null, "ST-1", sizeId))));
-        assertTrue(again.getMessage().contains("already"), again.getMessage());
+        assertEquals(Refusal.INTAKE_NUMBER_TAKEN, again.refusal());
 
         var twiceInOne = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> intake.takeStock(
                         inventoryId,
                         station.id(),
                         "Stiefel",
                         List.of(row(null, "ST-2", sizeId), row(null, "ST-2", sizeId))));
-        assertTrue(twiceInOne.getMessage().contains("twice"), twiceInOne.getMessage());
+        assertEquals(Refusal.INTAKE_NUMBER_TWICE, twiceInOne.refusal());
     }
 }

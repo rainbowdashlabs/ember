@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -25,8 +27,6 @@ import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -171,17 +171,17 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         int ownAccountId = peopled.account().id();
 
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.setUserType(clusterId, peopled.member().id(), StationUserType.MANAGER, ownAccountId));
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.setPermissions(
                         clusterId,
                         peopled.member().id(),
                         Set.of(StationPermission.STATION_ADMINISTRATOR),
                         ownAccountId));
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.archive(clusterId, peopled.member().id(), ownAccountId));
     }
 
@@ -193,11 +193,11 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         int strangerAccountId = freshAccount().id();
 
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.setUserType(
                         clusterId, peopled.member().id(), StationUserType.MANAGER, strangerAccountId));
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.archive(clusterId, peopled.member().id(), strangerAccountId));
     }
 
@@ -246,7 +246,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         int strangerAccountId = freshAccount().id();
 
         assertThrows(
-                NotFoundResponse.class,
+                RefusalResponse.class,
                 () -> service.setUserType(
                         clusterId, elsewhere.member().id(), StationUserType.MANAGER, strangerAccountId));
     }
@@ -324,7 +324,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         int ownAccountId = peopled.account().id();
 
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.updateMemberProfile(
                         clusterId,
                         peopled.member().id(),
@@ -335,7 +335,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         stationRepo.setOwner(peopled.station().id(), peopled.member().id());
         int strangerAccountId = freshAccount().id();
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.updateMemberProfile(
                         clusterId,
                         peopled.member().id(),
@@ -422,13 +422,14 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 otherClusterId, theirs.member().id(), "Fremd", "fremd.txt", "text/plain", "Geheim".getBytes(), null);
 
         assertThrows(
-                NotFoundResponse.class,
+                RefusalResponse.class,
                 () -> service.documentsOf(clusterId, theirs.member().id()),
                 "somebody at another association's station is nobody here");
-        assertThrows(
-                NotFoundResponse.class,
+        var hidden = assertThrows(
+                RefusalResponse.class,
                 () -> service.requireDocumentOfCluster(clusterId, filed.id()),
                 "and neither is what is filed about them");
+        assertEquals(Refusal.CLUSTER_MANAGED_DOCUMENT_NOT_HERE, hidden.refusal());
     }
 
     @Test
@@ -437,10 +438,11 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         int otherClusterId = freshCluster();
         var theirs = clusterService.createStation(otherClusterId, "Wache Fremd " + NAMES.incrementAndGet());
 
-        assertThrows(
-                NotFoundResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.createMember(
                         clusterId, theirs.uid(), "Neu", "Fremd", "fremd@test.com", StationUserType.MEMBER),
                 "a station answering to somebody else is not one of this association's");
+        assertEquals(Refusal.CLUSTER_MANAGED_MEMBER_STATION_NOT_HERE, refused.refusal());
     }
 }

@@ -14,7 +14,6 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -285,13 +284,13 @@ class EventFieldServiceTest extends RepositoryTestBase {
         var choice = EventQuestionSettings.parse("{\"options\":[\"rot\",\"blau\"]}");
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.replaceFields(
                         eventId,
                         List.of(new EventFieldDraft("Farbe", FieldType.CHOICE, choice, "gelb", true, null, false))));
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.replaceFields(
                         eventId,
                         List.of(new EventFieldDraft(

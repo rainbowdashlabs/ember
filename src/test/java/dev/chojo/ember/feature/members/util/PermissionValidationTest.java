@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.members.util;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.Permission;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -47,10 +47,11 @@ class PermissionValidationTest {
         List<Integer> desired = List.of(LOGIN.id(), STATION_ADMINISTRATOR.id());
         Set<StationPermission> callerPermissions = EnumSet.of(StationPermission.MEMBER_MANAGER);
 
-        assertThrows(
-                ForbiddenResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> PermissionValidation.validatePermissionChanges(
                         current, desired, ALL_PERMISSIONS, callerPermissions));
+        assertEquals(Refusal.MEMBER_PERMISSION_NOT_YOURS_TO_GRANT, refused.refusal());
     }
 
     @Test
@@ -69,10 +70,11 @@ class PermissionValidationTest {
         List<Integer> desired = List.of(LOGIN.id(), 999);
         Set<StationPermission> callerPermissions = EnumSet.of(StationPermission.STATION_ADMINISTRATOR);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> PermissionValidation.validatePermissionChanges(
                         current, desired, ALL_PERMISSIONS, callerPermissions));
+        assertEquals(Refusal.MEMBER_PERMISSION_UNKNOWN, refused.refusal());
     }
 
     @Test

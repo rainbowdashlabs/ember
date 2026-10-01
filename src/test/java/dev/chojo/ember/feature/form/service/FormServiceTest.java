@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.form.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.DomainEventHandler;
@@ -26,7 +28,6 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -573,10 +574,11 @@ class FormServiceTest extends RepositoryTestBase {
 
         var internal = service.create(
                 station.id(), "Intern", "", false, false, false, null, null, member.id(), FormPurpose.INTERNAL);
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.setVisibility(internal.id(), FormVisibility.UNLISTED),
                 "a form for the station's own members is not reached from outside at all");
+        assertEquals(Refusal.FORM_INTERNAL_HAS_NO_REACH, refused.refusal());
 
         service.delete(poll.id());
         service.delete(internal.id());
@@ -599,7 +601,7 @@ class FormServiceTest extends RepositoryTestBase {
 
         assertTrue(service.shareLink(internal.id()).isEmpty(), "an internal form is reached from inside the station");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.replaceShareLink(internal.id(), null),
                 "and one cannot be given a link either, which is the half that would have let it out");
         assertTrue(service.shareLink(999999).isEmpty());
@@ -712,8 +714,14 @@ class FormServiceTest extends RepositoryTestBase {
                 station.id(), "Members Only", "", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
 
         assertTrue(service.shareLink(form.id()).isEmpty());
-        assertThrows(BadRequestResponse.class, () -> service.replaceShareLink(form.id(), null));
-        assertThrows(BadRequestResponse.class, () -> service.setVisibility(form.id(), FormVisibility.UNLISTED));
+        assertEquals(
+                Refusal.FORM_INTERNAL_HAS_NO_LINK,
+                assertThrows(RefusalResponse.class, () -> service.replaceShareLink(form.id(), null))
+                        .refusal());
+        assertEquals(
+                Refusal.FORM_INTERNAL_HAS_NO_REACH,
+                assertThrows(RefusalResponse.class, () -> service.setVisibility(form.id(), FormVisibility.UNLISTED))
+                        .refusal());
 
         service.delete(form.id());
     }
@@ -728,12 +736,13 @@ class FormServiceTest extends RepositoryTestBase {
         var form = service.create(
                 station.id(), "Open To All", "", false, true, false, null, null, member.id(), FormPurpose.CONTACT);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.setRestrictions(
                         form.id(),
                         new RestrictionSelection(
                                 List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null)));
+        assertEquals(Refusal.FORM_FROM_OUTSIDE_HAS_NO_RESTRICTIONS, refused.refusal());
         assertFalse(service.findRestrictions(form.id()).hasRestrictions());
 
         service.delete(form.id());

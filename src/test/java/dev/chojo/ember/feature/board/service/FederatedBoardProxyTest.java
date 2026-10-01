@@ -59,7 +59,6 @@ import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -1847,7 +1846,8 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     void findPartnerNotFoundThrows() {
         when(federationRepository.findPartnerById(999)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundResponse.class, () -> discoveryService.proxyGetBoard(999, BOARD_KEY));
+        var refused = assertThrows(RefusalResponse.class, () -> discoveryService.proxyGetBoard(999, BOARD_KEY));
+        assertEquals(Refusal.BOARD_PARTNER_NOT_HERE, refused.refusal());
     }
 
     @Test

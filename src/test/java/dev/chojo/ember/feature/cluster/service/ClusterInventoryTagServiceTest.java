@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.entity.RecommendedTag;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -62,10 +62,13 @@ class ClusterInventoryTagServiceTest extends RepositoryTestBase {
                 clusterInventoryTagService.findById(funk.id()).orElseThrow().id());
         assertEquals(1, clusterInventoryTagService.findByCluster(clusterId).size());
 
-        assertThrows(
-                BadRequestResponse.class, () -> clusterInventoryTagService.create(clusterId, " FUNK ", null, null));
-        assertThrows(BadRequestResponse.class, () -> clusterInventoryTagService.create(clusterId, "  ", null, null));
-        assertThrows(BadRequestResponse.class, () -> clusterInventoryTagService.create(clusterId, null, null, null));
+        var taken = assertThrows(
+                RefusalResponse.class, () -> clusterInventoryTagService.create(clusterId, " FUNK ", null, null));
+        assertEquals(Refusal.CLUSTER_INVENTORY_TAG_TAKEN_ON_CREATE, taken.refusal());
+        var blank = assertThrows(
+                RefusalResponse.class, () -> clusterInventoryTagService.create(clusterId, "  ", null, null));
+        assertEquals(Refusal.CLUSTER_INVENTORY_TAG_NEEDS_A_NAME, blank.refusal());
+        assertThrows(RefusalResponse.class, () -> clusterInventoryTagService.create(clusterId, null, null, null));
 
         clusterInventoryTagService.delete(clusterId, funk.id());
     }
@@ -73,12 +76,13 @@ class ClusterInventoryTagServiceTest extends RepositoryTestBase {
     @Test
     void aRecommendationOfAnotherAssociationIsNotThereAtAll() {
         var theirs = clusterInventoryTagService.create(otherClusterId, "Fremd", null, null);
-        assertThrows(
-                NotFoundResponse.class,
+        var hidden = assertThrows(
+                RefusalResponse.class,
                 () -> clusterInventoryTagService.update(clusterId, theirs.id(), "Neu", null, 0, null));
-        assertThrows(NotFoundResponse.class, () -> clusterInventoryTagService.delete(clusterId, theirs.id()));
+        assertEquals(Refusal.CLUSTER_INVENTORY_TAG_NOT_HERE, hidden.refusal());
+        assertThrows(RefusalResponse.class, () -> clusterInventoryTagService.delete(clusterId, theirs.id()));
         assertThrows(
-                NotFoundResponse.class, () -> clusterInventoryTagService.update(clusterId, -1, "Neu", null, 0, null));
+                RefusalResponse.class, () -> clusterInventoryTagService.update(clusterId, -1, "Neu", null, 0, null));
         clusterInventoryTagService.delete(otherClusterId, theirs.id());
     }
 
@@ -87,9 +91,10 @@ class ClusterInventoryTagServiceTest extends RepositoryTestBase {
         var funk = clusterInventoryTagService.create(clusterId, "ChangeFunk", null, null);
         var licht = clusterInventoryTagService.create(clusterId, "ChangeLicht", null, null);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> clusterInventoryTagService.update(clusterId, licht.id(), "changefunk", null, 0, null));
+        assertEquals(Refusal.CLUSTER_INVENTORY_TAG_TAKEN_ON_CHANGE, refused.refusal());
 
         var changed = clusterInventoryTagService.update(clusterId, licht.id(), " ChangeLicht ", "#00C507", 4, null);
         assertEquals("ChangeLicht", changed.name());

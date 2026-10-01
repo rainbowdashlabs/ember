@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterItemLost;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
@@ -22,7 +24,6 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -93,23 +94,21 @@ public class LossReportService {
      * @param document   the file they attached, or {@code null}
      * @param reportedBy who is raising it
      * @return the movement the report walks
-     * @throws BadRequestResponse when the item is not missing, has no owner here, or the report is short of
-     *                            what that owner asks for
+     * @throws RefusalResponse when the item is not missing, has no owner here, or the report is short of
+     *                         what that owner asks for
      */
     public ItemMovement report(
             int stationId, int itemId, @Nullable String note, @Nullable Attachment document, int reportedBy) {
         InventoryItem item =
-                inventoryRepository.findItemById(itemId).orElseThrow(() -> new BadRequestResponse("No such item"));
+                inventoryRepository.findItemById(itemId).orElseThrow(Refusal.LOSS_REPORT_PIECE_NOT_HERE::raise);
         if (item.custody() != ItemCustody.LOST) {
-            throw new BadRequestResponse("This gear is not recorded as missing, so there is nothing to report");
+            throw Refusal.LOSS_REPORT_PIECE_NOT_MISSING.raise();
         }
         Integer ownerClusterId = item.ownerClusterId();
         if (item.ownerKind() != ItemOwner.CLUSTER || ownerClusterId == null) {
-            throw new BadRequestResponse("The station owns this gear itself, so there is nobody to report it to");
+            throw Refusal.LOSS_REPORT_STATION_OWNS_IT.raise();
         }
-        var cluster = clusterRepository
-                .findById(ownerClusterId)
-                .orElseThrow(() -> new BadRequestResponse("The body that owns this gear is not here to answer"));
+        var cluster = clusterRepository.findById(ownerClusterId).orElseThrow(Refusal.LOSS_REPORT_OWNER_NOT_HERE::raise);
         requireEnough(cluster.lossReportRequires(), note, document);
 
         ItemMovement movement = movementService.create(
@@ -145,10 +144,10 @@ public class LossReportService {
     private void requireEnough(LossReportRequirement requires, @Nullable String note, @Nullable Attachment document) {
         if (requires == LossReportRequirement.NOTHING) return;
         if (note == null || note.isBlank()) {
-            throw new BadRequestResponse("The body that owns this gear asks for a note with a loss report");
+            throw Refusal.LOSS_REPORT_NEEDS_A_NOTE.raise();
         }
         if (requires == LossReportRequirement.DOCUMENT && document == null) {
-            throw new BadRequestResponse("The body that owns this gear asks for a document with a loss report");
+            throw Refusal.LOSS_REPORT_NEEDS_A_DOCUMENT.raise();
         }
     }
 

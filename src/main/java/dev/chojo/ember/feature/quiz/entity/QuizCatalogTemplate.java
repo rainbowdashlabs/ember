@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.entity;
 
-import io.javalin.http.InternalServerErrorResponse;
+import dev.chojo.ember.api.Refusal;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
@@ -57,10 +57,10 @@ public enum QuizCatalogTemplate {
     /** Reads the shipped example. A missing one is a broken build, not a bad request. */
     public String read() {
         try (var stream = QuizCatalogTemplate.class.getClassLoader().getResourceAsStream(resourcePath)) {
-            if (stream == null) throw new InternalServerErrorResponse("Template " + resourcePath + " is missing");
+            if (stream == null) throw Refusal.QUIZ_CATALOG_EXAMPLE_MISSING.raise();
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new InternalServerErrorResponse("Failed to read template " + resourcePath);
+            throw Refusal.QUIZ_CATALOG_EXAMPLE_NOT_READ.raise();
         }
     }
 }

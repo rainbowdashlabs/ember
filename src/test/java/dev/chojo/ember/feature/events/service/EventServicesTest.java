@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
@@ -31,7 +32,6 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -188,7 +188,7 @@ class EventServicesTest extends RepositoryTestBase {
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> crudService.create(
                         station.id(),
                         "Rückwärts",
@@ -208,7 +208,7 @@ class EventServicesTest extends RepositoryTestBase {
                         null));
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> crudService.update(
                         eventId,
                         "Rückwärts",
@@ -978,7 +978,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> fieldDefaultService.setForEvent(
                         event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "VALUE", "Schnee"))));
 
@@ -2878,16 +2878,16 @@ class EventServicesTest extends RepositoryTestBase {
         var once = createPickerEvent("Einmalig mit Ende", start, start.plus(2, ChronoUnit.HOURS));
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> crudService.setRepeatEnd(recurring.id(), LocalDate.parse("2026-10-07"), 3),
                 "a day and a number of times are two ways of saying the same thing");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> crudService.setRepeatEnd(recurring.id(), LocalDate.parse("2026-08-01"), null),
                 "a series cannot end before it starts");
-        assertThrows(BadRequestResponse.class, () -> crudService.setRepeatEnd(recurring.id(), null, 0));
+        assertThrows(RefusalResponse.class, () -> crudService.setRepeatEnd(recurring.id(), null, 0));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> crudService.setRepeatEnd(once.id(), null, 3),
                 "a one-off appointment has nothing to repeat");
     }

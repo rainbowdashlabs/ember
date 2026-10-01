@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Storage;
@@ -24,8 +26,6 @@ import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -119,7 +119,8 @@ class ClusterContentServiceTest extends RepositoryTestBase {
 
     @Test
     void aClusterThatIsNotThereHasNowhereToPutContent() {
-        assertThrows(NotFoundResponse.class, () -> service.homeStationOf(999_999));
+        var refused = assertThrows(RefusalResponse.class, () -> service.homeStationOf(999_999));
+        assertEquals(Refusal.CLUSTER_KB_CLUSTER_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -163,7 +164,8 @@ class ClusterContentServiceTest extends RepositoryTestBase {
         var account = accountRepo.create("clusterforeign" + n + "@test.com", "Fre", "Md" + n);
         var file = service.createArticle(other.id(), null, "Fremd", null, "x", account.id());
 
-        assertThrows(NotFoundResponse.class, () -> service.deleteArticle(cluster.id(), file.id()));
+        var refused = assertThrows(RefusalResponse.class, () -> service.deleteArticle(cluster.id(), file.id()));
+        assertEquals(Refusal.CLUSTER_KB_ARTICLE_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -172,9 +174,11 @@ class ClusterContentServiceTest extends RepositoryTestBase {
         int n = NAMES.incrementAndGet();
         var account = accountRepo.create("clusternameless" + n + "@test.com", "Na", "Me" + n);
 
-        assertThrows(BadRequestResponse.class, () -> service.createFolder(cluster.id(), null, " ", null, account.id()));
-        assertThrows(
-                BadRequestResponse.class,
-                () -> service.createArticle(cluster.id(), null, " ", null, "x", account.id()));
+        var folder = assertThrows(
+                RefusalResponse.class, () -> service.createFolder(cluster.id(), null, " ", null, account.id()));
+        assertEquals(Refusal.CLUSTER_KB_FOLDER_NEEDS_A_NAME, folder.refusal());
+        var article = assertThrows(
+                RefusalResponse.class, () -> service.createArticle(cluster.id(), null, " ", null, "x", account.id()));
+        assertEquals(Refusal.CLUSTER_KB_ARTICLE_NEEDS_A_NAME, article.refusal());
     }
 }

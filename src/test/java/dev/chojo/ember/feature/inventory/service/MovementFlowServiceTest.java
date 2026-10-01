@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.FlowProblem;
@@ -21,7 +22,6 @@ import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -283,7 +283,7 @@ class MovementFlowServiceTest extends RepositoryTestBase {
     void aFlowIsOnlyBoundToTheStationAndPurposeItBelongsTo() {
         MovementFlow returnFlow = freshFlow(MovementPurpose.RETURN);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> movementFlowService.bind(
                         station.id(),
                         null,
@@ -292,13 +292,13 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                         MovementParty.MEMBER,
                         returnFlow.id()));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> movementFlowService.bind(
                         station.id(), null, ItemOwner.CLUSTER, MovementPurpose.RETURN, MovementParty.MEMBER, 999_999));
 
         var other = stationRepo.create("FlowOtherStation");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> movementFlowService.bind(
                         other.id(),
                         null,
@@ -319,7 +319,7 @@ class MovementFlowServiceTest extends RepositoryTestBase {
         var bare = stationRepo.create("FlowBareStation");
         movementFlowService.ensurePresets(bare.id());
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> movementFlowService.resolveFlow(
                         bare.id(), null, ItemOwner.STATION, null, MovementPurpose.ISSUE, MovementParty.STORE));
         stationRepo.delete(bare.id());
@@ -391,11 +391,11 @@ class MovementFlowServiceTest extends RepositoryTestBase {
         var theirs = movementFlowService.createClusterFlow(cluster.id(), "Tausch", MovementPurpose.EXCHANGE);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> movementFlowService.restoreToPreset(theirs.id(), member.id(), List.of()),
                 "that chain belongs to the body above the station");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> movementFlowService.planRestore(theirs.id()),
                 "and a plan for writing it again is refused in the same breath");
     }
@@ -405,7 +405,7 @@ class MovementFlowServiceTest extends RepositoryTestBase {
     void aChainWithNoPresetBehindItIsNotWrittenAgain() {
         MovementFlow mine = freshFlow(MovementPurpose.ISSUE);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> movementFlowService.restoreToPreset(mine.id(), member.id(), List.of()),
                 "nothing is bound to it, so there is no combination to look a preset up by");
 
@@ -417,7 +417,7 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                 station.id(), null, ItemOwner.STATION, MovementPurpose.ISSUE, MovementParty.STORE, mine.id());
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> movementFlowService.restoreToPreset(mine.id(), member.id(), List.of()),
                 "no preset covers the station's own gear going to its own store");
     }
@@ -526,7 +526,7 @@ class MovementFlowServiceTest extends RepositoryTestBase {
             assertEquals(saidTwice.label(), landing.standingOn());
 
             var refusal = assertThrows(
-                    BadRequestResponse.class,
+                    RefusalResponse.class,
                     () -> movementFlowService.restoreToPreset(
                             flowId, carrier.member().id(), List.of()));
             assertTrue(
@@ -616,12 +616,12 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                     .currentStepId();
 
             assertThrows(
-                    BadRequestResponse.class,
+                    RefusalResponse.class,
                     () -> movementFlowService.restoreToPreset(
                             flowId, carrier.member().id(), List.of(new MovementFlowService.ChosenLanding(stood, 9))),
                     "the preset writes five steps, so there is no ninth to land on");
             assertThrows(
-                    BadRequestResponse.class,
+                    RefusalResponse.class,
                     () -> movementFlowService.restoreToPreset(
                             flowId,
                             carrier.member().id(),
@@ -714,9 +714,9 @@ class MovementFlowServiceTest extends RepositoryTestBase {
     @Test
     void editingAStepThatIsNotThereIsRefused() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> movementFlowService.updateStep(
                         999_999, "X", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.AT_STATION, false));
-        assertThrows(BadRequestResponse.class, () -> movementFlowService.archiveStep(999_999));
+        assertThrows(RefusalResponse.class, () -> movementFlowService.archiveStep(999_999));
     }
 }

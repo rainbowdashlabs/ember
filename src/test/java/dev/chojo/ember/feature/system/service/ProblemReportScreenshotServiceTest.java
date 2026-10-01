@@ -5,11 +5,13 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.Base64;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -43,7 +45,9 @@ class ProblemReportScreenshotServiceTest {
 
     @Test
     void whatIsNotBase64IsRefused() {
-        assertThrows(BadRequestResponse.class, () -> service.store("this is not a picture", null));
+        var refused = assertThrows(RefusalResponse.class, () -> service.store("this is not a picture", null));
+
+        assertEquals(Refusal.PROBLEM_PICTURE_NOT_READABLE, refused.refusal());
     }
 
     /**
@@ -52,15 +56,19 @@ class ProblemReportScreenshotServiceTest {
      */
     @Test
     void whatIsNeitherPngNorWebpIsRefused() {
-        assertThrows(BadRequestResponse.class, () -> service.store(encoded('G', 'I', 'F', '8', '9', 'a'), null));
-        assertThrows(BadRequestResponse.class, () -> service.store(encoded(0xFF, 0xD8, 0xFF), null));
-        assertThrows(BadRequestResponse.class, () -> service.store(encoded('<', 's', 'v', 'g'), null));
+        assertThrows(RefusalResponse.class, () -> service.store(encoded('G', 'I', 'F', '8', '9', 'a'), null));
+        assertThrows(RefusalResponse.class, () -> service.store(encoded(0xFF, 0xD8, 0xFF), null));
+        var refused = assertThrows(RefusalResponse.class, () -> service.store(encoded('<', 's', 'v', 'g'), null));
+
+        assertEquals(Refusal.PROBLEM_PICTURE_KIND_NOT_TAKEN, refused.refusal());
     }
 
     /** A preamble with nothing behind it is a picture that was announced and never sent. */
     @Test
     void anEmptyPictureIsRefused() {
-        assertThrows(BadRequestResponse.class, () -> service.store("data:image/png;base64,", null));
+        var refused = assertThrows(RefusalResponse.class, () -> service.store("data:image/png;base64,", null));
+
+        assertEquals(Refusal.PROBLEM_PICTURE_EMPTY, refused.refusal());
     }
 
     /** A browser writes the preamble in front of the bytes, and it is not part of them. */
@@ -68,8 +76,8 @@ class ProblemReportScreenshotServiceTest {
     void theDataPreambleABrowserWritesIsReadPast() {
         String withPreamble = "data:image/gif;base64," + encoded('G', 'I', 'F', '8', '9', 'a');
 
-        var refused = assertThrows(BadRequestResponse.class, () -> service.store(withPreamble, null));
+        var refused = assertThrows(RefusalResponse.class, () -> service.store(withPreamble, null));
 
-        assertTrue(refused.getMessage().contains("PNG"), "it got as far as reading the bytes");
+        assertEquals(Refusal.PROBLEM_PICTURE_KIND_NOT_TAKEN, refused.refusal(), "it got as far as reading the bytes");
     }
 }

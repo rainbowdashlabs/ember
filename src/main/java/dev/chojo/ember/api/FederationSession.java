@@ -7,7 +7,6 @@ package dev.chojo.ember.api;
 
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 
 import java.util.UUID;
 
@@ -27,12 +26,12 @@ public record FederationSession(FederationPartner partner, UUID partnerStationUi
      *
      * @param ctx the Javalin context
      * @return the federation session stored as a context attribute
-     * @throws ForbiddenResponse when the request carried no valid signature
+     * @throws RefusalResponse when the request carried no valid signature
      */
     public static FederationSession from(Context ctx) {
         FederationSession session = ctx.attribute(ATTR_FEDERATION_SESSION);
         if (session == null) {
-            throw new ForbiddenResponse("Missing or invalid federation signature");
+            throw Refusal.FEDERATION_REQUEST_NOT_SIGNED.raise();
         }
         return session;
     }

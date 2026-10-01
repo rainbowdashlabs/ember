@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.transfer;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.feature.account.service.AvatarService;
@@ -14,12 +15,7 @@ import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.service.StationTransferFileService;
 import dev.chojo.ember.feature.storage.service.StationTransferFileService.ListKeysResponse;
 import dev.chojo.ember.feature.storage.service.TransferBackendDescriptorService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.HttpResponseException;
-import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -32,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathUuid;
@@ -89,14 +84,10 @@ public class StationTransferAssetRoutes implements Routes {
             })
     private void getBackendDescriptor(Context ctx) {
         String token = ctx.pathParam("token");
-        exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+        exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_BACKEND::raise);
         int stationId = exportService.claimBackendDescriptor(token).orElseThrow(() -> {
             log.info("[export] backend descriptor already claimed - responding 429");
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS);
-            return new HttpResponseException(
-                    HttpStatus.TOO_MANY_REQUESTS.getCode(),
-                    "Backend descriptor has already been fetched for this transfer token",
-                    Map.of());
+            return Refusal.TRANSFER_BACKEND_ALREADY_HANDED_OVER.raise();
         });
         log.info("[export] serving backend descriptor for station {}", stationId);
         ctx.json(descriptorService.describe(stationId));
@@ -123,7 +114,7 @@ public class StationTransferAssetRoutes implements Routes {
     private void listFiles(Context ctx) {
         String token = ctx.pathParam("token");
         int stationId =
-                exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+                exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_FILE_LIST::raise);
         StorageCategory category = parseStationFileCategory(ctx.pathParam("category"));
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(0);
         ctx.json(fileService.page(stationId, category, ctx.queryParam("after"), limit));
@@ -149,12 +140,11 @@ public class StationTransferAssetRoutes implements Routes {
             })
     private void streamFile(Context ctx) {
         String token = ctx.pathParam("token");
-        int stationId =
-                exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+        int stationId = exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_FILE::raise);
         StorageCategory category = parseStationFileCategory(ctx.pathParam("category"));
         String key = ctx.pathParam("key");
         if (key == null || key.isBlank()) {
-            throw new BadRequestResponse("key is required");
+            throw Refusal.TRANSFER_FILE_KEY_MISSING.raise();
         }
 
         var stream = fileService.open(stationId, category, key);
@@ -192,9 +182,9 @@ public class StationTransferAssetRoutes implements Routes {
     @StationFree("the transfer token is the authorisation, and an account's avatar belongs to the account")
     private void streamAvatar(Context ctx) {
         String token = ctx.pathParam("token");
-        exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+        exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_AVATAR::raise);
         UUID accountUid = pathUuid(ctx, "accountUid");
-        var avatar = avatarService.read(accountUid, 0).orElseThrow(() -> new NotFoundResponse("Avatar not found"));
+        var avatar = avatarService.read(accountUid, 0).orElseThrow(Refusal.TRANSFER_AVATAR_NOT_HERE::raise);
         log.info("[export] streaming avatar for account {} ({} bytes)", accountUid, avatar.data().length);
         ctx.contentType(avatar.contentType());
         ctx.result(avatar.data());
@@ -202,19 +192,19 @@ public class StationTransferAssetRoutes implements Routes {
 
     private StorageCategory parseStationFileCategory(String raw) {
         if (raw == null || raw.isBlank()) {
-            throw new BadRequestResponse("category is required");
+            throw Refusal.TRANSFER_FILE_KIND_MISSING.raise();
         }
         StorageCategory category;
         try {
             category = StorageCategory.valueOf(raw.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Unknown storage category: " + raw);
+            throw Refusal.TRANSFER_FILE_KIND_UNKNOWN.raise(raw);
         }
         if (category.scopeKind() != StorageScope.Kind.STATION) {
-            throw new BadRequestResponse("Category " + category + " is not station-scoped");
+            throw Refusal.TRANSFER_FILE_KIND_NOT_A_STATIONS.raise(raw);
         }
         if (!category.isMovable()) {
-            throw new BadRequestResponse("Category " + category + " is not movable");
+            throw Refusal.TRANSFER_FILE_KIND_NOT_MOVABLE.raise(raw);
         }
         return category;
     }

@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionReport;
 import dev.chojo.ember.feature.quiz.repository.QuizQuestionReportRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -40,12 +40,12 @@ public class QuizQuestionReportService {
      * Records what a member says is wrong with a question.
      *
      * @param memberId who is saying it, or {@code null} when the member cannot be resolved
-     * @throws BadRequestResponse when the note is empty, because a note without a reason gives
-     *                            whoever reads it nothing to act on
+     * @throws dev.chojo.ember.api.RefusalResponse when the note is empty, because a note without a
+     *                                             reason gives whoever reads it nothing to act on
      */
     public QuizQuestionReport report(int questionId, @Nullable Integer memberId, String note) {
         String trimmed = note != null ? note.trim() : "";
-        if (trimmed.isEmpty()) throw new BadRequestResponse("A report needs a note");
+        if (trimmed.isEmpty()) throw Refusal.QUIZ_QUESTION_NOTE_EMPTY.raise();
         if (trimmed.length() > MAX_NOTE_LENGTH) trimmed = trimmed.substring(0, MAX_NOTE_LENGTH);
 
         var report = reportRepository.create(questionId, memberId, trimmed);
