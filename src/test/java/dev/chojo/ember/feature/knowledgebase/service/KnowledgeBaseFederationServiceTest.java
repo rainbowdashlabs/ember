@@ -15,7 +15,6 @@ import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
@@ -125,14 +124,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 federationRepo,
                 transport.transport(),
                 stationRepo,
-                commentRepo,
-                new KbCommentService(
-                        knowledgeBaseRepo,
-                        commentRepo,
-                        memberIdentityFactory,
-                        newStationMemberService(accountRepo, mock(AuthService.class)),
-                        new DomainEventBus(Set.of()),
-                        silentCommentMentions()),
+                newCommentService(new DomainEventBus(Set.of())),
                 mock(EventFederationRepository.class),
                 memberNameResolver,
                 new FederationFanout(new TaskScheduler()),

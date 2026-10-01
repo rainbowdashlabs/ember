@@ -200,6 +200,7 @@ import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseTagRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.PublicKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
+import dev.chojo.ember.feature.knowledgebase.service.KbCommentTarget;
 import dev.chojo.ember.feature.knowledgebase.service.KbTrashPurger;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.legal.route.ConsentRoutes;
@@ -597,6 +598,7 @@ public class EmberModule extends AbstractModule {
         MapBinder<CommentEntityType, CommentTarget> commentTargets =
                 MapBinder.newMapBinder(binder(), CommentEntityType.class, CommentTarget.class);
         commentTargets.addBinding(CommentEntityType.EVENT).to(EventCommentTarget.class);
+        commentTargets.addBinding(CommentEntityType.KB).to(KbCommentTarget.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});

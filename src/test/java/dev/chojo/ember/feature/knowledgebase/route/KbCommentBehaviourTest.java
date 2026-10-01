@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
@@ -15,14 +16,11 @@ import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
-import dev.chojo.ember.feature.comment.service.CommentMentions;
-import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.NewComment;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
-import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
-import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
-import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -35,6 +33,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
 import static dev.chojo.ember.api.RouteHarness.body;
@@ -42,9 +41,7 @@ import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
@@ -68,6 +65,7 @@ class KbCommentBehaviourTest extends RepositoryTestBase {
     private static StationMember other;
     private static StationMember stranger;
     private static int fileId;
+    private static CommentService commentService;
     private static RouteHarness harness;
 
     @BeforeAll
@@ -82,26 +80,11 @@ class KbCommentBehaviourTest extends RepositoryTestBase {
         stranger = stationMemberRepo.create(elsewhere.id(), strangerAccount.id());
         fileId = file("Handbuch");
 
-        var files = mock(KnowledgeBaseService.class);
-        when(files.findFile(anyInt())).thenAnswer(call -> knowledgeBaseRepo.findFileById(call.getArgument(0)));
-        var responses = mock(KnowledgeBaseFederationService.class);
-        when(responses.toCommentResponse(any()))
-                .thenAnswer(call -> CommentResponseMapper.fromKb(memberNameResolver, call.<KbComment>getArgument(0)));
-        when(responses.listComments(anyInt()))
-                .thenAnswer(call -> commentRepo.findByTarget(CommentEntityType.KB, call.getArgument(0)).stream()
-                        .map(comment -> CommentResponseMapper.fromKb(memberNameResolver, KbComment.of(comment)))
-                        .toList());
         var names = mock(KbAuthorNameService.class);
         when(names.resolveMemberName(anyInt())).thenReturn("Anna Author");
-        var comments = new KbCommentService(
-                knowledgeBaseRepo,
-                commentRepo,
-                memberIdentityFactory,
-                newStationMemberService(null, null),
-                BUS,
-                new CommentMentions(memberLookupService, BUS));
-        harness = RouteHarness.serving(
-                        new KnowledgeBaseCommentRoutes(files, comments, names, responses, memberIdentityFactory))
+        commentService = newCommentService(BUS);
+        harness = RouteHarness.serving(new KnowledgeBaseCommentRoutes(
+                        commentService, names, memberIdentityFactory, memberNameResolver))
                 .withStations(stationRepo);
     }
 
@@ -232,16 +215,16 @@ class KbCommentBehaviourTest extends RepositoryTestBase {
     }
 
     @Test
-    void aReplyMayNameAParentOnAnotherFile() {
+    void aReplyToACommentOnAnotherFileIsRefused() {
         int parent = write(author, file("Anderes"), "anderswo");
 
-        var reply = json(post(other, fileId, "{\"content\": \"quer\", \"parentId\": %d}".formatted(parent)));
+        var answer = post(other, fileId, "{\"content\": \"quer\", \"parentId\": %d}".formatted(parent));
 
-        assertEquals(parent, reply.path("parentId").asInt());
+        assertEquals(Refusal.COMMENT_PARENT_ELSEWHERE, refusalOf(answer));
     }
 
     @Test
-    void everyCommentIsAnnouncedWithItsPreviewCutByThreeDots() {
+    void aReplyTellsTheParentsAuthorWithItsPreviewCutAndATopLevelCommentTellsNobody() {
         int file = file("Ankuendigung");
         int parent = write(author, file, "Frage");
         reset(BUS);
@@ -253,10 +236,26 @@ class KbCommentBehaviourTest extends RepositoryTestBase {
                 .filter(CommentCreated.class::isInstance)
                 .map(CommentCreated.class::cast)
                 .toList();
-        assertEquals(2, created.size());
+        assertEquals(1, created.size());
         assertEquals(author.id(), created.getFirst().parentAuthorId());
-        assertEquals("z".repeat(100) + "...", created.getFirst().preview());
-        assertNull(created.get(1).parentAuthorId());
+        assertEquals("z".repeat(100) + "…", created.getFirst().preview());
+    }
+
+    @Test
+    void aPartnersCommentTellsNobodyAndItsRemovalIsAnnounced() {
+        int file = file("Partner");
+        var partnerUid = UUID.randomUUID();
+        var target = commentService.target(CommentEntityType.KB, file).orElseThrow();
+        var comment = commentService.createOn(
+                target,
+                CommentWriter.partner(new MemberIdentity(elsewhere.uid(), partnerUid), "Pia Partner"),
+                new NewComment(null, null, "von draussen @[GROUP:Crew:7]"));
+
+        assertTrue(published().isEmpty());
+
+        assertTrue(commentService.delete(comment));
+        assertTrue(published().stream()
+                .anyMatch(event -> event instanceof CommentDeleted deleted && deleted.commentId() == comment.id()));
     }
 
     @Test

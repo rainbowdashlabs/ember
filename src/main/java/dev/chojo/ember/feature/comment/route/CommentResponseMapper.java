@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.comment.route;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.comment.entity.Comment;
-import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 
@@ -64,10 +63,10 @@ public final class CommentResponseMapper {
     /**
      * Maps a knowledge base file comment.
      */
-    public static CommentResponse fromKb(MemberNameResolver resolver, KbComment comment) {
+    public static CommentResponse fromKb(MemberNameResolver resolver, Comment comment) {
         return withResolvedName(
                 resolver,
-                new Scope(null, comment.fileId(), null, null),
+                new Scope(null, comment.targetId(), null, null),
                 comment.id(),
                 comment.parentId(),
                 comment.author(),

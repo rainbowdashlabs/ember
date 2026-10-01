@@ -10,18 +10,25 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.comment.route.CommentResponse;
-import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.repository.CommentRepository;
+import dev.chojo.ember.feature.comment.service.CommentMentions;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
+import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
-import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
-import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
-import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
+import dev.chojo.ember.feature.knowledgebase.service.KbCommentTarget;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,6 +50,7 @@ import static org.mockito.Mockito.when;
  */
 class KnowledgeBaseCommentRoutesTest {
     private static final int STATION = 3;
+    private static final int FILE = 20;
     private static final MemberIdentity AUTHOR = new MemberIdentity(
             UUID.fromString("00000000-0000-0000-0000-000000000003"),
             UUID.fromString("00000000-0000-0000-0000-000000000011"));
@@ -50,39 +58,46 @@ class KnowledgeBaseCommentRoutesTest {
             UUID.fromString("00000000-0000-0000-0000-000000000003"),
             UUID.fromString("00000000-0000-0000-0000-000000000012"));
 
-    private KbCommentService comments;
+    private CommentRepository comments;
     private RouteHarness harness;
 
-    private static KbComment comment(int id, MemberIdentity author, String content) {
-        return new KbComment(id, 20, null, author, content, false, Instant.EPOCH, null);
+    private static Comment comment(int id, MemberIdentity author, String content) {
+        return new Comment(
+                id, CommentEntityType.KB, FILE, STATION, null, null, author, content, false, Instant.EPOCH, null);
     }
 
     @BeforeEach
     void setup() {
-        comments = mock(KbCommentService.class);
-        var service = mock(KnowledgeBaseService.class);
+        comments = mock(CommentRepository.class);
+        var files = mock(KnowledgeBaseRepository.class);
         var file = mock(KbFile.class);
+        when(file.id()).thenReturn(FILE);
         when(file.stationId()).thenReturn(STATION);
-        when(service.findFile(20)).thenReturn(Optional.of(file));
+        when(file.name()).thenReturn("Handbuch");
+        when(files.findFileById(FILE)).thenReturn(Optional.of(file));
         var identities = mock(MemberIdentityFactory.class);
         when(identities.local(STATION, TestSessions.MEMBER_ID)).thenReturn(AUTHOR);
-        var federation = mock(KnowledgeBaseFederationService.class);
-        when(federation.toCommentResponse(any())).thenAnswer(call -> {
-            KbComment c = call.getArgument(0);
-            return new CommentResponse(
-                    c.id(), null, c.fileId(), null, null, c.author(), null, c.content(), false, null, null, null);
-        });
-        when(comments.findComment(5)).thenReturn(Optional.of(comment(5, AUTHOR, "alt")));
-        when(comments.findComment(6)).thenReturn(Optional.of(comment(6, SOMEBODY_ELSE, "fremd")));
-        harness = RouteHarness.serving(new KnowledgeBaseCommentRoutes(
-                service, comments, mock(KbAuthorNameService.class), federation, identities));
+        var names = mock(MemberNameResolver.class);
+        when(names.resolveDisplay(any()))
+                .thenAnswer(call -> new MemberNameResolver.ResolvedMember(call.getArgument(0), "Anna"));
+        when(comments.findById(CommentEntityType.KB, 5)).thenReturn(Optional.of(comment(5, AUTHOR, "alt")));
+        when(comments.findById(CommentEntityType.KB, 6)).thenReturn(Optional.of(comment(6, SOMEBODY_ELSE, "fremd")));
+        var service = new CommentService(
+                comments,
+                Map.of(CommentEntityType.KB, new KbCommentTarget(files)),
+                mock(DomainEventBus.class),
+                mock(StationMemberService.class),
+                mock(StationRepository.class),
+                mock(CommentMentions.class));
+        harness = RouteHarness.serving(
+                new KnowledgeBaseCommentRoutes(service, mock(KbAuthorNameService.class), identities, names));
     }
 
     @Test
     void theAuthorChangesTheirCommentAndReadsItBackAsStored() {
         var author = harness.as(TestSessions.member(STATION));
-
-        when(comments.findComment(5))
+        when(comments.update(CommentEntityType.KB, 5, "neu")).thenReturn(true);
+        when(comments.findById(CommentEntityType.KB, 5))
                 .thenReturn(Optional.of(comment(5, AUTHOR, "alt")))
                 .thenReturn(Optional.of(comment(5, AUTHOR, "neu")));
 
@@ -90,7 +105,7 @@ class KnowledgeBaseCommentRoutesTest {
                 client -> client.put(PREFIX + "/kb/comments/5", body("{\"content\": \"neu\"}"), author));
 
         assertEquals("neu", json(answer).path("content").asString());
-        verify(comments).updateComment(STATION, 5, TestSessions.MEMBER_ID, null, "neu");
+        verify(comments).update(CommentEntityType.KB, 5, "neu");
     }
 
     @Test
@@ -106,12 +121,12 @@ class KnowledgeBaseCommentRoutesTest {
                     refusalOf(client.delete(PREFIX + "/kb/comments/6", null, member)));
         });
 
-        verify(comments, never()).deleteComment(anyInt(), anyInt());
+        verify(comments, never()).delete(any(), anyInt());
     }
 
     @Test
     void aKnowledgeManagerRemovesAnyCommentOfTheStation() {
-        when(comments.deleteComment(STATION, 6)).thenReturn(true);
+        when(comments.delete(CommentEntityType.KB, 6)).thenReturn(true);
         var manager = harness.as(TestSessions.member(STATION, StationPermission.KNOWLEDGE_MANAGER));
 
         var answer = harness.request(client -> client.delete(PREFIX + "/kb/comments/6", null, manager));
@@ -128,11 +143,16 @@ class KnowledgeBaseCommentRoutesTest {
     }
 
     @Test
+    void anotherStationsCommentIsNotHere() {
+        var answer = harness.request(
+                client -> client.delete(PREFIX + "/kb/comments/5", null, harness.as(TestSessions.member(STATION + 1))));
+
+        assertEquals(Refusal.NOT_HERE_OR_NOT_YOURS, refusalOf(answer));
+    }
+
+    @Test
     void aCommentGoneAfterTheChangeIsReportedSo() {
         var author = harness.as(TestSessions.member(STATION));
-        when(comments.findComment(5))
-                .thenReturn(Optional.of(comment(5, AUTHOR, "alt")))
-                .thenReturn(Optional.empty());
 
         var answer = harness.request(
                 client -> client.put(PREFIX + "/kb/comments/5", body("{\"content\": \"neu\"}"), author));

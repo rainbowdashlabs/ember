@@ -62,7 +62,6 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
-import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.knowledgebase.service.KbLinkMetadataService;
@@ -231,8 +230,6 @@ class DemoServiceTest extends RepositoryTestBase {
         var kbSearchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
         var kbContentService = new KbContentService(
                 knowledgeBaseRepo, contentBlocks(), noCellDescriptions(), stationRepo, kbFileStorage, kbSearchService);
-        var kbCommentService = new KbCommentService(
-                knowledgeBaseRepo, commentRepo, memberIdentityFactory, memberSvc, noOpBus, silentCommentMentions());
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 kbFileStorage,
@@ -259,8 +256,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationRepo,
                 federationTransport,
                 stationRepo,
-                commentRepo,
-                kbCommentService,
+                commentService,
                 eventFederationRepo,
                 memberNameResolver,
                 federationFanout,
@@ -461,7 +457,6 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationRepo,
                 federationService,
                 kbService,
-                kbCommentService,
                 kbFederationService,
                 quizService,
                 protocolService,

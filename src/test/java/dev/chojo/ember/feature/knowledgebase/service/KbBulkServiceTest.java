@@ -13,6 +13,7 @@ import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -89,8 +90,7 @@ class KbBulkServiceTest extends RepositoryTestBase {
                 federationRepo,
                 mock(FederationTransport.class),
                 stationRepo,
-                commentRepo,
-                mock(KbCommentService.class),
+                mock(CommentService.class),
                 mock(EventFederationRepository.class),
                 memberNameResolver,
                 new FederationFanout(new TaskScheduler()),

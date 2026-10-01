@@ -24,7 +24,6 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationService;
-import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -66,7 +65,6 @@ public class DemoFederationSeeder implements DemoSeeder {
     private final StationRepository stationRepository;
     private final FederationService federationService;
     private final KnowledgeBaseService kbService;
-    private final KbCommentService kbCommentService;
     private final KnowledgeBaseFederationService kbFederationService;
     private final QuizService quizService;
     private final TestProtocolService protocolService;
@@ -91,7 +89,6 @@ public class DemoFederationSeeder implements DemoSeeder {
             StationRepository stationRepository,
             FederationService federationService,
             KnowledgeBaseService kbService,
-            KbCommentService kbCommentService,
             KnowledgeBaseFederationService kbFederationService,
             QuizService quizService,
             TestProtocolService protocolService,
@@ -114,7 +111,6 @@ public class DemoFederationSeeder implements DemoSeeder {
         this.stationRepository = stationRepository;
         this.federationService = federationService;
         this.kbService = kbService;
-        this.kbCommentService = kbCommentService;
         this.kbFederationService = kbFederationService;
         this.quizService = quizService;
         this.protocolService = protocolService;
@@ -147,12 +143,10 @@ public class DemoFederationSeeder implements DemoSeeder {
     }
 
     /**
-     * Writes a demo comment on an appointment, telling whoever a comment written there tells.
+     * Writes a demo comment, telling whoever a comment written there tells.
      */
-    private void seedEventComment(int eventId, CommentWriter writer, NewComment comment) {
-        commentService
-                .target(CommentEntityType.EVENT, eventId)
-                .ifPresent(target -> commentService.createOn(target, writer, comment));
+    private void seedComment(CommentEntityType type, int targetId, CommentWriter writer, NewComment comment) {
+        commentService.target(type, targetId).ifPresent(target -> commentService.createOn(target, writer, comment));
     }
 
     /**
@@ -588,7 +582,8 @@ public class DemoFederationSeeder implements DemoSeeder {
                     // demo comment to the next upcoming occurrence so the date shows the
                     // feature in the UI.
                     LocalDate nextOccurrence = nextOccurrenceOf(evUebung);
-                    seedEventComment(
+                    seedComment(
+                            CommentEntityType.EVENT,
                             evUebung.id(),
                             CommentWriter.local(memberIdentityFactory.local(primaryStationId, createdBy), "Admin"),
                             new NewComment(
@@ -617,7 +612,8 @@ public class DemoFederationSeeder implements DemoSeeder {
                     "Wir kommen mit 6 Leuten! Brauchen wir eigene Schläuche?",
                     null);
             // Local reply from partner station member
-            seedEventComment(
+            seedComment(
+                    CommentEntityType.EVENT,
                     fedEvent.id(),
                     CommentWriter.local(
                             memberIdentityFactory.local(partnerStation.id(), partnerMember.id()), "Partner Manager"),
@@ -641,8 +637,11 @@ public class DemoFederationSeeder implements DemoSeeder {
         if (!primaryKbFilesForComments.isEmpty()) {
             var kbFile = primaryKbFilesForComments.getFirst();
             // Local comment on a KB file
-            kbCommentService.createComment(
-                    primaryStationId, kbFile.id(), null, createdBy, "Admin", "Sehr hilfreich, danke!");
+            seedComment(
+                    CommentEntityType.KB,
+                    kbFile.id(),
+                    CommentWriter.local(memberIdentityFactory.local(primaryStationId, createdBy), "Admin"),
+                    new NewComment(null, null, "Sehr hilfreich, danke!"));
         }
         var partnerKbFiles = kbService.findFiles(partnerStation.id(), null);
         if (!partnerKbFiles.isEmpty() && reversePartnerForEvents != null) {
@@ -656,13 +655,12 @@ public class DemoFederationSeeder implements DemoSeeder {
                     null,
                     "Können wir den Ausbildungsleitfaden auch als PDF bekommen?");
             // Reply from the partner station member (local on partner station)
-            kbCommentService.createComment(
-                    partnerStation.id(),
+            seedComment(
+                    CommentEntityType.KB,
                     sharedKbFile.id(),
-                    kc1.id(),
-                    partnerMember.id(),
-                    "Partner Manager",
-                    "Klar, ich lade diese Woche eine PDF-Version hoch.");
+                    CommentWriter.local(
+                            memberIdentityFactory.local(partnerStation.id(), partnerMember.id()), "Partner Manager"),
+                    new NewComment(kc1.id(), null, "Klar, ich lade diese Woche eine PDF-Version hoch."));
         }
         log.info("Demo: Added KB comments (local + federated)");
 

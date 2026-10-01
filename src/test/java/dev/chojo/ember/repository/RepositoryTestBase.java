@@ -133,6 +133,7 @@ import dev.chojo.ember.feature.inventory.service.SelfCheckReviewService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
+import dev.chojo.ember.feature.knowledgebase.service.KbCommentTarget;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
@@ -743,8 +744,9 @@ public abstract class RepositoryTestBase {
         var events = newEventServices(new DomainEventBus(Set.of()));
         var visibility =
                 new EventVisibility(events.crud(), events.restriction(), new GuardianPolicy(stationMemberRepo));
-        Map<CommentEntityType, CommentTarget> targets =
-                Map.of(CommentEntityType.EVENT, new EventCommentTarget(events.crud(), visibility));
+        Map<CommentEntityType, CommentTarget> targets = Map.of(
+                CommentEntityType.EVENT, new EventCommentTarget(events.crud(), visibility),
+                CommentEntityType.KB, new KbCommentTarget(knowledgeBaseRepo));
         return new CommentService(
                 commentRepo,
                 targets,
