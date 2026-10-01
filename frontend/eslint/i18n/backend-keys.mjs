@@ -21,8 +21,10 @@ const READERS = {
  * <p>The files in `keyFiles` hand keys to the frontend as data, and a key they send that German
  * does not define is a missing translation.
  *
- * <p>Each finding is reported in the German file its key belongs to. A Java file that cannot be
- * found is an error too: it means a rename nobody followed here.
+ * <p>Each finding is reported in the German file its key belongs to. Where several files are merged
+ * in under the same prefix, as the refusal areas are, a stale entry is reported in the file holding
+ * it and a missing one in the first of them. A Java file that cannot be found is an error too: it
+ * means a rename nobody followed here.
  */
 export default {
     meta: {
@@ -78,8 +80,12 @@ export default {
                 const defined = germanKeys(german, current, program)
                 const fallback = program.body[0].expression
                 const nodeFor = key => propertyAt(program, entry.prefix, key)?.key ?? fallback
+                const holds = key => propertyAt(program, entry.prefix, key) !== null
                 for (const section of options.sections ?? []) {
-                    if (ownerOf(german, section.prefix) === entry) checkSection(context, section, defined, nodeFor, fallback)
+                    const owner = ownerOf(german, section.prefix)
+                    if (owner.prefix !== entry.prefix) continue
+                    const reach = {reportsMissing: owner === entry, holds}
+                    checkSection(context, section, defined, nodeFor, fallback, reach)
                 }
                 if (entry.prefix === '') checkSentKeys(context, options.keyFiles ?? [], defined, fallback)
             },
@@ -95,20 +101,21 @@ export default {
  * @param defined every German key
  * @param nodeFor where a key of this file is reported
  * @param fallback where a finding without a property of its own is reported
+ * @param reach whether this file reports missing keys, and which stale keys it holds
  */
-function checkSection(context, section, defined, nodeFor, fallback) {
+function checkSection(context, section, defined, nodeFor, fallback, reach) {
     const read = READERS[section.reader ?? 'constants']
     const constants = new Set()
     for (const file of section.enumFiles) {
         const text = javaSource(resolve(context.cwd, file))
         if (text === null) {
-            context.report({node: fallback, messageId: 'missingSource', data: {file}})
+            if (reach.reportsMissing) context.report({node: fallback, messageId: 'missingSource', data: {file}})
             continue
         }
         for (const constant of read(text)) constants.add(constant)
     }
 
-    for (const constant of constants) {
+    for (const constant of reach.reportsMissing ? constants : []) {
         const keys = section.leaves
             ? section.leaves.map(leaf => `${section.prefix}.${constant}.${leaf}`)
             : [`${section.prefix}.${constant}`]
@@ -119,7 +126,7 @@ function checkSection(context, section, defined, nodeFor, fallback) {
 
     const reported = new Set()
     for (const key of defined) {
-        if (!key.startsWith(`${section.prefix}.`)) continue
+        if (!key.startsWith(`${section.prefix}.`) || !reach.holds(key)) continue
         const constant = key.slice(section.prefix.length + 1).split('.')[0]
         if (!/^[A-Z][A-Z0-9_-]*$/.test(constant) || constants.has(constant) || reported.has(constant)) continue
         reported.add(constant)

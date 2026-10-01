@@ -4,7 +4,7 @@ import vueA11y from 'eslint-plugin-vuejs-accessibility'
 import withNuxt from './.nuxt/eslint.config.mjs'
 import * as localeParser from './eslint/i18n/locale-parser.mjs'
 import ember from './eslint/index.mjs'
-import {localeModules, localeSnapshots} from './eslint/locales.mjs'
+import {localeModules, localeSnapshots, refusalAreaFiles} from './eslint/locales.mjs'
 import {
     GENERIC_FAILURE,
     INLINE_DATE_FORMAT,
@@ -21,13 +21,16 @@ import {
  */
 const SNAPSHOTS = await localeSnapshots()
 
+/** The refusal areas, each a file of German texts merged in under `refusal`. */
+const REFUSAL_AREAS = refusalAreaFiles()
+
 /** The locale modules, which only the locale rules read. */
-const LOCALE_FILES = ['src/i18n/de-DE.ts', 'src/i18n/de-DE.*.ts', 'src/i18n/en.ts']
+const LOCALE_FILES = ['src/i18n/de-DE.ts', 'src/i18n/de-DE.*.ts', 'src/i18n/en.ts', ...REFUSAL_AREAS]
 
 /** The German messages: the main file, and the blocks that live in files of their own under a prefix. */
 const GERMAN = [
     {file: 'src/i18n/de-DE.ts'},
-    {file: 'src/i18n/de-DE.refusals.ts', prefix: 'refusal'},
+    ...REFUSAL_AREAS.map(file => ({file, prefix: 'refusal'})),
     {file: 'src/i18n/de-DE.helpcenter.ts', prefix: 'helpCenter'},
 ]
 

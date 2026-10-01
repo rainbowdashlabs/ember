@@ -1,8 +1,9 @@
-import {mkdirSync, writeFileSync} from 'node:fs'
+import {mkdirSync, readdirSync, writeFileSync} from 'node:fs'
 import {fileURLToPath} from 'node:url'
 import {createJiti} from 'jiti'
 
 const I18N = fileURLToPath(new URL('../src/i18n/', import.meta.url))
+const REFUSALS = 'refusals/'
 const SNAPSHOTS = fileURLToPath(new URL('../node_modules/.cache/ember-eslint/locales/', import.meta.url))
 
 /**
@@ -41,7 +42,22 @@ export async function localeSnapshots() {
  * @returns the glob of the German and English modules
  */
 export function localeModules() {
-    return `${I18N}{de-DE,de-DE.*,en}.ts`
+    return `${I18N}{de-DE,de-DE.*,en,refusals/*}.ts`
+}
+
+/**
+ * The files holding the German refusal texts, one per area, relative to the frontend directory.
+ *
+ * <p>`de-DE.refusals.ts` merges them under `refusal`; the sentences several areas share live in
+ * `refusals/shared.ts`, which holds no codes of its own and so is left out.
+ *
+ * @returns the area files, sorted
+ */
+export function refusalAreaFiles() {
+    return readdirSync(`${I18N}${REFUSALS}`)
+        .filter(name => name.endsWith('.ts') && name !== 'shared.ts')
+        .sort()
+        .map(name => `src/i18n/${REFUSALS}${name}`)
 }
 
 /**

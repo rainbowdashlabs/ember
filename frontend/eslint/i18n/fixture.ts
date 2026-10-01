@@ -34,7 +34,8 @@ export function fixtureSource(path: string): string {
 /** The German files of the fixture, as the rules' options name them. */
 export const GERMAN = [
     {file: fixture('src/i18n/de-DE.ts')},
-    {file: fixture('src/i18n/de-DE.refusals.ts'), prefix: 'refusal'},
+    {file: fixture('src/i18n/refusals/forms.ts'), prefix: 'refusal'},
+    {file: fixture('src/i18n/refusals/general.ts'), prefix: 'refusal'},
     {file: fixture('src/i18n/de-DE.helpcenter.ts'), prefix: 'helpCenter'},
 ]
 

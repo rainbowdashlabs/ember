@@ -47,13 +47,20 @@ localeRuleTester().run('i18n-backend-keys', rule, {
         },
         {
             name: 'reads refusals by their code, in the file that holds them',
-            filename: fixture('src/i18n/de-DE.refusals.ts'),
-            code: fixtureSource('src/i18n/de-DE.refusals.ts'),
+            filename: fixture('src/i18n/refusals/forms.ts'),
+            code: fixtureSource('src/i18n/refusals/forms.ts'),
             options: [OPTIONS],
             errors: [
                 {message: "Missing translation for enum value F-003: 'refusal.F-003'."},
                 {message: 'Stale refusal entry F-002: no enum value matches it.', line: 5},
             ],
+        },
+        {
+            name: 'reports a stale refusal in the area file holding it, and a missing one only in the first',
+            filename: fixture('src/i18n/refusals/general.ts'),
+            code: fixtureSource('src/i18n/refusals/general.ts'),
+            options: [OPTIONS],
+            errors: [{message: 'Stale refusal entry G-009: no enum value matches it.', line: 5}],
         },
         {
             name: 'reports a Java file that is not there',

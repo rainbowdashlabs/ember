@@ -29,6 +29,17 @@ describe('the locale parser', () => {
         expect(leafKeys(messagesOf(ast))).toEqual(['a'])
     })
 
+    it('resolves a constant imported from a sibling module to its string', () => {
+        expect(localeMessagesOf(fixture('src/i18n/refusals/general.ts')))
+            .toEqual({'G-001': 'Das gibt es nicht mehr', 'G-009': 'Alt'})
+    })
+
+    it('leaves an imported constant unknown when the module has no path to resolve it against', () => {
+        const {ast} = parseForESLint("import {GONE} from './shared'\nexport default {a: GONE, b: 'c'}")
+
+        expect(leafKeys(messagesOf(ast))).toEqual(['b'])
+    })
+
     it('reads a module from disk, keys dotted under a prefix', () => {
         expect(leafKeys(localeMessagesOf(fixture('src/i18n/de-DE.helpcenter.ts')), 'helpCenter'))
             .toEqual(['helpCenter.title', 'helpCenter.orphan'])

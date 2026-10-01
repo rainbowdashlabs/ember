@@ -26,8 +26,8 @@ localeRuleTester().run('i18n-unused-keys', rule, {
     valid: [
         {
             name: 'every refusal is reached through the key built from its code',
-            filename: fixture('src/i18n/de-DE.refusals.ts'),
-            code: fixtureSource('src/i18n/de-DE.refusals.ts'),
+            filename: fixture('src/i18n/refusals/forms.ts'),
+            code: fixtureSource('src/i18n/refusals/forms.ts'),
             options: [OPTIONS],
         },
         {

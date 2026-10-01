@@ -1,4 +1,5 @@
-import {readFileSync, statSync} from 'node:fs'
+import {existsSync, readFileSync, statSync} from 'node:fs'
+import {dirname, resolve} from 'node:path'
 import * as typescriptParser from '@typescript-eslint/parser'
 import * as jsonc from 'jsonc-eslint-parser'
 
@@ -13,7 +14,9 @@ import * as jsonc from 'jsonc-eslint-parser'
  *
  * <p>A value may be a string, a concatenation of strings, a template literal without substitutions,
  * a number, a boolean or a nested object. An identifier naming a constant declared in the module
- * stands for that constant's value, which is how the refusals share one sentence between codes. An
+ * stands for that constant's value, which is how the refusals share one sentence between codes. So
+ * does a constant imported by name from a sibling module, which is how the refusal areas share one
+ * sentence between files; it stands in as the plain string, at the identifier's place. An
  * identifier naming anything else, such as an imported block merged in under its key, becomes an
  * empty object: it is a block that lives in a file of its own and is read there.
  *
@@ -21,12 +24,13 @@ import * as jsonc from 'jsonc-eslint-parser'
  * this parser alone and run only rules written for the JSON AST on them.
  *
  * @param code the module's source
+ * @param options the parser options, whose `filePath` the imports are resolved against
  * @returns what ESLint expects of a parser
  */
-export function parseForESLint(code) {
-    const program = typescriptParser.parse(code, {range: true, loc: true, tokens: true, comment: true, sourceType: 'module'})
+export function parseForESLint(code, options = {}) {
+    const program = parseModule(code)
     const exported = program.body.find(statement => statement.type === 'ExportDefaultDeclaration')
-    const constants = moduleConstants(program)
+    const constants = moduleConstants(program, options.filePath)
     const expression = exported
         ? convert(unwrap(exported.declaration), constants)
         : {type: 'JSONObjectExpression', properties: [], range: program.range, loc: program.loc}
@@ -61,7 +65,7 @@ export function localeMessagesOf(file) {
     const modified = statSync(file).mtimeMs
     const cached = cache.get(file)
     if (cached && cached.modified === modified) return cached.messages
-    const messages = messagesOf(parseForESLint(readFileSync(file, 'utf-8')).ast)
+    const messages = messagesOf(parseForESLint(readFileSync(file, 'utf-8'), {filePath: file}).ast)
     cache.set(file, {modified, messages})
     return messages
 }
@@ -94,20 +98,75 @@ export function leafKeys(messages, prefix = '') {
 }
 
 /**
- * The constants declared at the top of a module, by name, with the expression each is set to.
+ * A module's source as a TypeScript AST with ranges, locations, tokens and comments.
+ *
+ * @param code the source
+ * @returns the program
+ */
+function parseModule(code) {
+    return typescriptParser.parse(code, {range: true, loc: true, tokens: true, comment: true, sourceType: 'module'})
+}
+
+/**
+ * The constants a module can name: those declared at its top, exported or not, with the expression
+ * each is set to, and those it imports by name from a relative module, with the string each holds.
  *
  * @param program the parsed module
- * @returns the declarations
+ * @param filePath the module's absolute path, without which imports are not followed
+ * @returns the constants by name, as `{node}` for a declaration and `{value}` for an import
  */
-function moduleConstants(program) {
+function moduleConstants(program, filePath) {
     const constants = new Map()
     for (const statement of program.body) {
-        if (statement.type !== 'VariableDeclaration' || statement.kind !== 'const') continue
-        for (const declarator of statement.declarations) {
-            if (declarator.id.type === 'Identifier' && declarator.init) constants.set(declarator.id.name, declarator.init)
+        const declaration = statement.type === 'ExportNamedDeclaration' ? statement.declaration : statement
+        if (declaration?.type === 'VariableDeclaration' && declaration.kind === 'const') {
+            for (const declarator of declaration.declarations) {
+                if (declarator.id.type === 'Identifier' && declarator.init) constants.set(declarator.id.name, {node: declarator.init})
+            }
         }
+        if (statement.type === 'ImportDeclaration' && filePath) importConstants(statement, filePath, constants)
     }
     return constants
+}
+
+/**
+ * Adds the string constants one import names to a module's constants.
+ *
+ * <p>Only a relative module that exists as a `.ts` file is followed, and only a name it declares as
+ * a constant with a static string value is taken. Anything else stays unknown, as it was before.
+ *
+ * @param statement the import declaration
+ * @param filePath the importing module's absolute path
+ * @param constants the constants to add to
+ */
+function importConstants(statement, filePath, constants) {
+    const source = statement.source.value
+    if (!source.startsWith('.')) return
+    const file = resolve(dirname(filePath), source.endsWith('.ts') ? source : `${source}.ts`)
+    if (!existsSync(file)) return
+    const imported = moduleConstants(parseModule(readFileSync(file, 'utf-8')), file)
+    for (const specifier of statement.specifiers) {
+        if (specifier.type !== 'ImportSpecifier') continue
+        const constant = imported.get(specifier.imported.name)
+        const value = constant && staticValue(constant, imported)
+        if (typeof value === 'string') constants.set(specifier.local.name, {value})
+    }
+}
+
+/**
+ * The value a constant holds, read without running anything.
+ *
+ * @param constant the constant, as `moduleConstants` records it
+ * @param constants the constants of the module declaring it
+ * @returns the value, or undefined where it is not static
+ */
+function staticValue(constant, constants) {
+    if ('value' in constant) return constant.value
+    try {
+        return jsonc.getStaticJSONValue(convert(unwrap(constant.node), constants))
+    } catch {
+        return undefined
+    }
 }
 
 /**
@@ -145,13 +204,28 @@ function convert(node, constants) {
         case 'BinaryExpression':
             return {type: 'JSONBinaryExpression', operator: node.operator, left: convert(node.left, constants), right: convert(node.right, constants), ...at}
         case 'Identifier':
-            return constants.has(node.name) ? convert(unwrap(constants.get(node.name)), constants) : emptyObject(at)
+            return constantNode(constants.get(node.name), constants, at)
         case 'TSAsExpression':
         case 'TSSatisfiesExpression':
             return convert(unwrap(node), constants)
         default:
             return emptyObject(at)
     }
+}
+
+/**
+ * The JSON AST node an identifier stands for: a declared constant's expression, an imported
+ * constant's string at the identifier's place, or an empty object for anything else.
+ *
+ * @param constant the constant the identifier names, if any
+ * @param constants the module's constants
+ * @param at the identifier's range and location
+ * @returns the node
+ */
+function constantNode(constant, constants, at) {
+    if (!constant) return emptyObject(at)
+    if ('value' in constant) return {type: 'JSONLiteral', value: constant.value, raw: JSON.stringify(constant.value), ...at}
+    return convert(unwrap(constant.node), constants)
 }
 
 /**

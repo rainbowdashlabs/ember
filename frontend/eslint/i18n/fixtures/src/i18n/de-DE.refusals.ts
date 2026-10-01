@@ -1,6 +1,7 @@
-const GONE = 'Das gibt es nicht mehr'
+import forms from './refusals/forms'
+import general from './refusals/general'
 
 export default {
-    'F-001': GONE,
-    'F-002': 'Zwei',
+    ...forms,
+    ...general,
 }
