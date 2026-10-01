@@ -110,6 +110,19 @@ public final class QuestionCheck {
         return value.isEmpty() ? Optional.empty() : value(question, value);
     }
 
+    /**
+     * Whether the question's own default is an answer it would take, including whether every member
+     * it names passes the group, user type or tag the question is narrowed to.
+     *
+     * @param question    the question as it is being configured
+     * @param eligibility who passes which narrowing
+     * @return what is wrong with its default, or empty where it has none or it is fine
+     */
+    public static Optional<QuestionProblem> defaultValue(Question question, MemberEligibility eligibility) {
+        return defaultValue(question)
+                .or(() -> eligible(question, QuestionValues.said(question.defaultValue()), eligibility));
+    }
+
     private static Optional<QuestionProblem> value(Question question, String value) {
         return switch (question.kind()) {
             case TEXT, LONG_TEXT -> Optional.empty();

@@ -162,7 +162,7 @@ class FieldTypeTest {
     @Test
     void featureTypesAreStoredUnderTheSharedNames() {
         for (var type : EventFieldType.values()) {
-            assertEquals(type, EventFieldType.stored(type.fieldType().name()));
+            assertEquals(type, EventFieldType.of(type.fieldType()));
         }
         for (var type : ProfileFieldType.values()) {
             assertEquals(type, ProfileFieldType.stored(type.fieldType().name()));
@@ -182,14 +182,15 @@ class FieldTypeTest {
                     dev.chojo.ember.feature.inventory.entity.FieldType.stored(
                             type.fieldType().name()));
         }
-        assertEquals(EventFieldType.STRING, EventFieldType.stored("TEXT"));
-        assertEquals(EventFieldType.TEXTAREA, EventFieldType.stored("LONG_TEXT"));
+        assertEquals(EventFieldType.STRING, EventFieldType.of(FieldType.TEXT));
+        assertEquals(EventFieldType.TEXTAREA, EventFieldType.of(FieldType.LONG_TEXT));
         assertEquals(BoardFieldType.ENUM, BoardFieldType.stored("CHOICE"));
     }
 
     @Test
     void anOldSpellingIsNoLongerRead() {
-        assertThrows(IllegalArgumentException.class, () -> EventFieldType.stored("STRING"));
+        assertThrows(IllegalArgumentException.class, () -> FieldType.valueOf("STRING"));
+        assertThrows(IllegalArgumentException.class, () -> EventFieldType.of(FieldType.AGE));
         assertThrows(IllegalArgumentException.class, () -> ProfileFieldType.stored("ENUM"));
     }
 

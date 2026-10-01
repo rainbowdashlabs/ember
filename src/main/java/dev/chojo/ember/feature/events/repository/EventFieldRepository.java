@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
-import dev.chojo.ember.feature.events.entity.EventField;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -47,18 +47,18 @@ public class EventFieldRepository {
             FROM event_field ef
             LEFT JOIN event_field_date_value dv ON dv.field_id = ef.id AND dv.event_date = :event_date""";
 
-    public Optional<EventField> findById(int fieldId) {
-        return SqlSupport.findById("event_field", EVENT_FIELD_COLUMNS, fieldId, EventField.map());
+    public Optional<AppointmentField> findById(int fieldId) {
+        return SqlSupport.findById("event_field", EVENT_FIELD_COLUMNS, fieldId, AppointmentField.map());
     }
 
     /** One question as it stands on one date of the appointment. */
-    public Optional<EventField> findByIdOn(int fieldId, LocalDate date) {
+    public Optional<AppointmentField> findByIdOn(int fieldId, LocalDate date) {
         return query("""
                 SELECT %s
                 %s
                 WHERE ef.id = :id;""", EVENT_FIELD_COLUMNS_ON_DATE, ON_DATE_JOIN)
                 .single(call().bind("id", fieldId).bind("event_date", date))
-                .map(EventField.map())
+                .map(AppointmentField.map())
                 .first();
     }
 
@@ -81,30 +81,30 @@ public class EventFieldRepository {
                 .insert();
     }
 
-    public List<EventField> findByEvent(int eventId) {
+    public List<AppointmentField> findByEvent(int eventId) {
         return query("""
                 SELECT %s
                 FROM event_field
                 WHERE event_id = :event_id
                 ORDER BY position;""", EVENT_FIELD_COLUMNS)
                 .single(call().bind("event_id", eventId))
-                .map(EventField.map())
+                .map(AppointmentField.map())
                 .all();
     }
 
     /** Every question of an appointment as it stands on one of its dates. */
-    public List<EventField> findByEventOn(int eventId, LocalDate date) {
+    public List<AppointmentField> findByEventOn(int eventId, LocalDate date) {
         return query("""
                 SELECT %s
                 %s
                 WHERE ef.event_id = :event_id
                 ORDER BY ef.position;""", EVENT_FIELD_COLUMNS_ON_DATE, ON_DATE_JOIN)
                 .single(call().bind("event_id", eventId).bind("event_date", date))
-                .map(EventField.map())
+                .map(AppointmentField.map())
                 .all();
     }
 
-    public List<EventField> findOverviewFieldsByEvents(List<Integer> eventIds) {
+    public List<AppointmentField> findOverviewFieldsByEvents(List<Integer> eventIds) {
         if (eventIds.isEmpty()) return List.of();
         return query("""
                 SELECT %s
@@ -112,7 +112,7 @@ public class EventFieldRepository {
                 WHERE event_id = ANY(:event_ids) AND overview
                 ORDER BY event_id, position;""", EVENT_FIELD_COLUMNS)
                 .single(call().bind("event_ids", eventIds, PostgreSqlTypes.INTEGER))
-                .map(EventField.map())
+                .map(AppointmentField.map())
                 .all();
     }
 
@@ -123,7 +123,7 @@ public class EventFieldRepository {
      * query would answer most of them wrongly. The dates arrive as two lists read in step, which is
      * how a set of pairs travels into a single statement.
      */
-    public List<EventField> findOverviewFieldsByEventsOn(List<Integer> eventIds, List<LocalDate> dates) {
+    public List<AppointmentField> findOverviewFieldsByEventsOn(List<Integer> eventIds, List<LocalDate> dates) {
         if (eventIds.isEmpty()) return List.of();
         return query("""
                 SELECT %s
@@ -135,7 +135,7 @@ public class EventFieldRepository {
                 ORDER BY ef.event_id, ef.position;""", EVENT_FIELD_COLUMNS_ON_DATE)
                 .single(call().bind("event_ids", eventIds, PostgreSqlTypes.INTEGER)
                         .bind("dates", dates, PostgreSqlTypes.DATE))
-                .map(EventField.map())
+                .map(AppointmentField.map())
                 .all();
     }
 
@@ -226,9 +226,9 @@ public class EventFieldRepository {
 
     /** The appointments that ask at least one question naming members. */
     public List<Integer> findEventIdsWithMemberFields() {
-        var memberTypes = Arrays.stream(EventFieldType.values())
-                .filter(EventFieldType::isMemberField)
-                .map(type -> type.fieldType().name())
+        var memberTypes = Arrays.stream(FieldType.values())
+                .filter(FieldType::namesMembers)
+                .map(FieldType::name)
                 .toList();
         return query("""
                 SELECT DISTINCT event_id
@@ -253,11 +253,11 @@ public class EventFieldRepository {
                 .all();
     }
 
-    public EventField create(
+    public AppointmentField create(
             int eventId,
             String name,
-            EventFieldType fieldType,
-            EventFieldConfig config,
+            FieldType fieldType,
+            EventQuestionSettings config,
             String value,
             int position,
             boolean overview,
@@ -270,14 +270,14 @@ public class EventFieldRepository {
                 RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("name", name)
-                        .bind("field_type", fieldType.fieldType())
+                        .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("value", value)
                         .bind("position", position)
                         .bind("overview", overview)
                         .bind("attendance_field_id", attendanceFieldId)
                         .bind("public", isPublic),
-                EventField.map(),
+                AppointmentField.map(),
                 EVENT_FIELD_COLUMNS);
     }
 
@@ -300,20 +300,17 @@ public class EventFieldRepository {
         var kept = new ArrayList<Integer>(fields.size());
         for (int i = 0; i < fields.size(); i++) {
             var field = fields.get(i);
-            var type = field.fieldType() != null ? field.fieldType() : EventFieldType.STRING;
-            var config = field.config() != null ? field.config() : EventFieldConfig.empty();
-            String value = field.value() != null ? field.value() : "";
             Integer fieldId = field.id();
-            if (fieldId != null && update(fieldId, eventId, field, type, config, value, i)) {
+            if (fieldId != null && update(fieldId, eventId, field, i)) {
                 kept.add(fieldId);
                 continue;
             }
             kept.add(create(
                             eventId,
                             field.name(),
-                            type,
-                            config,
-                            value,
+                            field.fieldType(),
+                            field.config(),
+                            field.value(),
                             i,
                             field.overview(),
                             field.attendanceFieldId(),
@@ -323,14 +320,7 @@ public class EventFieldRepository {
         deleteByEventExcept(eventId, kept);
     }
 
-    private boolean update(
-            int fieldId,
-            int eventId,
-            EventFieldDraft field,
-            EventFieldType type,
-            EventFieldConfig config,
-            String value,
-            int position) {
+    private boolean update(int fieldId, int eventId, EventFieldDraft field, int position) {
         return query("""
                 UPDATE event_field
                 SET name = :name,
@@ -345,9 +335,9 @@ public class EventFieldRepository {
                 .single(call().bind("id", fieldId)
                         .bind("event_id", eventId)
                         .bind("name", field.name())
-                        .bind("field_type", type.fieldType())
-                        .bind("config", config.toJson())
-                        .bind("value", value)
+                        .bind("field_type", field.fieldType())
+                        .bind("config", field.config().toJson())
+                        .bind("value", field.value())
                         .bind("position", position)
                         .bind("overview", field.overview())
                         .bind("attendance_field_id", field.attendanceFieldId())

@@ -133,8 +133,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 new EventFieldService(
                         eventFieldRepo,
                         stationMemberRepo,
-                        memberGroupRepo,
-                        mock(UserTagService.class),
+                        memberEligibility,
                         eventRepo,
                         attendanceRepo,
                         eventFieldRegistrationService),

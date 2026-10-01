@@ -6,13 +6,13 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.service.MemberTableService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -53,7 +53,7 @@ class EventMemberTableServiceTest extends RepositoryTestBase {
         questionRepo = new EventRegistrationFieldRepository();
         service = new EventMemberTableService(
                 eventRegistrationRepo,
-                new EventRegistrationFieldService(questionRepo),
+                new EventRegistrationFieldService(questionRepo, memberEligibility),
                 new MemberTableService(profileFieldRepo, stationMemberRepo));
 
         station = stationRepo.create("TabellenTerminWache");
@@ -86,14 +86,14 @@ class EventMemberTableServiceTest extends RepositoryTestBase {
                 .id();
 
         openQuestionId = questionRepo
-                .create(eventId, "Schuhgröße", EventFieldType.STRING, EventRegistrationFieldConfig.parse("{}"), 0, true)
+                .create(eventId, "Schuhgröße", FieldType.TEXT, EventQuestionSettings.empty(), 0, true)
                 .id();
         hiddenQuestionId = questionRepo
                 .create(
                         eventId,
                         "Interne Notiz",
-                        EventFieldType.STRING,
-                        EventRegistrationFieldConfig.parse("{\"managersOnly\":true}"),
+                        FieldType.TEXT,
+                        EventQuestionSettings.parse("{\"managersOnly\":true}"),
                         1,
                         true)
                 .id();

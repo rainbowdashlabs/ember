@@ -5,12 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
-import de.chojo.sadu.mapper.rowmapper.RowMapping;
-
 /**
- * A registration question carried by an event template. Creating an event from the template copies
- * these into the event; the copies are independent afterwards, so editing a template never rewrites
- * questions members have already answered.
+ * A registration question carried by an event template, as screens read it.
  */
 public record EventTemplateRegistrationField(
         int id,
@@ -21,14 +17,15 @@ public record EventTemplateRegistrationField(
         int position,
         boolean overview) {
 
-    public static RowMapping<EventTemplateRegistrationField> map() {
-        return row -> new EventTemplateRegistrationField(
-                row.getInt("id"),
-                row.getInt("template_id"),
-                row.getString("name"),
-                EventFieldType.stored(row.getString("field_type")),
-                EventRegistrationFieldConfig.parse(row.getString("config")),
-                row.getInt("position"),
-                row.getBoolean("overview"));
+    /** The shape screens read a template's registration question in. */
+    public static EventTemplateRegistrationField of(RegistrationTemplateField field) {
+        return new EventTemplateRegistrationField(
+                field.id(),
+                field.templateId(),
+                field.name(),
+                EventFieldType.of(field.fieldType()),
+                EventRegistrationFieldConfig.of(field.config()),
+                field.position(),
+                field.overview());
     }
 }

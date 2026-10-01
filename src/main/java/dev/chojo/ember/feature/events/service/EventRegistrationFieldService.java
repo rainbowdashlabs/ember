@@ -5,15 +5,17 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventTemplateRegistrationField;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
+import dev.chojo.ember.feature.question.MemberEligibility;
 import dev.chojo.ember.feature.question.QuestionCheck;
+import dev.chojo.ember.feature.question.QuestionValues;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -38,47 +40,86 @@ public class EventRegistrationFieldService {
     private static final Logger log = LoggerFactory.getLogger(EventRegistrationFieldService.class);
 
     private final EventRegistrationFieldRepository repository;
+    private final MemberEligibility eligibility;
 
     @Inject
-    public EventRegistrationFieldService(EventRegistrationFieldRepository repository) {
+    public EventRegistrationFieldService(EventRegistrationFieldRepository repository, MemberEligibility eligibility) {
         this.repository = repository;
+        this.eligibility = eligibility;
     }
 
     public List<EventRegistrationField> findByEvent(int eventId) {
         return repository.findByEvent(eventId);
     }
 
+    /**
+     * Replaces the questions an appointment asks of its registrants.
+     *
+     * @throws io.javalin.http.HttpResponseException where a new question asks for a kind of answer
+     *                                               the registration form does not offer
+     * @throws BadRequestResponse                    naming a question whose default it would refuse
+     */
     public void replaceFields(int eventId, List<RegistrationFieldDraft> fields) {
+        var asked = repository.findByEvent(eventId).stream()
+                .map(field -> new Asked(field.name(), field.fieldType()))
+                .collect(Collectors.toSet());
+        requireOffered(fields, asked);
         requireUsableDefaults(fields);
         repository.replaceFields(eventId, fields);
         log.info("Event {} now asks {} question(s)", eventId, fields.size());
     }
 
-    public List<EventTemplateRegistrationField> findByTemplate(int templateId) {
-        return repository.findByTemplate(templateId);
-    }
-
-    public void replaceTemplateFields(int templateId, List<RegistrationFieldDraft> fields) {
-        requireUsableDefaults(fields);
-        repository.replaceTemplateFields(templateId, fields);
-        log.info("Event template {} now asks {} question(s)", templateId, fields.size());
+    /**
+     * Refuses a kind of answer the registration form does not offer.
+     *
+     * <p>The editor offers a handful of kinds, and anything else could only arrive from a caller that
+     * is not the editor: a place or a member of a group asked of every registrant has no form that
+     * answers it. A question already asked under its name and type is kept, because the editor writes
+     * every question back on each save and what was accepted once is not refused on the next.
+     *
+     * @param fields       the questions being written
+     * @param alreadyAsked the questions asked before this write
+     * @throws io.javalin.http.HttpResponseException where a new question is of a kind not offered
+     */
+    static void requireOffered(List<RegistrationFieldDraft> fields, Set<Asked> alreadyAsked) {
+        for (var field : fields) {
+            if (FieldTypes.REGISTRATION.contains(field.fieldType())) continue;
+            if (alreadyAsked.contains(new Asked(field.name(), field.fieldType()))) continue;
+            throw Refusal.REGISTRATION_QUESTION_TYPE_NOT_OFFERED.raise();
+        }
     }
 
     /**
-     * Copies a template's questions into a freshly created event. The copies are independent: a
-     * later template edit never rewrites questions members have already answered.
+     * Refuses a question configured to start from a value it would then refuse as an answer.
      *
-     * @param templateId the template being applied
-     * @param eventId    the event being created from it
+     * <p>A choice whose default is not among its options, a number whose default lies outside its
+     * bounds: both were written happily and only ever failed later, at somebody else's screen, in
+     * words about an answer they had not given.
+     *
+     * @param fields      the questions as they are being written
+     * @param eligibility who passes the group, user type or tag a member question is narrowed to
+     * @throws BadRequestResponse naming the question and what is wrong with its default
      */
-    public void copyTemplateFields(int templateId, int eventId) {
-        var fields = repository.findByTemplate(templateId).stream()
-                .map(f -> new RegistrationFieldDraft(f.name(), f.fieldType(), f.config(), f.overview()))
-                .toList();
-        if (fields.isEmpty()) return;
-        repository.replaceFields(eventId, fields);
-        log.info("Event {} took {} question(s) from template {}", eventId, fields.size(), templateId);
+    static void requireUsableDefaults(List<RegistrationFieldDraft> fields, MemberEligibility eligibility) {
+        for (var field : fields) {
+            var question = field.config().asQuestion(field.name(), field.fieldType());
+            QuestionCheck.defaultValue(question, eligibility).ifPresent(problem -> {
+                throw new BadRequestResponse(problem.message());
+            });
+        }
     }
+
+    private void requireUsableDefaults(List<RegistrationFieldDraft> fields) {
+        requireUsableDefaults(fields, eligibility);
+    }
+
+    /**
+     * A question by what identifies it from one save to the next.
+     *
+     * @param name what it is called
+     * @param type the answer it takes
+     */
+    record Asked(String name, FieldType type) {}
 
     public List<RegistrationFieldValue> findValues(int registrationId) {
         return repository.findValues(registrationId);
@@ -102,9 +143,9 @@ public class EventRegistrationFieldService {
      * registration behind.
      *
      * <p>A question with no answer falls back to its configured default. A required question with
-     * neither is refused; every other rule - the options of a choice, the range of a number - is
-     * checked the same way for a member answering their own registration and for a manager filling
-     * one in on their behalf.
+     * neither is refused; every other rule - the options of a choice, the range of a number, the group
+     * a member question is narrowed to - is checked the same way for a member answering their own
+     * registration and for a manager filling one in on their behalf.
      *
      * <p>Every question the appointment asks takes part, the ones whose answers are kept for
      * organisers included. Those are answered by whoever registers like any other; only the answer
@@ -116,25 +157,9 @@ public class EventRegistrationFieldService {
      * @throws BadRequestResponse when a question is unanswered, unknown, or answered out of range
      */
     public Map<Integer, String> resolveAnswers(int eventId, Map<Integer, String> answers) {
-        return resolveAnswers(eventId, answers, true);
-    }
-
-    /**
-     * Resolves the answers of somebody correcting a registration, leaving the questions whose
-     * answers they may not read out of it.
-     *
-     * <p>Only editing needs this. What such a caller cannot read they cannot have been shown, so
-     * requiring them to send it back would refuse every correction they make, and the answer they
-     * did not send stays where it is rather than being wiped by their edit.
-     *
-     * @param readsHiddenAnswers whether this caller may read the answers kept for organisers
-     */
-    private Map<Integer, String> resolveAnswers(int eventId, Map<Integer, String> answers, boolean readsHiddenAnswers) {
-        var fields = repository.findByEvent(eventId).stream()
-                .filter(field -> readsHiddenAnswers || !field.config().managersOnly())
-                .toList();
+        var fields = repository.findByEvent(eventId);
         if (fields.isEmpty()) return Map.of();
-        return validate(fields, answers);
+        return validate(fields, answers, eligibility);
     }
 
     /**
@@ -212,7 +237,9 @@ public class EventRegistrationFieldService {
      * Replaces the answers of an existing registration, dropping any that the new set leaves out.
      *
      * <p>Only the questions whose answers the caller may read take part. An answer they were never
-     * shown is not theirs to erase, so it survives their edit untouched.
+     * shown is not theirs to erase, so it survives their edit untouched. A member the registration
+     * already names stays named although they have since left the group the question is narrowed to:
+     * correcting another answer is not the moment to refuse what was accepted before.
      *
      * @param eventId            the event the registration belongs to
      * @param registrationId     the registration being updated
@@ -222,10 +249,16 @@ public class EventRegistrationFieldService {
      */
     public void replaceAnswers(
             int eventId, int registrationId, Map<Integer, String> answers, boolean readsHiddenAnswers) {
-        var resolved = resolveAnswers(eventId, answers, readsHiddenAnswers);
+        var stored = repository.findValues(registrationId);
+        var fields = repository.findByEvent(eventId).stream()
+                .filter(field -> readsHiddenAnswers || !field.config().managersOnly())
+                .toList();
+        var keeping = NamedAlready.in(
+                stored.stream().map(RegistrationFieldValue::value).toList(), eligibility);
+        var resolved = fields.isEmpty() ? Map.<Integer, String>of() : validate(fields, answers, keeping);
         var hidden = hiddenFieldIds(eventId, readsHiddenAnswers);
 
-        for (var value : repository.findValues(registrationId)) {
+        for (var value : stored) {
             if (hidden.contains(value.fieldId())) continue;
             repository.deleteValue(registrationId, value.fieldId());
         }
@@ -240,14 +273,17 @@ public class EventRegistrationFieldService {
 
     /**
      * Resolves the answers a registration should carry, applying defaults and refusing anything the
-     * questions do not allow. Returns the value to store per question id.
+     * questions do not allow. Returns the value to store per question id, in the one shape its type is
+     * stored in.
      *
-     * @param fields  the event's questions
-     * @param answers the answers as submitted, keyed by question id
+     * @param fields      the event's questions
+     * @param answers     the answers as submitted, keyed by question id
+     * @param eligibility who passes the group, user type or tag a member question is narrowed to
      * @return the value to store per question id
      * @throws BadRequestResponse when a question is unanswered, unknown, or answered out of range
      */
-    public Map<Integer, String> validate(List<EventRegistrationField> fields, Map<Integer, String> answers) {
+    private static Map<Integer, String> validate(
+            List<EventRegistrationField> fields, Map<Integer, String> answers, MemberEligibility eligibility) {
         var known = fields.stream().map(EventRegistrationField::id).collect(Collectors.toSet());
         for (Integer fieldId : answers.keySet()) {
             if (!known.contains(fieldId)) {
@@ -259,34 +295,13 @@ public class EventRegistrationFieldService {
         for (var field : fields) {
             String value = answers.get(field.id());
             if (isBlank(value)) value = field.config().defaultValue();
-            QuestionCheck.answer(field.question(), value).ifPresent(problem -> {
+            QuestionCheck.answer(field.question(), value, eligibility).ifPresent(problem -> {
                 throw new BadRequestResponse(problem.message());
             });
             if (isBlank(value)) continue;
-            resolved.put(field.id(), value);
+            resolved.put(field.id(), QuestionValues.writeText(field.fieldType(), value));
         }
         return resolved;
-    }
-
-    /**
-     * Refuses a question configured to start from a value it would then refuse as an answer.
-     *
-     * <p>A choice whose default is not among its options, a number whose default lies outside its
-     * bounds: both were written happily and only ever failed later, at somebody else's screen, in
-     * words about an answer they had not given.
-     *
-     * @param fields the questions as they are being written
-     * @throws BadRequestResponse naming the question and what is wrong with its default
-     */
-    private void requireUsableDefaults(List<RegistrationFieldDraft> fields) {
-        for (var field : fields) {
-            var type = field.fieldType() != null ? field.fieldType() : EventFieldType.STRING;
-            var config = field.config() != null ? field.config() : EventRegistrationFieldConfig.empty();
-            var question = new EventRegistrationField(0, 0, field.name(), type, config, 0, field.overview()).question();
-            QuestionCheck.defaultValue(question).ifPresent(problem -> {
-                throw new BadRequestResponse(problem.message());
-            });
-        }
     }
 
     private static boolean isBlank(@Nullable String value) {

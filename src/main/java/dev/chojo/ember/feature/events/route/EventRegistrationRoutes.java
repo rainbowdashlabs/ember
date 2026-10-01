@@ -15,6 +15,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
@@ -448,7 +449,7 @@ public class EventRegistrationRoutes implements Routes {
         int eventId = pathInt(ctx, "eventId");
         visibility.requireVisibleEvent(session, eventId);
         ctx.json(registrationFieldService.findByEvent(eventId).stream()
-                .map(f -> new RegistrationFieldResponse(f.id(), f.name(), f.fieldType(), f.config(), f.overview()))
+                .map(RegistrationFieldResponse::of)
                 .toList());
     }
 
@@ -990,7 +991,18 @@ public class EventRegistrationRoutes implements Routes {
     public record RegistrationFieldsRequest(List<EventRegistrationFieldValue> fields) {}
 
     public record RegistrationFieldResponse(
-            int id, String name, EventFieldType fieldType, EventRegistrationFieldConfig config, boolean overview) {}
+            int id, String name, EventFieldType fieldType, EventRegistrationFieldConfig config, boolean overview) {
+
+        /** The shape screens read a registration question in. */
+        static RegistrationFieldResponse of(EventRegistrationField field) {
+            return new RegistrationFieldResponse(
+                    field.id(),
+                    field.name(),
+                    EventFieldType.of(field.fieldType()),
+                    EventRegistrationFieldConfig.of(field.config()),
+                    field.overview());
+        }
+    }
 
     public record RegistrationFieldDefinitionsRequest(List<RegistrationFieldDefinition> fields) {}
 

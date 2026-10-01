@@ -5,15 +5,16 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.service.MemberTableService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -49,7 +50,7 @@ class RegistrationAnswersTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new EventRegistrationFieldService(new EventRegistrationFieldRepository());
+        service = new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility);
         table = new EventMemberTableService(
                 eventRegistrationRepo, service, new MemberTableService(profileFieldRepo, stationMemberRepo));
         station = stationRepo.create("RegistrationAnswersStation");
@@ -87,10 +88,9 @@ class RegistrationAnswersTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
-    private static int ask(EventFieldType type) {
+    private static int ask(FieldType type) {
         service.replaceFields(
-                eventId,
-                List.of(new RegistrationFieldDraft(type.name(), type, EventRegistrationFieldConfig.empty(), true)));
+                eventId, List.of(new RegistrationFieldDraft(type.name(), type, EventQuestionSettings.empty(), true)));
         return service.findByEvent(eventId).getFirst().id();
     }
 
@@ -117,34 +117,32 @@ class RegistrationAnswersTest extends RepositoryTestBase {
     }
 
     @Test
-    void aYesIsKeptAndPrintedAsItWasSent() {
-        int field = ask(EventFieldType.BOOLEAN);
+    void aYesIsStoredAndPrintedAsTrueHoweverItWasSent() {
+        int field = ask(FieldType.BOOLEAN);
 
         assertEquals("true", kept(field, "true"));
         assertEquals("true", printed(field));
-        assertEquals("1", kept(field, "1"));
-        assertEquals("1", printed(field));
+        assertEquals("true", kept(field, "1"));
+        assertEquals("true", printed(field));
     }
 
     @Test
-    void membersAreKeptAndPrintedAsTheirNumbers() {
-        int field = ask(EventFieldType.MEMBER_LIST);
-        String named = "[" + memberId + "]";
+    void aMemberIsKeptAndPrintedAsTheirNumber() {
+        int field = ask(FieldType.MEMBER);
+        String named = String.valueOf(memberId);
 
-        assertEquals(named, kept(field, named));
+        assertEquals(named, kept(field, "\"" + named + "\""));
         assertEquals(named, printed(field));
     }
 
     @Test
-    void aQuestionOfAnyOfTheSeventeenTypesIsAccepted() {
-        int field = ask(EventFieldType.LOCATION);
-
-        assertEquals("Wache Nord", kept(field, "Wache Nord"));
+    void aQuestionOfAKindTheFormDoesNotOfferIsRefused() {
+        assertThrows(RefusalResponse.class, () -> ask(FieldType.LOCATION));
     }
 
     @Test
     void aDecimalIsRefusedWhereANumberIsAsked() {
-        int field = ask(EventFieldType.NUMBER);
+        int field = ask(FieldType.NUMBER);
 
         assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(eventId, Map.of(field, "1.5")));
     }

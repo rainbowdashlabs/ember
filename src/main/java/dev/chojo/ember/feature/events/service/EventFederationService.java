@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.entity.EventField;
@@ -575,7 +576,8 @@ public class EventFederationService implements FederationServer {
         var fields = fieldService
                 .findByEvent(eventId, occurrenceCalendar.dateInView(event).orElse(null))
                 .stream()
-                .filter(EventField::isPublic)
+                .filter(AppointmentField::isPublic)
+                .map(EventField::of)
                 .toList();
         var places = partnerPlaces(eventId, partner.partnerId());
         return new RemoteEventRoutes.RemoteEventDetail(

@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -19,6 +18,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -61,7 +61,7 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
         var services = newEventServices(new DomainEventBus(Set.of()));
         crudService = services.crud();
         registrationService = services.registration();
-        fieldService = new EventRegistrationFieldService(new EventRegistrationFieldRepository());
+        fieldService = new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility);
 
         station = stationRepo.create("AnswerReminderStation");
         account = accountRepo.create("answer-reminder@test.com", "Anna", "Antwort");
@@ -102,16 +102,16 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
     private static RegistrationFieldDraft required(String name) {
         return new RegistrationFieldDraft(
                 name,
-                EventFieldType.STRING,
-                new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false),
+                FieldType.TEXT,
+                new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false).settings(),
                 true);
     }
 
     private static RegistrationFieldDraft optional(String name) {
         return new RegistrationFieldDraft(
                 name,
-                EventFieldType.STRING,
-                new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, false),
+                FieldType.TEXT,
+                new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, false).settings(),
                 true);
     }
 

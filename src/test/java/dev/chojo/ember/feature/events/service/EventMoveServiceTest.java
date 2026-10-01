@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -20,6 +19,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -399,8 +399,8 @@ class EventMoveServiceTest extends RepositoryTestBase {
                 .create(
                         event.id(),
                         "Fahrer",
-                        EventFieldType.MEMBER_LIST,
-                        new EventFieldConfig(null, null, null, null, true, null, true),
+                        FieldType.MEMBER_LIST,
+                        new EventFieldConfig(null, null, null, null, true, null, true).settings(),
                         "",
                         0,
                         false,

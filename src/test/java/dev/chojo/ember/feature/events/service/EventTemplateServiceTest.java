@@ -8,11 +8,11 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -40,7 +40,7 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var repository = new EventTemplateRepository();
-        service = new EventTemplateService(repository, attendanceRepo);
+        service = new EventTemplateService(repository, attendanceRepo, memberEligibility);
         restrictions = new EventTemplateRestrictionService(repository, restrictionService);
         station = stationRepo.create("EventTemplateServiceStation");
     }
@@ -108,17 +108,17 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @Order(10)
     void replaceAndFindFields() {
         var fields = List.of(
-                new EventTemplateFieldData(
+                new AppointmentTemplateFieldDraft(
                         "Location",
-                        EventFieldType.STRING,
-                        EventFieldConfig.parse("{}"),
+                        FieldType.TEXT,
+                        EventQuestionSettings.parse("{}"),
                         0,
                         true,
                         false,
                         null,
                         "Gerätehaus"),
-                new EventTemplateFieldData(
-                        "Notes", EventFieldType.STRING, EventFieldConfig.parse("{}"), 1, false, true, null, null));
+                new AppointmentTemplateFieldDraft(
+                        "Notes", FieldType.TEXT, EventQuestionSettings.parse("{}"), 1, false, true, null, null));
         service.replaceFields(templateId, fields);
 
         var found = service.findFields(templateId);
@@ -140,15 +140,8 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     void replaceFieldsClearsOld() {
         service.replaceFields(
                 templateId,
-                List.of(new EventTemplateFieldData(
-                        "OnlyField",
-                        EventFieldType.STRING,
-                        EventFieldConfig.parse("{}"),
-                        0,
-                        false,
-                        false,
-                        null,
-                        null)));
+                List.of(new AppointmentTemplateFieldDraft(
+                        "OnlyField", FieldType.TEXT, EventQuestionSettings.parse("{}"), 0, false, false, null, null)));
 
         var found = service.findFields(templateId);
         assertEquals(1, found.size());
@@ -180,19 +173,19 @@ class EventTemplateServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 templateId,
                 List.of(
-                        new EventTemplateFieldData(
+                        new AppointmentTemplateFieldDraft(
                                 "Eigene",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 0,
                                 false,
                                 false,
                                 mine,
                                 null),
-                        new EventTemplateFieldData(
+                        new AppointmentTemplateFieldDraft(
                                 "Fremde",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 1,
                                 false,
                                 false,
@@ -401,19 +394,19 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void aStartingValueTheFieldWouldRefuseIsRefused() {
-        var choice = EventFieldConfig.parse("{\"options\":[\"rot\",\"blau\"]}");
+        var choice = EventQuestionSettings.parse("{\"options\":[\"rot\",\"blau\"]}");
 
         assertThrows(
                 BadRequestResponse.class,
                 () -> service.replaceFields(
                         templateId,
-                        List.of(new EventTemplateFieldData(
-                                "Farbe", EventFieldType.ENUM, choice, 0, true, false, null, "gelb"))));
+                        List.of(new AppointmentTemplateFieldDraft(
+                                "Farbe", FieldType.CHOICE, choice, 0, true, false, null, "gelb"))));
 
         service.replaceFields(
                 templateId,
-                List.of(new EventTemplateFieldData(
-                        "Farbe", EventFieldType.ENUM, choice, 0, true, false, null, "blau")));
+                List.of(new AppointmentTemplateFieldDraft(
+                        "Farbe", FieldType.CHOICE, choice, 0, true, false, null, "blau")));
         assertEquals("blau", service.findFields(templateId).getFirst().defaultValue());
     }
 

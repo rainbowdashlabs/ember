@@ -18,13 +18,13 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -76,7 +76,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 stationRepo,
                 eventDateCancellationRepo,
                 new AttendanceAudienceService(attendanceRepo),
-                memberEligibility());
+                memberEligibility);
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -878,8 +878,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 event.id(),
                 List.of(new EventFieldDraft(
                         "Thema",
-                        EventFieldType.STRING,
-                        EventFieldConfig.parse("{}"),
+                        FieldType.TEXT,
+                        EventQuestionSettings.empty(),
                         "Leiterprobe",
                         false,
                         sheetFieldId,
@@ -934,8 +934,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 event.id(),
                 List.of(new EventFieldDraft(
                         "Datum",
-                        EventFieldType.STRING,
-                        EventFieldConfig.parse("{}"),
+                        FieldType.TEXT,
+                        EventQuestionSettings.empty(),
                         "2026-08-31",
                         false,
                         sheetFieldId,
@@ -1324,8 +1324,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
         eventFieldRepo.create(
                 event.id(),
                 "Location",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
+                FieldType.TEXT,
+                EventQuestionSettings.empty(),
                 "\"Conference Room A\"",
                 0,
                 false,

@@ -5,11 +5,10 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
-import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import org.jspecify.annotations.Nullable;
 
 /**
- * One question an event template asks.
+ * One question an event template asks, as screens read it.
  *
  * @param defaultValue what an appointment made from this template starts the question off with, or
  *                     null where it starts empty. Kept apart from the answer the appointment ends up
@@ -27,17 +26,18 @@ public record EventTemplateField(
         @Nullable Integer attendanceFieldId,
         @Nullable String defaultValue) {
 
-    public static RowMapping<EventTemplateField> map() {
-        return row -> new EventTemplateField(
-                row.getInt("id"),
-                row.getInt("template_id"),
-                row.getString("name"),
-                EventFieldType.stored(row.getString("field_type")),
-                EventFieldConfig.parse(row.getString("config")),
-                row.getInt("position"),
-                row.getBoolean("overview"),
-                row.getBoolean("public"),
-                row.getObject("attendance_field_id", Integer.class),
-                row.getString("default_value"));
+    /** The shape screens read a template's question in. */
+    public static EventTemplateField of(AppointmentTemplateField field) {
+        return new EventTemplateField(
+                field.id(),
+                field.templateId(),
+                field.name(),
+                EventFieldType.of(field.fieldType()),
+                EventFieldConfig.of(field.config()),
+                field.position(),
+                field.overview(),
+                field.isPublic(),
+                field.attendanceFieldId(),
+                field.defaultValue());
     }
 }

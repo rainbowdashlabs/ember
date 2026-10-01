@@ -45,6 +45,7 @@
 - **Die Neuigkeiten-Verwaltung konnte Kommentare anderer Wachen entfernen.** Wer Neuigkeiten verwaltet, konnte einen Kommentar zu einer Neuigkeit einer anderen Wache über seine Nummer entfernen. Ein Kommentar lässt sich jetzt nur noch aus seiner eigenen Wache entfernen; bei Neuigkeiten, die die Instanz an alle Wachen richtet, ist das die Wache, aus der er geschrieben wurde.
 - **Dateien einer Wache konnte jeder lesen, der auf der Instanz angemeldet war.** Wer angemeldet, aber kein Mitglied einer Wache war, konnte ihre Mediendateien, Bilder und Dokumente öffnen, ihre Mediendateien auflisten und ihren Verbund sehen, indem er die Wache angab. Das ist jetzt nur noch Mitgliedern der Wache möglich.
 - **Der Code, mit dem eine Authenticator-App eingerichtet wurde, ließ sich noch einmal verwenden.** Der Code, der eine neue Authenticator-App bestätigte, wurde innerhalb seiner kurzen Gültigkeit noch von der nächsten Anmeldung oder Bestätigung angenommen. Jetzt gilt er als verbraucht, sobald die App eingerichtet ist.
+- **Fragen aus der Terminvorlage einer anderen Wache ließen sich übernehmen.** Wer Termine anlegen durfte, konnte die Fragen zur Anmeldung aus der Terminvorlage einer anderen Wache in einen neuen Termin übernehmen, indem er ihre Nummer angab. Jetzt werden nur die eigenen Vorlagen der Wache verwendet, und mit einer fremden wird kein Termin angelegt.
 
 ### Änderungen
 
@@ -60,7 +61,7 @@
 - **Board-Kommentare gehören dem, der sie geschrieben hat.** Einen Kommentar zu einem Ticket kann nur sein Verfasser ändern und nur sein Verfasser oder ein Board-Verwalter entfernen, wo bisher jeder beides konnte, der das Ticket bearbeiten durfte. Ein Kommentar lässt sich nicht mehr leer speichern.
 - **Hinweise auf Kommentare an beobachteten Tickets.** Der Hinweis auf einen neuen Kommentar an einem Ticket, das du beobachtest, nennt, wer ihn geschrieben hat, in deiner Sprache, und folgt der Einstellung für Kommentare statt der für Ticket-Updates. Über den eigenen Kommentar wird niemand mehr benachrichtigt.
 - **Zahlenfelder nehmen ganze Zahlen.** Zahlenfelder von Anwesenheitslisten, Wartelisten, Ausrüstung und Board-Tickets nehmen ganze Zahlen, wie ihre Eingabefelder sie schon anbieten. Ein Ausrüstungsfeld mit einer Schrittweite unter eins nimmt weiter Kommazahlen, und bereits gespeicherte Zahlen bleiben, wie sie sind.
-- **Anwesenheitsfelder für eine Gruppe nehmen nur ihre Mitglieder.** Ein Mitgliederfeld einer Anwesenheitsliste, das auf eine Gruppe beschränkt ist, weist beim Speichern der Liste Mitglieder außerhalb dieser Gruppe ab.
+- **Mitgliederfelder nehmen nur Mitglieder, auf die sie beschränkt sind.** Ein Mitgliederfeld einer Anwesenheitsliste oder eines Termins, das auf eine Gruppe, einen Mitgliedstyp oder ein Tag beschränkt ist, lehnt jetzt jeden außerhalb davon ab, wenn die Liste, der Termin oder eine Vorlage gespeichert und wenn eine Frage zur Anmeldung beantwortet wird, wo bisher nur geprüft wurde, wer sich selbst eintrug. Wen es schon nennt, bleibt beim erneuten Speichern stehen.
 ### Fehlerbehebungen
 
 - **Eigene Kommentare auf dem Board eines Partners ließen sich nicht ändern.** Den eigenen Kommentar auf einem Board zu ändern oder zu entfernen, das eine Partnerwache mit dir teilt, bewirkte nichts. Das funktioniert jetzt, und zwischen zwei Instanzen geteilte Boards ruhen, bis beide diese Version haben.
@@ -139,6 +140,7 @@
 - **Der Mitgliederimport übernahm Antworten, die eine Frage nicht annimmt.** Beim Import von Mitgliedern wurde eine Zelle wie eine unbekannte Auswahl, ein Tag, der keiner ist, oder "vielleicht" unter einer Ja/Nein-Frage so gespeichert, wie sie dastand. Eine solche Zelle wird jetzt ausgelassen, und Vorschau und Ergebnis nennen ihre Zeile.
 - **Board-Felder nahmen jeden Wert.** Ein eigenes Feld an einem Board-Ticket ließ sich mit einem Datum speichern, das kein Datum ist, oder mit einer Auswahl, die das Feld nicht anbietet. Solche Werte werden jetzt beim Speichern abgewiesen.
 - **Datumsfelder von Anwesenheitslisten konnten nicht mit heute beginnen.** Ein Feld einer Anwesenheitsvorlage, das mit dem heutigen Datum beginnen soll, wurde beim Speichern mit dem Hinweis abgewiesen, es erwarte ein Datum. Es lässt sich wieder speichern, und neue Listen beginnen mit dem Tag, an dem sie angelegt werden.
+- **Wer eine Gruppe verlassen hatte, konnte sich nicht aus einem Feld austragen.** Ein Mitglied, das sich in ein Feld eines Termins eingetragen hatte, das auf eine Gruppe, einen Mitgliedstyp oder ein Tag beschränkt ist, wurde beim Austragen abgewiesen, nachdem es nicht mehr dazugehörte. Das Austragen klappt jetzt immer.
 
 ## v26.19.5
 

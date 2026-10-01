@@ -6,13 +6,13 @@
 package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventCategory;
-import dev.chojo.ember.feature.events.entity.EventField;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -73,11 +73,11 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void create() {
-        EventField field = eventFieldRepo.create(
+        AppointmentField field = eventFieldRepo.create(
                 eventId,
                 "Location",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
+                FieldType.TEXT,
+                EventQuestionSettings.parse("{}"),
                 "Berlin",
                 0,
                 false,
@@ -85,7 +85,7 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
                 false);
         assertNotNull(field);
         assertEquals("Location", field.name());
-        assertEquals(EventFieldType.STRING, field.fieldType());
+        assertEquals(FieldType.TEXT, field.fieldType());
         assertEquals("Berlin", field.value());
         assertEquals(0, field.position());
         assertFalse(field.overview());
@@ -121,21 +121,9 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
                 eventId,
                 List.of(
                         new EventFieldDraft(
-                                "Key1",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
-                                "Val1",
-                                false,
-                                null,
-                                false),
+                                "Key1", FieldType.TEXT, EventQuestionSettings.parse("{}"), "Val1", false, null, false),
                         new EventFieldDraft(
-                                "Key2",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
-                                "Val2",
-                                true,
-                                null,
-                                false)));
+                                "Key2", FieldType.TEXT, EventQuestionSettings.parse("{}"), "Val2", true, null, false)));
         var fields = eventFieldRepo.findByEvent(eventId);
         assertEquals(2, fields.size());
         assertEquals("Key1", fields.get(0).name());
@@ -150,15 +138,15 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
                 eventId,
                 List.of(new EventFieldDraft(
                         "Ort",
-                        EventFieldType.LOCATION,
-                        EventFieldConfig.parse("{}"),
+                        FieldType.LOCATION,
+                        EventQuestionSettings.parse("{}"),
                         "Marktplatz 1",
                         true,
                         null,
                         true)));
         var fields = eventFieldRepo.findByEvent(eventId);
         assertEquals(1, fields.size());
-        assertEquals(EventFieldType.LOCATION, fields.getFirst().fieldType());
+        assertEquals(FieldType.LOCATION, fields.getFirst().fieldType());
         assertEquals("Marktplatz 1", fields.getFirst().value());
     }
 
@@ -168,8 +156,8 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
         var created = eventFieldRepo.create(
                 eventId,
                 "Toggle",
-                EventFieldType.MEMBER,
-                EventFieldConfig.parse("{\"selfRegistration\":true}"),
+                FieldType.MEMBER,
+                EventQuestionSettings.parse("{\"selfRegistration\":true}"),
                 "",
                 5,
                 false,
@@ -194,10 +182,10 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     }
 
     /** The answer one named question carries, out of everything the appointment happens to ask. */
-    private static String valueOf(List<EventField> fields, String name) {
+    private static String valueOf(List<AppointmentField> fields, String name) {
         return fields.stream()
                 .filter(field -> name.equals(field.name()))
-                .map(EventField::value)
+                .map(AppointmentField::value)
                 .findFirst()
                 .orElseThrow();
     }
@@ -209,8 +197,8 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
         var field = eventFieldRepo.create(
                 eventId,
                 "Fahrer",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{\"perDate\":true}"),
+                FieldType.TEXT,
+                EventQuestionSettings.parse("{\"perDate\":true}"),
                 "ignored",
                 0,
                 true,
@@ -251,8 +239,8 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
         eventFieldRepo.create(
                 eventId,
                 "Treffpunkt",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
+                FieldType.TEXT,
+                EventQuestionSettings.parse("{}"),
                 "Halle",
                 0,
                 true,
@@ -282,7 +270,7 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
         eventFieldRepo.replaceFields(
                 eventId,
                 List.of(new EventFieldDraft(
-                        "Fahrer", EventFieldType.STRING, EventFieldConfig.parse("{}"), "Anna", false, null, false)));
+                        "Fahrer", FieldType.TEXT, EventQuestionSettings.parse("{}"), "Anna", false, null, false)));
         int fieldId = eventFieldRepo.findByEvent(eventId).getFirst().id();
 
         eventFieldRepo.replaceFields(
@@ -291,16 +279,16 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
                         new EventFieldDraft(
                                 fieldId,
                                 "Fahrerin",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 "Bea",
                                 true,
                                 null,
                                 false),
                         new EventFieldDraft(
                                 "Beifahrer",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 "Cem",
                                 false,
                                 null,
@@ -324,14 +312,7 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
         eventFieldRepo.replaceFields(
                 eventId,
                 List.of(new EventFieldDraft(
-                        987654,
-                        "Fremd",
-                        EventFieldType.STRING,
-                        EventFieldConfig.parse("{}"),
-                        "x",
-                        false,
-                        null,
-                        false)));
+                        987654, "Fremd", FieldType.TEXT, EventQuestionSettings.parse("{}"), "x", false, null, false)));
 
         var fields = eventFieldRepo.findByEvent(eventId);
         assertEquals(1, fields.size());

@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
-import dev.chojo.ember.feature.events.entity.EventField;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
@@ -119,8 +119,8 @@ public class WaitlistInvitationMessage {
 
     private String location(StationEvent event, Station station, LocalDate date) {
         return eventFieldRepository.findByEventOn(event.id(), date).stream()
-                .filter(field -> field.fieldType() == EventFieldType.LOCATION)
-                .map(EventField::value)
+                .filter(field -> field.fieldType() == FieldType.LOCATION)
+                .map(AppointmentField::value)
                 .filter(value -> value != null && !value.isBlank())
                 .map(String::trim)
                 .findFirst()

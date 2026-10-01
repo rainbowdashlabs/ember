@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Objects;
+
 /**
  * One registration question as a request names it, for an event and for an event template alike.
  *
@@ -23,6 +25,10 @@ public record RegistrationFieldDefinition(
 
     RegistrationFieldDraft toDraft() {
         return new RegistrationFieldDraft(
-                name, fieldType, config != null ? config : EventRegistrationFieldConfig.empty(), overview);
+                name,
+                Objects.requireNonNullElse(fieldType, EventFieldType.STRING).fieldType(),
+                Objects.requireNonNullElse(config, EventRegistrationFieldConfig.empty())
+                        .settings(),
+                overview);
     }
 }

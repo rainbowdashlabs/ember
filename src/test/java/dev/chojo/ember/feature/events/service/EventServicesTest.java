@@ -13,7 +13,6 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
 import dev.chojo.ember.feature.events.entity.PickerMode;
@@ -27,6 +26,7 @@ import dev.chojo.ember.feature.events.service.EventOccurrenceService.EventPageQu
 import dev.chojo.ember.feature.events.service.EventOccurrenceService.EventState;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService.OccurrenceQuery;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -321,7 +321,7 @@ class EventServicesTest extends RepositoryTestBase {
         var fieldRepo = new EventRegistrationFieldRepository();
         var required = new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false);
         fieldRepo.replaceFields(
-                eventId, List.of(new RegistrationFieldDraft("Allergies", EventFieldType.STRING, required, false)));
+                eventId, List.of(new RegistrationFieldDraft("Allergies", FieldType.TEXT, required.settings(), false)));
 
         var owing = registrationService.findShortOfAnswer(List.of(member.id()));
         assertEquals(1, owing.size());

@@ -2229,6 +2229,19 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "An article can only show an appointment every member may see, so nothing was saved"),
 
+    /**
+     * An appointment made from a template that is gone or belongs to another station. One code for
+     * both, so a guessed id says nothing about the templates of other stations.
+     */
+    EVENT_TEMPLATE_TO_APPLY_NOT_HERE(Area.EVENTS, 109, HttpStatus.NOT_FOUND, Sentences.EVENT_TEMPLATE_NOT_HERE),
+
+    /** A registration question given a kind of answer the registration form does not offer. */
+    REGISTRATION_QUESTION_TYPE_NOT_OFFERED(
+            Area.EVENTS,
+            110,
+            HttpStatus.BAD_REQUEST,
+            "Registration questions do not take that kind of answer, so nothing was saved"),
+
     /** A list of comments asked for on a day that is not a date. */
     COMMENT_DAY_NOT_A_DATE(Area.COMMENTS, 1, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),
 

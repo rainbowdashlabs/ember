@@ -11,10 +11,8 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
@@ -42,6 +40,7 @@ import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,7 +102,7 @@ class EventRouteLookupsTest {
                 mock(BatchEventService.class),
                 mock(GuardianPolicy.class),
                 mock(EventExportService.class),
-                mock(EventRegistrationFieldService.class),
+                mock(EventTemplateService.class),
                 mock(EventFieldRegistrationService.class),
                 mock(OccurrenceCalendar.class),
                 visibility);
@@ -154,14 +153,7 @@ class EventRouteLookupsTest {
                 .replaceFields(
                         9,
                         List.of(new EventFieldDraft(
-                                null,
-                                "Größe",
-                                EventFieldType.STRING,
-                                EventFieldConfig.empty(),
-                                "",
-                                false,
-                                null,
-                                true)));
+                                null, "Größe", FieldType.TEXT, EventQuestionSettings.empty(), "", false, null, true)));
         verify(fields, never()).replaceFields(eq(7), any());
         verify(fields, never()).replaceFields(eq(8), any());
     }
@@ -172,15 +164,13 @@ class EventRouteLookupsTest {
         var template = mock(EventTemplate.class);
         when(template.stationId()).thenReturn(STATION_ID);
         when(templates.findById(5)).thenReturn(Optional.of(template));
-        var registrationFields = mock(EventRegistrationFieldService.class);
         var reminder = mock(RegistrationAnswerReminder.class);
         var harness = RouteHarness.serving(
-                new EventTemplateRoutes(templates, registrationFields, mock(EventTemplateRestrictionService.class)),
+                new EventTemplateRoutes(templates, mock(EventTemplateRestrictionService.class)),
                 registrationRoutes(reminder));
         var request = body("""
                 {"fields": [{"name": "Shirt", "fieldType": "STRING", "config": null, "overview": true}]}""");
-        var draft =
-                new RegistrationFieldDraft("Shirt", EventFieldType.STRING, EventRegistrationFieldConfig.empty(), true);
+        var draft = new RegistrationFieldDraft("Shirt", FieldType.TEXT, EventQuestionSettings.empty(), true);
 
         harness.run((server, client) -> {
             var manager = harness.as(TestSessions.member(
@@ -195,7 +185,7 @@ class EventRouteLookupsTest {
                             .code());
         });
 
-        verify(registrationFields).replaceTemplateFields(5, List.of(draft));
+        verify(templates).replaceRegistrationFields(5, List.of(draft));
         verify(reminder).replaceQuestions(9, List.of(draft));
     }
 

@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
@@ -175,8 +175,8 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
         eventFieldRepo.create(
                 event.id(),
                 "Treffpunkt",
-                EventFieldType.LOCATION,
-                EventFieldConfig.empty(),
+                FieldType.LOCATION,
+                EventQuestionSettings.empty(),
                 "Am Hof 3",
                 0,
                 false,

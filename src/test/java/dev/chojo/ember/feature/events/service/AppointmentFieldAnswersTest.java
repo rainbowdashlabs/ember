@@ -5,13 +5,12 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
+import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
-import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -49,12 +48,11 @@ class AppointmentFieldAnswersTest extends RepositoryTestBase {
         service = new EventFieldService(
                 eventFieldRepo,
                 stationMemberRepo,
-                memberGroupRepo,
-                new UserTagService(userTagRepo, memberGroupRepo),
+                memberEligibility,
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService);
-        templates = new EventTemplateService(new EventTemplateRepository(), attendanceRepo);
+        templates = new EventTemplateService(new EventTemplateRepository(), attendanceRepo, memberEligibility);
         station = stationRepo.create("AppointmentAnswersStation");
         firstMember = stationMemberRepo
                 .create(
@@ -97,76 +95,126 @@ class AppointmentFieldAnswersTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
-    private static String kept(EventFieldType type, String config, String value) {
+    private static String kept(FieldType type, String config, String value) {
         service.replaceFields(
                 eventId,
                 List.of(new EventFieldDraft(
-                        type.name(), type, EventFieldConfig.parse(config), value, false, null, false)));
+                        type.name(), type, EventQuestionSettings.parse(config), value, false, null, false)));
         return service.findByEvent(eventId).getFirst().value();
     }
 
-    private static void refused(EventFieldType type, String config, String value) {
+    private static void refused(FieldType type, String config, String value) {
         assertThrows(
                 BadRequestResponse.class,
                 () -> service.replaceFields(
                         eventId,
                         List.of(new EventFieldDraft(
-                                type.name(), type, EventFieldConfig.parse(config), value, false, null, false))),
+                                type.name(), type, EventQuestionSettings.parse(config), value, false, null, false))),
                 value + " under " + type);
     }
 
     @Test
     void aNumberIsWhole() {
-        assertEquals("3", kept(EventFieldType.NUMBER, "{}", "3"));
-        refused(EventFieldType.NUMBER, "{}", "2.5");
-        refused(EventFieldType.NUMBER, "{}", "drei");
+        assertEquals("3", kept(FieldType.NUMBER, "{}", "3"));
+        refused(FieldType.NUMBER, "{}", "2.5");
+        refused(FieldType.NUMBER, "{}", "drei");
     }
 
     @Test
     void aDayATimeAndALinkMustReadAsOne() {
-        assertEquals("2026-03-09", kept(EventFieldType.DATE, "{}", "2026-03-09"));
-        refused(EventFieldType.DATE, "{}", "09.03.2026");
-        assertEquals("18:30", kept(EventFieldType.TIME, "{}", "18:30"));
-        refused(EventFieldType.TIME, "{}", "halb sieben");
-        assertEquals("https://ember.example", kept(EventFieldType.URL, "{}", "https://ember.example"));
-        refused(EventFieldType.URL, "{}", "ember.example");
+        assertEquals("2026-03-09", kept(FieldType.DATE, "{}", "2026-03-09"));
+        refused(FieldType.DATE, "{}", "09.03.2026");
+        assertEquals("18:30", kept(FieldType.TIME, "{}", "18:30"));
+        refused(FieldType.TIME, "{}", "halb sieben");
+        assertEquals("https://ember.example", kept(FieldType.URL, "{}", "https://ember.example"));
+        refused(FieldType.URL, "{}", "ember.example");
     }
 
     @Test
-    void aYesOrNoAndAChoiceAreMeasured() {
-        assertEquals("1", kept(EventFieldType.BOOLEAN, "{}", "1"));
-        refused(EventFieldType.BOOLEAN, "{}", "ja");
-        assertEquals("M", kept(EventFieldType.ENUM, "{\"options\":[\"S\",\"M\"]}", "M"));
-        refused(EventFieldType.ENUM, "{\"options\":[\"S\",\"M\"]}", "XL");
+    void aYesIsStoredAsTrueHoweverItWasSent() {
+        assertEquals("true", kept(FieldType.BOOLEAN, "{}", "1"));
+        assertEquals("false", kept(FieldType.BOOLEAN, "{}", "0"));
+        refused(FieldType.BOOLEAN, "{}", "ja");
+    }
+
+    @Test
+    void aChoiceIsMeasured() {
+        assertEquals("M", kept(FieldType.CHOICE, "{\"options\":[\"S\",\"M\"]}", "M"));
+        refused(FieldType.CHOICE, "{\"options\":[\"S\",\"M\"]}", "XL");
     }
 
     @Test
     void aPlaceAndAnyTextAreKeptAsTyped() {
-        assertEquals("Wache Nord, Halle 2", kept(EventFieldType.LOCATION, "{}", "Wache Nord, Halle 2"));
-        assertEquals("Zeile\nzwei", kept(EventFieldType.TEXTAREA, "{}", "Zeile\nzwei"));
+        assertEquals("Wache Nord, Halle 2", kept(FieldType.LOCATION, "{}", "Wache Nord, Halle 2"));
+        assertEquals("Zeile\nzwei", kept(FieldType.LONG_TEXT, "{}", "Zeile\nzwei"));
     }
 
     @Test
-    void membersAreKeptAsBareText() {
-        assertEquals(String.valueOf(firstMember), kept(EventFieldType.MEMBER, "{}", String.valueOf(firstMember)));
+    void membersAreKeptInTheOneShapeTheirTypeIsStoredIn() {
+        assertEquals(String.valueOf(firstMember), kept(FieldType.MEMBER, "{}", String.valueOf(firstMember)));
         String both = "[" + firstMember + "," + secondMember + "]";
-        assertEquals(both, kept(EventFieldType.MEMBER_LIST, "{}", both));
-        refused(EventFieldType.MEMBER, "{}", both);
-        refused(EventFieldType.MEMBER_LIST, "{}", "Anna");
+        assertEquals(both, kept(FieldType.MEMBER_LIST, "{}", both));
+        assertEquals(both, kept(FieldType.MEMBER_LIST, "{}", "[\"" + firstMember + "\", " + secondMember + "]"));
+        refused(FieldType.MEMBER, "{}", both);
+        refused(FieldType.MEMBER_LIST, "{}", "Anna");
     }
 
     @Test
-    void theOrganiserMayNameAMemberOutsideTheGroup() {
+    void theOrganiserMayNotNameAMemberOutsideTheGroup() {
         String config = "{\"groupId\":" + groupId + "}";
 
-        assertEquals(
-                String.valueOf(firstMember), kept(EventFieldType.MEMBER_OF_GROUP, config, String.valueOf(firstMember)));
+        refused(FieldType.MEMBER_OF_GROUP, config, String.valueOf(firstMember));
+        service.replaceFields(eventId, List.of());
+    }
+
+    @Test
+    void aMemberNamedBeforeStaysNamedAfterLeavingTheGroup() {
+        int group = memberGroupRepo.create(station.id(), "Fahrer").id();
+        memberGroupRepo.addMember(group, firstMember);
+        var config = EventQuestionSettings.parse("{\"groupId\":" + group + "}");
+        service.replaceFields(
+                eventId,
+                List.of(new EventFieldDraft(
+                        "Fahrer",
+                        FieldType.MEMBER_LIST_OF_GROUP,
+                        config,
+                        "[" + firstMember + "]",
+                        false,
+                        null,
+                        false)));
+        memberGroupRepo.removeMember(group, firstMember);
+        var stored = service.findByEvent(eventId).getFirst();
+
+        assertDoesNotThrow(() -> service.replaceFields(
+                eventId,
+                List.of(new EventFieldDraft(
+                        stored.id(),
+                        "Fahrer",
+                        FieldType.MEMBER_LIST_OF_GROUP,
+                        config,
+                        stored.value(),
+                        false,
+                        null,
+                        false))));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.replaceFields(
+                        eventId,
+                        List.of(new EventFieldDraft(
+                                stored.id(),
+                                "Fahrer",
+                                FieldType.MEMBER_LIST_OF_GROUP,
+                                config,
+                                "[" + firstMember + "," + secondMember + "]",
+                                false,
+                                null,
+                                false))));
         service.replaceFields(eventId, List.of());
     }
 
     @Test
     void anEmptyFieldIsNeverRequired() {
-        assertEquals("", kept(EventFieldType.NUMBER, "{\"required\":true}", ""));
+        assertEquals("", kept(FieldType.NUMBER, "{\"required\":true}", ""));
     }
 
     @Test
@@ -175,10 +223,10 @@ class AppointmentFieldAnswersTest extends RepositoryTestBase {
 
         assertDoesNotThrow(() -> templates.replaceFields(
                 templateId,
-                List.of(new EventTemplateFieldData(
+                List.of(new AppointmentTemplateFieldDraft(
                         "Größe",
-                        EventFieldType.ENUM,
-                        EventFieldConfig.parse("{\"options\":[\"S\",\"M\"]}"),
+                        FieldType.CHOICE,
+                        EventQuestionSettings.parse("{\"options\":[\"S\",\"M\"]}"),
                         0,
                         false,
                         false,
@@ -188,10 +236,10 @@ class AppointmentFieldAnswersTest extends RepositoryTestBase {
                 BadRequestResponse.class,
                 () -> templates.replaceFields(
                         templateId,
-                        List.of(new EventTemplateFieldData(
+                        List.of(new AppointmentTemplateFieldDraft(
                                 "Größe",
-                                EventFieldType.ENUM,
-                                EventFieldConfig.parse("{\"options\":[\"S\",\"M\"]}"),
+                                FieldType.CHOICE,
+                                EventQuestionSettings.parse("{\"options\":[\"S\",\"M\"]}"),
                                 0,
                                 false,
                                 false,
@@ -201,14 +249,33 @@ class AppointmentFieldAnswersTest extends RepositoryTestBase {
                 BadRequestResponse.class,
                 () -> templates.replaceFields(
                         templateId,
-                        List.of(new EventTemplateFieldData(
+                        List.of(new AppointmentTemplateFieldDraft(
                                 "Gäste",
-                                EventFieldType.NUMBER,
-                                EventFieldConfig.empty(),
+                                FieldType.NUMBER,
+                                EventQuestionSettings.empty(),
                                 0,
                                 false,
                                 false,
                                 null,
                                 "2.5"))));
+    }
+
+    @Test
+    void aTemplateMayNotStartAMemberQuestionOnSomebodyOutsideItsGroup() {
+        int templateId = templates.create(station.id(), "Vorlage Gruppe").id();
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> templates.replaceFields(
+                        templateId,
+                        List.of(new AppointmentTemplateFieldDraft(
+                                "Fahrer",
+                                FieldType.MEMBER_OF_GROUP,
+                                EventQuestionSettings.parse("{\"groupId\":" + groupId + "}"),
+                                0,
+                                false,
+                                false,
+                                null,
+                                String.valueOf(firstMember)))));
     }
 }

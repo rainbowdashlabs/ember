@@ -810,6 +810,8 @@ export default {
     'E-106': APPOINTMENT_NOT_HERE,
     'E-107': 'Eine Seite kann in einem Terminblock nur einen öffentlichen Termin zeigen, es wurde nichts gespeichert',
     'E-108': 'Ein Artikel kann nur einen Termin zeigen, den alle Mitglieder sehen dürfen, es wurde nichts gespeichert',
+    'E-109': TEMPLATE_NOT_HERE,
+    'E-110': 'Anmeldefragen nehmen diese Art Antwort nicht an, es wurde nichts gespeichert',
 
     'CM-001': DAY_NOT_A_DATE,
     'CM-002': COMMENT_NEEDS_TEXT,

@@ -7,23 +7,20 @@ package dev.chojo.ember.feature.events.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.feature.question.QuestionConfigs;
-import dev.chojo.ember.feature.question.QuestionSettings;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
 /**
- * Configuration for a registration question, stored as JSONB.
+ * The settings of a registration question as screens read and write them.
  *
- * <p>The names match {@code AttendanceFieldConfig} so the frontend reads every custom field
- * configuration the same way.
+ * <p>The server keeps them as {@link EventQuestionSettings}, beside those of the organiser's questions.
  *
  * @param required     whether a registration is refused without an answer
  * @param defaultValue value the form starts with; it becomes the answer only once submitted
- * @param options      selectable values for {@code ENUM} questions
- * @param min          smallest accepted value for {@code NUMBER} questions
- * @param max          largest accepted value for {@code NUMBER} questions
+ * @param options      selectable values for a choice
+ * @param min          smallest accepted value for a number
+ * @param max          largest accepted value for a number
  * @param groupId      referenced member group for {@code *_OF_GROUP} questions
  * @param userType     referenced user type for {@code *_OF_TYPE} questions
  * @param tagId        referenced user tag for {@code *_OF_TAG} questions
@@ -49,19 +46,23 @@ public record EventRegistrationFieldConfig(
         return EMPTY;
     }
 
-    public static EventRegistrationFieldConfig parse(String json) {
-        return QuestionConfigs.parse(json, EventRegistrationFieldConfig.class, EMPTY);
+    /** The shape screens read a question's settings in. */
+    public static EventRegistrationFieldConfig of(EventQuestionSettings settings) {
+        return new EventRegistrationFieldConfig(
+                settings.required(),
+                settings.defaultValue(),
+                settings.options(),
+                settings.min(),
+                settings.max(),
+                settings.groupId(),
+                settings.userType(),
+                settings.tagId(),
+                settings.managersOnly());
     }
 
-    public String toJson() {
-        return QuestionConfigs.toJson(this);
-    }
-
-    /** What this question says about itself, as everything that measures an answer reads it. */
-    public QuestionSettings settings() {
-        return QuestionSettings.required(required)
-                .withDefault(defaultValue)
-                .withOptions(options)
-                .withBounds(min, max);
+    /** These settings as the server keeps them. */
+    public EventQuestionSettings settings() {
+        return new EventQuestionSettings(
+                options, groupId, userType, tagId, null, false, false, required, defaultValue, min, max, managersOnly);
     }
 }

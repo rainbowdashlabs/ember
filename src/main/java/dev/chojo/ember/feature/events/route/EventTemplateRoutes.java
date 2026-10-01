@@ -15,7 +15,6 @@ import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.EventTemplateRegistrationField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -42,16 +41,12 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class EventTemplateRoutes implements Routes {
     private final EventTemplateService eventTemplateService;
-    private final EventRegistrationFieldService registrationFieldService;
     private final EventTemplateRestrictionService restrictionService;
 
     @Inject
     public EventTemplateRoutes(
-            EventTemplateService eventTemplateService,
-            EventRegistrationFieldService registrationFieldService,
-            EventTemplateRestrictionService restrictionService) {
+            EventTemplateService eventTemplateService, EventTemplateRestrictionService restrictionService) {
         this.eventTemplateService = eventTemplateService;
-        this.registrationFieldService = registrationFieldService;
         this.restrictionService = restrictionService;
     }
 
@@ -130,10 +125,21 @@ public class EventTemplateRoutes implements Routes {
     private void get(Context ctx) {
         int id = pathInt(ctx, "id");
         var template = requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
-        var fields = eventTemplateService.findFields(id);
         var reminderDays = eventTemplateService.findReminderDays(id);
-        var registrationFields = registrationFieldService.findByTemplate(id);
-        ctx.json(new TemplateDetailResponse(template, fields, restrictionsOf(id), reminderDays, registrationFields));
+        ctx.json(new TemplateDetailResponse(
+                template, fieldsOf(id), restrictionsOf(id), reminderDays, registrationFieldsOf(id)));
+    }
+
+    private List<EventTemplateField> fieldsOf(int templateId) {
+        return eventTemplateService.findFields(templateId).stream()
+                .map(EventTemplateField::of)
+                .toList();
+    }
+
+    private List<EventTemplateRegistrationField> registrationFieldsOf(int templateId) {
+        return eventTemplateService.findRegistrationFields(templateId).stream()
+                .map(EventTemplateRegistrationField::of)
+                .toList();
     }
 
     /** What the template hands its appointments, as the editor and the appointment both read it. */
@@ -159,9 +165,9 @@ public class EventTemplateRoutes implements Routes {
         requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var req = ctx.bodyAsClass(SetRegistrationFieldsRequest.class);
         var fields = req.fields() == null ? List.<RegistrationFieldDefinition>of() : req.fields();
-        registrationFieldService.replaceTemplateFields(
+        eventTemplateService.replaceRegistrationFields(
                 id, fields.stream().map(RegistrationFieldDefinition::toDraft).toList());
-        ctx.json(registrationFieldService.findByTemplate(id));
+        ctx.json(registrationFieldsOf(id));
     }
 
     @OpenApi(
@@ -232,8 +238,9 @@ public class EventTemplateRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var req = ctx.bodyAsClass(SetFieldsRequest.class);
-        eventTemplateService.replaceFields(id, req.fields());
-        ctx.json(eventTemplateService.findFields(id));
+        eventTemplateService.replaceFields(
+                id, req.fields().stream().map(EventTemplateFieldData::toDraft).toList());
+        ctx.json(fieldsOf(id));
     }
 
     @OpenApi(

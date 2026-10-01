@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventDateCancellation;
 import dev.chojo.ember.feature.events.entity.EventField;
@@ -190,7 +191,8 @@ public class PublicEventRoutes implements Routes {
         var fields = eventFieldService
                 .findByEvent(id, occurrenceCalendar.dateInView(event).orElse(null))
                 .stream()
-                .filter(EventField::isPublic)
+                .filter(AppointmentField::isPublic)
+                .map(EventField::of)
                 .toList();
 
         var stationCalendar = occurrenceCalendar.forStation(station.id());
@@ -297,7 +299,7 @@ public class PublicEventRoutes implements Routes {
     private PublicEventResponse toPublicResponse(
             StationEvent e,
             Map<Integer, EventCategory> categoryMap,
-            Map<Integer, List<EventField>> overviewFields,
+            Map<Integer, List<AppointmentField>> overviewFields,
             UUID publicUid,
             StationCalendar stationCalendar) {
         String categoryName = null;
@@ -306,7 +308,8 @@ public class PublicEventRoutes implements Routes {
             if (cat != null) categoryName = cat.name();
         }
         var fields = overviewFields.getOrDefault(e.id(), List.of()).stream()
-                .filter(EventField::isPublic)
+                .filter(AppointmentField::isPublic)
+                .map(EventField::of)
                 .toList();
         return new PublicEventResponse(
                 e.id(),

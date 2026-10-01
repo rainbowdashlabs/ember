@@ -47,7 +47,7 @@ class StationMemberEligibilityTest extends RepositoryTestBase {
         tagId = userTagRepo.create(station.id(), "Sanitäter").id();
         userTagRepo.addMember(tagId, inside);
         stationMemberRepo.setUserType(inside, StationUserType.GUARDIAN);
-        eligibility = memberEligibility();
+        eligibility = memberEligibility;
     }
 
     @AfterAll

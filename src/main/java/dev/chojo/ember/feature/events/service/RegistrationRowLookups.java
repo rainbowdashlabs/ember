@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -45,7 +45,7 @@ public final class RegistrationRowLookups {
     private final Map<Integer, StationMember> members;
     private final Map<Integer, MemberDisplay> displays = new HashMap<>();
     private final Map<Integer, Optional<String>> eventNames = new HashMap<>();
-    private final Map<EventDay, List<EventField>> questions = new HashMap<>();
+    private final Map<EventDay, List<AppointmentField>> questions = new HashMap<>();
 
     private RegistrationRowLookups(
             EventCrudService crudService,
@@ -113,9 +113,9 @@ public final class RegistrationRowLookups {
                         new EventDay(registration.eventId(), registration.eventDate()),
                         day -> eventFieldService.findByEvent(day.eventId(), day.date()))
                 .stream()
-                .filter(field -> field.fieldType().isMemberField())
+                .filter(field -> field.fieldType().namesMembers())
                 .filter(field -> QuestionValues.memberIds(field.value()).contains(registration.memberId()))
-                .map(EventField::name)
+                .map(AppointmentField::name)
                 .findFirst()
                 .orElse(null);
     }

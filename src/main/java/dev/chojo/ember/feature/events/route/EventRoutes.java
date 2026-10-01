@@ -30,9 +30,9 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
-import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
@@ -86,7 +86,7 @@ public class EventRoutes implements Routes {
     private final BatchEventService batchEventService;
     private final GuardianPolicy guardianPolicy;
     private final EventExportService eventExportService;
-    private final EventRegistrationFieldService registrationFieldService;
+    private final EventTemplateService templateService;
     private final EventFieldRegistrationService fieldRegistrationService;
     private final OccurrenceCalendar occurrenceCalendar;
     private final EventVisibility visibility;
@@ -100,7 +100,7 @@ public class EventRoutes implements Routes {
             BatchEventService batchEventService,
             GuardianPolicy guardianPolicy,
             EventExportService eventExportService,
-            EventRegistrationFieldService registrationFieldService,
+            EventTemplateService templateService,
             EventFieldRegistrationService fieldRegistrationService,
             OccurrenceCalendar occurrenceCalendar,
             EventVisibility visibility) {
@@ -114,7 +114,7 @@ public class EventRoutes implements Routes {
         this.batchEventService = batchEventService;
         this.guardianPolicy = guardianPolicy;
         this.eventExportService = eventExportService;
-        this.registrationFieldService = registrationFieldService;
+        this.templateService = templateService;
     }
 
     @Override
@@ -391,6 +391,9 @@ public class EventRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
+        Integer eventTemplateId = req.eventTemplateId();
+        var template =
+                eventTemplateId == null ? null : templateService.requireOwn(session.stationId(), eventTemplateId);
         var eventType = req.eventType();
         var event = crudService.createWithoutEvent(
                 session.stationId(),
@@ -410,10 +413,7 @@ public class EventRoutes implements Routes {
                 req.thresholdDays(),
                 req.registrationCloseDays());
         applyAudiences(event.id(), req);
-        Integer eventTemplateId = req.eventTemplateId();
-        if (eventTemplateId != null) {
-            registrationFieldService.copyTemplateFields(eventTemplateId, event.id());
-        }
+        if (template != null) templateService.copyInto(template, event.id());
         var withEnd = crudService
                 .setRepeatEnd(event.id(), req.repeatUntil(), req.repeatCount())
                 .orElse(event);
@@ -729,12 +729,7 @@ public class EventRoutes implements Routes {
         var requestedInlineFields = req.inlineFields();
         List<BatchFieldEntry> inlineFields = requestedInlineFields != null
                 ? requestedInlineFields.stream()
-                        .map(f -> new BatchFieldEntry(
-                                f.name(),
-                                Objects.requireNonNullElse(f.fieldType(), EventFieldType.STRING),
-                                Objects.requireNonNullElse(f.config(), EventFieldConfig.empty()),
-                                Boolean.TRUE.equals(f.overview()),
-                                f.attendanceFieldId()))
+                        .map(BatchFieldEntryDto::toEntry)
                         .toList()
                 : null;
         var batchRows = req.rows().stream()
@@ -800,7 +795,8 @@ public class EventRoutes implements Routes {
      * which it only copies its registration questions from when it is created.
      *
      * @param templateId      the attendance sheet the appointment is taken on
-     * @param eventTemplateId the appointment template it is made from, read only when it is created
+     * @param eventTemplateId the appointment template it is made from, read only when it is created;
+     *                        it has to be one of the station's own
      */
     public record EventRequest(
             String name,
@@ -874,7 +870,18 @@ public class EventRoutes implements Routes {
             @Nullable EventFieldType fieldType,
             @Nullable EventFieldConfig config,
             @Nullable Boolean overview,
-            @Nullable Integer attendanceFieldId) {}
+            @Nullable Integer attendanceFieldId) {
+
+        /** The field as every appointment of the batch asks it; what is left out reads as a plain line. */
+        BatchFieldEntry toEntry() {
+            return new BatchFieldEntry(
+                    name,
+                    Objects.requireNonNullElse(fieldType, EventFieldType.STRING).fieldType(),
+                    Objects.requireNonNullElse(config, EventFieldConfig.empty()).settings(),
+                    Boolean.TRUE.equals(overview),
+                    attendanceFieldId);
+        }
+    }
 
     public record BatchRowEntry(
             @Nullable String name,

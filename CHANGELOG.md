@@ -45,6 +45,7 @@
 - **News managers could remove comments in other stations.** A news manager could remove a comment on another station's news entry by its number. A comment can now only be removed from its own station; under news the instance published to every station, that is the station its author wrote from.
 - **Files of a station could be read by anyone signed in on the instance.** Somebody signed in who was no member of a station could open its media files, pictures and documents, list its media files and see its cluster by naming the station. These now answer only members of the station.
 - **The code that set up an authenticator app could be used once more.** The code typed in to confirm a new authenticator app was still accepted by the next sign-in or confirmation within its short validity window. It now counts as used the moment the app is set up.
+- **Questions of another station's template could be copied.** Somebody allowed to create appointments could copy the registration questions of another station's appointment template into a new appointment by giving its number. Only the station's own templates are used now, and naming another one creates no appointment.
 
 ### Changes
 
@@ -60,7 +61,7 @@
 - **Board comments belong to whoever wrote them.** A comment on a ticket can be changed only by its author, and removed only by its author or a board manager, where before anybody who could edit the ticket could do both. A comment can no longer be saved empty.
 - **Comment notices on watched tickets.** The notice about a new comment on a ticket you watch names who wrote it, in your language, and follows the setting for comment notices instead of the one for ticket updates. Nobody is told about their own comment any more.
 - **Number fields take whole numbers.** Number fields of attendance sheets, waiting lists, gear and board tickets take whole numbers, as their input boxes already offer them. A gear field whose step is below one still takes a fraction, and numbers saved before stay as they are.
-- **Attendance fields for a group take only its members.** A member field on an attendance sheet that is limited to a group refuses members outside that group when the sheet is saved.
+- **Member fields take only the members they are limited to.** A member field on an attendance sheet or an appointment that is limited to a group, a member type or a tag now refuses anybody outside it when the sheet, the appointment or a template is saved and when a registration question is answered, where before only members putting themselves in were checked. Members it already names stay when it is saved again.
 ### Fixes
 
 - **Own comments on a partner's board could not be changed.** Changing or removing your own comment on a board a partner station shares with you did nothing. It now works, and boards shared between two instances pause until both run this version.
@@ -139,6 +140,7 @@
 - **The member import kept answers a question does not take.** Importing members stored a cell such as an unknown choice, a day that is no day or "maybe" under a yes or no question as written. Such a cell is now left out, and the preview and the result name its row.
 - **Board fields took any value.** A custom field on a board ticket could be saved with a date that is not a date or with a choice the field does not offer. Such values are now refused when they are saved.
 - **Attendance date fields could not start at today.** Saving an attendance template field set to start at today's date was refused with a message that it expects a date. It is saved again, and new sheets start at the day they are made.
+- **Members who had left a group could not take themselves off a field.** A member who had put themselves into an appointment field limited to a group, a member type or a tag was refused when taking themselves out again after leaving it. Taking yourself out now always works.
 
 ## v26.19.5
 

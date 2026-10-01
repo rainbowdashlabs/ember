@@ -204,7 +204,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 noOpBus);
-        var eventTemplateService = new EventTemplateService(eventTemplateRepo, attendanceRepo);
+        var eventTemplateService = new EventTemplateService(eventTemplateRepo, attendanceRepo, memberEligibility);
         var feedTokenService = new FeedTokenService(feedTokenRepo);
 
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
@@ -305,8 +305,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 new EventFieldService(
                         eventFieldRepo,
                         stationMemberRepo,
-                        memberGroupRepo,
-                        mock(UserTagService.class),
+                        memberEligibility,
                         eventRepo,
                         attendanceRepo,
                         eventFieldRegistrationService),
@@ -386,7 +385,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventServices.crud(),
                 eventTemplateService,
                 eventServices.restriction(),
-                new EventRegistrationFieldService(new EventRegistrationFieldRepository()),
+                new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility),
                 demoClock);
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo, stationMemberRepo, demoClock);
         var containerSvc =

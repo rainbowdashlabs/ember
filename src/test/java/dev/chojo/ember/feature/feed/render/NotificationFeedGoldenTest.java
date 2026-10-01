@@ -13,10 +13,9 @@ import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
-import dev.chojo.ember.feature.events.entity.EventField;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -40,6 +39,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -187,30 +187,30 @@ class NotificationFeedGoldenTest {
         when(eventFieldService.findByEvent(anyInt(), any())).thenReturn(List.of());
         when(eventFieldService.findByEvent(eq(42), any()))
                 .thenReturn(List.of(
-                        new EventField(
+                        new AppointmentField(
                                 1,
                                 42,
                                 "Treffpunkt",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 "Marktplatz",
                                 0,
                                 true,
                                 null,
                                 true),
-                        new EventField(
+                        new AppointmentField(
                                 2,
                                 42,
                                 "Leer",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 " ",
                                 1,
                                 false,
                                 null,
                                 false)));
         when(eventFieldService.displayValue(any())).thenAnswer(inv -> {
-            EventField field = inv.getArgument(0);
+            AppointmentField field = inv.getArgument(0);
             return field.value().trim();
         });
         when(lostAndFoundService.findById(anyInt())).thenReturn(Optional.empty());

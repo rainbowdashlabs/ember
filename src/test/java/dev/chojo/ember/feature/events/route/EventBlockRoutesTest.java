@@ -17,9 +17,9 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
-import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import org.junit.jupiter.api.AfterAll;
@@ -60,7 +60,7 @@ class EventBlockRoutesTest extends BlockReferenceTestBase {
                 mock(BatchEventService.class),
                 mock(GuardianPolicy.class),
                 mock(EventExportService.class),
-                mock(EventRegistrationFieldService.class),
+                mock(EventTemplateService.class),
                 mock(EventFieldRegistrationService.class),
                 mock(OccurrenceCalendar.class),
                 visibility);

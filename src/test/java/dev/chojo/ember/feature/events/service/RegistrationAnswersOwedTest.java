@@ -7,9 +7,8 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
@@ -17,10 +16,10 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -66,12 +65,11 @@ class RegistrationAnswersOwedTest extends RepositoryTestBase {
         var services = newEventServices(new DomainEventBus(Set.of()));
         crudService = services.crud();
         registrationService = services.registration();
-        questions = new EventRegistrationFieldService(new EventRegistrationFieldRepository());
+        questions = new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility);
         appointmentFields = new EventFieldService(
                 eventFieldRepo,
                 stationMemberRepo,
-                memberGroupRepo,
-                new UserTagService(userTagRepo, memberGroupRepo),
+                memberEligibility,
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService);
@@ -115,8 +113,9 @@ class RegistrationAnswersOwedTest extends RepositoryTestBase {
     private static RegistrationFieldDraft required(String name, boolean managersOnly) {
         return new RegistrationFieldDraft(
                 name,
-                EventFieldType.STRING,
-                new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, managersOnly),
+                FieldType.TEXT,
+                new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, managersOnly)
+                        .settings(),
                 true);
     }
 
@@ -145,8 +144,8 @@ class RegistrationAnswersOwedTest extends RepositoryTestBase {
                 event.id(),
                 List.of(new EventFieldDraft(
                         "Ausbilder",
-                        EventFieldType.MEMBER,
-                        EventFieldConfig.empty(),
+                        FieldType.MEMBER,
+                        EventQuestionSettings.empty(),
                         String.valueOf(member.id()),
                         false,
                         null,

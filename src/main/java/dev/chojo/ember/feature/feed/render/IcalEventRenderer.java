@@ -5,17 +5,17 @@
  */
 package dev.chojo.ember.feature.feed.render;
 
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.CancellationNotice;
 import dev.chojo.ember.feature.events.entity.EventCategory;
-import dev.chojo.ember.feature.events.entity.EventField;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRecurrence;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import jakarta.inject.Inject;
@@ -46,7 +46,7 @@ import java.util.Optional;
  * <p>The renderer enriches each event with category, recurrence type, registration
  * deadline/limit/status, per-managed-member registration breakdown, a link back to the
  * web UI, and the location of the event (extracted from the first non-empty
- * {@link EventFieldType#LOCATION} field).
+ * {@link FieldType#LOCATION} field).
  *
  * <p>It is also responsible for the personal visibility rules - see
  * {@link #isVisibleForFeed(StationEvent, Context)}.
@@ -203,7 +203,7 @@ public class IcalEventRenderer {
 
     private String buildDescription(
             StationEvent event,
-            List<EventField> fields,
+            List<AppointmentField> fields,
             String deepLink,
             Optional<CancellationNotice> altogether,
             Context ctx) {
@@ -225,7 +225,7 @@ public class IcalEventRenderer {
 
         // Render custom field values (skip LOCATION - already on the LOCATION property).
         for (var field : fields) {
-            if (field.fieldType() == EventFieldType.LOCATION) continue;
+            if (field.fieldType() == FieldType.LOCATION) continue;
             if (field.value() == null || field.value().isBlank()) continue;
             // A member field holds internal ids, which say nothing in a calendar entry, so the
             // service resolves them to the names the reader knows.
@@ -300,9 +300,9 @@ public class IcalEventRenderer {
         return notificationText.resolveLocalized(locale, "ical", "summary.cancelledPrefix", null) + " ";
     }
 
-    private @Nullable String firstLocation(List<EventField> fields) {
+    private @Nullable String firstLocation(List<AppointmentField> fields) {
         for (var field : fields) {
-            if (field.fieldType() == EventFieldType.LOCATION
+            if (field.fieldType() == FieldType.LOCATION
                     && field.value() != null
                     && !field.value().isBlank()) {
                 return field.value().trim();

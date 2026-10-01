@@ -381,6 +381,7 @@ public abstract class RepositoryTestBase {
     protected static MemberNameResolver memberNameResolver;
     protected static OccurrenceCalendar occurrenceCalendar;
     protected static EventFieldRegistrationService eventFieldRegistrationService;
+    protected static MemberEligibility memberEligibility;
     protected static MemberLookupService memberLookupService;
     protected static DataSource dataSource;
     protected static String schemaName;
@@ -635,6 +636,7 @@ public abstract class RepositoryTestBase {
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, memberLookupService, memberNameResolver);
         occurrenceCalendar = new OccurrenceCalendar(eventRepo, eventBreakRepo, eventDateCancellationRepo, stationRepo);
+        memberEligibility = new StationMemberEligibility(memberGroupRepo, stationMemberRepo, userTagRepo);
         eventFieldRegistrationService = new EventFieldRegistrationService(
                 eventRepo,
                 eventFieldRepo,
@@ -939,11 +941,6 @@ public abstract class RepositoryTestBase {
                 mock(StepUpGuard.class),
                 () -> mock(MemberNameResolver.class),
                 new DomainEventBus(Set.of()));
-    }
-
-    /** Who of the members is in which group, of which type and carrying which tag, over this class's repositories. */
-    protected static MemberEligibility memberEligibility() {
-        return new StationMemberEligibility(memberGroupRepo, stationMemberRepo, userTagRepo);
     }
 
     /**

@@ -7,11 +7,10 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -41,8 +40,7 @@ class EventFieldServiceTest extends RepositoryTestBase {
         service = new EventFieldService(
                 eventFieldRepo,
                 stationMemberRepo,
-                memberGroupRepo,
-                new UserTagService(userTagRepo, memberGroupRepo),
+                memberEligibility,
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService);
@@ -99,15 +97,9 @@ class EventFieldServiceTest extends RepositoryTestBase {
     void replaceAndFindByEvent() {
         var fields = List.of(
                 new EventFieldDraft(
-                        "Location",
-                        EventFieldType.STRING,
-                        EventFieldConfig.parse("{}"),
-                        "Berlin HQ",
-                        true,
-                        null,
-                        false),
+                        "Location", FieldType.TEXT, EventQuestionSettings.parse("{}"), "Berlin HQ", true, null, false),
                 new EventFieldDraft(
-                        "Notes", EventFieldType.STRING, EventFieldConfig.parse("{}"), "Bring gear", false, null, true));
+                        "Notes", FieldType.TEXT, EventQuestionSettings.parse("{}"), "Bring gear", false, null, true));
         service.replaceFields(eventId, fields);
 
         var found = service.findByEvent(eventId);
@@ -125,8 +117,8 @@ class EventFieldServiceTest extends RepositoryTestBase {
                 eventId,
                 List.of(new EventFieldDraft(
                         "SingleField",
-                        EventFieldType.STRING,
-                        EventFieldConfig.parse("{}"),
+                        FieldType.TEXT,
+                        EventQuestionSettings.parse("{}"),
                         "value",
                         false,
                         null,
@@ -179,11 +171,11 @@ class EventFieldServiceTest extends RepositoryTestBase {
                 onOurSheet.id(),
                 List.of(
                         new EventFieldDraft(
-                                "Eigene", EventFieldType.STRING, EventFieldConfig.parse("{}"), "", false, mine, false),
+                                "Eigene", FieldType.TEXT, EventQuestionSettings.parse("{}"), "", false, mine, false),
                         new EventFieldDraft(
                                 "Fremde",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 "",
                                 false,
                                 foreign,
@@ -224,22 +216,22 @@ class EventFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 eventId,
                 List.of(new EventFieldDraft(
-                        "Location", EventFieldType.STRING, EventFieldConfig.parse("{}"), "Berlin", true, null, false)));
+                        "Location", FieldType.TEXT, EventQuestionSettings.parse("{}"), "Berlin", true, null, false)));
         service.replaceFields(
                 event2Id,
                 List.of(
                         new EventFieldDraft(
                                 "Location",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 "Munich",
                                 true,
                                 null,
                                 false),
                         new EventFieldDraft(
                                 "Topic",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 "Training",
                                 false,
                                 null,
@@ -260,13 +252,13 @@ class EventFieldServiceTest extends RepositoryTestBase {
                 eventId,
                 List.of(
                         new EventFieldDraft(
-                                "Loc", EventFieldType.STRING, EventFieldConfig.parse("{}"), "A", true, null, false),
+                                "Loc", FieldType.TEXT, EventQuestionSettings.parse("{}"), "A", true, null, false),
                         new EventFieldDraft(
-                                "Note", EventFieldType.STRING, EventFieldConfig.parse("{}"), "B", false, null, false)));
+                                "Note", FieldType.TEXT, EventQuestionSettings.parse("{}"), "B", false, null, false)));
         service.replaceFields(
                 event2Id,
                 List.of(new EventFieldDraft(
-                        "Loc", EventFieldType.STRING, EventFieldConfig.parse("{}"), "C", true, null, false)));
+                        "Loc", FieldType.TEXT, EventQuestionSettings.parse("{}"), "C", true, null, false)));
 
         var map = service.findOverviewFieldsByEvents(List.of(eventId, event2Id));
         assertTrue(map.containsKey(eventId));
@@ -292,13 +284,13 @@ class EventFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(7)
     void aValueTheFieldDoesNotOfferIsRefused() {
-        var choice = EventFieldConfig.parse("{\"options\":[\"rot\",\"blau\"]}");
+        var choice = EventQuestionSettings.parse("{\"options\":[\"rot\",\"blau\"]}");
 
         assertThrows(
                 BadRequestResponse.class,
                 () -> service.replaceFields(
                         eventId,
-                        List.of(new EventFieldDraft("Farbe", EventFieldType.ENUM, choice, "gelb", true, null, false))));
+                        List.of(new EventFieldDraft("Farbe", FieldType.CHOICE, choice, "gelb", true, null, false))));
 
         assertThrows(
                 BadRequestResponse.class,
@@ -306,15 +298,15 @@ class EventFieldServiceTest extends RepositoryTestBase {
                         eventId,
                         List.of(new EventFieldDraft(
                                 "Tag",
-                                EventFieldType.DATE,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.DATE,
+                                EventQuestionSettings.parse("{}"),
                                 "irgendwann",
                                 true,
                                 null,
                                 false))));
 
         service.replaceFields(
-                eventId, List.of(new EventFieldDraft("Farbe", EventFieldType.ENUM, choice, "blau", true, null, false)));
+                eventId, List.of(new EventFieldDraft("Farbe", FieldType.CHOICE, choice, "blau", true, null, false)));
         assertEquals("blau", service.findByEvent(eventId).getFirst().value());
     }
 }

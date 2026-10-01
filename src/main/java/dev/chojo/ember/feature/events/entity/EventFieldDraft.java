@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.Question;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -15,8 +17,8 @@ import org.jspecify.annotations.Nullable;
 public record EventFieldDraft(
         @Nullable Integer id,
         String name,
-        EventFieldType fieldType,
-        EventFieldConfig config,
+        FieldType fieldType,
+        EventQuestionSettings config,
         String value,
         boolean overview,
         @Nullable Integer attendanceFieldId,
@@ -29,12 +31,27 @@ public record EventFieldDraft(
      */
     public EventFieldDraft(
             String name,
-            EventFieldType fieldType,
-            EventFieldConfig config,
+            FieldType fieldType,
+            EventQuestionSettings config,
             String value,
             boolean overview,
             @Nullable Integer attendanceFieldId,
             boolean isPublic) {
         this(null, name, fieldType, config, value, overview, attendanceFieldId, isPublic);
+    }
+
+    /** The question this draft asks, as the one check measures its answer against it. */
+    public Question question() {
+        return config.asQuestion(name, fieldType);
+    }
+
+    /** The same draft with the answer in the one shape its type is stored in. */
+    public EventFieldDraft withValue(String stored) {
+        return new EventFieldDraft(id, name, fieldType, config, stored, overview, attendanceFieldId, isPublic);
+    }
+
+    /** The same draft without its tie to a field of an attendance sheet. */
+    public EventFieldDraft untied() {
+        return new EventFieldDraft(id, name, fieldType, config, value, overview, null, isPublic);
     }
 }

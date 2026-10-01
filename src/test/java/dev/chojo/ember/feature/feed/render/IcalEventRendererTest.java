@@ -6,20 +6,20 @@
 package dev.chojo.ember.feature.feed.render;
 
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.DateCancellations;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventDateCancellation;
-import dev.chojo.ember.feature.events.entity.EventField;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -56,7 +56,7 @@ class IcalEventRendererTest {
         eventFieldService = mock(EventFieldService.class);
         // Stand-in for the real resolution: everything but a member field renders its stored text.
         when(eventFieldService.displayValue(any())).thenAnswer(inv -> {
-            EventField field = inv.getArgument(0);
+            AppointmentField field = inv.getArgument(0);
             return field == null || field.value() == null ? "" : field.value().trim();
         });
         NotificationText notificationService = mock(NotificationText.class);
@@ -227,19 +227,19 @@ class IcalEventRendererTest {
     @Test
     void rendersLocationPropertyFromFirstLocationField() {
         var event = simpleEvent(10);
-        var loc = new EventField(
+        var loc = new AppointmentField(
                 1,
                 10,
                 "Ort",
-                EventFieldType.LOCATION,
-                EventFieldConfig.parse("{}"),
+                FieldType.LOCATION,
+                EventQuestionSettings.parse("{}"),
                 "Marktplatz 1",
                 0,
                 true,
                 null,
                 true);
-        var other = new EventField(
-                2, 10, "Thema", EventFieldType.STRING, EventFieldConfig.parse("{}"), "Übung", 1, false, null, false);
+        var other = new AppointmentField(
+                2, 10, "Thema", FieldType.TEXT, EventQuestionSettings.parse("{}"), "Übung", 1, false, null, false);
         when(eventFieldService.findByEvent(eq(10), any())).thenReturn(List.of(loc, other));
         var ctx = ctx(Map.of(), Map.of());
 

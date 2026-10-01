@@ -7,12 +7,12 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -72,7 +72,7 @@ class SettledRefusalSweeperTest extends RepositoryTestBase {
                 null,
                 null);
         var field = new EventRegistrationFieldRepository()
-                .create(event.id(), "Shirtgröße", EventFieldType.STRING, EventRegistrationFieldConfig.empty(), 0, true);
+                .create(event.id(), "Shirtgröße", FieldType.TEXT, EventQuestionSettings.empty(), 0, true);
         fieldId = field.id();
     }
 

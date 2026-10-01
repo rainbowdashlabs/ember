@@ -6,10 +6,8 @@
 package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventTemplateRegistrationField;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.question.FieldType;
@@ -26,15 +24,12 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * The questions an event asks of everyone registering, the copies templates carry, and the answers
- * given per registration.
+ * The questions an event asks of everyone registering, and the answers given per registration.
  */
 @Singleton
 public class EventRegistrationFieldRepository {
 
     private static final String FIELD_COLUMNS = "id, event_id, name, field_type, config, position, overview";
-    private static final String TEMPLATE_FIELD_COLUMNS =
-            "id, template_id, name, field_type, config, position, overview";
     private static final String VALUE_COLUMNS = "registration_id, field_id, value";
 
     // -- Questions --
@@ -53,8 +48,8 @@ public class EventRegistrationFieldRepository {
     public EventRegistrationField create(
             int eventId,
             String name,
-            EventFieldType fieldType,
-            EventRegistrationFieldConfig config,
+            FieldType fieldType,
+            EventQuestionSettings config,
             int position,
             boolean overview) {
         return SqlSupport.insertReturning(
@@ -64,7 +59,7 @@ public class EventRegistrationFieldRepository {
                 RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("name", name)
-                        .bind("field_type", fieldType.fieldType())
+                        .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("overview", overview),
@@ -94,19 +89,17 @@ public class EventRegistrationFieldRepository {
         var kept = new HashSet<Integer>();
         for (int i = 0; i < fields.size(); i++) {
             var field = fields.get(i);
-            var type = field.fieldType() != null ? field.fieldType() : EventFieldType.STRING;
-            var config = field.config() != null ? field.config() : EventRegistrationFieldConfig.empty();
             var matches = byName.getOrDefault(field.name(), List.of());
             var match = matches.stream()
                     .filter(candidate -> !kept.contains(candidate.id()))
                     .findFirst()
                     .orElse(null);
             if (match == null) {
-                create(eventId, field.name(), type, config, i, field.overview());
+                create(eventId, field.name(), field.fieldType(), field.config(), i, field.overview());
                 continue;
             }
             kept.add(match.id());
-            update(match.id(), field.name(), type, config, i, field.overview());
+            update(match.id(), field.name(), field.fieldType(), field.config(), i, field.overview());
         }
 
         for (var existing : byName.values().stream().flatMap(List::stream).toList()) {
@@ -118,8 +111,8 @@ public class EventRegistrationFieldRepository {
     public void update(
             int fieldId,
             String name,
-            EventFieldType fieldType,
-            EventRegistrationFieldConfig config,
+            FieldType fieldType,
+            EventQuestionSettings config,
             int position,
             boolean overview) {
         query("""
@@ -129,7 +122,7 @@ public class EventRegistrationFieldRepository {
                 WHERE id = :id;""")
                 .single(call().bind("id", fieldId)
                         .bind("name", name)
-                        .bind("field_type", fieldType.fieldType())
+                        .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("overview", overview))
@@ -140,49 +133,6 @@ public class EventRegistrationFieldRepository {
         query("DELETE FROM event_registration_field WHERE id = :id;")
                 .single(call().bind("id", fieldId))
                 .delete();
-    }
-
-    // -- Template questions --
-
-    public List<EventTemplateRegistrationField> findByTemplate(int templateId) {
-        return query("""
-                SELECT %s
-                FROM event_template_registration_field
-                WHERE template_id = :template_id
-                ORDER BY position, id;""", TEMPLATE_FIELD_COLUMNS)
-                .single(call().bind("template_id", templateId))
-                .map(EventTemplateRegistrationField.map())
-                .all();
-    }
-
-    public void deleteByTemplate(int templateId) {
-        query("DELETE FROM event_template_registration_field WHERE template_id = :template_id;")
-                .single(call().bind("template_id", templateId))
-                .delete();
-    }
-
-    public void replaceTemplateFields(int templateId, List<RegistrationFieldDraft> fields) {
-        deleteByTemplate(templateId);
-        for (int i = 0; i < fields.size(); i++) {
-            var field = fields.get(i);
-            query("""
-                    INSERT INTO event_template_registration_field(template_id, name, field_type, config, position, overview)
-                    VALUES (:template_id, :name, :field_type, :config::JSONB, :position, :overview);""")
-                    .single(call().bind("template_id", templateId)
-                            .bind("name", field.name())
-                            .bind(
-                                    "field_type",
-                                    field.fieldType() != null
-                                            ? field.fieldType().fieldType()
-                                            : FieldType.TEXT)
-                            .bind(
-                                    "config",
-                                    (field.config() != null ? field.config() : EventRegistrationFieldConfig.empty())
-                                            .toJson())
-                            .bind("position", i)
-                            .bind("overview", field.overview()))
-                    .insert();
-        }
     }
 
     // -- Answers --

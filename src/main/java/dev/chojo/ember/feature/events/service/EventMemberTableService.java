@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.members.entity.MemberTable;
@@ -15,6 +14,7 @@ import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.MemberTablePeople;
 import dev.chojo.ember.feature.members.entity.MemberTableQuestion;
 import dev.chojo.ember.feature.members.service.MemberTableService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -77,8 +77,8 @@ public class EventMemberTableService {
      * <p>The same as for a profile question of the same type: a choice and a named member stay text,
      * because the table writes the answer as it was given.
      */
-    static MemberTableCellType cellTypeOf(EventFieldType type) {
-        return type == null ? MemberTableCellType.TEXT : MemberTableCellType.of(type.fieldType());
+    static MemberTableCellType cellTypeOf(FieldType type) {
+        return MemberTableCellType.of(type);
     }
 
     /**

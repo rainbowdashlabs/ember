@@ -70,7 +70,7 @@ class AttendanceTemplateAudienceRouteTest extends RepositoryTestBase {
                 stationRepo,
                 eventDateCancellationRepo,
                 new AttendanceAudienceService(attendanceRepo),
-                memberEligibility());
+                memberEligibility);
         harness = RouteHarness.serving(new AttendanceRoutes(
                         attendanceService,
                         mock(MemberCheckNotesService.class),

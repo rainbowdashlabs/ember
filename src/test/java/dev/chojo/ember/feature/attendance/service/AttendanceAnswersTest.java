@@ -58,7 +58,7 @@ class AttendanceAnswersTest extends RepositoryTestBase {
                 stationRepo,
                 eventDateCancellationRepo,
                 new AttendanceAudienceService(attendanceRepo),
-                memberEligibility());
+                memberEligibility);
         station = stationRepo.create("AttendanceAnswersStation");
         memberId = member("attendance-answers@test.com", "Alma");
         groupMemberId = member("attendance-answers-group@test.com", "Berta");

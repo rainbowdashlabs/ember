@@ -6,15 +6,14 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
-import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
@@ -51,8 +50,7 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
         fieldService = new EventFieldService(
                 eventFieldRepo,
                 stationMemberRepo,
-                memberGroupRepo,
-                new UserTagService(userTagRepo, memberGroupRepo),
+                memberEligibility,
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService);
@@ -114,12 +112,12 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
         return StationFormat.timezoneOf(stationRepo.findById(station.id()).orElseThrow());
     }
 
-    private EventField memberField(int eventId, String value, boolean perDate) {
+    private AppointmentField memberField(int eventId, String value, boolean perDate) {
         return eventFieldRepo.create(
                 eventId,
                 "Fahrer",
-                EventFieldType.MEMBER_LIST,
-                new EventFieldConfig(null, null, null, null, true, null, perDate),
+                FieldType.MEMBER_LIST,
+                new EventFieldConfig(null, null, null, null, true, null, perDate).settings(),
                 value,
                 0,
                 false,
@@ -347,8 +345,8 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
                 List.of(new EventFieldDraft(
                         field.id(),
                         "Fahrer",
-                        EventFieldType.MEMBER_LIST,
-                        new EventFieldConfig(null, null, null, null, true, null, true),
+                        FieldType.MEMBER_LIST,
+                        new EventFieldConfig(null, null, null, null, true, null, true).settings(),
                         "",
                         false,
                         null,

@@ -11,8 +11,8 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
-import dev.chojo.ember.feature.events.entity.EventField;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.service.StationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -103,13 +104,13 @@ class RegistrationListReadsTest {
         return IntStream.rangeClosed(1, count).boxed().toList();
     }
 
-    private static EventField driversNaming(List<Integer> memberIds) {
-        return new EventField(
+    private static AppointmentField driversNaming(List<Integer> memberIds) {
+        return new AppointmentField(
                 FIELD_ID,
                 EVENT_ID,
                 "Fahrer",
-                EventFieldType.MEMBER_LIST,
-                null,
+                FieldType.MEMBER_LIST,
+                EventQuestionSettings.empty(),
                 memberIds.toString(),
                 0,
                 false,
