@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.notifications.route;
 
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -112,7 +112,7 @@ public class NotificationRoutes implements Routes {
     }
 
     private static Recipient recipient(Context ctx) {
-        return Recipient.stationMember(UserSession.from(ctx).member().id());
+        return Recipient.stationMember(StationSession.from(ctx).member().id());
     }
 
     /**

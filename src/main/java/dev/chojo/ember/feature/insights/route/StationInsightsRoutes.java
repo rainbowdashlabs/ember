@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.insights.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.insights.service.PageInsightsService;
 import dev.chojo.ember.feature.insights.service.PageInsightsService.LeaderboardResponse;
@@ -43,14 +43,6 @@ public class StationInsightsRoutes implements Routes {
     @Inject
     public StationInsightsRoutes(PageInsightsService insights) {
         this.insights = insights;
-    }
-
-    private static int requireStation(Context ctx) {
-        var session = UserSession.from(ctx);
-        if (session.stationId() == null) {
-            throw Refusal.INSIGHTS_NO_STATION_CHOSEN.raise();
-        }
-        return session.stationId();
     }
 
     private static int parsePageId(Context ctx) {
@@ -106,7 +98,7 @@ public class StationInsightsRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LeaderboardResponse.class)))
     private void leaderboard(Context ctx) {
-        int stationId = requireStation(ctx);
+        int stationId = StationSession.from(ctx).stationId();
         Instant from = parseInstant(ctx, "from");
         Instant to = parseInstant(ctx, "to");
         if (to.isBefore(from)) {
@@ -127,7 +119,7 @@ public class StationInsightsRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PageDetailResponse.class)))
     private void pageDetail(Context ctx) {
-        int stationId = requireStation(ctx);
+        int stationId = StationSession.from(ctx).stationId();
         int pageId = parsePageId(ctx);
         Instant from = parseInstant(ctx, "from");
         Instant to = parseInstant(ctx, "to");

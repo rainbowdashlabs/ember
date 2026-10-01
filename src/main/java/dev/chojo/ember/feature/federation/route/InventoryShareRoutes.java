@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.federation.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.federation.entity.InventoryShare;
 import dev.chojo.ember.feature.federation.entity.ShareGrant;
@@ -89,7 +89,7 @@ public class InventoryShareRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareDetail[].class)))
     private void listShares(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(overviewService.overview(session.stationId()));
     }
 
@@ -98,7 +98,7 @@ public class InventoryShareRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void getInventoryShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
         ctx.json(service.findForInventory(session.stationId(), inventoryId)
                 .map(this::toSetting)
@@ -110,7 +110,7 @@ public class InventoryShareRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void getArtShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int artId = pathInt(ctx, "artId");
         ctx.json(service.findForArt(session.stationId(), artId)
                 .map(this::toSetting)
@@ -122,7 +122,7 @@ public class InventoryShareRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void getItemShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int itemId = pathInt(ctx, "itemId");
         ctx.json(service.findForItem(session.stationId(), itemId)
                 .map(this::toSetting)
@@ -139,7 +139,7 @@ public class InventoryShareRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetShareRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void setInventoryShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
         var body = readBody(ctx);
         var share = service.setInventoryShare(
@@ -153,7 +153,7 @@ public class InventoryShareRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetShareRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void setArtShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int artId = pathInt(ctx, "artId");
         var body = readBody(ctx);
         var share = service.setArtShare(session.stationId(), artId, body.scope(), body.grant(), body.partnerIdList());
@@ -166,7 +166,7 @@ public class InventoryShareRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetShareRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void setItemShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int itemId = pathInt(ctx, "itemId");
         var body = readBody(ctx);
         var share = service.setItemShare(session.stationId(), itemId, body.scope(), body.grant(), body.partnerIdList());
@@ -178,7 +178,7 @@ public class InventoryShareRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void deleteInventoryShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         service.removeInventoryShare(session.stationId(), pathInt(ctx, "inventoryId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -188,7 +188,7 @@ public class InventoryShareRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void deleteArtShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         service.removeArtShare(session.stationId(), pathInt(ctx, "artId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -198,7 +198,7 @@ public class InventoryShareRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void deleteItemShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         service.removeItemShare(session.stationId(), pathInt(ctx, "itemId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }

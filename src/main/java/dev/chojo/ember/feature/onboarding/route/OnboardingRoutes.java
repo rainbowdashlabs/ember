@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.onboarding.route;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -55,7 +56,7 @@ public class OnboardingRoutes implements Routes {
             tags = {"Onboarding"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = OnboardingStatus.class)))
     private void getMemberTasks(Context ctx) {
-        ctx.json(memberTasks(UserSession.from(ctx)));
+        ctx.json(memberTasks(StationSession.from(ctx)));
     }
 
     @OpenApi(
@@ -68,12 +69,12 @@ public class OnboardingRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MarkRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = OnboardingStatus.class)))
     private void markMemberTask(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        mark(ctx, session, OnboardingLevel.MEMBER);
+        StationSession session = StationSession.from(ctx);
+        mark(ctx, session.user(), OnboardingLevel.MEMBER);
         ctx.json(memberTasks(session));
     }
 
-    private OnboardingStatus memberTasks(UserSession session) {
+    private OnboardingStatus memberTasks(StationSession session) {
         StationMember member = session.member();
         return onboardingService.forMember(member, member.userType());
     }
@@ -86,8 +87,7 @@ public class OnboardingRoutes implements Routes {
             tags = {"Onboarding"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = OnboardingStatus.class)))
     private void getStationTasks(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        ctx.json(onboardingService.forStation(session.stationId()));
+        ctx.json(onboardingService.forStation(StationSession.from(ctx).stationId()));
     }
 
     @OpenApi(
@@ -99,8 +99,8 @@ public class OnboardingRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MarkRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = OnboardingStatus.class)))
     private void markStationTask(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        mark(ctx, session, OnboardingLevel.STATION);
+        StationSession session = StationSession.from(ctx);
+        mark(ctx, session.user(), OnboardingLevel.STATION);
         ctx.json(onboardingService.forStation(session.stationId()));
     }
 

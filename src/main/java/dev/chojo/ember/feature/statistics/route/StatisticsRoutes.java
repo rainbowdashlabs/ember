@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.statistics.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.statistics.entity.AdminOverview;
@@ -50,7 +50,7 @@ public class StatisticsRoutes implements Routes {
             tags = {"Statistics"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationStatistics.class)))
     private void getStatistics(Context ctx) {
-        ctx.json(statistics.forStation(UserSession.from(ctx).stationId()));
+        ctx.json(statistics.forStation(StationSession.from(ctx).stationId()));
     }
 
     @OpenApi(

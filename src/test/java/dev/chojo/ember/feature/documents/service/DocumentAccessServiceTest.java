@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.documents.service;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -39,6 +40,7 @@ import static org.mockito.Mockito.when;
 class DocumentAccessServiceTest {
 
     private static final int STATION_ID = 1;
+    private static final UUID STATION_UID = UUID.randomUUID();
     private static final int GUARDIAN = 10;
     private static final int WARD = 11;
     private static final int STRANGER = 12;
@@ -70,28 +72,18 @@ class DocumentAccessServiceTest {
         return id == GUARDIAN ? List.of(GUARDIAN, WARD) : List.of(id);
     }
 
-    private static UserSession sessionOf(Integer memberId, StationPermission... permissions) {
-        var member = memberId == null
-                ? null
-                : new StationMember(
-                        memberId,
-                        STATION_ID,
-                        UUID.randomUUID(),
-                        memberId,
-                        false,
-                        null,
-                        "M",
-                        StationUserType.MEMBER,
-                        null);
-        return new UserSession(
+    private static StationSession sessionOf(int memberId, StationPermission... permissions) {
+        var member = new StationMember(
+                memberId, STATION_ID, UUID.randomUUID(), memberId, false, null, "M", StationUserType.MEMBER, null);
+        return StationSession.of(new UserSession(
                 new Account(1, null, "wer@test.com", null, "Wer", "Da", true, null, "Wer Da", null, null),
                 1,
                 STATION_ID,
-                null,
+                STATION_UID,
                 member,
                 Set.of(permissions),
                 Set.of(),
-                null);
+                null));
     }
 
     private static Document document(boolean hidden, Integer uploadedBy) {
@@ -118,7 +110,6 @@ class DocumentAccessServiceTest {
         assertDoesNotThrow(() -> access.requireMayList(sessionOf(WARD), WARD));
         assertDoesNotThrow(() -> access.requireMayList(sessionOf(GUARDIAN), WARD));
         assertRefused(Refusal.DOCUMENT_LIST_NOT_YOURS, () -> access.requireMayList(sessionOf(STRANGER), WARD));
-        assertRefused(Refusal.DOCUMENT_LIST_NOT_YOURS, () -> access.requireMayList(sessionOf(null), WARD));
     }
 
     @Test
@@ -183,7 +174,7 @@ class DocumentAccessServiceTest {
                 () -> access.requireMayDelete(sessionOf(GUARDIAN), document(false, STRANGER)));
         assertRefused(
                 Refusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
-                () -> access.requireMayDelete(sessionOf(null), document(false, null)));
+                () -> access.requireMayDelete(sessionOf(GUARDIAN), document(false, null)));
     }
 
     @Test
@@ -195,7 +186,6 @@ class DocumentAccessServiceTest {
         assertRefused(
                 Refusal.DOCUMENT_NOT_YOURS_TO_ADD,
                 () -> access.requireMayUpload(sessionOf(GUARDIAN, StationPermission.MEMBER_SELF_UPLOAD), WARD));
-        assertRefused(Refusal.DOCUMENT_NOT_YOURS_TO_ADD, () -> access.requireMayUpload(sessionOf(null), WARD));
     }
 
     @Test

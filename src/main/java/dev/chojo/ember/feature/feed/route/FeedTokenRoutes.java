@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.feed.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.feed.entity.FeedToken;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
@@ -52,7 +52,7 @@ public class FeedTokenRoutes implements Routes {
                 @OpenApiResponse(status = "404")
             })
     private void getToken(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var token = tokenService.findByMember(session.member().id());
         token.ifPresentOrElse(t -> ctx.json(toResponse(t)), () -> ctx.status(HttpStatus.NOT_FOUND));
     }
@@ -64,7 +64,7 @@ public class FeedTokenRoutes implements Routes {
             tags = {"Feed Tokens"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FeedStatusResponse.class)))
     private void getStatus(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var token = tokenService.findByMember(session.member().id());
         if (token.isEmpty()) {
             ctx.json(new FeedStatusResponse(false, false, false));
@@ -85,7 +85,7 @@ public class FeedTokenRoutes implements Routes {
             tags = {"Feed Tokens"},
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = FeedTokenResponse.class)))
     private void createToken(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var token = tokenService.getOrCreate(session.member().id());
         ctx.status(HttpStatus.CREATED).json(toResponse(token));
     }
@@ -97,7 +97,7 @@ public class FeedTokenRoutes implements Routes {
             tags = {"Feed Tokens"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FeedTokenResponse.class)))
     private void regenerateToken(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var token = tokenService.regenerate(session.member().id());
         ctx.json(toResponse(token));
     }
@@ -109,7 +109,7 @@ public class FeedTokenRoutes implements Routes {
             tags = {"Feed Tokens"},
             responses = @OpenApiResponse(status = "204"))
     private void revokeToken(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         tokenService.revoke(session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
     }

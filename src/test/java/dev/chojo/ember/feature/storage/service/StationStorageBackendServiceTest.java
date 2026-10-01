@@ -99,11 +99,7 @@ class StationStorageBackendServiceTest {
     }
 
     @Test
-    void aSessionWithoutAStationOrWithOneThatIsGoneIsRefused() {
-        assertEquals(
-                Refusal.NO_STATION_CHOSEN_FOR_STORAGE,
-                assertThrows(RefusalResponse.class, () -> service.requireStation(null))
-                        .refusal());
+    void aSessionWithAStationThatIsGoneIsRefused() {
         assertEquals(
                 Refusal.STORAGE_STATION_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.requireStation(STATION))

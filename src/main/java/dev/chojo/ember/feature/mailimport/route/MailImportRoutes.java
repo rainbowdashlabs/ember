@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.mailimport.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.MailImport;
@@ -336,7 +337,7 @@ public class MailImportRoutes implements Routes {
     }
 
     private int stationOf(Context ctx) {
-        return UserSession.from(ctx).stationId();
+        return StationSession.from(ctx).stationId();
     }
 
     /**

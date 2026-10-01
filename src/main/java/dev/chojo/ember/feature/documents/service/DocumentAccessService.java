@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.documents.service;
 
 import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
@@ -44,7 +44,7 @@ public class DocumentAccessService {
      * Whether the reader sees the documents of every member, hidden ones included, rather than only
      * the ones of their own household.
      */
-    public boolean readsEveryMember(UserSession session) {
+    public boolean readsEveryMember(StationSession session) {
         return session.hasPermission(StationPermission.DOCUMENT_READ_MEMBER);
     }
 
@@ -55,9 +55,9 @@ public class DocumentAccessService {
      * @param session  the reader
      * @param memberId the member whose documents are listed
      */
-    public void requireMayList(UserSession session, int memberId) {
+    public void requireMayList(StationSession session, int memberId) {
         if (readsEveryMember(session)) return;
-        if (!guardianPolicy.mayActFor(session, memberId)) throw Refusal.DOCUMENT_LIST_NOT_YOURS.raise();
+        if (!guardianPolicy.mayActFor(session.user(), memberId)) throw Refusal.DOCUMENT_LIST_NOT_YOURS.raise();
     }
 
     /**
@@ -70,12 +70,12 @@ public class DocumentAccessService {
      * @param session  the reader
      * @param document the document being read
      */
-    public void requireReadable(UserSession session, Document document) {
+    public void requireReadable(StationSession session, Document document) {
         boolean byPermission = documentService.mayRead(
                 document.id(), readsEveryMember(session), session.hasPermission(StationPermission.DOCUMENT_READ));
         if (byPermission) return;
         if (document.hidden()) throw Refusal.DOCUMENT_HIDDEN_FROM_YOU.raise();
-        boolean aboutTheHousehold = guardianPolicy.household(session).stream()
+        boolean aboutTheHousehold = guardianPolicy.household(session.user()).stream()
                 .anyMatch(member -> documentRepository.isBoundTo(document.id(), member));
         if (!aboutTheHousehold) throw Refusal.DOCUMENT_NOT_YOURS_TO_READ.raise();
     }
@@ -88,7 +88,7 @@ public class DocumentAccessService {
      * @param session    the reader
      * @param documentId the document being changed
      */
-    public void requireMayEdit(UserSession session, int documentId) {
+    public void requireMayEdit(StationSession session, int documentId) {
         var needed = documentRepository.hasNoMembers(documentId)
                 ? StationPermission.DOCUMENT_EDIT
                 : StationPermission.DOCUMENT_EDIT_MEMBER;
@@ -102,9 +102,8 @@ public class DocumentAccessService {
      * @param session  the reader
      * @param document the document being removed
      */
-    public void requireMayDelete(UserSession session, Document document) {
-        boolean ownUpload = session.member() != null
-                && document.uploadedBy() != null
+    public void requireMayDelete(StationSession session, Document document) {
+        boolean ownUpload = document.uploadedBy() != null
                 && document.uploadedBy() == session.member().id();
         if (!ownUpload) requireMayEdit(session, document.id());
     }
@@ -117,9 +116,9 @@ public class DocumentAccessService {
      * @param session  the reader
      * @param memberId the member the document is put on
      */
-    public void requireMayUpload(UserSession session, int memberId) {
+    public void requireMayUpload(StationSession session, int memberId) {
         if (session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) return;
-        boolean self = session.member() != null && session.member().id() == memberId;
+        boolean self = session.member().id() == memberId;
         if (self && session.hasPermission(StationPermission.MEMBER_SELF_UPLOAD)) return;
         throw Refusal.DOCUMENT_NOT_YOURS_TO_ADD.raise();
     }
@@ -130,7 +129,7 @@ public class DocumentAccessService {
      * @param session the reader
      * @param hidden  whether the document is to be hidden
      */
-    public void requireMayHide(UserSession session, boolean hidden) {
+    public void requireMayHide(StationSession session, boolean hidden) {
         if (hidden && !session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
             throw Refusal.DOCUMENT_HIDING_NOT_ALLOWED.raise();
         }

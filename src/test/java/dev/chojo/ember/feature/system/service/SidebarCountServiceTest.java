@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.InstanceUserType;
@@ -88,7 +89,7 @@ class SidebarCountServiceTest {
                 stationMemberService);
     }
 
-    private UserSession sessionWithPermissions(Set<StationPermission> permissions) {
+    private StationSession sessionWithPermissions(Set<StationPermission> permissions) {
         var account = new Account(
                 1,
                 UUID.randomUUID(),
@@ -104,8 +105,8 @@ class SidebarCountServiceTest {
         var member = new StationMember(
                 MEMBER_ID, STATION_ID, UUID.randomUUID(), 1, false, null, "Test User", StationUserType.MEMBER, null);
         var expanded = StationPermission.expand(EnumSet.copyOf(permissions));
-        return new UserSession(
-                account, 0, STATION_ID, STATION_UID, member, expanded, EnumSet.noneOf(InstancePermission.class), null);
+        return StationSession.of(new UserSession(
+                account, 0, STATION_ID, STATION_UID, member, expanded, EnumSet.noneOf(InstancePermission.class), null));
     }
 
     @Test

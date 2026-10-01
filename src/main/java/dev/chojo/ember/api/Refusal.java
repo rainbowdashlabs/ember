@@ -417,9 +417,6 @@ public enum Refusal {
     LOST_ITEM_FOUND_DATE_NOT_A_DATE(
             Area.LOST_AND_FOUND, 12, HttpStatus.BAD_REQUEST, "The day the thing was found is not a date"),
 
-    /** Figures about a station asked for by somebody who has not said which station. */
-    INSIGHTS_NO_STATION_CHOSEN(Area.INSIGHTS, 1, HttpStatus.BAD_REQUEST, Sentences.NO_STATION_CHOSEN),
-
     /** Figures about a page addressed by something that is not a number. */
     INSIGHTS_PAGE_NOT_A_NUMBER(Area.INSIGHTS, 2, HttpStatus.BAD_REQUEST, "That does not name a page"),
 
@@ -1071,9 +1068,6 @@ public enum Refusal {
     /** A hidden document being written by somebody who may not hide things. */
     DOCUMENT_HIDING_NOT_ALLOWED(Area.DOCUMENTS, 3, HttpStatus.FORBIDDEN, "You may not mark a document as hidden"),
 
-    /** Work on a station's documents, asked for by somebody who has not said which station. */
-    NO_STATION_CHOSEN_FOR_DOCUMENTS(Area.DOCUMENTS, 4, HttpStatus.BAD_REQUEST, Sentences.NO_STATION_CHOSEN),
-
     /** An upload naming members, by somebody who may not file documents against one. */
     DOCUMENT_MEMBERS_NOT_YOURS_TO_NAME(Area.DOCUMENTS, 5, HttpStatus.FORBIDDEN, Sentences.DOCUMENT_NOT_YOURS_TO_ADD),
 
@@ -1103,9 +1097,6 @@ public enum Refusal {
 
     /** A document heavier than the store takes. */
     DOCUMENT_UPLOAD_TOO_LARGE(Area.DOCUMENTS, 14, HttpStatus.BAD_REQUEST, Sentences.UPLOAD_TOO_LARGE),
-
-    /** An answer to a page form marked as seen by somebody who is no member of the station. */
-    PAGE_FORM_ANSWER_NOT_YOURS_TO_MARK(Area.PAGES, 12, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
 
     /** A member-list cell whose description of who to show could not be read. */
     PAGE_MEMBER_LIST_NOT_READ(
@@ -1356,10 +1347,6 @@ public enum Refusal {
     /** A column of a checklist written down without a label. */
     CHECKLIST_COLUMN_NEEDS_A_LABEL(
             Area.CHECKLISTS, 20, HttpStatus.BAD_REQUEST, "A column needs a label, so nothing was saved"),
-
-    /** The media library, reached by somebody signed in who is no member of the station. */
-    LIBRARY_NOT_YOURS_WITHOUT_MEMBERSHIP(
-            Area.MEDIA_LIBRARY, 17, HttpStatus.FORBIDDEN, "Only a member of this station can use its media library"),
 
     /** A file withdrawn by somebody who did not upload it and does not manage the library. */
     FILE_NOT_YOURS_TO_REMOVE(
@@ -3143,12 +3130,6 @@ public enum Refusal {
     /** A cluster a station is asking to join that is not here any more. */
     CLUSTER_NOT_HERE_ON_APPLICATION(Area.CLUSTERS, 66, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE),
 
-    /** A station asking to join a cluster without having said which station is asking. */
-    NO_STATION_CHOSEN_FOR_CLUSTER_APPLICATION(Area.CLUSTERS, 67, HttpStatus.BAD_REQUEST, Sentences.NO_STATION_CHOSEN),
-
-    /** A station asking to join a cluster from a session that holds no membership to ask with. */
-    NO_MEMBERSHIP_FOR_CLUSTER_APPLICATION(Area.CLUSTERS, 68, HttpStatus.BAD_REQUEST, Sentences.NO_STATION_CHOSEN),
-
     /** A cluster a station is asking to join, named in a way no cluster can be named. */
     CLUSTER_NOT_AN_IDENTITY_ON_APPLICATION(
             Area.CLUSTERS, 69, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_AN_IDENTITY),
@@ -3170,9 +3151,6 @@ public enum Refusal {
      * the same reason as the file above.
      */
     PICTURE_NOT_HERE(Area.MEDIA_LIBRARY, 2, HttpStatus.NOT_FOUND, Sentences.PICTURE_NOT_HERE),
-
-    /** The library of a station, asked for by somebody who has not said which station. */
-    NO_STATION_CHOSEN_FOR_LIBRARY(Area.MEDIA_LIBRARY, 3, HttpStatus.BAD_REQUEST, Sentences.NO_STATION_CHOSEN),
 
     /** An upload to the library that arrived without the file itself. */
     UPLOAD_MISSING_FILE(Area.MEDIA_LIBRARY, 4, HttpStatus.BAD_REQUEST, Sentences.UPLOAD_MISSING_FILE),
@@ -4261,9 +4239,6 @@ public enum Refusal {
     STATION_KEEPS_NO_STORAGE_OF_ITS_OWN(
             Area.STORAGE, 2, HttpStatus.BAD_REQUEST, "This station keeps no storage of its own to test"),
 
-    /** Storage settings reached by a session that stands for no station. */
-    NO_STATION_CHOSEN_FOR_STORAGE(Area.STORAGE, 3, HttpStatus.FORBIDDEN, Sentences.NO_STATION_CHOSEN),
-
     /** A session naming a station that is not here any more. */
     STORAGE_STATION_NOT_HERE(Area.STORAGE, 4, HttpStatus.BAD_REQUEST, Sentences.STATION_NOT_HERE),
 
@@ -4405,9 +4380,6 @@ public enum Refusal {
     /** A kind of request to count at a station that is not one of the kinds counted. */
     STATION_TRAFFIC_KIND_UNKNOWN(Area.TRAFFIC, 8, HttpStatus.BAD_REQUEST, Sentences.TRAFFIC_KIND_UNKNOWN),
 
-    /** A station's traffic figures asked for by a session that stands for no station. */
-    NO_STATION_CHOSEN_FOR_TRAFFIC(Area.TRAFFIC, 9, HttpStatus.BAD_REQUEST, Sentences.NO_STATION_CHOSEN),
-
     /** A stretch of time for a station's figures that ends before it starts. */
     STATION_TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS(
             Area.TRAFFIC, 10, HttpStatus.BAD_REQUEST, Sentences.TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS),
@@ -4471,9 +4443,6 @@ public enum Refusal {
             6,
             HttpStatus.INTERNAL_SERVER_ERROR,
             "The feed could not be put together. Trying again may work; if it keeps happening, please report it"),
-
-    /** The feed subscriptions of a station read by a session that stands for no station. */
-    NO_STATION_CHOSEN_FOR_FEED_USE(Area.FEED, 7, HttpStatus.BAD_REQUEST, Sentences.NO_STATION_CHOSEN),
 
     /** A sign-in vouched for by another device that arrived without the claim to spend. */
     DEVICE_SIGN_IN_CLAIM_MISSING(Area.PASSKEYS, 1, HttpStatus.BAD_REQUEST, Sentences.REQUEST_INCOMPLETE),

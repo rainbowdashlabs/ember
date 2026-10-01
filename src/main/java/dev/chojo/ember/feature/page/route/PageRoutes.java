@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.page.route;
 import dev.chojo.ember.api.Failures;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.content.entity.CellConfig;
@@ -130,7 +130,7 @@ public class PageRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PagesListResponse.class)))
     private void list(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var pages = pageService.listPages(session.stationId());
         var landingPageId = pageService.getLandingPageId(session.stationId()).orElse(null);
         ctx.json(new PagesListResponse(pages, landingPageId));
@@ -141,7 +141,7 @@ public class PageRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PickerPage[].class)))
     private void searchPicker(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String q = ctx.queryParam("q");
         int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(5);
         int limit = Math.clamp(requested, 1, 20);
@@ -208,8 +208,7 @@ public class PageRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "204"))
     private void acknowledgeFormResponse(Context ctx, FormPurpose expected) {
-        var session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.PAGE_FORM_ANSWER_NOT_YOURS_TO_MARK.raise();
+        var session = StationSession.from(ctx);
         var form = resolvePagePublicForm(ctx, expected);
         int responseId = ctx.pathParamAsClass("responseId", Integer.class).get();
         var response = formService.findResponseById(responseId).orElseThrow(Refusal.FORM_ANSWER_NOT_HERE::raise);
@@ -230,7 +229,7 @@ public class PageRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = CellConfig.ResolvedMember[].class)))
     private void resolveMemberList(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         JsonNode body;
         try {
             body = CellConfig.MAPPER.readTree(ctx.body());
@@ -247,7 +246,7 @@ public class PageRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreatePageRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationPage.class)))
     private void create(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreatePageRequest.class);
         if (request.title() == null || request.title().isBlank()) {
             throw Refusal.PAGE_NEEDS_A_TITLE.raise();
@@ -324,7 +323,7 @@ public class PageRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationPage.class)))
     private void duplicate(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
         try {
@@ -400,7 +399,7 @@ public class PageRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LandingPageRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void setLandingPage(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(LandingPageRequest.class);
         try {
             pageService.setLandingPage(session.stationId(), request.pageId());
@@ -420,7 +419,7 @@ public class PageRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationFile.class)))
     private void uploadPageFile(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
         var file = ctx.uploadedFile("file");
@@ -430,12 +429,7 @@ public class PageRoutes implements Routes {
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             var stored = media.upload(
-                    session.stationId(),
-                    pid,
-                    session.member() != null ? session.member().id() : null,
-                    file.filename(),
-                    file.contentType(),
-                    data);
+                    session.stationId(), pid, session.member().id(), file.filename(), file.contentType(), data);
             ctx.status(HttpStatus.CREATED).json(stored);
         } catch (StorageQuotaService.StorageQuotaExceededException | IllegalArgumentException e) {
             log.warn("Could not keep a file uploaded from the page editor", e);

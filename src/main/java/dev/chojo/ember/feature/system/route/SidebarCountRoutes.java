@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.system.service.SidebarCountService;
@@ -45,6 +46,6 @@ public class SidebarCountRoutes implements Routes {
             ctx.json(new SidebarCountService.SidebarCounts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
             return;
         }
-        ctx.json(sidebarCountService.getCounts(session));
+        ctx.json(sidebarCountService.getCounts(StationSession.of(session)));
     }
 }

@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.discovery.route;
 
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
@@ -342,7 +342,7 @@ public class AdminDiscoveryRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationPickerResult[].class)))
     private void searchStationPicker(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
         ctx.json(discoveredStations.picker(session.stationId(), ctx.queryParam("q"), limit));
     }

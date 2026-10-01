@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.storage.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -136,7 +137,7 @@ public class StorageRoutes implements Routes {
             tags = {"Storage"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationUsageResponse.class)))
     private void getStationUsage(Context ctx) {
-        ctx.json(usageReport.stationUsage(UserSession.from(ctx).stationId()));
+        ctx.json(usageReport.stationUsage(StationSession.from(ctx).stationId()));
     }
 
     @OpenApi(

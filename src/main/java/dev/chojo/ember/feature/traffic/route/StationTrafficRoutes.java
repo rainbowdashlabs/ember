@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.traffic.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.traffic.entity.AuthBucket;
 import dev.chojo.ember.feature.traffic.service.TrafficReportService;
@@ -82,10 +82,7 @@ public class StationTrafficRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = HourlyTrafficResponse.class)))
     private void hourly(Context ctx) {
-        var session = UserSession.from(ctx);
-        if (session.stationId() == null) {
-            throw Refusal.NO_STATION_CHOSEN_FOR_TRAFFIC.raise();
-        }
+        var session = StationSession.from(ctx);
         Instant from = parseInstant(ctx, "from");
         Instant to = parseInstant(ctx, "to");
         if (to.isBefore(from)) {

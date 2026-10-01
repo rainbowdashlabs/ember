@@ -93,13 +93,12 @@ public class StationStorageBackendService {
     }
 
     /**
-     * The station a session stands for, refused when it names none or one that is gone.
+     * The station a session stands for, refused when it is gone.
      *
-     * @param stationId the session's station, or null
+     * @param stationId the session's station
      * @return the station
      */
-    public int requireStation(@Nullable Integer stationId) {
-        if (stationId == null) throw Refusal.NO_STATION_CHOSEN_FOR_STORAGE.raise();
+    public int requireStation(int stationId) {
         if (stationRepository.findById(stationId).isEmpty()) throw Refusal.STORAGE_STATION_NOT_HERE.raise();
         return stationId;
     }

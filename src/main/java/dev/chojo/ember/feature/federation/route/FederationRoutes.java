@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
@@ -160,7 +161,7 @@ public class FederationRoutes implements Routes {
             tags = {"Federation"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PartnerResponse[].class)))
     private void listPartners(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var partners = service.findPartners(session.stationId());
         ctx.json(partners.stream()
                 .map(p -> new PartnerResponse(p, service.partnerName(p)))
@@ -178,7 +179,7 @@ public class FederationRoutes implements Routes {
             tags = {"Federation"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InviteCodeResponse.class)))
     private void createInvite(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var code = service.generateStationInvite(session.stationId())
                 .orElseThrow(Refusal.FEDERATION_STATION_NOT_HERE::raise);
         ctx.json(new InviteCodeResponse(code));
@@ -199,7 +200,7 @@ public class FederationRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void acceptInvite(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(AcceptRequest.class);
         if (req.inviteCode() == null || req.inviteCode().isBlank()) {
             throw Refusal.INVITE_CODE_MISSING.raise();
@@ -244,7 +245,7 @@ public class FederationRoutes implements Routes {
             tags = {"Federation"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PairRequestResponse[].class)))
     private void listPendingRequests(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var requests = service.findPendingRequests(session.stationId());
         ctx.json(requests.stream()
                 .map(p -> new PairRequestResponse(
@@ -260,7 +261,7 @@ public class FederationRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationPartner.class)))
     private void acceptPairRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int requestId = ctx.pathParamAsClass("id", Integer.class).get();
         service.findRequestTo(requestId, session.stationId())
                 .orElseThrow(Refusal.PAIR_REQUEST_NOT_HERE_TO_ACCEPT::raise);
@@ -275,7 +276,7 @@ public class FederationRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void declinePairRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int requestId = ctx.pathParamAsClass("id", Integer.class).get();
         service.findRequestTo(requestId, session.stationId())
                 .orElseThrow(Refusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE::raise);
@@ -387,7 +388,7 @@ public class FederationRoutes implements Routes {
             tags = {"Federation"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbShareResponse[].class)))
     private void listKbShares(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(service.findKbShares(session.stationId()).stream()
                 .map(share -> new KbShareResponse(
                         share.id(),
@@ -406,7 +407,7 @@ public class FederationRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = KbShareRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = FederationShare.class)))
     private void createKbShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(KbShareRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(kbFederationService.shareEntry(
@@ -425,7 +426,7 @@ public class FederationRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void deleteKbShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         if (!service.deleteKbShare(id, session.stationId())) {
             throw Refusal.KB_SHARE_NOT_HERE_TO_DELETE.raise();
@@ -440,7 +441,7 @@ public class FederationRoutes implements Routes {
             tags = {"Federation"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationShare[].class)))
     private void listQuizShares(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(service.findQuizShares(session.stationId()));
     }
 
@@ -452,7 +453,7 @@ public class FederationRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuizShareRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = FederationShare.class)))
     private void createQuizShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(QuizShareRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(service.createQuizShare(
@@ -469,7 +470,7 @@ public class FederationRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void deleteQuizShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         if (!service.deleteQuizShare(id, session.stationId())) {
             throw Refusal.QUIZ_SHARE_NOT_HERE_TO_DELETE.raise();
@@ -484,7 +485,7 @@ public class FederationRoutes implements Routes {
             tags = {"Federation"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationShare[].class)))
     private void listProtocolShares(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(service.findProtocolShares(session.stationId()));
     }
 
@@ -496,7 +497,7 @@ public class FederationRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolShareRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = FederationShare.class)))
     private void createProtocolShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(ProtocolShareRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(service.createProtocolShare(
@@ -513,7 +514,7 @@ public class FederationRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void deleteProtocolShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         if (!service.deleteProtocolShare(id, session.stationId())) {
             throw Refusal.PROTOCOL_SHARE_NOT_HERE_TO_DELETE.raise();

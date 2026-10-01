@@ -9,7 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
@@ -120,7 +120,7 @@ public class DocumentRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberDocumentResponse[].class)))
     private void list(Context ctx) {
         int memberId = pathInt(ctx, "memberId");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int stationId = requireMemberStation(ctx, memberId);
         documentAccess.requireMayList(session, memberId);
         ctx.json(catalog.forMember(stationId, memberId, documentAccess.readsEveryMember(session)));
@@ -138,7 +138,7 @@ public class DocumentRoutes implements Routes {
             })
     private void upload(Context ctx) throws IOException {
         int memberId = pathInt(ctx, "memberId");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var member = requireMemberStation(ctx, memberId);
         documentAccess.requireMayUpload(session, memberId);
 
@@ -150,7 +150,8 @@ public class DocumentRoutes implements Routes {
      *
      * <p>Shared by the two ways in: onto a member, and into the store without anybody attached.
      */
-    private Document take(Context ctx, int stationId, List<Integer> memberIds, UserSession session) throws IOException {
+    private Document take(Context ctx, int stationId, List<Integer> memberIds, StationSession session)
+            throws IOException {
         UploadedFile file = ctx.uploadedFile("file");
         if (file == null) throw Refusal.DOCUMENT_UPLOAD_MISSING_FILE.raise();
         if (file.size() > MAX_UPLOAD_SIZE) throw Refusal.DOCUMENT_UPLOAD_TOO_LARGE.raise();
@@ -174,7 +175,7 @@ public class DocumentRoutes implements Routes {
                 data,
                 hidden,
                 keepOnArchive,
-                session.member() != null ? session.member().id() : null,
+                session.member().id(),
                 tagsOf(ctx));
     }
 
@@ -201,12 +202,6 @@ public class DocumentRoutes implements Routes {
                 .map(String::strip)
                 .filter(tag -> !tag.isEmpty())
                 .toList();
-    }
-
-    /** The station the reader is signed in to, which every document belongs to. */
-    private static int requireStation(UserSession session) {
-        if (session.stationId() == null) throw Refusal.NO_STATION_CHOSEN_FOR_DOCUMENTS.raise();
-        return session.stationId();
     }
 
     /**
@@ -236,8 +231,8 @@ public class DocumentRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentPage.class)))
     private void listStation(Context ctx) {
-        var session = UserSession.from(ctx);
-        int stationId = requireStation(session);
+        var session = StationSession.from(ctx);
+        int stationId = session.stationId();
         requireModule(stationId);
         boolean readsMemberDocuments = session.hasPermission(StationPermission.DOCUMENT_READ_MEMBER);
         List<Integer> memberIds = readsMemberDocuments ? requestedMembers(ctx) : List.of();
@@ -259,8 +254,8 @@ public class DocumentRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberDocumentResponse.class)))
     private void uploadForStation(Context ctx) throws IOException {
-        var session = UserSession.from(ctx);
-        int stationId = requireStation(session);
+        var session = StationSession.from(ctx);
+        int stationId = session.stationId();
         requireModule(stationId);
         ctx.status(HttpStatus.CREATED).json(catalog.view(take(ctx, stationId, formMembers(ctx), session)));
     }
@@ -283,7 +278,7 @@ public class DocumentRoutes implements Routes {
                 .filter(id -> !id.isEmpty())
                 .map(Integer::valueOf)
                 .toList();
-        if (!ids.isEmpty() && !UserSession.from(ctx).hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
+        if (!ids.isEmpty() && !StationSession.from(ctx).hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
             throw Refusal.DOCUMENT_MEMBERS_NOT_YOURS_TO_NAME.raise();
         }
         for (int memberId : ids) {
@@ -299,7 +294,7 @@ public class DocumentRoutes implements Routes {
             tags = {"Members"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = String[].class)))
     private void listTags(Context ctx) {
-        int stationId = requireStation(UserSession.from(ctx));
+        int stationId = StationSession.from(ctx).stationId();
         ctx.json(catalog.tagNames(stationId));
     }
 
@@ -313,7 +308,7 @@ public class DocumentRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberDocumentResponse.class)))
     private void setTags(Context ctx) {
         int id = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var document = requireOwnedDocument(ctx, id);
         documentAccess.requireMayEdit(session, id);
         ctx.json(catalog.setTags(document, ctx.bodyAsClass(TagsRequest.class).tags()));
@@ -362,7 +357,7 @@ public class DocumentRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberDocumentResponse.class)))
     private void setMembers(Context ctx) {
         int id = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var document = requireOwnedDocument(ctx, id);
         var request = ctx.bodyAsClass(BindRequest.class);
         var memberIds = request.memberIds() != null ? request.memberIds() : List.<Integer>of();
@@ -381,7 +376,7 @@ public class DocumentRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var document = requireOwnedDocument(ctx, id);
         documentAccess.requireMayDelete(session, document);
         documentService.delete(document);
@@ -391,7 +386,7 @@ public class DocumentRoutes implements Routes {
     /** The document behind the path, when it belongs to the reader's station and they may see it. */
     private Document requireReadable(Context ctx) {
         var document = requireOwnedDocument(ctx, pathInt(ctx, "id"));
-        documentAccess.requireReadable(UserSession.from(ctx), document);
+        documentAccess.requireReadable(StationSession.from(ctx), document);
         return document;
     }
 

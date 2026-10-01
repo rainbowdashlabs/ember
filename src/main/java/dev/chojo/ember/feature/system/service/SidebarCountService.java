@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -69,10 +69,10 @@ public class SidebarCountService {
         this.stationMemberService = stationMemberService;
     }
 
-    public SidebarCounts getCounts(UserSession session) {
+    public SidebarCounts getCounts(StationSession session) {
         int stationId = session.stationId();
         int memberId = session.member().id();
-        var roles = session.permissions();
+        var roles = session.user().permissions();
 
         int notifications = notificationInbox.countUnread(Recipient.stationMember(memberId));
 

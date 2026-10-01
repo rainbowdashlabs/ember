@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.storage.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.storage.service.StationStorageBackendService;
 import dev.chojo.ember.feature.storage.service.StationStorageBackendService.BackendOverrideResponse;
@@ -120,13 +120,12 @@ public class StationStorageBackendRoutes implements Routes {
     }
 
     private int sessionStationId(Context ctx) {
-        return backendService.requireStation(UserSession.from(ctx).stationId());
+        return backendService.requireStation(StationSession.from(ctx).stationId());
     }
 
     private Actor actor(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.account() == null) throw Refusal.NO_ACCOUNT_BEHIND_STORAGE_CHANGE.raise();
-        Integer memberId = session.member() != null ? session.member().id() : null;
-        return Actor.human(session.account().id(), memberId);
+        StationSession session = StationSession.from(ctx);
+        if (session.user().account() == null) throw Refusal.NO_ACCOUNT_BEHIND_STORAGE_CHANGE.raise();
+        return Actor.human(session.accountId(), session.member().id());
     }
 }

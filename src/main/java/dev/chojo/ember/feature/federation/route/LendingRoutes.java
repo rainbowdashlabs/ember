@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.federation.route;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.federation.entity.InventoryBlock;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
@@ -127,7 +127,7 @@ public class LendingRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestResponse[].class)))
     private void listRequests(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(views.requestsFor(
                 session.stationId(), session.hasPermission(StationPermission.INVENTORY_LENDING_MANAGER)));
     }
@@ -139,7 +139,7 @@ public class LendingRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "201", content = @OpenApiContent(from = LendingRequestResponse.class)))
     private void createRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateLendingRequest.class);
         if (views.isOwnStation(session.stationId(), req.owningStationId())) {
             throw Refusal.LENDING_FROM_OWN_STATION.raise();
@@ -174,7 +174,7 @@ public class LendingRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestDetail.class)))
     private void getRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var request = views.requireParty(id, session.stationId());
         ctx.json(new LendingRequestDetail(views.describe(request, session.stationId()), views.describeItems(id)));
@@ -186,7 +186,7 @@ public class LendingRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestResponse.class)))
     private void approveRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         views.requireOwner(id, session.stationId());
         service.approveRequest(id, session.stationId());
@@ -202,7 +202,7 @@ public class LendingRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestResponse.class)))
     private void declineRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         views.requireOwner(id, session.stationId());
         var body = ctx.bodyAsClass(DeclineBody.class);
@@ -217,7 +217,7 @@ public class LendingRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AvailableItemDetail[].class)))
     private void availableItemsForRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         views.requireOwner(id, session.stationId());
         ctx.json(views.availableItems(id, session.stationId()));
@@ -229,7 +229,7 @@ public class LendingRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AssignItemsRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void assignItems(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var request = views.requireOwner(id, session.stationId());
         if (request.status() != LendingStatus.APPROVED) {
@@ -251,7 +251,7 @@ public class LendingRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestResponse.class)))
     private void markLent(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         views.requireOwner(id, session.stationId());
         service.markLent(id, session.stationId());
@@ -266,7 +266,7 @@ public class LendingRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestResponse.class)))
     private void markReturned(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         views.requireParty(id, session.stationId());
         service.markReturned(id, session.stationId());
@@ -281,7 +281,7 @@ public class LendingRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestResponse.class)))
     private void closeRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         views.requireParty(id, session.stationId());
         service.closeRequest(id, session.stationId());
@@ -295,7 +295,7 @@ public class LendingRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EnrichedMessage[].class)))
     private void getMessages(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         views.requireParty(id, session.stationId());
         ctx.json(service.getMessages(id, session.stationId()).stream()
@@ -309,14 +309,14 @@ public class LendingRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MessageBody.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = LendingMessage.class)))
     private void sendMessage(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         views.requireParty(id, session.stationId());
         var body = ctx.bodyAsClass(MessageBody.class);
         if (body.message() == null || body.message().isBlank()) {
             throw Refusal.LENDING_MESSAGE_NEEDS_TEXT.raise();
         }
-        String senderName = NameParts.of(session.account()).called();
+        String senderName = NameParts.of(session.user().account()).called();
         var msg = service.sendMessage(id, session.stationId(), session.member().id(), senderName, body.message());
         ctx.status(HttpStatus.CREATED).json(msg);
     }
@@ -326,7 +326,7 @@ public class LendingRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryBlock[].class)))
     private void listBlocks(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(service.findBlocks(session.stationId()));
     }
 
@@ -336,7 +336,7 @@ public class LendingRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateBlockRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryBlock.class)))
     private void createBlock(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateBlockRequest.class);
         if (req.blockFrom() == null || req.blockTo() == null) {
             throw Refusal.LENDING_BLOCK_SPAN_MISSING.raise();
@@ -357,7 +357,7 @@ public class LendingRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void deleteBlock(Context ctx) {
         int id = pathInt(ctx, "id");
-        service.deleteBlock(id, UserSession.from(ctx).stationId());
+        service.deleteBlock(id, StationSession.from(ctx).stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -366,7 +366,7 @@ public class LendingRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LentOutItem[].class)))
     private void lentOutByInventory(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
         ctx.json(views.lentOut(inventoryId, session.stationId()));
     }

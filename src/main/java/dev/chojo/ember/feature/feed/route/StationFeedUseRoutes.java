@@ -5,9 +5,8 @@
  */
 package dev.chojo.ember.feature.feed.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.feed.service.FeedUseService;
 import dev.chojo.ember.feature.feed.service.FeedUseService.FeedUseResponse;
@@ -48,10 +47,6 @@ public class StationFeedUseRoutes implements Routes {
             tags = {"Monitoring"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FeedUseResponse[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.stationId() == null) {
-            throw Refusal.NO_STATION_CHOSEN_FOR_FEED_USE.raise();
-        }
-        ctx.json(feedUse.forStation(session.stationId()));
+        ctx.json(feedUse.forStation(StationSession.from(ctx).stationId()));
     }
 }

@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.media.route;
 import dev.chojo.ember.api.Failures;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.media.entity.StationFile;
@@ -94,16 +94,11 @@ public class MediaRoutes implements Routes {
      * Whether the caller authors content and may therefore see everything the station has, as
      * opposed to only what they uploaded themselves.
      */
-    private static boolean browsesWholeLibrary(UserSession session) {
+    private static boolean browsesWholeLibrary(StationSession session) {
         for (var permission : CONTENT_PERMISSIONS) {
             if (session.hasPermission(permission)) return true;
         }
         return false;
-    }
-
-    private static int requireMember(UserSession session) {
-        if (session.member() == null) throw Refusal.LIBRARY_NOT_YOURS_WITHOUT_MEMBERSHIP.raise();
-        return session.member().id();
     }
 
     /**
@@ -120,10 +115,9 @@ public class MediaRoutes implements Routes {
      */
     @OpenApi(path = "/api/v1/media/file/{hash}", methods = HttpMethod.GET, responses = @OpenApiResponse(status = "200"))
     private void serveFile(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String hash = ctx.pathParam("hash");
-        if (!session.permissions().contains(StationPermission.EVENT_INTERNAL)
-                && media.keptBack(session.stationId(), hash)) {
+        if (!session.hasPermission(StationPermission.EVENT_INTERNAL) && media.keptBack(session.stationId(), hash)) {
             throw Refusal.FILE_NOT_HERE.raise();
         }
         Integer width = parseOptionalWidth(ctx.queryParam("w"));
@@ -152,10 +146,9 @@ public class MediaRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200"))
     private void servePicture(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String hash = ctx.pathParam("hash");
-        if (!session.permissions().contains(StationPermission.EVENT_INTERNAL)
-                && media.keptBack(session.stationId(), hash)) {
+        if (!session.hasPermission(StationPermission.EVENT_INTERNAL) && media.keptBack(session.stationId(), hash)) {
             throw Refusal.PICTURE_NOT_HERE.raise();
         }
         var picture = media.readPicture(session.stationId(), hash, parseOptionalWidth(ctx.queryParam("w")))
@@ -188,25 +181,13 @@ public class MediaRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FileListing[].class)))
     private void listFiles(Context ctx) {
-        var session = requireStation(UserSession.from(ctx));
-        boolean keptBackToo = session.permissions().contains(StationPermission.EVENT_INTERNAL);
+        var session = StationSession.from(ctx);
+        boolean keptBackToo = session.hasPermission(StationPermission.EVENT_INTERNAL);
         if (browsesWholeLibrary(session)) {
             ctx.json(media.listLibrary(session.stationId(), keptBackToo));
             return;
         }
-        ctx.json(media.listOwnUploads(session.stationId(), requireMember(session), keptBackToo));
-    }
-
-    /**
-     * The library these routes serve belongs to a station, and an instance administrator browsing
-     * with no station chosen has not named one. Saying so is the answer; reaching for a station
-     * that is not there was a crash.
-     */
-    private UserSession requireStation(UserSession session) {
-        if (session.stationId() == null) {
-            throw Refusal.NO_STATION_CHOSEN_FOR_LIBRARY.raise();
-        }
-        return session;
+        ctx.json(media.listOwnUploads(session.stationId(), session.member().id(), keptBackToo));
     }
 
     /**
@@ -222,8 +203,8 @@ public class MediaRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationFile.class)))
     private void upload(Context ctx) {
-        var session = UserSession.from(ctx);
-        int memberId = requireMember(session);
+        var session = StationSession.from(ctx);
+        int memberId = session.member().id();
         var file = ctx.uploadedFile("file");
         if (file == null) throw Refusal.UPLOAD_MISSING_FILE.raise();
         if (file.size() > apiConfig.maxUploadSizeBytes()) throw Refusal.UPLOAD_TOO_LARGE.raise();
@@ -251,7 +232,7 @@ public class MediaRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void deleteFile(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int fileId = pathInt(ctx, "fileId");
         requireOwnedOrNotFound(ctx, fileId, media::findFile, StationFile::stationId);
 
@@ -260,7 +241,7 @@ public class MediaRoutes implements Routes {
             ctx.status(HttpStatus.NO_CONTENT);
             return;
         }
-        int memberId = requireMember(session);
+        int memberId = session.member().id();
         if (!media.mayRelease(fileId, memberId)) {
             throw Refusal.FILE_NOT_YOURS_TO_REMOVE.raise();
         }
@@ -273,7 +254,7 @@ public class MediaRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MediaPruneResult.class)))
     private void pruneFiles(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(new MediaPruneResult(media.pruneUnusedFiles(session.stationId())));
     }
 
@@ -283,7 +264,7 @@ public class MediaRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MediaFileMetaRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void updateFileMeta(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int fileId = pathInt(ctx, "fileId");
         var body = ctx.bodyAsClass(MediaFileMetaRequest.class);
         if (!media.updateFileMeta(session.stationId(), fileId, body.altText(), body.description())) {
@@ -298,7 +279,7 @@ public class MediaRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MoveMediaFileRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void moveFileFolder(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int fileId = pathInt(ctx, "fileId");
         var body = ctx.bodyAsClass(MoveMediaFileRequest.class);
         if (!media.moveFileToFolder(session.stationId(), fileId, body.folderId())) {
@@ -312,7 +293,7 @@ public class MediaRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationFileFolder[].class)))
     private void listFolders(Context ctx) {
-        ctx.json(media.listFolders(UserSession.from(ctx).stationId()));
+        ctx.json(media.listFolders(StationSession.from(ctx).stationId()));
     }
 
     @OpenApi(
@@ -321,7 +302,7 @@ public class MediaRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MediaFolderRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationFileFolder.class)))
     private void createFolder(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var body = ctx.bodyAsClass(MediaFolderRequest.class);
         String name = body.name();
         if (name == null || name.isBlank()) throw Refusal.FOLDER_NEEDS_A_NAME.raise();
@@ -336,7 +317,7 @@ public class MediaRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MediaFolderRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void updateFolder(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int folderId = pathInt(ctx, "folderId");
         var body = ctx.bodyAsClass(MediaFolderRequest.class);
         if (!media.updateFolder(
@@ -355,7 +336,7 @@ public class MediaRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void deleteFolder(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         if (!media.deleteFolder(session.stationId(), pathInt(ctx, "folderId"))) {
             throw Refusal.FOLDER_NOT_HERE_ON_DELETE.raise();
         }
@@ -367,7 +348,7 @@ public class MediaRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationFileTag[].class)))
     private void listTags(Context ctx) {
-        ctx.json(media.listTags(UserSession.from(ctx).stationId()));
+        ctx.json(media.listTags(StationSession.from(ctx).stationId()));
     }
 
     @OpenApi(
@@ -376,7 +357,7 @@ public class MediaRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MediaTagRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationFileTag.class)))
     private void createTag(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var body = ctx.bodyAsClass(MediaTagRequest.class);
         if (body.name() == null || body.name().isBlank()) throw Refusal.FILE_TAG_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED).json(media.createTag(session.stationId(), body.name(), body.color()));
@@ -388,7 +369,7 @@ public class MediaRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MediaTagRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void updateTag(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var body = ctx.bodyAsClass(MediaTagRequest.class);
         if (!media.updateTag(session.stationId(), pathInt(ctx, "tagId"), body.name(), body.color())) {
             throw Refusal.FILE_TAG_NOT_HERE_ON_CHANGE.raise();
@@ -401,7 +382,7 @@ public class MediaRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void deleteTag(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         if (!media.deleteTag(session.stationId(), pathInt(ctx, "tagId"))) {
             throw Refusal.FILE_TAG_NOT_HERE_ON_DELETE.raise();
         }
@@ -413,7 +394,7 @@ public class MediaRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "204"))
     private void assignTag(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         if (!media.assignTag(session.stationId(), pathInt(ctx, "fileId"), pathInt(ctx, "tagId"))) {
             throw Refusal.FILE_TAG_NOT_HERE_ON_ASSIGNMENT.raise();
         }
@@ -425,7 +406,7 @@ public class MediaRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void unassignTag(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         if (!media.unassignTag(session.stationId(), pathInt(ctx, "fileId"), pathInt(ctx, "tagId"))) {
             throw Refusal.FILE_TAG_NOT_HERE_ON_REMOVAL.raise();
         }

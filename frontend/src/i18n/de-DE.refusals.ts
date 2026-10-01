@@ -323,7 +323,6 @@ export default {
     'LF-011': LOST_ITEM_NOT_CLAIMED,
     'LF-012': 'Der Tag des Fundes ist kein Datum',
 
-    'IS-001': CHOOSE_A_STATION,
     'IS-002': 'Das benennt keine Seite',
     'IS-003': 'Gib den ersten und den letzten Zeitpunkt an, den die Zahlen umfassen sollen',
     'IS-004': 'Der angefragte Zeitraum besteht nicht aus Zeitpunkten',
@@ -502,7 +501,6 @@ export default {
     'D-001': 'Diese Wache führt keine Dokumente',
     'D-002': DOCUMENT_NOT_YOURS,
     'D-003': 'Du darfst ein Dokument nicht als verborgen kennzeichnen',
-    'D-004': CHOOSE_A_STATION,
     'D-005': DOCUMENT_NOT_YOURS_TO_ADD,
     'D-006': DOCUMENT_NOT_HERE,
     'D-007': PICTURE_NOT_HERE,
@@ -514,7 +512,6 @@ export default {
     'D-013': UPLOAD_WITHOUT_FILE,
     'D-014': 'Diese Datei ist größer, als diese Instanz annimmt',
 
-    'P-012': NOT_A_STATION_MEMBER,
     'P-013': 'Das Gesendete war nicht lesbar, es wurde keine Mitgliederliste ermittelt',
     'P-014': PAGE_NEEDS_A_TITLE,
     'P-015': 'Die Seite konnte nicht erstellt werden, es wurde nichts gespeichert',
@@ -578,7 +575,6 @@ export default {
     'CL-018': DAY_NOT_A_DATE,
     'CL-020': 'Eine Spalte braucht eine Beschriftung, es wurde nichts gespeichert',
 
-    'L-017': 'Nur Mitglieder dieser Wache können ihre Medien nutzen',
     'L-018': 'Nur wer eine Datei hochgeladen hat, kann sie entfernen',
     'L-019': 'Ein Ordner braucht einen Namen, es wurde nichts gespeichert',
     'L-020': 'Ein Tag braucht einen Namen, es wurde nichts gespeichert',
@@ -1029,14 +1025,11 @@ export default {
     'CU-064': CLUSTER_NOT_HERE,
     'CU-065': 'Das benennt weder eine Wache noch einen Verbund',
     'CU-066': CLUSTER_NOT_HERE,
-    'CU-067': CHOOSE_A_STATION,
-    'CU-068': CHOOSE_A_STATION,
     'CU-069': NOT_A_CLUSTER_IDENTITY,
     'CU-070': EXPIRY_OUT_OF_RANGE,
 
     'L-001': FILE_NOT_HERE,
     'L-002': PICTURE_NOT_HERE,
-    'L-003': CHOOSE_A_STATION,
     'L-004': UPLOAD_WITHOUT_FILE,
     'L-005': 'Diese Datei ist größer, als diese Instanz annimmt',
     'L-006': UPLOAD_NOT_SAVED,
@@ -1319,7 +1312,6 @@ export default {
 
     'ST-001': STORAGE_MOVE_NOT_DONE,
     'ST-002': 'Diese Wache hat keinen eigenen Speicher, der sich testen ließe',
-    'ST-003': CHOOSE_A_STATION,
     'ST-004': STATION_NOT_HERE,
     'ST-005': SESSION_WITHOUT_ACCOUNT,
     'ST-006': 'Diese Wache gehört zu keinem Verbund, es wurde nichts geändert',
@@ -1352,7 +1344,6 @@ export default {
     'TR-006': TRAFFIC_SPAN_MISSING,
     'TR-007': TRAFFIC_SPAN_NOT_A_TIME,
     'TR-008': TRAFFIC_KIND_UNKNOWN,
-    'TR-009': CHOOSE_A_STATION,
     'TR-010': TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS,
 
     'MP-001': 'Nenne die Kachel der Karte, die du willst',
@@ -1373,7 +1364,6 @@ export default {
     'FD-005': STATION_NOT_HERE,
     'FD-006': 'Der Feed ließ sich nicht zusammenstellen. Ein erneuter Versuch kann klappen; '
         + 'wenn es weiter passiert, melde es bitte',
-    'FD-007': CHOOSE_A_STATION,
 
     'PK-001': REQUEST_INCOMPLETE,
     'PK-002': 'Diese Anmeldung konnte nicht abgeschlossen werden. Frag das andere Gerät noch einmal',

@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.cluster.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterApplication;
@@ -67,7 +67,7 @@ public class StationClusterRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationClusterResponse.class)))
     private void get(Context ctx) {
-        int stationId = requireStation(ctx);
+        int stationId = StationSession.from(ctx).stationId();
         Cluster cluster = clusterService.findByStation(stationId).orElse(null);
         List<ClusterApplicationView> applications = applicationService.findByStation(stationId).stream()
                 .map(this::toView)
@@ -89,7 +89,7 @@ public class StationClusterRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = AvailableClusterResponse[].class)))
     private void listAvailable(Context ctx) {
-        requireStation(ctx);
+        StationSession.from(ctx);
         ctx.json(clusterService.findAll().stream()
                 .map(cluster -> new AvailableClusterResponse(cluster.uid(), cluster.name(), cluster.description()))
                 .toList());
@@ -106,14 +106,14 @@ public class StationClusterRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void apply(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int stationId = requireStation(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ApplyRequest.class);
         Cluster cluster = clusterService
                 .findByUid(parseUid(request.clusterUid()))
                 .orElseThrow(Refusal.CLUSTER_NOT_HERE_ON_APPLICATION::raise);
 
-        ClusterApplication application = applicationService.apply(cluster.id(), stationId, requireMember(session));
+        ClusterApplication application = applicationService.apply(
+                cluster.id(), session.stationId(), session.member().id());
         ctx.status(HttpStatus.CREATED).json(toView(application));
     }
 
@@ -128,9 +128,10 @@ public class StationClusterRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void withdraw(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        requireStation(ctx);
-        applicationService.withdraw(ctx.pathParamAsClass("id", Integer.class).get(), requireMember(session));
+        StationSession session = StationSession.from(ctx);
+        applicationService.withdraw(
+                ctx.pathParamAsClass("id", Integer.class).get(),
+                session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -146,18 +147,6 @@ public class StationClusterRoutes implements Routes {
                 application.status(),
                 application.denyReason(),
                 application.resolvedAt());
-    }
-
-    private static int requireStation(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        Integer stationId = session.stationId();
-        if (stationId == null) throw Refusal.NO_STATION_CHOSEN_FOR_CLUSTER_APPLICATION.raise();
-        return stationId;
-    }
-
-    private static int requireMember(UserSession session) {
-        if (session.member() == null) throw Refusal.NO_MEMBERSHIP_FOR_CLUSTER_APPLICATION.raise();
-        return session.member().id();
     }
 
     private static UUID parseUid(String raw) {
