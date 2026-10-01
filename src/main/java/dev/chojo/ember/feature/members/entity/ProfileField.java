@@ -45,8 +45,8 @@ public record ProfileField(
         @Nullable String width,
         boolean keepOnArchive) {
     /**
-     * This field as everything that checks a question reads it, or nothing where it is a heading and
-     * asks nobody anything.
+     * This field as everything that checks a question reads it, or nothing where it is a heading or
+     * an age and asks nobody anything.
      */
     public Optional<Question> question() {
         return fieldType.kind().map(kind -> config.settings(required).asQuestion(name, kind));

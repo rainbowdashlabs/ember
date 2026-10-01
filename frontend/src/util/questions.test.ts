@@ -20,8 +20,9 @@ describe('questionKindOf', () => {
     expect(questionKindOf('NUMBER', true)).toBe(QuestionKinds.NUMBER)
   })
 
-  it('reads an age as a number', () => {
-    expect(questionKindOf('AGE')).toBe(QuestionKinds.DECIMAL)
+  it('asks nothing of an age, which counts itself from a date', () => {
+    expect(questionKindOf('AGE')).toBeNull()
+    expect(questionKindOf('AGE', true)).toBeNull()
   })
 
   it('reads every date as a date and every choice as a choice', () => {

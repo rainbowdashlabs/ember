@@ -107,7 +107,12 @@ export function holdsAnswer(field: LayoutField): boolean {
     return !isSection(field) && !isSpacer(field)
 }
 
-/** The entries that hold an answer, which are the only ones worth saving or asking about. */
+/**
+ * The entries somebody answers, which are the only ones worth saving or importing into.
+ *
+ * <p>An age is laid out like a question but counts itself from a date, so nothing is ever written
+ * into it.
+ */
 export function valueFields<T extends LayoutField>(fields: T[]): T[] {
-    return fields.filter(holdsAnswer)
+    return fields.filter(field => holdsAnswer(field) && field.fieldType !== FieldTypes.AGE)
 }

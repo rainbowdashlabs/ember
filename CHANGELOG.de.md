@@ -129,6 +129,7 @@
 - **Die Mitgliederliste markierte nie ein unvollständiges Profil.** Mitglieder, die eine Pflichtfrage ihres Profils offen gelassen hatten, sahen in der Mitgliederliste aus wie alle anderen. Sie tragen jetzt „Unvollständig“ neben ihrem Namen, beurteilt wie bei der Erinnerung in ihrem eigenen Profil.
 - **Ehemalige Mitglieder konnten Listen und Exporte abbrechen lassen.** In manchen Fällen ließ ein ehemaliges Mitglied, dessen Konto entfernt worden war, den Anwesenheitsbericht und seinen Export, eine Inventarprüfung, die Bestands- und Bewegungsexporte, die Liste der betreuten Mitglieder eines Erziehungsberechtigten oder den Änderungsverlauf eines Profils mit einem Fehler abbrechen. Ein solches Mitglied erscheint jetzt mit Namen oder Nummer.
 - **„Im Browser öffnen" in einem Feed-Eintrag konnte ins Leere führen.** In manchen Fällen trug eine Benachrichtigung im RSS- oder Atom-Feed einen Knopf „Im Browser öffnen" ohne Ziel. Er öffnet jetzt dieselbe Seite wie der Eintrag selbst.
+- **Fragen zur Anmeldung aus einer Terminvorlage kamen nicht an.** Ein Termin, der aus einer Terminvorlage erstellt wurde, übernahm die Fragen zur Anmeldung aus der Vorlage nicht und in manchen Fällen stattdessen die einer anderen Vorlage. Er übernimmt jetzt die Fragen der Vorlage, aus der er erstellt wurde, und sie stehen schon vor dem Speichern im Editor.
 
 ## v26.19.5
 

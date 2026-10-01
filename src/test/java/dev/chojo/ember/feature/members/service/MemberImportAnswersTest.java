@@ -99,10 +99,10 @@ class MemberImportAnswersTest extends RepositoryTestBase {
                 .findFirst();
     }
 
+    /** An age counts itself from a date, so a column mapped onto one is left out. */
     @Test
-    void anAgeColumnIsStoredAsADecimal() {
-        assertEquals(Optional.of("15"), imported(ProfileFieldType.AGE, "{}", "15"));
-        assertEquals(Optional.of("15.5"), imported(ProfileFieldType.AGE, "{}", "15,5"));
+    void anAgeColumnIsSkipped() {
+        assertEquals(Optional.empty(), imported(ProfileFieldType.AGE, "{}", "15"));
     }
 
     @Test

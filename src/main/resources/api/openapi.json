@@ -48547,6 +48547,10 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
+          "eventTemplateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
           "requiresRegistration" : {
             "type" : [ "boolean", "null" ]
           },

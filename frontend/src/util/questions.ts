@@ -30,8 +30,8 @@ export type QuestionKindName = (typeof QuestionKinds)[keyof typeof QuestionKinds
  * The kind a feature's own field type is, or nothing where it asks nobody anything.
  *
  * <p>Read off the name, because the six features spell the same kinds the same way: a heading asks
- * nothing, a birth date is a date, an age is a number, and the nine ways of naming members are two
- * kinds, one member or several.
+ * nothing, an age is counted from a date and asks nothing either, a birth date is a date, and the
+ * nine ways of naming members are two kinds, one member or several.
  *
  * @param fieldType the type as the feature stores it
  * @param whole     whether a number of this feature refuses a fraction, which only the appointment
@@ -40,13 +40,12 @@ export type QuestionKindName = (typeof QuestionKinds)[keyof typeof QuestionKinds
 export function questionKindOf(fieldType: string | undefined | null, whole = false): QuestionKindName | null {
     if (!fieldType) return null
     const type = fieldType.toUpperCase()
-    if (type === 'SECTION') return null
+    if (type === 'SECTION' || type === 'AGE') return null
     if (type.startsWith('MEMBER')) {
         return type.includes('_LIST') ? QuestionKinds.MEMBER_LIST : QuestionKinds.MEMBER
     }
     switch (type) {
         case 'NUMBER':
-        case 'AGE':
             return whole ? QuestionKinds.NUMBER : QuestionKinds.DECIMAL
         case 'DATE':
         case 'BIRTH_DATE':

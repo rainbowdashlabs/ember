@@ -76,14 +76,33 @@ const pageTitle = computed(() => {
 const pageSubtitle = computed(() =>
     isEdit.value ? t('pages.event-edit.subtitle') : t('pages.event-new.subtitle'))
 
+/**
+ * Fills the editor from an appointment template, its registration questions included.
+ *
+ * <p>The questions join the editor's list rather than arriving only on the server: the list is what
+ * the editor writes back on save, so a question it did not hold would be removed again by the same
+ * save that created the appointment.
+ */
 async function applyEventTemplate(templateId: string | undefined) {
   if (!templateId) return
   try {
-    form.applyTemplate(await events.getTemplate(Number(templateId)))
+    const detail = await events.getTemplate(Number(templateId))
+    form.applyTemplate(detail)
+    registrationFields.value = [...registrationFields.value, ...detail.registrationFields.map(asDefinition)]
     flashTemplateApplied(t('eventTemplates.applied'))
   } catch (e) {
     reportCaughtError(e, 'applyEventTemplate')
     failure.value = describeFailure(e, t)
+  }
+}
+
+/** A question as the editor works on it: its definition, without the id of wherever it is stored. */
+function asDefinition(field: RegistrationFieldDefinition): RegistrationFieldDefinition {
+  return {
+    name: field.name,
+    fieldType: field.fieldType,
+    config: field.config,
+    overview: field.overview,
   }
 }
 
@@ -93,12 +112,7 @@ async function applyEventTemplate(templateId: string | undefined) {
  */
 async function loadRegistrationFields(id: number) {
   const loadedFields = await events.listRegistrationFields(id).catch(() => [])
-  registrationFields.value = loadedFields.map(f => ({
-    name: f.name,
-    fieldType: f.fieldType,
-    config: f.config,
-    overview: f.overview,
-  }))
+  registrationFields.value = loadedFields.map(asDefinition)
 }
 
 async function loadData() {

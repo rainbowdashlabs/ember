@@ -96,12 +96,14 @@ public class MemberImportService {
     }
 
     /**
-     * The fields of a station that hold an answer, which are the only ones a column can be mapped
-     * onto. A heading between fields is not something a spreadsheet has a column for.
+     * The fields of a station that take an answer, which are the only ones a column can be mapped
+     * onto. A heading between fields is not something a spreadsheet has a column for, and an age is
+     * counted from a date rather than read from a cell.
      */
     private List<ProfileField> valueFields(int stationId) {
         return profileFieldRepository.findByStation(stationId).stream()
-                .filter(field -> field.fieldType().holdsValue())
+                .filter(field ->
+                        field.fieldType().holdsValue() && !field.fieldType().isCalculated())
                 .toList();
     }
 
@@ -603,7 +605,7 @@ public class MemberImportService {
     private JsonNode asAnswer(String value, ProfileFieldType fieldType) {
         return switch (fieldType) {
             case DATE, BIRTH_DATE, EXPIRY_DATE -> StringNode.valueOf(asIsoDate(value));
-            case NUMBER, AGE -> asNumber(value);
+            case NUMBER -> asNumber(value);
             case BOOLEAN -> asBoolean(value);
             default -> StringNode.valueOf(value);
         };

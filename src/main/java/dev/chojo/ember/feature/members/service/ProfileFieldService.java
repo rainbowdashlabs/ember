@@ -37,6 +37,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.QuestionCheck;
+import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
@@ -592,12 +593,18 @@ public class ProfileFieldService {
      * date somebody typed wrongly into another field years ago, and rewriting it for them would be
      * inventing an answer nobody gave.
      *
+     * <p>An age takes no answer at all. It is counted from a date, so a value written under it is one
+     * nobody ever sees.
+     *
      * @throws BadRequestResponse naming the field and what is wrong with the answer
      */
     private void requireAnswerable(int fieldId, String value) {
-        profileFieldRepository
-                .findById(fieldId)
-                .flatMap(ProfileField::question)
+        var field = profileFieldRepository.findById(fieldId).orElse(null);
+        if (field == null) return;
+        if (field.fieldType().isCalculated() && !QuestionValues.said(value).isEmpty()) {
+            throw Refusal.PROFILE_AGE_TAKES_NO_ANSWER.raise();
+        }
+        field.question()
                 .flatMap(question -> QuestionCheck.answerIfGiven(question, value))
                 .ifPresent(problem -> {
                     throw new BadRequestResponse(problem.message());

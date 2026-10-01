@@ -1271,6 +1271,8 @@ export default {
     'M-144': 'Das ist kein Mitgliedstyp',
     'M-145': REGISTRATION_CODE_NOT_HERE,
     'M-146': REGISTRATION_CODE_NOT_HERE,
+    'M-147': 'Ein Alter wird aus einem Datum berechnet und nimmt keine eigene Antwort an, '
+        + 'es wurde nichts gespeichert',
 
     'N-001': TOO_MANY_ATTEMPTS,
 

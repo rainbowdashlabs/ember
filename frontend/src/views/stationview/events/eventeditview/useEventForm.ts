@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, reactive, watch} from 'vue'
+import {computed, reactive, ref, watch} from 'vue'
 import {events} from '@/api'
 import {EventTypes, needsDayOfWeek} from '@/api/events'
 import type {
@@ -26,6 +26,13 @@ export function useEventForm() {
   const state = reactive(createEventFormState())
 
   const {props, handlers} = modelBindings(state)
+
+  /**
+   * The appointment template last applied, which the server copies the registration questions from
+   * when the appointment is created. Kept apart from the form state, whose keys are the editor's
+   * props, and apart from `templateId`, which names the attendance sheet.
+   */
+  const appliedTemplateId = ref<number | null>(null)
 
   watch(() => state.startTime, (val) => {
     if (val && !state.endTime) {
@@ -52,6 +59,7 @@ export function useEventForm() {
    */
   function applyTemplate(detail: TemplateDetailResponse) {
     const tpl = detail.template
+    appliedTemplateId.value = tpl.id
     if (tpl.title) state.name = tpl.title
     if (tpl.description) state.description = tpl.description
     if (tpl.categoryId) state.categoryId = String(tpl.categoryId)
@@ -141,6 +149,7 @@ export function useEventForm() {
       startTime: state.startTime ? new Date(state.startTime).toISOString() : undefined,
       endTime: state.endTime ? new Date(state.endTime).toISOString() : undefined,
       templateId: state.templateId ? Number(state.templateId) : null,
+      eventTemplateId: appliedTemplateId.value,
       categoryId: state.categoryId ? Number(state.categoryId) : null,
       requiresRegistration: state.requiresRegistration,
       registrationDeadline: state.hasDeadline && state.registrationDeadline

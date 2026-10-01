@@ -4055,6 +4055,13 @@ public enum Refusal {
     REGISTRATION_CODE_NOT_HERE_TO_CHANGE_GROUPS(
             Area.MEMBERS, 146, HttpStatus.NOT_FOUND, Sentences.REGISTRATION_CODE_NOT_HERE),
 
+    /** A value written under an age, which counts itself from a date and holds none of its own. */
+    PROFILE_AGE_TAKES_NO_ANSWER(
+            Area.MEMBERS,
+            147,
+            HttpStatus.BAD_REQUEST,
+            "An age is counted from a date and takes no answer of its own, so nothing was saved"),
+
     /** Asking to set an instance up far more often than a person could. */
     SETUP_TOO_OFTEN(Area.INSTALLATION, 1, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
 

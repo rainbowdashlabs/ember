@@ -56611,6 +56611,8 @@ export interface components {
             dayOfWeek?: number | null;
             description?: string | null;
             endTime?: components["schemas"]["Instant"];
+            /** Format: int32 */
+            eventTemplateId?: number | null;
             eventType?: components["schemas"]["EventType"];
             isPublic?: boolean | null;
             /** Format: int32 */

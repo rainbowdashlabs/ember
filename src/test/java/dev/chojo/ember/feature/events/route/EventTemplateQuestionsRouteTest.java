@@ -19,7 +19,6 @@ import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
@@ -45,7 +44,6 @@ class EventTemplateQuestionsRouteTest {
     private static final int APPOINTMENT_TEMPLATE_ID = 11;
 
     @Test
-    @Disabled("TODO: creating an appointment still copies questions by the attendance sheet id")
     void theQuestionsComeFromTheAppointmentTemplateAndNotFromTheSheet() {
         var crudService = mock(EventCrudService.class);
         var created = mock(StationEvent.class);

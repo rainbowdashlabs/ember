@@ -129,6 +129,7 @@
 - **The member list never marked an incomplete profile.** Members who had left a required profile question unanswered looked the same in the member list as everyone else. They are now marked "Incomplete" beside their name, judged the same way as the reminder on their own profile.
 - **Former members could break lists and exports.** In some cases a former member whose account had been removed made the attendance report and its export, an inventory check, the gear and movement exports, a guardian's list of managed members or a profile's change history fail with an error. Such a member is now shown by name or number.
 - **"Open in browser" in a feed entry could lead nowhere.** In some cases a notification in the RSS or Atom feed carried an "Open in browser" button without a destination. It now opens the same page as the entry itself.
+- **Registration questions of an appointment template did not arrive.** An appointment created from an appointment template did not take the registration questions the template carries, and in some cases took those of another template instead. It now takes the questions of the template it was made from, and they show in the editor before saving.
 
 ## v26.19.5
 

@@ -92,6 +92,20 @@ public final class QuestionValues {
         return trimmed;
     }
 
+    /**
+     * What was actually said, which is nothing in more spellings than one.
+     *
+     * <p>The features that keep their answers as JSON write an unanswered question as the literal
+     * {@code null} or as an empty string in quotes, and both mean the same as an empty box.
+     *
+     * @param stored the answer as the feature holds it
+     * @return the answer as plain text, empty where nothing was said
+     */
+    public static String said(@Nullable String stored) {
+        String text = text(stored);
+        return text.equalsIgnoreCase("null") ? "" : text;
+    }
+
     /** Several members as an answer stores them. */
     public static String formatMembers(List<Integer> ids) {
         var written = new StringBuilder("[");

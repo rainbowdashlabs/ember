@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
@@ -29,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -175,12 +178,19 @@ class ProfileAnswersTest extends RepositoryTestBase {
         assertEquals("\"\"", stored(field, "\"\""));
     }
 
+    /** An age counts itself from a date, so a value written under it is refused and nothing is kept. */
     @Test
-    void anAgeTakesADecimalThatNothingShows() {
+    void anAgeTakesNoAnswer() {
         var field = ask(ProfileFieldType.AGE, "{}");
+        int member = freshMember();
 
-        assertEquals("15", stored(field, "15"));
-        refused(field, "\"fünfzehn\"");
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> service.setValues(member, List.of(new FieldValueEntry(field.id(), "15")), member));
+
+        assertEquals(Refusal.PROFILE_AGE_TAKES_NO_ANSWER, refusal.refusal());
+        assertTrue(service.findValues(member).isEmpty());
+        assertEquals("\"\"", stored(field, "\"\""));
     }
 
     @Test

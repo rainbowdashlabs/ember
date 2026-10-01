@@ -39,8 +39,8 @@ public final class QuestionCheck {
      * @return what is wrong with it, or empty where nothing is
      */
     public static Optional<QuestionProblem> answer(Question question, @Nullable String answer) {
-        String value = said(answer);
-        if (value.isEmpty()) value = said(question.defaultValue());
+        String value = QuestionValues.said(answer);
+        if (value.isEmpty()) value = QuestionValues.said(question.defaultValue());
         if (value.isEmpty()) {
             return question.required()
                     ? Optional.of(new QuestionProblem(QuestionProblem.Code.REQUIRED, question.name(), null))
@@ -62,7 +62,7 @@ public final class QuestionCheck {
      * @return what is wrong with it, or empty where nothing is or nothing was given
      */
     public static Optional<QuestionProblem> answerIfGiven(Question question, @Nullable String answer) {
-        String value = said(answer);
+        String value = QuestionValues.said(answer);
         return value.isEmpty() ? Optional.empty() : value(question, value);
     }
 
@@ -77,7 +77,7 @@ public final class QuestionCheck {
      * @return what is wrong with its default, or empty where it has none or it is fine
      */
     public static Optional<QuestionProblem> defaultValue(Question question) {
-        String value = said(question.defaultValue());
+        String value = QuestionValues.said(question.defaultValue());
         return value.isEmpty() ? Optional.empty() : value(question, value);
     }
 
@@ -170,17 +170,6 @@ public final class QuestionCheck {
     private static Optional<QuestionProblem> problem(
             QuestionProblem.Code code, Question question, @Nullable String detail) {
         return Optional.of(new QuestionProblem(code, question.name(), detail));
-    }
-
-    /**
-     * What was actually said, which is nothing in more spellings than one.
-     *
-     * <p>The features that keep their answers as JSON write an unanswered question as the literal
-     * {@code null} or as an empty string in quotes, and both mean the same as an empty box.
-     */
-    private static String said(@Nullable String stored) {
-        String text = QuestionValues.text(stored);
-        return text.equalsIgnoreCase("null") ? "" : text;
     }
 
     /** What reading a date or a time out of an answer looks like, so both go through one path. */

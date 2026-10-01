@@ -93,6 +93,16 @@ class ProfileCompletenessSqlTest extends RepositoryTestBase {
         assertTrue(complete());
     }
 
+    /** An age counts itself from a date and takes no answer, so even a required one is never left open. */
+    @Test
+    void aRequiredAgeIsNeverLeftOpen() {
+        var age = profileFieldRepo.create(
+                station.id(), "Alter", ProfileFieldType.AGE, ProfileFieldConfig.parse("{}"), true, false, null);
+        profileFieldRepo.assignToRole(age.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+
+        assertTrue(complete());
+    }
+
     @Test
     void aRequiredQuestionPutToAnotherKindOfMemberDoesNotCount() {
         requiredOf(ProfileFieldScope.TEAM);

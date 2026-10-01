@@ -590,3 +590,15 @@ DROP TABLE ember_schema.event_comment;
 DROP TABLE ember_schema.news_comment;
 DROP TABLE ember_schema.kb_comment;
 DROP TABLE ember_schema.board_ticket_comment;
+
+DELETE
+FROM ember_schema.profile_field_value v
+    USING ember_schema.profile_field f
+WHERE v.field_id = f.id
+  AND f.field_type = 'AGE';
+
+DELETE
+FROM ember_schema.cluster_profile_field_value v
+    USING ember_schema.cluster_profile_field f
+WHERE v.field_id = f.id
+  AND f.field_type = 'AGE';

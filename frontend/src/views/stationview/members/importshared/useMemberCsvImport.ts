@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import client from '@/api/client'
 import {memberGroups as memberGroupsApi, profileFields as profileFieldsApi} from '@/api'
 import {parseFieldConfig} from '@/api/profileFields'
+import {valueFields} from '@/components/profilefields/fieldLayout'
 import type {MemberGroup, ProfileField} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useCsvImport, type ParsedCsv} from '@/composables/useCsvImport'
@@ -129,7 +130,7 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
             result.push({value: `manager:${manager}:phone`, label: t('memberImport.managerPhone'), group: managerGroup})
             result.push({value: `manager:${manager}:email`, label: t('memberImport.managerEmail'), group: managerGroup})
         }
-        for (const field of fields.value) {
+        for (const field of valueFields(fields.value)) {
             const kind = field.fieldType ? ` (${fieldTypeLabel(t, field.fieldType)})` : ''
             result.push({value: `field:${field.id}`, label: `${field.name}${kind}`, group: scopeLabel(field)})
         }
@@ -153,7 +154,7 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
             const manager = parseInt(phoneDigit)
             if (manager >= 1 && manager <= managerCount.value) return `manager:${manager}:phone`
         }
-        const field = fields.value.find(candidate => candidate.name?.toLowerCase() === name)
+        const field = valueFields(fields.value).find(candidate => candidate.name?.toLowerCase() === name)
         return field ? `field:${field.id}` : SKIP_TARGET
     }
 

@@ -980,14 +980,15 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
      * An age counts itself, so nobody has changed one.
      *
      * <p>It was recorded as a change like any other and somebody was asked to confirm a number that
-     * the passing of time had produced.
+     * the passing of time had produced. An age takes no value now, but a form still sends the empty
+     * one it shows, and that is no change either.
      */
     @Test
     @Order(61)
     void anAgeCountingItselfIsNotAChangeAnybodyMade() {
         var field = ask("Alter", ProfileFieldType.AGE, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 61);
 
-        service.setValues(member.id(), List.of(new FieldValueEntry(field.id(), "15")), member.id());
+        service.setValues(member.id(), List.of(new FieldValueEntry(field.id(), "\"\"")), member.id());
 
         assertTrue(
                 profileFieldChangeRepo.findByMember(member.id()).stream()

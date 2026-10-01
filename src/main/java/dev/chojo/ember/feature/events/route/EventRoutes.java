@@ -410,9 +410,9 @@ public class EventRoutes implements Routes {
                 req.thresholdDays(),
                 req.registrationCloseDays());
         applyAudiences(event.id(), req);
-        Integer templateId = req.templateId();
-        if (templateId != null) {
-            registrationFieldService.copyTemplateFields(templateId, event.id());
+        Integer eventTemplateId = req.eventTemplateId();
+        if (eventTemplateId != null) {
+            registrationFieldService.copyTemplateFields(eventTemplateId, event.id());
         }
         var withEnd = crudService
                 .setRepeatEnd(event.id(), req.repeatUntil(), req.repeatCount())
@@ -796,6 +796,16 @@ public class EventRoutes implements Routes {
         ctx.result(pdf.get().bytes());
     }
 
+    /**
+     * An appointment as the editor writes it.
+     *
+     * <p>Two templates can stand behind one appointment and they are not the same thing: the
+     * attendance sheet it is taken on, which it keeps, and the appointment template it was made from,
+     * which it only copies its registration questions from when it is created.
+     *
+     * @param templateId      the attendance sheet the appointment is taken on
+     * @param eventTemplateId the appointment template it is made from, read only when it is created
+     */
     public record EventRequest(
             String name,
             @Nullable String description,
@@ -804,6 +814,7 @@ public class EventRoutes implements Routes {
             Instant startTime,
             Instant endTime,
             @Nullable Integer templateId,
+            @Nullable Integer eventTemplateId,
             @Nullable Boolean requiresRegistration,
             @Nullable Instant registrationDeadline,
             @Nullable Boolean requiresConfirmation,

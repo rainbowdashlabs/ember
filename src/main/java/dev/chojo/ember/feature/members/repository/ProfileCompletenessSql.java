@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  * to both their kind and a group of theirs is judged as their kind meets it, and one put to several of their
  * groups as the first of those on their form, which is the way the profile lays them out.
  *
- * <p>Such a question counts against them when it holds an answer at all, they have to answer it, they may
+ * <p>Such a question counts against them when it takes an answer at all, they have to answer it, they may
  * write it, and the answer is blank. A question the station only lets them read is not theirs to fill in,
  * and neither is one the association asks and keeps to itself. Answers are documents, so a blank one is no
  * row, the document null a selection left on its blank entry writes, or the empty string.
@@ -76,9 +76,10 @@ public final class ProfileCompletenessSql {
         return INCOMPLETE.replace("{m}", member);
     }
 
+    /** The types nobody answers: headings and gaps, and an age, which counts itself from a date. */
     private static String answerlessTypes() {
         return Arrays.stream(ProfileFieldType.values())
-                .filter(type -> !type.holdsValue())
+                .filter(type -> !type.holdsValue() || type.isCalculated())
                 .map(type -> "'" + type.name() + "'")
                 .collect(Collectors.joining(", "));
     }

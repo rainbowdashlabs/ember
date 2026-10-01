@@ -445,12 +445,13 @@ class MemberImportServiceTest extends RepositoryTestBase {
      *
      * <p>An answer is held as JSON and a cell is not JSON, so every kind of question has to be
      * converted before it is stored. This walks all of them with a cell that is awkward for each: a
-     * leading zero is not a JSON number, and it is neither a date nor a yes.
+     * leading zero is not a JSON number, and it is neither a date nor a yes. An age is left out: it
+     * counts itself from a date and takes no cell at all.
      */
     @Test
     void everyKindOfQuestionTakesAnAwkwardCell() {
         var types = Arrays.stream(ProfileFieldType.values())
-                .filter(ProfileFieldType::holdsValue)
+                .filter(type -> type.holdsValue() && !type.isCalculated())
                 .toList();
         var mappings = new ArrayList<ColumnMapping>(List.of(map("Vorname", "firstName"), map("Name", "lastName")));
         var fieldsByType = new LinkedHashMap<ProfileFieldType, Integer>();

@@ -63,21 +63,22 @@ public enum ProfileFieldType {
 
     /**
      * The shared kind this type is, which is what the one check measures an answer against, or
-     * nothing for a heading, which asks nobody anything.
+     * nothing for a type nobody answers.
      *
      * <p>A number reads as one that may carry a fraction, because nothing ever checked these and a
-     * station with a shoe size of 42.5 on file is not told today that it may not have one.
+     * station with a shoe size of 42.5 on file is not told today that it may not have one. An age has
+     * no kind: it is counted from a date and holds no value of its own.
      *
-     * @return the kind, or nothing for the two that lay a form out rather than ask anything
+     * @return the kind, or nothing for the two that lay a form out and for an age
      */
     public Optional<QuestionKind> kind() {
         return switch (this) {
             case TEXT -> Optional.of(QuestionKind.TEXT);
-            case NUMBER, AGE -> Optional.of(QuestionKind.DECIMAL);
+            case NUMBER -> Optional.of(QuestionKind.DECIMAL);
             case DATE, BIRTH_DATE, EXPIRY_DATE -> Optional.of(QuestionKind.DATE);
             case BOOLEAN -> Optional.of(QuestionKind.BOOLEAN);
             case ENUM -> Optional.of(QuestionKind.CHOICE);
-            case SECTION, SPACER -> Optional.empty();
+            case AGE, SECTION, SPACER -> Optional.empty();
         };
     }
 }
