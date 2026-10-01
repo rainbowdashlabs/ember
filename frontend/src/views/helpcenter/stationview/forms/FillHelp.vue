@@ -4,14 +4,21 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import BulletList from '@/components/typography/BulletList.vue'
-import DummyForm from '@/views/helpcenter/stationview/forms/fillhelp/DummyForm.vue'
+import MemberSelector from '@/views/stationview/forms/fillview/MemberSelector.vue'
+import FillPages from '@/views/stationview/forms/fillview/FillPages.vue'
+import {useFormWalk} from '@/composables/useFormWalk'
+import {sampleAnswers, sampleFillTargets, samplePages, sampleQuestions} from '@/views/helpcenter/stationview/forms/fillhelp/fixtures'
 
 const {t} = useI18n()
+
+const answers = ref(sampleAnswers())
+const walk = useFormWalk(ref(samplePages()), ref(sampleQuestions(t)), answers)
 </script>
 
 <template>
@@ -20,7 +27,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.formsFill.whatIsText') }}</p>
     </HelpSection>
 
-    <DummyForm/>
+    <div inert class="space-y-4">
+      <MemberSelector :model-value="null" :options="sampleFillTargets(t)"/>
+      <FillPages v-model:answers="answers" :walk="walk" :send-label="t('forms.submit')"/>
+    </div>
 
     <HelpSection :title="t('helpCenter.formsFill.questionsTitle')">
       <p>{{ t('helpCenter.formsFill.questionsText') }}</p>

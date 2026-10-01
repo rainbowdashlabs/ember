@@ -6,7 +6,8 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
-import DummyBranchTable from './DummyBranchTable.vue'
+import PageRouting from '@/views/stationview/forms/builderview/pages/PageRouting.vue'
+import {sampleLayoutEditor} from '@/views/helpcenter/stationview/forms/builderhelp/fixtures'
 
 /**
  * What the form editor can do beyond single questions: pages, where they lead, answers that decide,
@@ -14,6 +15,8 @@ import DummyBranchTable from './DummyBranchTable.vue'
  * on the help for creating a form and for editing one alike, since both are the same editor.
  */
 const {t} = useI18n()
+
+const layout = sampleLayoutEditor(t)
 </script>
 
 <template>
@@ -27,7 +30,7 @@ const {t} = useI18n()
 
   <HelpSection :title="t('helpCenter.formsPages.branchTitle')">
     <p>{{ t('helpCenter.formsPages.branchText') }}</p>
-    <DummyBranchTable/>
+    <PageRouting inert :layout="layout" :page-index="0"/>
     <p>{{ t('helpCenter.formsPages.unreachedText') }}</p>
   </HelpSection>
 

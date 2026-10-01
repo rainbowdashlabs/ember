@@ -9,15 +9,25 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import BulletList from '@/components/typography/BulletList.vue'
-import DummyMetadataPanel from '@/views/helpcenter/stationview/forms/builderhelp/DummyMetadataPanel.vue'
-import DummyRatingQuestion from '@/views/helpcenter/stationview/forms/builderhelp/DummyRatingQuestion.vue'
-import DummyChoiceQuestion from '@/views/helpcenter/stationview/forms/builderhelp/DummyChoiceQuestion.vue'
-import DummyAddQuestionBar from '@/views/helpcenter/stationview/forms/builderhelp/DummyAddQuestionBar.vue'
-import DummyRestrictionsPanel from '@/views/helpcenter/stationview/forms/builderhelp/DummyRestrictionsPanel.vue'
 import FormPagesHelpSections from '@/views/helpcenter/stationview/forms/builderhelp/FormPagesHelpSections.vue'
-import DummyActionsBar from '@/views/helpcenter/stationview/forms/builderhelp/DummyActionsBar.vue'
+import FormMetadataEditor from '@/views/stationview/forms/builderview/FormMetadataEditor.vue'
+import QuestionEditor from '@/views/stationview/forms/builderview/QuestionEditor.vue'
+import AddQuestionMenu from '@/views/stationview/forms/builderview/AddQuestionMenu.vue'
+import FormRestrictionsEditor from '@/views/stationview/forms/builderview/FormRestrictionsEditor.vue'
+import FormEditorActions from '@/views/stationview/forms/builderview/FormEditorActions.vue'
+import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE} from '@/api/forms'
+import {
+  sampleGroups,
+  sampleLayoutEditor,
+  sampleMembers,
+  sampleRestriction,
+  sampleTags,
+} from '@/views/helpcenter/stationview/forms/builderhelp/fixtures'
 
 const {t} = useI18n()
+
+const layout = sampleLayoutEditor(t)
+const shownQuestions = layout.pages.value[0]!.questions.slice(0, 2)
 </script>
 
 <template>
@@ -28,18 +38,22 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.formsBuilder.metadataTitle')">
       <p>{{ t('helpCenter.formsBuilder.metadataText') }}</p>
-      <DummyMetadataPanel/>
+      <FormMetadataEditor inert :purpose="FormPurpose.INTERNAL" :title="t('helpCenter.sample.forms.survey')"
+                          :description="t('helpCenter.sample.forms.surveyIntro')" start-at="" end-at=""
+                          :shuffle-questions="false" allow-edit :forced="false" :visibility="FormVisibility.UNLISTED"/>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.formsBuilder.questionsTitle')">
       <p>{{ t('helpCenter.formsBuilder.questionsText') }}</p>
-      <DummyRatingQuestion/>
-      <DummyChoiceQuestion/>
+      <div inert class="space-y-3">
+        <QuestionEditor v-for="(question, index) in shownQuestions" :key="question.id" :question="question"
+                        :number="layout.numberOf(question)" :first="index === 0" :last="false" :other-pages="[]"/>
+      </div>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.formsBuilder.addQuestionsTitle')">
       <p>{{ t('helpCenter.formsBuilder.addQuestionsText') }}</p>
-      <DummyAddQuestionBar/>
+      <AddQuestionMenu :question-types="QUESTION_TYPES_BY_PURPOSE[FormPurpose.INTERNAL]"/>
     </HelpSection>
 
     <FormPagesHelpSections/>
@@ -97,12 +111,13 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.formsBuilder.restrictionsTitle')">
       <p>{{ t('helpCenter.formsBuilder.restrictionsText') }}</p>
       <p>{{ t('helpCenter.formsBuilder.restrictionsMemberText') }}</p>
-      <DummyRestrictionsPanel/>
+      <FormRestrictionsEditor inert :model-value="sampleRestriction()" :groups="sampleGroups(t)" :tags="sampleTags(t)"
+                              :members="sampleMembers()"/>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.formsBuilder.saveTitle')">
       <p>{{ t('helpCenter.formsBuilder.saveText') }}</p>
-      <DummyActionsBar/>
+      <FormEditorActions inert :save="() => undefined"/>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.formsBuilder.tip') }}</HelpTip>
