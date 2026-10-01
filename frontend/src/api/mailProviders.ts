@@ -117,15 +117,15 @@ export async function testInstanceProvider(position: number, recipient: string):
     return res.data
 }
 
+export type MailQueueStatusName = Schemas['EmailQueueStatus']
+
 /** Where a mail stands in the queue: waiting, being handed over, handed over, or given up on. */
 export const MailQueueStatus = {
     PENDING: 'PENDING',
     SENDING: 'SENDING',
     SENT: 'SENT',
     FAILED: 'FAILED',
-} as const
-
-export type MailQueueStatusName = (typeof MailQueueStatus)[keyof typeof MailQueueStatus]
+} as const satisfies Record<MailQueueStatusName, MailQueueStatusName>
 
 export type MailDeliveryStatusName = Schemas['MailDeliveryStatus']
 

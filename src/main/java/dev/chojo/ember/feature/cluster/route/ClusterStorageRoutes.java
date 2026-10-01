@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.storage.entity.ClusterQuotaDefaults;
 import dev.chojo.ember.feature.storage.entity.ClusterStorageQuotaPreset;
 import dev.chojo.ember.feature.storage.entity.QuotaOrigin;
 import dev.chojo.ember.feature.storage.entity.StationQuotas;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -102,7 +103,7 @@ public class ClusterStorageRoutes implements Routes {
                                 station.usedBytes(),
                                 station.usage().stream()
                                         .map(usage -> new CategoryUsageResponse(
-                                                usage.category().name(), usage.totalBytes(), usage.fileCount()))
+                                                usage.category(), usage.totalBytes(), usage.fileCount()))
                                         .toList(),
                                 station.presetId(),
                                 station.presetName()))
@@ -416,7 +417,7 @@ public class ClusterStorageRoutes implements Routes {
         }
     }
 
-    public record CategoryUsageResponse(String category, long totalBytes, int fileCount) {}
+    public record CategoryUsageResponse(StorageCategory category, long totalBytes, int fileCount) {}
 
     /**
      * @param quotaBytes the total granted, kept beside the rest because the screen that only reads a total is

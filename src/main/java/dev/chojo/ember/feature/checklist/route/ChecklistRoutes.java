@@ -516,7 +516,7 @@ public class ChecklistRoutes implements Routes {
                 checklist.id(),
                 checklist.name(),
                 checklist.description(),
-                checklist.mode().name(),
+                checklist.mode(),
                 checklist.createdAt(),
                 checklist.createdBy(),
                 checklist.lastRefreshedAt(),
@@ -609,7 +609,6 @@ public class ChecklistRoutes implements Routes {
         var userTypes = filter.stream()
                 .map(Restriction::userType)
                 .filter(Objects::nonNull)
-                .map(Enum::name)
                 .toList();
         var groupIds = filter.stream()
                 .map(Restriction::groupId)
@@ -621,14 +620,12 @@ public class ChecklistRoutes implements Routes {
                 .map(Restriction::memberId)
                 .filter(Objects::nonNull)
                 .toList();
-        return new RestrictionResponse(userTypes, groupIds, tagIds, memberIds, mode.name());
+        return new RestrictionResponse(userTypes, groupIds, tagIds, memberIds, mode);
     }
 
     private static FilterSpec toFilterSpec(RestrictionRequest req) {
         if (req == null) return FilterSpec.empty();
-        var userTypes = req.userTypes() == null
-                ? List.<StationUserType>of()
-                : req.userTypes().stream().map(StationUserType::valueOf).toList();
+        var userTypes = req.userTypes() != null ? req.userTypes() : List.<StationUserType>of();
         var groupIds = req.groupIds() != null ? req.groupIds() : List.<Integer>of();
         var tagIds = req.tagIds() != null ? req.tagIds() : List.<Integer>of();
         var memberIds = req.memberIds() != null ? req.memberIds() : List.<Integer>of();
@@ -637,11 +634,7 @@ public class ChecklistRoutes implements Routes {
 
     private static RestrictionMode resolveMode(RestrictionRequest req) {
         if (req == null || req.mode() == null) return RestrictionMode.AND;
-        try {
-            return RestrictionMode.valueOf(req.mode());
-        } catch (IllegalArgumentException e) {
-            throw Refusal.CHECKLIST_FILTER_MODE_UNKNOWN.raise(req.mode());
-        }
+        return req.mode();
     }
 
     private static String requireLabel(String label) {
@@ -670,7 +663,7 @@ public class ChecklistRoutes implements Routes {
             int id,
             String name,
             String description,
-            String mode,
+            RestrictionMode mode,
             Instant createdAt,
             @Nullable Integer createdBy,
             @Nullable Instant lastRefreshedAt,
@@ -719,11 +712,11 @@ public class ChecklistRoutes implements Routes {
             Instant changedAt) {}
 
     public record RestrictionResponse(
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
-            String mode) {}
+            RestrictionMode mode) {}
 
     public record CreateRequest(
             String name,
@@ -750,11 +743,11 @@ public class ChecklistRoutes implements Routes {
     public record ReorderColumnsRequest(List<Integer> orderedIds) {}
 
     public record RestrictionRequest(
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
-            String mode) {}
+            @Nullable RestrictionMode mode) {}
 
     public record AddMembersRequest(List<Integer> memberIds) {}
 

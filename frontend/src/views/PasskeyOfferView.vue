@@ -79,7 +79,7 @@ async function runTrial() {
   }
 }
 
-async function answer(kind: 'LATER' | 'DECLINED') {
+async function answer(kind: passkeys.OfferAnswerName) {
   try {
     await passkeys.answerOffer(kind)
   } finally {
@@ -104,8 +104,8 @@ async function answer(kind: 'LATER' | 'DECLINED') {
         <Alert v-if="error" variant="info">{{ error }}</Alert>
         <div class="space-y-2">
           <PrimaryButton class="w-full" @click="accept">{{ t('passkeys.offer.accept') }}</PrimaryButton>
-          <SecondaryButton class="w-full" @click="answer('LATER')">{{ t('passkeys.offer.later') }}</SecondaryButton>
-          <LinkButton class="w-full" @click="answer('DECLINED')">{{ t('passkeys.offer.decline') }}</LinkButton>
+          <SecondaryButton class="w-full" @click="answer(passkeys.OfferAnswer.LATER)">{{ t('passkeys.offer.later') }}</SecondaryButton>
+          <LinkButton class="w-full" @click="answer(passkeys.OfferAnswer.DECLINED)">{{ t('passkeys.offer.decline') }}</LinkButton>
         </div>
       </template>
 

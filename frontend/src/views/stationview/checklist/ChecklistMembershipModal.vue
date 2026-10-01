@@ -27,7 +27,6 @@ import type {
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {formatDate} from '@/util/format'
 import type {Failure} from '@/util/failure'
-import {userTypesOf} from '@/util/stationUserTypes'
 
 /**
  * Changes what an existing list is made of, which nothing could do before.
@@ -57,13 +56,8 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const follows = ref<'FILTER' | 'EVENT'>('FILTER')
-const restriction = ref<RestrictionSelection>(editorRestriction(props.initialRestriction))
+const restriction = ref<RestrictionSelection>(toRestriction(props.initialRestriction))
 const occurrence = ref<EventOccurrenceRef | null>(null)
-
-/** The list's filter as the editor binds it; the wire names the user types and the combination mode as plain text. */
-function editorRestriction(filter: ChecklistRestriction): RestrictionSelection {
-  return toRestriction({...filter, userTypes: userTypesOf(filter.userTypes), mode: filter.mode === 'OR' ? 'OR' : 'AND'})
-}
 
 const initialLabel = computed(() => {
   const source = props.initialSource
@@ -74,7 +68,7 @@ const initialLabel = computed(() => {
 
 watch(visible, opened => {
   if (!opened) return
-  restriction.value = editorRestriction(props.initialRestriction)
+  restriction.value = toRestriction(props.initialRestriction)
   occurrence.value = props.initialSource
       ? {eventId: props.initialSource.eventId, date: props.initialSource.eventDate}
       : null

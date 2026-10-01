@@ -9,17 +9,17 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {TwoFactorPolicyEntry} from '@/api/generated/schema'
+import type {StationUserType, TwoFactorPolicyEntry} from '@/api/generated/schema'
 
 const props = defineProps<{
-  userTypes: string[]
-  policyByUserType: Map<string, TwoFactorPolicyEntry>
-  saving: string | null
-  userTypeLabel: (name: string) => string
+  userTypes: StationUserType[]
+  policyByUserType: Map<StationUserType, TwoFactorPolicyEntry>
+  saving: StationUserType | null
+  userTypeLabel: (name: StationUserType) => string
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle', userType: string): void
+  (e: 'toggle', userType: StationUserType): void
 }>()
 
 const {t} = useI18n()

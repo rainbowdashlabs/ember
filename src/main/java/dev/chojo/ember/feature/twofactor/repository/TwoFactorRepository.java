@@ -475,7 +475,7 @@ public class TwoFactorRepository {
      * "all user types in this scope".
      */
     public Optional<TwoFactorPolicy> findPolicy(
-            TwoFactorPolicy.Scope scope, Integer stationId, StationUserType userType) {
+            TwoFactorPolicy.PolicyScope scope, Integer stationId, StationUserType userType) {
         return query("""
                 SELECT %s FROM two_factor_policy
                 WHERE scope = CAST(:scope AS TEXT)
@@ -492,7 +492,7 @@ public class TwoFactorRepository {
      * Inserts or updates a policy row keyed by (scope, station, user-type). Returns the live row.
      */
     public TwoFactorPolicy upsertPolicy(
-            TwoFactorPolicy.Scope scope,
+            TwoFactorPolicy.PolicyScope scope,
             Integer stationId,
             StationUserType userType,
             boolean required,

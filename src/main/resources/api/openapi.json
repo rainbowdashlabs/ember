@@ -43352,7 +43352,7 @@
         "type" : "object",
         "properties" : {
           "category" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/StorageCategory"
           },
           "totalBytes" : {
             "type" : "integer",
@@ -43369,7 +43369,7 @@
         "type" : "object",
         "properties" : {
           "category" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/StorageCategory"
           },
           "totalBytes" : {
             "type" : "integer",
@@ -43716,7 +43716,7 @@
             "type" : "string"
           },
           "mode" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/RestrictionMode"
           },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
@@ -54982,7 +54982,7 @@
             } ]
           },
           "status" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/EmailQueueStatus"
           },
           "deliveryStatus" : {
             "$ref" : "#/components/schemas/MailDeliveryStatus"
@@ -57980,11 +57980,19 @@
         },
         "required" : [ "value" ]
       },
+      "OfferAnswer" : {
+        "type" : "string",
+        "enum" : [ "LATER", "DECLINED" ]
+      },
       "OfferAnswerRequest" : {
         "type" : "object",
         "properties" : {
           "answer" : {
-            "type" : "string"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/OfferAnswer"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -58493,7 +58501,11 @@
         "type" : "object",
         "properties" : {
           "mode" : {
-            "type" : "string"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Mode"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -58931,6 +58943,10 @@
           }
         },
         "required" : [ "reach", "locked", "backend" ]
+      },
+      "PolicyScope" : {
+        "type" : "string",
+        "enum" : [ "INSTANCE", "STATION" ]
       },
       "PollEmbedConfig" : {
         "type" : "object",
@@ -63208,7 +63224,7 @@
           "userTypes" : {
             "type" : "array",
             "items" : {
-              "type" : "string"
+              "$ref" : "#/components/schemas/StationUserType"
             }
           },
           "groupIds" : {
@@ -63233,7 +63249,11 @@
             }
           },
           "mode" : {
-            "type" : "string"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionMode"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -63243,7 +63263,7 @@
           "userTypes" : {
             "type" : "array",
             "items" : {
-              "type" : "string"
+              "$ref" : "#/components/schemas/StationUserType"
             }
           },
           "groupIds" : {
@@ -63268,7 +63288,7 @@
             }
           },
           "mode" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/RestrictionMode"
           }
         },
         "required" : [ "userTypes", "groupIds", "tagIds", "memberIds", "mode" ]
@@ -66861,6 +66881,10 @@
         "type" : "string",
         "enum" : [ "LOCAL", "SMB", "SFTP", "S3" ]
       },
+      "StorageCategory" : {
+        "type" : "string",
+        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR" ]
+      },
       "StorageQuotaPreset" : {
         "type" : "object",
         "properties" : {
@@ -68634,7 +68658,7 @@
             "format" : "int32"
           },
           "scope" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/PolicyScope"
           },
           "stationId" : {
             "type" : [ "string", "null" ],
@@ -69029,13 +69053,17 @@
         "type" : "object",
         "properties" : {
           "userType" : {
-            "type" : "string"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StationUserType"
+            }, {
+              "type" : "null"
+            } ]
           },
           "required" : {
             "type" : "boolean"
           },
           "graceDays" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }

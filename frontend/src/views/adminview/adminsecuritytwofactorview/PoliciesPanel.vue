@@ -13,13 +13,13 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {twoFactorAdmin} from '@/api'
-import type {TwoFactorPolicyEntry} from '@/api/generated/schema'
+import type {StationUserType, TwoFactorPolicyEntry} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
-const USER_TYPES = ['MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER'] as const
+const USER_TYPES = ['MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER'] as const satisfies readonly StationUserType[]
 
-const saving = ref<string | null>(null)
+const saving = ref<StationUserType | null>(null)
 
 const {config: policies, loading, failure, runWith} = useConfigPanel<TwoFactorPolicyEntry[]>({
   initial: [],
@@ -27,14 +27,14 @@ const {config: policies, loading, failure, runWith} = useConfigPanel<TwoFactorPo
 })
 
 const policyByUserType = computed(() => {
-  const map = new Map<string, TwoFactorPolicyEntry>()
+  const map = new Map<StationUserType, TwoFactorPolicyEntry>()
   for (const p of policies.value) {
     if (p.userType) map.set(p.userType, p)
   }
   return map
 })
 
-async function togglePolicy(userType: string) {
+async function togglePolicy(userType: StationUserType) {
   const existing = policyByUserType.value.get(userType)
   saving.value = userType
   await runWith(async () => {

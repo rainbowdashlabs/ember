@@ -37,6 +37,7 @@ import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -98,5 +99,32 @@ class PasskeyRoutesTest {
         var response = harness.request(client -> client.post(PREFIX + "/account/passkeys/begin", null, reader));
 
         assertEquals(Refusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CREATION, refusalOf(response));
+    }
+
+    @Test
+    void theOfferTakesOneOfItsTwoAnswers() {
+        harness.run((server, client) -> {
+            var reader = harness.as(TestSessions.member(3, StationPermission.LOGIN));
+            assertEquals(
+                    200,
+                    client.post(PREFIX + "/account/passkeys/offer-answer", body("""
+                            {"answer":"DECLINED"}"""), reader)
+                            .code());
+            assertEquals(
+                    200,
+                    client.post(PREFIX + "/account/passkeys/offer-answer", body("""
+                            {"answer":"LATER"}"""), reader)
+                            .code());
+            assertEquals(
+                    Refusal.PASSKEY_OFFER_ANSWER_UNKNOWN,
+                    refusalOf(client.post(PREFIX + "/account/passkeys/offer-answer", body("{}"), reader)));
+            assertEquals(
+                    Refusal.BODY_DOES_NOT_MATCH,
+                    refusalOf(client.post(PREFIX + "/account/passkeys/offer-answer", body("""
+                            {"answer":"NEVER"}"""), reader)));
+        });
+
+        verify(accounts).answerOffer(TestSessions.ACCOUNT_ID, true);
+        verify(accounts).answerOffer(TestSessions.ACCOUNT_ID, false);
     }
 }

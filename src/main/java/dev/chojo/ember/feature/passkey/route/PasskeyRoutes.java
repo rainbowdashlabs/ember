@@ -719,13 +719,8 @@ public class PasskeyRoutes implements Routes {
     private void answerOffer(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(OfferAnswerRequest.class);
-        boolean declined =
-                switch (request.answer() == null ? "" : request.answer()) {
-                    case "DECLINED" -> true;
-                    case "LATER" -> false;
-                    default -> throw Refusal.PASSKEY_OFFER_ANSWER_UNKNOWN.raise();
-                };
-        accountService.answerOffer(session.accountId(), declined);
+        if (request.answer() == null) throw Refusal.PASSKEY_OFFER_ANSWER_UNKNOWN.raise();
+        accountService.answerOffer(session.accountId(), request.answer() == OfferAnswer.DECLINED);
         ctx.json(new MessageResponse("Answer recorded"));
     }
 
@@ -772,7 +767,15 @@ public class PasskeyRoutes implements Routes {
 
     public record SwitchRequest(boolean enabled) {}
 
-    public record OfferAnswerRequest(String answer) {}
+    /** How a member answered the offer to set up a passkey. */
+    public enum OfferAnswer {
+        /** Ask again another time. */
+        LATER,
+        /** Never ask again. */
+        DECLINED
+    }
+
+    public record OfferAnswerRequest(@Nullable OfferAnswer answer) {}
 
     public record OfferResponse(boolean offer) {}
 

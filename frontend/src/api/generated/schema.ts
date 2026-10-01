@@ -54651,14 +54651,14 @@ export interface components {
             position?: number;
         };
         CategoryUsage: {
-            category: string;
+            category: components["schemas"]["StorageCategory"];
             /** Format: int32 */
             fileCount: number;
             /** Format: int64 */
             totalBytes: number;
         };
         CategoryUsageResponse: {
-            category: string;
+            category: components["schemas"]["StorageCategory"];
             /** Format: int32 */
             fileCount: number;
             /** Format: int64 */
@@ -54762,7 +54762,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             lastRefreshedAt: components["schemas"]["Instant"] | null;
-            mode: string;
+            mode: components["schemas"]["RestrictionMode"];
             name: string;
             restriction: components["schemas"]["RestrictionResponse"];
             source: components["schemas"]["SourceOccurrenceResponse"] | null;
@@ -58833,7 +58833,7 @@ export interface components {
             reachable: boolean;
             recipient: string;
             sentAt: components["schemas"]["Instant"] | null;
-            status: string;
+            status: components["schemas"]["EmailQueueStatus"];
             subject: string;
         };
         /** @enum {string} */
@@ -59823,8 +59823,10 @@ export interface components {
         NumberValue: {
             value: number;
         };
+        /** @enum {string} */
+        OfferAnswer: "LATER" | "DECLINED";
         OfferAnswerRequest: {
-            answer?: string;
+            answer?: components["schemas"]["OfferAnswer"] | null;
         };
         OfferResponse: {
             offer: boolean;
@@ -59982,7 +59984,7 @@ export interface components {
             tried: boolean;
         };
         PasskeysConfigRequest: {
-            mode?: string;
+            mode?: components["schemas"]["Mode"] | null;
         };
         PasskeysConfigResponse: {
             /** Format: int32 */
@@ -60145,6 +60147,8 @@ export interface components {
             locked: boolean;
             reach: components["schemas"]["ClusterBackendReach"];
         };
+        /** @enum {string} */
+        PolicyScope: "INSTANCE" | "STATION";
         PollEmbedConfig: {
             formPublicUid?: string;
             showResultsAfterVote?: boolean;
@@ -61617,16 +61621,16 @@ export interface components {
         RestrictionRequest: {
             groupIds?: number[];
             memberIds?: number[];
-            mode?: string;
+            mode?: components["schemas"]["RestrictionMode"] | null;
             tagIds?: number[];
-            userTypes?: string[];
+            userTypes?: components["schemas"]["StationUserType"][];
         };
         RestrictionResponse: {
             groupIds: number[];
             memberIds: number[];
-            mode: string;
+            mode: components["schemas"]["RestrictionMode"];
             tagIds: number[];
-            userTypes: string[];
+            userTypes: components["schemas"]["StationUserType"][];
         };
         RestrictionSelection: {
             groupIds?: number[];
@@ -62881,6 +62885,8 @@ export interface components {
         StorageAuditOutcome: "OK" | "FAILED";
         /** @enum {string} */
         StorageBackendType: "LOCAL" | "SMB" | "SFTP" | "S3";
+        /** @enum {string} */
+        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR";
         StorageQuotaPreset: {
             /** Format: int64 */
             board: number;
@@ -63535,7 +63541,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             required: boolean;
-            scope: string;
+            scope: components["schemas"]["PolicyScope"];
             /** Format: uuid */
             stationId: string | null;
             userType: components["schemas"]["StationUserType"] | null;
@@ -63664,9 +63670,9 @@ export interface components {
         };
         UpsertPolicyRequest: {
             /** Format: int32 */
-            graceDays?: number;
+            graceDays?: number | null;
             required?: boolean;
-            userType?: string;
+            userType?: components["schemas"]["StationUserType"] | null;
         };
         Usage: {
             locale: string;
@@ -64926,6 +64932,7 @@ export type NotificationToggle = components['schemas']['NotificationToggle'];
 export type NotificationType = components['schemas']['NotificationType'];
 export type NumberConfig = components['schemas']['NumberConfig'];
 export type NumberValue = components['schemas']['NumberValue'];
+export type OfferAnswer = components['schemas']['OfferAnswer'];
 export type OfferAnswerRequest = components['schemas']['OfferAnswerRequest'];
 export type OfferResponse = components['schemas']['OfferResponse'];
 export type OkResponse = components['schemas']['OkResponse'];
@@ -64984,6 +64991,7 @@ export type PlannedStep = components['schemas']['PlannedStep'];
 export type PoliciesResponse = components['schemas']['PoliciesResponse'];
 export type PolicyRequest = components['schemas']['PolicyRequest'];
 export type PolicyResponse = components['schemas']['PolicyResponse'];
+export type PolicyScope = components['schemas']['PolicyScope'];
 export type PollEmbedConfig = components['schemas']['PollEmbedConfig'];
 export type PollStatus = components['schemas']['PollStatus'];
 export type PoolRequest = components['schemas']['PoolRequest'];
@@ -65339,6 +65347,7 @@ export type StepUpVerifiedResponse = components['schemas']['StepUpVerifiedRespon
 export type StorageAuditAction = components['schemas']['StorageAuditAction'];
 export type StorageAuditOutcome = components['schemas']['StorageAuditOutcome'];
 export type StorageBackendType = components['schemas']['StorageBackendType'];
+export type StorageCategory = components['schemas']['StorageCategory'];
 export type StorageQuotaPreset = components['schemas']['StorageQuotaPreset'];
 export type Strategy = components['schemas']['Strategy'];
 export type StringValue = components['schemas']['StringValue'];

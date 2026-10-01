@@ -1353,10 +1353,6 @@ public enum Refusal {
     /** A day a checklist was told to follow that does not read as a date. */
     CHECKLIST_DAY_NOT_A_DATE(Area.CHECKLISTS, 18, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),
 
-    /** A filter told to combine its parts in a way there is none. */
-    CHECKLIST_FILTER_MODE_UNKNOWN(
-            Area.CHECKLISTS, 19, HttpStatus.BAD_REQUEST, "That is not a way of putting the filter together"),
-
     /** A column of a checklist written down without a label. */
     CHECKLIST_COLUMN_NEEDS_A_LABEL(
             Area.CHECKLISTS, 20, HttpStatus.BAD_REQUEST, "A column needs a label, so nothing was saved"),
@@ -4622,7 +4618,7 @@ public enum Refusal {
     /** Switching password sign-in on an account that holds no password to switch. */
     ACCOUNT_HOLDS_NO_PASSWORD_ON_SWITCH(Area.PASSKEYS, 35, HttpStatus.CONFLICT, Sentences.ACCOUNT_HOLDS_NO_PASSWORD),
 
-    /** An answer to the passkey offer that is neither of the two the offer takes. */
+    /** A reply to the passkey offer that gives no answer. */
     PASSKEY_OFFER_ANSWER_UNKNOWN(Area.PASSKEYS, 36, HttpStatus.BAD_REQUEST, "That is not an answer this offer takes"),
 
     /** A passkey being tried out without the challenge or the browser's answer. */
@@ -4638,7 +4634,7 @@ public enum Refusal {
             HttpStatus.CONFLICT,
             "No passkey of that account has signed in yet, so the password was kept"),
 
-    /** A passkey mode named that this instance does not have. */
+    /** A change of the passkey mode that names no mode. */
     PASSKEY_MODE_UNKNOWN(Area.PASSKEYS, 40, HttpStatus.BAD_REQUEST, "That is not a passkey mode this instance knows"),
 
     /** Going passwordless on an instance whose mail has never been shown to work. */
@@ -4785,10 +4781,6 @@ public enum Refusal {
     /** A passkey that did not verify while confirming who you are. */
     PASSKEY_STEP_UP_REFUSED(
             Area.TWO_FACTOR, 32, HttpStatus.UNAUTHORIZED, "That passkey did not confirm it, so nothing was confirmed"),
-
-    /** A rule written for a kind of member this instance does not have. */
-    USER_TYPE_UNKNOWN_ON_POLICY(
-            Area.TWO_FACTOR, 33, HttpStatus.BAD_REQUEST, "That is not a kind of member this instance knows"),
 
     /** Managing a station's second-factor rules without a station chosen. */
     NO_STATION_CHOSEN_ON_POLICY(Area.TWO_FACTOR, 34, HttpStatus.FORBIDDEN, Sentences.NO_STATION_CHOSEN),

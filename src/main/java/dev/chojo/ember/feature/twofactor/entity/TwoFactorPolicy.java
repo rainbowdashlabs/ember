@@ -17,7 +17,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * enrolment for anyone the row matches.
  *
  * @param id        row id
- * @param scope     {@link Scope#INSTANCE} or {@link Scope#STATION}
+ * @param scope     {@link PolicyScope#INSTANCE} or {@link PolicyScope#STATION}
  * @param stationId null for instance-wide rows, set for station-scoped rows
  * @param userType  the user type the row applies to, or {@code null} to mean "every user type"
  * @param required  whether the matched users must enrol
@@ -27,7 +27,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 public record TwoFactorPolicy(
         int id,
-        Scope scope,
+        PolicyScope scope,
         Integer stationId,
         StationUserType userType,
         boolean required,
@@ -44,7 +44,7 @@ public record TwoFactorPolicy(
             Integer createdBy = row.getObject("created_by", Integer.class);
             return new TwoFactorPolicy(
                     row.getInt("id"),
-                    row.getEnum("scope", Scope.class),
+                    row.getEnum("scope", PolicyScope.class),
                     stationId,
                     userType,
                     row.getBoolean("required"),
@@ -54,7 +54,8 @@ public record TwoFactorPolicy(
         };
     }
 
-    public enum Scope {
+    /** Whether a rule holds for the whole instance or for one station. */
+    public enum PolicyScope {
         INSTANCE,
         STATION
     }

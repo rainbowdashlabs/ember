@@ -15,7 +15,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import PoliciesPanel from './stationsecurityview/PoliciesPanel.vue'
 import MembersPanel from './stationsecurityview/MembersPanel.vue'
 import {twoFactorAdmin} from '@/api'
-import type {MemberStatus, TwoFactorPolicyEntry} from '@/api/generated/schema'
+import type {MemberStatus, StationUserType, TwoFactorPolicyEntry} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -31,13 +31,13 @@ watch(loaded, (isLoaded) => {
   }
 }, {immediate: true})
 
-const userTypes = ref<string[]>([])
+const userTypes = ref<StationUserType[]>([])
 const policies = ref<TwoFactorPolicyEntry[]>([])
 const members = ref<MemberStatus[]>([])
-const saving = ref<string | null>(null)
+const saving = ref<StationUserType | null>(null)
 
 const policyByUserType = computed(() => {
-  const map = new Map<string, TwoFactorPolicyEntry>()
+  const map = new Map<StationUserType, TwoFactorPolicyEntry>()
   for (const p of policies.value) {
     if (p.userType) map.set(p.userType, p)
   }
@@ -67,7 +67,7 @@ async function load(staleMessage?: string) {
  * <p>The read is answered for separately: a policy that was written and a page that then failed to
  * refresh used to report a refused write, and the reader flicks the switch again.
  */
-async function togglePolicy(userType: string) {
+async function togglePolicy(userType: StationUserType) {
   const existing = policyByUserType.value.get(userType)
   saving.value = userType
   try {

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.mail.service;
 
+import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
@@ -87,7 +88,7 @@ public class MailDashboardService {
             String subject,
             Instant createdAt,
             @Nullable Instant sentAt,
-            String status,
+            EmailQueueStatus status,
             MailDeliveryStatus deliveryStatus,
             @Nullable String deliveryDetail,
             int attempts,

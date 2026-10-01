@@ -29,7 +29,6 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-import java.util.Locale;
 
 /**
  * The operator's side of passkeys: the mode with its readiness block, and the report read before
@@ -134,15 +133,8 @@ public class PasskeyAdminRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = PasskeysConfigResponse.class)))
     private void updateConfig(Context ctx) {
         var request = ctx.bodyAsClass(PasskeysConfigRequest.class);
-        PasskeySettings.Mode mode;
-        try {
-            mode = PasskeySettings.Mode.valueOf(
-                    request.mode() == null ? "" : request.mode().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw Refusal.PASSKEY_MODE_UNKNOWN.raise();
-        }
-
-        var result = adminService.setMode(mode);
+        if (request.mode() == null) throw Refusal.PASSKEY_MODE_UNKNOWN.raise();
+        var result = adminService.setMode(request.mode());
         switch (result.outcome()) {
             case NO_MAIL_PROOF -> throw Refusal.PASSWORDLESS_NEEDS_WORKING_MAIL.raise();
             case ACCOUNTS_DEPEND -> throw Refusal.PASSWORDLESS_ACCOUNTS_DEPEND.raise();
@@ -173,7 +165,7 @@ public class PasskeyAdminRoutes implements Routes {
                 status.figures().accountsWithPasswordAndNoPasskey());
     }
 
-    public record PasskeysConfigRequest(String mode) {}
+    public record PasskeysConfigRequest(PasskeySettings.@Nullable Mode mode) {}
 
     public record PasskeysConfigResponse(
             PasskeySettings.Mode mode,

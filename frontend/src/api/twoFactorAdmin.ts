@@ -61,7 +61,7 @@ export async function listStationPolicies(): Promise<TwoFactorPolicyEntry[]> {
 }
 
 export async function upsertStationPolicy(
-    userType: string,
+    userType: StationUserType,
     required: boolean,
     graceDays?: number,
 ): Promise<TwoFactorPolicyEntry> {
@@ -92,7 +92,7 @@ export async function listInstancePolicies(): Promise<TwoFactorPolicyEntry[]> {
 }
 
 export async function upsertInstancePolicy(
-    userType: string,
+    userType: StationUserType,
     required: boolean,
     graceDays?: number,
 ): Promise<TwoFactorPolicyEntry> {

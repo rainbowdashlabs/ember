@@ -83,7 +83,7 @@ public class TwoFactorPolicyService {
     public TwoFactorPolicy setInstancePolicy(
             StationUserType userType, boolean required, short graceDays, Integer createdBy) {
         var policy = repository.upsertPolicy(
-                TwoFactorPolicy.Scope.INSTANCE, null, userType, required, clampGrace(graceDays), createdBy);
+                TwoFactorPolicy.PolicyScope.INSTANCE, null, userType, required, clampGrace(graceDays), createdBy);
         log.info(
                 "2FA instance policy set: userType={}, required={}, graceDays={}, by actor {}",
                 userType,
@@ -96,7 +96,7 @@ public class TwoFactorPolicyService {
     public TwoFactorPolicy setStationPolicy(
             int stationId, StationUserType userType, boolean required, short graceDays, Integer createdBy) {
         var policy = repository.upsertPolicy(
-                TwoFactorPolicy.Scope.STATION, stationId, userType, required, clampGrace(graceDays), createdBy);
+                TwoFactorPolicy.PolicyScope.STATION, stationId, userType, required, clampGrace(graceDays), createdBy);
         log.info(
                 "2FA station policy set for station {}: userType={}, required={}, graceDays={}, by actor {}",
                 stationId,

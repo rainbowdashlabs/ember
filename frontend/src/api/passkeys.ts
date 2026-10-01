@@ -124,7 +124,15 @@ export async function offerState(): Promise<boolean> {
     return res.data.offer
 }
 
-export async function answerOffer(answer: 'LATER' | 'DECLINED'): Promise<void> {
+export type OfferAnswerName = components['schemas']['OfferAnswer']
+
+/** How a member answers the offer to set up a passkey: ask again later, or never again. */
+export const OfferAnswer = {
+    LATER: 'LATER',
+    DECLINED: 'DECLINED',
+} as const satisfies Record<OfferAnswerName, OfferAnswerName>
+
+export async function answerOffer(answer: OfferAnswerName): Promise<void> {
     await client.post('/account/passkeys/offer-answer', {answer} satisfies OfferAnswerRequest)
 }
 

@@ -177,13 +177,13 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
     @Test
     void policyUpsertAndDelete() {
         var instance = twoFactorRepo.upsertPolicy(
-                TwoFactorPolicy.Scope.INSTANCE, null, StationUserType.MEMBER, true, (short) 7, null);
-        assertEquals(TwoFactorPolicy.Scope.INSTANCE, instance.scope());
+                TwoFactorPolicy.PolicyScope.INSTANCE, null, StationUserType.MEMBER, true, (short) 7, null);
+        assertEquals(TwoFactorPolicy.PolicyScope.INSTANCE, instance.scope());
         assertTrue(instance.required());
 
         // Upsert again - should keep the same row but flip required to false
         var updated = twoFactorRepo.upsertPolicy(
-                TwoFactorPolicy.Scope.INSTANCE, null, StationUserType.MEMBER, false, (short) 3, null);
+                TwoFactorPolicy.PolicyScope.INSTANCE, null, StationUserType.MEMBER, false, (short) 3, null);
         assertEquals(instance.id(), updated.id());
         assertFalse(updated.required());
 
@@ -193,13 +193,13 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         // Station-scoped policy
         var station = stationRepo.create("policy-station");
         var stationPolicy = twoFactorRepo.upsertPolicy(
-                TwoFactorPolicy.Scope.STATION, station.id(), StationUserType.MANAGER, true, (short) 5, null);
+                TwoFactorPolicy.PolicyScope.STATION, station.id(), StationUserType.MANAGER, true, (short) 5, null);
         assertEquals(1, twoFactorRepo.findStationPolicies(station.id()).size());
         assertTrue(twoFactorRepo
-                .findPolicy(TwoFactorPolicy.Scope.STATION, station.id(), StationUserType.MANAGER)
+                .findPolicy(TwoFactorPolicy.PolicyScope.STATION, station.id(), StationUserType.MANAGER)
                 .isPresent());
         assertTrue(twoFactorRepo
-                .findPolicy(TwoFactorPolicy.Scope.STATION, station.id(), StationUserType.MEMBER)
+                .findPolicy(TwoFactorPolicy.PolicyScope.STATION, station.id(), StationUserType.MEMBER)
                 .isEmpty());
 
         assertTrue(twoFactorRepo.deletePolicy(stationPolicy.id()));

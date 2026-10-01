@@ -123,7 +123,7 @@ public class StorageUsageReportService {
 
     private static List<CategoryUsage> categoriesOf(List<StorageUsage> usages) {
         return usages.stream()
-                .map(usage -> new CategoryUsage(usage.category().name(), usage.totalBytes(), usage.fileCount()))
+                .map(usage -> new CategoryUsage(usage.category(), usage.totalBytes(), usage.fileCount()))
                 .toList();
     }
 
@@ -135,7 +135,7 @@ public class StorageUsageReportService {
             Map<String, Long> categoryQuotas,
             boolean usesOwnBackend) {}
 
-    public record CategoryUsage(String category, long totalBytes, int fileCount) {}
+    public record CategoryUsage(StorageCategory category, long totalBytes, int fileCount) {}
 
     /**
      * @param origin whose word the quota is on, so a station governed by a cluster reads as one rather than as

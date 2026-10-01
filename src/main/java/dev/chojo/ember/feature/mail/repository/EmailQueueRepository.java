@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.mail.repository;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
@@ -390,7 +391,7 @@ public class EmailQueueRepository {
             String subject,
             Instant createdAt,
             Instant sentAt,
-            String status,
+            EmailQueueStatus status,
             MailDeliveryStatus deliveryStatus,
             String deliveryDetail,
             int attempts,
@@ -402,7 +403,7 @@ public class EmailQueueRepository {
             row.getString("subject"),
             row.get("created_at", INSTANT_TIMESTAMP),
             row.get("sent_at", INSTANT_TIMESTAMP),
-            row.getString("status"),
+            row.getEnum("status", EmailQueueStatus.class),
             row.getEnum("delivery_status", MailDeliveryStatus.class),
             row.getString("delivery_detail"),
             row.getInt("attempts"),

@@ -576,7 +576,6 @@ export default {
     'CL-016': APPOINTMENT_NOT_HERE,
     'CL-017': 'Du kannst diesen Termin nicht sehen, eine Checkliste kann ihm daher nicht folgen',
     'CL-018': DAY_NOT_A_DATE,
-    'CL-019': 'So lässt sich der Filter nicht zusammensetzen',
     'CL-020': 'Eine Spalte braucht eine Beschriftung, es wurde nichts gespeichert',
 
     'L-017': 'Nur Mitglieder dieser Wache können ihre Medien nutzen',
@@ -1450,7 +1449,6 @@ export default {
     'TF-030': 'Dieses Konto hat keinen Passkey zum Bestätigen',
     'TF-031': REQUEST_INCOMPLETE,
     'TF-032': 'Dieser Passkey hat es nicht bestätigt, es wurde nichts bestätigt',
-    'TF-033': 'Diese Art von Mitglied kennt diese Instanz nicht',
     'TF-034': CHOOSE_A_STATION,
     'TF-035': POLICY_NOT_HERE,
     'TF-036': POLICY_NOT_HERE,

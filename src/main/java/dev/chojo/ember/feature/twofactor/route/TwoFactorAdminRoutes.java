@@ -57,15 +57,6 @@ public class TwoFactorAdminRoutes implements Routes {
 
     // -- Instance scope --
 
-    private static StationUserType parseUserType(String value) {
-        if (value == null || value.isBlank()) return null;
-        try {
-            return StationUserType.valueOf(value);
-        } catch (IllegalArgumentException e) {
-            throw Refusal.USER_TYPE_UNKNOWN_ON_POLICY.raise();
-        }
-    }
-
     private static short clampGraceDays(Integer requested) {
         if (requested == null) return 7;
         int v = requested;
@@ -89,7 +80,7 @@ public class TwoFactorAdminRoutes implements Routes {
     private static TwoFactorPolicyEntry toEntry(TwoFactorPolicy p) {
         return new TwoFactorPolicyEntry(
                 p.id(),
-                p.scope().name(),
+                p.scope(),
                 p.stationId(),
                 p.userType(),
                 p.required(),
@@ -162,9 +153,8 @@ public class TwoFactorAdminRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TwoFactorPolicyEntry.class)))
     private void upsertInstancePolicy(Context ctx) {
         var request = ctx.bodyAsClass(UpsertPolicyRequest.class);
-        StationUserType userType = parseUserType(request.userType());
         TwoFactorPolicy saved = policyService.setInstancePolicy(
-                userType, request.required(), clampGraceDays(request.graceDays()), actorMemberId(ctx));
+                request.userType(), request.required(), clampGraceDays(request.graceDays()), actorMemberId(ctx));
         ctx.json(toEntry(saved));
     }
 
@@ -199,9 +189,12 @@ public class TwoFactorAdminRoutes implements Routes {
     private void upsertStationPolicy(Context ctx) {
         int stationId = requireStation(ctx);
         var request = ctx.bodyAsClass(UpsertPolicyRequest.class);
-        StationUserType userType = parseUserType(request.userType());
         TwoFactorPolicy saved = policyService.setStationPolicy(
-                stationId, userType, request.required(), clampGraceDays(request.graceDays()), actorMemberId(ctx));
+                stationId,
+                request.userType(),
+                request.required(),
+                clampGraceDays(request.graceDays()),
+                actorMemberId(ctx));
         ctx.json(toEntry(saved));
     }
 
@@ -307,14 +300,14 @@ public class TwoFactorAdminRoutes implements Routes {
     /**
      * One second-factor rule.
      *
-     * @param scope     {@code INSTANCE} or {@code STATION}
+     * @param scope     whether the rule holds for the whole instance or for one station
      * @param stationId the station a station rule belongs to, absent on an instance rule
      * @param userType  the member type the rule is for, absent where it is for every type
      * @param createdBy the member who set it, absent where nobody did
      */
     public record TwoFactorPolicyEntry(
             int id,
-            String scope,
+            TwoFactorPolicy.PolicyScope scope,
             @Nullable Integer stationId,
             @Nullable StationUserType userType,
             boolean required,
@@ -324,7 +317,14 @@ public class TwoFactorAdminRoutes implements Routes {
 
     public record PoliciesResponse(List<TwoFactorPolicyEntry> policies) {}
 
-    public record UpsertPolicyRequest(String userType, boolean required, Integer graceDays) {}
+    /**
+     * @param userType  the member type the rule is for, or {@code null} for every type
+     * @param graceDays the days before the rule is enforced, or {@code null} for the longest grace
+     */
+    public record UpsertPolicyRequest(
+            @Nullable StationUserType userType,
+            boolean required,
+            @Nullable Integer graceDays) {}
 
     public record MemberStatusResponse(List<TwoFactorPolicyService.MemberStatus> members) {}
 

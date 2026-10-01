@@ -8,16 +8,19 @@ package dev.chojo.ember.feature.passkey.route;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
+import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.passkey.entity.PasswordlessReport;
 import dev.chojo.ember.feature.passkey.entity.ResidueEntry;
 import dev.chojo.ember.feature.passkey.service.PasskeyAdminService;
 import dev.chojo.ember.feature.passkey.service.PasskeyAdminService.BulkRetireResult;
 import dev.chojo.ember.feature.passkey.service.PasskeyAdminService.RetireOutcome;
+import dev.chojo.ember.feature.passkey.service.PasskeyAdminService.SetModeResult;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
+import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -68,6 +71,24 @@ class PasskeyAdminRoutesTest {
                     refusalOf(client.post(PREFIX + "/admin/accounts/9/password/retire", null, administrator)));
             var all = client.post(PREFIX + "/admin/config/auth/passkeys/retire-all", null, administrator);
             assertEquals(3, json(all).path("retired").asInt());
+        });
+    }
+
+    @Test
+    void theModeIsOneOfTheModesTheInstanceHas() {
+        when(admin.setMode(PasskeySettings.Mode.PASSWORDLESS))
+                .thenReturn(new SetModeResult(SetModeResult.Outcome.NO_MAIL_PROOF, 0));
+
+        harness.run((server, client) -> {
+            var administrator = harness.as(TestSessions.administrator());
+            String path = PREFIX + "/admin/config/auth/passkeys";
+            assertEquals(
+                    Refusal.PASSWORDLESS_NEEDS_WORKING_MAIL,
+                    refusalOf(client.put(path, body("{\"mode\": \"PASSWORDLESS\"}"), administrator)));
+            assertEquals(Refusal.PASSKEY_MODE_UNKNOWN, refusalOf(client.put(path, body("{}"), administrator)));
+            assertEquals(
+                    Refusal.BODY_DOES_NOT_MATCH,
+                    refusalOf(client.put(path, body("{\"mode\": \"SOMETIMES\"}"), administrator)));
         });
     }
 }

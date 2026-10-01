@@ -9,15 +9,20 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAdminService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAdminService.AuditResponse;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorPolicyService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
+import static dev.chojo.ember.api.RouteHarness.body;
+import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,8 +38,35 @@ import static org.mockito.Mockito.when;
  */
 class TwoFactorAdminRoutesTest {
     private final TwoFactorAdminService admin = mock(TwoFactorAdminService.class);
-    private final RouteHarness harness = RouteHarness.serving(
-            new TwoFactorAdminRoutes(mock(TwoFactorPolicyService.class), mock(TwoFactorService.class), admin));
+    private final TwoFactorPolicyService policies = mock(TwoFactorPolicyService.class);
+    private final RouteHarness harness =
+            RouteHarness.serving(new TwoFactorAdminRoutes(policies, mock(TwoFactorService.class), admin));
+
+    @Test
+    void aRuleNamesItsMemberTypeAndAnswersItsScope() {
+        when(policies.setInstancePolicy(eq(StationUserType.TEAM), eq(true), eq((short) 7), any()))
+                .thenReturn(new TwoFactorPolicy(
+                        4,
+                        TwoFactorPolicy.PolicyScope.INSTANCE,
+                        null,
+                        StationUserType.TEAM,
+                        true,
+                        (short) 7,
+                        null,
+                        Instant.EPOCH));
+
+        harness.run((server, client) -> {
+            var administrator = harness.as(TestSessions.administrator());
+            String path = PREFIX + "/admin/2fa/policies";
+            var saved = json(client.put(path, body("{\"userType\": \"TEAM\", \"required\": true}"), administrator));
+            assertEquals("INSTANCE", saved.path("scope").asString());
+            assertEquals("TEAM", saved.path("userType").asString());
+            assertEquals(
+                    Refusal.BODY_DOES_NOT_MATCH,
+                    refusalOf(
+                            client.put(path, body("{\"userType\": \"VISITOR\", \"required\": true}"), administrator)));
+        });
+    }
 
     @Test
     void aStationAdministratorResetsForTheirStation() {
