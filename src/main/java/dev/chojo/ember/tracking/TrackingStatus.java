@@ -9,7 +9,7 @@ package dev.chojo.ember.tracking;
  * Coverage status for a table or column within a specific context
  * (station export, station import, GDPR export, GDPR deletion).
  */
-public enum Status {
+public enum TrackingStatus {
     /**
      * Handled by the service and verified.
      */

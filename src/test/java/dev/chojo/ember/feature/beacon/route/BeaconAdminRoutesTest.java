@@ -12,10 +12,10 @@ import dev.chojo.ember.feature.beacon.entity.BeaconPayloads.MetricsBatch;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads.ProblemPayload;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads.ReportPayload;
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService;
+import dev.chojo.ember.feature.beacon.service.BeaconAdminService.BeaconSettingsRequest;
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService.BeaconStatus;
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService.SendReportRequest;
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService.SendResult;
-import dev.chojo.ember.feature.beacon.service.BeaconAdminService.SettingsRequest;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.Response;
@@ -79,7 +79,8 @@ class BeaconAdminRoutesTest {
         });
 
         verify(beacon)
-                .update(new SettingsRequest(true, "https://b.test", true, false, true, false, true, "Mara", "m@test"));
+                .update(new BeaconSettingsRequest(
+                        true, "https://b.test", true, false, true, false, true, "Mara", "m@test"));
     }
 
     @Test

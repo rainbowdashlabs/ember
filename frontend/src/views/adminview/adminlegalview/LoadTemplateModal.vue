@@ -16,7 +16,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import TemplateChoiceRow from './TemplateChoiceRow.vue'
 import {adminSettings} from '@/api'
-import type {LegalTemplate} from '@/api/adminSettings'
+import type {TemplateSection} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
@@ -33,10 +33,10 @@ const existingNames = computed(() => new Set(props.existing))
 const show = defineModel<boolean>('show', {required: true})
 
 const emit = defineEmits<{
-  load: [templates: LegalTemplate[]]
+  load: [templates: TemplateSection[]]
 }>()
 
-const templates = ref<LegalTemplate[]>([])
+const templates = ref<TemplateSection[]>([])
 const selected = ref<Set<string>>(new Set())
 /**
  * Fetches the templates on offer, and says so when it cannot.

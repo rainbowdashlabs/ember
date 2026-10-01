@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.MigrationR
 import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.ProbeResult;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -259,9 +260,9 @@ public class StationStorageBackendService {
      */
     public record BackendOverrideResponse(
             StorageBackendType instanceDefault,
-            BackendOverrideSummary override,
-            BackendOverrideSummary clusterBackend,
-            String clusterName,
+            @Nullable BackendOverrideSummary override,
+            @Nullable BackendOverrideSummary clusterBackend,
+            @Nullable String clusterName,
             boolean clusterOffersStorage,
             boolean locked) {}
 }

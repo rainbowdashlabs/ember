@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {ColumnEntry, TableEntry} from '@/api/dataTracking'
+import type {ColumnEntry, TableEntry} from '@/api/generated/schema'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'

@@ -10,7 +10,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import BareButton from '@/components/button/BareButton.vue'
-import type {LogFacet} from '@/api/applicationLog'
+import type {LogFacet} from '@/api/generated/schema'
 
 /**
  * One list of values the log can be narrowed to, with what each is worth.

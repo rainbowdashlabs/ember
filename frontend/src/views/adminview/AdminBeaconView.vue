@@ -17,7 +17,7 @@ import BeaconReportList from './adminbeaconview/BeaconReportList.vue'
 import BeaconMetricsTable from './adminbeaconview/BeaconMetricsTable.vue'
 import {beacon} from '@/api'
 import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
-import type {BeaconFault, BeaconMetricsRow, BeaconReport, BeaconStatus} from '@/api/beacon'
+import type {BeaconFault, BeaconMetricsRow, BeaconReport, BeaconStatus} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**

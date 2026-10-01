@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -145,11 +146,11 @@ public class StorageQuotaAdminService {
     public record ApplyPresetRequest(List<String> stationUids) {}
 
     public record QuotaUpdateRequest(
-            Long totalBytes,
-            Long kbBytes,
-            Long boardBytes,
-            Long imagesBytes,
-            Long pagesBytes,
-            Long perFileBytes,
-            Long perImageBytes) {}
+            @Nullable Long totalBytes,
+            @Nullable Long kbBytes,
+            @Nullable Long boardBytes,
+            @Nullable Long imagesBytes,
+            @Nullable Long pagesBytes,
+            @Nullable Long perFileBytes,
+            @Nullable Long perImageBytes) {}
 }

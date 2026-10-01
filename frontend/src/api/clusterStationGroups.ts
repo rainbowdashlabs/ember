@@ -4,26 +4,16 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {StationGroupResponse, StationGroupStationResponse} from './generated/schema'
 
-/** One way an association files its stations. */
-export interface StationGroup {
-    id: number
-    name: string
-}
-
-/** A station in a filing, in the currency the association's station API speaks. */
-export interface StationGroupStation {
-    stationUid: string
-    name: string
-}
-
-export async function listGroups(): Promise<StationGroup[]> {
-    const res = await client.get<StationGroup[]>('/cluster/station-groups')
+/** The ways the association files its stations. */
+export async function listGroups(): Promise<StationGroupResponse[]> {
+    const res = await client.get<StationGroupResponse[]>('/cluster/station-groups')
     return res.data
 }
 
-export async function createGroup(name: string): Promise<StationGroup> {
-    const res = await client.post<StationGroup>('/cluster/station-groups', {name})
+export async function createGroup(name: string): Promise<StationGroupResponse> {
+    const res = await client.post<StationGroupResponse>('/cluster/station-groups', {name})
     return res.data
 }
 
@@ -35,8 +25,9 @@ export async function deleteGroup(groupId: number): Promise<void> {
     await client.delete(`/cluster/station-groups/${groupId}`)
 }
 
-export async function listStations(groupId: number): Promise<StationGroupStation[]> {
-    const res = await client.get<StationGroupStation[]>(`/cluster/station-groups/${groupId}/stations`)
+/** The stations in one filing, in the currency the association's station API speaks. */
+export async function listStations(groupId: number): Promise<StationGroupStationResponse[]> {
+    const res = await client.get<StationGroupStationResponse[]>(`/cluster/station-groups/${groupId}/stations`)
     return res.data
 }
 

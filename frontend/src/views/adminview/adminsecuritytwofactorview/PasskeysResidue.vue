@@ -13,7 +13,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {adminSettings} from '@/api'
-import type {BulkRetireResult, ResidueEntry} from '@/api/adminSettings'
+import type {BulkRetireResponse, ResidueEntry} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 import {describeFailure} from '@/util/failure'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -27,7 +27,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 const {t} = useI18n()
 
 const residue = ref<ResidueEntry[] | null>(null)
-const bulkResult = ref<BulkRetireResult | null>(null)
+const bulkResult = ref<BulkRetireResponse | null>(null)
 
 const {loading, failure, reload: load} = useAsyncLoader(async () => {
   residue.value = await adminSettings.getPasskeyResidue()

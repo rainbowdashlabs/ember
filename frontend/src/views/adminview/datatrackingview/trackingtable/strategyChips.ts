@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {DataTracking, TableEntry} from '@/api/dataTracking'
+import type {DataTracking, TableEntry} from '@/api/generated/schema'
 
 /** One deletion strategy a table carries, and for a cascade, what the table it cascades from does. */
 export interface StrategyChip {

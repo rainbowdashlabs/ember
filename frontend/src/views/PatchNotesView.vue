@@ -15,7 +15,8 @@ import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import {renderMarkdown} from '@/util/markdown'
 import {formatDateLong, formatDateTime} from '@/util/format'
 import client from '@/api/client'
-import {getChangelog, type ChangelogEntry} from '@/api/system'
+import {getChangelog} from '@/api/system'
+import type {ChangelogEntry} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**

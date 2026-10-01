@@ -14,7 +14,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import MailboxConnectionFields from './MailboxConnectionFields.vue'
 import {MailSecurity} from '@/api/mailImport'
-import type {Mailbox, MailboxRequest, MailSecurityName} from '@/api/mailImport'
+import type {MailboxDraft, MailSecurityName} from '@/api/mailImport'
+import type {MailboxResponse} from '@/api/generated/schema'
 
 /**
  * Adding a mailbox or changing one.
@@ -24,13 +25,13 @@ import type {Mailbox, MailboxRequest, MailSecurityName} from '@/api/mailImport'
  */
 const props = defineProps<{
   /** The mailbox being changed, or null when one is being added. */
-  mailbox: Mailbox | null
+  mailbox: MailboxResponse | null
   /** The shortest interval the operator allows, which the field will not go below. */
   minimumInterval: number
 }>()
 
 const emit = defineEmits<{
-  save: [request: MailboxRequest]
+  save: [request: MailboxDraft]
   cancel: []
 }>()
 

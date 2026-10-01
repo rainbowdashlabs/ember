@@ -26,6 +26,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -198,14 +199,18 @@ public class ClusterRoutes implements Routes {
                 cluster.colorsLocked(),
                 cluster.feelLocked(),
                 cluster.logoLocked(),
-                cluster.storagePoolBytes());
+                cluster.storagePoolBytes(),
+                cluster.usesInventory());
     }
 
     /**
      * @param autoFederate whether member stations should be connected to each other, or {@code null} to
      *                     leave the setting as it is
      */
-    public record ClusterRequest(String name, String description, Boolean autoFederate) {}
+    public record ClusterRequest(
+            String name,
+            @Nullable String description,
+            @Nullable Boolean autoFederate) {}
 
     /**
      * @param accountUid the account to make this cluster's first administrator
@@ -214,16 +219,19 @@ public class ClusterRoutes implements Routes {
 
     /**
      * @param homeStationId the shell the cluster owns, on the wire as its station identity
+     * @param usesInventory whether the cluster keeps its gear here, which is what lets its own steps appear in
+     *                      a movement
      */
     public record ClusterResponse(
             UUID uid,
             String name,
-            String description,
+            @Nullable String description,
             int homeStationId,
             boolean autoFederate,
             boolean themeLocked,
             boolean colorsLocked,
             boolean feelLocked,
             boolean logoLocked,
-            Long storagePoolBytes) {}
+            @Nullable Long storagePoolBytes,
+            boolean usesInventory) {}
 }

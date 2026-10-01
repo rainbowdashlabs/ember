@@ -22,7 +22,7 @@ import {
 } from '@/api/mailProviders'
 import {useSession} from '@/composables/useSession'
 import {adminSettings} from '@/api'
-import type {MailingConfig} from '@/api/adminSettings'
+import type {MailingConfigResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -39,7 +39,7 @@ function mailingFailed(e: unknown): string {
   return t('adminSettings.mailing.saveFailed', {error: describeFailure(e, t).message})
 }
 
-const {config: mailingConfig, loading, failure: configFailure, runWith, reload} = useConfigPanel<MailingConfig>({
+const {config: mailingConfig, loading, failure: configFailure, runWith, reload} = useConfigPanel<MailingConfigResponse>({
   initial: {notificationDigestIntervalMinutes: 60},
   fetch: () => adminSettings.getMailingConfig(),
   formatError: mailingFailed,

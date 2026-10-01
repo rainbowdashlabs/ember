@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository.S
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -147,8 +148,8 @@ public class StorageUsageReportService {
             long quotaBytes,
             int quotaUsedPercent,
             List<CategoryUsage> categories,
-            Integer presetId,
-            String presetName,
+            @Nullable Integer presetId,
+            @Nullable String presetName,
             boolean usesOwnBackend,
             QuotaOrigin origin) {}
 }

@@ -8,7 +8,7 @@ package dev.chojo.ember.tracking.engine;
 import dev.chojo.ember.tracking.CustomScope;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.ForeignKey;
-import dev.chojo.ember.tracking.Status;
+import dev.chojo.ember.tracking.TrackingStatus;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -75,7 +75,7 @@ public final class TableOrder {
         Set<String> tracked = new HashSet<>();
         for (var e : tracking.tables().entrySet()) {
             var t = e.getValue();
-            if (t.stationTransfer() != null && t.stationTransfer().status() == Status.TRACKED) {
+            if (t.stationTransfer() != null && t.stationTransfer().status() == TrackingStatus.TRACKED) {
                 tracked.add(e.getKey());
             }
         }

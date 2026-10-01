@@ -11,7 +11,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import InsightsHourlyChart from '@/views/stationview/monitoring/stationInsightsView/InsightsHourlyChart.vue'
 import DimensionBreakdown from '@/views/stationview/monitoring/stationInsightsView/DimensionBreakdown.vue'
-import type {HourlyTotal, PageDetailResponse, PageLeaderboardEntry} from '@/api/insights'
+import type {HourlyTotal, PageDetailResponse, PageLeaderboardEntry} from '@/api/generated/schema'
 
 defineProps<{
   selectedPage: PageLeaderboardEntry | null

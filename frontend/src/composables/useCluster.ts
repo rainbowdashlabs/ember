@@ -5,7 +5,7 @@
  */
 import {computed, readonly, ref} from 'vue'
 import {clusters} from '@/api'
-import type {Cluster} from '@/api/clusters'
+import type {ClusterResponse} from '@/api/generated/schema'
 import {getItem, removeItem, setItem} from '@/api/storage'
 
 /**
@@ -15,7 +15,7 @@ import {getItem, removeItem, setItem} from '@/api/storage'
  * once, because a cluster manager who is also a member of one of its stations is one person with two hats.
  * Switching one does not disturb the other.
  */
-const clusterList = ref<Cluster[]>([])
+const clusterList = ref<ClusterResponse[]>([])
 const loaded = ref(false)
 const currentClusterId = ref<string | null>(getItem('cluster_id') ?? null)
 

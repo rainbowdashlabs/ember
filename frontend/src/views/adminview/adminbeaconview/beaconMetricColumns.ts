@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {BeaconMetricsRow} from '@/api/beacon'
+import type {BeaconMetricsRow} from '@/api/generated/schema'
 import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
 
 /**

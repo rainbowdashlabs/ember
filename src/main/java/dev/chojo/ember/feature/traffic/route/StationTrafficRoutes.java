@@ -11,7 +11,13 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.traffic.entity.AuthBucket;
 import dev.chojo.ember.feature.traffic.service.TrafficReportService;
+import dev.chojo.ember.feature.traffic.service.TrafficReportService.HourlyTrafficResponse;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -63,6 +69,17 @@ public class StationTrafficRoutes implements Routes {
         routes.get(prefix + "/station/traffic/hourly", this::hourly, StationPermission.STATION_ADMINISTRATOR);
     }
 
+    @OpenApi(
+            path = "/api/v1/station/traffic/hourly",
+            methods = HttpMethod.GET,
+            summary = "Hourly traffic of the caller's station",
+            tags = {"Monitoring"},
+            queryParams = {
+                @OpenApiParam(name = "from", type = Instant.class, required = true),
+                @OpenApiParam(name = "to", type = Instant.class, required = true),
+                @OpenApiParam(name = "auth", type = AuthBucket.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = HourlyTrafficResponse.class)))
     private void hourly(Context ctx) {
         var session = UserSession.from(ctx);
         if (session.stationId() == null) {

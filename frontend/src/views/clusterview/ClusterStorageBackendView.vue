@@ -22,9 +22,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 import {
     ClusterBackendReach,
-    type ClusterBackendPolicy,
     type ClusterBackendReachName,
-    type StoragePlacement,
     applyClusterBackend,
     dropClusterBackend,
     getClusterBackend,
@@ -34,23 +32,34 @@ import {
     probeClusterBackendConfig,
     setClusterBackendPolicy,
 } from '@/api/clusterStorageBackend'
-import type {ProbeResult, S3Request, SftpRequest, SmbRequest, StationBackendRequest} from '@/api/storageBackend'
-import {newS3, newSftp, newSmb, s3FormFrom, sftpFormFrom, smbFormFrom} from '@/util/storageBackendForm'
+import type {PlacementResponse, PolicyResponse, ProbeResult} from '@/api/generated/schema'
+import {
+    newS3,
+    newSftp,
+    newSmb,
+    s3FormFrom,
+    sftpFormFrom,
+    smbFormFrom,
+    type RemoteBackendForm,
+    type S3Form,
+    type SftpForm,
+    type SmbForm,
+} from '@/util/storageBackendForm'
 
 const {t} = useI18n()
 
 const actionFailure = ref<Failure | null>(null)
 const success = ref('')
-const policy = ref<ClusterBackendPolicy | null>(null)
-const placements = ref<StoragePlacement[]>([])
+const policy = ref<PolicyResponse | null>(null)
+const placements = ref<PlacementResponse[]>([])
 const movingUid = ref<string | null>(null)
 
 const reach = ref<ClusterBackendReachName>(ClusterBackendReach.NONE)
 const locked = ref(false)
 const selectedType = ref<'LOCAL' | 'S3' | 'SMB' | 'SFTP'>('S3')
-const s3 = ref<S3Request>(newS3())
-const smb = ref<SmbRequest>(newSmb())
-const sftp = ref<SftpRequest>(newSftp())
+const s3 = ref<S3Form>(newS3())
+const smb = ref<SmbForm>(newSmb())
+const sftp = ref<SftpForm>(newSftp())
 const probeOutcome = ref<ProbeResult | null>(null)
 
 const hasBackend = computed(() => policy.value?.backend != null)
@@ -72,7 +81,7 @@ function seedForm() {
     if (summary.type === 'SFTP') sftp.value = sftpFormFrom(summary)
 }
 
-function currentRequest(): StationBackendRequest | null {
+function currentRequest(): RemoteBackendForm | null {
     if (selectedType.value === 'S3') return s3.value
     if (selectedType.value === 'SMB') return smb.value
     if (selectedType.value === 'SFTP') return sftp.value

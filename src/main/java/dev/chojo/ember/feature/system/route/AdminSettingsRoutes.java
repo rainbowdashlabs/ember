@@ -18,29 +18,40 @@ import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.legal.service.BrowserStorageService;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
 import dev.chojo.ember.feature.legal.service.LegalImportService;
+import dev.chojo.ember.feature.mail.entity.MailTestResponse;
+import dev.chojo.ember.feature.mail.entity.ProviderTestRequest;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.InstanceMailSettingsService;
 import dev.chojo.ember.feature.mail.service.InstanceMailSettingsService.MailFallbackChain;
 import dev.chojo.ember.feature.mail.service.InstanceMailSettingsService.MailingConfigRequest;
+import dev.chojo.ember.feature.mail.service.InstanceMailSettingsService.MailingConfigResponse;
+import dev.chojo.ember.feature.mail.service.InstanceMailSettingsService.WebhookUrlResponse;
 import dev.chojo.ember.feature.mail.service.MailDashboardService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService.MailDashboard;
 import dev.chojo.ember.feature.mail.service.MailDashboardService.RequeuedMails;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.media.service.LogoFragmentService;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
+import dev.chojo.ember.feature.system.entity.LogFacet;
 import dev.chojo.ember.feature.system.service.ApplicationLogService;
 import dev.chojo.ember.feature.system.service.ApplicationLogService.ApplicationLogPage;
 import dev.chojo.ember.feature.system.service.ApplicationLogService.LogFilter;
+import dev.chojo.ember.feature.system.service.ApplicationLogService.LoggingConfig;
 import dev.chojo.ember.feature.system.service.ApplicationLogService.LoggingConfigRequest;
 import dev.chojo.ember.feature.system.service.DataInitializer;
+import dev.chojo.ember.feature.system.service.DataInitializer.TemplateSection;
 import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import dev.chojo.ember.feature.system.service.InstanceSettingsService.ApplicationSettings;
+import dev.chojo.ember.feature.system.service.InstanceSettingsService.PublicTheme;
 import dev.chojo.ember.feature.system.service.SecuritySettingsService;
 import dev.chojo.ember.feature.system.service.SecuritySettingsService.BackupCodesConfig;
 import dev.chojo.ember.feature.system.service.SecuritySettingsService.HibpConfigRequest;
+import dev.chojo.ember.feature.system.service.SecuritySettingsService.HibpConfigResponse;
 import dev.chojo.ember.feature.system.service.SecuritySettingsService.TokensConfigRequest;
+import dev.chojo.ember.feature.system.service.SecuritySettingsService.TokensConfigResponse;
 import dev.chojo.ember.feature.system.service.SecuritySettingsService.TotpConfig;
 import dev.chojo.ember.feature.system.service.SecuritySettingsService.TwoFactorCoreConfigRequest;
+import dev.chojo.ember.feature.system.service.SecuritySettingsService.TwoFactorCoreConfigResponse;
 import dev.chojo.ember.feature.system.service.SecuritySettingsService.WebAuthnConfig;
 import dev.chojo.ember.util.MailAddress;
 import dev.chojo.ember.util.PandocConverter;
@@ -55,6 +66,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -349,6 +361,17 @@ public class AdminSettingsRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/public/logo-fragment/{name}",
+            methods = HttpMethod.GET,
+            summary = "One fragment of the animated logo as an image",
+            tags = {"Settings"},
+            pathParams = @OpenApiParam(name = "name", type = String.class, required = true),
+            queryParams = @OpenApiParam(name = "size", type = Integer.class),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/png")),
+                @OpenApiResponse(status = "404")
+            })
     @StationFree("the logo belongs to the instance and is served to anyone, station or not")
     private void serveLogoFragment(Context ctx) {
         String name = safeLogoName(ctx);
@@ -379,6 +402,12 @@ public class AdminSettingsRoutes implements Routes {
         ctx.json(new StationRegistrationStatus(instanceSettings.stationRegistrationEnabled()));
     }
 
+    @OpenApi(
+            path = "/api/v1/public/settings/theme",
+            methods = HttpMethod.GET,
+            summary = "The instance's default look (public)",
+            tags = {"Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicTheme.class)))
     private void getPublicTheme(Context ctx) {
         ctx.json(instanceSettings.publicTheme());
     }
@@ -404,58 +433,157 @@ public class AdminSettingsRoutes implements Routes {
         ctx.json(instanceSettings.update(ctx.bodyAsClass(ApplicationSettings.class)));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/tokens",
+            methods = HttpMethod.GET,
+            summary = "Get the token and session lifetimes",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokensConfigResponse.class)))
     private void getTokensConfig(Context ctx) {
         ctx.json(securitySettings.tokens());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/tokens",
+            methods = HttpMethod.PUT,
+            summary = "Update the token and session lifetimes",
+            tags = {"Admin Settings"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TokensConfigRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokensConfigResponse.class)))
     private void updateTokensConfig(Context ctx) {
         ctx.json(securitySettings.updateTokens(ctx.bodyAsClass(TokensConfigRequest.class)));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/tokens/generate-pepper",
+            methods = HttpMethod.POST,
+            summary = "Generate a new token pepper",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokensConfigResponse.class)))
     private void generateTokenPepper(Context ctx) {
         ctx.json(securitySettings.generateTokenPepper());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/hibp",
+            methods = HttpMethod.GET,
+            summary = "Get the breached password check settings",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = HibpConfigResponse.class)))
     private void getHibpConfig(Context ctx) {
         ctx.json(securitySettings.hibp());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/hibp",
+            methods = HttpMethod.PUT,
+            summary = "Update the breached password check settings",
+            tags = {"Admin Settings"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = HibpConfigRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = HibpConfigResponse.class)))
     private void updateHibpConfig(Context ctx) {
         ctx.json(securitySettings.updateHibp(ctx.bodyAsClass(HibpConfigRequest.class)));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/two-factor",
+            methods = HttpMethod.GET,
+            summary = "Get the two-factor settings",
+            tags = {"Admin Settings"},
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = TwoFactorCoreConfigResponse.class)))
     private void getTwoFactorCoreConfig(Context ctx) {
         ctx.json(securitySettings.twoFactorCore());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/two-factor",
+            methods = HttpMethod.PUT,
+            summary = "Update the two-factor settings",
+            tags = {"Admin Settings"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TwoFactorCoreConfigRequest.class)),
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = TwoFactorCoreConfigResponse.class)))
     private void updateTwoFactorCoreConfig(Context ctx) {
         ctx.json(securitySettings.updateTwoFactorCore(ctx.bodyAsClass(TwoFactorCoreConfigRequest.class)));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/two-factor/generate-secret-key",
+            methods = HttpMethod.POST,
+            summary = "Generate a new key for the two-factor secrets",
+            tags = {"Admin Settings"},
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = TwoFactorCoreConfigResponse.class)))
     private void generateTwoFactorSecretKey(Context ctx) {
         ctx.json(securitySettings.generateTwoFactorSecretKey());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/two-factor/totp",
+            methods = HttpMethod.GET,
+            summary = "Get the authenticator app settings",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TotpConfig.class)))
     private void getTotpConfig(Context ctx) {
         ctx.json(securitySettings.totp());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/two-factor/totp",
+            methods = HttpMethod.PUT,
+            summary = "Update the authenticator app settings",
+            tags = {"Admin Settings"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TotpConfig.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TotpConfig.class)))
     private void updateTotpConfig(Context ctx) {
         ctx.json(securitySettings.updateTotp(ctx.bodyAsClass(TotpConfig.class)));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/two-factor/backup-codes",
+            methods = HttpMethod.GET,
+            summary = "Get the backup code settings",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BackupCodesConfig.class)))
     private void getBackupCodesConfig(Context ctx) {
         ctx.json(securitySettings.backupCodes());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/two-factor/backup-codes",
+            methods = HttpMethod.PUT,
+            summary = "Update the backup code settings",
+            tags = {"Admin Settings"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BackupCodesConfig.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BackupCodesConfig.class)))
     private void updateBackupCodesConfig(Context ctx) {
         ctx.json(securitySettings.updateBackupCodes(ctx.bodyAsClass(BackupCodesConfig.class)));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/webauthn",
+            methods = HttpMethod.GET,
+            summary = "Get the security key settings",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebAuthnConfig.class)))
     private void getWebAuthnConfig(Context ctx) {
         ctx.json(securitySettings.webAuthn());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/webauthn",
+            methods = HttpMethod.PUT,
+            summary = "Update the security key settings",
+            tags = {"Admin Settings"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WebAuthnConfig.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebAuthnConfig.class)))
     private void updateWebAuthnConfig(Context ctx) {
         ctx.json(securitySettings.updateWebAuthn(ctx.bodyAsClass(WebAuthnConfig.class)));
     }
@@ -485,6 +613,14 @@ public class AdminSettingsRoutes implements Routes {
      * given. The address need not be the administrator's own: whether a relay delivers is often a
      * question about somebody else's mailbox.
      */
+    @OpenApi(
+            path = "/api/v1/admin/config/mailing/providers/{position}/test",
+            methods = HttpMethod.POST,
+            summary = "Send a test mail through one provider of the instance list",
+            tags = {"Admin Settings"},
+            pathParams = @OpenApiParam(name = "position", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProviderTestRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailTestResponse.class)))
     private void testMailProvider(Context ctx) {
         int position;
         try {
@@ -495,7 +631,7 @@ public class AdminSettingsRoutes implements Routes {
         var body = ctx.body().isBlank() ? null : ctx.bodyAsClass(ProviderTestRequest.class);
         String recipient = body == null ? null : body.recipient();
         if (recipient == null || recipient.isBlank()) {
-            ctx.json(new MailTestResult(false, "No recipient given"));
+            ctx.json(new MailTestResponse(false, "No recipient given"));
             return;
         }
         var account = UserSession.from(ctx).account();
@@ -505,7 +641,7 @@ public class AdminSettingsRoutes implements Routes {
                 MailAddress.require(recipient),
                 account.firstName(),
                 mailLocaleService.forAccount(account.id()));
-        ctx.json(new MailTestResult(error == null, error));
+        ctx.json(new MailTestResponse(error == null, error));
     }
 
     /**
@@ -545,6 +681,16 @@ public class AdminSettingsRoutes implements Routes {
      * Lifts a block by hand, for when an operator knows the relay has been taken off the list and
      * does not want to wait out the week.
      */
+    @OpenApi(
+            path = "/api/v1/admin/config/mailing/blocks",
+            methods = HttpMethod.DELETE,
+            summary = "Lift a provider's block for a recipient domain",
+            tags = {"Settings"},
+            queryParams = {
+                @OpenApiParam(name = "provider", type = String.class, required = true),
+                @OpenApiParam(name = "domain", type = String.class)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void liftMailBlock(Context ctx) {
         var provider = MailProviderType.fromName(ctx.queryParam("provider"))
                 .orElseThrow(Refusal.MAIL_PROVIDER_KIND_UNKNOWN::raise);
@@ -582,7 +728,7 @@ public class AdminSettingsRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Search the loggers or threads present in the log",
             tags = {"Monitoring"},
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LogFacet[].class)))
     private void applicationLogFacets(Context ctx) {
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(applicationLog.defaultFacetLimit());
         boolean threads = "thread".equalsIgnoreCase(ctx.queryParam("kind"));
@@ -592,33 +738,65 @@ public class AdminSettingsRoutes implements Routes {
     /**
      * Empties the stored log, for when it holds something that should not be kept.
      */
+    @OpenApi(
+            path = "/api/v1/admin/monitoring/log",
+            methods = HttpMethod.DELETE,
+            summary = "Empty the stored application log",
+            tags = {"Monitoring"},
+            responses = @OpenApiResponse(status = "204"))
     private void clearApplicationLog(Context ctx) {
         applicationLog.clear();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/logging",
+            methods = HttpMethod.GET,
+            summary = "Get how much of the application log is stored",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LoggingConfig.class)))
     private void getLoggingConfig(Context ctx) {
         ctx.json(applicationLog.config());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/logging",
+            methods = HttpMethod.PUT,
+            summary = "Update how much of the application log is stored",
+            tags = {"Admin Settings"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LoggingConfigRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LoggingConfig.class)))
     private void updateLoggingConfig(Context ctx) {
         ctx.json(applicationLog.updateConfig(ctx.bodyAsClass(LoggingConfigRequest.class)));
     }
 
-    /** Where a test mail should go. */
-    public record ProviderTestRequest(String recipient) {}
-
-    /** Whether the provider took the message, and what it said when it did not. */
-    public record MailTestResult(boolean success, String error) {}
-
+    @OpenApi(
+            path = "/api/v1/admin/config/mailing",
+            methods = HttpMethod.GET,
+            summary = "Get the instance mail settings that belong to no one provider",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailingConfigResponse.class)))
     private void getMailingConfig(Context ctx) {
         ctx.json(mailSettings.mailing());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/mailing/providers",
+            methods = HttpMethod.GET,
+            summary = "Get the instance's mail providers in the order they are tried",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailFallbackChain.class)))
     private void getMailFallbacks(Context ctx) {
         ctx.json(mailSettings.providers());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/mailing/providers",
+            methods = HttpMethod.PUT,
+            summary = "Replace the instance's mail providers",
+            tags = {"Admin Settings"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MailFallbackChain.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailFallbackChain.class)))
     private void updateMailFallbacks(Context ctx) {
         ctx.json(mailSettings.updateProviders(ctx.bodyAsClass(MailFallbackChain.class)));
     }
@@ -627,19 +805,45 @@ public class AdminSettingsRoutes implements Routes {
      * Replaces the instance webhook key, which takes the old address out of service at once. An
      * operator does this when the address has been seen by somebody it should not have been.
      */
+    @OpenApi(
+            path = "/api/v1/admin/config/mailing/webhook-key",
+            methods = HttpMethod.POST,
+            summary = "Replace the instance's delivery webhook key",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebhookUrlResponse.class)))
     private void regenerateWebhookKey(Context ctx) {
         ctx.json(mailSettings.regenerateWebhookKey());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/mailing",
+            methods = HttpMethod.PUT,
+            summary = "Update the instance mail settings that belong to no one provider",
+            tags = {"Admin Settings"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MailingConfigRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailingConfigResponse.class)))
     private void updateMailingConfig(Context ctx) {
         ctx.json(mailSettings.updateMailing(ctx.bodyAsClass(MailingConfigRequest.class)));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/mailing",
+            methods = HttpMethod.DELETE,
+            summary = "Reset the instance mail settings",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "204"))
     private void clearMailingConfig(Context ctx) {
         mailSettings.clear();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/legal/{type}",
+            methods = HttpMethod.GET,
+            summary = "Get a legal document in the default language",
+            tags = {"Admin"},
+            pathParams = @OpenApiParam(name = "type", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LegalDocumentResponse.class)))
     private void getLegalDocument(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
         Path dir = legalDir(type);
@@ -647,6 +851,16 @@ public class AdminSettingsRoutes implements Routes {
         ctx.json(new LegalDocumentResponse(type, doc.markdown(), doc.version()));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/legal/{type}/{locale}",
+            methods = HttpMethod.GET,
+            summary = "Get a legal document in one language",
+            tags = {"Admin"},
+            pathParams = {
+                @OpenApiParam(name = "type", type = String.class, required = true),
+                @OpenApiParam(name = "locale", type = String.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LegalDocumentResponse.class)))
     private void getLegalDocumentLocale(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
         Path dir = legalDir(type);
@@ -655,6 +869,13 @@ public class AdminSettingsRoutes implements Routes {
         ctx.json(new LegalDocumentResponse(type, doc.markdown(), doc.version()));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/legal/{type}/locales",
+            methods = HttpMethod.GET,
+            summary = "List the languages a legal document is written in",
+            tags = {"Admin"},
+            pathParams = @OpenApiParam(name = "type", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = String[].class)))
     private void getLegalLocales(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
         Path dir = legalDir(type);
@@ -672,11 +893,30 @@ public class AdminSettingsRoutes implements Routes {
         ctx.json(locales);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/legal/{type}",
+            methods = HttpMethod.PUT,
+            summary = "Replace a legal document in the default language",
+            tags = {"Admin"},
+            pathParams = @OpenApiParam(name = "type", type = String.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LegalDocumentRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LegalDocumentResponse.class)))
     private void updateLegalDocument(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
         updateLegalDocumentForLocale(ctx, type, legalDir(type), "de");
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/legal/{type}/{locale}",
+            methods = HttpMethod.PUT,
+            summary = "Replace a legal document in one language",
+            tags = {"Admin"},
+            pathParams = {
+                @OpenApiParam(name = "type", type = String.class, required = true),
+                @OpenApiParam(name = "locale", type = String.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LegalDocumentRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LegalDocumentResponse.class)))
     private void updateLegalDocumentLocale(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
         Path dir = legalDir(type);
@@ -700,6 +940,16 @@ public class AdminSettingsRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/legal/{type}/{locale}/files",
+            methods = HttpMethod.GET,
+            summary = "List the sections of a legal document in one language",
+            tags = {"Admin"},
+            pathParams = {
+                @OpenApiParam(name = "type", type = String.class, required = true),
+                @OpenApiParam(name = "locale", type = String.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LegalFileEntry[].class)))
     private void getLegalFiles(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
         Path dir = legalDir(type);
@@ -731,10 +981,23 @@ public class AdminSettingsRoutes implements Routes {
         return files;
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/legal/placeholders",
+            methods = HttpMethod.GET,
+            summary = "List the placeholders used across the legal documents with their values",
+            tags = {"Admin"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentPlaceholder[].class)))
     private void getLegalPlaceholders(Context ctx) {
         ctx.json(collectPlaceholders());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/legal/placeholders",
+            methods = HttpMethod.PUT,
+            summary = "Set the values of the placeholders used across the legal documents",
+            tags = {"Admin"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PlaceholderValues.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentPlaceholder[].class)))
     private void updateLegalPlaceholders(Context ctx) {
         var request = ctx.bodyAsClass(PlaceholderValues.class);
         documentService.placeholders().save(request.values() == null ? Map.of() : request.values());
@@ -768,6 +1031,16 @@ public class AdminSettingsRoutes implements Routes {
         return result;
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/legal/{type}/{locale}/templates",
+            methods = HttpMethod.GET,
+            summary = "List the sections Ember ships for a legal document",
+            tags = {"Admin"},
+            pathParams = {
+                @OpenApiParam(name = "type", type = String.class, required = true),
+                @OpenApiParam(name = "locale", type = String.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplateSection[].class)))
     private void getLegalTemplates(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
         String locale = safeLocale(ctx, legalDir(type));
@@ -841,6 +1114,17 @@ public class AdminSettingsRoutes implements Routes {
                 imported.title(), files, imported.references(), List.copyOf(imported.unmatched())));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/legal/{type}/{locale}/files",
+            methods = HttpMethod.PUT,
+            summary = "Replace the sections of a legal document in one language",
+            tags = {"Admin"},
+            pathParams = {
+                @OpenApiParam(name = "type", type = String.class, required = true),
+                @OpenApiParam(name = "locale", type = String.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LegalFileEntry[].class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LegalFileEntry[].class)))
     private void saveLegalFiles(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
         Path dir = legalDir(type);
@@ -927,7 +1211,7 @@ public class AdminSettingsRoutes implements Routes {
      * @param unmatched  numbers that look like a reference but point at no section of this document
      */
     public record LegalImportResponse(
-            String title, List<LegalFileEntry> files, int references, List<String> unmatched) {}
+            @Nullable String title, List<LegalFileEntry> files, int references, List<String> unmatched) {}
 
     /**
      * The values an administrator gives the placeholders used across the legal documents.

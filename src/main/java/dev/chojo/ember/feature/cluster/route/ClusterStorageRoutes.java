@@ -30,6 +30,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -335,13 +336,13 @@ public class ClusterStorageRoutes implements Routes {
      * request to grant nothing.
      */
     public record DimensionsRequest(
-            Long totalBytes,
-            Long kbBytes,
-            Long boardBytes,
-            Long imagesBytes,
-            Long pagesBytes,
-            Long perFileBytes,
-            Long perImageBytes) {
+            @Nullable Long totalBytes,
+            @Nullable Long kbBytes,
+            @Nullable Long boardBytes,
+            @Nullable Long imagesBytes,
+            @Nullable Long pagesBytes,
+            @Nullable Long perFileBytes,
+            @Nullable Long perImageBytes) {
         boolean onlyTotal() {
             return kbBytes == null
                     && boardBytes == null
@@ -425,21 +426,21 @@ public class ClusterStorageRoutes implements Routes {
     public record StationRoomResponse(
             UUID stationUid,
             String stationName,
-            Long quotaBytes,
+            @Nullable Long quotaBytes,
             boolean ownStore,
             Dimensions granted,
             ResolvedResponse resolved,
             long usedBytes,
             List<CategoryUsageResponse> usage,
-            Integer presetId,
-            String presetName) {}
+            @Nullable Integer presetId,
+            @Nullable String presetName) {}
 
     /**
      * @param poolBytes the whole the cluster may hand out, or {@code null} when the instance set no cap
      * @param handedOut the sum of the totals promised, the cluster's own store included
      */
     public record OverviewResponse(
-            Long poolBytes,
+            @Nullable Long poolBytes,
             long handedOut,
             Dimensions defaults,
             List<TierResponse> presets,

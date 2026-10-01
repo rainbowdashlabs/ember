@@ -13,7 +13,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import LoadTemplateModal from './LoadTemplateModal.vue'
 import ImportDocumentModal from './ImportDocumentModal.vue'
 import {adminSettings} from '@/api'
-import type {LegalFile, LegalTemplate} from '@/api/adminSettings'
+import type {LegalFileEntry, TemplateSection} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -29,7 +29,7 @@ const emit = defineEmits<{
   saved: []
 }>()
 
-const files = ref<LegalFile[]>([])
+const files = ref<LegalFileEntry[]>([])
 const loading = ref(false)
 const showPreview = ref(false)
 
@@ -75,16 +75,22 @@ function addFile() {
   if (!name) return
   showAddFileModal.value = false
   newFileName.value = ''
-  files.value = [...files.value, {filename: '', displayName: name, content: '', enabled: true}]
+  files.value = [...files.value, {filename: '', displayName: name, content: '', enabled: true, generated: false}]
 }
 
-function applyTemplates(templates: LegalTemplate[]) {
+function applyTemplates(templates: TemplateSection[]) {
   const next = [...files.value]
   for (const template of templates) {
     const index = next.findIndex(file => file.displayName === template.displayName)
     const existing = next[index]
     if (existing) next[index] = {...existing, content: template.content}
-    else next.push({filename: '', displayName: template.displayName, content: template.content, enabled: true})
+    else next.push({
+      filename: '',
+      displayName: template.displayName,
+      content: template.content,
+      enabled: true,
+      generated: false,
+    })
   }
   files.value = next
 }
@@ -93,7 +99,7 @@ function applyTemplates(templates: LegalTemplate[]) {
  * An imported document replaces what is in the editor: it is a whole document, not a section to
  * merge in. Nothing is written until the editor is saved.
  */
-function applyImport(imported: LegalFile[]) {
+function applyImport(imported: LegalFileEntry[]) {
   files.value = imported
 }
 

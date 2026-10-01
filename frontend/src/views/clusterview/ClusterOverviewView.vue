@@ -17,8 +17,7 @@ import {useSession} from '@/composables/useSession'
 import {useCluster} from '@/composables/useCluster'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import type {Cluster} from '@/api/clusters'
-import type {ClusterMemberSummary} from '@/api/clusterMembers'
+import type {ClusterMemberResponse, ClusterResponse} from '@/api/generated/schema'
 import type {PermissionNode} from '@/api/data'
 import {highestOf} from '@/api/data'
 import {clusters, clusterMembers, data} from '@/api'
@@ -27,8 +26,8 @@ const {t} = useI18n()
 const {sessionInfo} = useSession()
 const {currentClusterId} = useCluster()
 
-const cluster = ref<Cluster | null>(null)
-const administrators = ref<ClusterMemberSummary[]>([])
+const cluster = ref<ClusterResponse | null>(null)
+const administrators = ref<ClusterMemberResponse[]>([])
 
 const hierarchy = ref<PermissionNode[]>([])
 

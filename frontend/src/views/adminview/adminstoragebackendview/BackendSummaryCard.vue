@@ -10,7 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {ProbeResult} from '@/api/storageBackend'
+import type {ProbeResult} from '@/api/generated/schema'
 
 defineProps<{
   summaryLabel: string

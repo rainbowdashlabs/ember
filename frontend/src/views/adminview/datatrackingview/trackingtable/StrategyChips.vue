@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {DataTracking, TableEntry} from '@/api/dataTracking'
+import type {DataTracking, TableEntry} from '@/api/generated/schema'
 import PillBadge from '@/components/badge/PillBadge.vue'
 import {isCascadeMisleading, strategyChipsOf, strategyClasses, type StrategyChip} from './strategyChips'
 

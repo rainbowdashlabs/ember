@@ -4,30 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-
-export interface EndpointStats {
-    method: string
-    path: string
-    requestCount: number
-    avgDurationMs: number
-    minDurationMs: number
-    maxDurationMs: number
-    errorRate: number
-}
-
-export interface StatusBreakdown {
-    method: string
-    path: string
-    statusCode: number
-    count: number
-}
-
-export interface HourlyStats {
-    hour: string
-    requestCount: number
-    avgDurationMs: number
-    errorCount: number
-}
+import type {EndpointDetail, EndpointStats, HourlyStats, StatusBreakdown} from './generated/schema'
 
 export async function getSlowest(limit = 20): Promise<EndpointStats[]> {
     const res = await client.get<EndpointStats[]>('/admin/api-status/slowest', {params: {limit}})
@@ -52,23 +29,6 @@ export async function getStatusBreakdown(): Promise<StatusBreakdown[]> {
 export async function getHourlyStats(): Promise<HourlyStats[]> {
     const res = await client.get<HourlyStats[]>('/admin/api-status/hourly')
     return res.data
-}
-
-export interface RequestEntry {
-    timestamp: string
-    method: string
-    path: string
-    statusCode: number
-    durationMs: number
-}
-
-export interface EndpointDetail {
-    method: string
-    path: string
-    avgDurationMs: number
-    requestCount: number
-    statusCodes: { statusCode: number; count: number }[]
-    recentRequests: RequestEntry[]
 }
 
 export async function getEndpointDetail(method: string, path: string): Promise<EndpointDetail> {

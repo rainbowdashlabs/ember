@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import BeaconReportCard from './BeaconReportCard.vue'
-import type {BeaconReport} from '@/api/beacon'
+import type {BeaconReport} from '@/api/generated/schema'
 
 /**
  * The problem reports of the installations that report here, read the way this instance's own are.

@@ -17,7 +17,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {mailImport} from '@/api'
-import {MailImportOutcome, wasImported, type MailImportLogEntry} from '@/api/mailImport'
+import {MailImportOutcome, wasImported} from '@/api/mailImport'
+import type {LogEntryResponse} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
@@ -30,7 +31,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
  */
 const {t} = useI18n()
 
-const entries = ref<MailImportLogEntry[]>([])
+const entries = ref<LogEntryResponse[]>([])
 const total = ref(0)
 const page = ref(0)
 
@@ -55,7 +56,7 @@ const {loading: fetching, failure, reload} = useAsyncLoader(async (isCurrent) =>
 const loading = computed(() => fetching.value && entries.value.length === 0)
 
 /** Only one outcome produced a document; the rest are refusals of one kind or another. */
-function badgeFor(entry: MailImportLogEntry) {
+function badgeFor(entry: LogEntryResponse) {
   if (wasImported(entry.outcome)) return SuccessBadge
   if (entry.outcome === MailImportOutcome.FAILED || entry.outcome === MailImportOutcome.AUTHENTICATION_FAILED) {
     return ErrorBadge

@@ -4,6 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {
+    components,
+    MailDashboard,
+    MailFallbackChain,
+    MailFallbackPayload,
+    MailTestResponse,
+    NotificationSchedulePayload,
+    RequeuedMails,
+    WebhookUrl,
+} from './generated/schema'
+
+type Schemas = components['schemas']
+
+export type SmtpEncryptionName = Schemas['SmtpEncryption']
 
 /**
  * How the connection to a relay is secured. STARTTLS is required, not merely attempted; NONE sends
@@ -13,50 +27,23 @@ export const SmtpEncryption = {
     IMPLICIT_TLS: 'IMPLICIT_TLS',
     STARTTLS: 'STARTTLS',
     NONE: 'NONE',
-} as const
-
-export type SmtpEncryptionName = (typeof SmtpEncryption)[keyof typeof SmtpEncryption]
+} as const satisfies Record<SmtpEncryptionName, SmtpEncryptionName>
 
 /**
- * One provider in the order mail is tried through.
+ * One provider in the order mail is tried through, as a row of the list being edited.
  *
  * The first is simply the first, not a provider of a different kind: the list is worked from the
  * top, and an entry hands over once its attempts or its daily allowance are spent.
  *
  * Secrets arrive masked as `********`. Sending the mask back means "leave it as it was", so the
- * list can be reordered without retyping every password in it.
+ * list can be reordered without retyping every password in it. The address a provider reports
+ * delivery events to is handed out by the server, so a row added on this side has none yet.
  */
-export interface MailProvider {
-    provider: string
-    smtpHost: string
-    smtpPort: number
-    smtpEncryption: SmtpEncryptionName
-    smtpUser: string
-    smtpPassword: string
-    apiKey: string
-    senderAddress: string
-    senderName: string
-    /** How many attempts this provider gets before the next one takes over. */
-    attempts: number
-    /** How many mails it may send in a day, or zero for no limit. */
-    dailySendLimit: number
-    /** The provider name shown to members of the station. Unused for the instance list. */
-    providerName: string
-    /** The provider website shown to members of the station. Unused for the instance list. */
-    providerUrl: string
-    /**
-     * The address this provider reports delivery events to. Each entry gets one of its own, because
-     * the address ends in the report format the provider sends. The server hands it out; sending it
-     * back is ignored.
-     */
-    deliveryWebhookUrl?: string
-}
+export type MailProvider = Omit<MailFallbackPayload, 'deliveryWebhookUrl'>
+    & Partial<Pick<MailFallbackPayload, 'deliveryWebhookUrl'>>
 
 /** The instance list, still carrying the attempts field its first provider used to own. */
-export interface MailProviderChain {
-    attempts: number
-    fallbacks: MailProvider[]
-}
+export type MailProviderChain = Omit<MailFallbackChain, 'fallbacks'> & {fallbacks: MailProvider[]}
 
 /** What an empty row starts as, so every caller adds the same shape. */
 export function emptyMailProvider(): MailProvider {
@@ -77,13 +64,13 @@ export function emptyMailProvider(): MailProvider {
     }
 }
 
-export async function getInstanceProviders(): Promise<MailProviderChain> {
-    const res = await client.get<MailProviderChain>('/admin/config/mailing/providers')
+export async function getInstanceProviders(): Promise<MailFallbackChain> {
+    const res = await client.get<MailFallbackChain>('/admin/config/mailing/providers')
     return res.data
 }
 
-export async function updateInstanceProviders(chain: MailProviderChain): Promise<MailProviderChain> {
-    const res = await client.put<MailProviderChain>('/admin/config/mailing/providers', chain)
+export async function updateInstanceProviders(chain: MailProviderChain): Promise<MailFallbackChain> {
+    const res = await client.put<MailFallbackChain>('/admin/config/mailing/providers', chain)
     return res.data
 }
 
@@ -95,20 +82,14 @@ export async function clearStationProviders(): Promise<void> {
     await client.delete('/station/manage/mail')
 }
 
-export async function getStationProviders(): Promise<MailProvider[]> {
-    const res = await client.get<MailProvider[]>('/station/manage/mail/providers')
+export async function getStationProviders(): Promise<MailFallbackPayload[]> {
+    const res = await client.get<MailFallbackPayload[]>('/station/manage/mail/providers')
     return res.data
 }
 
-export async function updateStationProviders(providers: MailProvider[]): Promise<MailProvider[]> {
-    const res = await client.put<MailProvider[]>('/station/manage/mail/providers', providers)
+export async function updateStationProviders(providers: MailProvider[]): Promise<MailFallbackPayload[]> {
+    const res = await client.put<MailFallbackPayload[]>('/station/manage/mail/providers', providers)
     return res.data
-}
-
-/** The outcome of trying one provider against its relay, without sending anything. */
-export interface MailProviderTestResult {
-    success: boolean
-    error?: string | null
 }
 
 /**
@@ -116,8 +97,8 @@ export interface MailProviderTestResult {
  * provider further down carries the post once those above it are spent, so being unable to try it
  * means finding out it was misconfigured only when it is needed.
  */
-export async function testStationProvider(position: number, recipient?: string): Promise<MailProviderTestResult> {
-    const res = await client.post<MailProviderTestResult>(
+export async function testStationProvider(position: number, recipient?: string): Promise<MailTestResponse> {
+    const res = await client.post<MailTestResponse>(
         `/station/manage/mail/providers/${position}/test`,
         recipient ? {recipient} : {},
     )
@@ -128,26 +109,12 @@ export async function testStationProvider(position: number, recipient?: string):
  * The same for the instance list. An address is required here: the instance provider is tried by
  * sending through it, which is the only thing that says whether it delivers.
  */
-export async function testInstanceProvider(position: number, recipient: string): Promise<MailProviderTestResult> {
-    const res = await client.post<MailProviderTestResult>(
+export async function testInstanceProvider(position: number, recipient: string): Promise<MailTestResponse> {
+    const res = await client.post<MailTestResponse>(
         `/admin/config/mailing/providers/${position}/test`,
         {recipient},
     )
     return res.data
-}
-
-/** How one provider of the list stands today. */
-export interface ProviderStanding {
-    position: number
-    provider: string
-    senderAddress: string
-    attempts: number
-    dailySendLimit: number
-    sentToday: number
-    /** How many mails sit at this provider right now, which is what says who carries the next one. */
-    waiting: number
-    /** Whether its allowance is spent, so the next one is carrying the post. */
-    exhausted: boolean
 }
 
 /** Where a mail stands in the queue: waiting, being handed over, handed over, or given up on. */
@@ -160,6 +127,8 @@ export const MailQueueStatus = {
 
 export type MailQueueStatusName = (typeof MailQueueStatus)[keyof typeof MailQueueStatus]
 
+export type MailDeliveryStatusName = Schemas['MailDeliveryStatus']
+
 /** What the provider reported about a mail after taking it. */
 export const MailDeliveryStatus = {
     UNKNOWN: 'UNKNOWN',
@@ -170,59 +139,7 @@ export const MailDeliveryStatus = {
     SPAM: 'SPAM',
     DEFERRED: 'DEFERRED',
     ERROR: 'ERROR',
-} as const
-
-export type MailDeliveryStatusName = (typeof MailDeliveryStatus)[keyof typeof MailDeliveryStatus]
-
-/** One mail as the overview shows it. The body is deliberately absent. */
-export interface MailRecord {
-    id: number
-    recipient: string
-    subject: string
-    createdAt: string
-    sentAt: string | null
-    status: MailQueueStatusName
-    deliveryStatus: MailDeliveryStatusName
-    deliveryDetail: string | null
-    attempts: number
-    providerPosition: number
-    /**
-     * Whether anything in the list could still carry this one. False on a waiting mail means it is
-     * not merely queued but stuck.
-     */
-    reachable: boolean
-}
-
-/** A provider a receiving domain refuses outright. */
-export interface ProviderBlock {
-    provider: string
-    recipientDomain: string
-    reason: string | null
-    firstBlockedAt: string
-    lastBlockedAt: string
-    expiresAt: string
-}
-
-/** What has become of the post. */
-export interface MailDashboard {
-    pending: number
-    sending: number
-    sent: number
-    failed: number
-    /** Left in sending by a worker that died. Nothing retries these. */
-    stuck: number
-    oldestPendingAt: string | null
-    providers: ProviderStanding[]
-    /** The left-behind mails themselves, oldest first, so they can be named rather than counted. */
-    stuckMails: MailRecord[]
-    recent: MailRecord[]
-    blocks: ProviderBlock[]
-}
-
-/** How many left-behind mails went back into the queue. */
-export interface RequeuedMails {
-    requeued: number
-}
+} as const satisfies Record<MailDeliveryStatusName, MailDeliveryStatusName>
 
 /**
  * Puts mails a dead worker left in sending back into the queue. Without an id every left-behind
@@ -252,6 +169,7 @@ export async function liftStationBlock(provider: string, domain: string): Promis
     await client.delete('/station/manage/mail/blocks', {params: {provider, domain}})
 }
 
+/** What has become of the instance's post. */
 export async function getInstanceMailDashboard(): Promise<MailDashboard> {
     const res = await client.get<MailDashboard>('/admin/config/mailing/dashboard')
     return res.data
@@ -263,21 +181,16 @@ export async function getStationMailDashboard(): Promise<MailDashboard> {
 }
 
 /** The address a provider reports delivery events to, and whether its signature is checked. */
-export interface WebhookInfo {
-    deliveryWebhookUrl: string
-    signingSecretSet: boolean
-}
-
-export async function getStationWebhook(): Promise<WebhookInfo> {
-    const res = await client.get<WebhookInfo>('/station/manage/mail/webhook')
+export async function getStationWebhook(): Promise<WebhookUrl> {
+    const res = await client.get<WebhookUrl>('/station/manage/mail/webhook')
     return res.data
 }
 
 /**
  * Stores the signing secret the provider issued. An empty value stops signatures being checked.
  */
-export async function saveStationSigningSecret(secret: string): Promise<WebhookInfo> {
-    const res = await client.put<WebhookInfo>('/station/manage/mail/signing-secret', {secret})
+export async function saveStationSigningSecret(secret: string): Promise<WebhookUrl> {
+    const res = await client.put<WebhookUrl>('/station/manage/mail/signing-secret', {secret})
     return res.data
 }
 
@@ -289,13 +202,8 @@ export async function saveStationSigningSecret(secret: string): Promise<WebhookI
  * comes along as `floorMinutes`, because it is also the shortest gap allowed between two mails and
  * a station asking for more often than that will not get it.
  */
-export interface NotificationSchedule {
-    sendTimes: string[]
-    floorMinutes: number
-}
-
-export async function getNotificationSchedule(): Promise<NotificationSchedule> {
-    const res = await client.get<NotificationSchedule>('/station/manage/notifications')
+export async function getNotificationSchedule(): Promise<NotificationSchedulePayload> {
+    const res = await client.get<NotificationSchedulePayload>('/station/manage/notifications')
     return res.data
 }
 
@@ -306,6 +214,6 @@ export async function saveNotificationSchedule(sendTimes: string[]): Promise<voi
 
 /** Replaces this station's webhook key, retiring its old address at once. */
 export async function regenerateStationWebhookKey(): Promise<string> {
-    const res = await client.post<{deliveryWebhookUrl: string}>('/station/manage/mail/webhook')
+    const res = await client.post<WebhookUrl>('/station/manage/mail/webhook')
     return res.data.deliveryWebhookUrl
 }

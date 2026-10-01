@@ -28,6 +28,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -195,13 +196,14 @@ public class ClusterStationRoutes implements Routes {
      */
     public record ApplicationDecisionRequest(boolean approve, String reason) {}
 
-    public record ClusterStationResponse(UUID uid, String name, String publicSlug) {}
+    public record ClusterStationResponse(
+            UUID uid, String name, @Nullable String publicSlug) {}
 
     public record ClusterApplicationResponse(
             int id,
-            String stationName,
+            @Nullable String stationName,
             Instant requestedAt,
             ClusterApplicationStatus status,
-            String denyReason,
-            Instant resolvedAt) {}
+            @Nullable String denyReason,
+            @Nullable Instant resolvedAt) {}
 }

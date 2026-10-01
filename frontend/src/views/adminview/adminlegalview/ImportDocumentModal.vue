@@ -17,7 +17,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ImportResultPanel from './ImportResultPanel.vue'
 import {adminSettings} from '@/api'
-import type {LegalFile, LegalImport} from '@/api/adminSettings'
+import type {LegalFileEntry, LegalImportResponse} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -34,15 +34,15 @@ const props = defineProps<{
 const show = defineModel<boolean>('show', {required: true})
 
 const emit = defineEmits<{
-  apply: [files: LegalFile[]]
+  apply: [files: LegalFileEntry[]]
 }>()
 
 const markdown = ref('')
-const result = ref<LegalImport | null>(null)
+const result = ref<LegalImportResponse | null>(null)
 const running = ref(false)
 const failure = ref<Failure | null>(null)
 
-async function run(action: () => Promise<LegalImport>) {
+async function run(action: () => Promise<LegalImportResponse>) {
   running.value = true
   failure.value = null
   result.value = null

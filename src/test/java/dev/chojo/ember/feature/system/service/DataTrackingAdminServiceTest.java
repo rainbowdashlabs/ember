@@ -11,8 +11,8 @@ import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.GdprDeletionContext;
 import dev.chojo.ember.tracking.GdprExportContext;
-import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.tracking.TrackingStatus;
 import dev.chojo.ember.tracking.TransferContext;
 import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,18 +80,18 @@ class DataTrackingAdminServiceTest {
         var update = new TableUpdate(
                 null,
                 null,
-                new TransferContext(Status.TRACKED, null, List.of("station_id"), "promoted from UNVERIFIED"),
+                new TransferContext(TrackingStatus.TRACKED, null, List.of("station_id"), "promoted from UNVERIFIED"),
                 null,
                 null);
         var result = service.updateTable("station_member", update);
-        assertEquals(Status.TRACKED, result.stationTransfer().status());
+        assertEquals(TrackingStatus.TRACKED, result.stationTransfer().status());
         assertEquals(List.of("station_id"), result.stationTransfer().ignoredColumns());
         assertEquals("promoted from UNVERIFIED", result.stationTransfer().rationale());
 
         // Re-load from disk and verify the change was persisted.
         var reloaded = service.load();
         assertEquals(
-                Status.TRACKED,
+                TrackingStatus.TRACKED,
                 reloaded.tables().get("station_member").stationTransfer().status());
     }
 

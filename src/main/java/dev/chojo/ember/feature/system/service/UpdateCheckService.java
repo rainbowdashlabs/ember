@@ -13,6 +13,7 @@ import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
@@ -198,7 +199,8 @@ public class UpdateCheckService implements TaskSource {
      * @param latestVersion   the newest release found, null where no check has succeeded
      * @param updateAvailable whether the newest release is ahead of the running one
      */
-    public record UpdateStatus(String currentVersion, String latestVersion, boolean updateAvailable) {}
+    public record UpdateStatus(
+            String currentVersion, @Nullable String latestVersion, boolean updateAvailable) {}
 
     /**
      * The check at {@code updates.checkIntervalHours} while switched on. The first run waits a minute so start

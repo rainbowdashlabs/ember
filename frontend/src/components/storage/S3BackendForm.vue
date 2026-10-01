@@ -11,9 +11,9 @@ import MutedText from '@/components/typography/MutedText.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {S3Request} from '@/api/storageBackend'
+import type {S3Form} from '@/util/storageBackendForm'
 
-const model = defineModel<S3Request>({required: true})
+const model = defineModel<S3Form>({required: true})
 const {t} = useI18n()
 
 const endpointInvalid = computed(() => {

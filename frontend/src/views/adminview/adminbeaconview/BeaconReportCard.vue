@@ -12,7 +12,7 @@ import ReportCardHeader from '@/components/problem/ReportCardHeader.vue'
 import ReportMetadataGrid from '@/components/problem/ReportMetadataGrid.vue'
 import RecentRequestsTable from '@/components/problem/RecentRequestsTable.vue'
 import AuthImage from '@/components/display/AuthImage.vue'
-import type {BeaconReport} from '@/api/beacon'
+import type {BeaconReport} from '@/api/generated/schema'
 import type {RequestHistoryEntry} from '@/api/client'
 
 /**

@@ -12,7 +12,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TokenConfigPanel from '@/views/adminview/adminsecuritytokensview/TokenConfigPanel.vue'
 import PepperPanel from '@/views/adminview/adminsecuritytokensview/PepperPanel.vue'
 import {adminSettings} from '@/api'
-import type {TokensConfigResponse} from '@/api/adminSettings'
+import type {TokensConfigResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()

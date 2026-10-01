@@ -13,7 +13,8 @@ import DragList from '@/components/input/DragList.vue'
 import MailRuleRow from './MailRuleRow.vue'
 import MailRuleEditor from './MailRuleEditor.vue'
 import {mailImport} from '@/api'
-import type {MailRule, MailRuleRequest} from '@/api/mailImport'
+import type {MailRuleDraft} from '@/api/mailImport'
+import type {RuleResponse} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -34,8 +35,8 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const rules = ref<MailRule[]>([])
-const editing = ref<MailRule | null>(null)
+const rules = ref<RuleResponse[]>([])
+const editing = ref<RuleResponse | null>(null)
 const adding = ref(false)
 
 /** Hands the failure up, with a sentence of its own where this screen has a better one. */
@@ -75,7 +76,7 @@ async function act(action: Promise<unknown>) {
   return true
 }
 
-async function save(request: MailRuleRequest) {
+async function save(request: MailRuleDraft) {
   const existing = editing.value
   const saved = await act(existing
       ? mailImport.updateRule(existing.id, request)

@@ -10,7 +10,13 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.feature.traffic.entity.AuthBucket;
 import dev.chojo.ember.feature.traffic.service.TrafficReportService;
+import dev.chojo.ember.feature.traffic.service.TrafficReportService.HourlyTrafficResponse;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -72,6 +78,18 @@ public class AdminTrafficRoutes implements Routes {
         routes.get(prefix + "/admin/traffic/hourly", this::hourly, InstancePermission.ADMINISTRATOR);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/traffic/hourly",
+            methods = HttpMethod.GET,
+            summary = "Hourly traffic of every station and of the instance itself",
+            tags = {"Monitoring"},
+            queryParams = {
+                @OpenApiParam(name = "from", type = Instant.class, required = true),
+                @OpenApiParam(name = "to", type = Instant.class, required = true),
+                @OpenApiParam(name = "stationId", type = Integer.class),
+                @OpenApiParam(name = "auth", type = AuthBucket.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = HourlyTrafficResponse.class)))
     private void hourly(Context ctx) {
         Instant from = parseInstant(ctx, "from");
         Instant to = parseInstant(ctx, "to");

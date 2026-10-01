@@ -79,14 +79,15 @@ public class InstanceStorageSettingsService {
     public InstanceBackendSummary summary() {
         var settings = current();
         return switch (resolver.instanceDefault().type()) {
-            case LOCAL -> new LocalSummary(settings.local().root());
+            case LOCAL -> new InstanceLocalSummary(settings.local().root());
             case SMB -> {
                 var smb = settings.smb();
-                yield new SmbSummary(smb.host(), smb.port(), smb.share(), smb.basePath(), smb.seal(), smb.dfs());
+                yield new InstanceSmbSummary(
+                        smb.host(), smb.port(), smb.share(), smb.basePath(), smb.seal(), smb.dfs());
             }
             case SFTP -> {
                 var sftp = settings.sftp();
-                yield new SftpSummary(
+                yield new InstanceSftpSummary(
                         sftp.host(),
                         sftp.port(),
                         sftp.username(),
@@ -95,7 +96,7 @@ public class InstanceStorageSettingsService {
             }
             case S3 -> {
                 var s3 = settings.s3();
-                yield new S3Summary(
+                yield new InstanceS3Summary(
                         s3.endpoint(), s3.region(), s3.bucket(), s3.pathStyle(), s3.sseAlgorithm(), s3.basePath());
             }
         };
@@ -203,15 +204,15 @@ public class InstanceStorageSettingsService {
         var settings = new StorageBackendSettings();
         settings.type(typeOf(request));
         switch (request) {
-            case LocalRequest r -> settings.local().root(r.root() == null ? "data" : r.root());
-            case S3Request r -> describe(settings.s3(), r);
-            case SmbRequest r -> describe(settings.smb(), r);
-            case SftpRequest r -> describe(settings.sftp(), r);
+            case InstanceLocalRequest r -> settings.local().root(r.root() == null ? "data" : r.root());
+            case InstanceS3Request r -> describe(settings.s3(), r);
+            case InstanceSmbRequest r -> describe(settings.smb(), r);
+            case InstanceSftpRequest r -> describe(settings.sftp(), r);
         }
         return settings;
     }
 
-    private void describe(StorageBackendSettings.S3Settings s3, S3Request r) {
+    private void describe(StorageBackendSettings.S3Settings s3, InstanceS3Request r) {
         s3.endpoint(orBlank(r.endpoint()));
         s3.region(orBlank(r.region()));
         s3.bucket(orBlank(r.bucket()));
@@ -224,7 +225,7 @@ public class InstanceStorageSettingsService {
         s3.secretKeyEnc(cipher.encrypt(orBlank(r.secretKey())));
     }
 
-    private void describe(StorageBackendSettings.SmbSettings smb, SmbRequest r) {
+    private void describe(StorageBackendSettings.SmbSettings smb, InstanceSmbRequest r) {
         smb.host(orBlank(r.host()));
         smb.port(r.port());
         smb.share(orBlank(r.share()));
@@ -237,7 +238,7 @@ public class InstanceStorageSettingsService {
         smb.passwordEnc(cipher.encrypt(orBlank(r.password())));
     }
 
-    private void describe(StorageBackendSettings.SftpSettings sftp, SftpRequest r) {
+    private void describe(StorageBackendSettings.SftpSettings sftp, InstanceSftpRequest r) {
         sftp.host(orBlank(r.host()));
         sftp.port(r.port());
         sftp.username(orBlank(r.username()));
@@ -251,10 +252,10 @@ public class InstanceStorageSettingsService {
 
     private static StorageBackendType typeOf(InstanceBackendRequest request) {
         return switch (request) {
-            case LocalRequest ignored -> StorageBackendType.LOCAL;
-            case S3Request ignored -> StorageBackendType.S3;
-            case SmbRequest ignored -> StorageBackendType.SMB;
-            case SftpRequest ignored -> StorageBackendType.SFTP;
+            case InstanceLocalRequest ignored -> StorageBackendType.LOCAL;
+            case InstanceS3Request ignored -> StorageBackendType.S3;
+            case InstanceSmbRequest ignored -> StorageBackendType.SMB;
+            case InstanceSftpRequest ignored -> StorageBackendType.SFTP;
         };
     }
 
@@ -336,22 +337,22 @@ public class InstanceStorageSettingsService {
      */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes({
-        @JsonSubTypes.Type(value = LocalSummary.class, name = "LOCAL"),
-        @JsonSubTypes.Type(value = S3Summary.class, name = "S3"),
-        @JsonSubTypes.Type(value = SmbSummary.class, name = "SMB"),
-        @JsonSubTypes.Type(value = SftpSummary.class, name = "SFTP")
+        @JsonSubTypes.Type(value = InstanceLocalSummary.class, name = "LOCAL"),
+        @JsonSubTypes.Type(value = InstanceS3Summary.class, name = "S3"),
+        @JsonSubTypes.Type(value = InstanceSmbSummary.class, name = "SMB"),
+        @JsonSubTypes.Type(value = InstanceSftpSummary.class, name = "SFTP")
     })
     public sealed interface InstanceBackendSummary {}
 
-    public record LocalSummary(String root) implements InstanceBackendSummary {}
+    public record InstanceLocalSummary(String root) implements InstanceBackendSummary {}
 
-    public record SmbSummary(String host, int port, String share, String basePath, boolean seal, boolean dfs)
+    public record InstanceSmbSummary(String host, int port, String share, String basePath, boolean seal, boolean dfs)
             implements InstanceBackendSummary {}
 
-    public record SftpSummary(String host, int port, String username, String basePath, boolean knownHostsPinned)
+    public record InstanceSftpSummary(String host, int port, String username, String basePath, boolean knownHostsPinned)
             implements InstanceBackendSummary {}
 
-    public record S3Summary(
+    public record InstanceS3Summary(
             String endpoint, String region, String bucket, boolean pathStyle, String sseAlgorithm, String basePath)
             implements InstanceBackendSummary {}
 
@@ -361,16 +362,17 @@ public class InstanceStorageSettingsService {
      */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes({
-        @JsonSubTypes.Type(value = LocalRequest.class, name = "LOCAL"),
-        @JsonSubTypes.Type(value = S3Request.class, name = "S3"),
-        @JsonSubTypes.Type(value = SmbRequest.class, name = "SMB"),
-        @JsonSubTypes.Type(value = SftpRequest.class, name = "SFTP")
+        @JsonSubTypes.Type(value = InstanceLocalRequest.class, name = "LOCAL"),
+        @JsonSubTypes.Type(value = InstanceS3Request.class, name = "S3"),
+        @JsonSubTypes.Type(value = InstanceSmbRequest.class, name = "SMB"),
+        @JsonSubTypes.Type(value = InstanceSftpRequest.class, name = "SFTP")
     })
-    public sealed interface InstanceBackendRequest permits LocalRequest, S3Request, SmbRequest, SftpRequest {}
+    public sealed interface InstanceBackendRequest
+            permits InstanceLocalRequest, InstanceS3Request, InstanceSmbRequest, InstanceSftpRequest {}
 
-    public record LocalRequest(String root) implements InstanceBackendRequest {}
+    public record InstanceLocalRequest(String root) implements InstanceBackendRequest {}
 
-    public record S3Request(
+    public record InstanceS3Request(
             String endpoint,
             String region,
             String bucket,
@@ -381,7 +383,7 @@ public class InstanceStorageSettingsService {
             String secretKey)
             implements InstanceBackendRequest {}
 
-    public record SmbRequest(
+    public record InstanceSmbRequest(
             String host,
             int port,
             String share,
@@ -393,7 +395,7 @@ public class InstanceStorageSettingsService {
             String password)
             implements InstanceBackendRequest {}
 
-    public record SftpRequest(
+    public record InstanceSftpRequest(
             String host,
             int port,
             String username,

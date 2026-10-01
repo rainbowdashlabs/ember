@@ -6,10 +6,10 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {AuditEntry} from '@/api/storageBackend'
+import type {AuditEntryResponse} from '@/api/generated/schema'
 
 defineProps<{
-    entries: AuditEntry[]
+    entries: AuditEntryResponse[]
 }>()
 
 const {t} = useI18n()

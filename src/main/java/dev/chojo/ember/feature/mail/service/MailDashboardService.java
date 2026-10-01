@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -85,10 +86,10 @@ public class MailDashboardService {
             String recipient,
             String subject,
             Instant createdAt,
-            Instant sentAt,
+            @Nullable Instant sentAt,
             String status,
             MailDeliveryStatus deliveryStatus,
-            String deliveryDetail,
+            @Nullable String deliveryDetail,
             int attempts,
             int providerPosition,
             boolean reachable) {}
@@ -114,7 +115,7 @@ public class MailDashboardService {
             int sent,
             int failed,
             int stuck,
-            Instant oldestPendingAt,
+            @Nullable Instant oldestPendingAt,
             List<ProviderStanding> providers,
             List<MailRecord> stuckMails,
             List<MailRecord> recent,

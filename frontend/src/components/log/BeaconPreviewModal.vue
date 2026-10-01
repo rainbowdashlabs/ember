@@ -19,7 +19,7 @@ import {beacon} from '@/api'
 import client from '@/api/client'
 import {flatten, pictureFrom, useCovers} from '@/composables/useScreenCapture'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import type {ProblemPayload, ReportPayload} from '@/api/beacon'
+import type {ProblemPayload, ReportPayload} from '@/api/generated/schema'
 import {describeFailure, FailureKind} from '@/util/failure'
 
 /**

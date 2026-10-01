@@ -18,7 +18,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import S3BackendForm from '@/components/storage/S3BackendForm.vue'
 import SmbBackendForm from '@/components/storage/SmbBackendForm.vue'
 import SftpBackendForm from '@/components/storage/SftpBackendForm.vue'
-import type {ProbeResult, S3Request, SftpRequest, SmbRequest} from '@/api/storageBackend'
+import type {ProbeResult} from '@/api/generated/schema'
+import type {S3Form, SftpForm, SmbForm} from '@/util/storageBackendForm'
 
 type BackendType = 'LOCAL' | 'CLUSTER' | 'S3' | 'SMB' | 'SFTP'
 
@@ -34,9 +35,9 @@ type BackendType = 'LOCAL' | 'CLUSTER' | 'S3' | 'SMB' | 'SFTP'
  * the list is the caller's rather than a constant.
  */
 const selectedType = defineModel<BackendType>('selectedType', {required: true})
-const s3 = defineModel<S3Request>('s3', {required: true})
-const smb = defineModel<SmbRequest>('smb', {required: true})
-const sftp = defineModel<SftpRequest>('sftp', {required: true})
+const s3 = defineModel<S3Form>('s3', {required: true})
+const smb = defineModel<SmbForm>('smb', {required: true})
+const sftp = defineModel<SftpForm>('sftp', {required: true})
 const localRoot = defineModel<string>('localRoot')
 
 const props = withDefaults(defineProps<{

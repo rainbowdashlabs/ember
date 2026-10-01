@@ -17,7 +17,8 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PasskeysInsights from '@/views/adminview/adminsecuritytwofactorview/PasskeysInsights.vue'
 import {adminSettings} from '@/api'
-import {PasskeyMode, type PasskeysConfig, type PasskeyModeName} from '@/api/adminSettings'
+import {PasskeyMode} from '@/api/adminSettings'
+import type {PasskeysConfigResponse} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
@@ -25,7 +26,7 @@ const {t} = useI18n()
 
 const MODES = Object.values(PasskeyMode)
 
-const {config, loading, failure, reload, runWith} = useConfigPanel<PasskeysConfig>({
+const {config, loading, failure, reload, runWith} = useConfigPanel<PasskeysConfigResponse>({
   initial: {
     mode: 'OPTIONAL',
     effectiveMode: 'OPTIONAL',
@@ -47,7 +48,7 @@ const heldAtOff = computed(() => config.value.effectiveMode === 'OFF' && config.
 async function save() {
   saveFailure.value = null
   try {
-    await runWith(() => adminSettings.updatePasskeysConfig(config.value.mode as PasskeyModeName), {rethrow: true})
+    await runWith(() => adminSettings.updatePasskeysConfig(config.value.mode), {rethrow: true})
   } catch (e) {
     saveFailure.value = describeFailure(e, t)
     await reload()

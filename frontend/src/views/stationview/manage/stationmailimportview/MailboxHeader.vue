@@ -16,12 +16,12 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type {Mailbox} from '@/api/mailImport'
+import type {MailboxResponse} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 /** What a mailbox is set to, how it is doing, and what can be done to it. */
 const props = defineProps<{
-  mailbox: Mailbox
+  mailbox: MailboxResponse
   busy: boolean
 }>()
 

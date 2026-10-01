@@ -5,9 +5,11 @@
  */
 package dev.chojo.ember.feature.beacon.repository;
 
+import dev.chojo.ember.feature.beacon.entity.BeaconFault;
+import dev.chojo.ember.feature.beacon.entity.BeaconMetricsRow;
+import dev.chojo.ember.feature.beacon.entity.BeaconReport;
 import jakarta.inject.Singleton;
 
-import java.time.Instant;
 import java.util.List;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -24,66 +26,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class BeaconReadRepository {
 
-    /**
-     * A fault as the overview lists it.
-     *
-     * @param instances how many installations have reported it
-     * @param versions  the versions it has been seen in, newest first
-     */
-    public record FaultRow(
-            int id,
-            String fingerprint,
-            String level,
-            String exceptionClass,
-            String logger,
-            String message,
-            String frames,
-            int instances,
-            long occurrences,
-            List<String> versions,
-            Instant firstSeen,
-            Instant lastSeen,
-            boolean acknowledged,
-            String resolvedIn) {}
-
-    /** A forwarded report, with whoever can be written to about it. */
-    public record ReportRow(
-            int id,
-            String message,
-            String page,
-            String version,
-            String browser,
-            String screenSize,
-            String roles,
-            String recentRequests,
-            String contactName,
-            String contactMail,
-            Instant reportedAt,
-            boolean acknowledged,
-            /** The picture that came with it, or null where the report arrived without one. */
-            Integer screenshotFileId,
-            /**
-             * Which installation sent it, worked out from the key that signed the delivery.
-             *
-             * <p>A beacon collects from many, and an instance that has named no contact would
-             * otherwise be indistinguishable from every other instance that has named none: three
-             * reports would read alike whether they came from one installation or three. This is
-             * the one name a beacon always has for a sender.
-             */
-            String instanceId) {}
-
-    /** A day of one subject's bucketed counts. */
-    public record MetricsRow(
-            String metricsUid,
-            String subject,
-            String day,
-            String members,
-            String accounts,
-            String stations,
-            String inventory) {}
-
     /** The faults, most widely met first. */
-    public List<FaultRow> faults(boolean includeAcknowledged) {
+    public List<BeaconFault> faults(boolean includeAcknowledged) {
         return query("""
                         SELECT p.id, p.fingerprint, p.level, p.exception_class, p.logger, p.message, p.frames,
                                p.first_seen, p.last_seen, p.acknowledged, p.resolved_in,
@@ -96,7 +40,7 @@ public class BeaconReadRepository {
                         GROUP BY p.id
                         ORDER BY count(pi.instance_id) DESC, p.last_seen DESC;""")
                 .single(call().bind("include_acknowledged", includeAcknowledged))
-                .map(row -> new FaultRow(
+                .map(row -> new BeaconFault(
                         row.getInt("id"),
                         row.getString("fingerprint"),
                         row.getString("level"),
@@ -115,7 +59,7 @@ public class BeaconReadRepository {
     }
 
     /** The forwarded reports, newest first. */
-    public List<ReportRow> reports(boolean includeAcknowledged) {
+    public List<BeaconReport> reports(boolean includeAcknowledged) {
         return query("""
                         SELECT r.id, r.message, r.page, r.version, r.reported_at, r.acknowledged,
                                r.browser, r.screen_size, r.roles, r.recent_requests,
@@ -126,7 +70,7 @@ public class BeaconReadRepository {
                         ORDER BY r.received_at DESC
                         LIMIT 500;""")
                 .single(call().bind("include_acknowledged", includeAcknowledged))
-                .map(row -> new ReportRow(
+                .map(row -> new BeaconReport(
                         row.getInt("id"),
                         row.getString("message"),
                         row.getString("page"),
@@ -145,14 +89,14 @@ public class BeaconReadRepository {
     }
 
     /** The numbers of the last so many days. */
-    public List<MetricsRow> metrics(int days) {
+    public List<BeaconMetricsRow> metrics(int days) {
         return query("""
                         SELECT metrics_uid, subject, day, members, accounts, stations, inventory
                         FROM beacon_metrics
                         WHERE day >= current_date - make_interval(days => :days)
                         ORDER BY day DESC;""")
                 .single(call().bind("days", days))
-                .map(row -> new MetricsRow(
+                .map(row -> new BeaconMetricsRow(
                         row.getString("metrics_uid"),
                         row.getString("subject"),
                         row.getString("day"),

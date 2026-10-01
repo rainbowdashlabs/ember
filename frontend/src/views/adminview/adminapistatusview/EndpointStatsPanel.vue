@@ -11,7 +11,7 @@ import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue
 import RowLink from '@/components/navigation/RowLink.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
-import type {EndpointStats} from '@/api/apiStatus'
+import type {EndpointStats} from '@/api/generated/schema'
 import {useDataTable} from '@/composables/useDataTable'
 import {methodColor} from './apiStatusFormat'
 import {endpointColumns} from './endpointColumns'

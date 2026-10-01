@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository.Cluste
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -113,7 +114,7 @@ public class ClusterMemberSearchService {
             UUID stationUid,
             String stationName,
             String name,
-            String email,
+            @Nullable String email,
             String userType,
             LocalDate joinDate,
             boolean former,

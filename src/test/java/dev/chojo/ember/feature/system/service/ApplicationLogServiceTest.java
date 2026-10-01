@@ -10,8 +10,8 @@ import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.UnwritableConf;
+import dev.chojo.ember.feature.system.entity.LogFacet;
 import dev.chojo.ember.feature.system.repository.ApplicationLogRepository;
-import dev.chojo.ember.feature.system.repository.ApplicationLogRepository.Facet;
 import dev.chojo.ember.feature.system.service.ApplicationLogService.LogFilter;
 import dev.chojo.ember.feature.system.service.ApplicationLogService.LoggingConfigRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +69,7 @@ class ApplicationLogServiceTest {
 
     @Test
     void facetsAreLoggersUnlessThreadsAreAskedFor() {
-        var facet = List.of(new Facet("worker-#", 3));
+        var facet = List.of(new LogFacet("worker-#", 3));
         when(logs.threadFacets(any(), any(), any(), any(), anyInt())).thenReturn(facet);
         var filter = new LogFilter("INFO", "s", "l", "t");
 

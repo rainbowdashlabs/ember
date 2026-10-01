@@ -11,12 +11,12 @@ import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PasskeysResidue from '@/views/adminview/adminsecuritytwofactorview/PasskeysResidue.vue'
 import {adminSettings} from '@/api'
-import type {PasskeysConfig, PasswordlessReport} from '@/api/adminSettings'
+import type {PasskeysConfigResponse, PasswordlessReport} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
 
-const props = defineProps<{config: PasskeysConfig}>()
+const props = defineProps<{config: PasskeysConfigResponse}>()
 
 const report = ref<PasswordlessReport | null>(null)
 const reportLoading = ref(false)

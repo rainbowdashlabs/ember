@@ -16,7 +16,8 @@ import MailboxCard from './stationmailimportview/MailboxCard.vue'
 import MailboxEditor from './stationmailimportview/MailboxEditor.vue'
 import MailImportLogPanel from './stationmailimportview/MailImportLogPanel.vue'
 import {mailImport} from '@/api'
-import type {Mailbox, MailImportSettings, MailboxRequest} from '@/api/mailImport'
+import type {MailboxDraft} from '@/api/mailImport'
+import type {InstanceSettingsResponse, MailboxResponse} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -28,12 +29,12 @@ import {describeFailure, type Failure} from '@/util/failure'
  */
 const {t} = useI18n()
 
-const settings = ref<MailImportSettings | null>(null)
-const mailboxes = ref<Mailbox[]>([])
+const settings = ref<InstanceSettingsResponse | null>(null)
+const mailboxes = ref<MailboxResponse[]>([])
 const loading = ref(true)
 const failure = ref<Failure | null>(null)
 
-const editing = ref<Mailbox | null>(null)
+const editing = ref<MailboxResponse | null>(null)
 const adding = ref(false)
 
 const switchedOff = computed(() => settings.value !== null && !settings.value.enabled)
@@ -73,14 +74,14 @@ async function act(action: Promise<unknown>) {
   await reload(t('failure.staleAfterAction'))
 }
 
-async function saveMailbox(request: MailboxRequest) {
+async function saveMailbox(request: MailboxDraft) {
   const existing = editing.value
   await act(existing ? mailImport.updateMailbox(existing.id, request) : mailImport.createMailbox(request))
   editing.value = null
   adding.value = false
 }
 
-function edit(mailbox: Mailbox) {
+function edit(mailbox: MailboxResponse) {
   editing.value = mailbox
   adding.value = false
 }

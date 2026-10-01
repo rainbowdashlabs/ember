@@ -29,6 +29,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -339,13 +340,13 @@ public class ClusterFieldRoutes implements Routes {
             int id,
             String name,
             String fieldType,
-            ProfileFieldConfig config,
+            @Nullable ProfileFieldConfig config,
             boolean required,
             boolean readonly,
-            String width,
+            @Nullable String width,
             boolean stationReadonly,
             boolean keepOnArchive,
-            Integer stationGroupId) {}
+            @Nullable Integer stationGroupId) {}
 
     /**
      * @param values field id to answer, in the same JSON shape a station field's answer has

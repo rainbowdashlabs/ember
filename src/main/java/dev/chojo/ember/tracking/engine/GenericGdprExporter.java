@@ -12,8 +12,8 @@ import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.GdprExportContext;
 import dev.chojo.ember.tracking.IdentityColumn;
 import dev.chojo.ember.tracking.IdentityType;
-import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.tracking.TrackingStatus;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -32,7 +32,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * with {@code OR}.
  *
  * <p>The resulting payload is a map keyed by DB table name; consumers can wrap it for output.
- * Tables whose {@code gdprExport.status} is {@link Status#IGNORED} or {@link Status#UNVERIFIED}
+ * Tables whose {@code gdprExport.status} is {@link TrackingStatus#IGNORED} or {@link TrackingStatus#UNVERIFIED}
  * are skipped, as are tables whose {@code identityColumns} list is empty (those are linked through
  * a parent row - the caller should chain them).
  */
@@ -108,7 +108,7 @@ public final class GenericGdprExporter {
             String tableName = entry.getKey();
             TableEntry table = entry.getValue();
             GdprExportContext ctx = table.gdprExport();
-            if (ctx == null || ctx.status() != Status.TRACKED) continue;
+            if (ctx == null || ctx.status() != TrackingStatus.TRACKED) continue;
 
             var matching = matchingIdentityColumns(ctx, type, table);
             if (matching.isEmpty()) continue;

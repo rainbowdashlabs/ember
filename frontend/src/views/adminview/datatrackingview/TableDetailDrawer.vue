@@ -7,7 +7,15 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {dataTracking} from '@/api'
-import {TrackingStatus, type ColumnEntry, type DeletionStrategy, type GdprDeletionContext, type GdprExportContext, type TableEntry, type TrackingStatusName, type TransferContext} from '@/api/dataTracking'
+import {TrackingStatus, type TrackingStatusName} from '@/api/dataTracking'
+import type {
+  ColumnEntry,
+  DeletionStrategy,
+  GdprDeletionContext,
+  GdprExportContext,
+  TableEntry,
+  TransferContext,
+} from '@/api/generated/schema'
 import TableDetailHeader from './TableDetailHeader.vue'
 import TableDetailBody from './TableDetailBody.vue'
 import SidePanel from '@/components/feedback/SidePanel.vue'
@@ -69,7 +77,7 @@ function ensureDeletionStrategies(): DeletionStrategy[] {
 function addDeletionStrategy() {
   const arr = ensureDeletionStrategies()
   const firstColumn = columns.value[0]?.name ?? ''
-  arr.push({column: firstColumn, strategy: 'NULL', reason: '', legalBasis: null})
+  arr.push({column: firstColumn, strategy: 'NULL', reason: ''})
 }
 
 function removeDeletionStrategy(index: number) {

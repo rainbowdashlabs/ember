@@ -5,7 +5,8 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {TaskOutcome, type TaskStatus} from '@/api/adminTasks'
+import {TaskOutcome} from '@/api/adminTasks'
+import type {TaskStatus} from '@/api/generated/schema'
 import {intervalLabel, taskColumns} from './taskColumns'
 
 const t = (key: string, named?: Record<string, unknown>) => named ? `${key}:${String(named.n)}` : key

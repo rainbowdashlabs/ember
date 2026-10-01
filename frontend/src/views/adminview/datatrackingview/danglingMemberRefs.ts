@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { DataTracking } from '@/api/dataTracking'
+import type { DataTracking } from '@/api/generated/schema'
 import type { DanglingRef } from './DanglingRefAudit.vue'
 
 const MEMBER_TABLE = 'station_member'

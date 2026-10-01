@@ -10,8 +10,8 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.file.elements.Logging;
+import dev.chojo.ember.feature.system.entity.LogFacet;
 import dev.chojo.ember.feature.system.repository.ApplicationLogRepository;
-import dev.chojo.ember.feature.system.repository.ApplicationLogRepository.Facet;
 import dev.chojo.ember.feature.system.repository.ApplicationLogRepository.LogEntry;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -88,7 +88,7 @@ public class ApplicationLogService {
      * @param name    a fragment of the name
      * @param limit   how many at most, held between 1 and 200
      */
-    public List<Facet> facets(LogFilter filter, boolean threads, String name, int limit) {
+    public List<LogFacet> facets(LogFilter filter, boolean threads, String name, int limit) {
         int held = Math.clamp(limit, 1, 200);
         return threads
                 ? logs.threadFacets(filter.levelList(), filter.search(), filter.logger(), name, held)
@@ -173,8 +173,8 @@ public class ApplicationLogService {
      */
     public record ApplicationLogPage(
             List<LogEntry> entries,
-            List<Facet> loggers,
-            List<Facet> threads,
+            List<LogFacet> loggers,
+            List<LogFacet> threads,
             boolean databaseEnabled,
             String databaseLevel,
             int retentionDays,

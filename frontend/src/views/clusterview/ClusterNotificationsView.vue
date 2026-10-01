@@ -11,13 +11,13 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {clusters} from '@/api'
-import type {ClusterMailSettings} from '@/api/clusters'
+import type {ClusterMail} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import ClusterMailSwitch from './clusternotificationsview/ClusterMailSwitch.vue'
 
 const {t} = useI18n()
 
-const {config: settings, loading, failure, runWith} = useConfigPanel<ClusterMailSettings | null>({
+const {config: settings, loading, failure, runWith} = useConfigPanel<ClusterMail | null>({
   initial: null,
   fetch: () => clusters.getMailSettings(),
 })

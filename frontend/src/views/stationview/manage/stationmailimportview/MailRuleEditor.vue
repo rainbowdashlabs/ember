@@ -18,7 +18,8 @@ import RuleFilterFields from './RuleFilterFields.vue'
 import RuleToggles from './RuleToggles.vue'
 import RuleTagList from './RuleTagList.vue'
 import {MailRuleAction, MailTitleSource} from '@/api/mailImport'
-import type {MailRule, MailRuleActionName, MailRuleRequest, MailTitleSourceName} from '@/api/mailImport'
+import type {MailRuleActionName, MailRuleDraft, MailTitleSourceName} from '@/api/mailImport'
+import type {RuleResponse} from '@/api/generated/schema'
 
 /**
  * Writing a rule.
@@ -28,14 +29,14 @@ import type {MailRule, MailRuleActionName, MailRuleRequest, MailTitleSourceName}
  */
 const props = defineProps<{
   /** The rule being changed, or null when one is being written. */
-  rule: MailRule | null
+  rule: RuleResponse | null
   supportedTypes: string[]
   /** Where a new rule goes in the order. */
   position: number
 }>()
 
 const emit = defineEmits<{
-  save: [request: MailRuleRequest]
+  save: [request: MailRuleDraft]
   cancel: []
 }>()
 

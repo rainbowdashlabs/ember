@@ -17,21 +17,18 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ApplicationHistory from './stationclusterview/ApplicationHistory.vue'
 import {clusterStations} from '@/api'
-import {
-  ClusterApplicationStatus,
-  type AvailableCluster,
-  type StationCluster,
-} from '@/api/clusterStations'
+import {ClusterApplicationStatus} from '@/api/clusterStations'
+import type {AvailableClusterResponse, StationClusterResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
 
 const busy = ref(false)
 const chosenCluster = ref('')
-const available = ref<AvailableCluster[]>([])
+const available = ref<AvailableClusterResponse[]>([])
 
-const {config: state, loading, failure, runWith} = useConfigPanel<StationCluster>({
-  initial: {applications: []},
+const {config: state, loading, failure, runWith} = useConfigPanel<StationClusterResponse>({
+  initial: {clusterUid: null, clusterName: null, clusterDescription: null, applications: []},
   fetch: async () => {
     const current = await clusterStations.getStationCluster()
     // Only worth asking which clusters exist while the station could still join one

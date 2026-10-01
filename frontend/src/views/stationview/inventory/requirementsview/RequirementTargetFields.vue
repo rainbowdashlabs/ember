@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { StationUserType, type MemberGroup } from '@/api/types'
-import type { StationGroup } from '@/api/clusterStationGroups'
+import type { StationGroupResponse } from '@/api/generated/schema'
 import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import { userTypeFriendlyNames } from './types'
 
@@ -28,7 +28,7 @@ const stationGroupId = defineModel<string>('stationGroupId', { default: '' })
 defineProps<{
   allGroups: MemberGroup[]
   /** The association's ways of filing its stations. Empty at a station, which has none to point at. */
-  stationGroups?: StationGroup[]
+  stationGroups?: StationGroupResponse[]
 }>()
 
 const { t } = useI18n()

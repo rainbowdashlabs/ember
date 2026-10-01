@@ -16,12 +16,12 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import { adminSettings } from '@/api'
-import type { HibpConfig } from '@/api/adminSettings'
+import type { HibpConfigResponse } from '@/api/generated/schema'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()
 
-const {config, loading, failure, runWith} = useConfigPanel<HibpConfig>({
+const {config, loading, failure, runWith} = useConfigPanel<HibpConfigResponse>({
   initial: {
     enabled: true,
     endpoint: 'https://api.pwnedpasswords.com/range/',

@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {TaskOutcome, type TaskStatus} from '@/api/adminTasks'
+import {TaskOutcome} from '@/api/adminTasks'
+import type {TaskStatus} from '@/api/generated/schema'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 import type {Translate} from '@/util/failure'
 

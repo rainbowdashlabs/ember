@@ -13,17 +13,18 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import {clusterMemberIdentity, type ClusterMemberSummary} from '@/api/clusterMembers'
+import {clusterMemberIdentity} from '@/api/clusterMembers'
+import type {ClusterMemberResponse} from '@/api/generated/schema'
 
 /** Who runs the association. The list the page opens on, rather than a form. */
 const props = defineProps<{
-  members: readonly ClusterMemberSummary[]
+  members: readonly ClusterMemberResponse[]
   selectedId: number | null
   editable: boolean
 }>()
 
 const emit = defineEmits<{
-  select: [member: ClusterMemberSummary]
+  select: [member: ClusterMemberResponse]
   add: []
 }>()
 

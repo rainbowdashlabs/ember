@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.mail.repository;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -42,7 +43,7 @@ public class MailProviderBlockRepository {
     public record ProviderBlock(
             MailProviderType provider,
             String recipientDomain,
-            String reason,
+            @Nullable String reason,
             Instant firstBlockedAt,
             Instant lastBlockedAt,
             Instant expiresAt) {}

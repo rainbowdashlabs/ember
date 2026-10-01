@@ -15,7 +15,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import NewMemberFields from './NewMemberFields.vue'
 import {clusterMembers} from '@/api'
-import type {ManagedStation} from '@/api/clusterMembers'
+import type {ManagedStationResponse} from '@/api/generated/schema'
 import {StationUserType, type StationUserTypeName} from '@/api/types'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
@@ -29,7 +29,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 const open = defineModel<boolean>({required: true})
 
 const props = defineProps<{
-  stations: ManagedStation[]
+  stations: ManagedStationResponse[]
 }>()
 
 const emit = defineEmits<{

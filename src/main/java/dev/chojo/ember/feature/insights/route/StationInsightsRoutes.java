@@ -10,7 +10,14 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.insights.service.PageInsightsService;
+import dev.chojo.ember.feature.insights.service.PageInsightsService.LeaderboardResponse;
+import dev.chojo.ember.feature.insights.service.PageInsightsService.PageDetailResponse;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -87,6 +94,17 @@ public class StationInsightsRoutes implements Routes {
                 prefix + "/station/insights/pages/{pageId}", this::pageDetail, StationPermission.STATION_ADMINISTRATOR);
     }
 
+    @OpenApi(
+            path = "/api/v1/station/insights/pages",
+            methods = HttpMethod.GET,
+            summary = "The station's public pages ranked by hits in a window",
+            tags = {"Insights"},
+            queryParams = {
+                @OpenApiParam(name = "from", type = Instant.class, required = true),
+                @OpenApiParam(name = "to", type = Instant.class, required = true),
+                @OpenApiParam(name = "limit", type = Integer.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LeaderboardResponse.class)))
     private void leaderboard(Context ctx) {
         int stationId = requireStation(ctx);
         Instant from = parseInstant(ctx, "from");
@@ -97,6 +115,17 @@ public class StationInsightsRoutes implements Routes {
         ctx.json(insights.leaderboard(stationId, from, to, parseOptionalLimit(ctx)));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/insights/pages/{pageId}",
+            methods = HttpMethod.GET,
+            summary = "Hourly, country and referrer breakdowns of one public page",
+            tags = {"Insights"},
+            pathParams = @OpenApiParam(name = "pageId", type = Integer.class, required = true),
+            queryParams = {
+                @OpenApiParam(name = "from", type = Instant.class, required = true),
+                @OpenApiParam(name = "to", type = Instant.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PageDetailResponse.class)))
     private void pageDetail(Context ctx) {
         int stationId = requireStation(ctx);
         int pageId = parsePageId(ctx);

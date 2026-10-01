@@ -4,15 +4,30 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {
+    components,
+    CycleResponse,
+    InstanceSettingsResponse,
+    LogPageResponse,
+    MailboxRequest,
+    MailboxResponse,
+    RuleRequest,
+    RuleResponse,
+    TestResult,
+} from './generated/schema'
+
+type Schemas = components['schemas']
+
+export type MailSecurityName = Schemas['MailSecurity']
 
 /** How a mailbox connection is secured. */
 export const MailSecurity = {
     SSL: 'SSL',
     STARTTLS: 'STARTTLS',
     NONE: 'NONE',
-} as const
+} as const satisfies Record<MailSecurityName, MailSecurityName>
 
-export type MailSecurityName = (typeof MailSecurity)[keyof typeof MailSecurity]
+export type MailRuleActionName = Schemas['MailRuleAction']
 
 /** What becomes of a message once its attachments have been dealt with. Deleting is not offered. */
 export const MailRuleAction = {
@@ -20,17 +35,17 @@ export const MailRuleAction = {
     MARK_SEEN: 'MARK_SEEN',
     FLAG: 'FLAG',
     MOVE: 'MOVE',
-} as const
+} as const satisfies Record<MailRuleActionName, MailRuleActionName>
 
-export type MailRuleActionName = (typeof MailRuleAction)[keyof typeof MailRuleAction]
+export type MailTitleSourceName = Schemas['MailTitleSource']
 
 /** Where the title of a filed document comes from. */
 export const MailTitleSource = {
     SUBJECT: 'SUBJECT',
     FILE_NAME: 'FILE_NAME',
-} as const
+} as const satisfies Record<MailTitleSourceName, MailTitleSourceName>
 
-export type MailTitleSourceName = (typeof MailTitleSource)[keyof typeof MailTitleSource]
+export type MailImportOutcomeName = Schemas['MailImportOutcome']
 
 /** What became of one attachment. The grain is the attachment, so one mail can report several. */
 export const MailImportOutcome = {
@@ -44,122 +59,17 @@ export const MailImportOutcome = {
     NO_ATTACHMENT: 'NO_ATTACHMENT',
     QUOTA_EXCEEDED: 'QUOTA_EXCEEDED',
     AUTHENTICATION_FAILED: 'AUTHENTICATION_FAILED',
+    NO_SIGNATURE: 'NO_SIGNATURE',
+    SIGNATURE_NOT_ALIGNED: 'SIGNATURE_NOT_ALIGNED',
+    SIGNATURE_FAILED: 'SIGNATURE_FAILED',
     FAILED: 'FAILED',
-} as const
+} as const satisfies Record<MailImportOutcomeName, MailImportOutcomeName>
 
-export type MailImportOutcomeName = (typeof MailImportOutcome)[keyof typeof MailImportOutcome]
+/** A mailbox as its editor holds it: every field filled in, the password only when it is being set. */
+export type MailboxDraft = Required<MailboxRequest>
 
-/**
- * What the operator has decided, which the page needs before it can offer anything sensible: a page that
- * did not know the floor would offer an interval the server then quietly overrode.
- */
-export interface MailImportSettings {
-    enabled: boolean
-    minimumIntervalMinutes: number
-    maxAttachmentsPerCycle: number
-    logRetentionDays: number
-    /** Whether an encryption key is configured. Without one a mailbox cannot be saved at all. */
-    canStorePasswords: boolean
-    supportedTypes: string[]
-}
-
-/** A mailbox as the page reads it. The password is never handed back, not even as a length. */
-export interface Mailbox {
-    id: number
-    name: string
-    host: string
-    port: number
-    security: MailSecurityName
-    username: string
-    folder: string
-    enabled: boolean
-    intervalMinutes: number
-    importFrom: string
-    /**
-     * Whether a message has to carry a valid signature whose domain matches the sender address before a
-     * rule may take it. Off unless the station's correspondents sign their mail, because otherwise it
-     * refuses everything.
-     */
-    verifyDkim: boolean
-    lastCheckAt?: string | null
-    lastError?: string | null
-    failureCount: number
-    suspended: boolean
-}
-
-export interface MailboxRequest {
-    name: string
-    host: string
-    port: number
-    security: MailSecurityName
-    username: string
-    /** Only on the way in, and only when it is being set. */
-    password?: string | null
-    folder: string
-    enabled: boolean
-    intervalMinutes: number
-    importFrom: string
-    verifyDkim: boolean
-}
-
-export interface MailRule {
-    id: number
-    mailboxId: number
-    name: string
-    position: number
-    enabled: boolean
-    subjectFilter?: string | null
-    attachmentNameFilter?: string | null
-    acceptedTypes: string[]
-    minSizeBytes: number
-    includeInline: boolean
-    titleSource: MailTitleSourceName
-    hidden: boolean
-    keepOnArchive: boolean
-    readSubjectForMember: boolean
-    action: MailRuleActionName
-    moveToFolder?: string | null
-    senderPatterns: string[]
-    tags: string[]
-}
-
-export type MailRuleRequest = Omit<MailRule, 'id' | 'mailboxId'>
-
-export interface MailImportLogEntry {
-    id: number
-    mailboxId: number
-    ruleId?: number | null
-    ruleName?: string | null
-    sender?: string | null
-    subject?: string | null
-    attachmentName?: string | null
-    outcome: MailImportOutcomeName
-    reason?: string | null
-    documentId?: number | null
-    /** Whether the readable half has been cleared by the pruning, leaving the row as a key. */
-    pruned: boolean
-    createdAt: string
-}
-
-export interface MailImportLogPage {
-    entries: MailImportLogEntry[]
-    total: number
-}
-
-/** What a connection test came to. It connects, lists the folders, and sends nothing. */
-export interface MailboxTestResult {
-    connected: boolean
-    error?: string | null
-    folders: string[]
-    folderExists: boolean
-    writesAuthResult: boolean
-}
-
-export interface MailImportCycle {
-    looked: number
-    imported: number
-    refused: number
-}
+/** A rule as its editor holds it: every field filled in. */
+export type MailRuleDraft = Required<RuleRequest>
 
 /**
  * The two forms a sender pattern may take, checked here as well as on the server so somebody typing one
@@ -189,23 +99,28 @@ export function wasImported(outcome: MailImportOutcomeName): boolean {
     return outcome === MailImportOutcome.IMPORTED
 }
 
-export async function settings(): Promise<MailImportSettings> {
-    const res = await client.get<MailImportSettings>('/station/mail-import/settings')
+/**
+ * What the operator has decided, which the page needs before it can offer anything sensible: a page that
+ * did not know the floor would offer an interval the server then quietly overrode.
+ */
+export async function settings(): Promise<InstanceSettingsResponse> {
+    const res = await client.get<InstanceSettingsResponse>('/station/mail-import/settings')
     return res.data
 }
 
-export async function listMailboxes(): Promise<Mailbox[]> {
-    const res = await client.get<Mailbox[]>('/station/mail-import/mailboxes')
+/** The station's mailboxes. The password is never handed back, not even as a length. */
+export async function listMailboxes(): Promise<MailboxResponse[]> {
+    const res = await client.get<MailboxResponse[]>('/station/mail-import/mailboxes')
     return res.data
 }
 
-export async function createMailbox(data: MailboxRequest): Promise<Mailbox> {
-    const res = await client.post<Mailbox>('/station/mail-import/mailboxes', data)
+export async function createMailbox(data: MailboxRequest): Promise<MailboxResponse> {
+    const res = await client.post<MailboxResponse>('/station/mail-import/mailboxes', data)
     return res.data
 }
 
-export async function updateMailbox(id: number, data: MailboxRequest): Promise<Mailbox> {
-    const res = await client.put<Mailbox>(`/station/mail-import/mailboxes/${id}`, data)
+export async function updateMailbox(id: number, data: MailboxRequest): Promise<MailboxResponse> {
+    const res = await client.put<MailboxResponse>(`/station/mail-import/mailboxes/${id}`, data)
     return res.data
 }
 
@@ -217,33 +132,34 @@ export async function deleteMailbox(id: number): Promise<void> {
     await client.delete(`/station/mail-import/mailboxes/${id}`)
 }
 
-export async function testMailbox(id: number): Promise<MailboxTestResult> {
-    const res = await client.post<MailboxTestResult>(`/station/mail-import/mailboxes/${id}/test`)
+/** Connects, lists the folders, and sends nothing. */
+export async function testMailbox(id: number): Promise<TestResult> {
+    const res = await client.post<TestResult>(`/station/mail-import/mailboxes/${id}/test`)
     return res.data
 }
 
-export async function runNow(id: number): Promise<MailImportCycle> {
-    const res = await client.post<MailImportCycle>(`/station/mail-import/mailboxes/${id}/run`)
+export async function runNow(id: number): Promise<CycleResponse> {
+    const res = await client.post<CycleResponse>(`/station/mail-import/mailboxes/${id}/run`)
     return res.data
 }
 
-export async function resumeMailbox(id: number): Promise<Mailbox> {
-    const res = await client.post<Mailbox>(`/station/mail-import/mailboxes/${id}/resume`)
+export async function resumeMailbox(id: number): Promise<MailboxResponse> {
+    const res = await client.post<MailboxResponse>(`/station/mail-import/mailboxes/${id}/resume`)
     return res.data
 }
 
-export async function listRules(mailboxId: number): Promise<MailRule[]> {
-    const res = await client.get<MailRule[]>(`/station/mail-import/mailboxes/${mailboxId}/rules`)
+export async function listRules(mailboxId: number): Promise<RuleResponse[]> {
+    const res = await client.get<RuleResponse[]>(`/station/mail-import/mailboxes/${mailboxId}/rules`)
     return res.data
 }
 
-export async function createRule(mailboxId: number, data: MailRuleRequest): Promise<MailRule> {
-    const res = await client.post<MailRule>(`/station/mail-import/mailboxes/${mailboxId}/rules`, data)
+export async function createRule(mailboxId: number, data: RuleRequest): Promise<RuleResponse> {
+    const res = await client.post<RuleResponse>(`/station/mail-import/mailboxes/${mailboxId}/rules`, data)
     return res.data
 }
 
-export async function updateRule(ruleId: number, data: MailRuleRequest): Promise<MailRule> {
-    const res = await client.put<MailRule>(`/station/mail-import/rules/${ruleId}`, data)
+export async function updateRule(ruleId: number, data: RuleRequest): Promise<RuleResponse> {
+    const res = await client.put<RuleResponse>(`/station/mail-import/rules/${ruleId}`, data)
     return res.data
 }
 
@@ -251,7 +167,8 @@ export async function deleteRule(ruleId: number): Promise<void> {
     await client.delete(`/station/mail-import/rules/${ruleId}`)
 }
 
-export async function log(page = 0, size = 50): Promise<MailImportLogPage> {
-    const res = await client.get<MailImportLogPage>('/station/mail-import/log', {params: {page, size}})
+/** What became of each attachment, newest first, a page at a time. */
+export async function log(page = 0, size = 50): Promise<LogPageResponse> {
+    const res = await client.get<LogPageResponse>('/station/mail-import/log', {params: {page, size}})
     return res.data
 }

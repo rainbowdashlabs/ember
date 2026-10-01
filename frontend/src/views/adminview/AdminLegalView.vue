@@ -15,7 +15,7 @@ import LegalFileEditor from './adminlegalview/LegalFileEditor.vue'
 import LegalPlaceholderPanel from './adminlegalview/LegalPlaceholderPanel.vue'
 import SingleFieldModal from '@/components/feedback/SingleFieldModal.vue'
 import {adminSettings} from '@/api'
-import type {DocumentPlaceholder} from '@/api/adminSettings'
+import type {DocumentPlaceholder} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -62,7 +62,7 @@ async function addLocale() {
   newLocaleCode.value = ''
   try {
     await adminSettings.saveLegalFiles(activeLegalTab.value, code, [{
-      filename: '', displayName: 'content', content: '', enabled: true,
+      filename: '', displayName: 'content', content: '', enabled: true, generated: false,
     }])
     await loadLocales(activeLegalTab.value)
     activeLocale.value = code

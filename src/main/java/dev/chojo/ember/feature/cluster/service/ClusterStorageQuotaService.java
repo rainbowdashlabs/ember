@@ -23,6 +23,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -449,13 +450,13 @@ public class ClusterStorageQuotaService {
      * <p>A {@code null} means the cluster is not deciding that one, and whatever stands behind it applies.
      */
     public record Dimensions(
-            Long totalBytes,
-            Long kbBytes,
-            Long boardBytes,
-            Long imagesBytes,
-            Long pagesBytes,
-            Long perFileBytes,
-            Long perImageBytes) {
+            @Nullable Long totalBytes,
+            @Nullable Long kbBytes,
+            @Nullable Long boardBytes,
+            @Nullable Long imagesBytes,
+            @Nullable Long pagesBytes,
+            @Nullable Long perFileBytes,
+            @Nullable Long perImageBytes) {
         public static Dimensions none() {
             return new Dimensions(null, null, null, null, null, null, null);
         }

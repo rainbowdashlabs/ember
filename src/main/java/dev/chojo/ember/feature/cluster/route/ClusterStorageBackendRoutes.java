@@ -33,6 +33,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -218,7 +219,10 @@ public class ClusterStorageBackendRoutes implements Routes {
     /**
      * What the cluster decided, and the storage it is standing on with nothing secret in it.
      */
-    public record PolicyResponse(ClusterBackendReach reach, boolean locked, BackendOverrideSummary backend) {}
+    public record PolicyResponse(
+            ClusterBackendReach reach,
+            boolean locked,
+            @Nullable BackendOverrideSummary backend) {}
 
     /**
      * What the cluster is deciding.

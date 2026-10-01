@@ -15,7 +15,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {adminSettings} from '@/api'
-import type {DocumentPlaceholder} from '@/api/adminSettings'
+import type {DocumentPlaceholder} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()

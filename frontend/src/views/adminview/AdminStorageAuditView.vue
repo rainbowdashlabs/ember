@@ -19,7 +19,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StorageBackendAuditTable from '@/components/storage/StorageBackendAuditTable.vue'
 import {useSession} from '@/composables/useSession'
-import {type AuditEntry, getInstanceStorageAudit} from '@/api/storageBackend'
+import {getInstanceStorageAudit} from '@/api/storageBackend'
+import type {AuditEntryResponse} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
@@ -32,7 +33,7 @@ watch(loaded, (isLoaded) => {
     }
 }, {immediate: true})
 
-const entries = ref<AuditEntry[]>([])
+const entries = ref<AuditEntryResponse[]>([])
 const stationUidFilter = ref('')
 const beforeFilter = ref('')
 const limit = ref(50)

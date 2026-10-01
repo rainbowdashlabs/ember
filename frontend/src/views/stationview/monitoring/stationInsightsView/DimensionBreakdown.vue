@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {DimensionTotal} from '@/api/insights'
+import type {DimensionTotal} from '@/api/generated/schema'
 
 const props = defineProps<{
   rows: DimensionTotal[]

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.storage.credential.StoredCredentials;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.net.URI;
 import java.util.Optional;
@@ -214,13 +215,13 @@ public class StorageBackendPayloads {
             implements BackendOverrideSummary {}
 
     public record SmbSummary(
-            String host, int port, String share, String domain, String basePath, boolean seal, boolean dfs)
+            String host, int port, String share, @Nullable String domain, String basePath, boolean seal, boolean dfs)
             implements BackendOverrideSummary {}
 
     public record SftpSummary(String host, int port, String username, boolean knownHostsPinned, String basePath)
             implements BackendOverrideSummary {}
 
-    public record ProbeResult(boolean healthy, String error, String checkedAt) {}
+    public record ProbeResult(boolean healthy, @Nullable String error, String checkedAt) {}
 
     public record MigrationResponse(int totalKeys, int copied, int skipped, int deleted, long copiedBytes) {}
 }

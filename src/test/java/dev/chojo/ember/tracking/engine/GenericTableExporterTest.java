@@ -11,8 +11,8 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.Lookup;
-import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.tracking.TrackingStatus;
 import dev.chojo.ember.tracking.TransferContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -95,7 +95,7 @@ class GenericTableExporterTest extends RepositoryTestBase {
                 original.outputShape(),
                 original.flatField(),
                 original.customScope(),
-                new TransferContext(Status.TRACKED, null, List.of("station_id"), null),
+                new TransferContext(TrackingStatus.TRACKED, null, List.of("station_id"), null),
                 original.gdprExport(),
                 original.gdprDeletion());
         var customTables = new LinkedHashMap<>(tracking.tables());

@@ -16,7 +16,8 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {useMemberAssignment} from '@/views/stationview/members/useMemberAssignment'
 import {memberDisplayName} from '@/views/stationview/members/listview/useMemberData'
 import {clusterMembers, data} from '@/api'
-import {clusterMemberIdentity, type ClusterMemberSummary} from '@/api/clusterMembers'
+import {clusterMemberIdentity} from '@/api/clusterMembers'
+import type {ClusterMemberResponse} from '@/api/generated/schema'
 import {ClusterPermission} from '@/api/clusters'
 import {useSession} from '@/composables/useSession'
 import {useGroupsConfig, type GroupsPort} from '@/composables/useGroupsConfig'
@@ -45,7 +46,7 @@ const nameById = computed(() => new Map(grants.value.map(g => [g.id, g.permissio
  * rather than members of a station, so the identity is built from the account here instead of arriving
  * from the server, and without it every row showed a blank name beside an empty avatar.
  */
-function drawable(member: ClusterMemberSummary) {
+function drawable(member: ClusterMemberResponse) {
   return {...member, identity: clusterMemberIdentity(member)}
 }
 

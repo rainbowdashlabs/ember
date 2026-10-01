@@ -20,6 +20,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +78,11 @@ public class MailboxService {
      *                         and worth nothing as a security guarantee
      */
     public record TestResult(
-            boolean connected, String error, List<String> folders, boolean folderExists, boolean writesAuthResult) {}
+            boolean connected,
+            @Nullable String error,
+            List<String> folders,
+            boolean folderExists,
+            boolean writesAuthResult) {}
 
     /**
      * Whether a password can be kept at all.

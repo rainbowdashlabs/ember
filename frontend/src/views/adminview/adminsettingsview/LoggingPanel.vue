@@ -17,7 +17,8 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {getLoggingConfig, LOG_LEVELS, updateLoggingConfig, type LoggingConfig} from '@/api/applicationLog'
+import {getLoggingConfig, LOG_LEVELS, updateLoggingConfig} from '@/api/applicationLog'
+import type {LoggingConfig} from '@/api/generated/schema'
 
 /**
  * What of the log is kept in the database, and for how long.
@@ -27,7 +28,7 @@ import {getLoggingConfig, LOG_LEVELS, updateLoggingConfig, type LoggingConfig} f
  */
 const {t} = useI18n()
 
-const config = ref<LoggingConfig>({databaseEnabled: false, databaseLevel: 'DEBUG', retentionDays: 14})
+const config = ref<LoggingConfig>({databaseEnabled: false, databaseLevel: 'DEBUG', retentionDays: 14, storedLines: 0})
 const failure = ref<Failure | null>(null)
 const saved = ref(false)
 

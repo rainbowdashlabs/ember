@@ -25,20 +25,18 @@ import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {
-    type AuditEntry,
-    type BackendOverrideResponse,
-    type ProbeResult,
-    type S3Request,
-    type SftpRequest,
-    type SmbRequest,
-    type StationApplyRequest,
-    type StationBackendRequest,
     applyStationBackend,
     getStationBackend,
     getStationStorageAudit,
     probeStationBackend,
     probeStationBackendConfig,
 } from '@/api/storageBackend'
+import type {
+    AuditEntryResponse,
+    BackendOverrideRequest,
+    BackendOverrideResponse,
+    ProbeResult,
+} from '@/api/generated/schema'
 import {
     newS3,
     newSftp,
@@ -46,6 +44,10 @@ import {
     s3FormFrom,
     sftpFormFrom,
     smbFormFrom,
+    type RemoteBackendForm,
+    type S3Form,
+    type SftpForm,
+    type SmbForm,
 } from '@/util/storageBackendForm'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
@@ -62,12 +64,12 @@ watch(loaded, (isLoaded) => {
 
 const success = ref('')
 const backend = ref<BackendOverrideResponse | null>(null)
-const auditEntries = ref<AuditEntry[]>([])
+const auditEntries = ref<AuditEntryResponse[]>([])
 
 const selectedType = ref<'LOCAL' | 'CLUSTER' | 'S3' | 'SMB' | 'SFTP'>('LOCAL')
-const s3 = ref<S3Request>(newS3())
-const smb = ref<SmbRequest>(newSmb())
-const sftp = ref<SftpRequest>(newSftp())
+const s3 = ref<S3Form>(newS3())
+const smb = ref<SmbForm>(newSmb())
+const sftp = ref<SftpForm>(newSftp())
 const probeOutcome = ref<ProbeResult | null>(null)
 const confirmApply = ref(false)
 
@@ -126,7 +128,7 @@ function seedFormFromBackend() {
     }
 }
 
-function currentRequest(): StationBackendRequest | null {
+function currentRequest(): RemoteBackendForm | null {
     if (selectedType.value === 'LOCAL' || selectedType.value === 'CLUSTER') return null
     if (selectedType.value === 'S3') return s3.value
     if (selectedType.value === 'SMB') return smb.value
@@ -164,7 +166,7 @@ function probeConfig() {
     return runProbe(() => probeStationBackendConfig(req))
 }
 
-function applyRequest(): StationApplyRequest {
+function applyRequest(): BackendOverrideRequest {
     if (selectedType.value === 'LOCAL') return {type: 'LOCAL'}
     if (selectedType.value === 'CLUSTER') return {type: 'CLUSTER'}
     return currentRequest()!

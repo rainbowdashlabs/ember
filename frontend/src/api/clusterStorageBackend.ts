@@ -5,11 +5,18 @@
  */
 import client from './client'
 import type {
-    BackendOverrideSummary,
-    MigrationResultResponse,
+    components,
+    MigrationResponse,
+    PlacementResponse,
+    PolicyRequest,
+    PolicyResponse,
     ProbeResult,
-    StationBackendRequest,
-} from './storageBackend'
+} from './generated/schema'
+import type {RemoteBackendRequest} from './storageBackend'
+
+type Schemas = components['schemas']
+
+export type ClusterBackendReachName = Schemas['ClusterBackendReach']
 
 /**
  * How far an association's own storage reaches.
@@ -21,18 +28,18 @@ export const ClusterBackendReach = {
     NONE: 'NONE',
     OWN_FILES: 'OWN_FILES',
     EVERY_STATION: 'EVERY_STATION',
-} as const
+} as const satisfies Record<ClusterBackendReachName, ClusterBackendReachName>
 
-export type ClusterBackendReachName = (typeof ClusterBackendReach)[keyof typeof ClusterBackendReach]
+export type StoragePlacementActualName = Schemas['Actual']
 
 /** Where a station's files are. */
 export const StoragePlacementActual = {
     ITS_OWN: 'ITS_OWN',
     THE_CLUSTERS: 'THE_CLUSTERS',
     INSTANCE_DEFAULT: 'INSTANCE_DEFAULT',
-} as const
+} as const satisfies Record<StoragePlacementActualName, StoragePlacementActualName>
 
-export type StoragePlacementActualName = (typeof StoragePlacementActual)[keyof typeof StoragePlacementActual]
+export type StoragePlacementExpectedName = Schemas['Expected']
 
 /** Where a station's files belong, given what its association decided. */
 export const StoragePlacementExpected = {
@@ -40,39 +47,15 @@ export const StoragePlacementExpected = {
     THE_CLUSTERS: 'THE_CLUSTERS',
     INSTANCE_DEFAULT: 'INSTANCE_DEFAULT',
     WHEREVER_IT_IS: 'WHEREVER_IT_IS',
-} as const
-
-export type StoragePlacementExpectedName = (typeof StoragePlacementExpected)[keyof typeof StoragePlacementExpected]
+} as const satisfies Record<StoragePlacementExpectedName, StoragePlacementExpectedName>
 
 /** What the association decided, and the storage it is standing on with nothing secret in it. */
-export interface ClusterBackendPolicy {
-    reach: ClusterBackendReachName
-    locked: boolean
-    backend: BackendOverrideSummary | null
-}
-
-/** What the association is deciding. */
-export interface ClusterBackendPolicyRequest {
-    reach: ClusterBackendReachName
-    locked: boolean
-}
-
-/** One station of the association, where its files are and where they belong. */
-export interface StoragePlacement {
-    stationUid: string
-    name: string
-    homeStation: boolean
-    actual: StoragePlacementActualName
-    expected: StoragePlacementExpectedName
-    inPlace: boolean
-}
-
-export async function getClusterBackend(): Promise<ClusterBackendPolicy> {
-    const {data} = await client.get<ClusterBackendPolicy>('/cluster/storage/backend')
+export async function getClusterBackend(): Promise<PolicyResponse> {
+    const {data} = await client.get<PolicyResponse>('/cluster/storage/backend')
     return data
 }
 
-export async function setClusterBackendPolicy(request: ClusterBackendPolicyRequest): Promise<void> {
+export async function setClusterBackendPolicy(request: PolicyRequest): Promise<void> {
     await client.put('/cluster/storage/backend/policy', request)
 }
 
@@ -81,13 +64,13 @@ export async function probeClusterBackend(): Promise<ProbeResult> {
     return data
 }
 
-export async function probeClusterBackendConfig(request: StationBackendRequest): Promise<ProbeResult> {
+export async function probeClusterBackendConfig(request: RemoteBackendRequest): Promise<ProbeResult> {
     const {data} = await client.post<ProbeResult>('/cluster/storage/backend/probe-config', request)
     return data
 }
 
-export async function applyClusterBackend(request: StationBackendRequest): Promise<ClusterBackendPolicy> {
-    const {data} = await client.post<ClusterBackendPolicy>('/cluster/storage/backend/apply', request)
+export async function applyClusterBackend(request: RemoteBackendRequest): Promise<PolicyResponse> {
+    const {data} = await client.post<PolicyResponse>('/cluster/storage/backend/apply', request)
     return data
 }
 
@@ -95,13 +78,14 @@ export async function dropClusterBackend(): Promise<void> {
     await client.delete('/cluster/storage/backend')
 }
 
-export async function getClusterPlacements(): Promise<StoragePlacement[]> {
-    const {data} = await client.get<StoragePlacement[]>('/cluster/storage/backend/placements')
+/** Every station of the association, where its files are and where they belong. */
+export async function getClusterPlacements(): Promise<PlacementResponse[]> {
+    const {data} = await client.get<PlacementResponse[]>('/cluster/storage/backend/placements')
     return data
 }
 
-export async function moveStationStorage(stationUid: string): Promise<MigrationResultResponse> {
-    const {data} = await client.post<MigrationResultResponse>(
+export async function moveStationStorage(stationUid: string): Promise<MigrationResponse> {
+    const {data} = await client.post<MigrationResponse>(
         `/cluster/storage/backend/placements/${stationUid}/move`,
     )
     return data

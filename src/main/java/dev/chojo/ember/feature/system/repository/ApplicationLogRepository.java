@@ -7,8 +7,10 @@ package dev.chojo.ember.feature.system.repository;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.api.call.Call;
+import dev.chojo.ember.feature.system.entity.LogFacet;
 import dev.chojo.ember.feature.system.service.DatabaseLogAppender.LogLine;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -44,7 +46,13 @@ public class ApplicationLogRepository {
      * @param throwable the stack trace it carried, or null
      */
     public record LogEntry(
-            long id, Instant loggedAt, String level, String logger, String thread, String message, String throwable) {}
+            long id,
+            Instant loggedAt,
+            String level,
+            String logger,
+            String thread,
+            String message,
+            @Nullable String throwable) {}
 
     private static final RowMapping<LogEntry> LOG_ENTRY = row -> new LogEntry(
             row.getLong("id"),
@@ -87,15 +95,7 @@ public class ApplicationLogRepository {
      */
     private static final String THREAD_GROUP = "regexp_replace(thread, '[0-9]+', '#', 'g')";
 
-    /**
-     * A value the log can be narrowed to, and how many lines carry it.
-     *
-     * @param value what to filter by, which is also what is shown
-     * @param count how many lines match it under the filter that produced this list
-     */
-    public record Facet(String value, int count) {}
-
-    private static final RowMapping<Facet> FACET = row -> new Facet(row.getString(1), row.getInt(2));
+    private static final RowMapping<LogFacet> FACET = row -> new LogFacet(row.getString(1), row.getInt(2));
 
     /**
      * What the caller narrowed the log to, as a WHERE fragment and the values it binds. Shared so
@@ -164,7 +164,7 @@ public class ApplicationLogRepository {
      *
      * @param nameSearch a fragment of the logger name, which is how one below the limit is reached
      */
-    public List<Facet> loggerFacets(
+    public List<LogFacet> loggerFacets(
             List<String> levels, String search, String threadGroup, String nameSearch, int limit) {
         return facets("logger", levels, search, null, threadGroup, nameSearch, limit);
     }
@@ -174,11 +174,12 @@ public class ApplicationLogRepository {
      *
      * @param nameSearch a fragment of the thread name, matched against the numbered-off form
      */
-    public List<Facet> threadFacets(List<String> levels, String search, String logger, String nameSearch, int limit) {
+    public List<LogFacet> threadFacets(
+            List<String> levels, String search, String logger, String nameSearch, int limit) {
         return facets(THREAD_GROUP, levels, search, logger, null, nameSearch, limit);
     }
 
-    private List<Facet> facets(
+    private List<LogFacet> facets(
             String expression,
             List<String> levels,
             String search,

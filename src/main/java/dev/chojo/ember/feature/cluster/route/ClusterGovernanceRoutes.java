@@ -28,6 +28,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -261,9 +262,9 @@ public class ClusterGovernanceRoutes implements Routes {
      * @param defaultFeel the feel by name, or {@code null} when the cluster has no opinion about it
      */
     public record LookAndFeelRequest(
-            String defaultTheme,
-            String customThemeColors,
-            String defaultFeel,
+            @Nullable String defaultTheme,
+            @Nullable String customThemeColors,
+            @Nullable String defaultFeel,
             boolean themeLocked,
             boolean colorsLocked,
             boolean feelLocked,

@@ -12,11 +12,11 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.storage.entity.QuotaOrigin;
 import dev.chojo.ember.feature.storage.entity.StorageQuotaPreset;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService;
+import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceLocalSummary;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceMigrateRequest;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceMigrationResultResponse;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceMigrationStatusResponse;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.LocalSummary;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.S3Request;
+import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceS3Request;
 import dev.chojo.ember.feature.storage.service.StorageAuditLogService;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
 import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.ProbeResult;
@@ -184,9 +184,9 @@ class StorageRoutesTest {
 
     @Test
     void theInstanceStorageIsDescribedProbedAndWatched() {
-        when(instance.summary()).thenReturn(new LocalSummary("data"));
+        when(instance.summary()).thenReturn(new InstanceLocalSummary("data"));
         when(instance.probe()).thenReturn(PROBED);
-        when(instance.probe(any(S3Request.class))).thenReturn(new ProbeResult(false, "no bucket", "now"));
+        when(instance.probe(any(InstanceS3Request.class))).thenReturn(new ProbeResult(false, "no bucket", "now"));
         when(instance.status()).thenReturn(new InstanceMigrationStatusResponse(true));
 
         harness.run((server, client) -> {
@@ -218,7 +218,8 @@ class StorageRoutesTest {
         verify(instance)
                 .apply(
                         Actor.human(TestSessions.ACCOUNT_ID, null),
-                        new InstanceMigrateRequest(new InstanceStorageSettingsService.LocalRequest("data"), null));
+                        new InstanceMigrateRequest(
+                                new InstanceStorageSettingsService.InstanceLocalRequest("data"), null));
     }
 
     @Test

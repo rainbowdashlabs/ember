@@ -18,8 +18,8 @@ import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.OutputShape;
-import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.tracking.TrackingStatus;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
 import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.BeforeAll;
@@ -94,7 +94,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         for (var entry : tracking.tables().entrySet()) {
             String tableName = entry.getKey();
             TableEntry table = entry.getValue();
-            if (table.stationTransfer() == null || table.stationTransfer().status() != Status.TRACKED) continue;
+            if (table.stationTransfer() == null || table.stationTransfer().status() != TrackingStatus.TRACKED) continue;
             try {
                 var page = exportService.exportTable(stationId, tableName, 0, 100);
                 // The envelope must always carry the wire key (possibly null payload for empty single-rows)
@@ -250,7 +250,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
 
         // Verify we did in fact iterate every TRACKED non-SINGLE/non-FLAT table in the comparison
         long trackedRowTables = tracking.tables().values().stream()
-                .filter(t -> t.stationTransfer() != null && t.stationTransfer().status() == Status.TRACKED)
+                .filter(t -> t.stationTransfer() != null && t.stationTransfer().status() == TrackingStatus.TRACKED)
                 .filter(t -> t.effectiveShape() == OutputShape.ROWS)
                 .count();
         assertTrue(trackedRowTables > 50, "expected many TRACKED ROWS-shape tables, got " + trackedRowTables);

@@ -18,7 +18,7 @@ import {provideMemberRowExtras} from '@/views/stationview/members/listview/membe
 import CreateMemberModal from './clustermembermanagementview/CreateMemberModal.vue'
 import {useClusterMemberSource, MANAGED_MEMBER_CAP} from './clustermembersview/clusterMemberSource'
 import {clusterMembers} from '@/api'
-import type {ManagedStation} from '@/api/clusterMembers'
+import type {ManagedStationResponse} from '@/api/generated/schema'
 import {ClusterPermission} from '@/api/clusters'
 import {useSession} from '@/composables/useSession'
 
@@ -27,7 +27,7 @@ const {hasClusterPermission, sessionInfo} = useSession()
 
 const stationUid = ref('')
 const includeFormer = ref(false)
-const stations = ref<ManagedStation[]>([])
+const stations = ref<ManagedStationResponse[]>([])
 
 const {source, managed, overflowed} = useClusterMemberSource(() => includeFormer.value)
 

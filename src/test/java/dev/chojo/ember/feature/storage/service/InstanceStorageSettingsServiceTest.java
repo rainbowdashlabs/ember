@@ -22,11 +22,11 @@ import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.service.InstanceStorageMigrationService.MigrationResult;
 import dev.chojo.ember.feature.storage.service.InstanceStorageMigrationService.PreparedMigration;
+import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceLocalRequest;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceMigrateRequest;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.LocalRequest;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.S3Request;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.S3Summary;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.SftpRequest;
+import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceS3Request;
+import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceS3Summary;
+import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceSftpRequest;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -89,8 +89,8 @@ class InstanceStorageSettingsServiceTest {
                 new StorageProbeService(factory));
     }
 
-    private static S3Request bucket(String name) {
-        return new S3Request("https://s3.test", "eu", name, true, "", "files", "access", "secret");
+    private static InstanceS3Request bucket(String name) {
+        return new InstanceS3Request("https://s3.test", "eu", name, true, "", "files", "access", "secret");
     }
 
     private String decrypted(EncryptedBlob blob) {
@@ -217,7 +217,7 @@ class InstanceStorageSettingsServiceTest {
         var service = serviceOn(new Conf(directory));
         service.apply(ACTOR, new InstanceMigrateRequest(bucket("ember"), false));
 
-        service.apply(ACTOR, new InstanceMigrateRequest(new LocalRequest(null), false));
+        service.apply(ACTOR, new InstanceMigrateRequest(new InstanceLocalRequest(null), false));
 
         var written = new Conf(directory).main().storage().backend();
         assertEquals(StorageBackendType.LOCAL, written.type());
@@ -232,7 +232,7 @@ class InstanceStorageSettingsServiceTest {
         service.apply(
                 ACTOR,
                 new InstanceMigrateRequest(
-                        new SftpRequest("sftp.test", 22, "ember", "SHA256:abc", "files", " ", "KEY"), false));
+                        new InstanceSftpRequest("sftp.test", 22, "ember", "SHA256:abc", "files", " ", "KEY"), false));
 
         var sftp = new Conf(directory).main().storage().backend().sftp();
         assertNull(sftp.passwordEnc());
@@ -269,6 +269,6 @@ class InstanceStorageSettingsServiceTest {
 
         var summary = service.summary();
 
-        assertEquals(new S3Summary("https://s3.test", "eu", "ember", true, "", "files"), summary);
+        assertEquals(new InstanceS3Summary("https://s3.test", "eu", "ember", true, "", "files"), summary);
     }
 }

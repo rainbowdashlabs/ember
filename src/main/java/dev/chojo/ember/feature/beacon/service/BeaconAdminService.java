@@ -6,7 +6,10 @@
 package dev.chojo.ember.feature.beacon.service;
 
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.feature.beacon.entity.BeaconFault;
+import dev.chojo.ember.feature.beacon.entity.BeaconMetricsRow;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
+import dev.chojo.ember.feature.beacon.entity.BeaconReport;
 import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
@@ -16,6 +19,7 @@ import dev.chojo.ember.feature.system.service.ProblemReportService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -85,7 +89,7 @@ public class BeaconAdminService {
         if (!config.enabled()) throw Refusal.BEACON_NOT_SET_UP.raise();
     }
 
-    public List<BeaconReadRepository.FaultRow> faults(boolean includeAcknowledged) {
+    public List<BeaconFault> faults(boolean includeAcknowledged) {
         requireBeacon();
         return collected.faults(includeAcknowledged);
     }
@@ -98,7 +102,7 @@ public class BeaconAdminService {
         }
     }
 
-    public List<BeaconReadRepository.ReportRow> collectedReports(boolean includeAcknowledged) {
+    public List<BeaconReport> collectedReports(boolean includeAcknowledged) {
         requireBeacon();
         return collected.reports(includeAcknowledged);
     }
@@ -128,7 +132,7 @@ public class BeaconAdminService {
     /**
      * @param days how many days back, held between 1 and 365
      */
-    public List<BeaconReadRepository.MetricsRow> collectedMetrics(int days) {
+    public List<BeaconMetricsRow> collectedMetrics(int days) {
         requireBeacon();
         return collected.metrics(Math.clamp(days, 1, 365));
     }
@@ -152,7 +156,7 @@ public class BeaconAdminService {
      * <p>Stored rather than configured, so a change takes effect on the next entry rather than on the
      * next restart. Everything that reads these asks at the moment it matters.
      */
-    public BeaconStatus update(SettingsRequest request) {
+    public BeaconStatus update(BeaconSettingsRequest request) {
         config.update(
                 request.enabled(),
                 request.url(),
@@ -271,7 +275,7 @@ public class BeaconAdminService {
      * @param reviewReportPictures whether a report carrying a picture waits for somebody here before
      *     it is passed on. On unless an operator says otherwise
      */
-    public record SettingsRequest(
+    public record BeaconSettingsRequest(
             boolean enabled,
             String url,
             boolean forwardProblems,
@@ -293,7 +297,7 @@ public class BeaconAdminService {
      * @param dropScreenshot whether the report goes without any picture, which is final: a picture
      *                       left out of a report is never sent after it
      */
-    public record SendReportRequest(String screenshot, boolean dropScreenshot) {
+    public record SendReportRequest(@Nullable String screenshot, boolean dropScreenshot) {
         /** Simply pressing send: the reporter's own picture, as it stands. */
         public static final SendReportRequest AS_IT_STANDS = new SendReportRequest(null, false);
     }

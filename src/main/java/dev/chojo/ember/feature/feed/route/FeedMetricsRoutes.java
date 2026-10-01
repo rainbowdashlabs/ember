@@ -71,7 +71,7 @@ public class FeedMetricsRoutes implements Routes {
                             name = "limit",
                             type = Integer.class,
                             description = "Maximum number of rows, default 50"),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FeedUserAgentStat[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = UserAgentsResponse.class)))
     private void topUserAgents(Context ctx) {
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50);
         ctx.json(new UserAgentsResponse(service.totalRequests(), service.topUserAgents(limit)));

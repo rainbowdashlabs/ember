@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.lifecycle;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 
 /**
@@ -26,9 +28,9 @@ public record TaskStatus(
         Schedule.Mode mode,
         long periodSeconds,
         TaskOutcome outcome,
-        Instant lastStartedAt,
-        Long lastDurationMs,
+        @Nullable Instant lastStartedAt,
+        @Nullable Long lastDurationMs,
         long runs,
         long failures,
-        Instant lastFailureAt,
-        String lastFailureMessage) {}
+        @Nullable Instant lastFailureAt,
+        @Nullable String lastFailureMessage) {}

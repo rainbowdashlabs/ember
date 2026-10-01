@@ -67,6 +67,33 @@
         }
       }
     },
+    "/api/v1/admin/accounts/{id}/password/retire" : {
+      "post" : {
+        "summary" : "Retire one account's password",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/api-status/endpoint" : {
       "get" : {
         "summary" : "Get everything known about one endpoint",
@@ -239,6 +266,886 @@
         }
       }
     },
+    "/api/v1/admin/beacon" : {
+      "get" : {
+        "summary" : "What this instance sends to a beacon, and whether it is one",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BeaconStatus"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Update the beacon switches and the contact",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BeaconStatus"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BeaconSettingsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/beacon/collected/faults" : {
+      "get" : {
+        "summary" : "The faults this beacon gathered, most widely met first",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BeaconFault"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "includeAcknowledged",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/beacon/collected/faults/{id}" : {
+      "put" : {
+        "summary" : "Mark a gathered fault as seen or name the version that fixed it",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResolveRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/beacon/collected/figures" : {
+      "get" : {
+        "summary" : "The bucketed figures this beacon collected over the last days",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BeaconMetricsRow"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "days",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/beacon/collected/reports" : {
+      "get" : {
+        "summary" : "The problem reports forwarded to this beacon, newest first",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BeaconReport"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "includeAcknowledged",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/beacon/collected/reports/{id}/acknowledge" : {
+      "post" : {
+        "summary" : "Mark a forwarded report as seen",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/beacon/collected/reports/{id}/screenshot" : {
+      "get" : {
+        "summary" : "The picture a forwarded report came with",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/*" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/beacon/figures/preview" : {
+      "get" : {
+        "summary" : "The day's figures as they would be sent",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MetricsBatch"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/beacon/problems/send" : {
+      "post" : {
+        "summary" : "Send the chosen problems to the beacon",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SendResult"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SendRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/beacon/problems/{id}/preview" : {
+      "get" : {
+        "summary" : "What one problem would travel as",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemPayload"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/beacon/problems/{id}/send" : {
+      "post" : {
+        "summary" : "Send one problem to the beacon",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SendResult"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/beacon/reports/{id}/preview" : {
+      "get" : {
+        "summary" : "What one problem report would travel as",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportPayload"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/beacon/reports/{id}/send" : {
+      "post" : {
+        "summary" : "Pass one problem report on to the beacon",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SendResult"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SendReportRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/auth/hibp" : {
+      "get" : {
+        "summary" : "Get the breached password check settings",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HibpConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Update the breached password check settings",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HibpConfigResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/HibpConfigRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/auth/passkeys" : {
+      "get" : {
+        "summary" : "Get the passkey mode with its readiness and adoption figures",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PasskeysConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Change the passkey mode",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PasskeysConfigResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PasskeysConfigRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/auth/passkeys/report" : {
+      "get" : {
+        "summary" : "Count what the passwordless mode would do to the accounts",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PasswordlessReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/auth/passkeys/residue" : {
+      "get" : {
+        "summary" : "List the password holders with no passkey they have used",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ResidueEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/auth/passkeys/retire-all" : {
+      "post" : {
+        "summary" : "Retire the password of every account that has used a passkey",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BulkRetireResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/auth/tokens" : {
+      "get" : {
+        "summary" : "Get the token and session lifetimes",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokensConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Update the token and session lifetimes",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokensConfigResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TokensConfigRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/auth/tokens/generate-pepper" : {
+      "post" : {
+        "summary" : "Generate a new token pepper",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokensConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/auth/two-factor" : {
+      "get" : {
+        "summary" : "Get the two-factor settings",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TwoFactorCoreConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Update the two-factor settings",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TwoFactorCoreConfigResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TwoFactorCoreConfigRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/auth/two-factor/backup-codes" : {
+      "get" : {
+        "summary" : "Get the backup code settings",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BackupCodesConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Update the backup code settings",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BackupCodesConfig"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BackupCodesConfig"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/auth/two-factor/generate-secret-key" : {
+      "post" : {
+        "summary" : "Generate a new key for the two-factor secrets",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TwoFactorCoreConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/auth/two-factor/totp" : {
+      "get" : {
+        "summary" : "Get the authenticator app settings",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TotpConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Update the authenticator app settings",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TotpConfig"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TotpConfig"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/auth/webauthn" : {
+      "get" : {
+        "summary" : "Get the security key settings",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Update the security key settings",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnConfig"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebAuthnConfig"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/logging" : {
+      "get" : {
+        "summary" : "Get how much of the application log is stored",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoggingConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Update how much of the application log is stored",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoggingConfig"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoggingConfigRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/mailing" : {
+      "get" : {
+        "summary" : "Get the instance mail settings that belong to no one provider",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MailingConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Update the instance mail settings that belong to no one provider",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MailingConfigResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MailingConfigRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Reset the instance mail settings",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/mailing/blocks" : {
+      "delete" : {
+        "summary" : "Lift a provider's block for a recipient domain",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "provider",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "domain",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/config/mailing/dashboard" : {
       "get" : {
         "summary" : "The state of the instance mail queue and its providers",
@@ -251,6 +1158,85 @@
                 "schema" : {
                   "$ref" : "#/components/schemas/MailDashboard"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/mailing/providers" : {
+      "get" : {
+        "summary" : "Get the instance's mail providers in the order they are tried",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MailFallbackChain"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Replace the instance's mail providers",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MailFallbackChain"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MailFallbackChain"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/mailing/providers/{position}/test" : {
+      "post" : {
+        "summary" : "Send a test mail through one provider of the instance list",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MailTestResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "position",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProviderTestRequest"
               }
             }
           }
@@ -304,6 +1290,121 @@
         }
       }
     },
+    "/api/v1/admin/config/mailing/webhook-key" : {
+      "post" : {
+        "summary" : "Replace the instance's delivery webhook key",
+        "tags" : [ "Admin Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebhookUrlResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/data-tracking" : {
+      "get" : {
+        "summary" : "The data tracking file as it stands",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DataTracking"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/data-tracking/summary" : {
+      "get" : {
+        "summary" : "Counts of tracked, ignored and unverified tables",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Summary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/data-tracking/tables/{table}" : {
+      "put" : {
+        "summary" : "Update the tracking of one table",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TableEntry"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "table",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TableUpdate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/data-tracking/tables/{table}/verify-columns" : {
+      "post" : {
+        "summary" : "Mark every column of one table as verified",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TableEntry"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "table",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/feed-metrics" : {
       "get" : {
         "summary" : "Get the personal feed render histogram per day",
@@ -343,10 +1444,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/FeedUserAgentStat"
-                  }
+                  "$ref" : "#/components/schemas/UserAgentsResponse"
                 }
               }
             }
@@ -360,6 +1458,298 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/admin/legal/placeholders" : {
+      "get" : {
+        "summary" : "List the placeholders used across the legal documents with their values",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DocumentPlaceholder"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Set the values of the placeholders used across the legal documents",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DocumentPlaceholder"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PlaceholderValues"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/legal/{type}" : {
+      "get" : {
+        "summary" : "Get a legal document in the default language",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalDocumentResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "type",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Replace a legal document in the default language",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalDocumentResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "type",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LegalDocumentRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/legal/{type}/locales" : {
+      "get" : {
+        "summary" : "List the languages a legal document is written in",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "type",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/legal/{type}/{locale}" : {
+      "get" : {
+        "summary" : "Get a legal document in one language",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalDocumentResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "type",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "locale",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Replace a legal document in one language",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalDocumentResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "type",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "locale",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LegalDocumentRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/legal/{type}/{locale}/files" : {
+      "get" : {
+        "summary" : "List the sections of a legal document in one language",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/LegalFileEntry"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "type",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "locale",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Replace the sections of a legal document in one language",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/LegalFileEntry"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "type",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "locale",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "array",
+                "items" : {
+                  "$ref" : "#/components/schemas/LegalFileEntry"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/admin/legal/{type}/{locale}/import" : {
@@ -402,6 +1792,42 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/admin/legal/{type}/{locale}/templates" : {
+      "get" : {
+        "summary" : "List the sections Ember ships for a legal document",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TemplateSection"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "type",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "locale",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
       }
     },
     "/api/v1/admin/media/files" : {
@@ -495,6 +1921,15 @@
             }
           }
         }
+      },
+      "delete" : {
+        "summary" : "Empty the stored application log",
+        "tags" : [ "Monitoring" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
       }
     },
     "/api/v1/admin/monitoring/log/facets" : {
@@ -503,7 +1938,17 @@
         "tags" : [ "Monitoring" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/LogFacet"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1107,6 +2552,384 @@
         }
       }
     },
+    "/api/v1/admin/storage/audit" : {
+      "get" : {
+        "summary" : "The history of storage changes across the instance",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AuditEntryResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "before",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "stationUid",
+          "in" : "query",
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/storage/backend" : {
+      "get" : {
+        "summary" : "The storage the instance keeps its own files on",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InstanceBackendSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/storage/backend/apply" : {
+      "post" : {
+        "summary" : "Save the instance's storage and move its files onto it",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InstanceMigrationResultResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InstanceMigrateRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/storage/backend/apply/status" : {
+      "get" : {
+        "summary" : "Whether the instance's files are being moved right now",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InstanceMigrationStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/storage/backend/probe" : {
+      "post" : {
+        "summary" : "Check whether the instance's storage answers",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProbeResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/storage/backend/probe-config" : {
+      "post" : {
+        "summary" : "Check whether a storage not saved yet would answer",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProbeResult"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InstanceBackendRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/storage/presets" : {
+      "post" : {
+        "summary" : "Create a quota preset",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StorageQuotaPreset"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PresetRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the quota presets",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StorageQuotaPreset"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/storage/presets/{id}" : {
+      "put" : {
+        "summary" : "Update a quota preset",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StorageQuotaPreset"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PresetRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Delete a quota preset",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/storage/presets/{id}/apply" : {
+      "post" : {
+        "summary" : "Apply a quota preset to stations",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ApplyPresetRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/storage/recalculate" : {
+      "post" : {
+        "summary" : "Count the storage of every station again",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "202" : {
+            "description" : "Accepted"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/storage/recalculate/{stationUid}" : {
+      "post" : {
+        "summary" : "Count the storage of one station again",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/storage/stations/{stationUid}/quotas" : {
+      "put" : {
+        "summary" : "Override one station's quotas",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuotaUpdateRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Return one station to the default quotas",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/storage/usage" : {
+      "get" : {
+        "summary" : "How much storage every station uses",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AdminStationUsage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/tasks" : {
       "get" : {
         "summary" : "List the scheduled background tasks with their last run, duration and last failure",
@@ -1126,6 +2949,52 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/admin/traffic/hourly" : {
+      "get" : {
+        "summary" : "Hourly traffic of every station and of the instance itself",
+        "tags" : [ "Monitoring" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HourlyTrafficResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "from",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        }, {
+          "name" : "stationId",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "auth",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/AuthBucket"
+          }
+        } ]
       }
     },
     "/api/v1/admin/transfer/import" : {
@@ -27200,6 +29069,42 @@
         }
       }
     },
+    "/api/v1/public/logo-fragment/{name}" : {
+      "get" : {
+        "summary" : "One fragment of the animated logo as an image",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/png" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        },
+        "parameters" : [ {
+          "name" : "name",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/public/media/instance/{hash}" : {
       "get" : {
         "responses" : {
@@ -27368,6 +29273,24 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StationRegistrationStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/settings/theme" : {
+      "get" : {
+        "summary" : "The instance's default look (public)",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicTheme"
                 }
               }
             }
@@ -31517,6 +33440,466 @@
         }
       }
     },
+    "/api/v1/station/insights/pages" : {
+      "get" : {
+        "summary" : "The station's public pages ranked by hits in a window",
+        "tags" : [ "Insights" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LeaderboardResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "from",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/station/insights/pages/{pageId}" : {
+      "get" : {
+        "summary" : "Hourly, country and referrer breakdowns of one public page",
+        "tags" : [ "Insights" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "pageId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "from",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        } ]
+      }
+    },
+    "/api/v1/station/mail-import/log" : {
+      "get" : {
+        "summary" : "What became of each attachment the mailboxes read",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LogPageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "page",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/station/mail-import/mailboxes" : {
+      "post" : {
+        "summary" : "Connect a mailbox",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MailboxResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MailboxRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the station's mailboxes",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MailboxResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/mail-import/mailboxes/{id}" : {
+      "put" : {
+        "summary" : "Update a mailbox",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MailboxResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MailboxRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Disconnect a mailbox",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/station/mail-import/mailboxes/{id}/password" : {
+      "put" : {
+        "summary" : "Replace a mailbox's password",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PasswordRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/mail-import/mailboxes/{id}/resume" : {
+      "post" : {
+        "summary" : "Resume a suspended mailbox",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MailboxResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/station/mail-import/mailboxes/{id}/rules" : {
+      "post" : {
+        "summary" : "Add a rule to a mailbox",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RuleResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RuleRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the rules of a mailbox",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RuleResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/station/mail-import/mailboxes/{id}/run" : {
+      "post" : {
+        "summary" : "Read a mailbox now",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CycleResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/station/mail-import/mailboxes/{id}/test" : {
+      "post" : {
+        "summary" : "Test a mailbox connection and list its folders",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TestResult"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/station/mail-import/rules/{ruleId}" : {
+      "put" : {
+        "summary" : "Update a mailbox rule",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RuleResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "ruleId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RuleRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Delete a mailbox rule",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "ruleId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/station/mail-import/settings" : {
+      "get" : {
+        "summary" : "What the operator decided about mail import",
+        "tags" : [ "Mail Import" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InstanceSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/station/manage" : {
       "get" : {
         "summary" : "Get the current station info for management",
@@ -31729,6 +34112,31 @@
         }
       }
     },
+    "/api/v1/station/manage/mail/blocks" : {
+      "delete" : {
+        "summary" : "Lift a provider's block for a recipient domain",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "provider",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "domain",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/station/manage/mail/dashboard" : {
       "get" : {
         "summary" : "The state of the station mail queue and its providers",
@@ -31741,6 +34149,121 @@
                 "schema" : {
                   "$ref" : "#/components/schemas/MailDashboard"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/manage/mail/providers" : {
+      "get" : {
+        "summary" : "Get the station's mail providers in the order they are tried",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MailFallbackPayload"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Replace the station's mail providers",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MailFallbackPayload"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "array",
+                "items" : {
+                  "$ref" : "#/components/schemas/MailFallbackPayload"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/manage/mail/providers/{position}/test" : {
+      "post" : {
+        "summary" : "Try one provider of the station's list, sending a test mail when an address is given",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MailTestResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "position",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProviderTestRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/manage/mail/signing-secret" : {
+      "put" : {
+        "summary" : "Store the signing secret the station's mail provider issued",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebhookUrl"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SigningSecretRequest"
               }
             }
           }
@@ -31813,6 +34336,22 @@
       }
     },
     "/api/v1/station/manage/mail/webhook" : {
+      "post" : {
+        "summary" : "Replace the station's delivery webhook key",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebhookUrl"
+                }
+              }
+            }
+          }
+        }
+      },
       "get" : {
         "summary" : "Get the address the station's mail provider reports delivery events to",
         "tags" : [ "Station Manage" ],
@@ -31867,6 +34406,42 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/ModulesResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/manage/notifications" : {
+      "get" : {
+        "summary" : "When the station's gathered notifications go out",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NotificationSchedulePayload"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Set when the station's gathered notifications go out",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NotificationSchedulePayload"
               }
             }
           }
@@ -31989,6 +34564,170 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/station/storage/audit" : {
+      "get" : {
+        "summary" : "The history of the station's storage changes",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AuditEntryResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "before",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/station/storage/backend" : {
+      "get" : {
+        "summary" : "What is behind the station's files and who decided it",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BackendOverrideResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/storage/backend/apply" : {
+      "post" : {
+        "summary" : "Move the station's files onto another storage",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MigrationResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BackendOverrideRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/storage/backend/probe" : {
+      "post" : {
+        "summary" : "Check whether the station's own storage answers",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProbeResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/storage/backend/probe-config" : {
+      "post" : {
+        "summary" : "Check whether a storage not saved yet would answer",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProbeResult"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BackendOverrideRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/traffic/hourly" : {
+      "get" : {
+        "summary" : "Hourly traffic of the caller's station",
+        "tags" : [ "Monitoring" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HourlyTrafficResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "from",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        }, {
+          "name" : "auth",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/AuthBucket"
+          }
+        } ]
       }
     },
     "/api/v1/station/transfer/abort" : {
@@ -32244,6 +34983,24 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StationStatistics"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/storage/usage" : {
+      "get" : {
+        "summary" : "How much storage the caller's station uses",
+        "tags" : [ "Storage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationUsageResponse"
                 }
               }
             }
@@ -33497,6 +36254,49 @@
         },
         "required" : [ "emailFailed", "emailPending", "emailStuckSending", "stationApplicationsPending", "stationsSetupPending", "accountsUnverified", "federationPartnersPending", "discoveryPeersUnreachable", "problemReportsOpen", "recentApplications", "recentProblemReports" ]
       },
+      "AdminStationUsage" : {
+        "type" : "object",
+        "properties" : {
+          "stationId" : {
+            "type" : "string"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "totalBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "quotaBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "quotaUsedPercent" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "categories" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CategoryUsage"
+            }
+          },
+          "presetId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "presetName" : {
+            "type" : [ "string", "null" ]
+          },
+          "usesOwnBackend" : {
+            "type" : "boolean"
+          },
+          "origin" : {
+            "$ref" : "#/components/schemas/QuotaOrigin"
+          }
+        },
+        "required" : [ "stationId", "stationName", "totalBytes", "quotaBytes", "quotaUsedPercent", "categories", "presetId", "presetName", "usesOwnBackend", "origin" ]
+      },
       "AdminStatistics" : {
         "type" : "object",
         "properties" : {
@@ -33822,13 +36622,13 @@
           "loggers" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/Facet"
+              "$ref" : "#/components/schemas/LogFacet"
             }
           },
           "threads" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/Facet"
+              "$ref" : "#/components/schemas/LogFacet"
             }
           },
           "databaseEnabled" : {
@@ -33897,6 +36697,17 @@
           }
         },
         "required" : [ "stationRegistrationEnabled", "instanceDefaultTheme", "instanceDefaultFeel", "instanceLockFeel", "forcePrideFlag", "defaultMailLocale", "availableMailLocales" ]
+      },
+      "ApplyPresetRequest" : {
+        "type" : "object",
+        "properties" : {
+          "stationUids" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
       },
       "ApplyRequest" : {
         "type" : "object",
@@ -34407,6 +37218,53 @@
           }
         }
       },
+      "AuditEntryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ts" : {
+            "type" : "string"
+          },
+          "actorAccountId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "actorMemberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "systemActor" : {
+            "type" : [ "string", "null" ]
+          },
+          "stationId" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "action" : {
+            "$ref" : "#/components/schemas/StorageAuditAction"
+          },
+          "oldConfig" : {
+            "type" : [ "string", "null" ]
+          },
+          "newConfig" : {
+            "type" : [ "string", "null" ]
+          },
+          "outcome" : {
+            "$ref" : "#/components/schemas/StorageAuditOutcome"
+          },
+          "error" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "ts", "actorAccountId", "actorMemberId", "systemActor", "stationId", "action", "oldConfig", "newConfig", "outcome", "error" ]
+      },
+      "AuthBucket" : {
+        "type" : "string",
+        "enum" : [ "AUTHENTICATED", "UNAUTHENTICATED", "FEDERATION" ]
+      },
       "AvailableClusterResponse" : {
         "type" : "object",
         "properties" : {
@@ -34418,7 +37276,7 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "uid", "name", "description" ]
@@ -34574,6 +37432,38 @@
           }
         }
       },
+      "BackendOverrideResponse" : {
+        "type" : "object",
+        "properties" : {
+          "instanceDefault" : {
+            "$ref" : "#/components/schemas/StorageBackendType"
+          },
+          "override" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/BackendOverrideSummary"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "clusterBackend" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/BackendOverrideSummary"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "clusterName" : {
+            "type" : [ "string", "null" ]
+          },
+          "clusterOffersStorage" : {
+            "type" : "boolean"
+          },
+          "locked" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "instanceDefault", "override", "clusterBackend", "clusterName", "clusterOffersStorage", "locked" ]
+      },
       "BackendOverrideSummary" : {
         "oneOf" : [ {
           "$ref" : "#/components/schemas/S3Summary"
@@ -34590,6 +37480,16 @@
             "SMB" : "#/components/schemas/SmbSummary"
           }
         }
+      },
+      "BackupCodesConfig" : {
+        "type" : "object",
+        "properties" : {
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "count" ]
       },
       "BatchCreateRequest" : {
         "type" : "object",
@@ -34752,6 +37652,202 @@
             }
           }
         }
+      },
+      "BeaconFault" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fingerprint" : {
+            "type" : "string"
+          },
+          "level" : {
+            "type" : "string"
+          },
+          "exceptionClass" : {
+            "type" : [ "string", "null" ]
+          },
+          "logger" : {
+            "type" : [ "string", "null" ]
+          },
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "frames" : {
+            "type" : [ "string", "null" ]
+          },
+          "instances" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "occurrences" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "versions" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "firstSeen" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastSeen" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "acknowledged" : {
+            "type" : "boolean"
+          },
+          "resolvedIn" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "fingerprint", "level", "exceptionClass", "logger", "message", "frames", "instances", "occurrences", "versions", "firstSeen", "lastSeen", "acknowledged", "resolvedIn" ]
+      },
+      "BeaconMetricsRow" : {
+        "type" : "object",
+        "properties" : {
+          "metricsUid" : {
+            "type" : "string"
+          },
+          "subject" : {
+            "type" : "string"
+          },
+          "day" : {
+            "type" : "string"
+          },
+          "members" : {
+            "type" : [ "string", "null" ]
+          },
+          "accounts" : {
+            "type" : [ "string", "null" ]
+          },
+          "stations" : {
+            "type" : [ "string", "null" ]
+          },
+          "inventory" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "metricsUid", "subject", "day", "members", "accounts", "stations", "inventory" ]
+      },
+      "BeaconReport" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "page" : {
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : [ "string", "null" ]
+          },
+          "browser" : {
+            "type" : [ "string", "null" ]
+          },
+          "screenSize" : {
+            "type" : [ "string", "null" ]
+          },
+          "roles" : {
+            "type" : [ "string", "null" ]
+          },
+          "recentRequests" : {
+            "type" : [ "string", "null" ]
+          },
+          "contactName" : {
+            "type" : [ "string", "null" ]
+          },
+          "contactMail" : {
+            "type" : [ "string", "null" ]
+          },
+          "reportedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "acknowledged" : {
+            "type" : "boolean"
+          },
+          "screenshotFileId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "instanceId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "message", "page", "version", "browser", "screenSize", "roles", "recentRequests", "contactName", "contactMail", "reportedAt", "acknowledged", "screenshotFileId", "instanceId" ]
+      },
+      "BeaconSettingsRequest" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "url" : {
+            "type" : "string"
+          },
+          "forwardProblems" : {
+            "type" : "boolean"
+          },
+          "forwardReports" : {
+            "type" : "boolean"
+          },
+          "reviewReportPictures" : {
+            "type" : "boolean"
+          },
+          "metricsEnabled" : {
+            "type" : "boolean"
+          },
+          "receiving" : {
+            "type" : "boolean"
+          },
+          "contactName" : {
+            "type" : "string"
+          },
+          "contactMail" : {
+            "type" : "string"
+          }
+        }
+      },
+      "BeaconStatus" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "url" : {
+            "type" : "string"
+          },
+          "forwardProblems" : {
+            "type" : "boolean"
+          },
+          "forwardReports" : {
+            "type" : "boolean"
+          },
+          "reviewReportPictures" : {
+            "type" : "boolean"
+          },
+          "metricsEnabled" : {
+            "type" : "boolean"
+          },
+          "receiving" : {
+            "type" : "boolean"
+          },
+          "contactName" : {
+            "type" : "string"
+          },
+          "contactMail" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "enabled", "url", "forwardProblems", "forwardReports", "reviewReportPictures", "metricsEnabled", "receiving", "contactName", "contactMail" ]
       },
       "BindingRequest" : {
         "type" : "object",
@@ -35562,6 +38658,20 @@
         },
         "required" : [ "doneFolderIds", "doneFileIds", "refused", "refusedTotal" ]
       },
+      "BulkRetireResponse" : {
+        "type" : "object",
+        "properties" : {
+          "retired" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "passedOver" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "retired", "passedOver" ]
+      },
       "BulkSetRequest" : {
         "type" : "object",
         "properties" : {
@@ -35860,6 +38970,23 @@
           }
         }
       },
+      "CategoryUsage" : {
+        "type" : "object",
+        "properties" : {
+          "category" : {
+            "type" : "string"
+          },
+          "totalBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fileCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "category", "totalBytes", "fileCount" ]
+      },
       "CategoryUsageResponse" : {
         "type" : "object",
         "properties" : {
@@ -36132,10 +39259,14 @@
             "type" : "string"
           },
           "releasedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "compareUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "version", "body", "releasedAt", "compareUrl" ]
@@ -36393,7 +39524,7 @@
             "format" : "int32"
           },
           "stationName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "requestedAt" : {
             "$ref" : "#/components/schemas/Instant"
@@ -36402,10 +39533,14 @@
             "$ref" : "#/components/schemas/ClusterApplicationStatus"
           },
           "denyReason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "resolvedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "id", "stationName", "requestedAt", "status", "denyReason", "resolvedAt" ]
@@ -36422,7 +39557,7 @@
             "format" : "int32"
           },
           "clusterName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "requestedAt" : {
             "$ref" : "#/components/schemas/Instant"
@@ -36431,10 +39566,14 @@
             "$ref" : "#/components/schemas/ClusterApplicationStatus"
           },
           "denyReason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "resolvedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "id", "clusterName", "requestedAt", "status", "denyReason", "resolvedAt" ]
@@ -36526,7 +39665,11 @@
             "type" : "string"
           },
           "config" : {
-            "$ref" : "#/components/schemas/ProfileFieldConfig"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ProfileFieldConfig"
+            }, {
+              "type" : "null"
+            } ]
           },
           "required" : {
             "type" : "boolean"
@@ -36535,7 +39678,7 @@
             "type" : "boolean"
           },
           "width" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "stationReadonly" : {
             "type" : "boolean"
@@ -36544,7 +39687,7 @@
             "type" : "boolean"
           },
           "stationGroupId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
@@ -36777,13 +39920,13 @@
             "format" : "int32"
           },
           "accountUid" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "name" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "email" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "userType" : {
             "type" : "string"
@@ -36868,10 +40011,10 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "autoFederate" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -36886,7 +40029,7 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "homeStationId" : {
             "type" : "string",
@@ -36908,11 +40051,14 @@
             "type" : "boolean"
           },
           "storagePoolBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
+          },
+          "usesInventory" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "uid", "name", "description", "homeStationId", "autoFederate", "themeLocked", "colorsLocked", "feelLocked", "logoLocked", "storagePoolBytes" ]
+        "required" : [ "uid", "name", "description", "homeStationId", "autoFederate", "themeLocked", "colorsLocked", "feelLocked", "logoLocked", "storagePoolBytes", "usesInventory" ]
       },
       "ClusterStationResponse" : {
         "type" : "object",
@@ -36925,7 +40071,7 @@
             "type" : "string"
           },
           "publicSlug" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "uid", "name", "publicSlug" ]
@@ -37119,6 +40265,27 @@
             "format" : "int32"
           }
         }
+      },
+      "ColumnEntry" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "nullable" : {
+            "type" : "boolean"
+          },
+          "verified" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "name", "type", "nullable", "verified" ]
       },
       "ColumnMapping" : {
         "type" : "object",
@@ -38269,6 +41436,70 @@
         },
         "required" : [ "headers", "rows" ]
       },
+      "CustomScope" : {
+        "type" : "object",
+        "properties" : {
+          "viaTable" : {
+            "type" : "string"
+          },
+          "viaColumn" : {
+            "type" : "string"
+          },
+          "refColumn" : {
+            "type" : "string"
+          },
+          "distinct" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "viaTable", "viaColumn", "refColumn", "distinct" ]
+      },
+      "CycleResponse" : {
+        "type" : "object",
+        "properties" : {
+          "looked" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "imported" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "refused" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "looked", "imported", "refused" ]
+      },
+      "DataTracking" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "schemaHash" : {
+            "type" : "string"
+          },
+          "generatedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "tables" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/TableEntry"
+            }
+          },
+          "fileStores" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/FileStoreEntry"
+            }
+          }
+        },
+        "required" : [ "version", "schemaHash", "generatedAt", "tables" ]
+      },
       "Date" : {
         "type" : "object",
         "properties" : {
@@ -38410,6 +41641,24 @@
         },
         "required" : [ "id", "name" ]
       },
+      "DeletionStrategy" : {
+        "type" : "object",
+        "properties" : {
+          "column" : {
+            "type" : "string"
+          },
+          "strategy" : {
+            "$ref" : "#/components/schemas/Strategy"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "legalBasis" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "column", "strategy" ]
+      },
       "DemoLoginRequest" : {
         "type" : "object",
         "properties" : {
@@ -38466,35 +41715,48 @@
         "type" : "string",
         "enum" : [ "USER_TYPE", "GROUP", "TAG", "FIELD", "AGE" ]
       },
+      "DimensionTotal" : {
+        "type" : "object",
+        "properties" : {
+          "dimension" : {
+            "type" : "string"
+          },
+          "hits" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "dimension", "hits" ]
+      },
       "Dimensions" : {
         "type" : "object",
         "properties" : {
           "totalBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "kbBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "boardBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "imagesBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "pagesBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "perFileBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "perImageBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           }
         },
@@ -38504,31 +41766,31 @@
         "type" : "object",
         "properties" : {
           "totalBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "kbBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "boardBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "imagesBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "pagesBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "perFileBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "perImageBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           }
         }
@@ -38591,6 +41853,24 @@
           }
         },
         "required" : [ "documents", "total" ]
+      },
+      "DocumentPlaceholder" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "value" : {
+            "type" : "string"
+          },
+          "usages" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Usage"
+            }
+          }
+        },
+        "required" : [ "name", "value", "usages" ]
       },
       "DocumentResponse" : {
         "type" : "object",
@@ -39073,6 +42353,25 @@
           }
         },
         "required" : [ "requiredCount" ]
+      },
+      "Envelope" : {
+        "type" : "object",
+        "properties" : {
+          "protocolVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "issuedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "nonce" : {
+            "type" : "string"
+          },
+          "audience" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "protocolVersion", "issuedAt", "nonce", "audience" ]
       },
       "EquipmentClaim" : {
         "type" : "object",
@@ -40159,19 +43458,6 @@
         "type" : "string",
         "enum" : [ "BANNER", "ICON" ]
       },
-      "Facet" : {
-        "type" : "object",
-        "properties" : {
-          "value" : {
-            "type" : "string"
-          },
-          "count" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        },
-        "required" : [ "value", "count" ]
-      },
       "FailedInviteResponse" : {
         "type" : "object",
         "properties" : {
@@ -40843,6 +44129,33 @@
         },
         "required" : [ "file", "lastEditedByName", "accessLevel", "accessLevelSource" ]
       },
+      "FileStoreEntry" : {
+        "type" : "object",
+        "properties" : {
+          "path" : {
+            "type" : "string"
+          },
+          "linkedTable" : {
+            "type" : "string"
+          },
+          "linkColumn" : {
+            "type" : "string"
+          },
+          "feature" : {
+            "type" : "string"
+          },
+          "stationTransfer" : {
+            "$ref" : "#/components/schemas/TransferContext"
+          },
+          "gdprExport" : {
+            "$ref" : "#/components/schemas/GdprExportContext"
+          },
+          "gdprDeletion" : {
+            "$ref" : "#/components/schemas/GdprDeletionContext"
+          }
+        },
+        "required" : [ "path", "stationTransfer", "gdprExport", "gdprDeletion" ]
+      },
       "FileUpdateRequest" : {
         "type" : "object",
         "properties" : {
@@ -41028,6 +44341,24 @@
           }
         },
         "required" : [ "id", "parentId", "name", "level" ]
+      },
+      "ForeignKey" : {
+        "type" : "object",
+        "properties" : {
+          "column" : {
+            "type" : "string"
+          },
+          "refTable" : {
+            "type" : "string"
+          },
+          "refColumn" : {
+            "type" : "string"
+          },
+          "onDelete" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "column", "refTable", "refColumn", "onDelete" ]
       },
       "Form" : {
         "type" : "object",
@@ -42071,6 +45402,48 @@
           }
         }
       },
+      "GdprDeletionContext" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "$ref" : "#/components/schemas/TrackingStatus"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "strategies" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DeletionStrategy"
+            }
+          }
+        },
+        "required" : [ "status" ]
+      },
+      "GdprExportContext" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "$ref" : "#/components/schemas/TrackingStatus"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "identityColumns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/IdentityColumn"
+            }
+          },
+          "ignoredColumns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "status" ]
+      },
       "GenerateDatesRequest" : {
         "type" : "object",
         "properties" : {
@@ -42364,6 +45737,45 @@
           }
         }
       },
+      "HibpConfigRequest" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "endpoint" : {
+            "type" : "string"
+          },
+          "staleAfterDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "timeoutSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "HibpConfigResponse" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "endpoint" : {
+            "type" : "string"
+          },
+          "staleAfterDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "timeoutSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "enabled", "endpoint", "staleAfterDays", "timeoutSeconds" ]
+      },
       "HistoryResponse" : {
         "type" : "object",
         "properties" : {
@@ -42424,6 +45836,78 @@
           }
         },
         "required" : [ "hour", "requestCount", "avgDurationMs", "errorCount" ]
+      },
+      "HourlyTotal" : {
+        "type" : "object",
+        "properties" : {
+          "hour" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "hits" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "hour", "hits" ]
+      },
+      "HourlyTrafficResponse" : {
+        "type" : "object",
+        "properties" : {
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/HourlyTrafficRow"
+            }
+          }
+        },
+        "required" : [ "rows" ]
+      },
+      "HourlyTrafficRow" : {
+        "type" : "object",
+        "properties" : {
+          "hour" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "stationId" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "auth" : {
+            "$ref" : "#/components/schemas/AuthBucket"
+          },
+          "ingressBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "egressBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "requests" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "hour", "stationId", "auth", "ingressBytes", "egressBytes", "requests" ]
+      },
+      "IdentityColumn" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "$ref" : "#/components/schemas/IdentityType"
+          },
+          "column" : {
+            "type" : "string"
+          },
+          "filter" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "type", "column" ]
+      },
+      "IdentityType" : {
+        "type" : "string",
+        "enum" : [ "ACCOUNT_ID", "MEMBER_ID", "MEMBER_UID" ]
       },
       "ImageConfig" : {
         "type" : "object",
@@ -42624,6 +46108,335 @@
           }
         },
         "required" : [ "stationId", "stationName" ]
+      },
+      "InstanceBackendRequest" : {
+        "oneOf" : [ {
+          "$ref" : "#/components/schemas/InstanceLocalRequest"
+        }, {
+          "$ref" : "#/components/schemas/InstanceS3Request"
+        }, {
+          "$ref" : "#/components/schemas/InstanceSftpRequest"
+        }, {
+          "$ref" : "#/components/schemas/InstanceSmbRequest"
+        } ],
+        "discriminator" : {
+          "propertyName" : "type",
+          "mapping" : {
+            "LOCAL" : "#/components/schemas/InstanceLocalRequest",
+            "S3" : "#/components/schemas/InstanceS3Request",
+            "SFTP" : "#/components/schemas/InstanceSftpRequest",
+            "SMB" : "#/components/schemas/InstanceSmbRequest"
+          }
+        }
+      },
+      "InstanceBackendSummary" : {
+        "oneOf" : [ {
+          "$ref" : "#/components/schemas/InstanceLocalSummary"
+        }, {
+          "$ref" : "#/components/schemas/InstanceS3Summary"
+        }, {
+          "$ref" : "#/components/schemas/InstanceSftpSummary"
+        }, {
+          "$ref" : "#/components/schemas/InstanceSmbSummary"
+        } ],
+        "discriminator" : {
+          "propertyName" : "type",
+          "mapping" : {
+            "LOCAL" : "#/components/schemas/InstanceLocalSummary",
+            "S3" : "#/components/schemas/InstanceS3Summary",
+            "SFTP" : "#/components/schemas/InstanceSftpSummary",
+            "SMB" : "#/components/schemas/InstanceSmbSummary"
+          }
+        }
+      },
+      "InstanceLocalRequest" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "LOCAL" ]
+          },
+          "root" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "type" ]
+      },
+      "InstanceLocalSummary" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "LOCAL" ]
+          },
+          "root" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "type", "root" ]
+      },
+      "InstanceMigrateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "target" : {
+            "$ref" : "#/components/schemas/InstanceBackendRequest"
+          },
+          "keepSource" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "InstanceMigrationResultResponse" : {
+        "type" : "object",
+        "properties" : {
+          "totalKeys" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "copied" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "skipped" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "deleted" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "copiedBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "totalKeys", "copied", "skipped", "deleted", "copiedBytes" ]
+      },
+      "InstanceMigrationStatusResponse" : {
+        "type" : "object",
+        "properties" : {
+          "migrationInFlight" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "migrationInFlight" ]
+      },
+      "InstanceS3Request" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "S3" ]
+          },
+          "endpoint" : {
+            "type" : "string"
+          },
+          "region" : {
+            "type" : "string"
+          },
+          "bucket" : {
+            "type" : "string"
+          },
+          "pathStyle" : {
+            "type" : "boolean"
+          },
+          "sseAlgorithm" : {
+            "type" : "string"
+          },
+          "basePath" : {
+            "type" : "string"
+          },
+          "accessKey" : {
+            "type" : "string"
+          },
+          "secretKey" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "type" ]
+      },
+      "InstanceS3Summary" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "S3" ]
+          },
+          "endpoint" : {
+            "type" : "string"
+          },
+          "region" : {
+            "type" : "string"
+          },
+          "bucket" : {
+            "type" : "string"
+          },
+          "pathStyle" : {
+            "type" : "boolean"
+          },
+          "sseAlgorithm" : {
+            "type" : "string"
+          },
+          "basePath" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "type", "endpoint", "region", "bucket", "pathStyle", "sseAlgorithm", "basePath" ]
+      },
+      "InstanceSettingsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "minimumIntervalMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "maxAttachmentsPerCycle" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "logRetentionDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "canStorePasswords" : {
+            "type" : "boolean"
+          },
+          "supportedTypes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "enabled", "minimumIntervalMinutes", "maxAttachmentsPerCycle", "logRetentionDays", "canStorePasswords", "supportedTypes" ]
+      },
+      "InstanceSftpRequest" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "SFTP" ]
+          },
+          "host" : {
+            "type" : "string"
+          },
+          "port" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "knownHostsFingerprint" : {
+            "type" : "string"
+          },
+          "basePath" : {
+            "type" : "string"
+          },
+          "password" : {
+            "type" : "string"
+          },
+          "privateKey" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "type" ]
+      },
+      "InstanceSftpSummary" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "SFTP" ]
+          },
+          "host" : {
+            "type" : "string"
+          },
+          "port" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "basePath" : {
+            "type" : "string"
+          },
+          "knownHostsPinned" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "type", "host", "port", "username", "basePath", "knownHostsPinned" ]
+      },
+      "InstanceSmbRequest" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "SMB" ]
+          },
+          "host" : {
+            "type" : "string"
+          },
+          "port" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "share" : {
+            "type" : "string"
+          },
+          "domain" : {
+            "type" : "string"
+          },
+          "basePath" : {
+            "type" : "string"
+          },
+          "seal" : {
+            "type" : "boolean"
+          },
+          "dfs" : {
+            "type" : "boolean"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "password" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "type" ]
+      },
+      "InstanceSmbSummary" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "SMB" ]
+          },
+          "host" : {
+            "type" : "string"
+          },
+          "port" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "share" : {
+            "type" : "string"
+          },
+          "basePath" : {
+            "type" : "string"
+          },
+          "seal" : {
+            "type" : "boolean"
+          },
+          "dfs" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "type", "host", "port", "share", "basePath", "seal", "dfs" ]
       },
       "InstanceUserType" : {
         "type" : "string",
@@ -44207,6 +48020,45 @@
           }
         }
       },
+      "LeaderboardResponse" : {
+        "type" : "object",
+        "properties" : {
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PageLeaderboardEntry"
+            }
+          }
+        },
+        "required" : [ "rows" ]
+      },
+      "LegalDocumentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "content" : {
+            "type" : "string"
+          }
+        }
+      },
+      "LegalDocumentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "$ref" : "#/components/schemas/LegalDocumentType"
+          },
+          "content" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "type", "content", "version" ]
+      },
+      "LegalDocumentType" : {
+        "type" : "string",
+        "enum" : [ "privacy", "tos", "consent", "imprint" ]
+      },
       "LegalFileEntry" : {
         "type" : "object",
         "properties" : {
@@ -44240,7 +48092,7 @@
         "type" : "object",
         "properties" : {
           "title" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "files" : {
             "type" : "array",
@@ -44864,10 +48716,85 @@
             "type" : "string"
           },
           "throwable" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "loggedAt", "level", "logger", "thread", "message", "throwable" ]
+      },
+      "LogEntryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "mailboxId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ruleId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "ruleName" : {
+            "type" : [ "string", "null" ]
+          },
+          "sender" : {
+            "type" : [ "string", "null" ]
+          },
+          "subject" : {
+            "type" : [ "string", "null" ]
+          },
+          "attachmentName" : {
+            "type" : [ "string", "null" ]
+          },
+          "outcome" : {
+            "$ref" : "#/components/schemas/MailImportOutcome"
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          },
+          "documentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "pruned" : {
+            "type" : "boolean"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "mailboxId", "ruleId", "ruleName", "sender", "subject", "attachmentName", "outcome", "reason", "documentId", "pruned", "createdAt" ]
+      },
+      "LogFacet" : {
+        "type" : "object",
+        "properties" : {
+          "value" : {
+            "type" : "string"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "value", "count" ]
+      },
+      "LogPageResponse" : {
+        "type" : "object",
+        "properties" : {
+          "entries" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LogEntryResponse"
+            }
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "entries", "total" ]
       },
       "LoggedRequest" : {
         "type" : "object",
@@ -44891,6 +48818,41 @@
           }
         },
         "required" : [ "timestamp", "method", "path", "statusCode", "durationMs" ]
+      },
+      "LoggingConfig" : {
+        "type" : "object",
+        "properties" : {
+          "databaseEnabled" : {
+            "type" : "boolean"
+          },
+          "databaseLevel" : {
+            "type" : "string"
+          },
+          "retentionDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "storedLines" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "databaseEnabled", "databaseLevel", "retentionDays", "storedLines" ]
+      },
+      "LoggingConfigRequest" : {
+        "type" : "object",
+        "properties" : {
+          "databaseEnabled" : {
+            "type" : "boolean"
+          },
+          "databaseLevel" : {
+            "type" : "string"
+          },
+          "retentionDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
       },
       "LoginRequest" : {
         "type" : "object",
@@ -44949,13 +48911,13 @@
         "type" : "object",
         "properties" : {
           "defaultTheme" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "customThemeColors" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "defaultFeel" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "themeLocked" : {
             "type" : "boolean"
@@ -44971,6 +48933,21 @@
           }
         },
         "required" : [ "defaultTheme", "customThemeColors", "defaultFeel", "themeLocked", "colorsLocked", "feelLocked", "logoLocked" ]
+      },
+      "Lookup" : {
+        "type" : "object",
+        "properties" : {
+          "via" : {
+            "type" : "string"
+          },
+          "pick" : {
+            "type" : "string"
+          },
+          "emitAs" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "via", "pick", "emitAs" ]
       },
       "LossReport" : {
         "type" : "object",
@@ -45106,7 +49083,11 @@
             "format" : "int32"
           },
           "oldestPendingAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "providers" : {
             "type" : "array",
@@ -45139,6 +49120,77 @@
         "type" : "string",
         "enum" : [ "UNKNOWN", "DELIVERED", "SOFT_BOUNCE", "HARD_BOUNCE", "BLOCKED", "SPAM", "DEFERRED", "ERROR" ]
       },
+      "MailFallbackChain" : {
+        "type" : "object",
+        "properties" : {
+          "attempts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fallbacks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MailFallbackPayload"
+            }
+          }
+        },
+        "required" : [ "attempts", "fallbacks" ]
+      },
+      "MailFallbackPayload" : {
+        "type" : "object",
+        "properties" : {
+          "provider" : {
+            "$ref" : "#/components/schemas/MailProviderType"
+          },
+          "smtpHost" : {
+            "type" : "string"
+          },
+          "smtpPort" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "smtpEncryption" : {
+            "$ref" : "#/components/schemas/SmtpEncryption"
+          },
+          "smtpUser" : {
+            "type" : "string"
+          },
+          "smtpPassword" : {
+            "type" : "string"
+          },
+          "apiKey" : {
+            "type" : "string"
+          },
+          "senderAddress" : {
+            "type" : "string"
+          },
+          "senderName" : {
+            "type" : "string"
+          },
+          "attempts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "dailySendLimit" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "providerName" : {
+            "type" : "string"
+          },
+          "providerUrl" : {
+            "type" : "string"
+          },
+          "deliveryWebhookUrl" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "provider", "smtpHost", "smtpPort", "smtpEncryption", "smtpUser", "smtpPassword", "apiKey", "senderAddress", "senderName", "attempts", "dailySendLimit", "providerName", "providerUrl", "deliveryWebhookUrl" ]
+      },
+      "MailImportOutcome" : {
+        "type" : "string",
+        "enum" : [ "IMPORTED", "DUPLICATE", "SENDER_NOT_ALLOWED", "NO_RULE_MATCHED", "TYPE_NOT_ALLOWED", "TOO_LARGE", "TOO_SMALL", "NO_ATTACHMENT", "QUOTA_EXCEEDED", "AUTHENTICATION_FAILED", "NO_SIGNATURE", "SIGNATURE_NOT_ALIGNED", "SIGNATURE_FAILED", "FAILED" ]
+      },
       "MailProviderType" : {
         "type" : "string",
         "enum" : [ "NONE", "SMTP", "RAPIDMAIL", "TWILIO", "SWEEGO", "BREVO" ]
@@ -45164,7 +49216,11 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "sentAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "status" : {
             "type" : "string"
@@ -45173,7 +49229,7 @@
             "$ref" : "#/components/schemas/MailDeliveryStatus"
           },
           "deliveryDetail" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "attempts" : {
             "type" : "integer",
@@ -45189,6 +49245,14 @@
         },
         "required" : [ "id", "recipient", "subject", "createdAt", "sentAt", "status", "deliveryStatus", "deliveryDetail", "attempts", "providerPosition", "reachable" ]
       },
+      "MailRuleAction" : {
+        "type" : "string",
+        "enum" : [ "NOTHING", "MARK_SEEN", "FLAG", "MOVE" ]
+      },
+      "MailSecurity" : {
+        "type" : "string",
+        "enum" : [ "SSL", "STARTTLS", "NONE" ]
+      },
       "MailTestResponse" : {
         "type" : "object",
         "properties" : {
@@ -45196,10 +49260,132 @@
             "type" : "boolean"
           },
           "error" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "success", "error" ]
+      },
+      "MailTitleSource" : {
+        "type" : "string",
+        "enum" : [ "SUBJECT", "FILE_NAME" ]
+      },
+      "MailboxRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "host" : {
+            "type" : "string"
+          },
+          "port" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "security" : {
+            "$ref" : "#/components/schemas/MailSecurity"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "password" : {
+            "type" : [ "string", "null" ]
+          },
+          "folder" : {
+            "type" : "string"
+          },
+          "verifyDkim" : {
+            "type" : "boolean"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "intervalMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "importFrom" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        }
+      },
+      "MailboxResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "host" : {
+            "type" : "string"
+          },
+          "port" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "security" : {
+            "$ref" : "#/components/schemas/MailSecurity"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "folder" : {
+            "type" : "string"
+          },
+          "verifyDkim" : {
+            "type" : "boolean"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "intervalMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "importFrom" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastCheckAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "lastError" : {
+            "type" : [ "string", "null" ]
+          },
+          "failureCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "suspended" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "name", "host", "port", "security", "username", "folder", "verifyDkim", "enabled", "intervalMinutes", "importFrom", "lastCheckAt", "lastError", "failureCount", "suspended" ]
+      },
+      "MailingConfigRequest" : {
+        "type" : "object",
+        "properties" : {
+          "notificationDigestIntervalMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "MailingConfigResponse" : {
+        "type" : "object",
+        "properties" : {
+          "notificationDigestIntervalMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "notificationDigestIntervalMinutes" ]
       },
       "ManagedAccess" : {
         "type" : "object",
@@ -45293,7 +49479,7 @@
             "type" : "string"
           },
           "email" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "userType" : {
             "type" : "string"
@@ -46022,7 +50208,11 @@
             "type" : "string"
           },
           "config" : {
-            "$ref" : "#/components/schemas/ProfileFieldConfig"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ProfileFieldConfig"
+            }, {
+              "type" : "null"
+            } ]
           },
           "required" : {
             "type" : "boolean"
@@ -46032,13 +50222,13 @@
             "format" : "int32"
           },
           "width" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "readonly" : {
             "type" : "boolean"
           },
           "role" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "origin" : {
             "type" : "string"
@@ -46108,7 +50298,7 @@
             "format" : "int32"
           },
           "value" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "origin" : {
             "type" : "string"
@@ -46352,6 +50542,52 @@
           }
         },
         "required" : [ "message" ]
+      },
+      "MetricsBatch" : {
+        "type" : "object",
+        "properties" : {
+          "protocolVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "version" : {
+            "type" : "string"
+          },
+          "day" : {
+            "type" : "string"
+          },
+          "subjects" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MetricsSubject"
+            }
+          }
+        },
+        "required" : [ "protocolVersion", "version", "day", "subjects" ]
+      },
+      "MetricsSubject" : {
+        "type" : "object",
+        "properties" : {
+          "metricsUid" : {
+            "type" : "string"
+          },
+          "subject" : {
+            "type" : "string"
+          },
+          "members" : {
+            "type" : "string"
+          },
+          "accounts" : {
+            "type" : [ "string", "null" ]
+          },
+          "stations" : {
+            "type" : [ "string", "null" ]
+          },
+          "inventory" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "metricsUid", "subject", "members", "accounts", "stations", "inventory" ]
       },
       "MigrationResponse" : {
         "type" : "object",
@@ -47156,7 +51392,7 @@
             "format" : "int32"
           },
           "email" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "memberId", "accountId", "email" ]
@@ -47703,6 +51939,22 @@
         },
         "required" : [ "id", "type", "localeKey", "params", "link", "createdAt", "acknowledgedAt" ]
       },
+      "NotificationSchedulePayload" : {
+        "type" : "object",
+        "properties" : {
+          "sendTimes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "floorMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "sendTimes", "floorMinutes" ]
+      },
       "NotificationToggle" : {
         "type" : "object",
         "properties" : {
@@ -47866,11 +52118,15 @@
         },
         "required" : [ "items" ]
       },
+      "OutputShape" : {
+        "type" : "string",
+        "enum" : [ "ROWS", "SINGLE", "FLAT" ]
+      },
       "OverviewResponse" : {
         "type" : "object",
         "properties" : {
           "poolBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "handedOut" : {
@@ -47903,6 +52159,60 @@
           }
         },
         "required" : [ "name" ]
+      },
+      "PageDetailResponse" : {
+        "type" : "object",
+        "properties" : {
+          "hourly" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/HourlyTotal"
+            }
+          },
+          "hourlyWithBots" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/HourlyTotal"
+            }
+          },
+          "countries" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DimensionTotal"
+            }
+          },
+          "referrers" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DimensionTotal"
+            }
+          }
+        },
+        "required" : [ "hourly", "hourlyWithBots", "countries", "referrers" ]
+      },
+      "PageLeaderboardEntry" : {
+        "type" : "object",
+        "properties" : {
+          "pageId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "slug" : {
+            "type" : "string"
+          },
+          "hits" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "botHits" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "pageId", "title", "slug", "hits", "botHits" ]
       },
       "PageLinkConfig" : {
         "type" : "object",
@@ -48036,6 +52346,85 @@
           }
         }
       },
+      "PasskeysConfigRequest" : {
+        "type" : "object",
+        "properties" : {
+          "mode" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PasskeysConfigResponse" : {
+        "type" : "object",
+        "properties" : {
+          "mode" : {
+            "type" : "string"
+          },
+          "effectiveMode" : {
+            "type" : "string"
+          },
+          "localhostFallback" : {
+            "type" : "boolean"
+          },
+          "rpId" : {
+            "type" : "string"
+          },
+          "lastMailSentAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "dependentAccounts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "accountsWithTriedPasskey" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "accountsWithPassword" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "accountsWithPasswordAndNoPasskey" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "mode", "effectiveMode", "localhostFallback", "rpId", "lastMailSentAt", "dependentAccounts", "accountsWithTriedPasskey", "accountsWithPassword", "accountsWithPasswordAndNoPasskey" ]
+      },
+      "PasswordRequest" : {
+        "type" : "object",
+        "properties" : {
+          "password" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PasswordlessReport" : {
+        "type" : "object",
+        "properties" : {
+          "wouldKeepPassword" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "withoutPasskey" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "reachableOnlyByQr" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "dormantForAYear" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "wouldKeepPassword", "withoutPasskey", "reachableOnlyByQr", "dormantForAYear" ]
+      },
       "PastEventRecapConfig" : {
         "type" : "object",
         "properties" : {
@@ -48148,6 +52537,17 @@
         },
         "required" : [ "pageUid", "title", "slug", "updatedAt" ]
       },
+      "PlaceholderValues" : {
+        "type" : "object",
+        "properties" : {
+          "values" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
       "PlacementResponse" : {
         "type" : "object",
         "properties" : {
@@ -48243,7 +52643,11 @@
             "type" : "boolean"
           },
           "backend" : {
-            "$ref" : "#/components/schemas/BackendOverrideSummary"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/BackendOverrideSummary"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "reach", "locked", "backend" ]
@@ -48263,6 +52667,42 @@
         "type" : "object",
         "properties" : {
           "quotaBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "PresetRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "kb" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "board" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "images" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "pages" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "perFile" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "perImage" : {
             "type" : "integer",
             "format" : "int64"
           }
@@ -48306,13 +52746,59 @@
             "type" : "boolean"
           },
           "error" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "checkedAt" : {
             "type" : "string"
           }
         },
         "required" : [ "healthy", "error", "checkedAt" ]
+      },
+      "ProblemPayload" : {
+        "type" : "object",
+        "properties" : {
+          "envelope" : {
+            "$ref" : "#/components/schemas/Envelope"
+          },
+          "version" : {
+            "type" : "string"
+          },
+          "contactName" : {
+            "type" : [ "string", "null" ]
+          },
+          "contactMail" : {
+            "type" : [ "string", "null" ]
+          },
+          "fingerprint" : {
+            "type" : "string"
+          },
+          "level" : {
+            "type" : "string"
+          },
+          "logger" : {
+            "type" : "string"
+          },
+          "exceptionClass" : {
+            "type" : [ "string", "null" ]
+          },
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "frames" : {
+            "type" : "string"
+          },
+          "occurrences" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "firstOccurrence" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastOccurrence" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "envelope", "version", "contactName", "contactMail", "fingerprint", "level", "logger", "exceptionClass", "message", "frames", "occurrences", "firstOccurrence", "lastOccurrence" ]
       },
       "ProblemReport" : {
         "type" : "object",
@@ -49123,7 +53609,7 @@
             "type" : "string"
           },
           "reason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "firstBlockedAt" : {
             "$ref" : "#/components/schemas/Instant"
@@ -49171,6 +53657,14 @@
           }
         },
         "required" : [ "position", "provider", "senderAddress", "attempts", "dailySendLimit", "sentToday", "waiting", "exhausted" ]
+      },
+      "ProviderTestRequest" : {
+        "type" : "object",
+        "properties" : {
+          "recipient" : {
+            "type" : [ "string", "null" ]
+          }
+        }
       },
       "ProvisionedMemberResponse" : {
         "type" : "object",
@@ -49717,6 +54211,24 @@
           }
         },
         "required" : [ "stationUid", "name", "description", "hasLogo", "hasPublicKb", "hasPublicCalendar", "hasPublicPages", "hasPublicWaitlist", "hasPublicBlog", "landingPageSlug", "publicSlug", "defaultTheme", "defaultFeel", "customThemeColors", "timezone" ]
+      },
+      "PublicTheme" : {
+        "type" : "object",
+        "properties" : {
+          "defaultTheme" : {
+            "type" : "string"
+          },
+          "defaultFeel" : {
+            "type" : "string"
+          },
+          "lockFeel" : {
+            "type" : "boolean"
+          },
+          "forcePrideFlag" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "defaultTheme", "defaultFeel", "lockFeel", "forcePrideFlag" ]
       },
       "PublicVisibilityRequest" : {
         "type" : "object",
@@ -50785,6 +55297,39 @@
         "type" : "string",
         "enum" : [ "CLUSTER_GRANT", "CLUSTER_DEFAULT", "INSTANCE_OVERRIDE", "INSTANCE_DEFAULT", "UNLIMITED" ]
       },
+      "QuotaUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "totalBytes" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "kbBytes" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "boardBytes" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "imagesBytes" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "pagesBytes" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "perFileBytes" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          },
+          "perImageBytes" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          }
+        }
+      },
       "QuoteConfig" : {
         "type" : "object",
         "properties" : {
@@ -51748,6 +56293,49 @@
         },
         "required" : [ "filterLabel", "members", "sessions", "monthlySummaries" ]
       },
+      "ReportPayload" : {
+        "type" : "object",
+        "properties" : {
+          "envelope" : {
+            "$ref" : "#/components/schemas/Envelope"
+          },
+          "version" : {
+            "type" : "string"
+          },
+          "contactName" : {
+            "type" : [ "string", "null" ]
+          },
+          "contactMail" : {
+            "type" : [ "string", "null" ]
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "page" : {
+            "type" : [ "string", "null" ]
+          },
+          "browser" : {
+            "type" : [ "string", "null" ]
+          },
+          "screenSize" : {
+            "type" : [ "string", "null" ]
+          },
+          "roles" : {
+            "type" : [ "string", "null" ]
+          },
+          "recentRequests" : {
+            "type" : [ "string", "null" ]
+          },
+          "reportedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "imageId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "envelope", "version", "contactName", "contactMail", "message", "page", "browser", "screenSize", "roles", "recentRequests", "reportedAt", "imageId" ]
+      },
       "ReportRequest" : {
         "type" : "object",
         "properties" : {
@@ -51950,6 +56538,46 @@
           },
           "forceChange" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "ResidueEntry" : {
+        "type" : "object",
+        "properties" : {
+          "accountId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "lastSignInAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "reachable" : {
+            "type" : "boolean"
+          },
+          "hasGuardian" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "accountId", "firstName", "lastName", "lastSignInAt", "reachable", "hasGuardian" ]
+      },
+      "ResolveRequest" : {
+        "type" : "object",
+        "properties" : {
+          "acknowledged" : {
+            "type" : "boolean"
+          },
+          "resolvedIn" : {
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -52411,6 +57039,143 @@
         },
         "required" : [ "id", "stationId", "uid", "accountId", "name", "firstName", "lastName", "nickname", "email", "accountSetupPending", "setupMailExpiresAt", "mailReaches", "former", "userType", "joinDate", "roles", "groups", "tags", "profileValues", "identity" ]
       },
+      "RuleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "subjectFilter" : {
+            "type" : [ "string", "null" ]
+          },
+          "attachmentNameFilter" : {
+            "type" : [ "string", "null" ]
+          },
+          "acceptedTypes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "minSizeBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "includeInline" : {
+            "type" : "boolean"
+          },
+          "titleSource" : {
+            "$ref" : "#/components/schemas/MailTitleSource"
+          },
+          "hidden" : {
+            "type" : "boolean"
+          },
+          "keepOnArchive" : {
+            "type" : "boolean"
+          },
+          "readSubjectForMember" : {
+            "type" : "boolean"
+          },
+          "action" : {
+            "$ref" : "#/components/schemas/MailRuleAction"
+          },
+          "moveToFolder" : {
+            "type" : [ "string", "null" ]
+          },
+          "senderPatterns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "RuleResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "mailboxId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "subjectFilter" : {
+            "type" : [ "string", "null" ]
+          },
+          "attachmentNameFilter" : {
+            "type" : [ "string", "null" ]
+          },
+          "acceptedTypes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "minSizeBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "includeInline" : {
+            "type" : "boolean"
+          },
+          "titleSource" : {
+            "$ref" : "#/components/schemas/MailTitleSource"
+          },
+          "hidden" : {
+            "type" : "boolean"
+          },
+          "keepOnArchive" : {
+            "type" : "boolean"
+          },
+          "readSubjectForMember" : {
+            "type" : "boolean"
+          },
+          "action" : {
+            "$ref" : "#/components/schemas/MailRuleAction"
+          },
+          "moveToFolder" : {
+            "type" : [ "string", "null" ]
+          },
+          "senderPatterns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "id", "mailboxId", "name", "position", "enabled", "subjectFilter", "attachmentNameFilter", "acceptedTypes", "minSizeBytes", "includeInline", "titleSource", "hidden", "keepOnArchive", "readSubjectForMember", "action", "moveToFolder", "senderPatterns", "tags" ]
+      },
       "RunDetailResponse" : {
         "type" : "object",
         "properties" : {
@@ -52608,6 +57373,10 @@
           }
         },
         "required" : [ "id", "accountId", "tableType", "name", "filterData", "position" ]
+      },
+      "Scope" : {
+        "type" : "string",
+        "enum" : [ "STATION", "INSTANCE", "USER", "CLUSTER" ]
       },
       "SearchResultItem" : {
         "type" : "object",
@@ -53150,6 +57919,39 @@
           }
         },
         "required" : [ "id", "memberId", "memberName", "dueOn", "state", "handedOutAt", "submittedAt", "handedOutByName", "checkId" ]
+      },
+      "SendReportRequest" : {
+        "type" : "object",
+        "properties" : {
+          "screenshot" : {
+            "type" : [ "string", "null" ]
+          },
+          "dropScreenshot" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "SendRequest" : {
+        "type" : "object",
+        "properties" : {
+          "ids" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }
+      },
+      "SendResult" : {
+        "type" : "object",
+        "properties" : {
+          "queued" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "queued" ]
       },
       "SendableItem" : {
         "type" : "object",
@@ -54174,6 +58976,14 @@
           }
         }
       },
+      "SigningSecretRequest" : {
+        "type" : "object",
+        "properties" : {
+          "secret" : {
+            "type" : "string"
+          }
+        }
+      },
       "Simple" : {
         "type" : "object",
         "properties" : {
@@ -54329,7 +59139,7 @@
             "type" : "string"
           },
           "domain" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "basePath" : {
             "type" : "string"
@@ -54342,6 +59152,10 @@
           }
         },
         "required" : [ "type", "host", "port", "share", "domain", "basePath", "seal", "dfs" ]
+      },
+      "SmtpEncryption" : {
+        "type" : "string",
+        "enum" : [ "IMPLICIT_TLS", "STARTTLS", "NONE" ]
       },
       "Snapshot" : {
         "type" : "object",
@@ -54575,14 +59389,14 @@
         "type" : "object",
         "properties" : {
           "clusterUid" : {
-            "type" : "string",
+            "type" : [ "string", "null" ],
             "format" : "uuid"
           },
           "clusterName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "clusterDescription" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "applications" : {
             "type" : "array",
@@ -55146,7 +59960,7 @@
             "type" : "string"
           },
           "quotaBytes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "ownStore" : {
@@ -55169,11 +59983,11 @@
             }
           },
           "presetId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "presetName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "stationUid", "stationName", "quotaBytes", "ownStore", "granted", "resolved", "usedBytes", "usage", "presetId", "presetName" ]
@@ -55219,6 +60033,40 @@
           }
         },
         "required" : [ "memberCount", "groupCounts", "attendanceByMonth", "inventoryStatus", "eventRegistrations", "userTypeCounts" ]
+      },
+      "StationUsageResponse" : {
+        "type" : "object",
+        "properties" : {
+          "categories" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CategoryUsage"
+            }
+          },
+          "totalBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "quotaBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "quotaUsedPercent" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "categoryQuotas" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          },
+          "usesOwnBackend" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "categories", "totalBytes", "quotaBytes", "quotaUsedPercent", "categoryQuotas", "usesOwnBackend" ]
       },
       "StationUserType" : {
         "type" : "string",
@@ -55280,6 +60128,24 @@
           }
         },
         "required" : [ "statusCode", "count" ]
+      },
+      "StatusCounts" : {
+        "type" : "object",
+        "properties" : {
+          "tracked" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ignored" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "unverified" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "tracked", "ignored", "unverified" ]
       },
       "StatusRequest" : {
         "type" : "object",
@@ -55397,6 +60263,63 @@
         "type" : "string",
         "enum" : [ "OUTGOING", "INCOMING" ]
       },
+      "StorageAuditAction" : {
+        "type" : "string",
+        "enum" : [ "CREATED", "UPDATED", "DELETED", "PROBE_OK", "PROBE_FAILED", "MIGRATION_STARTED", "MIGRATION_COMPLETED", "MIGRATION_FAILED", "REJECTED", "INSTANCE_DEFAULT_UPDATED", "INSTANCE_MIGRATION_STARTED", "INSTANCE_MIGRATION_COMPLETED", "INSTANCE_MIGRATION_FAILED" ]
+      },
+      "StorageAuditOutcome" : {
+        "type" : "string",
+        "enum" : [ "OK", "FAILED" ]
+      },
+      "StorageBackendType" : {
+        "type" : "string",
+        "enum" : [ "LOCAL", "SMB", "SFTP", "S3" ]
+      },
+      "StorageQuotaPreset" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "kb" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "board" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "images" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "pages" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "perFile" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "perImage" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "id", "name", "total", "kb", "board", "images", "pages", "perFile", "perImage" ]
+      },
+      "Strategy" : {
+        "type" : "string",
+        "enum" : [ "CASCADE", "DELETE_EXPLICIT", "ANONYMIZE", "NULL", "RETAIN", "RETAIN_UNLINKED", "NOT_APPLICABLE" ]
+      },
       "StringValue" : {
         "type" : "object",
         "properties" : {
@@ -55405,6 +60328,33 @@
           }
         },
         "required" : [ "value" ]
+      },
+      "Summary" : {
+        "type" : "object",
+        "properties" : {
+          "totalTables" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalColumns" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "verifiedColumns" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationTransfer" : {
+            "$ref" : "#/components/schemas/StatusCounts"
+          },
+          "gdprExport" : {
+            "$ref" : "#/components/schemas/StatusCounts"
+          },
+          "gdprDeletion" : {
+            "$ref" : "#/components/schemas/StatusCounts"
+          }
+        },
+        "required" : [ "totalTables", "totalColumns", "verifiedColumns", "stationTransfer", "gdprExport", "gdprDeletion" ]
       },
       "SwapNote" : {
         "type" : "object",
@@ -55627,6 +60577,95 @@
         },
         "required" : [ "member", "questions" ]
       },
+      "TableEntry" : {
+        "type" : "object",
+        "properties" : {
+          "feature" : {
+            "type" : "string"
+          },
+          "scope" : {
+            "$ref" : "#/components/schemas/Scope"
+          },
+          "tableHash" : {
+            "type" : "string"
+          },
+          "columns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ColumnEntry"
+            }
+          },
+          "foreignKeys" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ForeignKey"
+            }
+          },
+          "lookups" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Lookup"
+            }
+          },
+          "outputShape" : {
+            "$ref" : "#/components/schemas/OutputShape"
+          },
+          "flatField" : {
+            "type" : "string"
+          },
+          "customScope" : {
+            "$ref" : "#/components/schemas/CustomScope"
+          },
+          "stationTransfer" : {
+            "$ref" : "#/components/schemas/TransferContext"
+          },
+          "gdprExport" : {
+            "$ref" : "#/components/schemas/GdprExportContext"
+          },
+          "gdprDeletion" : {
+            "$ref" : "#/components/schemas/GdprDeletionContext"
+          },
+          "description" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "tableHash", "columns", "foreignKeys", "stationTransfer", "gdprExport", "gdprDeletion" ]
+      },
+      "TableUpdate" : {
+        "type" : "object",
+        "properties" : {
+          "feature" : {
+            "type" : [ "string", "null" ]
+          },
+          "columnVerified" : {
+            "type" : [ "object", "null" ],
+            "additionalProperties" : {
+              "type" : "boolean"
+            }
+          },
+          "stationTransfer" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/TransferContext"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "gdprExport" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/GdprExportContext"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "gdprDeletion" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/GdprDeletionContext"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
       "TabsConfig" : {
         "type" : "object",
         "properties" : {
@@ -55790,10 +60829,14 @@
             "$ref" : "#/components/schemas/TaskOutcome"
           },
           "lastStartedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "lastDurationMs" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int64"
           },
           "runs" : {
@@ -55805,10 +60848,14 @@
             "format" : "int64"
           },
           "lastFailureAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "lastFailureMessage" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "name", "mode", "periodSeconds", "outcome", "lastStartedAt", "lastDurationMs", "runs", "failures", "lastFailureAt", "lastFailureMessage" ]
@@ -55954,6 +61001,21 @@
           }
         },
         "required" : [ "register", "view" ]
+      },
+      "TemplateSection" : {
+        "type" : "object",
+        "properties" : {
+          "displayName" : {
+            "type" : "string"
+          },
+          "content" : {
+            "type" : "string"
+          },
+          "optional" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "displayName", "content", "optional" ]
       },
       "TestProtocol" : {
         "type" : "object",
@@ -56147,6 +61209,30 @@
           }
         },
         "required" : [ "id", "protocolId", "parentId", "name", "description", "maxPoints", "passThreshold", "position" ]
+      },
+      "TestResult" : {
+        "type" : "object",
+        "properties" : {
+          "connected" : {
+            "type" : "boolean"
+          },
+          "error" : {
+            "type" : [ "string", "null" ]
+          },
+          "folders" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "folderExists" : {
+            "type" : "boolean"
+          },
+          "writesAuthResult" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "connected", "error", "folders", "folderExists", "writesAuthResult" ]
       },
       "TestStatus" : {
         "type" : "string",
@@ -56443,6 +61529,96 @@
         },
         "required" : [ "standing", "purpose" ]
       },
+      "TokensConfigRequest" : {
+        "type" : "object",
+        "properties" : {
+          "tokenBytes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "verifyTokenHours" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "passwordTokenHours" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "setupTokenDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sessionMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "untrustedSessionMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "TokensConfigResponse" : {
+        "type" : "object",
+        "properties" : {
+          "tokenBytes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "verifyTokenHours" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "passwordTokenHours" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "setupTokenDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sessionMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "untrustedSessionMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "tokenPepperConfigured" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "tokenBytes", "verifyTokenHours", "passwordTokenHours", "setupTokenDays", "sessionMinutes", "untrustedSessionMinutes", "tokenPepperConfigured" ]
+      },
+      "TotpConfig" : {
+        "type" : "object",
+        "properties" : {
+          "digits" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "periodSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "algorithm" : {
+            "type" : "string"
+          },
+          "driftWindow" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "issuer" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "digits", "periodSeconds", "algorithm", "driftWindow", "issuer" ]
+      },
+      "TrackingStatus" : {
+        "type" : "string",
+        "enum" : [ "TRACKED", "IGNORED", "UNVERIFIED" ]
+      },
       "TransferBackendDescriptor" : {
         "oneOf" : [ {
           "$ref" : "#/components/schemas/Local"
@@ -56462,6 +61638,27 @@
             "SMB" : "#/components/schemas/Smb"
           }
         }
+      },
+      "TransferContext" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "$ref" : "#/components/schemas/TrackingStatus"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "ignoredColumns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "rationale" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "status" ]
       },
       "TransferImportRequest" : {
         "type" : "object",
@@ -56567,6 +61764,50 @@
           }
         },
         "required" : [ "correctAnswer" ]
+      },
+      "TwoFactorCoreConfigRequest" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "stepUpFreshnessSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "trustedDeviceMaxDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "enrollmentGraceDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "TwoFactorCoreConfigResponse" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "stepUpFreshnessSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "trustedDeviceMaxDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "enrollmentGraceDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "secretKeyConfigured" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "enabled", "stepUpFreshnessSeconds", "trustedDeviceMaxDays", "enrollmentGraceDays", "secretKeyConfigured" ]
       },
       "UnassignItemRequest" : {
         "type" : "object",
@@ -56821,7 +62062,7 @@
             "type" : "string"
           },
           "latestVersion" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "updateAvailable" : {
             "type" : "boolean"
@@ -56898,6 +62139,37 @@
             "$ref" : "#/components/schemas/LocalDate"
           }
         }
+      },
+      "Usage" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string"
+          },
+          "locale" : {
+            "type" : "string"
+          },
+          "section" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "type", "locale", "section" ]
+      },
+      "UserAgentsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "totalRequests" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "userAgents" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FeedUserAgentStat"
+            }
+          }
+        },
+        "required" : [ "totalRequests", "userAgents" ]
       },
       "UserTag" : {
         "type" : "object",
@@ -57738,6 +63010,25 @@
         },
         "required" : [ "list", "entryCount" ]
       },
+      "WebAuthnConfig" : {
+        "type" : "object",
+        "properties" : {
+          "rpId" : {
+            "type" : "string"
+          },
+          "rpName" : {
+            "type" : "string"
+          },
+          "attestation" : {
+            "type" : "string"
+          },
+          "timeoutSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "rpId", "rpName", "attestation", "timeoutSeconds" ]
+      },
       "WebhookUrl" : {
         "type" : "object",
         "properties" : {
@@ -57749,6 +63040,15 @@
           }
         },
         "required" : [ "deliveryWebhookUrl", "signingSecretSet" ]
+      },
+      "WebhookUrlResponse" : {
+        "type" : "object",
+        "properties" : {
+          "deliveryWebhookUrl" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "deliveryWebhookUrl" ]
       },
       "WeblinkRequest" : {
         "type" : "object",

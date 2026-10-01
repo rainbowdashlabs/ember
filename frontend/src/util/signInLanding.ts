@@ -5,7 +5,7 @@
  */
 import {clusters, session} from '@/api'
 import {isFirstStationNeeded} from '@/api/stations'
-import type {Cluster} from '@/api/clusters'
+import type {ClusterResponse} from '@/api/generated/schema'
 import type {StationMembership} from '@/api/session'
 import type {SessionInfo} from '@/api/types'
 
@@ -31,7 +31,7 @@ export interface SignInLanding {
 export interface LandingMemberships {
     stations: StationMembership[]
     info: SessionInfo | null
-    clusters: Cluster[]
+    clusters: ClusterResponse[]
     /** Whether the instance has no station at all yet, asked only of an administrator who belongs to none. */
     firstStationNeeded?: boolean
 }

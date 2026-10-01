@@ -6,6 +6,7 @@
 package dev.chojo.ember.tracking;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -17,20 +18,23 @@ import java.util.List;
  * @param strategies required when {@code status = TRACKED} - one entry per identity column
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-public record GdprDeletionContext(Status status, String reason, List<DeletionStrategy> strategies) {
+public record GdprDeletionContext(
+        TrackingStatus status,
+        @Nullable String reason,
+        @Nullable List<DeletionStrategy> strategies) {
     public GdprDeletionContext {
         strategies = strategies == null ? List.of() : strategies;
     }
 
     public static GdprDeletionContext unverified() {
-        return new GdprDeletionContext(Status.UNVERIFIED, null, List.of());
+        return new GdprDeletionContext(TrackingStatus.UNVERIFIED, null, List.of());
     }
 
     public static GdprDeletionContext ignored(String reason) {
-        return new GdprDeletionContext(Status.IGNORED, reason, List.of());
+        return new GdprDeletionContext(TrackingStatus.IGNORED, reason, List.of());
     }
 
     public static GdprDeletionContext tracked(List<DeletionStrategy> strategies) {
-        return new GdprDeletionContext(Status.TRACKED, null, strategies);
+        return new GdprDeletionContext(TrackingStatus.TRACKED, null, strategies);
     }
 }

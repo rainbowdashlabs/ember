@@ -14,19 +14,18 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {
-    type InstanceBackendRequest,
-    type InstanceBackendSummary,
-    type InstanceMigrationStatusResponse,
-    type ProbeResult,
-    type S3Request,
-    type SftpRequest,
-    type SmbRequest,
     applyInstanceBackend,
     getInstanceBackend,
     getInstanceMigrationStatus,
     probeInstanceBackend,
     probeInstanceBackendConfig,
 } from '@/api/storageBackend'
+import type {
+    InstanceBackendRequest,
+    InstanceBackendSummary,
+    InstanceMigrationStatusResponse,
+    ProbeResult,
+} from '@/api/generated/schema'
 import {
     newS3,
     newSftp,
@@ -34,6 +33,9 @@ import {
     s3FormFrom,
     sftpFormFrom,
     smbFormFrom,
+    type S3Form,
+    type SftpForm,
+    type SmbForm,
 } from '@/util/storageBackendForm'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
@@ -58,9 +60,9 @@ const migrationStatus = ref<InstanceMigrationStatusResponse | null>(null)
 
 const selectedType = ref<'LOCAL' | 'S3' | 'SMB' | 'SFTP'>('LOCAL')
 const localRoot = ref('data')
-const s3 = ref<S3Request>(newS3())
-const smb = ref<SmbRequest>(newSmb())
-const sftp = ref<SftpRequest>(newSftp())
+const s3 = ref<S3Form>(newS3())
+const smb = ref<SmbForm>(newSmb())
+const sftp = ref<SftpForm>(newSftp())
 
 const keepSource = ref(false)
 const confirmApply = ref(false)

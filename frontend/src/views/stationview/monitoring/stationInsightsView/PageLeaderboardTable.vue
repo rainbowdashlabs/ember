@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {PageLeaderboardEntry} from '@/api/insights'
+import type {PageLeaderboardEntry} from '@/api/generated/schema'
 
 const props = defineProps<{
   rows: PageLeaderboardEntry[]

@@ -15,15 +15,14 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import type { RequirementResponse } from '@/api/generated/schema'
-import type { StationGroup } from '@/api/clusterStationGroups'
+import type { RequirementResponse, StationGroupResponse } from '@/api/generated/schema'
 import type { RequirementGroup } from './types'
 
 const props = defineProps<{
   group: RequirementGroup
   inventoryName: (id: number) => string
   /** The association's ways of filing its stations, so a requirement can say which it is for. */
-  stationGroups?: StationGroup[]
+  stationGroups?: StationGroupResponse[]
 }>()
 
 const emit = defineEmits<{

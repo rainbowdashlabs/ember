@@ -6,7 +6,8 @@
 import {inject, provide, ref, type InjectionKey, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {describeFailure, saying, type Failure} from '@/util/failure'
-import type {CategoryUsage, QuotaOriginName} from '@/api/storageMonitoring'
+import type {CategoryUsage} from '@/api/generated/schema'
+import type {QuotaOriginName} from '@/api/storageMonitoring'
 
 /**
  * One station as the storage panels read it.

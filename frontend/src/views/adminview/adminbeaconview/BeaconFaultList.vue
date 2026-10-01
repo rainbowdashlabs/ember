@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import ProblemLevelSummary from '@/components/problem/ProblemLevelSummary.vue'
 import BeaconFaultCard from './BeaconFaultCard.vue'
-import type {BeaconFault} from '@/api/beacon'
+import type {BeaconFault} from '@/api/generated/schema'
 
 /**
  * The error log of the installations that report here, filtered and counted the way this instance's

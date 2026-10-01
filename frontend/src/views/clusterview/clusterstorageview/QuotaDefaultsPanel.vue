@@ -13,7 +13,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import QuotaFieldsInput from '@/views/adminview/adminstorageview/QuotaFieldsInput.vue'
-import type {QuotaDimensions} from '@/api/clusterStorage'
+import type {Dimensions} from '@/api/generated/schema'
 import {
   QUOTA_FIELD_KEYS, QUOTA_FIELD_LABELS, emptyQuotaFields, fieldFromBytes, fieldToBytes, formatBytes,
   type QuotaFields,
@@ -27,18 +27,18 @@ import {
  * instance says about it stands.
  */
 const props = defineProps<{
-  defaults: QuotaDimensions
+  defaults: Dimensions
   busy: boolean
 }>()
 
-const emit = defineEmits<{ save: [defaults: QuotaDimensions] }>()
+const emit = defineEmits<{ save: [defaults: Dimensions] }>()
 
 const {t} = useI18n()
 
 const showModal = ref(false)
 const fields = ref<QuotaFields>(emptyQuotaFields())
 
-const DIMENSION_OF: Record<string, keyof QuotaDimensions> = {
+const DIMENSION_OF: Record<string, keyof Dimensions> = {
   total: 'totalBytes',
   kb: 'kbBytes',
   board: 'boardBytes',

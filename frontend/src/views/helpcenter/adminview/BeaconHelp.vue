@@ -9,7 +9,7 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import BeaconFaultCard from '@/views/adminview/adminbeaconview/BeaconFaultCard.vue'
-import type {BeaconFault} from '@/api/beacon'
+import type {BeaconFault} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

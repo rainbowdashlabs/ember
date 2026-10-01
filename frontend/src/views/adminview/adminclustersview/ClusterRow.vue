@@ -12,7 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import BareButton from '@/components/button/BareButton.vue'
 import {searchAccounts, type AccountSearchResult} from '@/api/twoFactorAdmin'
-import type {Cluster} from '@/api/clusters'
+import type {ClusterResponse} from '@/api/generated/schema'
 
 /**
  * One cluster in the instance's list, with the one thing the instance does for it after creating it:
@@ -22,13 +22,13 @@ import type {Cluster} from '@/api/clusters'
  * with a cluster that has nobody in it once, and never looks at it again.
  */
 const props = defineProps<{
-  cluster: Cluster
+  cluster: ClusterResponse
   busy: boolean
 }>()
 
 const emit = defineEmits<{
-  appoint: [cluster: Cluster, account: AccountSearchResult]
-  remove: [cluster: Cluster]
+  appoint: [cluster: ClusterResponse, account: AccountSearchResult]
+  remove: [cluster: ClusterResponse]
 }>()
 
 const {t} = useI18n()

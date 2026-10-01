@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.traffic.entity.TrafficBucket;
 import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -45,7 +46,12 @@ public class TrafficReportService {
      * One hour of one station's traffic of one kind.
      */
     public record HourlyTrafficRow(
-            Instant hour, Integer stationId, AuthBucket auth, long ingressBytes, long egressBytes, long requests) {
+            Instant hour,
+            @Nullable Integer stationId,
+            AuthBucket auth,
+            long ingressBytes,
+            long egressBytes,
+            long requests) {
         static HourlyTrafficRow from(TrafficBucket b) {
             return new HourlyTrafficRow(
                     b.hour(), b.stationId(), b.auth(), b.ingressBytes(), b.egressBytes(), b.requests());

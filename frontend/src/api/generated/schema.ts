@@ -95,6 +95,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/accounts/{id}/password/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire one account's password */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/api-status/endpoint": {
         parameters: {
             query?: never;
@@ -329,6 +367,1301 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/beacon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What this instance sends to a beacon, and whether it is one */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BeaconStatus"];
+                    };
+                };
+            };
+        };
+        /** Update the beacon switches and the contact */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BeaconSettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BeaconStatus"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/beacon/collected/faults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The faults this beacon gathered, most widely met first */
+        get: {
+            parameters: {
+                query?: {
+                    includeAcknowledged?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BeaconFault"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/beacon/collected/faults/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mark a gathered fault as seen or name the version that fixed it */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ResolveRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/beacon/collected/figures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The bucketed figures this beacon collected over the last days */
+        get: {
+            parameters: {
+                query?: {
+                    days?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BeaconMetricsRow"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/beacon/collected/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The problem reports forwarded to this beacon, newest first */
+        get: {
+            parameters: {
+                query?: {
+                    includeAcknowledged?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BeaconReport"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/beacon/collected/reports/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a forwarded report as seen */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/beacon/collected/reports/{id}/screenshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The picture a forwarded report came with */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/*": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/beacon/figures/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The day's figures as they would be sent */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MetricsBatch"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/beacon/problems/{id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What one problem would travel as */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemPayload"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/beacon/problems/{id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send one problem to the beacon */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SendResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/beacon/problems/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send the chosen problems to the beacon */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SendRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SendResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/beacon/reports/{id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What one problem report would travel as */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReportPayload"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/beacon/reports/{id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pass one problem report on to the beacon */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SendReportRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SendResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/auth/hibp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the breached password check settings */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HibpConfigResponse"];
+                    };
+                };
+            };
+        };
+        /** Update the breached password check settings */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["HibpConfigRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HibpConfigResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/auth/passkeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the passkey mode with its readiness and adoption figures */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PasskeysConfigResponse"];
+                    };
+                };
+            };
+        };
+        /** Change the passkey mode */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PasskeysConfigRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PasskeysConfigResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/auth/passkeys/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Count what the passwordless mode would do to the accounts */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PasswordlessReport"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/auth/passkeys/residue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the password holders with no passkey they have used */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResidueEntry"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/auth/passkeys/retire-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire the password of every account that has used a passkey */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BulkRetireResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/auth/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the token and session lifetimes */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TokensConfigResponse"];
+                    };
+                };
+            };
+        };
+        /** Update the token and session lifetimes */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["TokensConfigRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TokensConfigResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/auth/tokens/generate-pepper": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate a new token pepper */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TokensConfigResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/auth/two-factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the two-factor settings */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TwoFactorCoreConfigResponse"];
+                    };
+                };
+            };
+        };
+        /** Update the two-factor settings */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["TwoFactorCoreConfigRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TwoFactorCoreConfigResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/auth/two-factor/backup-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the backup code settings */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BackupCodesConfig"];
+                    };
+                };
+            };
+        };
+        /** Update the backup code settings */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BackupCodesConfig"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BackupCodesConfig"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/auth/two-factor/generate-secret-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate a new key for the two-factor secrets */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TwoFactorCoreConfigResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/auth/two-factor/totp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the authenticator app settings */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TotpConfig"];
+                    };
+                };
+            };
+        };
+        /** Update the authenticator app settings */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["TotpConfig"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TotpConfig"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/auth/webauthn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the security key settings */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WebAuthnConfig"];
+                    };
+                };
+            };
+        };
+        /** Update the security key settings */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WebAuthnConfig"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WebAuthnConfig"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/logging": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get how much of the application log is stored */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoggingConfig"];
+                    };
+                };
+            };
+        };
+        /** Update how much of the application log is stored */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["LoggingConfigRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoggingConfig"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the instance mail settings that belong to no one provider */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailingConfigResponse"];
+                    };
+                };
+            };
+        };
+        /** Update the instance mail settings that belong to no one provider */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MailingConfigRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailingConfigResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Reset the instance mail settings */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Lift a provider's block for a recipient domain */
+        delete: {
+            parameters: {
+                query: {
+                    domain?: string;
+                    provider: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/config/mailing/dashboard": {
         parameters: {
             query?: never;
@@ -359,6 +1692,108 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the instance's mail providers in the order they are tried */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailFallbackChain"];
+                    };
+                };
+            };
+        };
+        /** Replace the instance's mail providers */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MailFallbackChain"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailFallbackChain"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/providers/{position}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test mail through one provider of the instance list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    position: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProviderTestRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailTestResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -446,6 +1881,194 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/config/mailing/webhook-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace the instance's delivery webhook key */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WebhookUrlResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/data-tracking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The data tracking file as it stands */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DataTracking"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/data-tracking/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Counts of tracked, ignored and unverified tables */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Summary"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/data-tracking/tables/{table}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update the tracking of one table */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    table: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["TableUpdate"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TableEntry"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/data-tracking/tables/{table}/verify-columns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark every column of one table as verified */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    table: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TableEntry"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/feed-metrics": {
         parameters: {
             query?: never;
@@ -509,12 +2132,208 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["FeedUserAgentStat"][];
+                        "application/json": components["schemas"]["UserAgentsResponse"];
                     };
                 };
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/legal/{type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a legal document in the default language */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    type: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LegalDocumentResponse"];
+                    };
+                };
+            };
+        };
+        /** Replace a legal document in the default language */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    type: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LegalDocumentResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/legal/{type}/{locale}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a legal document in one language */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    locale: string;
+                    type: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LegalDocumentResponse"];
+                    };
+                };
+            };
+        };
+        /** Replace a legal document in one language */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    locale: string;
+                    type: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["LegalDocumentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LegalDocumentResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/legal/{type}/{locale}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the sections of a legal document in one language */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    locale: string;
+                    type: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LegalFileEntry"][];
+                    };
+                };
+            };
+        };
+        /** Replace the sections of a legal document in one language */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    locale: string;
+                    type: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["LegalFileEntry"][];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LegalFileEntry"][];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -559,6 +2378,143 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/legal/{type}/{locale}/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the sections Ember ships for a legal document */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    locale: string;
+                    type: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TemplateSection"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/legal/{type}/locales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the languages a legal document is written in */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    type: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": string[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/legal/placeholders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the placeholders used across the legal documents with their values */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentPlaceholder"][];
+                    };
+                };
+            };
+        };
+        /** Set the values of the placeholders used across the legal documents */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PlaceholderValues"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentPlaceholder"][];
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -723,7 +2679,25 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
+        /** Empty the stored application log */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -751,7 +2725,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["LogFacet"][];
+                    };
                 };
             };
         };
@@ -1651,6 +3627,562 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/storage/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The history of storage changes across the instance */
+        get: {
+            parameters: {
+                query?: {
+                    before?: string;
+                    limit?: number;
+                    stationUid?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuditEntryResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/storage/backend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The storage the instance keeps its own files on */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstanceBackendSummary"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/storage/backend/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save the instance's storage and move its files onto it */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["InstanceMigrateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstanceMigrationResultResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/storage/backend/apply/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the instance's files are being moved right now */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstanceMigrationStatusResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/storage/backend/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check whether the instance's storage answers */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProbeResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/storage/backend/probe-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check whether a storage not saved yet would answer */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["InstanceBackendRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProbeResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/storage/presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the quota presets */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StorageQuotaPreset"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a quota preset */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PresetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StorageQuotaPreset"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/storage/presets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update a quota preset */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PresetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StorageQuotaPreset"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete a quota preset */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/storage/presets/{id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply a quota preset to stations */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ApplyPresetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/storage/recalculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Count the storage of every station again */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/storage/recalculate/{stationUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Count the storage of one station again */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/storage/stations/{stationUid}/quotas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Override one station's quotas */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuotaUpdateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        /** Return one station to the default quotas */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/storage/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How much storage every station uses */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminStationUsage"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/tasks": {
         parameters: {
             query?: never;
@@ -1675,6 +4207,47 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["TaskStatus"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/traffic/hourly": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hourly traffic of every station and of the instance itself */
+        get: {
+            parameters: {
+                query: {
+                    auth?: components["schemas"]["AuthBucket"];
+                    from: components["schemas"]["Instant"];
+                    stationId?: number;
+                    to: components["schemas"]["Instant"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HourlyTrafficResponse"];
                     };
                 };
             };
@@ -35441,6 +38014,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/logo-fragment/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One fragment of the animated logo as an image */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/media/{stationUid}/{hash}": {
         parameters: {
             query?: never;
@@ -35812,6 +38432,42 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["StationRegistrationStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/settings/theme": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The instance's default look (public) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicTheme"];
                     };
                 };
             };
@@ -41696,6 +44352,564 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station/insights/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The station's public pages ranked by hits in a window */
+        get: {
+            parameters: {
+                query: {
+                    from: components["schemas"]["Instant"];
+                    limit?: number;
+                    to: components["schemas"]["Instant"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LeaderboardResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/insights/pages/{pageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hourly, country and referrer breakdowns of one public page */
+        get: {
+            parameters: {
+                query: {
+                    from: components["schemas"]["Instant"];
+                    to: components["schemas"]["Instant"];
+                };
+                header?: never;
+                path: {
+                    pageId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PageDetailResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/mail-import/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What became of each attachment the mailboxes read */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    size?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LogPageResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/mail-import/mailboxes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the station's mailboxes */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailboxResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Connect a mailbox */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MailboxRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailboxResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/mail-import/mailboxes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update a mailbox */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MailboxRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailboxResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Disconnect a mailbox */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/mail-import/mailboxes/{id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a mailbox's password */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/mail-import/mailboxes/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a suspended mailbox */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailboxResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/mail-import/mailboxes/{id}/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the rules of a mailbox */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuleResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Add a rule to a mailbox */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RuleRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuleResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/mail-import/mailboxes/{id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read a mailbox now */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CycleResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/mail-import/mailboxes/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test a mailbox connection and list its folders */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/mail-import/rules/{ruleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update a mailbox rule */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    ruleId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RuleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuleResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete a mailbox rule */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    ruleId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/mail-import/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the operator decided about mail import */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstanceSettingsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station/manage": {
         parameters: {
             query?: never;
@@ -42040,6 +45254,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station/manage/mail/blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Lift a provider's block for a recipient domain */
+        delete: {
+            parameters: {
+                query: {
+                    domain?: string;
+                    provider: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station/manage/mail/dashboard": {
         parameters: {
             query?: never;
@@ -42069,6 +45320,148 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/manage/mail/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the station's mail providers in the order they are tried */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailFallbackPayload"][];
+                    };
+                };
+            };
+        };
+        /** Replace the station's mail providers */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MailFallbackPayload"][];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailFallbackPayload"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/manage/mail/providers/{position}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Try one provider of the station's list, sending a test mail when an address is given */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    position: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProviderTestRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailTestResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/manage/mail/signing-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Store the signing secret the station's mail provider issued */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SigningSecretRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WebhookUrl"];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -42222,7 +45615,27 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        /** Replace the station's delivery webhook key */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WebhookUrl"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -42279,6 +45692,64 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["ModulesResponse"];
                     };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/manage/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** When the station's gathered notifications go out */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationSchedulePayload"];
+                    };
+                };
+            };
+        };
+        /** Set when the station's gathered notifications go out */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["NotificationSchedulePayload"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -42484,6 +45955,237 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["SetupStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/storage/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The history of the station's storage changes */
+        get: {
+            parameters: {
+                query?: {
+                    before?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuditEntryResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/storage/backend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What is behind the station's files and who decided it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BackendOverrideResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/storage/backend/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move the station's files onto another storage */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BackendOverrideRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MigrationResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/storage/backend/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check whether the station's own storage answers */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProbeResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/storage/backend/probe-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check whether a storage not saved yet would answer */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BackendOverrideRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProbeResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/traffic/hourly": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hourly traffic of the caller's station */
+        get: {
+            parameters: {
+                query: {
+                    auth?: components["schemas"]["AuthBucket"];
+                    from: components["schemas"]["Instant"];
+                    to: components["schemas"]["Instant"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HourlyTrafficResponse"];
                     };
                 };
             };
@@ -42851,6 +46553,42 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["StationStatistics"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/storage/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How much storage the caller's station uses */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationUsageResponse"];
                     };
                 };
             };
@@ -44235,6 +47973,22 @@ export interface components {
             /** Format: int32 */
             stationsSetupPending: number;
         };
+        AdminStationUsage: {
+            categories: components["schemas"]["CategoryUsage"][];
+            origin: components["schemas"]["QuotaOrigin"];
+            /** Format: int32 */
+            presetId: number | null;
+            presetName: string | null;
+            /** Format: int64 */
+            quotaBytes: number;
+            /** Format: int32 */
+            quotaUsedPercent: number;
+            stationId: string;
+            stationName: string;
+            /** Format: int64 */
+            totalBytes: number;
+            usesOwnBackend: boolean;
+        };
         AdminStatistics: {
             /** Format: int32 */
             accountsUnverified: number;
@@ -44359,10 +48113,10 @@ export interface components {
             /** Format: int64 */
             dropped: number;
             entries: components["schemas"]["LogEntry"][];
-            loggers: components["schemas"]["Facet"][];
+            loggers: components["schemas"]["LogFacet"][];
             /** Format: int32 */
             retentionDays: number;
-            threads: components["schemas"]["Facet"][];
+            threads: components["schemas"]["LogFacet"][];
         };
         ApplicationRequest: {
             email?: string;
@@ -44379,6 +48133,9 @@ export interface components {
             instanceDefaultTheme: string;
             instanceLockFeel: boolean;
             stationRegistrationEnabled: boolean;
+        };
+        ApplyPresetRequest: {
+            stationUids?: string[];
         };
         ApplyRequest: {
             clusterUid?: string;
@@ -44565,8 +48322,27 @@ export interface components {
             title?: string;
             url?: string;
         };
+        AuditEntryResponse: {
+            action: components["schemas"]["StorageAuditAction"];
+            /** Format: int32 */
+            actorAccountId: number | null;
+            /** Format: int32 */
+            actorMemberId: number | null;
+            error: string | null;
+            /** Format: int64 */
+            id: number;
+            newConfig: string | null;
+            oldConfig: string | null;
+            outcome: components["schemas"]["StorageAuditOutcome"];
+            /** Format: uuid */
+            stationId: string | null;
+            systemActor: string | null;
+            ts: string;
+        };
+        /** @enum {string} */
+        AuthBucket: "AUTHENTICATED" | "UNAUTHENTICATED" | "FEDERATION";
         AvailableClusterResponse: {
-            description: string;
+            description: string | null;
             name: string;
             /** Format: uuid */
             uid: string;
@@ -44618,7 +48394,19 @@ export interface components {
             name: string;
         };
         BackendOverrideRequest: components["schemas"]["ClusterStorageRequest"] | components["schemas"]["LocalRequest"] | components["schemas"]["S3Request"] | components["schemas"]["SftpRequest"] | components["schemas"]["SmbRequest"];
+        BackendOverrideResponse: {
+            clusterBackend: components["schemas"]["BackendOverrideSummary"] | null;
+            clusterName: string | null;
+            clusterOffersStorage: boolean;
+            instanceDefault: components["schemas"]["StorageBackendType"];
+            locked: boolean;
+            override: components["schemas"]["BackendOverrideSummary"] | null;
+        };
         BackendOverrideSummary: components["schemas"]["S3Summary"] | components["schemas"]["SftpSummary"] | components["schemas"]["SmbSummary"];
+        BackupCodesConfig: {
+            /** Format: int32 */
+            count: number;
+        };
         BatchCreateRequest: {
             /** Format: int32 */
             categoryId?: number | null;
@@ -44669,6 +48457,74 @@ export interface components {
             } | null;
             name?: string | null;
             startTime?: components["schemas"]["Instant"];
+        };
+        BeaconFault: {
+            acknowledged: boolean;
+            exceptionClass: string | null;
+            fingerprint: string;
+            firstSeen: components["schemas"]["Instant"];
+            frames: string | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            instances: number;
+            lastSeen: components["schemas"]["Instant"];
+            level: string;
+            logger: string | null;
+            message: string | null;
+            /** Format: int64 */
+            occurrences: number;
+            resolvedIn: string | null;
+            versions: string[];
+        };
+        BeaconMetricsRow: {
+            accounts: string | null;
+            day: string;
+            inventory: string | null;
+            members: string | null;
+            metricsUid: string;
+            stations: string | null;
+            subject: string;
+        };
+        BeaconReport: {
+            acknowledged: boolean;
+            browser: string | null;
+            contactMail: string | null;
+            contactName: string | null;
+            /** Format: int32 */
+            id: number;
+            instanceId: string;
+            message: string;
+            page: string | null;
+            recentRequests: string | null;
+            reportedAt: components["schemas"]["Instant"];
+            roles: string | null;
+            /** Format: int32 */
+            screenshotFileId: number | null;
+            screenSize: string | null;
+            version: string | null;
+        };
+        BeaconSettingsRequest: {
+            contactMail?: string;
+            contactName?: string;
+            enabled?: boolean;
+            forwardProblems?: boolean;
+            forwardReports?: boolean;
+            metricsEnabled?: boolean;
+            receiving?: boolean;
+            reviewReportPictures?: boolean;
+            url?: string;
+        };
+        BeaconStatus: {
+            contactMail: string;
+            contactName: string;
+            enabled: boolean;
+            forwardProblems: boolean;
+            forwardReports: boolean;
+            metricsEnabled: boolean;
+            receiving: boolean;
+            reviewReportPictures: boolean;
+            url: string;
         };
         BindingRequest: {
             /** Format: int32 */
@@ -44966,6 +48822,12 @@ export interface components {
             /** Format: int32 */
             refusedTotal: number;
         };
+        BulkRetireResponse: {
+            /** Format: int32 */
+            passedOver: number;
+            /** Format: int32 */
+            retired: number;
+        };
         BulkSetRequest: {
             checked?: boolean;
             entryIds?: number[];
@@ -45060,6 +48922,13 @@ export interface components {
             /** Format: int32 */
             position?: number;
         };
+        CategoryUsage: {
+            category: string;
+            /** Format: int32 */
+            fileCount: number;
+            /** Format: int64 */
+            totalBytes: number;
+        };
         CategoryUsageResponse: {
             category: string;
             /** Format: int32 */
@@ -45131,8 +49000,8 @@ export interface components {
         };
         ChangelogEntry: {
             body: string;
-            compareUrl: string;
-            releasedAt: components["schemas"]["Instant"];
+            compareUrl: string | null;
+            releasedAt: components["schemas"]["Instant"] | null;
             version: string;
         };
         CheckItemResult: {
@@ -45227,23 +49096,23 @@ export interface components {
             reason?: string | null;
         };
         ClusterApplicationResponse: {
-            denyReason: string;
+            denyReason: string | null;
             /** Format: int32 */
             id: number;
             requestedAt: components["schemas"]["Instant"];
-            resolvedAt: components["schemas"]["Instant"];
-            stationName: string;
+            resolvedAt: components["schemas"]["Instant"] | null;
+            stationName: string | null;
             status: components["schemas"]["ClusterApplicationStatus"];
         };
         /** @enum {string} */
         ClusterApplicationStatus: "PENDING" | "APPROVED" | "DENIED" | "WITHDRAWN";
         ClusterApplicationView: {
-            clusterName: string;
-            denyReason: string;
+            clusterName: string | null;
+            denyReason: string | null;
             /** Format: int32 */
             id: number;
             requestedAt: components["schemas"]["Instant"];
-            resolvedAt: components["schemas"]["Instant"];
+            resolvedAt: components["schemas"]["Instant"] | null;
             status: components["schemas"]["ClusterApplicationStatus"];
         };
         ClusterAssignmentRequest: {
@@ -45273,7 +49142,7 @@ export interface components {
             width?: string;
         };
         ClusterFieldResponse: {
-            config: components["schemas"]["ProfileFieldConfig"];
+            config: components["schemas"]["ProfileFieldConfig"] | null;
             fieldType: string;
             /** Format: int32 */
             id: number;
@@ -45282,9 +49151,9 @@ export interface components {
             readonly: boolean;
             required: boolean;
             /** Format: int32 */
-            stationGroupId: number;
+            stationGroupId: number | null;
             stationReadonly: boolean;
-            width: string;
+            width: string | null;
         };
         ClusterFlowResponse: {
             archived: boolean;
@@ -45358,11 +49227,11 @@ export interface components {
             resolved: string[];
         };
         ClusterMemberResponse: {
-            accountUid: string;
-            email: string;
+            accountUid: string | null;
+            email: string | null;
             /** Format: int32 */
             id: number;
-            name: string;
+            name: string | null;
             userType: string;
         };
         ClusterPermissionsRequest: {
@@ -45392,28 +49261,29 @@ export interface components {
             stepLabel: string | null;
         };
         ClusterRequest: {
-            autoFederate?: boolean;
-            description?: string;
+            autoFederate?: boolean | null;
+            description?: string | null;
             name?: string;
         };
         ClusterResponse: {
             autoFederate: boolean;
             colorsLocked: boolean;
-            description: string;
+            description: string | null;
             feelLocked: boolean;
             /** Format: uuid */
             homeStationId: string;
             logoLocked: boolean;
             name: string;
             /** Format: int64 */
-            storagePoolBytes: number;
+            storagePoolBytes: number | null;
             themeLocked: boolean;
             /** Format: uuid */
             uid: string;
+            usesInventory: boolean;
         };
         ClusterStationResponse: {
             name: string;
-            publicSlug: string;
+            publicSlug: string | null;
             /** Format: uuid */
             uid: string;
         };
@@ -45493,6 +49363,13 @@ export interface components {
             label?: string;
             /** Format: int32 */
             position?: number;
+        };
+        ColumnEntry: {
+            description?: string;
+            name: string;
+            nullable: boolean;
+            type: string;
+            verified: boolean;
         };
         ColumnMapping: {
             csvColumn?: string;
@@ -45886,6 +49763,32 @@ export interface components {
             headers: string[];
             rows: string[][];
         };
+        CustomScope: {
+            distinct: boolean;
+            refColumn: string;
+            viaColumn: string;
+            viaTable: string;
+        };
+        CycleResponse: {
+            /** Format: int32 */
+            imported: number;
+            /** Format: int32 */
+            looked: number;
+            /** Format: int32 */
+            refused: number;
+        };
+        DataTracking: {
+            fileStores?: {
+                [key: string]: components["schemas"]["FileStoreEntry"];
+            };
+            generatedAt: components["schemas"]["Instant"];
+            schemaHash: string;
+            tables: {
+                [key: string]: components["schemas"]["TableEntry"];
+            };
+            /** Format: int32 */
+            version: number;
+        };
         Date: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -45942,6 +49845,12 @@ export interface components {
             deleted: boolean;
             message: string;
         };
+        DeletionStrategy: {
+            column: string;
+            legalBasis?: string;
+            reason?: string;
+            strategy: components["schemas"]["Strategy"];
+        };
         DemoLoginRequest: {
             email?: string;
         };
@@ -45964,35 +49873,40 @@ export interface components {
         Dimension: "USER_TYPE" | "GROUP" | "TAG" | "FIELD" | "AGE";
         Dimensions: {
             /** Format: int64 */
-            boardBytes: number;
+            boardBytes: number | null;
             /** Format: int64 */
-            imagesBytes: number;
+            imagesBytes: number | null;
             /** Format: int64 */
-            kbBytes: number;
+            kbBytes: number | null;
             /** Format: int64 */
-            pagesBytes: number;
+            pagesBytes: number | null;
             /** Format: int64 */
-            perFileBytes: number;
+            perFileBytes: number | null;
             /** Format: int64 */
-            perImageBytes: number;
+            perImageBytes: number | null;
             /** Format: int64 */
-            totalBytes: number;
+            totalBytes: number | null;
         };
         DimensionsRequest: {
             /** Format: int64 */
-            boardBytes?: number;
+            boardBytes?: number | null;
             /** Format: int64 */
-            imagesBytes?: number;
+            imagesBytes?: number | null;
             /** Format: int64 */
-            kbBytes?: number;
+            kbBytes?: number | null;
             /** Format: int64 */
-            pagesBytes?: number;
+            pagesBytes?: number | null;
             /** Format: int64 */
-            perFileBytes?: number;
+            perFileBytes?: number | null;
             /** Format: int64 */
-            perImageBytes?: number;
+            perImageBytes?: number | null;
             /** Format: int64 */
-            totalBytes?: number;
+            totalBytes?: number | null;
+        };
+        DimensionTotal: {
+            dimension: string;
+            /** Format: int64 */
+            hits: number;
         };
         /** @enum {string} */
         DiscoveryVisibility: "NONE" | "INSTANCE" | "PUBLIC";
@@ -46013,6 +49927,11 @@ export interface components {
             documents: components["schemas"]["MemberDocumentResponse"][];
             /** Format: int32 */
             total: number;
+        };
+        DocumentPlaceholder: {
+            name: string;
+            usages: components["schemas"]["Usage"][];
+            value: string;
         };
         DocumentResponse: {
             html: string;
@@ -46180,6 +50099,13 @@ export interface components {
         };
         EnumValue: {
             value: string;
+        };
+        Envelope: {
+            audience: string;
+            issuedAt: components["schemas"]["Instant"];
+            nonce: string;
+            /** Format: int32 */
+            protocolVersion: number;
         };
         EquipmentClaim: {
             eventDate: components["schemas"]["LocalDate"] | null;
@@ -46579,11 +50505,6 @@ export interface components {
         };
         /** @enum {string} */
         ExternalLinkImageDisplay: "BANNER" | "ICON";
-        Facet: {
-            /** Format: int32 */
-            count: number;
-            value: string;
-        };
         FailedInviteResponse: {
             email: string;
             reason: string;
@@ -46808,6 +50729,15 @@ export interface components {
             file: components["schemas"]["KbFile"];
             lastEditedByName: string;
         };
+        FileStoreEntry: {
+            feature?: string;
+            gdprDeletion: components["schemas"]["GdprDeletionContext"];
+            gdprExport: components["schemas"]["GdprExportContext"];
+            linkColumn?: string;
+            linkedTable?: string;
+            path: string;
+            stationTransfer: components["schemas"]["TransferContext"];
+        };
         FileUpdateRequest: {
             description?: string;
             iconUrl?: string;
@@ -46870,6 +50800,12 @@ export interface components {
             name: string;
             /** Format: int32 */
             parentId: number | null;
+        };
+        ForeignKey: {
+            column: string;
+            onDelete: string;
+            refColumn: string;
+            refTable: string;
         };
         Form: {
             acceptingResponses: boolean;
@@ -47192,6 +51128,17 @@ export interface components {
             imageHash?: string;
             subtext?: string;
         };
+        GdprDeletionContext: {
+            reason?: string;
+            status: components["schemas"]["TrackingStatus"];
+            strategies?: components["schemas"]["DeletionStrategy"][];
+        };
+        GdprExportContext: {
+            identityColumns?: components["schemas"]["IdentityColumn"][];
+            ignoredColumns?: string[];
+            reason?: string;
+            status: components["schemas"]["TrackingStatus"];
+        };
         GenerateDatesRequest: {
             /** Format: int32 */
             dayOfWeek?: number | null;
@@ -47297,6 +51244,22 @@ export interface components {
             imageHash?: string;
             subtitle?: string;
         };
+        HibpConfigRequest: {
+            enabled?: boolean;
+            endpoint?: string;
+            /** Format: int32 */
+            staleAfterDays?: number;
+            /** Format: int32 */
+            timeoutSeconds?: number;
+        };
+        HibpConfigResponse: {
+            enabled: boolean;
+            endpoint: string;
+            /** Format: int32 */
+            staleAfterDays: number;
+            /** Format: int32 */
+            timeoutSeconds: number;
+        };
         HistoryResponse: {
             corrected: boolean;
             givenOut: components["schemas"]["Instant"];
@@ -47318,6 +51281,33 @@ export interface components {
             /** Format: int64 */
             requestCount: number;
         };
+        HourlyTotal: {
+            /** Format: int64 */
+            hits: number;
+            hour: components["schemas"]["Instant"];
+        };
+        HourlyTrafficResponse: {
+            rows: components["schemas"]["HourlyTrafficRow"][];
+        };
+        HourlyTrafficRow: {
+            auth: components["schemas"]["AuthBucket"];
+            /** Format: int64 */
+            egressBytes: number;
+            hour: components["schemas"]["Instant"];
+            /** Format: int64 */
+            ingressBytes: number;
+            /** Format: int64 */
+            requests: number;
+            /** Format: uuid */
+            stationId: string | null;
+        };
+        IdentityColumn: {
+            column: string;
+            filter?: string;
+            type: components["schemas"]["IdentityType"];
+        };
+        /** @enum {string} */
+        IdentityType: "ACCOUNT_ID" | "MEMBER_ID" | "MEMBER_UID";
         ImageConfig: {
             altText?: string;
             borderColor?: string;
@@ -47390,6 +51380,141 @@ export interface components {
             /** Format: uuid */
             stationId: string;
             stationName: string;
+        };
+        InstanceBackendRequest: components["schemas"]["InstanceLocalRequest"] | components["schemas"]["InstanceS3Request"] | components["schemas"]["InstanceSftpRequest"] | components["schemas"]["InstanceSmbRequest"];
+        InstanceBackendSummary: components["schemas"]["InstanceLocalSummary"] | components["schemas"]["InstanceS3Summary"] | components["schemas"]["InstanceSftpSummary"] | components["schemas"]["InstanceSmbSummary"];
+        InstanceLocalRequest: {
+            root?: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "LOCAL";
+        };
+        InstanceLocalSummary: {
+            root: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "LOCAL";
+        };
+        InstanceMigrateRequest: {
+            keepSource?: boolean;
+            target?: components["schemas"]["InstanceBackendRequest"];
+        };
+        InstanceMigrationResultResponse: {
+            /** Format: int32 */
+            copied: number;
+            /** Format: int64 */
+            copiedBytes: number;
+            /** Format: int32 */
+            deleted: number;
+            /** Format: int32 */
+            skipped: number;
+            /** Format: int32 */
+            totalKeys: number;
+        };
+        InstanceMigrationStatusResponse: {
+            migrationInFlight: boolean;
+        };
+        InstanceS3Request: {
+            accessKey?: string;
+            basePath?: string;
+            bucket?: string;
+            endpoint?: string;
+            pathStyle?: boolean;
+            region?: string;
+            secretKey?: string;
+            sseAlgorithm?: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "S3";
+        };
+        InstanceS3Summary: {
+            basePath: string;
+            bucket: string;
+            endpoint: string;
+            pathStyle: boolean;
+            region: string;
+            sseAlgorithm: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "S3";
+        };
+        InstanceSettingsResponse: {
+            canStorePasswords: boolean;
+            enabled: boolean;
+            /** Format: int32 */
+            logRetentionDays: number;
+            /** Format: int32 */
+            maxAttachmentsPerCycle: number;
+            /** Format: int32 */
+            minimumIntervalMinutes: number;
+            supportedTypes: string[];
+        };
+        InstanceSftpRequest: {
+            basePath?: string;
+            host?: string;
+            knownHostsFingerprint?: string;
+            password?: string;
+            /** Format: int32 */
+            port?: number;
+            privateKey?: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SFTP";
+            username?: string;
+        };
+        InstanceSftpSummary: {
+            basePath: string;
+            host: string;
+            knownHostsPinned: boolean;
+            /** Format: int32 */
+            port: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SFTP";
+            username: string;
+        };
+        InstanceSmbRequest: {
+            basePath?: string;
+            dfs?: boolean;
+            domain?: string;
+            host?: string;
+            password?: string;
+            /** Format: int32 */
+            port?: number;
+            seal?: boolean;
+            share?: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SMB";
+            username?: string;
+        };
+        InstanceSmbSummary: {
+            basePath: string;
+            dfs: boolean;
+            host: string;
+            /** Format: int32 */
+            port: number;
+            seal: boolean;
+            share: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SMB";
         };
         /** @enum {string} */
         InstanceUserType: "USER" | "ADMINISTRATOR";
@@ -48010,6 +52135,19 @@ export interface components {
             id?: number;
             name?: string;
         };
+        LeaderboardResponse: {
+            rows: components["schemas"]["PageLeaderboardEntry"][];
+        };
+        LegalDocumentRequest: {
+            content?: string;
+        };
+        LegalDocumentResponse: {
+            content: string;
+            type: components["schemas"]["LegalDocumentType"];
+            version: string;
+        };
+        /** @enum {string} */
+        LegalDocumentType: "privacy" | "tos" | "consent" | "imprint";
         LegalFileEntry: {
             content: string;
             displayName: string;
@@ -48024,7 +52162,7 @@ export interface components {
             files: components["schemas"]["LegalFileEntry"][];
             /** Format: int32 */
             references: number;
-            title: string;
+            title: string | null;
             unmatched: string[];
         };
         LegalVersionsResponse: {
@@ -48262,7 +52400,30 @@ export interface components {
             logger: string;
             message: string;
             thread: string;
-            throwable: string;
+            throwable: string | null;
+        };
+        LogEntryResponse: {
+            attachmentName: string | null;
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            documentId: number | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            mailboxId: number;
+            outcome: components["schemas"]["MailImportOutcome"];
+            pruned: boolean;
+            reason: string | null;
+            /** Format: int32 */
+            ruleId: number | null;
+            ruleName: string | null;
+            sender: string | null;
+            subject: string | null;
+        };
+        LogFacet: {
+            /** Format: int32 */
+            count: number;
+            value: string;
         };
         LoggedRequest: {
             /** Format: int32 */
@@ -48272,6 +52433,20 @@ export interface components {
             /** Format: int32 */
             statusCode: number;
             timestamp: components["schemas"]["Instant"];
+        };
+        LoggingConfig: {
+            databaseEnabled: boolean;
+            databaseLevel: string;
+            /** Format: int32 */
+            retentionDays: number;
+            /** Format: int32 */
+            storedLines: number;
+        };
+        LoggingConfigRequest: {
+            databaseEnabled?: boolean;
+            databaseLevel?: string;
+            /** Format: int32 */
+            retentionDays?: number;
         };
         LoginRequest: {
             identifier?: string;
@@ -48291,14 +52466,24 @@ export interface components {
             token: string;
             twoFactorRequired: boolean;
         };
+        LogPageResponse: {
+            entries: components["schemas"]["LogEntryResponse"][];
+            /** Format: int32 */
+            total: number;
+        };
         LookAndFeelRequest: {
             colorsLocked: boolean;
-            customThemeColors: string;
-            defaultFeel: string;
-            defaultTheme: string;
+            customThemeColors: string | null;
+            defaultFeel: string | null;
+            defaultTheme: string | null;
             feelLocked: boolean;
             logoLocked: boolean;
             themeLocked: boolean;
+        };
+        Lookup: {
+            emitAs: string;
+            pick: string;
+            via: string;
         };
         LossReport: {
             documentName: string | null;
@@ -48337,11 +52522,47 @@ export interface components {
             /** Format: int32 */
             selfCheckId?: number | null;
         };
+        MailboxRequest: {
+            enabled?: boolean;
+            folder?: string;
+            host?: string;
+            importFrom?: components["schemas"]["Instant"];
+            /** Format: int32 */
+            intervalMinutes?: number;
+            name?: string;
+            password?: string | null;
+            /** Format: int32 */
+            port?: number;
+            security?: components["schemas"]["MailSecurity"];
+            username?: string;
+            verifyDkim?: boolean;
+        };
+        MailboxResponse: {
+            enabled: boolean;
+            /** Format: int32 */
+            failureCount: number;
+            folder: string;
+            host: string;
+            /** Format: int32 */
+            id: number;
+            importFrom: components["schemas"]["Instant"];
+            /** Format: int32 */
+            intervalMinutes: number;
+            lastCheckAt: components["schemas"]["Instant"] | null;
+            lastError: string | null;
+            name: string;
+            /** Format: int32 */
+            port: number;
+            security: components["schemas"]["MailSecurity"];
+            suspended: boolean;
+            username: string;
+            verifyDkim: boolean;
+        };
         MailDashboard: {
             blocks: components["schemas"]["ProviderBlock"][];
             /** Format: int32 */
             failed: number;
-            oldestPendingAt: components["schemas"]["Instant"];
+            oldestPendingAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             pending: number;
             providers: components["schemas"]["ProviderStanding"][];
@@ -48356,6 +52577,40 @@ export interface components {
         };
         /** @enum {string} */
         MailDeliveryStatus: "UNKNOWN" | "DELIVERED" | "SOFT_BOUNCE" | "HARD_BOUNCE" | "BLOCKED" | "SPAM" | "DEFERRED" | "ERROR";
+        MailFallbackChain: {
+            /** Format: int32 */
+            attempts: number;
+            fallbacks: components["schemas"]["MailFallbackPayload"][];
+        };
+        MailFallbackPayload: {
+            apiKey: string;
+            /** Format: int32 */
+            attempts: number;
+            /** Format: int32 */
+            dailySendLimit: number;
+            deliveryWebhookUrl: string;
+            provider: components["schemas"]["MailProviderType"];
+            providerName: string;
+            providerUrl: string;
+            senderAddress: string;
+            senderName: string;
+            smtpEncryption: components["schemas"]["SmtpEncryption"];
+            smtpHost: string;
+            smtpPassword: string;
+            /** Format: int32 */
+            smtpPort: number;
+            smtpUser: string;
+        };
+        /** @enum {string} */
+        MailImportOutcome: "IMPORTED" | "DUPLICATE" | "SENDER_NOT_ALLOWED" | "NO_RULE_MATCHED" | "TYPE_NOT_ALLOWED" | "TOO_LARGE" | "TOO_SMALL" | "NO_ATTACHMENT" | "QUOTA_EXCEEDED" | "AUTHENTICATION_FAILED" | "NO_SIGNATURE" | "SIGNATURE_NOT_ALIGNED" | "SIGNATURE_FAILED" | "FAILED";
+        MailingConfigRequest: {
+            /** Format: int32 */
+            notificationDigestIntervalMinutes?: number;
+        };
+        MailingConfigResponse: {
+            /** Format: int32 */
+            notificationDigestIntervalMinutes: number;
+        };
         /** @enum {string} */
         MailProviderType: "NONE" | "SMTP" | "RAPIDMAIL" | "TWILIO" | "SWEEGO" | "BREVO";
         /** @enum {string} */
@@ -48364,7 +52619,7 @@ export interface components {
             /** Format: int32 */
             attempts: number;
             createdAt: components["schemas"]["Instant"];
-            deliveryDetail: string;
+            deliveryDetail: string | null;
             deliveryStatus: components["schemas"]["MailDeliveryStatus"];
             /** Format: int32 */
             id: number;
@@ -48372,14 +52627,20 @@ export interface components {
             providerPosition: number;
             reachable: boolean;
             recipient: string;
-            sentAt: components["schemas"]["Instant"];
+            sentAt: components["schemas"]["Instant"] | null;
             status: string;
             subject: string;
         };
+        /** @enum {string} */
+        MailRuleAction: "NOTHING" | "MARK_SEEN" | "FLAG" | "MOVE";
+        /** @enum {string} */
+        MailSecurity: "SSL" | "STARTTLS" | "NONE";
         MailTestResponse: {
-            error: string;
+            error: string | null;
             success: boolean;
         };
+        /** @enum {string} */
+        MailTitleSource: "SUBJECT" | "FILE_NAME";
         ManagedAccess: {
             canSignIn: boolean;
             email: string;
@@ -48409,7 +52670,7 @@ export interface components {
             uid: string;
         };
         ManagedMemberResponse: {
-            email: string;
+            email: string | null;
             former: boolean;
             /** Format: int32 */
             id: number;
@@ -48669,7 +52930,7 @@ export interface components {
             values: components["schemas"]["ProfileFieldValue"][];
         };
         MemberProfileFieldResponse: {
-            config: components["schemas"]["ProfileFieldConfig"];
+            config: components["schemas"]["ProfileFieldConfig"] | null;
             fieldType: string;
             /** Format: int32 */
             id: number;
@@ -48680,8 +52941,8 @@ export interface components {
             readonly: boolean;
             readonlyAtStation: boolean;
             required: boolean;
-            role: string;
-            width: string;
+            role: string | null;
+            width: string | null;
         };
         MemberProfileRequest: {
             values?: components["schemas"]["MemberProfileValueRequest"][];
@@ -48703,7 +52964,7 @@ export interface components {
             /** Format: int32 */
             fieldId: number;
             origin: string;
-            value: string;
+            value: string | null;
         };
         MemberRequirements: {
             required: components["schemas"]["RequiredInventoryItem"][];
@@ -48788,6 +53049,21 @@ export interface components {
         };
         MessageResponse: {
             message: string;
+        };
+        MetricsBatch: {
+            day: string;
+            /** Format: int32 */
+            protocolVersion: number;
+            subjects: components["schemas"]["MetricsSubject"][];
+            version: string;
+        };
+        MetricsSubject: {
+            accounts: string | null;
+            inventory: string;
+            members: string;
+            metricsUid: string;
+            stations: string | null;
+            subject: string;
         };
         MigrationResponse: {
             /** Format: int32 */
@@ -49068,7 +53344,7 @@ export interface components {
         NewMemberResponse: {
             /** Format: int32 */
             accountId: number;
-            email: string;
+            email: string | null;
             /** Format: int32 */
             memberId: number;
         };
@@ -49249,6 +53525,11 @@ export interface components {
             };
             type: string;
         };
+        NotificationSchedulePayload: {
+            /** Format: int32 */
+            floorMinutes: number;
+            sendTimes: string[];
+        };
         NotificationToggle: {
             app: boolean;
             email: boolean;
@@ -49307,17 +53588,35 @@ export interface components {
         OrderRequest: {
             needIds?: number[];
         };
+        /** @enum {string} */
+        OutputShape: "ROWS" | "SINGLE" | "FLAT";
         OverviewResponse: {
             defaults: components["schemas"]["Dimensions"];
             /** Format: int64 */
             handedOut: number;
             /** Format: int64 */
-            poolBytes: number;
+            poolBytes: number | null;
             presets: components["schemas"]["TierResponse"][];
             stations: components["schemas"]["StationRoomResponse"][];
         };
         OwnerAboveResponse: {
             name: string | null;
+        };
+        PageDetailResponse: {
+            countries: components["schemas"]["DimensionTotal"][];
+            hourly: components["schemas"]["HourlyTotal"][];
+            hourlyWithBots: components["schemas"]["HourlyTotal"][];
+            referrers: components["schemas"]["DimensionTotal"][];
+        };
+        PageLeaderboardEntry: {
+            /** Format: int64 */
+            botHits: number;
+            /** Format: int64 */
+            hits: number;
+            /** Format: int32 */
+            pageId: number;
+            slug: string;
+            title: string;
         };
         PageLinkConfig: {
             fallbackTitle?: string;
@@ -49361,6 +53660,37 @@ export interface components {
             stationUids?: string[];
             title?: string;
         };
+        PasskeysConfigRequest: {
+            mode?: string;
+        };
+        PasskeysConfigResponse: {
+            /** Format: int32 */
+            accountsWithPassword: number;
+            /** Format: int32 */
+            accountsWithPasswordAndNoPasskey: number;
+            /** Format: int32 */
+            accountsWithTriedPasskey: number;
+            /** Format: int32 */
+            dependentAccounts: number;
+            effectiveMode: string;
+            lastMailSentAt: components["schemas"]["Instant"] | null;
+            localhostFallback: boolean;
+            mode: string;
+            rpId: string;
+        };
+        PasswordlessReport: {
+            /** Format: int32 */
+            dormantForAYear: number;
+            /** Format: int32 */
+            reachableOnlyByQr: number;
+            /** Format: int32 */
+            withoutPasskey: number;
+            /** Format: int32 */
+            wouldKeepPassword: number;
+        };
+        PasswordRequest: {
+            password?: string;
+        };
         PastEventRecapConfig: {
             date?: string;
             eventUid?: string;
@@ -49401,6 +53731,11 @@ export interface components {
             title: string;
             updatedAt: components["schemas"]["Instant"];
         };
+        PlaceholderValues: {
+            values?: {
+                [key: string]: string;
+            };
+        };
         PlacementResponse: {
             actual: components["schemas"]["Actual"];
             expected: components["schemas"]["Expected"];
@@ -49434,7 +53769,7 @@ export interface components {
             reach?: components["schemas"]["ClusterBackendReach"];
         };
         PolicyResponse: {
-            backend: components["schemas"]["BackendOverrideSummary"];
+            backend: components["schemas"]["BackendOverrideSummary"] | null;
             locked: boolean;
             reach: components["schemas"]["ClusterBackendReach"];
         };
@@ -49445,6 +53780,23 @@ export interface components {
         PoolRequest: {
             /** Format: int64 */
             quotaBytes?: number;
+        };
+        PresetRequest: {
+            /** Format: int64 */
+            board?: number;
+            /** Format: int64 */
+            images?: number;
+            /** Format: int64 */
+            kb?: number;
+            name?: string;
+            /** Format: int64 */
+            pages?: number;
+            /** Format: int64 */
+            perFile?: number;
+            /** Format: int64 */
+            perImage?: number;
+            /** Format: int64 */
+            total?: number;
         };
         PresetResponse: {
             code: string;
@@ -49457,8 +53809,24 @@ export interface components {
         };
         ProbeResult: {
             checkedAt: string;
-            error: string;
+            error: string | null;
             healthy: boolean;
+        };
+        ProblemPayload: {
+            contactMail: string | null;
+            contactName: string | null;
+            envelope: components["schemas"]["Envelope"];
+            exceptionClass: string | null;
+            fingerprint: string;
+            firstOccurrence: components["schemas"]["Instant"];
+            frames: string;
+            lastOccurrence: components["schemas"]["Instant"];
+            level: string;
+            logger: string;
+            message: string | null;
+            /** Format: int32 */
+            occurrences: number;
+            version: string;
         };
         ProblemReport: {
             acknowledged: boolean;
@@ -49739,7 +54107,7 @@ export interface components {
             firstBlockedAt: components["schemas"]["Instant"];
             lastBlockedAt: components["schemas"]["Instant"];
             provider: components["schemas"]["MailProviderType"];
-            reason: string;
+            reason: string | null;
             recipientDomain: string;
         };
         ProviderStanding: {
@@ -49756,6 +54124,9 @@ export interface components {
             sentToday: number;
             /** Format: int32 */
             waiting: number;
+        };
+        ProviderTestRequest: {
+            recipient?: string | null;
         };
         ProvisionedMemberResponse: {
             accountCreated: boolean;
@@ -49937,6 +54308,12 @@ export interface components {
             publicSlug: string;
             stationUid: string;
             timezone: string;
+        };
+        PublicTheme: {
+            defaultFeel: string;
+            defaultTheme: string;
+            forcePrideFlag: boolean;
+            lockFeel: boolean;
         };
         PublicVisibilityRequest: {
             visible?: boolean;
@@ -50296,6 +54673,22 @@ export interface components {
         };
         /** @enum {string} */
         QuotaOrigin: "CLUSTER_GRANT" | "CLUSTER_DEFAULT" | "INSTANCE_OVERRIDE" | "INSTANCE_DEFAULT" | "UNLIMITED";
+        QuotaUpdateRequest: {
+            /** Format: int64 */
+            boardBytes?: number | null;
+            /** Format: int64 */
+            imagesBytes?: number | null;
+            /** Format: int64 */
+            kbBytes?: number | null;
+            /** Format: int64 */
+            pagesBytes?: number | null;
+            /** Format: int64 */
+            perFileBytes?: number | null;
+            /** Format: int64 */
+            perImageBytes?: number | null;
+            /** Format: int64 */
+            totalBytes?: number | null;
+        };
         QuoteConfig: {
             attributionUrl?: string;
             author?: string;
@@ -50634,6 +55027,21 @@ export interface components {
             monthlySummaries: components["schemas"]["MonthSummary"][];
             sessions: components["schemas"]["SessionData"][];
         };
+        ReportPayload: {
+            browser: string | null;
+            contactMail: string | null;
+            contactName: string | null;
+            envelope: components["schemas"]["Envelope"];
+            /** Format: int32 */
+            imageId: number | null;
+            message: string;
+            page: string | null;
+            recentRequests: string | null;
+            reportedAt: components["schemas"]["Instant"];
+            roles: string | null;
+            screenSize: string | null;
+            version: string;
+        };
         ReportRequest: {
             browserInfo?: string;
             message?: string;
@@ -50707,6 +55115,15 @@ export interface components {
             accountId?: number;
             forceChange?: boolean;
         };
+        ResidueEntry: {
+            /** Format: int32 */
+            accountId: number;
+            firstName: string;
+            hasGuardian: boolean;
+            lastName: string;
+            lastSignInAt: components["schemas"]["Instant"] | null;
+            reachable: boolean;
+        };
         ResolvedMember: {
             avatarUrl?: string;
             description?: string;
@@ -50738,6 +55155,10 @@ export interface components {
             /** Format: int64 */
             bytes: number;
             origin: components["schemas"]["QuotaOrigin"];
+        };
+        ResolveRequest: {
+            acknowledged?: boolean;
+            resolvedIn?: string | null;
         };
         RestorePlan: {
             movements: components["schemas"]["PlannedLanding"][];
@@ -50839,6 +55260,50 @@ export interface components {
             uid: string;
             userType: components["schemas"]["StationUserType"];
         };
+        RuleRequest: {
+            acceptedTypes?: string[];
+            action?: components["schemas"]["MailRuleAction"];
+            attachmentNameFilter?: string | null;
+            enabled?: boolean;
+            hidden?: boolean;
+            includeInline?: boolean;
+            keepOnArchive?: boolean;
+            /** Format: int64 */
+            minSizeBytes?: number;
+            moveToFolder?: string | null;
+            name?: string;
+            /** Format: int32 */
+            position?: number;
+            readSubjectForMember?: boolean;
+            senderPatterns?: string[];
+            subjectFilter?: string | null;
+            tags?: string[];
+            titleSource?: components["schemas"]["MailTitleSource"];
+        };
+        RuleResponse: {
+            acceptedTypes: string[];
+            action: components["schemas"]["MailRuleAction"];
+            attachmentNameFilter: string | null;
+            enabled: boolean;
+            hidden: boolean;
+            /** Format: int32 */
+            id: number;
+            includeInline: boolean;
+            keepOnArchive: boolean;
+            /** Format: int32 */
+            mailboxId: number;
+            /** Format: int64 */
+            minSizeBytes: number;
+            moveToFolder: string | null;
+            name: string;
+            /** Format: int32 */
+            position: number;
+            readSubjectForMember: boolean;
+            senderPatterns: string[];
+            subjectFilter: string | null;
+            tags: string[];
+            titleSource: components["schemas"]["MailTitleSource"];
+        };
         RunDetailResponse: {
             members: components["schemas"]["RunMemberWithProgress"][];
             run: components["schemas"]["TestProtocolRun"];
@@ -50919,6 +55384,8 @@ export interface components {
             slug?: string;
             title?: string;
         };
+        /** @enum {string} */
+        Scope: "STATION" | "INSTANCE" | "USER" | "CLUSTER";
         SearchResultItem: {
             file: components["schemas"]["KbFile"];
             snippet: string;
@@ -51109,6 +55576,17 @@ export interface components {
             inventoryId: number;
             inventoryName: string;
             name: string;
+        };
+        SendReportRequest: {
+            dropScreenshot?: boolean;
+            screenshot?: string | null;
+        };
+        SendRequest: {
+            ids?: number[];
+        };
+        SendResult: {
+            /** Format: int32 */
+            queued: number;
         };
         SessionAudience: {
             groupIds: number[];
@@ -51435,6 +55913,9 @@ export interface components {
             credentialJson?: string;
             trustedDevice?: boolean;
         };
+        SigningSecretRequest: {
+            secret?: string;
+        };
         Simple: {
             required: boolean;
         };
@@ -51498,7 +55979,7 @@ export interface components {
         SmbSummary: {
             basePath: string;
             dfs: boolean;
-            domain: string;
+            domain: string | null;
             host: string;
             /** Format: int32 */
             port: number;
@@ -51510,6 +55991,8 @@ export interface components {
              */
             type: "SMB";
         };
+        /** @enum {string} */
+        SmtpEncryption: "IMPLICIT_TLS" | "STARTTLS" | "NONE";
         Snapshot: {
             acknowledged: boolean;
             /** Format: int32 */
@@ -51591,10 +56074,10 @@ export interface components {
         };
         StationClusterResponse: {
             applications: components["schemas"]["ClusterApplicationView"][];
-            clusterDescription: string;
-            clusterName: string;
+            clusterDescription: string | null;
+            clusterName: string | null;
             /** Format: uuid */
-            clusterUid: string;
+            clusterUid: string | null;
         };
         StationDetail: {
             id: string;
@@ -51803,10 +56286,10 @@ export interface components {
             granted: components["schemas"]["Dimensions"];
             ownStore: boolean;
             /** Format: int32 */
-            presetId: number;
-            presetName: string;
+            presetId: number | null;
+            presetName: string | null;
             /** Format: int64 */
-            quotaBytes: number;
+            quotaBytes: number | null;
             resolved: components["schemas"]["ResolvedResponse"];
             stationName: string;
             /** Format: uuid */
@@ -51827,6 +56310,19 @@ export interface components {
             userTypeCounts: {
                 [key: string]: number;
             };
+        };
+        StationUsageResponse: {
+            categories: components["schemas"]["CategoryUsage"][];
+            categoryQuotas: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            quotaBytes: number;
+            /** Format: int32 */
+            quotaUsedPercent: number;
+            /** Format: int64 */
+            totalBytes: number;
+            usesOwnBackend: boolean;
         };
         /** @enum {string} */
         StationUserType: "TRIAL" | "MEMBER" | "GUARDIAN" | "TEAM" | "MANAGER";
@@ -51856,6 +56352,14 @@ export interface components {
             count: number;
             /** Format: int32 */
             statusCode: number;
+        };
+        StatusCounts: {
+            /** Format: int32 */
+            ignored: number;
+            /** Format: int32 */
+            tracked: number;
+            /** Format: int32 */
+            unverified: number;
         };
         StatusRequest: {
             status?: components["schemas"]["AttendanceStatus"];
@@ -51899,8 +56403,46 @@ export interface components {
         };
         /** @enum {string} */
         StepSubject: "OUTGOING" | "INCOMING";
+        /** @enum {string} */
+        StorageAuditAction: "CREATED" | "UPDATED" | "DELETED" | "PROBE_OK" | "PROBE_FAILED" | "MIGRATION_STARTED" | "MIGRATION_COMPLETED" | "MIGRATION_FAILED" | "REJECTED" | "INSTANCE_DEFAULT_UPDATED" | "INSTANCE_MIGRATION_STARTED" | "INSTANCE_MIGRATION_COMPLETED" | "INSTANCE_MIGRATION_FAILED";
+        /** @enum {string} */
+        StorageAuditOutcome: "OK" | "FAILED";
+        /** @enum {string} */
+        StorageBackendType: "LOCAL" | "SMB" | "SFTP" | "S3";
+        StorageQuotaPreset: {
+            /** Format: int64 */
+            board: number;
+            /** Format: int32 */
+            id: number;
+            /** Format: int64 */
+            images: number;
+            /** Format: int64 */
+            kb: number;
+            name: string;
+            /** Format: int64 */
+            pages: number;
+            /** Format: int64 */
+            perFile: number;
+            /** Format: int64 */
+            perImage: number;
+            /** Format: int64 */
+            total: number;
+        };
+        /** @enum {string} */
+        Strategy: "CASCADE" | "DELETE_EXPLICIT" | "ANONYMIZE" | "NULL" | "RETAIN" | "RETAIN_UNLINKED" | "NOT_APPLICABLE";
         StringValue: {
             value: string;
+        };
+        Summary: {
+            gdprDeletion: components["schemas"]["StatusCounts"];
+            gdprExport: components["schemas"]["StatusCounts"];
+            stationTransfer: components["schemas"]["StatusCounts"];
+            /** Format: int32 */
+            totalColumns: number;
+            /** Format: int32 */
+            totalTables: number;
+            /** Format: int32 */
+            verifiedColumns: number;
         };
         SwapNote: {
             handOverNext: boolean;
@@ -51973,6 +56515,30 @@ export interface components {
             member: components["schemas"]["MemberTableHeader"][];
             questions: components["schemas"]["QuestionColumn"][];
         };
+        TableEntry: {
+            columns: components["schemas"]["ColumnEntry"][];
+            customScope?: components["schemas"]["CustomScope"];
+            description?: string;
+            feature?: string;
+            flatField?: string;
+            foreignKeys: components["schemas"]["ForeignKey"][];
+            gdprDeletion: components["schemas"]["GdprDeletionContext"];
+            gdprExport: components["schemas"]["GdprExportContext"];
+            lookups?: components["schemas"]["Lookup"][];
+            outputShape?: components["schemas"]["OutputShape"];
+            scope?: components["schemas"]["Scope"];
+            stationTransfer: components["schemas"]["TransferContext"];
+            tableHash: string;
+        };
+        TableUpdate: {
+            columnVerified?: {
+                [key: string]: boolean;
+            } | null;
+            feature?: string | null;
+            gdprDeletion?: components["schemas"]["GdprDeletionContext"] | null;
+            gdprExport?: components["schemas"]["GdprExportContext"] | null;
+            stationTransfer?: components["schemas"]["TransferContext"] | null;
+        };
         TabsConfig: {
             items?: components["schemas"]["TabItem"][];
         };
@@ -52029,10 +56595,10 @@ export interface components {
             /** Format: int64 */
             failures: number;
             /** Format: int64 */
-            lastDurationMs: number;
-            lastFailureAt: components["schemas"]["Instant"];
-            lastFailureMessage: string;
-            lastStartedAt: components["schemas"]["Instant"];
+            lastDurationMs: number | null;
+            lastFailureAt: components["schemas"]["Instant"] | null;
+            lastFailureMessage: string | null;
+            lastStartedAt: components["schemas"]["Instant"] | null;
             mode: components["schemas"]["Mode"];
             name: string;
             outcome: components["schemas"]["TaskOutcome"];
@@ -52086,6 +56652,11 @@ export interface components {
         TemplateRestrictions: {
             register: components["schemas"]["RestrictionAudience"];
             view: components["schemas"]["RestrictionAudience"];
+        };
+        TemplateSection: {
+            content: string;
+            displayName: string;
+            optional: boolean;
         };
         TestProtocol: {
             createdAt: components["schemas"]["Instant"];
@@ -52163,6 +56734,13 @@ export interface components {
             position: number;
             /** Format: int32 */
             protocolId: number;
+        };
+        TestResult: {
+            connected: boolean;
+            error: string | null;
+            folderExists: boolean;
+            folders: string[];
+            writesAuthResult: boolean;
         };
         /** @enum {string} */
         TestStatus: "DRAFT" | "ACTIVE" | "CLOSED";
@@ -52289,13 +56867,60 @@ export interface components {
             token: string;
             version: string;
         };
+        TokensConfigRequest: {
+            /** Format: int32 */
+            passwordTokenHours?: number;
+            /** Format: int32 */
+            sessionMinutes?: number;
+            /** Format: int32 */
+            setupTokenDays?: number;
+            /** Format: int32 */
+            tokenBytes?: number;
+            /** Format: int32 */
+            untrustedSessionMinutes?: number;
+            /** Format: int32 */
+            verifyTokenHours?: number;
+        };
+        TokensConfigResponse: {
+            /** Format: int32 */
+            passwordTokenHours: number;
+            /** Format: int32 */
+            sessionMinutes: number;
+            /** Format: int32 */
+            setupTokenDays: number;
+            /** Format: int32 */
+            tokenBytes: number;
+            tokenPepperConfigured: boolean;
+            /** Format: int32 */
+            untrustedSessionMinutes: number;
+            /** Format: int32 */
+            verifyTokenHours: number;
+        };
         /** @enum {string} */
         TokenStanding: "VALID" | "EXPIRED" | "UNKNOWN";
         TokenStatus: {
             purpose: components["schemas"]["TokenPurpose"];
             standing: components["schemas"]["TokenStanding"];
         };
+        TotpConfig: {
+            algorithm: string;
+            /** Format: int32 */
+            digits: number;
+            /** Format: int32 */
+            driftWindow: number;
+            issuer: string;
+            /** Format: int32 */
+            periodSeconds: number;
+        };
+        /** @enum {string} */
+        TrackingStatus: "TRACKED" | "IGNORED" | "UNVERIFIED";
         TransferBackendDescriptor: components["schemas"]["Local"] | components["schemas"]["S3"] | components["schemas"]["Sftp"] | components["schemas"]["Smb"];
+        TransferContext: {
+            ignoredColumns?: string[];
+            rationale?: string;
+            reason?: string;
+            status: components["schemas"]["TrackingStatus"];
+        };
         TransferImportRequest: {
             sourceUrl?: string;
             token?: string;
@@ -52332,6 +56957,25 @@ export interface components {
         };
         TrueFalse: {
             correctAnswer: boolean;
+        };
+        TwoFactorCoreConfigRequest: {
+            enabled?: boolean;
+            /** Format: int32 */
+            enrollmentGraceDays?: number;
+            /** Format: int32 */
+            stepUpFreshnessSeconds?: number;
+            /** Format: int32 */
+            trustedDeviceMaxDays?: number;
+        };
+        TwoFactorCoreConfigResponse: {
+            enabled: boolean;
+            /** Format: int32 */
+            enrollmentGraceDays: number;
+            secretKeyConfigured: boolean;
+            /** Format: int32 */
+            stepUpFreshnessSeconds: number;
+            /** Format: int32 */
+            trustedDeviceMaxDays: number;
         };
         UnassignItemRequest: {
             /** Format: int32 */
@@ -52419,7 +57063,7 @@ export interface components {
         };
         UpdateStatus: {
             currentVersion: string;
-            latestVersion: string;
+            latestVersion: string | null;
             updateAvailable: boolean;
         };
         UpdateTemplateRequest: {
@@ -52445,6 +57089,16 @@ export interface components {
             dueDate?: components["schemas"]["LocalDate"];
             priority?: components["schemas"]["TicketPriority"];
             title?: string;
+        };
+        Usage: {
+            locale: string;
+            section: string;
+            type: string;
+        };
+        UserAgentsResponse: {
+            /** Format: int64 */
+            totalRequests: number;
+            userAgents: components["schemas"]["FeedUserAgentStat"][];
         };
         UserTag: {
             color: string;
@@ -52737,9 +57391,19 @@ export interface components {
             entryCount: number;
             list: components["schemas"]["WaitingList"];
         };
+        WebAuthnConfig: {
+            attestation: string;
+            rpId: string;
+            rpName: string;
+            /** Format: int32 */
+            timeoutSeconds: number;
+        };
         WebhookUrl: {
             deliveryWebhookUrl: string;
             signingSecretSet: boolean;
+        };
+        WebhookUrlResponse: {
+            deliveryWebhookUrl: string;
         };
         WeblinkRequest: {
             title?: string;
@@ -52789,6 +57453,7 @@ export type AddMembersRequest = components['schemas']['AddMembersRequest'];
 export type AddMembersResponse = components['schemas']['AddMembersResponse'];
 export type AddressCardConfig = components['schemas']['AddressCardConfig'];
 export type AdminOverview = components['schemas']['AdminOverview'];
+export type AdminStationUsage = components['schemas']['AdminStationUsage'];
 export type AdminStatistics = components['schemas']['AdminStatistics'];
 export type AiCredentialRequest = components['schemas']['AiCredentialRequest'];
 export type AiCredentialSummary = components['schemas']['AiCredentialSummary'];
@@ -52804,6 +57469,7 @@ export type ApplicationDecisionRequest = components['schemas']['ApplicationDecis
 export type ApplicationLogPage = components['schemas']['ApplicationLogPage'];
 export type ApplicationRequest = components['schemas']['ApplicationRequest'];
 export type ApplicationSettings = components['schemas']['ApplicationSettings'];
+export type ApplyPresetRequest = components['schemas']['ApplyPresetRequest'];
 export type ApplyRequest = components['schemas']['ApplyRequest'];
 export type ApplyTierRequest = components['schemas']['ApplyTierRequest'];
 export type AppointRequest = components['schemas']['AppointRequest'];
@@ -52833,6 +57499,8 @@ export type AttendanceTemplate = components['schemas']['AttendanceTemplate'];
 export type AttendanceTemplateField = components['schemas']['AttendanceTemplateField'];
 export type AudienceRequest = components['schemas']['AudienceRequest'];
 export type AudioEmbedConfig = components['schemas']['AudioEmbedConfig'];
+export type AuditEntryResponse = components['schemas']['AuditEntryResponse'];
+export type AuthBucket = components['schemas']['AuthBucket'];
 export type AvailableClusterResponse = components['schemas']['AvailableClusterResponse'];
 export type AvailableInventoryEntry = components['schemas']['AvailableInventoryEntry'];
 export type AvailableInventoryResult = components['schemas']['AvailableInventoryResult'];
@@ -52840,13 +57508,20 @@ export type AvailableItemDetail = components['schemas']['AvailableItemDetail'];
 export type AwaitingAnswer = components['schemas']['AwaitingAnswer'];
 export type AwaitingMember = components['schemas']['AwaitingMember'];
 export type BackendOverrideRequest = components['schemas']['BackendOverrideRequest'];
+export type BackendOverrideResponse = components['schemas']['BackendOverrideResponse'];
 export type BackendOverrideSummary = components['schemas']['BackendOverrideSummary'];
+export type BackupCodesConfig = components['schemas']['BackupCodesConfig'];
 export type BatchCreateRequest = components['schemas']['BatchCreateRequest'];
 export type BatchFieldEntryDto = components['schemas']['BatchFieldEntryDto'];
 export type BatchGenerateRequest = components['schemas']['BatchGenerateRequest'];
 export type BatchResult = components['schemas']['BatchResult'];
 export type BatchRow = components['schemas']['BatchRow'];
 export type BatchRowEntry = components['schemas']['BatchRowEntry'];
+export type BeaconFault = components['schemas']['BeaconFault'];
+export type BeaconMetricsRow = components['schemas']['BeaconMetricsRow'];
+export type BeaconReport = components['schemas']['BeaconReport'];
+export type BeaconSettingsRequest = components['schemas']['BeaconSettingsRequest'];
+export type BeaconStatus = components['schemas']['BeaconStatus'];
 export type BindingRequest = components['schemas']['BindingRequest'];
 export type BindingResponse = components['schemas']['BindingResponse'];
 export type BlockAudience = components['schemas']['BlockAudience'];
@@ -52885,6 +57560,7 @@ export type BrowseResponse = components['schemas']['BrowseResponse'];
 export type BulkDeleteRequest = components['schemas']['BulkDeleteRequest'];
 export type BulkMoveRequest = components['schemas']['BulkMoveRequest'];
 export type BulkOutcome = components['schemas']['BulkOutcome'];
+export type BulkRetireResponse = components['schemas']['BulkRetireResponse'];
 export type BulkSetRequest = components['schemas']['BulkSetRequest'];
 export type BulkSetResponse = components['schemas']['BulkSetResponse'];
 export type BulkTagsRequest = components['schemas']['BulkTagsRequest'];
@@ -52903,6 +57579,7 @@ export type CatalogTransferInfo = components['schemas']['CatalogTransferInfo'];
 export type CatalogTransferProblem = components['schemas']['CatalogTransferProblem'];
 export type CatalogTransferQuestion = components['schemas']['CatalogTransferQuestion'];
 export type CategoryRequest = components['schemas']['CategoryRequest'];
+export type CategoryUsage = components['schemas']['CategoryUsage'];
 export type CategoryUsageResponse = components['schemas']['CategoryUsageResponse'];
 export type CellConfig = components['schemas']['CellConfig'];
 export type CellConfigByType = components['schemas']['CellConfigByType'];
@@ -52963,6 +57640,7 @@ export type CodeBlockConfig = components['schemas']['CodeBlockConfig'];
 export type CodeDetail = components['schemas']['CodeDetail'];
 export type CollectedLine = components['schemas']['CollectedLine'];
 export type ColumnCreateRequest = components['schemas']['ColumnCreateRequest'];
+export type ColumnEntry = components['schemas']['ColumnEntry'];
 export type ColumnMapping = components['schemas']['ColumnMapping'];
 export type ColumnResponse = components['schemas']['ColumnResponse'];
 export type ColumnSpecRequest = components['schemas']['ColumnSpecRequest'];
@@ -53021,6 +57699,9 @@ export type CsvDraftRequest = components['schemas']['CsvDraftRequest'];
 export type CsvMappings = components['schemas']['CsvMappings'];
 export type CsvRequest = components['schemas']['CsvRequest'];
 export type CsvResponse = components['schemas']['CsvResponse'];
+export type CustomScope = components['schemas']['CustomScope'];
+export type CycleResponse = components['schemas']['CycleResponse'];
+export type DataTracking = components['schemas']['DataTracking'];
 export type Date = components['schemas']['Date'];
 export type DateAnswer = components['schemas']['DateAnswer'];
 export type DateConfig = components['schemas']['DateConfig'];
@@ -53031,6 +57712,7 @@ export type DeclineBody = components['schemas']['DeclineBody'];
 export type Deleted = components['schemas']['Deleted'];
 export type DeleteImpact = components['schemas']['DeleteImpact'];
 export type DeleteRequestResponse = components['schemas']['DeleteRequestResponse'];
+export type DeletionStrategy = components['schemas']['DeletionStrategy'];
 export type DemoLoginRequest = components['schemas']['DemoLoginRequest'];
 export type DeniedModulesResponse = components['schemas']['DeniedModulesResponse'];
 export type DenyRequest = components['schemas']['DenyRequest'];
@@ -53039,11 +57721,13 @@ export type DependencyRequest = components['schemas']['DependencyRequest'];
 export type Dimension = components['schemas']['Dimension'];
 export type Dimensions = components['schemas']['Dimensions'];
 export type DimensionsRequest = components['schemas']['DimensionsRequest'];
+export type DimensionTotal = components['schemas']['DimensionTotal'];
 export type DiscoveryVisibility = components['schemas']['DiscoveryVisibility'];
 export type DispatchRequest = components['schemas']['DispatchRequest'];
 export type DisplayTag = components['schemas']['DisplayTag'];
 export type DividerConfig = components['schemas']['DividerConfig'];
 export type DocumentPage = components['schemas']['DocumentPage'];
+export type DocumentPlaceholder = components['schemas']['DocumentPlaceholder'];
 export type DocumentResponse = components['schemas']['DocumentResponse'];
 export type EligibleMembers = components['schemas']['EligibleMembers'];
 export type EmailChangeResponse = components['schemas']['EmailChangeResponse'];
@@ -53073,6 +57757,7 @@ export type Enumeration = components['schemas']['Enumeration'];
 export type EnumerationView = components['schemas']['EnumerationView'];
 export type EnumOption = components['schemas']['EnumOption'];
 export type EnumValue = components['schemas']['EnumValue'];
+export type Envelope = components['schemas']['Envelope'];
 export type EquipmentClaim = components['schemas']['EquipmentClaim'];
 export type EquipmentHandover = components['schemas']['EquipmentHandover'];
 export type EquipmentNeed = components['schemas']['EquipmentNeed'];
@@ -53110,7 +57795,6 @@ export type ExportColumnRequest = components['schemas']['ExportColumnRequest'];
 export type ExportMovementsRequest = components['schemas']['ExportMovementsRequest'];
 export type ExternalLinkCardConfig = components['schemas']['ExternalLinkCardConfig'];
 export type ExternalLinkImageDisplay = components['schemas']['ExternalLinkImageDisplay'];
-export type Facet = components['schemas']['Facet'];
 export type FailedInviteResponse = components['schemas']['FailedInviteResponse'];
 export type FeaturedEventConfig = components['schemas']['FeaturedEventConfig'];
 export type FederatedEventItem = components['schemas']['FederatedEventItem'];
@@ -53146,6 +57830,7 @@ export type FileContentResponse = components['schemas']['FileContentResponse'];
 export type FileDownloadConfig = components['schemas']['FileDownloadConfig'];
 export type FileListing = components['schemas']['FileListing'];
 export type FileResponse = components['schemas']['FileResponse'];
+export type FileStoreEntry = components['schemas']['FileStoreEntry'];
 export type FileUpdateRequest = components['schemas']['FileUpdateRequest'];
 export type FillInTheBlank = components['schemas']['FillInTheBlank'];
 export type FillInTheBlankView = components['schemas']['FillInTheBlankView'];
@@ -53156,6 +57841,7 @@ export type FlowRequest = components['schemas']['FlowRequest'];
 export type FlowResponse = components['schemas']['FlowResponse'];
 export type FolderRequest = components['schemas']['FolderRequest'];
 export type FolderTreeEntry = components['schemas']['FolderTreeEntry'];
+export type ForeignKey = components['schemas']['ForeignKey'];
 export type Form = components['schemas']['Form'];
 export type FormAnalytics = components['schemas']['FormAnalytics'];
 export type FormAnswer = components['schemas']['FormAnswer'];
@@ -53199,6 +57885,8 @@ export type FreeAnswerView = components['schemas']['FreeAnswerView'];
 export type FrozenQuestionDetail = components['schemas']['FrozenQuestionDetail'];
 export type GalleryAspectMode = components['schemas']['GalleryAspectMode'];
 export type GalleryItem = components['schemas']['GalleryItem'];
+export type GdprDeletionContext = components['schemas']['GdprDeletionContext'];
+export type GdprExportContext = components['schemas']['GdprExportContext'];
 export type GenerateDatesRequest = components['schemas']['GenerateDatesRequest'];
 export type GeneratedQuestionWithMeta = components['schemas']['GeneratedQuestionWithMeta'];
 export type GenerateEntry = components['schemas']['GenerateEntry'];
@@ -53215,8 +57903,15 @@ export type HandOutSelfChecksRequest = components['schemas']['HandOutSelfChecksR
 export type HandoverRequest = components['schemas']['HandoverRequest'];
 export type HeldReportRequest = components['schemas']['HeldReportRequest'];
 export type HeroBannerConfig = components['schemas']['HeroBannerConfig'];
+export type HibpConfigRequest = components['schemas']['HibpConfigRequest'];
+export type HibpConfigResponse = components['schemas']['HibpConfigResponse'];
 export type HistoryResponse = components['schemas']['HistoryResponse'];
 export type HourlyStats = components['schemas']['HourlyStats'];
+export type HourlyTotal = components['schemas']['HourlyTotal'];
+export type HourlyTrafficResponse = components['schemas']['HourlyTrafficResponse'];
+export type HourlyTrafficRow = components['schemas']['HourlyTrafficRow'];
+export type IdentityColumn = components['schemas']['IdentityColumn'];
+export type IdentityType = components['schemas']['IdentityType'];
 export type ImageConfig = components['schemas']['ImageConfig'];
 export type ImageFit = components['schemas']['ImageFit'];
 export type ImageGalleryConfig = components['schemas']['ImageGalleryConfig'];
@@ -53226,6 +57921,20 @@ export type ImportProgressResponse = components['schemas']['ImportProgressRespon
 export type ImportRequest = components['schemas']['ImportRequest'];
 export type ImportResult = components['schemas']['ImportResult'];
 export type ImportStartResponse = components['schemas']['ImportStartResponse'];
+export type InstanceBackendRequest = components['schemas']['InstanceBackendRequest'];
+export type InstanceBackendSummary = components['schemas']['InstanceBackendSummary'];
+export type InstanceLocalRequest = components['schemas']['InstanceLocalRequest'];
+export type InstanceLocalSummary = components['schemas']['InstanceLocalSummary'];
+export type InstanceMigrateRequest = components['schemas']['InstanceMigrateRequest'];
+export type InstanceMigrationResultResponse = components['schemas']['InstanceMigrationResultResponse'];
+export type InstanceMigrationStatusResponse = components['schemas']['InstanceMigrationStatusResponse'];
+export type InstanceS3Request = components['schemas']['InstanceS3Request'];
+export type InstanceS3Summary = components['schemas']['InstanceS3Summary'];
+export type InstanceSettingsResponse = components['schemas']['InstanceSettingsResponse'];
+export type InstanceSftpRequest = components['schemas']['InstanceSftpRequest'];
+export type InstanceSftpSummary = components['schemas']['InstanceSftpSummary'];
+export type InstanceSmbRequest = components['schemas']['InstanceSmbRequest'];
+export type InstanceSmbSummary = components['schemas']['InstanceSmbSummary'];
 export type InstanceUserType = components['schemas']['InstanceUserType'];
 export type Instant = components['schemas']['Instant'];
 export type IntakeRequest = components['schemas']['IntakeRequest'];
@@ -53298,6 +58007,10 @@ export type LaneAssignee = components['schemas']['LaneAssignee'];
 export type LaneAssigneeValue = components['schemas']['LaneAssigneeValue'];
 export type LanePreset = components['schemas']['LanePreset'];
 export type LaneRequest = components['schemas']['LaneRequest'];
+export type LeaderboardResponse = components['schemas']['LeaderboardResponse'];
+export type LegalDocumentRequest = components['schemas']['LegalDocumentRequest'];
+export type LegalDocumentResponse = components['schemas']['LegalDocumentResponse'];
+export type LegalDocumentType = components['schemas']['LegalDocumentType'];
 export type LegalFileEntry = components['schemas']['LegalFileEntry'];
 export type LegalImportRequest = components['schemas']['LegalImportRequest'];
 export type LegalImportResponse = components['schemas']['LegalImportResponse'];
@@ -53333,22 +58046,38 @@ export type LocalTime = components['schemas']['LocalTime'];
 export type LocalUpdateChecklistItemRequest = components['schemas']['LocalUpdateChecklistItemRequest'];
 export type LocalUpdateTicketRequest = components['schemas']['LocalUpdateTicketRequest'];
 export type LogEntry = components['schemas']['LogEntry'];
+export type LogEntryResponse = components['schemas']['LogEntryResponse'];
+export type LogFacet = components['schemas']['LogFacet'];
 export type LoggedRequest = components['schemas']['LoggedRequest'];
+export type LoggingConfig = components['schemas']['LoggingConfig'];
+export type LoggingConfigRequest = components['schemas']['LoggingConfigRequest'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type LoginResponse = components['schemas']['LoginResponse'];
+export type LogPageResponse = components['schemas']['LogPageResponse'];
 export type LookAndFeelRequest = components['schemas']['LookAndFeelRequest'];
+export type Lookup = components['schemas']['Lookup'];
 export type LossReport = components['schemas']['LossReport'];
 export type LossReportRequirement = components['schemas']['LossReportRequirement'];
 export type LossReportSettings = components['schemas']['LossReportSettings'];
 export type LossReportTerms = components['schemas']['LossReportTerms'];
 export type LostAndFoundItemResponse = components['schemas']['LostAndFoundItemResponse'];
 export type LostRequest = components['schemas']['LostRequest'];
+export type MailboxRequest = components['schemas']['MailboxRequest'];
+export type MailboxResponse = components['schemas']['MailboxResponse'];
 export type MailDashboard = components['schemas']['MailDashboard'];
 export type MailDeliveryStatus = components['schemas']['MailDeliveryStatus'];
+export type MailFallbackChain = components['schemas']['MailFallbackChain'];
+export type MailFallbackPayload = components['schemas']['MailFallbackPayload'];
+export type MailImportOutcome = components['schemas']['MailImportOutcome'];
+export type MailingConfigRequest = components['schemas']['MailingConfigRequest'];
+export type MailingConfigResponse = components['schemas']['MailingConfigResponse'];
 export type MailProviderType = components['schemas']['MailProviderType'];
 export type MailReaches = components['schemas']['MailReaches'];
 export type MailRecord = components['schemas']['MailRecord'];
+export type MailRuleAction = components['schemas']['MailRuleAction'];
+export type MailSecurity = components['schemas']['MailSecurity'];
 export type MailTestResponse = components['schemas']['MailTestResponse'];
+export type MailTitleSource = components['schemas']['MailTitleSource'];
 export type ManagedAccess = components['schemas']['ManagedAccess'];
 export type ManagedMember = components['schemas']['ManagedMember'];
 export type ManagedMemberInfo = components['schemas']['ManagedMemberInfo'];
@@ -53403,6 +58132,8 @@ export type MemberTableRow = components['schemas']['MemberTableRow'];
 export type MemberWithName = components['schemas']['MemberWithName'];
 export type MessageBody = components['schemas']['MessageBody'];
 export type MessageResponse = components['schemas']['MessageResponse'];
+export type MetricsBatch = components['schemas']['MetricsBatch'];
+export type MetricsSubject = components['schemas']['MetricsSubject'];
 export type MigrationResponse = components['schemas']['MigrationResponse'];
 export type MissingStepsResponse = components['schemas']['MissingStepsResponse'];
 export type Mode = components['schemas']['Mode'];
@@ -53465,6 +58196,7 @@ export type NoteResponse = components['schemas']['NoteResponse'];
 export type NoteVersionResponse = components['schemas']['NoteVersionResponse'];
 export type NotificationLinkResponse = components['schemas']['NotificationLinkResponse'];
 export type NotificationResponse = components['schemas']['NotificationResponse'];
+export type NotificationSchedulePayload = components['schemas']['NotificationSchedulePayload'];
 export type NotificationToggle = components['schemas']['NotificationToggle'];
 export type NumberConfig = components['schemas']['NumberConfig'];
 export type NumberValue = components['schemas']['NumberValue'];
@@ -53476,8 +58208,11 @@ export type Option = components['schemas']['Option'];
 export type Ordering = components['schemas']['Ordering'];
 export type OrderingView = components['schemas']['OrderingView'];
 export type OrderRequest = components['schemas']['OrderRequest'];
+export type OutputShape = components['schemas']['OutputShape'];
 export type OverviewResponse = components['schemas']['OverviewResponse'];
 export type OwnerAboveResponse = components['schemas']['OwnerAboveResponse'];
+export type PageDetailResponse = components['schemas']['PageDetailResponse'];
+export type PageLeaderboardEntry = components['schemas']['PageLeaderboardEntry'];
 export type PageLinkConfig = components['schemas']['PageLinkConfig'];
 export type PageShareLinkResponse = components['schemas']['PageShareLinkResponse'];
 export type PagesListResponse = components['schemas']['PagesListResponse'];
@@ -53488,6 +58223,10 @@ export type PageVisibilityRequest = components['schemas']['PageVisibilityRequest
 export type Pair = components['schemas']['Pair'];
 export type ParseResult = components['schemas']['ParseResult'];
 export type PartnerStationsConfig = components['schemas']['PartnerStationsConfig'];
+export type PasskeysConfigRequest = components['schemas']['PasskeysConfigRequest'];
+export type PasskeysConfigResponse = components['schemas']['PasskeysConfigResponse'];
+export type PasswordlessReport = components['schemas']['PasswordlessReport'];
+export type PasswordRequest = components['schemas']['PasswordRequest'];
 export type PastEventRecapConfig = components['schemas']['PastEventRecapConfig'];
 export type PatchItemRequest = components['schemas']['PatchItemRequest'];
 export type PdfConfig = components['schemas']['PdfConfig'];
@@ -53495,6 +58234,7 @@ export type Permission = components['schemas']['Permission'];
 export type PermissionNode = components['schemas']['PermissionNode'];
 export type PickerEvent = components['schemas']['PickerEvent'];
 export type PickerPage = components['schemas']['PickerPage'];
+export type PlaceholderValues = components['schemas']['PlaceholderValues'];
 export type PlacementResponse = components['schemas']['PlacementResponse'];
 export type PlannedLanding = components['schemas']['PlannedLanding'];
 export type PlannedStep = components['schemas']['PlannedStep'];
@@ -53502,9 +58242,11 @@ export type PolicyRequest = components['schemas']['PolicyRequest'];
 export type PolicyResponse = components['schemas']['PolicyResponse'];
 export type PollEmbedConfig = components['schemas']['PollEmbedConfig'];
 export type PoolRequest = components['schemas']['PoolRequest'];
+export type PresetRequest = components['schemas']['PresetRequest'];
 export type PresetResponse = components['schemas']['PresetResponse'];
 export type PreviewResult = components['schemas']['PreviewResult'];
 export type ProbeResult = components['schemas']['ProbeResult'];
+export type ProblemPayload = components['schemas']['ProblemPayload'];
 export type ProblemReport = components['schemas']['ProblemReport'];
 export type Procedure = components['schemas']['Procedure'];
 export type ProcedureDetail = components['schemas']['ProcedureDetail'];
@@ -53535,6 +58277,7 @@ export type ProtocolRunRequest = components['schemas']['ProtocolRunRequest'];
 export type ProtocolSectionRequest = components['schemas']['ProtocolSectionRequest'];
 export type ProviderBlock = components['schemas']['ProviderBlock'];
 export type ProviderStanding = components['schemas']['ProviderStanding'];
+export type ProviderTestRequest = components['schemas']['ProviderTestRequest'];
 export type ProvisionedMemberResponse = components['schemas']['ProvisionedMemberResponse'];
 export type PublicBlogEntry = components['schemas']['PublicBlogEntry'];
 export type PublicBrowseResponse = components['schemas']['PublicBrowseResponse'];
@@ -53556,6 +58299,7 @@ export type PublicPartnerSummary = components['schemas']['PublicPartnerSummary']
 export type PublicQuizCatalog = components['schemas']['PublicQuizCatalog'];
 export type PublicQuizQuestion = components['schemas']['PublicQuizQuestion'];
 export type PublicStationInfo = components['schemas']['PublicStationInfo'];
+export type PublicTheme = components['schemas']['PublicTheme'];
 export type PublicVisibilityRequest = components['schemas']['PublicVisibilityRequest'];
 export type PublicVisibilityResponse = components['schemas']['PublicVisibilityResponse'];
 export type PublicWaitlistFormResponse = components['schemas']['PublicWaitlistFormResponse'];
@@ -53601,6 +58345,7 @@ export type QuizTestSection = components['schemas']['QuizTestSection'];
 export type QuizTestSectionSource = components['schemas']['QuizTestSectionSource'];
 export type QuizTestSummary = components['schemas']['QuizTestSummary'];
 export type QuotaOrigin = components['schemas']['QuotaOrigin'];
+export type QuotaUpdateRequest = components['schemas']['QuotaUpdateRequest'];
 export type QuoteConfig = components['schemas']['QuoteConfig'];
 export type Ranking = components['schemas']['Ranking'];
 export type RankingAnswer = components['schemas']['RankingAnswer'];
@@ -53652,6 +58397,7 @@ export type ReplaceFormShareLinkRequest = components['schemas']['ReplaceFormShar
 export type ReplacePageShareLinkRequest = components['schemas']['ReplacePageShareLinkRequest'];
 export type ReplaceQuestionRequest = components['schemas']['ReplaceQuestionRequest'];
 export type ReportData = components['schemas']['ReportData'];
+export type ReportPayload = components['schemas']['ReportPayload'];
 export type ReportRequest = components['schemas']['ReportRequest'];
 export type RequeuedMails = components['schemas']['RequeuedMails'];
 export type RequiredInventoryItem = components['schemas']['RequiredInventoryItem'];
@@ -53660,10 +58406,12 @@ export type RequirementRequest = components['schemas']['RequirementRequest'];
 export type RequirementResponse = components['schemas']['RequirementResponse'];
 export type RequirementsResponse = components['schemas']['RequirementsResponse'];
 export type ResetPasswordRequest = components['schemas']['ResetPasswordRequest'];
+export type ResidueEntry = components['schemas']['ResidueEntry'];
 export type ResolvedMember = components['schemas']['ResolvedMember'];
 export type ResolvedResponse = components['schemas']['ResolvedResponse'];
 export type ResolvedTarget = components['schemas']['ResolvedTarget'];
 export type ResolvedValueResponse = components['schemas']['ResolvedValueResponse'];
+export type ResolveRequest = components['schemas']['ResolveRequest'];
 export type RestorePlan = components['schemas']['RestorePlan'];
 export type RestoreRequest = components['schemas']['RestoreRequest'];
 export type RestoreResult = components['schemas']['RestoreResult'];
@@ -53677,6 +58425,8 @@ export type ResultFilter = components['schemas']['ResultFilter'];
 export type ResultGrouping = components['schemas']['ResultGrouping'];
 export type ReturnEverythingRequest = components['schemas']['ReturnEverythingRequest'];
 export type RichMember = components['schemas']['RichMember'];
+export type RuleRequest = components['schemas']['RuleRequest'];
+export type RuleResponse = components['schemas']['RuleResponse'];
 export type RunDetailResponse = components['schemas']['RunDetailResponse'];
 export type RunMemberWithProgress = components['schemas']['RunMemberWithProgress'];
 export type RunStatus = components['schemas']['RunStatus'];
@@ -53686,6 +58436,7 @@ export type S3Summary = components['schemas']['S3Summary'];
 export type SaveBlocksRequest = components['schemas']['SaveBlocksRequest'];
 export type SavedFilter = components['schemas']['SavedFilter'];
 export type SavePageRequest = components['schemas']['SavePageRequest'];
+export type Scope = components['schemas']['Scope'];
 export type SearchResultItem = components['schemas']['SearchResultItem'];
 export type SearchResultResponse = components['schemas']['SearchResultResponse'];
 export type SelfCheck = components['schemas']['SelfCheck'];
@@ -53710,6 +58461,9 @@ export type SelfCheckState = components['schemas']['SelfCheckState'];
 export type SelfCheckSummary = components['schemas']['SelfCheckSummary'];
 export type SelfCheckTask = components['schemas']['SelfCheckTask'];
 export type SendableItem = components['schemas']['SendableItem'];
+export type SendReportRequest = components['schemas']['SendReportRequest'];
+export type SendRequest = components['schemas']['SendRequest'];
+export type SendResult = components['schemas']['SendResult'];
 export type SessionAudience = components['schemas']['SessionAudience'];
 export type SessionData = components['schemas']['SessionData'];
 export type SessionDetail = components['schemas']['SessionDetail'];
@@ -53760,12 +58514,14 @@ export type SharePartner = components['schemas']['SharePartner'];
 export type ShareScope = components['schemas']['ShareScope'];
 export type ShareSetting = components['schemas']['ShareSetting'];
 export type SignInFinishRequest = components['schemas']['SignInFinishRequest'];
+export type SigningSecretRequest = components['schemas']['SigningSecretRequest'];
 export type Simple = components['schemas']['Simple'];
 export type SizeRequest = components['schemas']['SizeRequest'];
 export type SizeStatResponse = components['schemas']['SizeStatResponse'];
 export type Smb = components['schemas']['Smb'];
 export type SmbRequest = components['schemas']['SmbRequest'];
 export type SmbSummary = components['schemas']['SmbSummary'];
+export type SmtpEncryption = components['schemas']['SmtpEncryption'];
 export type Snapshot = components['schemas']['Snapshot'];
 export type SourceOccurrenceRequest = components['schemas']['SourceOccurrenceRequest'];
 export type SourceOccurrenceResponse = components['schemas']['SourceOccurrenceResponse'];
@@ -53796,6 +58552,7 @@ export type StationRegistrationStatus = components['schemas']['StationRegistrati
 export type StationRequest = components['schemas']['StationRequest'];
 export type StationRoomResponse = components['schemas']['StationRoomResponse'];
 export type StationStatistics = components['schemas']['StationStatistics'];
+export type StationUsageResponse = components['schemas']['StationUsageResponse'];
 export type StationUserType = components['schemas']['StationUserType'];
 export type StationUserTypeRequest = components['schemas']['StationUserTypeRequest'];
 export type StatItem = components['schemas']['StatItem'];
@@ -53803,6 +58560,7 @@ export type StatsCounterConfig = components['schemas']['StatsCounterConfig'];
 export type Status = components['schemas']['Status'];
 export type StatusBreakdown = components['schemas']['StatusBreakdown'];
 export type StatusCount = components['schemas']['StatusCount'];
+export type StatusCounts = components['schemas']['StatusCounts'];
 export type StatusRequest = components['schemas']['StatusRequest'];
 export type StatusResponse = components['schemas']['StatusResponse'];
 export type StatusUpdateRequest = components['schemas']['StatusUpdateRequest'];
@@ -53812,7 +58570,13 @@ export type StepRequest = components['schemas']['StepRequest'];
 export type StepResponse = components['schemas']['StepResponse'];
 export type StepState = components['schemas']['StepState'];
 export type StepSubject = components['schemas']['StepSubject'];
+export type StorageAuditAction = components['schemas']['StorageAuditAction'];
+export type StorageAuditOutcome = components['schemas']['StorageAuditOutcome'];
+export type StorageBackendType = components['schemas']['StorageBackendType'];
+export type StorageQuotaPreset = components['schemas']['StorageQuotaPreset'];
+export type Strategy = components['schemas']['Strategy'];
 export type StringValue = components['schemas']['StringValue'];
+export type Summary = components['schemas']['Summary'];
 export type SwapNote = components['schemas']['SwapNote'];
 export type SwitchBlocker = components['schemas']['SwitchBlocker'];
 export type SwitchBlockerKind = components['schemas']['SwitchBlockerKind'];
@@ -53822,6 +58586,8 @@ export type SystemNewsRequest = components['schemas']['SystemNewsRequest'];
 export type SystemNewsResponse = components['schemas']['SystemNewsResponse'];
 export type TabItem = components['schemas']['TabItem'];
 export type TableColumnsResponse = components['schemas']['TableColumnsResponse'];
+export type TableEntry = components['schemas']['TableEntry'];
+export type TableUpdate = components['schemas']['TableUpdate'];
 export type TabsConfig = components['schemas']['TabsConfig'];
 export type TagEntry = components['schemas']['TagEntry'];
 export type TaggedItemSummary = components['schemas']['TaggedItemSummary'];
@@ -53839,12 +58605,14 @@ export type TemplateFieldRequest = components['schemas']['TemplateFieldRequest']
 export type TemplateGroupEntry = components['schemas']['TemplateGroupEntry'];
 export type TemplateRequest = components['schemas']['TemplateRequest'];
 export type TemplateRestrictions = components['schemas']['TemplateRestrictions'];
+export type TemplateSection = components['schemas']['TemplateSection'];
 export type TestProtocol = components['schemas']['TestProtocol'];
 export type TestProtocolItem = components['schemas']['TestProtocolItem'];
 export type TestProtocolRun = components['schemas']['TestProtocolRun'];
 export type TestProtocolRunCheck = components['schemas']['TestProtocolRunCheck'];
 export type TestProtocolRunMember = components['schemas']['TestProtocolRunMember'];
 export type TestProtocolSection = components['schemas']['TestProtocolSection'];
+export type TestResult = components['schemas']['TestResult'];
 export type TestStatus = components['schemas']['TestStatus'];
 export type Text = components['schemas']['Text'];
 export type TextAnswer = components['schemas']['TextAnswer'];
@@ -53861,9 +58629,14 @@ export type TimestampResponse = components['schemas']['TimestampResponse'];
 export type TokenPurpose = components['schemas']['TokenPurpose'];
 export type TokenRequest = components['schemas']['TokenRequest'];
 export type TokenResponse = components['schemas']['TokenResponse'];
+export type TokensConfigRequest = components['schemas']['TokensConfigRequest'];
+export type TokensConfigResponse = components['schemas']['TokensConfigResponse'];
 export type TokenStanding = components['schemas']['TokenStanding'];
 export type TokenStatus = components['schemas']['TokenStatus'];
+export type TotpConfig = components['schemas']['TotpConfig'];
+export type TrackingStatus = components['schemas']['TrackingStatus'];
 export type TransferBackendDescriptor = components['schemas']['TransferBackendDescriptor'];
+export type TransferContext = components['schemas']['TransferContext'];
 export type TransferImportRequest = components['schemas']['TransferImportRequest'];
 export type TransferOwnershipRequest = components['schemas']['TransferOwnershipRequest'];
 export type TransferStatusResponse = components['schemas']['TransferStatusResponse'];
@@ -53871,6 +58644,8 @@ export type TransientKeyRequest = components['schemas']['TransientKeyRequest'];
 export type TrashEntry = components['schemas']['TrashEntry'];
 export type TrashView = components['schemas']['TrashView'];
 export type TrueFalse = components['schemas']['TrueFalse'];
+export type TwoFactorCoreConfigRequest = components['schemas']['TwoFactorCoreConfigRequest'];
+export type TwoFactorCoreConfigResponse = components['schemas']['TwoFactorCoreConfigResponse'];
 export type UnassignItemRequest = components['schemas']['UnassignItemRequest'];
 export type Unknown = components['schemas']['Unknown'];
 export type UpcomingEventOccurrence = components['schemas']['UpcomingEventOccurrence'];
@@ -53889,6 +58664,8 @@ export type UpdateStationRequest = components['schemas']['UpdateStationRequest']
 export type UpdateStatus = components['schemas']['UpdateStatus'];
 export type UpdateTemplateRequest = components['schemas']['UpdateTemplateRequest'];
 export type UpdateTicketRequest = components['schemas']['UpdateTicketRequest'];
+export type Usage = components['schemas']['Usage'];
+export type UserAgentsResponse = components['schemas']['UserAgentsResponse'];
 export type UserTag = components['schemas']['UserTag'];
 export type UserTypeChangeResponse = components['schemas']['UserTypeChangeResponse'];
 export type ValueEntry = components['schemas']['ValueEntry'];
@@ -53925,7 +58702,9 @@ export type WaitingListRegistrationStatus = components['schemas']['WaitingListRe
 export type WaitingListRequest = components['schemas']['WaitingListRequest'];
 export type WaitingListVisibleFieldsRequest = components['schemas']['WaitingListVisibleFieldsRequest'];
 export type WaitingListWithCount = components['schemas']['WaitingListWithCount'];
+export type WebAuthnConfig = components['schemas']['WebAuthnConfig'];
 export type WebhookUrl = components['schemas']['WebhookUrl'];
+export type WebhookUrlResponse = components['schemas']['WebhookUrlResponse'];
 export type WeblinkRequest = components['schemas']['WeblinkRequest'];
 export type WikiAudienceRequest = components['schemas']['WikiAudienceRequest'];
 export type WithdrawalResponse = components['schemas']['WithdrawalResponse'];

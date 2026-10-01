@@ -5,7 +5,7 @@
  */
 import {ref} from 'vue'
 import {clusterMembers} from '@/api'
-import type {ManagedMember} from '@/api/clusterMembers'
+import type {ManagedMemberResponse} from '@/api/generated/schema'
 import type {RichMember} from '@/api/stationMembers'
 import type {MemberDataSource} from '@/views/stationview/members/listview/useMemberData'
 
@@ -32,7 +32,7 @@ const PAGE_SIZE = 200
  * an empty span beside an empty avatar on every line of the list, with the name sitting unread in the
  * field beside it.
  */
-function toRich(member: ManagedMember): RichMember {
+function toRich(member: ManagedMemberResponse): RichMember {
     return {
         id: member.id,
         stationId: 0,
@@ -40,7 +40,7 @@ function toRich(member: ManagedMember): RichMember {
         name: member.name,
         firstName: member.name,
         lastName: '',
-        email: member.email,
+        email: member.email ?? '',
         accountSetupPending: false,
         setupMailExpiresAt: null,
         mailReaches: 'SELF' as const,
@@ -64,13 +64,13 @@ function toRich(member: ManagedMember): RichMember {
  */
 export function useClusterMemberSource(includeFormer: () => boolean) {
     /** The search results as they came, keyed by member, for what the table cannot carry. */
-    const managed = ref<Map<number, ManagedMember>>(new Map())
+    const managed = ref<Map<number, ManagedMemberResponse>>(new Map())
     /** True when the last load stopped at the cap rather than at the end of the roll. */
     const overflowed = ref(false)
 
     const source: MemberDataSource = {
         load: async () => {
-            const collected: ManagedMember[] = []
+            const collected: ManagedMemberResponse[] = []
             overflowed.value = false
             for (let page = 0; ; page++) {
                 const result = await clusterMembers.searchManagedMembers({

@@ -36,6 +36,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -488,16 +489,17 @@ public class ClusterMemberManagementRoutes implements Routes {
             int id,
             String name,
             String fieldType,
-            ProfileFieldConfig config,
+            @Nullable ProfileFieldConfig config,
             boolean required,
             int position,
-            String width,
+            @Nullable String width,
             boolean readonly,
-            String role,
+            @Nullable String role,
             String origin,
             boolean readonlyAtStation) {}
 
-    public record MemberProfileValueResponse(int fieldId, String value, String origin) {}
+    public record MemberProfileValueResponse(
+            int fieldId, @Nullable String value, String origin) {}
 
     public record MemberProfileResponse(
             int memberId,
@@ -516,7 +518,8 @@ public class ClusterMemberManagementRoutes implements Routes {
      */
     public record NewMemberRequest(String firstName, String lastName, String email, StationUserType userType) {}
 
-    public record NewMemberResponse(int memberId, int accountId, String email) {}
+    public record NewMemberResponse(
+            int memberId, int accountId, @Nullable String email) {}
 
     /** One document filed about somebody, as the association's screen lists it. */
     public record MemberDocumentSummary(

@@ -18,7 +18,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
 import MemberDocumentsPanel from './clustermemberdetailview/MemberDocumentsPanel.vue'
 import {clusterMembers} from '@/api'
-import type {ManagedMemberProfile, ManagedProfileValue} from '@/api/clusterMembers'
+import type {MemberProfileResponse, MemberProfileValueRequest} from '@/api/generated/schema'
 import {ClusterPermission} from '@/api/clusters'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -39,7 +39,7 @@ const {hasClusterPermission} = useSession()
 const memberId = computed(() => Number(route.params.id))
 const editable = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER))
 
-const profile = ref<ManagedMemberProfile | null>(null)
+const profile = ref<MemberProfileResponse | null>(null)
 const edited = ref<Map<number, string>>(new Map())
 const saved = ref(false)
 
@@ -60,9 +60,8 @@ const fields = computed<LaidOutField[]>(() => (profile.value?.fields ?? []).map(
   id: f.id,
   name: f.name,
   fieldType: f.fieldType,
-  config: f.config,
+  config: f.config ?? undefined,
   position: f.position,
-  scope: f.scope,
 })))
 
 /** Which table a question lives in, kept beside the laid out field rather than inside it. */
@@ -77,8 +76,8 @@ const storedValues = computed(() => new Map((profile.value?.values ?? []).map(v 
  * straight to the form would put the quotation marks in front of the reader, which is what happened
  * until a story looked at the screen rather than at the database.
  */
-function decode(raw: string | undefined): string {
-  if (raw === undefined || raw === '') return ''
+function decode(raw: string | null | undefined): string {
+  if (raw == null || raw === '') return ''
   try {
     const parsed: unknown = JSON.parse(raw)
     return parsed === null ? '' : String(parsed)
@@ -106,7 +105,7 @@ function onUpdate(field: LaidOutField, value: string) {
  * profile that could not be read back is never reported as answers that were refused.
  */
 const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async () => {
-  const values: ManagedProfileValue[] = [...edited.value.entries()].map(([fieldId, value]) => ({
+  const values: MemberProfileValueRequest[] =[...edited.value.entries()].map(([fieldId, value]) => ({
     fieldId,
     value: JSON.stringify(value),
     origin: originOf.value.get(fieldId) ?? 'STATION',

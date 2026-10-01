@@ -13,7 +13,7 @@ import {
     type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
 } from '@/api/profileFields'
 import {asAsked, type ProfileFieldAssignment} from '@/util/profileFields'
-import type {StationGroup} from '@/api/clusterStationGroups'
+import type {StationGroupResponse} from '@/api/generated/schema'
 import type {MemberGroup} from '@/api/types'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure} from '@/util/failure'
@@ -48,7 +48,7 @@ export interface FieldsPort {
     /** The groups a question can be pointed at. An association has none: a group belongs to one station. */
     listGroups?: () => Promise<MemberGroup[]>
     /** The station groups a question can be pointed at, when this owner files its stations at all. */
-    listStationGroups?: () => Promise<StationGroup[]>
+    listStationGroups?: () => Promise<StationGroupResponse[]>
     /**
      * Whether this owner has a third party to lock out. An association does, and offers the three way
      * choice of who may change an answer; a station does not, and keeps its single member toggle.
@@ -174,7 +174,7 @@ export function useFieldsConfig(port: FieldsPort) {
     const allFields = ref<ProfileField[]>([])
     const allAssignments = ref<ProfileFieldAssignment[]>([])
     const availableGroups = ref<MemberGroup[]>([])
-    const availableStationGroups = ref<StationGroup[]>([])
+    const availableStationGroups = ref<StationGroupResponse[]>([])
 
     /** The question whose audiences the right hand panel is showing. */
     const selectedFieldId = ref<number | null>(null)
@@ -194,7 +194,7 @@ export function useFieldsConfig(port: FieldsPort) {
             port.list(),
             port.listAssignments(),
             port.listGroups ? port.listGroups() : Promise.resolve([] as MemberGroup[]),
-            port.listStationGroups ? port.listStationGroups() : Promise.resolve([] as StationGroup[]),
+            port.listStationGroups ? port.listStationGroups() : Promise.resolve([] as StationGroupResponse[]),
         ])
         allFields.value = fields
         allAssignments.value = assignments

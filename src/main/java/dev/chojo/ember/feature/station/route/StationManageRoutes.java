@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
+import dev.chojo.ember.feature.mail.entity.MailTestResponse;
+import dev.chojo.ember.feature.mail.entity.ProviderTestRequest;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService;
@@ -377,6 +379,13 @@ public class StationManageRoutes implements Routes {
         ctx.json(mailSettings.webhook(UserSession.from(ctx).stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/signing-secret",
+            methods = HttpMethod.PUT,
+            summary = "Store the signing secret the station's mail provider issued",
+            tags = {"Station Manage"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SigningSecretRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebhookUrl.class)))
     private void updateSigningSecret(Context ctx) {
         var request = ctx.bodyAsClass(SigningSecretRequest.class);
         ctx.json(mailSettings.updateSigningSecret(UserSession.from(ctx).stationId(), request.secret()));
@@ -390,24 +399,59 @@ public class StationManageRoutes implements Routes {
     /**
      * Replaces this station's webhook key, which takes its old address out of service at once.
      */
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/webhook",
+            methods = HttpMethod.POST,
+            summary = "Replace the station's delivery webhook key",
+            tags = {"Station Manage"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebhookUrl.class)))
     private void regenerateMailWebhook(Context ctx) {
         ctx.json(mailSettings.regenerateWebhook(UserSession.from(ctx).stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/manage/notifications",
+            methods = HttpMethod.GET,
+            summary = "When the station's gathered notifications go out",
+            tags = {"Station Manage"},
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = NotificationSchedulePayload.class)))
     private void getNotificationSchedule(Context ctx) {
         ctx.json(notificationTimes.times(UserSession.from(ctx).stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/manage/notifications",
+            methods = HttpMethod.PUT,
+            summary = "Set when the station's gathered notifications go out",
+            tags = {"Station Manage"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NotificationSchedulePayload.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void updateNotificationSchedule(Context ctx) {
         var request = ctx.bodyAsClass(NotificationSchedulePayload.class);
         notificationTimes.update(UserSession.from(ctx).stationId(), request.sendTimes());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/providers",
+            methods = HttpMethod.GET,
+            summary = "Get the station's mail providers in the order they are tried",
+            tags = {"Station Manage"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailFallbackPayload[].class)))
     private void getMailFallbacks(Context ctx) {
         ctx.json(mailSettings.providers(UserSession.from(ctx).stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/providers",
+            methods = HttpMethod.PUT,
+            summary = "Replace the station's mail providers",
+            tags = {"Station Manage"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MailFallbackPayload[].class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailFallbackPayload[].class)))
     private void updateMailFallbacks(Context ctx) {
         var incoming = List.of(ctx.bodyAsClass(MailFallbackPayload[].class));
         ctx.json(mailSettings.updateProviders(UserSession.from(ctx).stationId(), incoming));
@@ -416,6 +460,14 @@ public class StationManageRoutes implements Routes {
     /**
      * Tries one provider of this station's list against its relay, without sending anything.
      */
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/providers/{position}/test",
+            methods = HttpMethod.POST,
+            summary = "Try one provider of the station's list, sending a test mail when an address is given",
+            tags = {"Station Manage"},
+            pathParams = @OpenApiParam(name = "position", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProviderTestRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailTestResponse.class)))
     private void testMailProvider(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int position;
@@ -724,22 +776,6 @@ public class StationManageRoutes implements Routes {
     // -- Station import into existing station --
 
     /**
-     * Response from a mail configuration test.
-     *
-     * @param success whether the test connection succeeded
-     * @param error   the error message if the test failed, or {@code null}
-     */
-    public record MailTestResponse(boolean success, String error) {}
-
-    /**
-     * Where a test mail should go. Empty means only the connection is tried and nothing is sent.
-     *
-     * @param recipient the address to send to, which need not be the one asking: whether a relay
-     *                  delivers is often a question about somebody else's mailbox
-     */
-    public record ProviderTestRequest(String recipient) {}
-
-    /**
      * What has become of this station's post: the queue, how each of its providers stands today,
      * and what those providers reported back about the mails they took.
      */
@@ -776,6 +812,16 @@ public class StationManageRoutes implements Routes {
      * Lifts a block by hand, for when the relay has been taken off the list and nobody wants to
      * wait out the week.
      */
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/blocks",
+            methods = HttpMethod.DELETE,
+            summary = "Lift a provider's block for a recipient domain",
+            tags = {"Station Manage"},
+            queryParams = {
+                @OpenApiParam(name = "provider", type = String.class, required = true),
+                @OpenApiParam(name = "domain", type = String.class)
+            },
+            responses = @OpenApiResponse(status = "204"))
     private void liftMailBlock(Context ctx) {
         var provider = MailProviderType.fromName(ctx.queryParam("provider"))
                 .orElseThrow(Refusal.MAIL_PROVIDER_NOT_KNOWN::raise);

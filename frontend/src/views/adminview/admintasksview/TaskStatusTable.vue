@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
-import type {TaskStatus} from '@/api/adminTasks'
+import type {TaskStatus} from '@/api/generated/schema'
 import type {DataTableApi} from '@/composables/useDataTable'
 import TaskOutcomeBadge from './TaskOutcomeBadge.vue'
 

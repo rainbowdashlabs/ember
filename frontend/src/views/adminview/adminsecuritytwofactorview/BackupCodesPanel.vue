@@ -14,7 +14,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import { adminSettings } from '@/api'
-import type { BackupCodesConfig } from '@/api/adminSettings'
+import type { BackupCodesConfig } from '@/api/generated/schema'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()

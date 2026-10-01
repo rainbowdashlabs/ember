@@ -9,9 +9,8 @@ import { useI18n } from 'vue-i18n'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import InventorySearchPicker from '@/components/input/search/InventorySearchPicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { Inventory } from '@/api/generated/schema'
+import type { Inventory, StationGroupResponse } from '@/api/generated/schema'
 import type { MemberGroup } from '@/api/types'
-import type { StationGroup } from '@/api/clusterStationGroups'
 import RequirementTargetFields from './RequirementTargetFields.vue'
 
 const targetType = defineModel<'userType' | 'group'>('targetType', { default: 'userType' })
@@ -28,7 +27,7 @@ defineProps<{
    * The association's ways of filing its stations. Empty at a station, which writes requirements for
    * itself and has nothing to point them at.
    */
-  stationGroups?: StationGroup[]
+  stationGroups?: StationGroupResponse[]
 }>()
 
 const { t } = useI18n()

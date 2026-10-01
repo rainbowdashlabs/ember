@@ -12,9 +12,9 @@ import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DeletionStrategy;
 import dev.chojo.ember.tracking.IdentityColumn;
 import dev.chojo.ember.tracking.IdentityType;
-import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.Strategy;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.tracking.TrackingStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -155,7 +155,7 @@ public final class GenericGdprDeleter {
     private void applyUpdatesForTable(String tableName, IdentityType type, Object idVal, Report report) {
         var table = tracking.tables().get(tableName);
         if (table == null || table.gdprDeletion() == null) return;
-        if (table.gdprDeletion().status() != Status.TRACKED) return;
+        if (table.gdprDeletion().status() != TrackingStatus.TRACKED) return;
 
         for (DeletionStrategy s : table.gdprDeletion().strategies()) {
             ColumnEntry col = resolveColumn(table, s.column());
@@ -180,7 +180,7 @@ public final class GenericGdprDeleter {
     private void applyDeletesForTable(String tableName, IdentityType type, Object idVal, Report report) {
         var table = tracking.tables().get(tableName);
         if (table == null || table.gdprDeletion() == null) return;
-        if (table.gdprDeletion().status() != Status.TRACKED) return;
+        if (table.gdprDeletion().status() != TrackingStatus.TRACKED) return;
 
         for (DeletionStrategy s : table.gdprDeletion().strategies()) {
             if (s.strategy() != Strategy.DELETE_EXPLICIT) continue;

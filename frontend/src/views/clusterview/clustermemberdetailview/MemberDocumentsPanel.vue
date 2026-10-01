@@ -21,7 +21,7 @@ import DownloadButton from '@/components/button/DownloadButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FileInput from '@/components/input/FileInput.vue'
 import {clusterMembers} from '@/api'
-import type {ManagedMemberDocument} from '@/api/clusterMembers'
+import type {MemberDocumentSummary} from '@/api/generated/schema'
 import {formatDate, formatSize} from '@/util/format'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -41,7 +41,7 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const documents = ref<ManagedMemberDocument[]>([])
+const documents = ref<MemberDocumentSummary[]>([])
 const actionFailure = ref<Failure | null>(null)
 const showUpload = ref(false)
 const file = ref<File | null>(null)
@@ -96,7 +96,7 @@ async function upload() {
   await reload(t('failure.staleAfterAction'))
 }
 
-async function download(document: ManagedMemberDocument) {
+async function download(document: MemberDocumentSummary) {
   actionFailure.value = null
   try {
     await clusterMembers.downloadManagedMemberDocument(document.id, document.fileName)

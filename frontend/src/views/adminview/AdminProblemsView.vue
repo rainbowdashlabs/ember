@@ -18,7 +18,7 @@ import ProblemEntryCard from './adminproblemsview/ProblemEntryCard.vue'
 import {beacon, problems} from '@/api'
 import BeaconPreviewModal from '@/components/log/BeaconPreviewModal.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import type {BeaconStatus} from '@/api/beacon'
+import type {BeaconStatus} from '@/api/generated/schema'
 import type {ProblemEntry} from '@/api/problems'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 

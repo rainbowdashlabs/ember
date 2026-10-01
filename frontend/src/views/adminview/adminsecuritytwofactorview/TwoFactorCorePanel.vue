@@ -21,7 +21,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import { adminSettings } from '@/api'
-import type { TwoFactorCoreConfigResponse } from '@/api/adminSettings'
+import type { TwoFactorCoreConfigResponse } from '@/api/generated/schema'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()

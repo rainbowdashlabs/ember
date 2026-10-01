@@ -13,11 +13,20 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
+import dev.chojo.ember.feature.passkey.entity.PasswordlessReport;
+import dev.chojo.ember.feature.passkey.entity.ResidueEntry;
 import dev.chojo.ember.feature.passkey.service.PasskeyAdminService;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Locale;
@@ -63,10 +72,23 @@ public class PasskeyAdminRoutes implements Routes {
                 StepUpCategory.INSTANCE_CONFIG);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/passkeys/residue",
+            methods = HttpMethod.GET,
+            summary = "List the password holders with no passkey they have used",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResidueEntry[].class)))
     private void residue(Context ctx) {
         ctx.json(adminService.residue());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/accounts/{id}/password/retire",
+            methods = HttpMethod.POST,
+            summary = "Retire one account's password",
+            tags = {"Admin Settings"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void retirePassword(Context ctx) {
         var session = UserSession.from(ctx);
         int accountId = RouteSupport.pathInt(ctx, "id");
@@ -79,16 +101,37 @@ public class PasskeyAdminRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/passkeys/retire-all",
+            methods = HttpMethod.POST,
+            summary = "Retire the password of every account that has used a passkey",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BulkRetireResponse.class)))
     private void retireAll(Context ctx) {
         var session = UserSession.from(ctx);
         var result = adminService.retireAllEligible(session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         ctx.json(new BulkRetireResponse(result.retired(), result.passedOver()));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/passkeys",
+            methods = HttpMethod.GET,
+            summary = "Get the passkey mode with its readiness and adoption figures",
+            tags = {"Admin Settings"},
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = PasskeysConfigResponse.class)))
     private void getConfig(Context ctx) {
         ctx.json(toResponse(adminService.status()));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/passkeys",
+            methods = HttpMethod.PUT,
+            summary = "Change the passkey mode",
+            tags = {"Admin Settings"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PasskeysConfigRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = PasskeysConfigResponse.class)))
     private void updateConfig(Context ctx) {
         var request = ctx.bodyAsClass(PasskeysConfigRequest.class);
         PasskeySettings.Mode mode;
@@ -107,6 +150,12 @@ public class PasskeyAdminRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/config/auth/passkeys/report",
+            methods = HttpMethod.GET,
+            summary = "Count what the passwordless mode would do to the accounts",
+            tags = {"Admin Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PasswordlessReport.class)))
     private void passwordlessReport(Context ctx) {
         ctx.json(adminService.passwordlessReport());
     }
@@ -131,7 +180,7 @@ public class PasskeyAdminRoutes implements Routes {
             String effectiveMode,
             boolean localhostFallback,
             String rpId,
-            Instant lastMailSentAt,
+            @Nullable Instant lastMailSentAt,
             int dependentAccounts,
             int accountsWithTriedPasskey,
             int accountsWithPassword,

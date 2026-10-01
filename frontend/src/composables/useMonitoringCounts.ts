@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {readonly} from 'vue'
-import {getMonitoringCounts, type MonitoringCounts} from '@/api/adminMonitoring'
+import {getMonitoringCounts} from '@/api/adminMonitoring'
+import type {MonitoringCounts} from '@/api/generated/schema'
 
 /**
  * What the instance has waiting, held once for whoever asks.

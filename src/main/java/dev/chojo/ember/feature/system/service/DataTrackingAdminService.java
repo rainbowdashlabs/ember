@@ -10,11 +10,12 @@ import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.GdprDeletionContext;
 import dev.chojo.ember.tracking.GdprExportContext;
-import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.tracking.TrackingStatus;
 import dev.chojo.ember.tracking.TransferContext;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -193,7 +194,7 @@ public class DataTrackingAdminService {
     }
 
     /**
-     * Counts per {@link Status} for one tracking dimension. Tracked + Ignored + Unverified = total.
+     * Counts per {@link TrackingStatus} for one tracking dimension. Tracked + Ignored + Unverified = total.
      */
     public record StatusCounts(int tracked, int ignored, int unverified) {}
 
@@ -213,9 +214,9 @@ public class DataTrackingAdminService {
      * existing entry; the column list itself can't be changed (only verification flags).
      */
     public record TableUpdate(
-            String feature,
-            Map<String, Boolean> columnVerified,
-            TransferContext stationTransfer,
-            GdprExportContext gdprExport,
-            GdprDeletionContext gdprDeletion) {}
+            @Nullable String feature,
+            @Nullable Map<String, Boolean> columnVerified,
+            @Nullable TransferContext stationTransfer,
+            @Nullable GdprExportContext gdprExport,
+            @Nullable GdprDeletionContext gdprDeletion) {}
 }

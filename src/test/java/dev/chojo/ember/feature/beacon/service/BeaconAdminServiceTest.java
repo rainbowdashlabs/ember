@@ -7,10 +7,10 @@ package dev.chojo.ember.feature.beacon.service;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.feature.beacon.entity.BeaconReport;
 import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
-import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository.ReportRow;
+import dev.chojo.ember.feature.beacon.service.BeaconAdminService.BeaconSettingsRequest;
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService.SendReportRequest;
-import dev.chojo.ember.feature.beacon.service.BeaconAdminService.SettingsRequest;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
@@ -53,8 +53,9 @@ class BeaconAdminServiceTest {
         return assertThrows(RefusalResponse.class, call).refusal();
     }
 
-    private static ReportRow collectedReport(int id, Integer pictureId) {
-        return new ReportRow(id, "m", "/p", "1", "b", "s", "r", "q", null, null, Instant.EPOCH, false, pictureId, "i1");
+    private static BeaconReport collectedReport(int id, Integer pictureId) {
+        return new BeaconReport(
+                id, "m", "/p", "1", "b", "s", "r", "q", null, null, Instant.EPOCH, false, pictureId, "i1");
     }
 
     private static ProblemReport report(int id, Integer pictureId) {
@@ -132,8 +133,8 @@ class BeaconAdminServiceTest {
         when(config.enabled()).thenReturn(true);
         when(config.url()).thenReturn("https://beacon.test");
 
-        var status = service.update(
-                new SettingsRequest(true, "https://beacon.test", true, false, true, false, false, "Mara", "m@test"));
+        var status = service.update(new BeaconSettingsRequest(
+                true, "https://beacon.test", true, false, true, false, false, "Mara", "m@test"));
 
         verify(config).update(true, "https://beacon.test", true, false, true, false, false, "Mara", "m@test");
         assertEquals("https://beacon.test", status.url());

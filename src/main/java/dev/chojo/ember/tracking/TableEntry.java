@@ -6,6 +6,7 @@
 package dev.chojo.ember.tracking;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -37,19 +38,22 @@ import java.util.List;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record TableEntry(
-        String feature,
-        Scope scope,
+        @Nullable String feature,
+        @Nullable Scope scope,
         String tableHash,
         List<ColumnEntry> columns,
         List<ForeignKey> foreignKeys,
-        @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Lookup> lookups,
-        OutputShape outputShape,
-        String flatField,
-        CustomScope customScope,
+
+        @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable
+        List<Lookup> lookups,
+
+        @Nullable OutputShape outputShape,
+        @Nullable String flatField,
+        @Nullable CustomScope customScope,
         TransferContext stationTransfer,
         GdprExportContext gdprExport,
         GdprDeletionContext gdprDeletion,
-        String description) {
+        @Nullable String description) {
 
     public TableEntry {
         columns = columns == null ? List.of() : columns;

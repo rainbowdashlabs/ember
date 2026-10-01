@@ -18,7 +18,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {clusterStations} from '@/api'
-import type {ClusterStation} from '@/api/clusterStations'
+import type {ClusterStationResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useModalTarget} from '@/composables/useModalTarget'
 import {useSession} from '@/composables/useSession'
@@ -30,12 +30,12 @@ const {hasClusterPermission} = useSession()
 const newName = ref('')
 const busy = ref(false)
 
-const {config: stations, loading, failure, runWith} = useConfigPanel<ClusterStation[]>({
+const {config: stations, loading, failure, runWith} = useConfigPanel<ClusterStationResponse[]>({
   initial: [],
   fetch: () => clusterStations.listStations(),
 })
 
-const {isOpen: showRelease, target: releaseTarget, open: openRelease} = useModalTarget<ClusterStation>()
+const {isOpen: showRelease, target: releaseTarget, open: openRelease} = useModalTarget<ClusterStationResponse>()
 
 async function create() {
   if (!newName.value.trim()) return

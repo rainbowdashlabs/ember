@@ -19,20 +19,20 @@ import StorageStationTable from '@/views/adminview/adminstorageview/StorageStati
 import QuotaDefaultsPanel from './clusterstorageview/QuotaDefaultsPanel.vue'
 import StationRoomModal from './clusterstorageview/StationRoomModal.vue'
 import {clusterStorage} from '@/api'
-import type {ClusterStationRoom, ClusterStorageOverview, QuotaDimensions} from '@/api/clusterStorage'
+import type {Dimensions, OverviewResponse, StationRoomResponse} from '@/api/generated/schema'
 import {useStorageQuotas, type StorageQuotasPort, type StorageRoomRow} from '@/composables/useStorageQuotas'
 import {formatBytes} from '@/util/storage'
 
 const {t} = useI18n()
 
 /** Every dimension left open, which is what the screen reads while nothing has arrived yet. */
-const NOTHING_DECIDED: QuotaDimensions = {
+const NOTHING_DECIDED: Dimensions = {
   totalBytes: null, kbBytes: null, boardBytes: null,
   imagesBytes: null, pagesBytes: null, perFileBytes: null, perImageBytes: null,
 }
 
 /** What the association's overview says about one station, in the shape the shared table reads. */
-function asRow(room: ClusterStationRoom): StorageRoomRow {
+function asRow(room: StationRoomResponse): StorageRoomRow {
   const quota = room.resolved.total.bytes
   return {
     stationId: room.stationUid,
@@ -49,12 +49,12 @@ function asRow(room: ClusterStationRoom): StorageRoomRow {
   }
 }
 
-const overview = ref<ClusterStorageOverview | null>(null)
+const overview = ref<OverviewResponse | null>(null)
 
-const rooms = computed<ClusterStationRoom[]>(() => overview.value?.stations ?? [])
+const rooms = computed<StationRoomResponse[]>(() => overview.value?.stations ?? [])
 const poolBytes = computed(() => overview.value?.poolBytes ?? null)
 const handedOut = computed(() => overview.value?.handedOut ?? 0)
-const defaults = computed<QuotaDimensions>(() => overview.value?.defaults ?? NOTHING_DECIDED)
+const defaults = computed<Dimensions>(() => overview.value?.defaults ?? NOTHING_DECIDED)
 
 /**
  * The association's own quotas: the pool the instance granted it, what it gives its stations by default, the
@@ -88,7 +88,7 @@ const usedPercent = computed(() => {
   return Math.min(100, Math.round((handedOut.value / total) * 100))
 })
 
-const editing = ref<ClusterStationRoom | null>(null)
+const editing = ref<StationRoomResponse | null>(null)
 const showRoomModal = ref(false)
 
 function openRoom(stationUid: string) {
@@ -96,7 +96,7 @@ function openRoom(stationUid: string) {
   showRoomModal.value = editing.value !== null
 }
 
-async function saveRoom(stationUid: string, room: QuotaDimensions) {
+async function saveRoom(stationUid: string, room: Dimensions) {
   if (await run(() => clusterStorage.setStationRoom(stationUid, room))) showRoomModal.value = false
 }
 
@@ -104,7 +104,7 @@ async function handBack(stationUid: string) {
   if (await resetStation(stationUid)) showRoomModal.value = false
 }
 
-function saveDefaults(next: QuotaDimensions) {
+function saveDefaults(next: Dimensions) {
   return run(() => clusterStorage.setDefaults(next))
 }
 </script>

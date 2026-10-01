@@ -8,10 +8,10 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {ClusterMailSettings} from '@/api/clusters'
+import type {ClusterMail} from '@/api/generated/schema'
 
 defineProps<{
-  settings: ClusterMailSettings
+  settings: ClusterMail
 }>()
 
 const emit = defineEmits<{

@@ -9,11 +9,11 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {LegalImport} from '@/api/adminSettings'
+import type {LegalImportResponse} from '@/api/generated/schema'
 
 /** What the import found, shown before anything is applied. */
 defineProps<{
-  result: LegalImport
+  result: LegalImportResponse
 }>()
 
 const {t} = useI18n()

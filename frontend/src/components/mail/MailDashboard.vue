@@ -24,7 +24,8 @@ import {useMailRecordTable} from '@/components/mail/useMailRecordTable'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
 import {describeFailure, type Failure} from '@/util/failure'
-import {MailDeliveryStatus, type MailDashboard, type ProviderBlock, type RequeuedMails} from '@/api/mailProviders'
+import {MailDeliveryStatus} from '@/api/mailProviders'
+import type {MailDashboard, ProviderBlock, RequeuedMails} from '@/api/generated/schema'
 
 /**
  * What has become of the post.

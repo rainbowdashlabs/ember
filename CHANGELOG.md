@@ -108,6 +108,8 @@
 - **Free-text and picture questions showed no answer.** In a quiz catalog opened read-only, free-text and picture questions showed no correct answer. They now list the accepted answers like every other kind of question.
 - **Corrections were not marked in a piece's history.** When a check put the record of who holds a piece right, its history showed that spell like an ordinary hand-back. Such entries are now marked as a correction.
 - **A kind blocking a change of inventory was not named.** When a collection could not become a stock because kinds are still defined in it, the reason was shown as unreadable text. It now names the kind that stands in the way.
+- **The association's inventory switch always showed as off.** The setting that an association keeps its gear in Ember always read as switched off when its inventory settings were opened, even where it was on. It now shows how it is set.
+- **Refused unsigned mail showed as unreadable text.** The import log of a mailbox that files signed mail only showed a message refused for a missing, unrelated or broken signature as unreadable text instead of a reason. It now names the reason.
 
 ## v26.19.5
 

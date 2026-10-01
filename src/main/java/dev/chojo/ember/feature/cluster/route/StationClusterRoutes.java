@@ -26,6 +26,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -173,18 +174,19 @@ public class StationClusterRoutes implements Routes {
      * @param clusterUid the cluster this station answers to, or {@code null} when it answers to nobody
      */
     public record StationClusterResponse(
-            UUID clusterUid,
-            String clusterName,
-            String clusterDescription,
+            @Nullable UUID clusterUid,
+            @Nullable String clusterName,
+            @Nullable String clusterDescription,
             List<ClusterApplicationView> applications) {}
 
-    public record AvailableClusterResponse(UUID uid, String name, String description) {}
+    public record AvailableClusterResponse(
+            UUID uid, String name, @Nullable String description) {}
 
     public record ClusterApplicationView(
             int id,
-            String clusterName,
+            @Nullable String clusterName,
             Instant requestedAt,
             ClusterApplicationStatus status,
-            String denyReason,
-            Instant resolvedAt) {}
+            @Nullable String denyReason,
+            @Nullable Instant resolvedAt) {}
 }

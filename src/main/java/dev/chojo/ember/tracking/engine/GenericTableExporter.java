@@ -9,8 +9,8 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.tracking.CustomScope;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.OutputShape;
-import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.tracking.TrackingStatus;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -62,7 +62,7 @@ public final class GenericTableExporter {
     public List<Map<String, Object>> export(String tableName, int stationId, int offset, int limit) {
         var table = tableEntry(tableName);
         var transfer = table.stationTransfer();
-        if (transfer == null || transfer.status() != Status.TRACKED) {
+        if (transfer == null || transfer.status() != TrackingStatus.TRACKED) {
             throw new IllegalStateException("Table " + tableName + " is not TRACKED for station transfer (status="
                     + (transfer == null ? "null" : transfer.status()) + ")");
         }

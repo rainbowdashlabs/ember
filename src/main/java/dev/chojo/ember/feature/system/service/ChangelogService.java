@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.Updates;
 import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
@@ -272,7 +273,11 @@ public class ChangelogService {
      * @param compareUrl where its changes can be read against the release before it, or null where
      *     there is no such pair of tags
      */
-    public record ChangelogEntry(String version, String body, Instant releasedAt, String compareUrl) {}
+    public record ChangelogEntry(
+            String version,
+            String body,
+            @Nullable Instant releasedAt,
+            @Nullable String compareUrl) {}
 
     /**
      * A tag as the build found it.

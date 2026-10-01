@@ -9,7 +9,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {StoragePlacement} from '@/api/clusterStorageBackend'
+import type {PlacementResponse} from '@/api/generated/schema'
 
 /**
  * Every station of the association, where its files are and where the association's decision says they
@@ -19,7 +19,7 @@ import type {StoragePlacement} from '@/api/clusterStorageBackend'
  * rather than a thing that is wrong: deciding takes a moment and copying does not.
  */
 defineProps<{
-    placements: StoragePlacement[]
+    placements: PlacementResponse[]
     movingUid: string | null
 }>()
 

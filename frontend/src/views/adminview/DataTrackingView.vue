@@ -13,13 +13,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import {dataTracking, demo} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import type {
-  DataTracking,
-  DataTrackingSummary,
-  TableEntry,
-  TableUpdatePayload,
-  TrackingStatusName,
-} from '@/api/dataTracking'
+import type {DataTracking, Summary, TableEntry, TableUpdate} from '@/api/generated/schema'
+import type {TrackingStatusName} from '@/api/dataTracking'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import TableDetailDrawer from './datatrackingview/TableDetailDrawer.vue'
 import TrackingTable from './datatrackingview/TrackingTable.vue'
@@ -37,7 +32,7 @@ import {describeFailure} from '@/util/failure'
 const {t} = useI18n()
 
 const tracking = ref<DataTracking | null>(null)
-const summary = ref<DataTrackingSummary | null>(null)
+const summary = ref<Summary | null>(null)
 const selectedTable = ref<string | null>(null)
 
 const selectedForBatch = ref<Set<string>>(new Set())
@@ -122,7 +117,7 @@ const {running: batchSaving, run: applyBatch} = useAsyncAction(async () => {
     const existing = tracking.value.tables[name]
     if (!existing) continue
     try {
-      const payload: TableUpdatePayload = {}
+      const payload: TableUpdate = {}
       if (batchContext.value === 'stationTransfer') {
         payload.stationTransfer = {...existing.stationTransfer, status: batchStatus.value}
       } else if (batchContext.value === 'gdprExport') {

@@ -13,9 +13,9 @@ import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
-import type {SftpRequest} from '@/api/storageBackend'
+import type {SftpForm} from '@/util/storageBackendForm'
 
-const model = defineModel<SftpRequest>({required: true})
+const model = defineModel<SftpForm>({required: true})
 const {t} = useI18n()
 
 const hostInvalid = computed(() => /:\/\//.test(model.value.host ?? ''))

@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {LogEntry} from '@/api/applicationLog'
+import type {LogEntry} from '@/api/generated/schema'
 import BareButton from '@/components/button/BareButton.vue'
 
 /**

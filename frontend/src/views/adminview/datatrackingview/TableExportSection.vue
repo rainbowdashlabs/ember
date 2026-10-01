@@ -5,7 +5,8 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {GdprExportContext, TrackingStatusName} from '@/api/dataTracking'
+import type {GdprExportContext} from '@/api/generated/schema'
+import type {TrackingStatusName} from '@/api/dataTracking'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import StatusBadge from './StatusBadge.vue'
 import StatusReasonFields from './StatusReasonFields.vue'

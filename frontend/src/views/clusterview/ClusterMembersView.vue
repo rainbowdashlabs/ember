@@ -18,7 +18,7 @@ import RosterPanel from './clustermembersview/RosterPanel.vue'
 import AddMemberModal from './clustermembersview/AddMemberModal.vue'
 import MemberEditor from './clustermembersview/MemberEditor.vue'
 import {clusterMembers} from '@/api'
-import type {ClusterMemberSummary} from '@/api/clusterMembers'
+import type {ClusterMemberResponse} from '@/api/generated/schema'
 import {ClusterPermission, ClusterUserType} from '@/api/clusters'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useSession} from '@/composables/useSession'
@@ -35,7 +35,7 @@ const showAdd = ref(false)
 const needsName = ref(false)
 const selectedId = ref<number | null>(null)
 
-const {config: members, loading, failure, runWith} = useConfigPanel<ClusterMemberSummary[]>({
+const {config: members, loading, failure, runWith} = useConfigPanel<ClusterMemberResponse[]>({
   initial: [],
   fetch: () => clusterMembers.listMembers(),
 })

@@ -17,7 +17,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import LockRow from './clusterlookandfeelview/LockRow.vue'
 import {clusterGovernance} from '@/api'
-import type {ClusterLookAndFeel} from '@/api/clusterGovernance'
+import type {LookAndFeelRequest} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
@@ -28,8 +28,16 @@ const FEELS = ['ROUNDED', 'CORNERS']
 const busy = ref(false)
 const saved = ref(false)
 
-const {config: look, loading, failure, runWith} = useConfigPanel<ClusterLookAndFeel>({
-  initial: {themeLocked: false, colorsLocked: false, feelLocked: false, logoLocked: false},
+const {config: look, loading, failure, runWith} = useConfigPanel<LookAndFeelRequest>({
+  initial: {
+    defaultTheme: null,
+    customThemeColors: null,
+    defaultFeel: null,
+    themeLocked: false,
+    colorsLocked: false,
+    feelLocked: false,
+    logoLocked: false,
+  },
   fetch: () => clusterGovernance.getLookAndFeel(),
 })
 

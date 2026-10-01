@@ -11,7 +11,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import type { Inventory, RequirementResponse } from '@/api/generated/schema'
+import type { Inventory, RequirementResponse, StationGroupResponse } from '@/api/generated/schema'
 import { userTypesOf } from '@/util/stationUserTypes'
 import type { MemberGroup } from '@/api/types'
 import { inventory, memberGroups, clusterStationGroups  } from '@/api'
@@ -21,7 +21,6 @@ import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import RequirementGroupCard from './requirementsview/RequirementGroupCard.vue'
 import RequirementAddModal from './requirementsview/RequirementAddModal.vue'
 import { userTypeFriendlyNames, type RequirementGroup } from './requirementsview/types'
-import type { StationGroup } from '@/api/clusterStationGroups'
 import { moveWithin } from '@/util/reorder'
 import { describeFailure } from '@/util/failure'
 
@@ -39,7 +38,7 @@ const props = defineProps<{
   stationScoped?: boolean
 }>()
 
-const stationGroups = ref<StationGroup[]>([])
+const stationGroups = ref<StationGroupResponse[]>([])
 
 const inventories = ref<Inventory[]>([])
 const requirements = ref<RequirementResponse[]>([])

@@ -16,7 +16,7 @@ import StationModuleToggle from '@/components/modules/StationModuleToggle.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
 import {clusterGovernance, clusterStationGroups} from '@/api'
-import type {StationGroup} from '@/api/clusterStationGroups'
+import type {StationGroupResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
@@ -31,7 +31,7 @@ const saved = ref(false)
  * tabs are independent of one another: saving what is denied of everybody leaves what is denied of a
  * group exactly where it was, because denials add up rather than replacing each other.
  */
-const groups = ref<StationGroup[]>([])
+const groups = ref<StationGroupResponse[]>([])
 const stationGroupId = ref<number | null>(null)
 
 const tabs = computed(() => [

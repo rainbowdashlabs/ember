@@ -23,6 +23,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -355,5 +356,10 @@ public class ClusterMemberService {
      *                   association's person need belong to no station, so there is no member of a
      *                   station to draw them as: the account is the only handle every one of them has.
      */
-    public record ClusterMemberResponse(int id, String accountUid, String name, String email, String userType) {}
+    public record ClusterMemberResponse(
+            int id,
+            @Nullable String accountUid,
+            @Nullable String name,
+            @Nullable String email,
+            String userType) {}
 }

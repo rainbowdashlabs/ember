@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {EndpointStats} from '@/api/apiStatus'
+import type {EndpointStats} from '@/api/generated/schema'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 import {formatMs, formatPercent} from './apiStatusFormat'
 

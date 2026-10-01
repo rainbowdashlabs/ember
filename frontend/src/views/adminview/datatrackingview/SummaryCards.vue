@@ -9,10 +9,10 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
-import type {DataTrackingSummary} from '@/api/dataTracking'
+import type {Summary} from '@/api/generated/schema'
 
 defineProps<{
-  summary: DataTrackingSummary
+  summary: Summary
   needsReviewCount: number
   verifiedPct: number
   schemaHash: string | undefined

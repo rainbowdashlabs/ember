@@ -10,9 +10,9 @@ import type {
   GdprDeletionContext,
   GdprExportContext,
   TableEntry,
-  TrackingStatusName,
   TransferContext,
-} from '@/api/dataTracking'
+} from '@/api/generated/schema'
+import type {TrackingStatusName} from '@/api/dataTracking'
 import SaveButton from '@/components/button/SaveButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'

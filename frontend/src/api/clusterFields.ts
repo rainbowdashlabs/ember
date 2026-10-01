@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {ClusterProfileFieldAssignment, FieldValuesRequest} from './generated/schema'
 import type {AssignmentRequest, AssignmentTarget, ProfileField, ProfileFieldRequest} from './profileFields'
 import type {ProfileFieldAssignment} from '@/util/profileFields'
 
@@ -13,6 +14,8 @@ import type {ProfileFieldAssignment} from '@/util/profileFields'
  * <p>The same shape as a station's on purpose. The settings ride in the same {@code config}, so a
  * width set here lays the field out beside a station's own in the one grid, and anything the station
  * fields gain is gained here without a second declaration to keep in step.
+ *
+ * TODO: take the generated ClusterFieldResponse once the station's profile field shape is the generated one.
  */
 export type ClusterField = ProfileField
 
@@ -56,12 +59,8 @@ export async function deleteField(fieldId: number): Promise<void> {
 }
 
 /** Field id to answer, in the same JSON shape a station field's answer has. */
-export interface ClusterFieldValues {
-    values: Record<number, string>
-}
-
-export async function getMemberValues(memberId: number): Promise<ClusterFieldValues> {
-    const res = await client.get<ClusterFieldValues>(`/cluster/fields/member/${memberId}`)
+export async function getMemberValues(memberId: number): Promise<FieldValuesRequest> {
+    const res = await client.get<FieldValuesRequest>(`/cluster/fields/member/${memberId}`)
     return res.data
 }
 
@@ -82,7 +81,7 @@ export async function reorderFields(role: string, fieldIds: number[]): Promise<v
  * and an association's through the same code and has no business knowing which it got.
  */
 export async function listAssignments(): Promise<ProfileFieldAssignment[]> {
-    const res = await client.get<Omit<ProfileFieldAssignment, 'targetKind'>[]>('/cluster/fields/assignments')
+    const res = await client.get<ClusterProfileFieldAssignment[]>('/cluster/fields/assignments')
     return res.data.map(assignment => ({...assignment, targetKind: 'ROLE'}))
 }
 

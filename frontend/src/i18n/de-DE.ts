@@ -2300,6 +2300,9 @@ export default {
             NO_ATTACHMENT: 'Kein Anhang',
             QUOTA_EXCEEDED: 'Kein Speicher frei',
             AUTHENTICATION_FAILED: 'Absenderprüfung fehlgeschlagen',
+            NO_SIGNATURE: 'Nicht signiert',
+            SIGNATURE_NOT_ALIGNED: 'Signatur passt nicht zum Absender',
+            SIGNATURE_FAILED: 'Signatur ungültig',
             FAILED: 'Fehlgeschlagen',
         },
         field: {

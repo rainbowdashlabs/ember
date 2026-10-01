@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.storage.audit.StorageAuditOutcome;
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -101,13 +102,13 @@ public class StorageAuditLogService {
     public record AuditEntryResponse(
             long id,
             String ts,
-            Integer actorAccountId,
-            Integer actorMemberId,
-            String systemActor,
-            Integer stationId,
+            @Nullable Integer actorAccountId,
+            @Nullable Integer actorMemberId,
+            @Nullable String systemActor,
+            @Nullable Integer stationId,
             StorageAuditAction action,
-            String oldConfig,
-            String newConfig,
+            @Nullable String oldConfig,
+            @Nullable String newConfig,
             StorageAuditOutcome outcome,
-            String error) {}
+            @Nullable String error) {}
 }

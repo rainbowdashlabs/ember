@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.passkey.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 
 /**
@@ -17,6 +19,6 @@ public record ResidueEntry(
         int accountId,
         String firstName,
         String lastName,
-        Instant lastSignInAt,
+        @Nullable Instant lastSignInAt,
         boolean reachable,
         boolean hasGuardian) {}

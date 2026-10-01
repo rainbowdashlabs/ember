@@ -13,12 +13,12 @@ import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import type {LegalFile} from '@/api/adminSettings'
+import type {LegalFileEntry} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
 defineProps<{
-  file: LegalFile
+  file: LegalFileEntry
   index: number
   total: number
 }>()

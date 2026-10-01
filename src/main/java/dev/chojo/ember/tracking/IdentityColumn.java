@@ -6,6 +6,7 @@
 package dev.chojo.ember.tracking;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A column whose value identifies a person for GDPR purposes.
@@ -15,7 +16,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * @param filter optional SQL fragment to scope the rows (e.g. {@code version = 1})
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record IdentityColumn(IdentityType type, String column, String filter) {
+public record IdentityColumn(
+        IdentityType type, String column, @Nullable String filter) {
     public IdentityColumn(IdentityType type, String column) {
         this(type, column, null);
     }

@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {ColumnEntry, DeletionStrategy} from '@/api/dataTracking'
+import type {ColumnEntry, DeletionStrategy} from '@/api/generated/schema'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -58,9 +58,9 @@ const id = useId()
       </label>
       <TextInput
           :id="`${id}-legal-basis`"
-          :model-value="strategy.legalBasis ?? undefined"
+          :model-value="strategy.legalBasis"
           :placeholder="t('adminDataTracking.detail.legalBasisPlaceholder')"
-          @update:model-value="strategy.legalBasis = $event ?? null"
+          @update:model-value="strategy.legalBasis = $event || undefined"
       />
     </div>
     <div class="flex justify-end">
