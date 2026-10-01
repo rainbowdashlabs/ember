@@ -15,7 +15,6 @@ import org.openrewrite.SourceFile;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.tree.J;
 
 import java.nio.file.Path;
@@ -133,7 +132,7 @@ public final class AddNullMarkedPackageInfo extends ScanningRecipe<AddNullMarked
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit unit, ExecutionContext ctx) {
                 String name = packageOf(unit);
-                if (name == null || !isMainSource(unit) || !filter.includesPackage(name)) {
+                if (name == null || !MainSources.contains(unit) || !filter.includesPackage(name)) {
                     return unit;
                 }
                 Path path = unit.getSourcePath();
@@ -166,7 +165,7 @@ public final class AddNullMarkedPackageInfo extends ScanningRecipe<AddNullMarked
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit unit, ExecutionContext ctx) {
                 String name = packageOf(unit);
                 if (name == null
-                        || !isMainSource(unit)
+                        || !MainSources.contains(unit)
                         || !filter.includesPackage(name)
                         || !PACKAGE_INFO.equals(
                                 String.valueOf(unit.getSourcePath().getFileName()))
@@ -213,13 +212,6 @@ public final class AddNullMarkedPackageInfo extends ScanningRecipe<AddNullMarked
     private static @Nullable String packageOf(J.CompilationUnit unit) {
         J.Package declaration = unit.getPackageDeclaration();
         return declaration == null ? null : declaration.getPackageName();
-    }
-
-    private static boolean isMainSource(J.CompilationUnit unit) {
-        return unit.getMarkers()
-                .findFirst(JavaSourceSet.class)
-                .map(set -> "main".equals(set.getName()))
-                .orElse(true);
     }
 
     private J.CompilationUnit parse(String packageName, ExecutionContext ctx) {

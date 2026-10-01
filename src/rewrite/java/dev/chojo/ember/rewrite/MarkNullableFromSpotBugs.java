@@ -115,7 +115,7 @@ public final class MarkNullableFromSpotBugs extends Recipe {
                         .anyMatch(anImport ->
                                 "Nullable".equals(anImport.getQualid().getSimpleName())
                                         && !NULLABLE.equals(anImport.getTypeName()));
-                return otherNullable ? unit : super.visitCompilationUnit(unit, ctx);
+                return otherNullable || !MainSources.contains(unit) ? unit : super.visitCompilationUnit(unit, ctx);
             }
 
             @Override
