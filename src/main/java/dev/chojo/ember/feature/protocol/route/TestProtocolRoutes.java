@@ -158,7 +158,7 @@ public class TestProtocolRoutes implements Routes {
                 .json(service.createProtocol(
                         session.stationId(),
                         req.name().trim(),
-                        req.description() != null ? req.description() : "",
+                        Objects.requireNonNullElse(req.description(), ""),
                         req.passThreshold()));
     }
 
@@ -185,7 +185,7 @@ public class TestProtocolRoutes implements Routes {
         guards.requireProtocol(ctx, id);
         var req = ctx.bodyAsClass(ProtocolRequest.class);
         if (!service.updateProtocol(
-                id, req.name(), req.description() != null ? req.description() : "", req.passThreshold())) {
+                id, req.name(), Objects.requireNonNullElse(req.description(), ""), req.passThreshold())) {
             throw Refusal.PROTOCOL_NOT_CHANGED.raise();
         }
         ctx.json(service.findProtocol(id).orElseThrow(Refusal.PROTOCOL_NOT_HERE_AFTER_CHANGE::raise));
@@ -213,7 +213,7 @@ public class TestProtocolRoutes implements Routes {
                         protocolId,
                         req.parentId(),
                         req.name(),
-                        req.description() != null ? req.description() : "",
+                        Objects.requireNonNullElse(req.description(), ""),
                         req.maxPoints(),
                         req.passThreshold(),
                         Objects.requireNonNullElse(req.position(), 0)));
@@ -231,7 +231,7 @@ public class TestProtocolRoutes implements Routes {
         service.updateSection(
                 id,
                 req.name(),
-                req.description() != null ? req.description() : "",
+                Objects.requireNonNullElse(req.description(), ""),
                 req.maxPoints(),
                 req.passThreshold(),
                 Objects.requireNonNullElse(req.position(), 0));
@@ -262,7 +262,7 @@ public class TestProtocolRoutes implements Routes {
                 .json(service.createItem(
                         sectionId,
                         req.label(),
-                        req.description() != null ? req.description() : "",
+                        Objects.requireNonNullElse(req.description(), ""),
                         Objects.requireNonNullElse(req.points(), 1.0),
                         Objects.requireNonNullElse(req.position(), 0)));
     }
@@ -279,7 +279,7 @@ public class TestProtocolRoutes implements Routes {
         service.updateItem(
                 id,
                 req.label(),
-                req.description() != null ? req.description() : "",
+                Objects.requireNonNullElse(req.description(), ""),
                 Objects.requireNonNullElse(req.points(), 1.0),
                 Objects.requireNonNullElse(req.position(), 0));
         ctx.status(HttpStatus.NO_CONTENT);
@@ -346,7 +346,7 @@ public class TestProtocolRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireRun(ctx, id);
         var req = ctx.bodyAsClass(ProtocolRunRequest.class);
-        service.updateRun(id, req.name(), req.testDate() != null ? req.testDate() : LocalDate.now());
+        service.updateRun(id, req.name(), Objects.requireNonNullElseGet(req.testDate(), LocalDate::now));
         ctx.json(service.findRun(id).orElseThrow(Refusal.PROTOCOL_RUN_NOT_HERE_AFTER_CHANGE::raise));
     }
 
@@ -530,7 +530,7 @@ public class TestProtocolRoutes implements Routes {
      * template chosen by the station's language, so there is only one language to be had. When those
      * two exports join the templates, the language follows the same way as everywhere else.
      */
-    private static String protocolName(String protocolName, String extension, String subject) {
+    private static String protocolName(String protocolName, String extension, @Nullable String subject) {
         String filename = DocumentName.of(
                 extension, DocumentWord.PROTOCOL.in("de"), DocumentName.part(protocolName), DocumentName.part(subject));
         return SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, filename);

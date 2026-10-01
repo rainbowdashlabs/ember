@@ -92,7 +92,8 @@ public class FormDirectoryService {
      * @param query a fragment of the title, or null for any
      * @param limit how many at most, held between 1 and 20
      */
-    public List<FormSearchResult> pickable(int stationId, FormPurpose purpose, String uid, String query, int limit) {
+    public List<FormSearchResult> pickable(
+            int stationId, FormPurpose purpose, @Nullable String uid, @Nullable String query, int limit) {
         if (uid != null && !uid.isBlank()) {
             return byAddress(uid)
                     .filter(f -> f.stationId() == stationId)

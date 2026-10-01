@@ -26,6 +26,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -77,7 +78,7 @@ public class TestProtocolRunService {
                 protocolId,
                 stationId,
                 request.name(),
-                request.testDate() != null ? request.testDate() : LocalDate.now(),
+                Objects.requireNonNullElseGet(request.testDate(), LocalDate::now),
                 createdBy);
         var named = new LinkedHashSet<Integer>();
         named.addAll(orEmpty(request.memberIds()));

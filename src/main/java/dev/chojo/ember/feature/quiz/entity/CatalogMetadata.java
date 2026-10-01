@@ -43,11 +43,11 @@ public record CatalogMetadata(
     }
 
     /** Reads a possibly absent metadata block, so a caller can forward a nullable request field. */
-    public static CatalogMetadata orNone(CatalogMetadata metadata) {
+    public static CatalogMetadata orNone(@Nullable CatalogMetadata metadata) {
         return metadata != null ? metadata : NONE;
     }
 
-    private static String trimToNull(String value) {
+    private static @Nullable String trimToNull(@Nullable String value) {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;

@@ -200,7 +200,7 @@ public class QuizQuestionRoutes implements Routes {
                 id,
                 req.categoryId(),
                 req.title(),
-                req.description() != null ? req.description() : "",
+                Objects.requireNonNullElse(req.description(), ""),
                 req.imageUrl(),
                 Objects.requireNonNullElse(req.points(), 1.0),
                 !Boolean.FALSE.equals(req.autoPoints()),
@@ -260,12 +260,13 @@ public class QuizQuestionRoutes implements Routes {
         if (file == null) {
             throw Refusal.QUIZ_PICTURE_UPLOAD_WITHOUT_FILE.raise();
         }
-        if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
+        String contentType = file.contentType();
+        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
             throw Refusal.QUIZ_PICTURE_KIND_NOT_TAKEN.raise();
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            imageService.store(session.stationId(), id, data, file.contentType(), apiConfig.maxImageSizeBytes());
+            imageService.store(session.stationId(), id, data, contentType, apiConfig.maxImageSizeBytes());
             ctx.json(new QuizSuccessResponse(true));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument storing question image for question {}", id, e);

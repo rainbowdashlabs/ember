@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.question;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Why an answer is not one this question takes.
  *
@@ -16,7 +18,8 @@ package dev.chojo.ember.feature.question;
  * @param question what the question is called
  * @param detail   the part of the answer that is wrong, or what was expected, where saying it helps
  */
-public record QuestionProblem(Code code, String question, String detail) {
+public record QuestionProblem(
+        Code code, String question, @Nullable String detail) {
 
     /** What can be wrong with an answer. */
     public enum Code {

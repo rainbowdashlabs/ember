@@ -88,7 +88,7 @@ public class WaitingListRoutes implements Routes {
         this.eventRestrictionService = eventRestrictionService;
     }
 
-    private static String toJson(List<Integer> fieldIds) {
+    private static String toJson(@Nullable List<Integer> fieldIds) {
         if (fieldIds == null || fieldIds.isEmpty()) return "[]";
         var sb = new StringBuilder("[");
         for (int i = 0; i < fieldIds.size(); i++) {
@@ -101,13 +101,7 @@ public class WaitingListRoutes implements Routes {
     private static List<GuardianInput> resolveGuardians(
             @Nullable List<WaitingListGuardianRequest> guardians, @Nullable String parentName, @Nullable String email) {
         if (guardians != null && !guardians.isEmpty()) {
-            return guardians.stream()
-                    .map(g -> new GuardianInput(
-                            g.firstname() != null ? g.firstname() : "",
-                            g.lastname() != null ? g.lastname() : "",
-                            g.email() != null ? g.email() : "",
-                            g.phone() != null ? g.phone() : ""))
-                    .toList();
+            return guardians.stream().map(WaitingListRoutes::guardianInput).toList();
         }
         if ((parentName != null && !parentName.isBlank()) || (email != null && !email.isBlank())) {
             return List.of(new GuardianInput(parentName != null ? parentName : "", "", email != null ? email : "", ""));
@@ -264,10 +258,12 @@ public class WaitingListRoutes implements Routes {
             })
     private void registerViaInvite(Context ctx) {
         var request = ctx.bodyAsClass(WaitingListRegisterRequest.class);
-        if (request.inviteCode() == null || request.firstname() == null) {
+        String inviteCode = request.inviteCode();
+        String firstname = request.firstname();
+        if (inviteCode == null || firstname == null) {
             throw Refusal.WAITING_LIST_REGISTRATION_INCOMPLETE.raise();
         }
-        if (answerWhenLimited(ctx, rateLimiter.tryAcquire(ctx.ip(), request.inviteCode()))) {
+        if (answerWhenLimited(ctx, rateLimiter.tryAcquire(ctx.ip(), inviteCode))) {
             return;
         }
         var consent = consentService.requireAcceptance(
@@ -275,11 +271,11 @@ public class WaitingListRoutes implements Routes {
         var guardians = resolveGuardians(request.guardians(), request.parentName(), request.email());
         try {
             var entry = service.registerViaInvite(
-                    request.inviteCode(),
-                    request.firstname(),
-                    request.lastname() != null ? request.lastname() : "",
+                    inviteCode,
+                    firstname,
+                    Objects.requireNonNullElse(request.lastname(), ""),
                     guardians,
-                    request.values() != null ? request.values() : Map.of(),
+                    Objects.requireNonNullElse(request.values(), Map.of()),
                     request.notes(),
                     consent);
             ctx.status(HttpStatus.CREATED).json(new WaitingListAccessResponse(entry.accessToken()));
@@ -369,15 +365,16 @@ public class WaitingListRoutes implements Routes {
         String token = ctx.pathParam("token");
         if (rateLimited(ctx, token)) return;
         var request = ctx.bodyAsClass(WaitingListInvitationAnswerRequest.class);
-        if (request.answer() == null) {
+        String answerName = request.answer();
+        if (answerName == null) {
             throw Refusal.WAITING_LIST_ANSWER_MISSING.raise();
         }
         WaitingListAnswer answer;
         try {
-            answer = WaitingListAnswer.valueOf(request.answer());
+            answer = WaitingListAnswer.valueOf(answerName);
         } catch (IllegalArgumentException e) {
-            log.warn("Unknown waiting-list invitation answer {}", request.answer(), e);
-            throw Refusal.WAITING_LIST_ANSWER_UNKNOWN.raise(request.answer());
+            log.warn("Unknown waiting-list invitation answer {}", answerName, e);
+            throw Refusal.WAITING_LIST_ANSWER_UNKNOWN.raise(answerName);
         }
         try {
             service.answerInvitation(
@@ -488,7 +485,7 @@ public class WaitingListRoutes implements Routes {
         var list = service.create(
                 session.member().stationId(),
                 request.name(),
-                request.description() != null ? request.description() : "",
+                Objects.requireNonNullElse(request.description(), ""),
                 request.scoringFormula(),
                 Objects.requireNonNullElse(request.confirmIntervalDays(), 180),
                 request.testingGroupId(),
@@ -534,7 +531,7 @@ public class WaitingListRoutes implements Routes {
         var updated = service.update(
                         id,
                         request.name(),
-                        request.description() != null ? request.description() : "",
+                        Objects.requireNonNullElse(request.description(), ""),
                         request.scoringFormula(),
                         Objects.requireNonNullElse(request.confirmIntervalDays(), 180),
                         request.testingGroupId(),
@@ -741,9 +738,9 @@ public class WaitingListRoutes implements Routes {
         var entry = service.createEntry(
                 listId,
                 request.firstname(),
-                request.lastname() != null ? request.lastname() : "",
+                Objects.requireNonNullElse(request.lastname(), ""),
                 guardians,
-                request.values() != null ? request.values() : Map.of(),
+                Objects.requireNonNullElse(request.values(), Map.of()),
                 request.notes());
         ctx.status(HttpStatus.CREATED).json(entry);
     }
@@ -763,7 +760,7 @@ public class WaitingListRoutes implements Routes {
         service.updateEntry(
                 entryId,
                 request.firstname(),
-                request.lastname() != null ? request.lastname() : "",
+                Objects.requireNonNullElse(request.lastname(), ""),
                 guardians,
                 request.notes(),
                 request.values());
@@ -886,7 +883,7 @@ public class WaitingListRoutes implements Routes {
         }
     }
 
-    private static LocalTime parseTime(String raw) {
+    private static @Nullable LocalTime parseTime(@Nullable String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
             return LocalTime.parse(raw.trim());
@@ -960,7 +957,7 @@ public class WaitingListRoutes implements Routes {
 
     // --- Records ---
 
-    private void validateFormula(String formula, List<String> fieldNames) {
+    private void validateFormula(@Nullable String formula, List<String> fieldNames) {
         if (formula == null || formula.isBlank()) return;
         try {
             ScoreEvaluator.validate(formula, fieldNames);
@@ -977,13 +974,15 @@ public class WaitingListRoutes implements Routes {
     private static List<GuardianInput> guardianInputs(PublicWaitlistRegistrationRequest request) {
         List<WaitingListGuardianRequest> guardians = request.guardians();
         if (guardians == null) return List.of();
-        return guardians.stream()
-                .map(g -> new GuardianInput(
-                        g.firstname() != null ? g.firstname() : "",
-                        g.lastname() != null ? g.lastname() : "",
-                        g.email() != null ? g.email() : "",
-                        g.phone() != null ? g.phone() : ""))
-                .toList();
+        return guardians.stream().map(WaitingListRoutes::guardianInput).toList();
+    }
+
+    private static GuardianInput guardianInput(WaitingListGuardianRequest guardian) {
+        return new GuardianInput(
+                Objects.requireNonNullElse(guardian.firstname(), ""),
+                Objects.requireNonNullElse(guardian.lastname(), ""),
+                Objects.requireNonNullElse(guardian.email(), ""),
+                Objects.requireNonNullElse(guardian.phone(), ""));
     }
 
     @OpenApi(
@@ -1039,16 +1038,16 @@ public class WaitingListRoutes implements Routes {
         if (answerWhenLimited(ctx, rateLimiter.tryAcquire(ctx.ip(), "list:" + wid))) {
             return;
         }
-        service.requireOldEnoughToRegister(list, request.values() != null ? request.values() : Map.of());
+        service.requireOldEnoughToRegister(list, Objects.requireNonNullElse(request.values(), Map.of()));
         var consent = consentService.requireAcceptance(
                 ctx, request.consentVersion(), request.privacyVersion(), request.tosVersion());
         service.submitPublicRegistration(
                 wid,
                 firstname,
-                request.lastname() != null ? request.lastname() : "",
+                Objects.requireNonNullElse(request.lastname(), ""),
                 email,
                 guardianInputs(request),
-                request.values() != null ? request.values() : Map.of(),
+                Objects.requireNonNullElse(request.values(), Map.of()),
                 request.notes(),
                 consent);
         ctx.status(HttpStatus.ACCEPTED)

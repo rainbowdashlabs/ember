@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.question;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -81,7 +83,7 @@ public final class QuestionValues {
      * @param stored the answer as the feature holds it
      * @return the same answer with nothing around it
      */
-    public static String text(String stored) {
+    public static String text(@Nullable String stored) {
         if (stored == null) return "";
         String trimmed = stored.trim();
         if (trimmed.length() >= 2 && trimmed.startsWith("\"") && trimmed.endsWith("\"")) {

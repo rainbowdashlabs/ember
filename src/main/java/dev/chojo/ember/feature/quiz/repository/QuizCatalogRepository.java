@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -232,11 +233,11 @@ public class QuizCatalogRepository {
 
     public QuizQuestion createQuestion(
             int catalogId,
-            Integer categoryId,
+            @Nullable Integer categoryId,
             QuizQuestionType quizQuestionType,
             String title,
             String description,
-            String imageUrl,
+            @Nullable String imageUrl,
             double points,
             boolean autoPoints,
             String config,
@@ -262,10 +263,10 @@ public class QuizCatalogRepository {
 
     public boolean updateQuestion(
             int id,
-            Integer categoryId,
+            @Nullable Integer categoryId,
             String title,
             String description,
-            String imageUrl,
+            @Nullable String imageUrl,
             double points,
             boolean autoPoints,
             String config,

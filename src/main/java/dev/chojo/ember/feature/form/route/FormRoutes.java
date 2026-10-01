@@ -279,7 +279,7 @@ public class FormRoutes implements Routes {
         var form = formService.create(
                 session.stationId(),
                 req.title(),
-                req.description() != null ? req.description() : "",
+                Objects.requireNonNullElse(req.description(), ""),
                 Boolean.TRUE.equals(req.shuffleQuestions()),
                 !Boolean.FALSE.equals(req.allowEdit()),
                 Boolean.TRUE.equals(req.forced()),
@@ -326,7 +326,7 @@ public class FormRoutes implements Routes {
         if (!formService.update(
                 id,
                 req.title(),
-                req.description() != null ? req.description() : "",
+                Objects.requireNonNullElse(req.description(), ""),
                 Boolean.TRUE.equals(req.shuffleQuestions()),
                 !Boolean.FALSE.equals(req.allowEdit()),
                 Boolean.TRUE.equals(req.forced()),
@@ -614,10 +614,10 @@ public class FormRoutes implements Routes {
                                 q.pageKey(),
                                 q.questionType(),
                                 q.title(),
-                                q.description() != null ? q.description() : "",
+                                Objects.requireNonNullElse(q.description(), ""),
                                 Boolean.TRUE.equals(q.required()),
                                 Boolean.TRUE.equals(q.shuffle()),
-                                q.config() != null ? q.config() : new FormQuestionConfig.Unknown(),
+                                Objects.requireNonNullElseGet(q.config(), FormQuestionConfig.Unknown::new),
                                 q.branch()))
                         .toList());
         ctx.json(new FormLayout(formService.findPages(id), formService.findQuestions(id)));

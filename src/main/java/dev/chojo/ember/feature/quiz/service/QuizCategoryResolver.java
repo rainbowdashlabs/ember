@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,7 +36,7 @@ public final class QuizCategoryResolver {
     }
 
     /** Resolves a bare name, appending a new category at the end of the station's list. */
-    public Integer resolve(String name) {
+    public @Nullable Integer resolve(String name) {
         return resolve(name, "", initialCount);
     }
 
@@ -45,7 +47,7 @@ public final class QuizCategoryResolver {
      *
      * @return the category id, or {@code null} for a name nobody gave
      */
-    public Integer resolve(String name, String description, int position) {
+    public @Nullable Integer resolve(String name, String description, int position) {
         if (name == null) return null;
         String trimmed = name.trim();
         if (trimmed.isEmpty()) return null;

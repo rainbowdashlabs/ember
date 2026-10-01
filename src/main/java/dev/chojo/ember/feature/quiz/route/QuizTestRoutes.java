@@ -213,7 +213,7 @@ public class QuizTestRoutes implements Routes {
         var test = testService.createTest(
                 session.stationId(),
                 req.title(),
-                req.description() != null ? req.description() : "",
+                Objects.requireNonNullElse(req.description(), ""),
                 req.timeLimit(),
                 Boolean.TRUE.equals(req.shuffle()),
                 Boolean.TRUE.equals(req.forced()),
@@ -233,7 +233,7 @@ public class QuizTestRoutes implements Routes {
         if (!testService.updateTest(
                 id,
                 req.title(),
-                req.description() != null ? req.description() : "",
+                Objects.requireNonNullElse(req.description(), ""),
                 req.timeLimit(),
                 Boolean.TRUE.equals(req.shuffle()),
                 Boolean.TRUE.equals(req.forced()),
@@ -369,8 +369,8 @@ public class QuizTestRoutes implements Routes {
         var req = ctx.bodyAsClass(QuizSectionRequest[].class);
         var entries = Arrays.stream(req)
                 .map(s -> new SectionEntry(
-                        s.title() != null ? s.title() : "",
-                        s.description() != null ? s.description() : "",
+                        Objects.requireNonNullElse(s.title(), ""),
+                        Objects.requireNonNullElse(s.description(), ""),
                         Objects.requireNonNullElse(s.sources(), List.<QuizSourceRequest>of()).stream()
                                 .map(src -> new SourceEntry(src.catalogId(), src.categoryId(), src.questionCount()))
                                 .toList()))

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.quiz.service;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,15 +55,15 @@ public sealed interface QuizSheetBody {
         };
     }
 
-    private static <T> List<T> orEmpty(List<T> list) {
+    private static <T> List<T> orEmpty(@Nullable List<T> list) {
         return list == null ? List.of() : list;
     }
 
-    private static String text(String value) {
-        return value == null ? "" : value;
+    private static String text(@Nullable String value) {
+        return Objects.requireNonNullElse(value, "");
     }
 
-    private static List<String> texts(List<String> values) {
+    private static List<String> texts(@Nullable List<String> values) {
         return orEmpty(values).stream().map(QuizSheetBody::text).toList();
     }
 
@@ -167,16 +168,21 @@ public sealed interface QuizSheetBody {
          * One piece of a gapped text.
          *
          * @param gap whether this piece is a gap rather than text
-         * @param text the text, or for a gap on the solution sheet the answer that fills it
+         * @param text the text, or for a gap on the solution sheet the answer that fills it, {@code null}
+         *     for a gap on the question sheet
          * @param number the gap's word in the word bank, or {@code null} without one
          * @param width how wide the question sheet draws the gap, in centimetres
          */
-        public record Part(boolean gap, String text, Integer number, double width) {
+        public record Part(
+                boolean gap,
+                @Nullable String text,
+                @Nullable Integer number,
+                double width) {
             static Part text(String text) {
                 return new Part(false, text, null, 0);
             }
 
-            static Part gap(String answer, Integer number, double width) {
+            static Part gap(@Nullable String answer, @Nullable Integer number, double width) {
                 return new Part(true, answer, number, width);
             }
         }

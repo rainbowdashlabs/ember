@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -55,7 +56,7 @@ public class ProcedureRepository {
         return findById("procedure_template", PROCEDURE_TEMPLATE_COLUMNS, id, ProcedureTemplate.map());
     }
 
-    public ProcedureTemplate createTemplate(int stationId, String name, String description, int createdBy) {
+    public ProcedureTemplate createTemplate(int stationId, String name, @Nullable String description, int createdBy) {
         return insertReturning(
                 """
 
@@ -73,7 +74,7 @@ public class ProcedureRepository {
                 PROCEDURE_TEMPLATE_COLUMNS);
     }
 
-    public boolean updateTemplate(int id, String name, String description) {
+    public boolean updateTemplate(int id, String name, @Nullable String description) {
         return query("UPDATE procedure_template SET name = :name, description = :description WHERE id = :id;")
                 .single(call().bind("name", name)
                         .bind("description", description)
@@ -104,7 +105,12 @@ public class ProcedureRepository {
     }
 
     public ProcedureTemplateItem createTemplateItem(
-            int templateId, String title, String description, boolean isPublic, boolean userAssigned, int position) {
+            int templateId,
+            String title,
+            @Nullable String description,
+            boolean isPublic,
+            boolean userAssigned,
+            int position) {
         return insertReturning(
                 """
                 INSERT
@@ -124,7 +130,7 @@ public class ProcedureRepository {
     }
 
     public boolean updateTemplateItem(
-            int id, String title, String description, boolean isPublic, boolean userAssigned, int position) {
+            int id, String title, @Nullable String description, boolean isPublic, boolean userAssigned, int position) {
         return query("""
                 UPDATE procedure_template_item
                 SET
@@ -190,7 +196,7 @@ public class ProcedureRepository {
 
     // ── Procedures ──
 
-    public List<Procedure> findProceduresByStation(int stationId, ProcedureStatus status) {
+    public List<Procedure> findProceduresByStation(int stationId, @Nullable ProcedureStatus status) {
         var where = WhereBuilder.create().add("AND status = :status", "status", status);
         return query("""
                 SELECT %s FROM procedure
@@ -202,7 +208,7 @@ public class ProcedureRepository {
     }
 
     public List<Procedure> findProceduresByAssignee(
-            int stationId, int memberId, ProcedureStatus status, boolean publicOnly) {
+            int stationId, int memberId, @Nullable ProcedureStatus status, boolean publicOnly) {
         var where = WhereBuilder.create()
                 .add("AND p.status = :status", "status", status)
                 .addIf(publicOnly, "AND p.public");
@@ -228,14 +234,14 @@ public class ProcedureRepository {
 
     public Procedure createProcedure(
             int stationId,
-            Integer templateId,
+            @Nullable Integer templateId,
             String name,
-            String description,
+            @Nullable String description,
             boolean isPublic,
             int assignedBy,
-            Instant dueAt,
-            Integer eventId,
-            LocalDate eventDate) {
+            @Nullable Instant dueAt,
+            @Nullable Integer eventId,
+            @Nullable LocalDate eventDate) {
         return insertReturning(
                 """
                 INSERT INTO
@@ -283,7 +289,8 @@ public class ProcedureRepository {
                 .all();
     }
 
-    public boolean updateProcedure(int id, String name, String description, boolean isPublic, Instant dueAt) {
+    public boolean updateProcedure(
+            int id, String name, @Nullable String description, boolean isPublic, @Nullable Instant dueAt) {
         return query("""
                 UPDATE procedure
                 SET
@@ -366,7 +373,12 @@ public class ProcedureRepository {
     }
 
     public ProcedureItem createItem(
-            int procedureId, String title, String description, boolean isPublic, boolean userAssigned, int position) {
+            int procedureId,
+            String title,
+            @Nullable String description,
+            boolean isPublic,
+            boolean userAssigned,
+            int position) {
         return insertReturning(
                 """
                 INSERT
@@ -386,7 +398,7 @@ public class ProcedureRepository {
     }
 
     public boolean updateItem(
-            int id, String title, String description, boolean isPublic, boolean userAssigned, int position) {
+            int id, String title, @Nullable String description, boolean isPublic, boolean userAssigned, int position) {
         return query("""
                 UPDATE procedure_item
                 SET

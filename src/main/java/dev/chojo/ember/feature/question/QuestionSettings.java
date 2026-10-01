@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.question;
 
+import org.jspecify.annotations.Nullable;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -29,7 +31,11 @@ import java.util.List;
  * @param max          the largest answer a number takes, or null
  */
 public record QuestionSettings(
-        boolean required, String defaultValue, List<String> options, BigDecimal min, BigDecimal max) {
+        boolean required,
+        @Nullable String defaultValue,
+        List<String> options,
+        @Nullable BigDecimal min,
+        @Nullable BigDecimal max) {
 
     public QuestionSettings {
         options = options == null ? List.of() : List.copyOf(options);
@@ -51,7 +57,7 @@ public record QuestionSettings(
     }
 
     /** The same settings with a starting value, however the feature stores one. */
-    public QuestionSettings withDefault(Object value) {
+    public QuestionSettings withDefault(@Nullable Object value) {
         return new QuestionSettings(required, value == null ? null : String.valueOf(value), options, min, max);
     }
 
@@ -61,14 +67,14 @@ public record QuestionSettings(
     }
 
     /** The same settings with what a number has to sit between, as whole numbers. */
-    public QuestionSettings withBounds(Integer smallest, Integer largest) {
+    public QuestionSettings withBounds(@Nullable Integer smallest, @Nullable Integer largest) {
         return withBounds(
                 smallest == null ? null : BigDecimal.valueOf(smallest),
                 largest == null ? null : BigDecimal.valueOf(largest));
     }
 
     /** The same settings with what a number has to sit between. */
-    public QuestionSettings withBounds(BigDecimal smallest, BigDecimal largest) {
+    public QuestionSettings withBounds(@Nullable BigDecimal smallest, @Nullable BigDecimal largest) {
         return new QuestionSettings(required, defaultValue, options, smallest, largest);
     }
 

@@ -163,6 +163,7 @@ public class QuizGenerationService {
 
     private void writeQuestions(Turn turn, List<String> existingTitles, GenerationJob job) {
         var entry = turn.entry();
+        var category = turn.category();
         var chat = aiService.createQuestionSession(
                 turn.stationId(),
                 turn.accountId(),
@@ -172,8 +173,8 @@ public class QuizGenerationService {
                 entry.quizQuestionType(),
                 turn.request().userPrompt(),
                 turn.request().locale(),
-                turn.category() == null ? null : turn.category().name(),
-                turn.category() == null ? null : turn.category().description(),
+                category == null ? null : category.name(),
+                category == null ? null : category.description(),
                 existingTitles);
         int count = Objects.requireNonNullElse(entry.count(), 0);
         for (int i = 0; i < count; i++) {
@@ -189,7 +190,7 @@ public class QuizGenerationService {
         }
     }
 
-    private List<String> existingTitles(int stationId, Integer catalogId) {
+    private List<String> existingTitles(int stationId, @Nullable Integer catalogId) {
         if (catalogId == null) return List.of();
         ownedCatalog(stationId, catalogId);
         return questionService.findQuestions(catalogId).stream()
@@ -204,8 +205,8 @@ public class QuizGenerationService {
                 .orElseThrow(Refusal.AI_GENERATION_CATALOG_NOT_HERE::raise);
     }
 
-    private static String providerOf(String provider) {
-        return provider != null ? provider : DEFAULT_PROVIDER;
+    private static String providerOf(@Nullable String provider) {
+        return Objects.requireNonNullElse(provider, DEFAULT_PROVIDER);
     }
 
     private record Turn(
@@ -213,7 +214,7 @@ public class QuizGenerationService {
             int accountId,
             GenerateQuestionsRequest request,
             GenerateEntry entry,
-            QuizCategory category) {}
+            @Nullable QuizCategory category) {}
 
     public record GenerateQuestionsRequest(
             @Nullable String provider,

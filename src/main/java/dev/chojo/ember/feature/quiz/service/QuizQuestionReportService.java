@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.quiz.repository.QuizQuestionReportRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +43,7 @@ public class QuizQuestionReportService {
      * @throws BadRequestResponse when the note is empty, because a note without a reason gives
      *                            whoever reads it nothing to act on
      */
-    public QuizQuestionReport report(int questionId, Integer memberId, String note) {
+    public QuizQuestionReport report(int questionId, @Nullable Integer memberId, String note) {
         String trimmed = note != null ? note.trim() : "";
         if (trimmed.isEmpty()) throw new BadRequestResponse("A report needs a note");
         if (trimmed.length() > MAX_NOTE_LENGTH) trimmed = trimmed.substring(0, MAX_NOTE_LENGTH);

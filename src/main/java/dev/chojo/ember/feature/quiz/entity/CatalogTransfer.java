@@ -56,12 +56,13 @@ public record CatalogTransfer(
     }
 
     /**
-     * @param key         how the questions in this file refer to the category
+     * @param key         how the questions in this file refer to the category, absent in a file the
+     *                    import refuses
      * @param name        the category name, matched against the station's own categories on import
      * @param description what the category covers, used only when the category has to be created
      * @param position    where it sorts, used only when the category has to be created
      */
-    public record CatalogTransferCategory(String key, String name, String description, int position) {
+    public record CatalogTransferCategory(@Nullable String key, String name, String description, int position) {
 
         public CatalogTransferCategory {
             description = description != null ? description : "";
@@ -85,8 +86,8 @@ public record CatalogTransfer(
             String title,
             String description,
             @Nullable String imageUrl,
-            Double points,
-            Boolean autoPoints,
+            @Nullable Double points,
+            @Nullable Boolean autoPoints,
             JsonNode config,
-            Integer position) {}
+            @Nullable Integer position) {}
 }

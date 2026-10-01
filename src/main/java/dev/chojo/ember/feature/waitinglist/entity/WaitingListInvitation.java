@@ -32,7 +32,7 @@ public record WaitingListInvitation(
         int eventId, LocalDate date, @Nullable LocalTime arrivalTime) {
 
     /** Reads the invitation off an entry row, or {@code null} when the row carries none. */
-    public static WaitingListInvitation from(Row row) throws SQLException {
+    public static @Nullable WaitingListInvitation from(Row row) throws SQLException {
         var eventId = row.getObject("invited_event_id", Integer.class);
         if (eventId == null) return null;
         return new WaitingListInvitation(

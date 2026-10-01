@@ -13,6 +13,7 @@ import dev.chojo.ember.util.CsvParser;
 import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -221,7 +222,7 @@ public class QuizImportService {
                 .toList();
     }
 
-    private static String emptyToNull(String value) {
+    private static @Nullable String emptyToNull(String value) {
         return value.isEmpty() ? null : value;
     }
 
@@ -232,7 +233,7 @@ public class QuizImportService {
     private static final class CategoryKeys {
         private final LinkedHashMap<String, CatalogTransferCategory> byName = new LinkedHashMap<>();
 
-        private String keyOf(String name) {
+        private @Nullable String keyOf(String name) {
             if (name.isEmpty()) return null;
             return byName.computeIfAbsent(
                             name.toLowerCase(Locale.ROOT),

@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.time.Period;
@@ -85,11 +86,11 @@ public class FormRespondents {
      */
     public record Respondent(
             int id,
-            StationUserType userType,
+            @Nullable StationUserType userType,
             Set<Integer> groupIds,
             Set<Integer> tagIds,
             Map<Integer, String> fieldValues,
-            Integer age) {}
+            @Nullable Integer age) {}
 
     private record Facts(
             StationUserType userType,
@@ -210,7 +211,7 @@ public class FormRespondents {
         return born;
     }
 
-    private static LocalDate dayOf(String stored) {
+    private static @Nullable LocalDate dayOf(String stored) {
         if (stored == null || stored.isBlank()) return null;
         try {
             return LocalDate.parse(stored.length() > 10 ? stored.substring(0, 10) : stored);

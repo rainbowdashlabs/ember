@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -75,7 +76,7 @@ public class FormResultGrouping {
      * Whether a respondent can be in more than one group of this grouping, so the groups can add up
      * to more responses than there are.
      */
-    public static boolean overlaps(ResultGrouping grouping) {
+    public static boolean overlaps(@Nullable ResultGrouping grouping) {
         return grouping != null
                 && (grouping.by() == FormResultQuery.Dimension.GROUP || grouping.by() == FormResultQuery.Dimension.TAG);
     }
@@ -98,9 +99,10 @@ public class FormResultGrouping {
                                 Arrays.stream(StationUserType.values())
                                         .map(type -> new Category(type.name(), type.name()))
                                         .toList(),
-                                respondent -> respondent.userType() == null
-                                        ? Set.of()
-                                        : Set.of(respondent.userType().name()));
+                                respondent -> {
+                                    var userType = respondent.userType();
+                                    return userType == null ? Set.of() : Set.of(userType.name());
+                                });
                     case GROUP ->
                         categorical(
                                 respondents,
@@ -117,12 +119,10 @@ public class FormResultGrouping {
                                 respondent -> keysOf(respondent.tagIds()));
                     case FIELD -> byField(stationId, respondents, grouping);
                     case AGE ->
-                        brackets(
-                                respondents,
-                                boundsOr(grouping.bounds(), DEFAULT_AGE_BOUNDS),
-                                respondent -> respondent.age() == null
-                                        ? null
-                                        : respondent.age().doubleValue());
+                        brackets(respondents, boundsOr(grouping.bounds(), DEFAULT_AGE_BOUNDS), respondent -> {
+                            Integer age = respondent.age();
+                            return age == null ? null : age.doubleValue();
+                        });
                 };
         return limited(buckets, grouping.only());
     }

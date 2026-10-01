@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPage;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +36,7 @@ public final class FormAnswerText {
      * @param language the language of the export, {@code en} or anything else for German
      * @return the answer as one line, empty where there is none
      */
-    public static String of(FormQuestion question, FormAnswerValue value, String language) {
+    public static String of(FormQuestion question, @Nullable FormAnswerValue value, String language) {
         if (value == null) return "";
         var labels = labels(question.config());
         return switch (value) {
@@ -80,7 +81,8 @@ public final class FormAnswerText {
                         FormQuestionConfig.Option::key, FormQuestionConfig.Option::label, (a, b) -> a));
     }
 
-    private static String choice(List<String> selected, String other, Map<String, String> labels, String language) {
+    private static String choice(
+            List<String> selected, @Nullable String other, Map<String, String> labels, String language) {
         var parts = new ArrayList<String>();
         if (selected != null) selected.stream().map(label(labels)).forEach(parts::add);
         if (other != null && !other.isBlank()) parts.add(("en".equals(language) ? "Other: " : "Sonstige: ") + other);

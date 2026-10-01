@@ -87,7 +87,7 @@ public class FormAnalyticsAssembler {
      *               as one group
      * @return the analytics
      */
-    public FormAnalytics buildAnalytics(int formId, FormResultQuery query) {
+    public FormAnalytics buildAnalytics(int formId, @Nullable FormResultQuery query) {
         var form = formService.findById(formId).orElseThrow(NotFoundResponse::new);
         var questions = formService.findQuestions(formId);
         var answers = formService.findAllAnswersForForm(formId);
@@ -136,7 +136,7 @@ public class FormAnalyticsAssembler {
      * station's own members are not the people being asked. Listing them as missing would name
      * everybody as owing an answer to something never put to them.
      */
-    private List<MemberIdentity> buildMissingResponses(Form form, FormResultQuery.ResultFilter filter) {
+    private List<MemberIdentity> buildMissingResponses(Form form, FormResultQuery.@Nullable ResultFilter filter) {
         if (form.purpose() != FormPurpose.INTERNAL) return List.of();
         if (!form.forced()) return List.of();
         var missing = stationMemberRepository.findByStation(form.stationId()).stream()

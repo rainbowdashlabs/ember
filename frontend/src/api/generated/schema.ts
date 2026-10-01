@@ -54833,7 +54833,7 @@ export interface components {
         };
         CatalogTransferCategory: {
             description: string;
-            key: string;
+            key: string | null;
             name: string;
             /** Format: int32 */
             position: number;
@@ -54849,14 +54849,14 @@ export interface components {
             message: string;
         };
         CatalogTransferQuestion: {
-            autoPoints: boolean;
+            autoPoints: boolean | null;
             categoryKey: string | null;
             config: unknown;
             description: string;
             imageUrl: string | null;
-            points: number;
+            points: number | null;
             /** Format: int32 */
-            position: number;
+            position: number | null;
             quizQuestionType: string;
             title: string;
         };
@@ -57704,8 +57704,8 @@ export interface components {
             maxItemHeightPx?: number;
         };
         ImageText: {
-            answer: string;
-            imageUrl: string;
+            answer: string | null;
+            imageUrl: string | null;
         };
         ImageUploadResponse: {
             imageId: string;

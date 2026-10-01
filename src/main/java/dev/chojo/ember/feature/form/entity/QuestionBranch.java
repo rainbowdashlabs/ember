@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.form.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import tools.jackson.core.type.TypeReference;
 
@@ -55,7 +56,7 @@ public record QuestionBranch(@JsonValue Map<String, PageTarget> targets) {
      * @param json the stored value, possibly null
      * @return the branch, or null where the question has none
      */
-    public static QuestionBranch parse(String json) {
+    public static @Nullable QuestionBranch parse(@Nullable String json) {
         if (json == null || json.isBlank()) return null;
         try {
             return new QuestionBranch(Json.MAPPER.readValue(json, TARGETS));
@@ -71,7 +72,7 @@ public record QuestionBranch(@JsonValue Map<String, PageTarget> targets) {
      * @param branch the branch, possibly none
      * @return the stored value, or null where there is no branch
      */
-    public static String toJson(QuestionBranch branch) {
+    public static @Nullable String toJson(@Nullable QuestionBranch branch) {
         if (branch == null) return null;
         try {
             return Json.MAPPER.writeValueAsString(branch.targets());

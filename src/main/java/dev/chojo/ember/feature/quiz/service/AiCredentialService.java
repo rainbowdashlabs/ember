@@ -58,7 +58,7 @@ public class AiCredentialService {
      * @param apiKey    the key
      * @param model     the model to ask by default, or {@code null}
      */
-    public void saveStationKey(int stationId, String provider, String apiKey, String model) {
+    public void saveStationKey(int stationId, String provider, String apiKey, @Nullable String model) {
         stations.upsert(stationId, provider, cipher.seal(apiKey.trim()), model);
     }
 
@@ -127,7 +127,7 @@ public class AiCredentialService {
      * @param apiKey    the new key, or blank to keep the stored one
      * @return what became of it
      */
-    public SaveOutcome save(int accountId, String provider, String model, String apiKey) {
+    public SaveOutcome save(int accountId, String provider, @Nullable String model, @Nullable String apiKey) {
         if (AiVendor.fromKey(provider).isEmpty()) return SaveOutcome.PROVIDER_UNKNOWN;
         String chosenModel = model == null || model.isBlank() ? null : model.trim();
         if (apiKey != null && !apiKey.isBlank()) {

@@ -50,6 +50,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -122,15 +123,15 @@ public class WaitingListService implements TaskSource {
             int stationId,
             String name,
             String description,
-            String scoringFormula,
+            @Nullable String scoringFormula,
             int confirmIntervalDays,
-            Integer testingGroupId,
-            Integer joinGroupId,
+            @Nullable Integer testingGroupId,
+            @Nullable Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic,
             boolean sendsMail,
-            Integer minAgeRegister,
-            Integer minAgeJoin) {
+            @Nullable Integer minAgeRegister,
+            @Nullable Integer minAgeJoin) {
         requireGroupsFit(stationId, testingGroupId, joinGroupId);
         var list = repository.create(
                 stationId,
@@ -153,15 +154,15 @@ public class WaitingListService implements TaskSource {
             int id,
             String name,
             String description,
-            String scoringFormula,
+            @Nullable String scoringFormula,
             int confirmIntervalDays,
-            Integer testingGroupId,
-            Integer joinGroupId,
+            @Nullable Integer testingGroupId,
+            @Nullable Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic,
             boolean sendsMail,
-            Integer minAgeRegister,
-            Integer minAgeJoin) {
+            @Nullable Integer minAgeRegister,
+            @Nullable Integer minAgeJoin) {
         repository.findById(id).ifPresent(list -> requireGroupsFit(list.stationId(), testingGroupId, joinGroupId));
         var updated = repository.update(
                 id,
@@ -269,7 +270,7 @@ public class WaitingListService implements TaskSource {
         return repository.findInvitesByList(listId);
     }
 
-    public WaitingListInvite createInvite(int listId, int maxUses, Instant expiresAt) {
+    public WaitingListInvite createInvite(int listId, int maxUses, @Nullable Instant expiresAt) {
         String code = UUID.randomUUID().toString();
         var invite = repository.createInvite(listId, code, maxUses, expiresAt);
         log.info("Created waiting-list invite {} on list {} (maxUses {})", invite.id(), listId, maxUses);
@@ -295,7 +296,7 @@ public class WaitingListService implements TaskSource {
             String lastname,
             List<GuardianInput> guardians,
             Map<Integer, JsonNode> fieldValues,
-            String notes,
+            @Nullable String notes,
             ConsentProof consent) {
         var invite = repository
                 .findInviteByCode(inviteCode)
@@ -463,7 +464,7 @@ public class WaitingListService implements TaskSource {
     }
 
     /** An answer as somebody typed it, which is what a stored JSON string wraps in quotes. */
-    private static String asText(JsonNode node) {
+    private static @Nullable String asText(JsonNode node) {
         if (node == null || node.isNull()) return null;
         return node.isString() ? node.asString() : node.toString();
     }
@@ -474,7 +475,7 @@ public class WaitingListService implements TaskSource {
             String lastname,
             List<GuardianInput> guardians,
             Map<Integer, JsonNode> fieldValues,
-            String notes) {
+            @Nullable String notes) {
         String parentName = primaryGuardianName(guardians);
         String email = primaryGuardianEmail(guardians);
         String accessToken = UUID.randomUUID().toString();
@@ -493,8 +494,8 @@ public class WaitingListService implements TaskSource {
             String firstname,
             String lastname,
             List<GuardianInput> guardians,
-            String notes,
-            Map<Integer, JsonNode> fieldValues) {
+            @Nullable String notes,
+            @Nullable Map<Integer, JsonNode> fieldValues) {
         String parentName = primaryGuardianName(guardians);
         String email = primaryGuardianEmail(guardians);
         repository.updateEntry(entryId, firstname, lastname, parentName, email, notes != null ? notes : "");
@@ -548,7 +549,7 @@ public class WaitingListService implements TaskSource {
      * @param invitation the appointment they are asked to come to, or {@code null} to invite without
      *                   naming one
      */
-    public WaitingListEntry inviteEntry(int entryId, WaitingListInvitation invitation) {
+    public WaitingListEntry inviteEntry(int entryId, @Nullable WaitingListInvitation invitation) {
         var entry =
                 repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         if (entry.status() != WaitingListEntryStatus.WAITING) {
@@ -607,7 +608,11 @@ public class WaitingListService implements TaskSource {
      * @param date    the one date of it, {@code null} for the same
      */
     public WaitingListEntry answerInvitation(
-            String token, Integer eventId, LocalDate date, WaitingListAnswer answer, String note) {
+            String token,
+            @Nullable Integer eventId,
+            @Nullable LocalDate date,
+            WaitingListAnswer answer,
+            @Nullable String note) {
         var entry =
                 repository.findEntryByToken(token).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         if (entry.status() != WaitingListEntryStatus.INVITED) {
@@ -633,7 +638,8 @@ public class WaitingListService implements TaskSource {
      * <p>The token never expires and an old mail stays in a mailbox for good, so what the answer
      * says it is about has to match what the entry is actually invited to.
      */
-    private static void requireAnswersTheCurrentInvitation(WaitingListEntry entry, Integer eventId, LocalDate date) {
+    private static void requireAnswersTheCurrentInvitation(
+            WaitingListEntry entry, @Nullable Integer eventId, @Nullable LocalDate date) {
         var current = entry.invitation();
         boolean matches = current == null
                 ? eventId == null
@@ -838,13 +844,13 @@ public class WaitingListService implements TaskSource {
     }
 
     /** Reads the answer as text, whether it was stored as a string or as something else. */
-    private static String readDate(WaitingListEntryValue value) {
+    private static @Nullable String readDate(WaitingListEntryValue value) {
         var node = value.value();
         if (node == null || node.isNull()) return null;
         return node.isString() ? node.asString() : node.toString().replace("\"", "");
     }
 
-    private static Optional<Integer> ageFrom(String date) {
+    private static Optional<Integer> ageFrom(@Nullable String date) {
         if (date == null || date.isBlank()) return Optional.empty();
         try {
             return Optional.of((int) ChronoUnit.YEARS.between(LocalDate.parse(date.trim()), LocalDate.now()));
@@ -895,7 +901,10 @@ public class WaitingListService implements TaskSource {
     }
 
     public double evaluateScore(
-            WaitingListEntry entry, List<WaitingListEntryValue> values, List<WaitingListField> fields, String formula) {
+            WaitingListEntry entry,
+            List<WaitingListEntryValue> values,
+            List<WaitingListField> fields,
+            @Nullable String formula) {
         if (formula == null || formula.isBlank()) return 0.0;
         Map<String, String> variables = new HashMap<>();
         for (var field : fields) {
@@ -1027,7 +1036,7 @@ public class WaitingListService implements TaskSource {
             String email,
             List<GuardianInput> guardians,
             Map<Integer, JsonNode> fieldValues,
-            String notes,
+            @Nullable String notes,
             ConsentProof consent) {
         var list = repository.findById(listId).orElseThrow(() -> new IllegalArgumentException("List not found"));
         if (!list.isPublic()) {
@@ -1105,7 +1114,7 @@ public class WaitingListService implements TaskSource {
             String email,
             List<GuardianInput> guardians,
             Map<Integer, JsonNode> fieldValues,
-            String notes,
+            @Nullable String notes,
             ConsentProof consent) {
         var entry = repository.createEntryWithStatus(
                 list.id(),
@@ -1283,7 +1292,7 @@ public class WaitingListService implements TaskSource {
      * them: somebody on trial joins the testing group, a member the join group. Refused where the list
      * is saved, so the manager hears of it rather than a family on the list later.
      */
-    private void requireGroupsFit(int stationId, Integer testingGroupId, Integer joinGroupId) {
+    private void requireGroupsFit(int stationId, @Nullable Integer testingGroupId, @Nullable Integer joinGroupId) {
         groupMemberships.requireAdmits(
                 stationId,
                 testingGroupId,

@@ -43,6 +43,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -247,8 +248,8 @@ public class FormService {
             boolean shuffleQuestions,
             boolean allowEdit,
             boolean forced,
-            Instant startAt,
-            Instant endAt,
+            @Nullable Instant startAt,
+            @Nullable Instant endAt,
             int createdBy,
             FormPurpose purpose) {
         var form = repository.create(
@@ -269,7 +270,7 @@ public class FormService {
      * @param label   what the link says
      * @throws dev.chojo.ember.api.RefusalResponse where the link is neither
      */
-    public void setCompletion(int id, String message, String link, String label) {
+    public void setCompletion(int id, @Nullable String message, @Nullable String link, @Nullable String label) {
         requireOfferableCompletionLink(link);
         repository.updateCompletion(id, blankToNull(message), blankToNull(link), blankToNull(label));
     }
@@ -281,7 +282,7 @@ public class FormService {
      * @param link the link, possibly blank, which is none
      * @throws dev.chojo.ember.api.RefusalResponse where the link is neither
      */
-    public static void requireOfferableCompletionLink(String link) {
+    public static void requireOfferableCompletionLink(@Nullable String link) {
         String cleanLink = blankToNull(link);
         if (cleanLink != null && !isOfferableLink(cleanLink)) throw Refusal.FORM_COMPLETION_LINK_NOT_A_LINK.raise();
     }
@@ -293,7 +294,7 @@ public class FormService {
                 || (link.startsWith("/") && !link.startsWith("//"));
     }
 
-    private static String blankToNull(String text) {
+    private static @Nullable String blankToNull(@Nullable String text) {
         return text == null || text.isBlank() ? null : text.trim();
     }
 
@@ -389,8 +390,8 @@ public class FormService {
             boolean shuffleQuestions,
             boolean allowEdit,
             boolean forced,
-            Instant startAt,
-            Instant endAt) {
+            @Nullable Instant startAt,
+            @Nullable Instant endAt) {
         boolean wasAccepting =
                 repository.findById(id).map(this::isAcceptingResponses).orElse(false);
         boolean updated =
@@ -477,7 +478,7 @@ public class FormService {
      * @param expected the link the caller was shown
      * @return the new link, or empty where the form has since been given a different one
      */
-    public Optional<String> replaceShareLink(int id, String expected) {
+    public Optional<String> replaceShareLink(int id, @Nullable String expected) {
         var form = repository.findById(id).orElse(null);
         if (form == null) return Optional.empty();
         if (form.purpose() == FormPurpose.INTERNAL) {
@@ -778,17 +779,17 @@ public class FormService {
         String firstPage = pages.getFirst().key();
         var deciding = new HashSet<String>();
         for (var question : questions) {
-            if (question.branch() == null) continue;
-            String pageKey = question.pageKey() == null ? firstPage : question.pageKey();
+            var branch = question.branch();
+            if (branch == null) continue;
+            String pageKey = Objects.requireNonNullElse(question.pageKey(), firstPage);
             if (!(question.config() instanceof FormQuestionConfig.Choice choice)
                     || Boolean.TRUE.equals(choice.multiSelect())
-                    || !choice.optionKeys()
-                            .containsAll(question.branch().targets().keySet())) {
+                    || !choice.optionKeys().containsAll(branch.targets().keySet())) {
                 throw Refusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE.raise();
             }
             if (!deciding.add(pageKey)) throw Refusal.PAGE_BRANCHES_ON_TWO_QUESTIONS.raise();
             int from = positions.get(pageKey);
-            for (var target : question.branch().targets().values()) {
+            for (var target : branch.targets().values()) {
                 if (!leadsForward(PageTarget.orNext(target), from, positions)) {
                     throw Refusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN.raise();
                 }
@@ -817,8 +818,8 @@ public class FormService {
             var page = pages.get(position);
             var after = PageTarget.orNext(page.after());
             var existing = storedByKey.get(page.key());
-            String title = page.title() == null ? "" : page.title();
-            String description = page.description() == null ? "" : page.description();
+            String title = Objects.requireNonNullElse(page.title(), "");
+            String description = Objects.requireNonNullElse(page.description(), "");
             if (existing == null) {
                 ids.put(
                         page.key(),
@@ -867,7 +868,8 @@ public class FormService {
     }
 
     private void writeQuestion(int formId, int pageId, int position, QuestionEntry q) {
-        if (q.id() == null) {
+        Integer questionId = q.id();
+        if (questionId == null) {
             repository.createQuestion(
                     formId,
                     pageId,
@@ -882,7 +884,7 @@ public class FormService {
             return;
         }
         repository.updateQuestion(
-                q.id(),
+                questionId,
                 pageId,
                 q.title(),
                 q.description(),

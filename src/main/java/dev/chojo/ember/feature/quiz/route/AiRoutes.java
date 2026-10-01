@@ -92,7 +92,7 @@ public class AiRoutes implements Routes {
     private void savePrompt(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(AiPromptRequest.class);
-        aiService.setPrompt(session.stationId(), req.prompt() != null ? req.prompt() : "");
+        aiService.setPrompt(session.stationId(), Objects.requireNonNullElse(req.prompt(), ""));
         ctx.json(new AiSuccessResponse(true));
     }
 
@@ -182,7 +182,7 @@ public class AiRoutes implements Routes {
             var results = aiService.generate(
                     session.stationId(),
                     session.accountId(),
-                    req.provider() != null ? req.provider() : "openai",
+                    Objects.requireNonNullElse(req.provider(), "openai"),
                     req.apiKey(),
                     req.model(),
                     req.question(),

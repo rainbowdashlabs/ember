@@ -81,7 +81,7 @@ public record FormResultQuery(
             return true;
         }
 
-        private boolean withinAge(Integer age) {
+        private boolean withinAge(@Nullable Integer age) {
             if (age == null) return false;
             return (ageFrom == null || age >= ageFrom) && (ageTo == null || age <= ageTo);
         }
@@ -134,7 +134,7 @@ public record FormResultQuery(
         return list != null && !list.isEmpty();
     }
 
-    static Double numberOf(String answer) {
+    static @Nullable Double numberOf(String answer) {
         try {
             return Double.parseDouble(answer.strip());
         } catch (NumberFormatException e) {

@@ -509,8 +509,9 @@ public class ProcedureRoutes implements Routes {
                 procedureService.uncheckItem(iid);
             }
         }
-        if (req.note() != null) {
-            procedureService.updateItemNote(iid, req.note());
+        String note = req.note();
+        if (note != null) {
+            procedureService.updateItemNote(iid, note);
         }
         ctx.json(procedureService.findItems(rid));
     }

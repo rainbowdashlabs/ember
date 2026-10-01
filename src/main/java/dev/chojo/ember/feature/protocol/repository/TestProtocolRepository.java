@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolRunCheck;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.Date;
 import java.time.Instant;
@@ -72,7 +73,8 @@ public class TestProtocolRepository {
         return findById("test_protocol", TEST_PROTOCOL_COLUMNS, id, TestProtocol.map());
     }
 
-    public TestProtocol createProtocol(int stationId, String name, String description, Integer passThreshold) {
+    public TestProtocol createProtocol(
+            int stationId, String name, String description, @Nullable Integer passThreshold) {
         return insertReturning(
                 """
                 INSERT INTO test_protocol(station_id, name, description, pass_threshold)
@@ -86,7 +88,7 @@ public class TestProtocolRepository {
                 TEST_PROTOCOL_COLUMNS);
     }
 
-    public boolean updateProtocol(int id, String name, String description, Integer passThreshold) {
+    public boolean updateProtocol(int id, String name, String description, @Nullable Integer passThreshold) {
         return query("""
                 UPDATE test_protocol
                 SET
@@ -128,11 +130,11 @@ public class TestProtocolRepository {
 
     public TestProtocolSection createSection(
             int protocolId,
-            Integer parentId,
+            @Nullable Integer parentId,
             String name,
             String description,
-            Integer maxPoints,
-            Integer passThreshold,
+            @Nullable Integer maxPoints,
+            @Nullable Integer passThreshold,
             int position) {
         return insertReturning(
                 """
@@ -151,7 +153,12 @@ public class TestProtocolRepository {
     }
 
     public boolean updateSection(
-            int id, String name, String description, Integer maxPoints, Integer passThreshold, int position) {
+            int id,
+            String name,
+            String description,
+            @Nullable Integer maxPoints,
+            @Nullable Integer passThreshold,
+            int position) {
         return query("""
                 UPDATE test_protocol_section SET name = :name, description = :description,
                 max_points = :max_points, pass_threshold = :pass_threshold, position = :position WHERE id = :id;""")

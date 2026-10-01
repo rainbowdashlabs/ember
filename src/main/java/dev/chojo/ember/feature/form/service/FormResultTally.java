@@ -91,7 +91,7 @@ public final class FormResultTally {
     public static List<FormQuestionTally> tally(
             List<FormQuestion> questions,
             Collection<FormAnswer> answers,
-            Collection<FormResponse> responses,
+            @Nullable Collection<FormResponse> responses,
             Set<Integer> responseIds) {
         return questions.stream()
                 .map(question -> tally(

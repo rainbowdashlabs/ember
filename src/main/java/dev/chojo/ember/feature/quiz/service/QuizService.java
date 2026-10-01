@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestAttemptQuestion;
 import dev.chojo.ember.feature.system.service.RequirementsService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -70,11 +71,11 @@ public class QuizService {
             int id,
             String title,
             String description,
-            Integer timeLimit,
+            @Nullable Integer timeLimit,
             boolean shuffle,
             boolean forced,
-            Instant startAt,
-            Instant endAt) {
+            @Nullable Instant startAt,
+            @Nullable Instant endAt) {
         return testService.updateTest(id, title, description, timeLimit, shuffle, forced, startAt, endAt);
     }
 

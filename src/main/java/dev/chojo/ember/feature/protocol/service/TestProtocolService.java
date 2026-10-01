@@ -149,13 +149,14 @@ public class TestProtocolService implements FederationServer {
         return repository.findProtocolById(id);
     }
 
-    public TestProtocol createProtocol(int stationId, String name, String description, Integer passThreshold) {
+    public TestProtocol createProtocol(
+            int stationId, String name, String description, @Nullable Integer passThreshold) {
         TestProtocol protocol = repository.createProtocol(stationId, name, description, passThreshold);
         log.info("Created test protocol {} (name='{}') in station {}", protocol.id(), name, stationId);
         return protocol;
     }
 
-    public boolean updateProtocol(int id, String name, String description, Integer passThreshold) {
+    public boolean updateProtocol(int id, String name, String description, @Nullable Integer passThreshold) {
         boolean updated = repository.updateProtocol(id, name, description, passThreshold);
         if (updated) log.info("Updated test protocol {} (name='{}')", id, name);
         else log.warn("Update of test protocol {} did not change any row", id);
@@ -191,11 +192,11 @@ public class TestProtocolService implements FederationServer {
 
     public TestProtocolSection createSection(
             int protocolId,
-            Integer parentId,
+            @Nullable Integer parentId,
             String name,
             String description,
-            Integer maxPoints,
-            Integer passThreshold,
+            @Nullable Integer maxPoints,
+            @Nullable Integer passThreshold,
             int position) {
         TestProtocolSection section =
                 repository.createSection(protocolId, parentId, name, description, maxPoints, passThreshold, position);
@@ -209,7 +210,12 @@ public class TestProtocolService implements FederationServer {
     }
 
     public boolean updateSection(
-            int id, String name, String description, Integer maxPoints, Integer passThreshold, int position) {
+            int id,
+            String name,
+            String description,
+            @Nullable Integer maxPoints,
+            @Nullable Integer passThreshold,
+            int position) {
         boolean updated = repository.updateSection(id, name, description, maxPoints, passThreshold, position);
         if (updated) log.info("Updated section {} (name='{}')", id, name);
         else log.warn("Update of section {} did not change any row", id);

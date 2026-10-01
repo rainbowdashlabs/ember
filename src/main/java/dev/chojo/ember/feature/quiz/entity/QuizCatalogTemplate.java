@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.quiz.entity;
 
 import io.javalin.http.InternalServerErrorResponse;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -36,7 +37,7 @@ public enum QuizCatalogTemplate {
      * @param format the format as the request spells it, in either case
      * @return the template, or {@code null} for a format there is no example of
      */
-    public static QuizCatalogTemplate byFormat(String format) {
+    public static @Nullable QuizCatalogTemplate byFormat(String format) {
         if (format == null) return null;
         try {
             return valueOf(format.toUpperCase(Locale.ROOT));

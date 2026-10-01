@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.question;
 
+import org.jspecify.annotations.Nullable;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -36,7 +38,7 @@ public final class QuestionCheck {
      * @param answer   what was given, which may be nothing
      * @return what is wrong with it, or empty where nothing is
      */
-    public static Optional<QuestionProblem> answer(Question question, String answer) {
+    public static Optional<QuestionProblem> answer(Question question, @Nullable String answer) {
         String value = said(answer);
         if (value.isEmpty()) value = said(question.defaultValue());
         if (value.isEmpty()) {
@@ -59,7 +61,7 @@ public final class QuestionCheck {
      * @param answer   what was given, which may be nothing
      * @return what is wrong with it, or empty where nothing is or nothing was given
      */
-    public static Optional<QuestionProblem> answerIfGiven(Question question, String answer) {
+    public static Optional<QuestionProblem> answerIfGiven(Question question, @Nullable String answer) {
         String value = said(answer);
         return value.isEmpty() ? Optional.empty() : value(question, value);
     }
@@ -165,7 +167,8 @@ public final class QuestionCheck {
         }
     }
 
-    private static Optional<QuestionProblem> problem(QuestionProblem.Code code, Question question, String detail) {
+    private static Optional<QuestionProblem> problem(
+            QuestionProblem.Code code, Question question, @Nullable String detail) {
         return Optional.of(new QuestionProblem(code, question.name(), detail));
     }
 
@@ -175,7 +178,7 @@ public final class QuestionCheck {
      * <p>The features that keep their answers as JSON write an unanswered question as the literal
      * {@code null} or as an empty string in quotes, and both mean the same as an empty box.
      */
-    private static String said(String stored) {
+    private static String said(@Nullable String stored) {
         String text = QuestionValues.text(stored);
         return text.equalsIgnoreCase("null") ? "" : text;
     }

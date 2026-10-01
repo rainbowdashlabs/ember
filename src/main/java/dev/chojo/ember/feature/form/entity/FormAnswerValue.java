@@ -42,7 +42,7 @@ public sealed interface FormAnswerValue {
     /**
      * Parses a JSON string into the appropriate answer value for the given question type.
      */
-    static FormAnswerValue parse(FormQuestionType formQuestionType, String json) {
+    static @Nullable FormAnswerValue parse(FormQuestionType formQuestionType, @Nullable String json) {
         if (json == null || json.isBlank()) return null;
         try {
             return MAPPER.readValue(json, formQuestionType.answerClass());

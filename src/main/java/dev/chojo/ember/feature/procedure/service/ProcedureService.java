@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,13 +54,13 @@ public class ProcedureService {
         return repository.findTemplateById(id);
     }
 
-    public ProcedureTemplate createTemplate(int stationId, String name, String description, int createdBy) {
+    public ProcedureTemplate createTemplate(int stationId, String name, @Nullable String description, int createdBy) {
         var template = repository.createTemplate(stationId, name, description, createdBy);
         log.info("Created procedure template {} on station {} by member {}", template.id(), stationId, createdBy);
         return template;
     }
 
-    public Optional<ProcedureTemplate> updateTemplate(int id, String name, String description) {
+    public Optional<ProcedureTemplate> updateTemplate(int id, String name, @Nullable String description) {
         if (repository.updateTemplate(id, name, description)) {
             log.info("Updated procedure template {}", id);
             return repository.findTemplateById(id);
@@ -83,14 +84,19 @@ public class ProcedureService {
     }
 
     public ProcedureTemplateItem createTemplateItem(
-            int templateId, String title, String description, boolean isPublic, boolean userAssigned, int position) {
+            int templateId,
+            String title,
+            @Nullable String description,
+            boolean isPublic,
+            boolean userAssigned,
+            int position) {
         var item = repository.createTemplateItem(templateId, title, description, isPublic, userAssigned, position);
         log.info("Created procedure template item {} on template {}", item.id(), templateId);
         return item;
     }
 
     public boolean updateTemplateItem(
-            int id, String title, String description, boolean isPublic, boolean userAssigned, int position) {
+            int id, String title, @Nullable String description, boolean isPublic, boolean userAssigned, int position) {
         boolean updated = repository.updateTemplateItem(id, title, description, isPublic, userAssigned, position);
         if (updated) {
             log.info("Updated procedure template item {}", id);
@@ -121,12 +127,12 @@ public class ProcedureService {
 
     // ── Procedures ──
 
-    public List<Procedure> findProceduresByStation(int stationId, ProcedureStatus status) {
+    public List<Procedure> findProceduresByStation(int stationId, @Nullable ProcedureStatus status) {
         return repository.findProceduresByStation(stationId, status);
     }
 
     public List<Procedure> findProceduresByAssignee(
-            int stationId, int memberId, ProcedureStatus status, boolean publicOnly) {
+            int stationId, int memberId, @Nullable ProcedureStatus status, boolean publicOnly) {
         return repository.findProceduresByAssignee(stationId, memberId, status, publicOnly);
     }
 
@@ -156,15 +162,15 @@ public class ProcedureService {
      */
     public Procedure createProcedure(
             int stationId,
-            Integer templateId,
+            @Nullable Integer templateId,
             String name,
-            String description,
+            @Nullable String description,
             boolean isPublic,
             int assignedBy,
-            Instant dueAt,
+            @Nullable Instant dueAt,
             List<Integer> assigneeIds,
-            Integer eventId,
-            LocalDate eventDate) {
+            @Nullable Integer eventId,
+            @Nullable LocalDate eventDate) {
         var procedure = repository.createProcedure(
                 stationId, templateId, name, description, isPublic, assignedBy, dueAt, eventId, eventDate);
 
@@ -191,7 +197,8 @@ public class ProcedureService {
         return procedure;
     }
 
-    public boolean updateProcedure(int id, String name, String description, boolean isPublic, Instant dueAt) {
+    public boolean updateProcedure(
+            int id, String name, @Nullable String description, boolean isPublic, @Nullable Instant dueAt) {
         boolean updated = repository.updateProcedure(id, name, description, isPublic, dueAt);
         if (updated) {
             log.info("Updated procedure {}", id);
@@ -294,14 +301,19 @@ public class ProcedureService {
     }
 
     public ProcedureItem createItem(
-            int procedureId, String title, String description, boolean isPublic, boolean userAssigned, int position) {
+            int procedureId,
+            String title,
+            @Nullable String description,
+            boolean isPublic,
+            boolean userAssigned,
+            int position) {
         var item = repository.createItem(procedureId, title, description, isPublic, userAssigned, position);
         log.info("Created procedure item {} on procedure {}", item.id(), procedureId);
         return item;
     }
 
     public boolean updateItem(
-            int id, String title, String description, boolean isPublic, boolean userAssigned, int position) {
+            int id, String title, @Nullable String description, boolean isPublic, boolean userAssigned, int position) {
         boolean updated = repository.updateItem(id, title, description, isPublic, userAssigned, position);
         if (updated) {
             log.info("Updated procedure item {}", id);

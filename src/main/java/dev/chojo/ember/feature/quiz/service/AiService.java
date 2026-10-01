@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -87,7 +88,7 @@ public class AiService {
         return providerRepository.findByStation(stationId);
     }
 
-    public void saveProvider(int stationId, String provider, String apiKey, String model) {
+    public void saveProvider(int stationId, String provider, String apiKey, @Nullable String model) {
         credentials.saveStationKey(stationId, provider, apiKey, model);
         log.info("Saved AI provider {} (model {}) for station {}", provider, model, stationId);
     }
@@ -122,13 +123,13 @@ public class AiService {
             int stationId,
             int accountId,
             String provider,
-            String transientKey,
-            String model,
+            @Nullable String transientKey,
+            @Nullable String model,
             QuizQuestionType quizQuestionType,
-            String userPrompt,
-            String locale,
-            String categoryName,
-            String categoryDescription,
+            @Nullable String userPrompt,
+            @Nullable String locale,
+            @Nullable String categoryName,
+            @Nullable String categoryDescription,
             List<String> existingTitles) {
         AiVendor vendor = requireVendor(provider);
         String apiKey = resolveApiKey(stationId, accountId, provider, transientKey);
@@ -192,8 +193,8 @@ public class AiService {
             int stationId,
             int accountId,
             String provider,
-            String transientKey,
-            String model,
+            @Nullable String transientKey,
+            @Nullable String model,
             String question,
             String correctAnswer,
             int count) {
@@ -225,7 +226,7 @@ public class AiService {
      *
      * @throws IllegalArgumentException when no API key is available
      */
-    public List<ModelInfo> fetchModels(int stationId, int accountId, String provider, String transientKey) {
+    public List<ModelInfo> fetchModels(int stationId, int accountId, String provider, @Nullable String transientKey) {
         String apiKey = resolveApiKey(stationId, accountId, provider, transientKey);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
         var vendor = AiVendor.fromKey(provider);
@@ -269,7 +270,8 @@ public class AiService {
      * current page sends none.
      */
     // TODO: stop taking a key in the request once no page from before the switch can be open
-    private String resolveApiKey(int stationId, int accountId, String provider, String transientKey) {
+    private @Nullable String resolveApiKey(
+            int stationId, int accountId, String provider, @Nullable String transientKey) {
         if (transientKey != null && !transientKey.isBlank()) return transientKey;
         return credentials
                 .keyFor(accountId, provider)
@@ -282,7 +284,7 @@ public class AiService {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown provider: " + provider));
     }
 
-    private String resolveModel(int stationId, AiVendor vendor, String requestModel) {
+    private String resolveModel(int stationId, AiVendor vendor, @Nullable String requestModel) {
         if (requestModel != null && !requestModel.isBlank()) return requestModel;
         return providerRepository
                 .findByProvider(stationId, vendor.key())
@@ -493,7 +495,7 @@ public class AiService {
                     .systemInstruction(Content.fromParts(Part.fromText(systemPrompt)))
                     .build();
             var response = client.models.generateContent(model, userMessage, config);
-            return response.text();
+            return Objects.requireNonNullElse(response.text(), "");
         }
     }
 

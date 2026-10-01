@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.quiz.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
@@ -34,7 +35,7 @@ public sealed interface QuizAnswerValue {
      * @return the parsed answer, or {@code null} for an absent payload
      * @throws IllegalArgumentException if the payload does not fit the question type
      */
-    static QuizAnswerValue parse(QuizQuestionType quizQuestionType, String json) {
+    static @Nullable QuizAnswerValue parse(QuizQuestionType quizQuestionType, @Nullable String json) {
         if (json == null || json.isBlank()) return null;
         try {
             return MAPPER.readValue(json, quizQuestionType.answerClass());

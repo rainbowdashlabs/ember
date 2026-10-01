@@ -43463,7 +43463,7 @@
         "type" : "object",
         "properties" : {
           "key" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
@@ -43527,14 +43527,14 @@
             "type" : [ "string", "null" ]
           },
           "points" : {
-            "type" : "number"
+            "type" : [ "number", "null" ]
           },
           "autoPoints" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "config" : { },
           "position" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
@@ -51799,10 +51799,10 @@
         "type" : "object",
         "properties" : {
           "imageUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "answer" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "imageUrl", "answer" ]

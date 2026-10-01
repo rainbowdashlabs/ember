@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.entity.WaitlistVerificationToken;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
@@ -115,15 +116,15 @@ public class WaitingListRepository {
             int stationId,
             String name,
             String description,
-            String scoringFormula,
+            @Nullable String scoringFormula,
             int confirmIntervalDays,
-            Integer testingGroupId,
-            Integer joinGroupId,
+            @Nullable Integer testingGroupId,
+            @Nullable Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic,
             boolean sendsMail,
-            Integer minAgeRegister,
-            Integer minAgeJoin) {
+            @Nullable Integer minAgeRegister,
+            @Nullable Integer minAgeJoin) {
         return insertReturning(
                 """
                 INSERT
@@ -157,15 +158,15 @@ public class WaitingListRepository {
             int id,
             String name,
             String description,
-            String scoringFormula,
+            @Nullable String scoringFormula,
             int confirmIntervalDays,
-            Integer testingGroupId,
-            Integer joinGroupId,
+            @Nullable Integer testingGroupId,
+            @Nullable Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic,
             boolean sendsMail,
-            Integer minAgeRegister,
-            Integer minAgeJoin) {
+            @Nullable Integer minAgeRegister,
+            @Nullable Integer minAgeJoin) {
         return query("""
                 UPDATE waiting_list
                 SET
@@ -295,7 +296,7 @@ public class WaitingListRepository {
                 .all();
     }
 
-    public WaitingListInvite createInvite(int listId, String code, int maxUses, Instant expiresAt) {
+    public WaitingListInvite createInvite(int listId, String code, int maxUses, @Nullable Instant expiresAt) {
         return insertReturning(
                 """
                 INSERT
@@ -369,7 +370,7 @@ public class WaitingListRepository {
             String email,
             String accessToken,
             String notes,
-            ConsentProof consent) {
+            @Nullable ConsentProof consent) {
         return insertReturning(
                 """
                 INSERT
@@ -457,7 +458,7 @@ public class WaitingListRepository {
      * Writes the one appointment the current invitation names, or clears it when the invitation is
      * withdrawn. The date goes with the appointment, so an entry never carries half a reference.
      */
-    public void updateInvitation(int entryId, WaitingListInvitation invitation) {
+    public void updateInvitation(int entryId, @Nullable WaitingListInvitation invitation) {
         query("""
                 UPDATE waiting_list_entry
                 SET

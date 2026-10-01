@@ -19,6 +19,7 @@ import dev.chojo.ember.util.DocumentNumber;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -245,7 +246,7 @@ public class TestProtocolPdfService {
      * The station's logo, or the application's own when the station has none, or {@code null}
      * when not even that can be read.
      */
-    private TypstCompiler.StationLogo loadLogo(int stationId) {
+    private TypstCompiler.@Nullable StationLogo loadLogo(int stationId) {
         var stationLogo = stationRepository.findLogo(stationId);
         if (stationLogo.isPresent()) {
             var logo = stationLogo.get();
@@ -305,7 +306,7 @@ public class TestProtocolPdfService {
             return DocumentNumber.of(value, locale);
         }
 
-        List<TestProtocolSection> childrenOf(Integer parentId) {
+        List<TestProtocolSection> childrenOf(@Nullable Integer parentId) {
             return sections.stream()
                     .filter(s -> parentId == null ? s.parentId() == null : parentId.equals(s.parentId()))
                     .sorted(Comparator.comparingInt(TestProtocolSection::position))
@@ -406,7 +407,7 @@ public class TestProtocolPdfService {
      * @param max the points available, formatted
      * @param cells the average first, then one cell per member in column order
      */
-    public record EvaluationRow(RowKind kind, String name, String max, List<ScoreCell> cells) {}
+    public record EvaluationRow(RowKind kind, @Nullable String name, String max, List<ScoreCell> cells) {}
 
     /**
      * A score in the evaluation table, coloured by how much of the maximum it reaches.

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.quiz.repository;
 
 import dev.chojo.ember.feature.quiz.entity.AccountAiCredential;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 
@@ -44,7 +45,7 @@ public class AccountAiCredentialRepository {
      * @param model     the model to ask by default, or {@code null}
      * @param sealedKey the key, already sealed
      */
-    public void save(int accountId, String provider, String model, String sealedKey) {
+    public void save(int accountId, String provider, @Nullable String model, String sealedKey) {
         query("""
                 INSERT INTO account_ai_credential(account_id, provider, model, api_key, updated_at)
                 VALUES (:account_id, :provider, :model, :api_key, now())

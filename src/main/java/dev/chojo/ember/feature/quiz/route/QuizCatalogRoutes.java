@@ -175,7 +175,7 @@ public class QuizCatalogRoutes implements Routes {
         var catalog = catalogService.createCatalog(
                 session.stationId(),
                 req.name(),
-                req.description() != null ? req.description() : "",
+                Objects.requireNonNullElse(req.description(), ""),
                 Boolean.TRUE.equals(req.trainingEnabled()),
                 CatalogMetadata.orNone(req.metadata()));
         ctx.status(HttpStatus.CREATED).json(catalog);
@@ -193,7 +193,7 @@ public class QuizCatalogRoutes implements Routes {
         if (!catalogService.updateCatalog(
                 id,
                 req.name(),
-                req.description() != null ? req.description() : "",
+                Objects.requireNonNullElse(req.description(), ""),
                 Boolean.TRUE.equals(req.trainingEnabled()),
                 CatalogMetadata.orNone(req.metadata()))) {
             throw Refusal.QUIZ_CATALOG_NOT_CHANGED.raise();
@@ -239,7 +239,7 @@ public class QuizCatalogRoutes implements Routes {
                 .json(catalogService.createCategory(
                         session.stationId(),
                         req.name(),
-                        req.description() != null ? req.description() : "",
+                        Objects.requireNonNullElse(req.description(), ""),
                         Objects.requireNonNullElse(req.position(), 0)));
     }
 
@@ -255,7 +255,7 @@ public class QuizCatalogRoutes implements Routes {
         if (!catalogService.updateCategory(
                 id,
                 req.name(),
-                req.description() != null ? req.description() : "",
+                Objects.requireNonNullElse(req.description(), ""),
                 Objects.requireNonNullElse(req.position(), 0))) {
             throw Refusal.QUIZ_CATEGORY_NOT_CHANGED.raise();
         }
@@ -321,11 +321,12 @@ public class QuizCatalogRoutes implements Routes {
         var session = UserSession.from(ctx);
         var transfer = transferService.read(ctx.bodyAsClass(JsonNode.class));
         var outcome = transferService.importInto(session.stationId(), transfer);
-        if (!outcome.problems().isEmpty()) {
+        var imported = outcome.catalog();
+        if (imported == null) {
             ctx.status(HttpStatus.BAD_REQUEST).json(new CatalogImportRejected(outcome.problems()));
             return;
         }
-        ctx.status(HttpStatus.CREATED).json(outcome.catalog());
+        ctx.status(HttpStatus.CREATED).json(imported);
     }
 
     /**
@@ -343,11 +344,12 @@ public class QuizCatalogRoutes implements Routes {
         var catalog = guards.requireOwnedCatalog(ctx, pathInt(ctx, "id"));
         var transfer = transferService.read(ctx.bodyAsClass(JsonNode.class));
         var outcome = transferService.appendTo(catalog, transfer);
-        if (!outcome.problems().isEmpty()) {
+        var appended = outcome.catalog();
+        if (appended == null) {
             ctx.status(HttpStatus.BAD_REQUEST).json(new CatalogImportRejected(outcome.problems()));
             return;
         }
-        ctx.json(outcome.catalog());
+        ctx.json(appended);
     }
 
     /**

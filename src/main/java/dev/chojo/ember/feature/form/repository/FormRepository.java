@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.Json;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -226,8 +227,8 @@ public class FormRepository {
             boolean shuffleQuestions,
             boolean allowEdit,
             boolean forced,
-            Instant startAt,
-            Instant endAt,
+            @Nullable Instant startAt,
+            @Nullable Instant endAt,
             int createdBy,
             FormPurpose purpose) {
         return SqlSupport.insertReturning(
@@ -275,8 +276,8 @@ public class FormRepository {
             boolean shuffleQuestions,
             boolean allowEdit,
             boolean forced,
-            Instant startAt,
-            Instant endAt) {
+            @Nullable Instant startAt,
+            @Nullable Instant endAt) {
         return query("""
                 UPDATE form
                 SET title = :title, description = :description,
@@ -329,7 +330,7 @@ public class FormRepository {
      * @param replacement the link to put in its place
      * @return whether the form still held the expected link and was given the new one
      */
-    public boolean replaceShareToken(int id, String expected, String replacement) {
+    public boolean replaceShareToken(int id, @Nullable String expected, String replacement) {
         return query("""
                 UPDATE form
                 SET share_token = :replacement,
@@ -348,7 +349,7 @@ public class FormRepository {
      * @param link    an address offered to go on to, or {@code null}
      * @param label   what the link says, or {@code null} for the address itself
      */
-    public void updateCompletion(int id, String message, String link, String label) {
+    public void updateCompletion(int id, @Nullable String message, @Nullable String link, @Nullable String label) {
         query("""
                 UPDATE form
                 SET completion_message = :message, completion_link = :link, completion_link_label = :label
@@ -461,7 +462,7 @@ public class FormRepository {
             boolean required,
             boolean shuffle,
             FormQuestionConfig config,
-            QuestionBranch branch) {
+            @Nullable QuestionBranch branch) {
         return SqlSupport.insertReturning(
                 """
                 WITH q AS (
@@ -506,7 +507,7 @@ public class FormRepository {
             boolean required,
             boolean shuffle,
             FormQuestionConfig config,
-            QuestionBranch branch,
+            @Nullable QuestionBranch branch,
             int position) {
         return query("""
                 UPDATE form_question

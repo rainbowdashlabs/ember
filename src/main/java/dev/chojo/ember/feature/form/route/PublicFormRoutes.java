@@ -243,7 +243,7 @@ public class PublicFormRoutes implements Routes {
      * <p>A form stops for either of two reasons and sometimes both: its end date passed, or somebody
      * closed it. Whichever happened first is when it actually stopped, and is the date to give.
      */
-    private Instant closedSince(Form form, PublicFormState state) {
+    private @Nullable Instant closedSince(Form form, PublicFormState state) {
         if (state != PublicFormState.CLOSED) return null;
         var byDate = form.endAt() != null && Instant.now().isAfter(form.endAt()) ? form.endAt() : null;
         var byHand = form.closedAt();

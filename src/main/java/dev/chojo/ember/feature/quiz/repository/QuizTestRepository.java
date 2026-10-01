@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -118,7 +119,7 @@ public class QuizTestRepository {
             int stationId,
             String title,
             String description,
-            Integer timeLimit,
+            @Nullable Integer timeLimit,
             boolean shuffle,
             boolean forced,
             int createdBy) {
@@ -142,11 +143,11 @@ public class QuizTestRepository {
             int id,
             String title,
             String description,
-            Integer timeLimit,
+            @Nullable Integer timeLimit,
             boolean shuffle,
             boolean forced,
-            Instant startAt,
-            Instant endAt) {
+            @Nullable Instant startAt,
+            @Nullable Instant endAt) {
         return query("""
                 UPDATE quiz_test
                 SET title = :title, description = :description, time_limit = :time_limit,
@@ -239,7 +240,8 @@ public class QuizTestRepository {
                 .all();
     }
 
-    public QuizTestSectionSource createSource(int sectionId, int catalogId, Integer categoryId, int questionCount) {
+    public QuizTestSectionSource createSource(
+            int sectionId, int catalogId, @Nullable Integer categoryId, int questionCount) {
         return insertReturning(
                 """
                 INSERT INTO quiz_test_section_source(section_id, catalog_id, category_id, question_count)
@@ -374,7 +376,7 @@ public class QuizTestRepository {
                 .insert();
     }
 
-    public void saveAnswer(int attemptId, int questionId, QuizAnswerValue answer) {
+    public void saveAnswer(int attemptId, int questionId, @Nullable QuizAnswerValue answer) {
         query("""
                 INSERT INTO quiz_test_answer(attempt_id, question_id, answer)
                 VALUES (:attempt_id, :question_id, :answer::jsonb)
@@ -394,7 +396,7 @@ public class QuizTestRepository {
 
     // -- Member Access --
 
-    public void grantMemberAccess(int testId, int memberId, Instant closesAt) {
+    public void grantMemberAccess(int testId, int memberId, @Nullable Instant closesAt) {
         query("""
                 INSERT INTO quiz_test_member_access(test_id, member_id, closes_at)
                 VALUES (:test_id, :member_id, :closes_at)

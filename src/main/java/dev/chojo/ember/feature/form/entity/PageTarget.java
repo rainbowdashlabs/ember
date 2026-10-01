@@ -29,7 +29,7 @@ public record PageTarget(TargetKind kind, @Nullable String page) {
      * @param target what was sent or stored, possibly nothing
      * @return a target that always has a kind
      */
-    public static PageTarget orNext(PageTarget target) {
+    public static PageTarget orNext(@Nullable PageTarget target) {
         if (target == null || target.kind() == null) return NEXT;
         return target;
     }

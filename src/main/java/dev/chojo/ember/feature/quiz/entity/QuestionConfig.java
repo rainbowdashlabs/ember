@@ -119,7 +119,7 @@ public sealed interface QuestionConfig {
 
     record TrueFalse(boolean correctAnswer) implements QuestionConfig {}
 
-    record ImageText(String imageUrl, String answer) implements QuestionConfig {}
+    record ImageText(@Nullable String imageUrl, @Nullable String answer) implements QuestionConfig {}
 
     record Unknown() implements QuestionConfig {}
 }

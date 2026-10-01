@@ -19,6 +19,7 @@ import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -176,8 +177,9 @@ public class QuizCatalogTransferService {
         var resolver = new QuizCategoryResolver(catalogService, catalog.stationId());
         var categoryIds = new HashMap<String, Integer>();
         for (var question : plan.questions()) {
-            if (question.categoryKey() == null) continue;
-            categoryIds.computeIfAbsent(question.categoryKey(), key -> {
+            String categoryKey = question.categoryKey();
+            if (categoryKey == null) continue;
+            categoryIds.computeIfAbsent(categoryKey, key -> {
                 var entry = plan.categories().get(key);
                 return resolver.resolve(entry.name(), entry.description(), entry.position());
             });
@@ -245,7 +247,7 @@ public class QuizCatalogTransferService {
         return new CatalogTransfer(CatalogTransfer.FORMAT_VERSION, info, categories, questions);
     }
 
-    private static String legacyKey(JsonNode id) {
+    private static @Nullable String legacyKey(JsonNode id) {
         return id == null || id.isNull() || id.isMissingNode() ? null : id.asString();
     }
 
@@ -255,7 +257,8 @@ public class QuizCatalogTransferService {
         for (int i = 0; i < entries.size(); i++) {
             var entry = entries.get(i);
             String location = "categories[%d]".formatted(i);
-            if (entry.key() == null || entry.key().isBlank()) {
+            String key = entry.key();
+            if (key == null || key.isBlank()) {
                 problems.add(new CatalogTransferProblem(location, "The category has no key for questions to refer to"));
                 continue;
             }
@@ -263,9 +266,9 @@ public class QuizCatalogTransferService {
                 problems.add(new CatalogTransferProblem(location, "The category has no name"));
                 continue;
             }
-            if (byKey.putIfAbsent(entry.key(), entry) != null) {
+            if (byKey.putIfAbsent(key, entry) != null) {
                 problems.add(new CatalogTransferProblem(
-                        location, "Another category already uses the key %s".formatted(entry.key())));
+                        location, "Another category already uses the key %s".formatted(key)));
             }
         }
         return byKey;
@@ -300,12 +303,12 @@ public class QuizCatalogTransferService {
                 continue;
             }
             planned.add(new PlannedQuestion(
-                    entry.categoryKey(), type, config.get(), entry, entry.position() != null ? entry.position() : i));
+                    entry.categoryKey(), type, config.get(), entry, Objects.requireNonNullElse(entry.position(), i)));
         }
         return planned;
     }
 
-    private static QuizQuestionType questionType(String name) {
+    private static @Nullable QuizQuestionType questionType(String name) {
         if (name == null || name.isBlank()) return null;
         try {
             return QuizQuestionType.valueOf(name.trim().toUpperCase(Locale.ROOT));
@@ -354,10 +357,10 @@ public class QuizCatalogTransferService {
      * @param catalog  the created catalog, or {@code null} when the file was refused
      * @param problems every reason the file was refused, empty when it was not
      */
-    public record ImportOutcome(QuizCatalog catalog, List<CatalogTransferProblem> problems) {}
+    public record ImportOutcome(@Nullable QuizCatalog catalog, List<CatalogTransferProblem> problems) {}
 
     private record PlannedQuestion(
-            String categoryKey,
+            @Nullable String categoryKey,
             QuizQuestionType type,
             QuestionConfig config,
             CatalogTransferQuestion entry,

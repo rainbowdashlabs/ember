@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.quiz.repository;
 
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,7 +37,7 @@ public class AiProviderRepository {
                 .first();
     }
 
-    public void upsert(int stationId, String provider, String apiKey, String model) {
+    public void upsert(int stationId, String provider, String apiKey, @Nullable String model) {
         query("""
                 INSERT INTO station_ai_provider(station_id, provider, api_key, model)
                 VALUES (:station_id, :provider, :api_key, :model)
