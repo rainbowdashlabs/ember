@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryTagRepository;
 import dev.chojo.ember.feature.inventory.route.RemoteInventoryTagRoutes;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -72,7 +73,7 @@ public class FederatedItemTagService implements FederationServer {
      * @param name      the word as somebody typed it
      * @return what was found, the station's own first
      */
-    public List<TaggedItemSummary> findAcrossPartners(int stationId, String name) {
+    public List<TaggedItemSummary> findAcrossPartners(int stationId, @Nullable String name) {
         if (name == null || name.isBlank()) return List.of();
         var found = new ArrayList<>(tagRepository.findItemsByTag(List.of(stationId), name));
         var partners = federationService.findPartners(stationId).stream()

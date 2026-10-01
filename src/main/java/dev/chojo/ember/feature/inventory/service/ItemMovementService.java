@@ -145,7 +145,7 @@ public class ItemMovementService {
          *
          * @return the member id, or {@code null} when the actor belongs to no station
          */
-        public Integer memberIdOrNull() {
+        public @Nullable Integer memberIdOrNull() {
             return memberId > 0 ? memberId : null;
         }
     }
@@ -173,15 +173,15 @@ public class ItemMovementService {
     public ItemMovement create(
             int stationId,
             MovementPurpose purpose,
-            Integer memberId,
-            String memberName,
-            Integer outgoingItemId,
-            Integer inventoryId,
-            Integer oldSizeId,
-            Integer newSizeId,
+            @Nullable Integer memberId,
+            @Nullable String memberName,
+            @Nullable Integer outgoingItemId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer oldSizeId,
+            @Nullable Integer newSizeId,
             String reason,
             Actor actor,
-            Integer pickedItemId) {
+            @Nullable Integer pickedItemId) {
         return create(
                 stationId,
                 purpose,
@@ -206,15 +206,15 @@ public class ItemMovementService {
     public ItemMovement create(
             int stationId,
             MovementPurpose purpose,
-            Integer memberId,
-            String memberName,
-            Integer outgoingItemId,
-            Integer inventoryId,
-            Integer oldSizeId,
-            Integer newSizeId,
+            @Nullable Integer memberId,
+            @Nullable String memberName,
+            @Nullable Integer outgoingItemId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer oldSizeId,
+            @Nullable Integer newSizeId,
             String reason,
             Actor actor,
-            Integer pickedItemId,
+            @Nullable Integer pickedItemId,
             boolean lostReport) {
         return create(
                 stationId,
@@ -288,15 +288,15 @@ public class ItemMovementService {
     public ItemMovement create(
             int stationId,
             MovementPurpose purpose,
-            Integer memberId,
-            String memberName,
-            Integer outgoingItemId,
-            Integer inventoryId,
-            Integer oldSizeId,
-            Integer newSizeId,
+            @Nullable Integer memberId,
+            @Nullable String memberName,
+            @Nullable Integer outgoingItemId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer oldSizeId,
+            @Nullable Integer newSizeId,
             String reason,
             Actor actor,
-            Integer pickedItemId,
+            @Nullable Integer pickedItemId,
             boolean lostReport,
             List<Integer> carriedIncoming) {
         requireThePiecesExist(outgoingItemId, pickedItemId);
@@ -367,7 +367,10 @@ public class ItemMovementService {
      *                      back on whichever step the corrected world has not reached yet
      */
     public record Correction(
-            ItemCustody outgoing, ItemCustody incoming, boolean detachArrival, MovementState closeAs) {}
+            @Nullable ItemCustody outgoing,
+            @Nullable ItemCustody incoming,
+            boolean detachArrival,
+            @Nullable MovementState closeAs) {}
 
     /**
      * Puts a movement where somebody says it should have been, without pretending anybody walked it there.
@@ -403,8 +406,9 @@ public class ItemMovementService {
         }
 
         ItemMovement moved = movementRepository.findById(movementId).orElseThrow();
-        if (correction.closeAs() != null) {
-            movementRepository.close(movementId, correction.closeAs(), reason);
+        MovementState closeAs = correction.closeAs();
+        if (closeAs != null) {
+            movementRepository.close(movementId, closeAs, reason);
         } else {
             movementRepository.reopen(movementId);
             MovementFlowStep standing = stepTheWorldHasNotReached(moved);
@@ -430,7 +434,7 @@ public class ItemMovementService {
         return corrected;
     }
 
-    private void applyCorrectedCustody(ItemMovement movement, StepSubject subject, ItemCustody custody) {
+    private void applyCorrectedCustody(ItemMovement movement, StepSubject subject, @Nullable ItemCustody custody) {
         if (custody == null) return;
         Integer itemId = movement.itemFor(subject);
         if (itemId == null) return;
@@ -441,7 +445,7 @@ public class ItemMovementService {
      * The first step of the chain that the corrected world has not made true, which is where the movement
      * now stands. Empty when every step is satisfied, and the chain is therefore over.
      */
-    private MovementFlowStep stepTheWorldHasNotReached(ItemMovement movement) {
+    private @Nullable MovementFlowStep stepTheWorldHasNotReached(ItemMovement movement) {
         List<MovementFlowStep> steps = stepsOf(movement);
         if (steps.isEmpty()) return null;
         int satisfied = -1;
@@ -494,24 +498,24 @@ public class ItemMovementService {
      * @param outgoingItemId the piece leaving, or {@code null}
      * @param incomingItemId the piece arriving, or {@code null}
      */
-    private void requireThePiecesExist(Integer outgoingItemId, Integer incomingItemId) {
+    private void requireThePiecesExist(@Nullable Integer outgoingItemId, @Nullable Integer incomingItemId) {
         requireItIsStillThere(outgoingItemId);
         requireItIsStillThere(incomingItemId);
     }
 
-    private void requireItIsStillThere(Integer itemId) {
+    private void requireItIsStillThere(@Nullable Integer itemId) {
         if (itemId == null) return;
         if (inventoryRepository.findItemById(itemId).isEmpty()) {
             throw new BadRequestResponse("That piece is no longer recorded, so nothing can be started on it");
         }
     }
 
-    private void requireItIsNotAlreadyOnItsWay(Integer outgoingItemId, Integer incomingItemId) {
+    private void requireItIsNotAlreadyOnItsWay(@Nullable Integer outgoingItemId, @Nullable Integer incomingItemId) {
         requireFree(outgoingItemId);
         requireFree(incomingItemId);
     }
 
-    private void requireFree(Integer itemId) {
+    private void requireFree(@Nullable Integer itemId) {
         if (itemId == null) return;
         movementRepository.findOpenByOutgoingItem(itemId).ifPresent(open -> {
             throw new BadRequestResponse(
@@ -532,7 +536,7 @@ public class ItemMovementService {
      * @param purpose     what the movement is for
      * @param inventoryId the inventory it is about, or {@code null}
      */
-    private void requireSomethingToSwapFor(MovementPurpose purpose, Integer inventoryId) {
+    private void requireSomethingToSwapFor(MovementPurpose purpose, @Nullable Integer inventoryId) {
         if (purpose != MovementPurpose.EXCHANGE || inventoryId == null) return;
         inventoryRepository.findById(inventoryId).ifPresent(inventory -> {
             if (!inventory.homogeneous()) {
@@ -558,7 +562,7 @@ public class ItemMovementService {
     private void announceIssue(
             MovementPurpose purpose,
             ItemOwner ownerKind,
-            Integer ownerClusterId,
+            @Nullable Integer ownerClusterId,
             int stationId,
             ItemMovement movement) {
         if (purpose != MovementPurpose.ISSUE || ownerKind != ItemOwner.CLUSTER || ownerClusterId == null) return;
@@ -633,7 +637,8 @@ public class ItemMovementService {
      * @param pickedItemId the arriving item, when this is the step that names it
      * @return the movement after the step, standing on the next one or closed
      */
-    public ItemMovement acknowledge(int movementId, int stepId, Actor actor, String note, Integer pickedItemId) {
+    public ItemMovement acknowledge(
+            int movementId, int stepId, Actor actor, @Nullable String note, @Nullable Integer pickedItemId) {
         return applyStep(movementId, stepId, actor, note, pickedItemId, false);
     }
 
@@ -645,7 +650,8 @@ public class ItemMovementService {
      * @throws BadRequestResponse when the note is missing, or when the step is the station's own and
      *                            can simply be acknowledged
      */
-    public ItemMovement force(int movementId, int stepId, Actor actor, String note, Integer pickedItemId) {
+    public ItemMovement force(
+            int movementId, int stepId, Actor actor, @Nullable String note, @Nullable Integer pickedItemId) {
         if (note == null || note.isBlank()) {
             throw new BadRequestResponse("Forcing a step needs a note saying why");
         }
@@ -653,7 +659,12 @@ public class ItemMovementService {
     }
 
     private ItemMovement applyStep(
-            int movementId, int stepId, Actor actor, String note, Integer pickedItemId, boolean forced) {
+            int movementId,
+            int stepId,
+            Actor actor,
+            @Nullable String note,
+            @Nullable Integer pickedItemId,
+            boolean forced) {
         ItemMovement movement = requireOpen(movementId);
         if (movement.currentStepId() == null || movement.currentStepId() != stepId) {
             throw new BadRequestResponse("That is not the step this movement is standing on");
@@ -732,7 +743,7 @@ public class ItemMovementService {
      * Refuses the step whose turn it is. The movement closes and the outgoing item goes back to
      * whoever had it before, which an owner with no replacement in stock needs.
      */
-    public ItemMovement decline(int movementId, Actor actor, String reason) {
+    public ItemMovement decline(int movementId, Actor actor, @Nullable String reason) {
         ItemMovement movement = requireOpen(movementId);
         MovementFlowStep step = currentStep(movement);
         if (step != null) requireTurn(movement, step, actor);
@@ -762,7 +773,7 @@ public class ItemMovementService {
      * @param reason     what to record, for whoever reads it later
      * @return the closed movement
      */
-    public ItemMovement cancel(int movementId, Actor actor, String reason) {
+    public ItemMovement cancel(int movementId, Actor actor, @Nullable String reason) {
         ItemMovement movement = requireOpen(movementId);
         MovementFlowStep step = currentStep(movement);
         if (step != null && !mayAct(movement, step, actor) && !stillHoldsIt(movement, actor)) {
@@ -897,7 +908,7 @@ public class ItemMovementService {
         return deleted;
     }
 
-    private ItemMovement close(ItemMovement movement, MovementState state, String reason) {
+    private ItemMovement close(ItemMovement movement, MovementState state, @Nullable String reason) {
         return close(movement, state, reason, true);
     }
 
@@ -906,7 +917,7 @@ public class ItemMovementService {
      *                  has already left the station. A refusal comes from the far end and settles the
      *                  whole journey, so it does. Calling off does not: it ends the plan, not the post.
      */
-    private ItemMovement close(ItemMovement movement, MovementState state, String reason, boolean fetchBack) {
+    private ItemMovement close(ItemMovement movement, MovementState state, @Nullable String reason, boolean fetchBack) {
         if (fetchBack || !hasLeftTheStation(movement.outgoingItemId())) {
             restoreOutgoingItem(movement);
         } else {
@@ -1002,7 +1013,7 @@ public class ItemMovementService {
         return step != null ? step.actor() : null;
     }
 
-    private String inventoryName(Integer inventoryId) {
+    private String inventoryName(@Nullable Integer inventoryId) {
         if (inventoryId == null) return "";
         return inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("");
     }
@@ -1276,7 +1287,7 @@ public class ItemMovementService {
      * @throws BadRequestResponse when the movement is not open, when no chain is bound for what it
      *                            is, or when no step is named and none means the same
      */
-    public void rechain(int movementId, Integer stepIndex, Integer actorMemberId) {
+    public void rechain(int movementId, @Nullable Integer stepIndex, @Nullable Integer actorMemberId) {
         ItemMovement movement = openMovement(movementId);
         int belongsOn = chainItBelongsOn(movement);
         var steps = flowService.findActiveSteps(belongsOn);

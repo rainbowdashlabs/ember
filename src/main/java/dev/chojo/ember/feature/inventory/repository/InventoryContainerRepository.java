@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryContainerHistory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -186,7 +187,7 @@ public class InventoryContainerRepository {
      * Returns whether the given station has any container row with the
      * supplied internal id, excluding optionally one container by id.
      */
-    public boolean internalIdExists(int stationId, String internalId, Integer excludeContainerId) {
+    public boolean internalIdExists(int stationId, String internalId, @Nullable Integer excludeContainerId) {
         return SqlSupport.exists(
                 """
                 SELECT 1 FROM inventory_container
@@ -202,12 +203,12 @@ public class InventoryContainerRepository {
      */
     public InventoryContainer create(
             int stationId,
-            Integer parentId,
-            String internalId,
+            @Nullable Integer parentId,
+            @Nullable String internalId,
             String name,
-            Integer kindId,
+            @Nullable Integer kindId,
             String description,
-            Integer createdBy) {
+            @Nullable Integer createdBy) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO inventory_container(station_id, parent_id, internal_id, name, kind_id, description, created_by)
@@ -228,7 +229,12 @@ public class InventoryContainerRepository {
      * Updates a container's mutable fields.
      */
     public boolean update(
-            int id, Integer parentId, String internalId, String name, Integer kindId, String description) {
+            int id,
+            @Nullable Integer parentId,
+            @Nullable String internalId,
+            String name,
+            @Nullable Integer kindId,
+            String description) {
         return query("""
                 UPDATE inventory_container
                 SET parent_id = :parent_id,
@@ -326,7 +332,8 @@ public class InventoryContainerRepository {
      * @param actorId     the acting member, or {@code null} for system events
      * @param details     the typed event payload
      */
-    public void appendHistory(Integer containerId, int stationId, Integer actorId, ContainerHistoryDetails details) {
+    public void appendHistory(
+            @Nullable Integer containerId, int stationId, @Nullable Integer actorId, ContainerHistoryDetails details) {
         query("""
                 INSERT INTO inventory_container_history(container_id, station_id, event_kind, actor_id, details)
                 VALUES(:container_id, :station_id, :event_kind, :actor_id, :details::jsonb);""")

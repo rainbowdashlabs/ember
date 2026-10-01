@@ -34,6 +34,7 @@ import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +101,8 @@ public class SelfCheckService {
      * @throws BadRequestResponse when no member was named, or one of them is not of this station or
      *                            has left it
      */
-    public List<SelfCheck> handOut(int stationId, List<Integer> memberIds, LocalDate dueOn, int handedOutBy) {
+    public List<SelfCheck> handOut(
+            int stationId, @Nullable List<Integer> memberIds, @Nullable LocalDate dueOn, int handedOutBy) {
         if (memberIds == null || memberIds.isEmpty()) {
             throw new BadRequestResponse("Name at least one member to ask");
         }
@@ -266,7 +268,7 @@ public class SelfCheckService {
      * Records that the member asked for a different size while answering a task.
      */
     public SelfCheckRaised recordExchange(
-            int taskId, int stationId, int memberId, boolean guardian, Integer itemId, int movementId) {
+            int taskId, int stationId, int memberId, boolean guardian, @Nullable Integer itemId, int movementId) {
         SelfCheck task = require(taskId, stationId, memberId, guardian);
         requireOpen(task);
         return repository.recordRaised(taskId, SelfCheckRaisedKind.EXCHANGE, itemId, movementId, memberId);
@@ -302,8 +304,8 @@ public class SelfCheckService {
             boolean guardian,
             SelfCheckRaisedKind kind,
             int itemId,
-            Integer newSizeId,
-            String words) {
+            @Nullable Integer newSizeId,
+            @Nullable String words) {
         SelfCheck task = require(taskId, stationId, memberId, guardian);
         requireOpen(task);
         InventoryItem item = inventoryRepository
@@ -365,7 +367,7 @@ public class SelfCheckService {
      * The size a held-back exchange asks for, which the inventory has to keep and which the exchange
      * screens only offer where the inventory holds one thing in many copies.
      */
-    private Integer wantedSize(InventoryItem item, Integer newSizeId) {
+    private @Nullable Integer wantedSize(InventoryItem item, @Nullable Integer newSizeId) {
         if (!inventoryRepository
                 .findById(item.inventoryId())
                 .orElseThrow(() -> new BadRequestResponse("This inventory does not exist"))
@@ -513,9 +515,8 @@ public class SelfCheckService {
      * the submission, and answering it back to the member would tell them about gear that is not
      * theirs.
      */
-    private static String typedIdentifier(SelfCheckAnswerInput input) {
-        String typed =
-                input.typedInternalId() == null ? "" : input.typedInternalId().strip();
+    private static @Nullable String typedIdentifier(SelfCheckAnswerInput input) {
+        String typed = Objects.requireNonNullElse(input.typedInternalId(), "").strip();
         if (typed.isEmpty()) return null;
         if (input.answer() != SelfCheckAnswer.HAVE_ONE) {
             throw new BadRequestResponse("Only a place you are holding something for takes a number");
@@ -540,16 +541,17 @@ public class SelfCheckService {
      *
      * @param takesASize the one answer a size may accompany here
      */
-    private static Integer statedSize(
+    private static @Nullable Integer statedSize(
             SelfCheckAnswerInput input, List<InventorySize> sizes, SelfCheckAnswer takesASize) {
-        if (input.sizeId() == null) return null;
+        Integer sizeId = input.sizeId();
+        if (sizeId == null) return null;
         if (input.answer() != takesASize) {
             throw new BadRequestResponse("Only an answer that says what the member actually holds takes a size");
         }
-        if (sizes.stream().noneMatch(size -> size.id() == input.sizeId())) {
+        if (sizes.stream().noneMatch(size -> size.id() == sizeId)) {
             throw new BadRequestResponse("This size is not one this kind of gear comes in");
         }
-        return input.sizeId();
+        return sizeId;
     }
 
     /**

@@ -227,7 +227,7 @@ public class MemberCheckNotesService {
      * <p>A profile answer is whatever somebody typed, so an unreadable one is no birthday rather than
      * a failure: a malformed date must not stop the rest of the sheet being answered.
      */
-    static Integer daysSinceBirthday(String stored, LocalDate today) {
+    static @Nullable Integer daysSinceBirthday(String stored, LocalDate today) {
         if (stored == null || stored.isBlank()) return null;
         MonthDay born;
         try {

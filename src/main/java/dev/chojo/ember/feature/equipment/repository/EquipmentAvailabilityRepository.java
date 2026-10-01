@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.inventory.entity.ResolvedTarget;
 import dev.chojo.ember.feature.inventory.repository.ItemCustodySql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -120,7 +121,7 @@ public class EquipmentAvailabilityRepository {
      * @param ignoreRequestId the request not to count, or {@code null} to count every one
      * @return the loans overlapping the window
      */
-    public List<LoanClaim> loanClaims(int stationId, LocalDate from, LocalDate to, Integer ignoreRequestId) {
+    public List<LoanClaim> loanClaims(int stationId, LocalDate from, LocalDate to, @Nullable Integer ignoreRequestId) {
         return query("""
                 SELECT ri.id                    AS request_item_id,
                        ri.quantity,

@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.storage.service.StorageService;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,7 +96,8 @@ public class LossReportService {
      * @throws BadRequestResponse when the item is not missing, has no owner here, or the report is short of
      *                            what that owner asks for
      */
-    public ItemMovement report(int stationId, int itemId, String note, Attachment document, int reportedBy) {
+    public ItemMovement report(
+            int stationId, int itemId, @Nullable String note, @Nullable Attachment document, int reportedBy) {
         InventoryItem item =
                 inventoryRepository.findItemById(itemId).orElseThrow(() -> new BadRequestResponse("No such item"));
         if (item.custody() != ItemCustody.LOST) {
@@ -140,7 +142,7 @@ public class LossReportService {
     /**
      * Refuses a report that falls short of what the owner asks for, before anything is written down.
      */
-    private void requireEnough(LossReportRequirement requires, String note, Attachment document) {
+    private void requireEnough(LossReportRequirement requires, @Nullable String note, @Nullable Attachment document) {
         if (requires == LossReportRequirement.NOTHING) return;
         if (note == null || note.isBlank()) {
             throw new BadRequestResponse("The body that owns this gear asks for a note with a loss report");

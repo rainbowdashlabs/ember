@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -345,7 +346,7 @@ public class MovementFlowRepository {
      */
     public boolean bindIfAbsent(
             int stationId,
-            Integer inventoryId,
+            @Nullable Integer inventoryId,
             ItemOwner ownerKind,
             MovementPurpose purpose,
             MovementParty party,

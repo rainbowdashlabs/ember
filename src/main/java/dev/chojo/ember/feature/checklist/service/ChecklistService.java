@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,7 +139,7 @@ public class ChecklistService {
             RestrictionMode mode,
             List<ColumnSpec> columns,
             FilterSpec filter,
-            OccurrenceSpec occurrence,
+            @Nullable OccurrenceSpec occurrence,
             int createdBy) {
         var checklist = repository.create(
                 stationId,
@@ -302,7 +303,7 @@ public class ChecklistService {
      * Writes the cell at (entryId, columnId) and appends a note-history row when the note
      * actually changed. Returns the new cell.
      */
-    public CellWriteResult writeCell(int entryId, int columnId, boolean checked, String note, int updatedBy) {
+    public CellWriteResult writeCell(int entryId, int columnId, boolean checked, @Nullable String note, int updatedBy) {
         var previous = repository.findCell(entryId, columnId).orElse(null);
         String previousNote = previous != null ? previous.note() : null;
         String normalisedNote = note == null || note.isEmpty() ? null : note;

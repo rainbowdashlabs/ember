@@ -57,7 +57,7 @@ public record AttendanceEntry(
      * @return the member's own check-in, the session's start where they were present and wrote none
      *         down, and nothing at all otherwise
      */
-    public Instant shownCheckIn(Instant sessionStart) {
+    public @Nullable Instant shownCheckIn(Instant sessionStart) {
         if (checkIn != null) return checkIn;
         return status == AttendanceStatus.PRESENT ? sessionStart : null;
     }
@@ -69,7 +69,7 @@ public record AttendanceEntry(
      * @return the member's own check-out, the session's end where they were present and wrote none
      *         down, and nothing at all otherwise
      */
-    public Instant shownCheckOut(Instant sessionEnd) {
+    public @Nullable Instant shownCheckOut(Instant sessionEnd) {
         if (checkOut != null) return checkOut;
         return status == AttendanceStatus.PRESENT ? sessionEnd : null;
     }

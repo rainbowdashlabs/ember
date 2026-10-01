@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.inventory.entity.ResolvedTarget;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -130,7 +131,7 @@ public class EquipmentAvailabilityService {
      * @return the stock and everything already holding some of it
      */
     public EquipmentAvailability availability(
-            int stationId, LineTarget target, Instant from, Instant to, Integer ignoreNeedId) {
+            int stationId, LineTarget target, Instant from, Instant to, @Nullable Integer ignoreNeedId) {
         return availability(stationId, target, from, to, ignoreNeedId, null);
     }
 
@@ -151,7 +152,12 @@ public class EquipmentAvailabilityService {
      * @return the stock and everything already holding some of it
      */
     public EquipmentAvailability availability(
-            int stationId, LineTarget target, Instant from, Instant to, Integer ignoreNeedId, Integer ignoreRequestId) {
+            int stationId,
+            LineTarget target,
+            Instant from,
+            Instant to,
+            @Nullable Integer ignoreNeedId,
+            @Nullable Integer ignoreRequestId) {
         ResolvedTarget question = availabilityRepository
                 .resolve(target)
                 .orElseThrow(() -> new IllegalArgumentException("The equipment does not exist"));
@@ -198,7 +204,7 @@ public class EquipmentAvailabilityService {
      * @param ignoreNeedId the line not to count, or {@code null} to count every one
      * @return the claims
      */
-    public List<EquipmentClaim> claims(int stationId, Instant from, Instant to, Integer ignoreNeedId) {
+    public List<EquipmentClaim> claims(int stationId, Instant from, Instant to, @Nullable Integer ignoreNeedId) {
         return claims(stationId, from, to, ignoreNeedId, null);
     }
 
@@ -214,7 +220,11 @@ public class EquipmentAvailabilityService {
      * @return the claims
      */
     public List<EquipmentClaim> claims(
-            int stationId, Instant from, Instant to, Integer ignoreNeedId, Integer ignoreRequestId) {
+            int stationId,
+            Instant from,
+            Instant to,
+            @Nullable Integer ignoreNeedId,
+            @Nullable Integer ignoreRequestId) {
         var resolved = new HashMap<LineTarget, ResolvedTarget>();
         var claims = new ArrayList<EquipmentClaim>();
         claims.addAll(ownClaims(stationId, from, to, ignoreNeedId, resolved));
@@ -268,7 +278,11 @@ public class EquipmentAvailabilityService {
     }
 
     private List<EquipmentClaim> ownClaims(
-            int stationId, Instant from, Instant to, Integer ignoreNeedId, Map<LineTarget, ResolvedTarget> resolved) {
+            int stationId,
+            Instant from,
+            Instant to,
+            @Nullable Integer ignoreNeedId,
+            Map<LineTarget, ResolvedTarget> resolved) {
         var needsByEvent = new HashMap<Integer, List<EquipmentNeed>>();
         for (var need : needRepository.findByStation(stationId)) {
             if (ignoreNeedId != null && ignoreNeedId == need.id()) continue;
@@ -340,7 +354,7 @@ public class EquipmentAvailabilityService {
             int stationId,
             Instant from,
             Instant to,
-            Integer ignoreRequestId,
+            @Nullable Integer ignoreRequestId,
             Map<LineTarget, ResolvedTarget> resolved) {
         LocalDate dayFrom = from.atZone(ZoneOffset.UTC).toLocalDate();
         LocalDate dayTo = to.atZone(ZoneOffset.UTC).toLocalDate();
@@ -390,7 +404,7 @@ public class EquipmentAvailabilityService {
      * A block takes everything it covers, however much that is, which is what setting a period aside
      * means. Its count therefore follows the question rather than being written down.
      */
-    private ResolvedTarget resolvedOrNull(LineTarget target, Map<LineTarget, ResolvedTarget> resolved) {
+    private @Nullable ResolvedTarget resolvedOrNull(LineTarget target, Map<LineTarget, ResolvedTarget> resolved) {
         return resolved.computeIfAbsent(
                 target, key -> availabilityRepository.resolve(key).orElse(null));
     }
@@ -409,7 +423,8 @@ public class EquipmentAvailabilityService {
                 claim.firm());
     }
 
-    private static LineTarget targetOf(Integer itemId, Integer artId, Integer inventoryId) {
+    private static @Nullable LineTarget targetOf(
+            @Nullable Integer itemId, @Nullable Integer artId, @Nullable Integer inventoryId) {
         if (itemId != null) return LineTarget.item(itemId);
         if (artId != null) return LineTarget.art(artId);
         if (inventoryId != null) return LineTarget.inventory(inventoryId);

@@ -294,7 +294,7 @@ public class AttendanceRoutes implements Routes {
      * @param createdBy the member ID of the creator, or {@code null}
      * @return the name the station calls the creator by, or {@code null} if not resolvable
      */
-    private String resolveCreatedByName(Integer createdBy) {
+    private @Nullable String resolveCreatedByName(@Nullable Integer createdBy) {
         return createdBy == null ? null : memberNames.called(createdBy);
     }
 

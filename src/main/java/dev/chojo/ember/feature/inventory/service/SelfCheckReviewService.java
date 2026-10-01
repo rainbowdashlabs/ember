@@ -52,6 +52,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -280,7 +281,7 @@ public class SelfCheckReviewService {
      * @param reason     why it cannot be settled
      * @return the submission as it now stands
      */
-    public SelfCheckReview refuse(int taskId, int rowId, int stationId, int reviewerId, String reason) {
+    public SelfCheckReview refuse(int taskId, int rowId, int stationId, int reviewerId, @Nullable String reason) {
         SelfCheck task = require(taskId, stationId);
         SelfCheckRow row = requireOutstanding(task, rowId);
         requireArmsLength(task, row, reviewerId);
@@ -464,13 +465,14 @@ public class SelfCheckReviewService {
     }
 
     private SelfCheckIdentifierMatch.SelfCheckMatchedPiece piece(InventoryItem item) {
+        Integer heldBy = item.assignedTo();
         return new SelfCheckIdentifierMatch.SelfCheckMatchedPiece(
                 item.id(),
                 item.name(),
-                item.internalId(),
+                Objects.requireNonNull(item.internalId(), "A piece found by its number carries that number"),
                 inventoryNameOf(item.inventoryId()),
-                item.assignedTo(),
-                item.assignedTo() == null ? "" : nameOf(item.assignedTo()));
+                heldBy,
+                nameOf(heldBy));
     }
 
     /**
@@ -555,7 +557,7 @@ public class SelfCheckReviewService {
      * cannot hand themselves a task and approve it, and a guardian who answered for a member cannot
      * approve what they wrote.
      */
-    private static String approvalRefusal(SelfCheck task, int reviewerId) {
+    private static @Nullable String approvalRefusal(SelfCheck task, int reviewerId) {
         if (task.memberId() == reviewerId) return "This submission is about your own gear";
         Integer submittedBy = task.submittedBy();
         if (submittedBy != null && submittedBy == reviewerId) {
@@ -617,7 +619,7 @@ public class SelfCheckReviewService {
         return inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("");
     }
 
-    private String nameOf(Integer memberId) {
+    private String nameOf(@Nullable Integer memberId) {
         if (memberId == null) return "";
         return Optional.of(memberId)
                 .flatMap(stationMemberRepository::findById)

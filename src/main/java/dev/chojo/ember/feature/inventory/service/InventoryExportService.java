@@ -24,6 +24,7 @@ import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -98,7 +99,7 @@ public class InventoryExportService {
             boolean showName,
             boolean showInternalId,
             boolean showSize,
-            CsvWriter.Separator separator) {
+            CsvWriter.@Nullable Separator separator) {
         var station = stationRepository.findById(stationId).orElse(null);
         if (station == null) return Optional.empty();
 

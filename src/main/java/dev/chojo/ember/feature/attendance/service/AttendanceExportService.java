@@ -32,6 +32,7 @@ import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -97,7 +98,11 @@ public class AttendanceExportService {
      * @param showInstanceUrl whether the address of this installation is printed at the foot, which is
      *                        what the station settled on where this is null
      */
-    public record SheetOptions(boolean signatureColumn, String title, int blankRows, Boolean showInstanceUrl) {
+    public record SheetOptions(
+            boolean signatureColumn,
+            @Nullable String title,
+            int blankRows,
+            @Nullable Boolean showInstanceUrl) {
         /** The sheet as the product has always printed it. */
         public static final SheetOptions PLAIN = new SheetOptions(false, null, 0, null);
 
@@ -120,7 +125,7 @@ public class AttendanceExportService {
      * more recent thing they said about what this sheet is. Where neither says anything, the day
      * carries the name on its own.
      */
-    static String sheetFileName(AttendanceSession session, String chosenTitle, ZoneId zone, String locale) {
+    static String sheetFileName(AttendanceSession session, @Nullable String chosenTitle, ZoneId zone, String locale) {
         String title = chosenTitle != null && !chosenTitle.isBlank() ? chosenTitle : session.title();
         return DocumentName.of(
                 "pdf",
@@ -158,22 +163,21 @@ public class AttendanceExportService {
         data.put("generatedBy", generatedBy != null ? generatedBy : "");
         data.put("generatedAt", DATE_TIME_FMT.format(Instant.now().atZone(zone)));
         data.put("baseUrl", apiConfig.baseUrl());
+        Boolean showInstanceUrl = options.showInstanceUrl();
         data.put(
-                "showInstanceUrl",
-                options.showInstanceUrl() != null
-                        ? options.showInstanceUrl()
-                        : StationFormat.showsInstanceUrl(station));
+                "showInstanceUrl", showInstanceUrl != null ? showInstanceUrl : StationFormat.showsInstanceUrl(station));
         data.put("hasLogo", false);
         data.put("signatureColumn", options.signatureColumn());
         data.put("blankRows", options.blankRows());
-        if (options.title() != null) {
-            data.put("title", options.title());
+        String title = options.title();
+        if (title != null) {
+            data.put("title", title);
         }
 
         try {
             var logo = stationRepository.findLogo(stationId);
             String locale = StationFormat.languageOf(station);
-            String filename = sheetFileName(session.get(), options.title(), zone, locale);
+            String filename = sheetFileName(session.get(), title, zone, locale);
             return Optional.of(
                     new ExportedDocument(renderPdf(data, locale + "/attendance.typ", logo.orElse(null)), filename));
         } catch (Exception e) {

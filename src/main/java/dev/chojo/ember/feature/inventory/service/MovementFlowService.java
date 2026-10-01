@@ -815,9 +815,9 @@ public class MovementFlowService {
      */
     public int resolveFlow(
             int stationId,
-            Integer inventoryId,
+            @Nullable Integer inventoryId,
             ItemOwner ownerKind,
-            Integer ownerId,
+            @Nullable Integer ownerId,
             MovementPurpose purpose,
             MovementParty party) {
         ensurePresets(stationId);
@@ -1062,7 +1062,7 @@ public class MovementFlowService {
 
     public void bind(
             int stationId,
-            Integer inventoryId,
+            @Nullable Integer inventoryId,
             ItemOwner ownerKind,
             MovementPurpose purpose,
             MovementParty party,
@@ -1099,7 +1099,7 @@ public class MovementFlowService {
      * At most one incoming step per flow names the replacement, because two would mean two answers
      * to which item arrived.
      */
-    private void requirePicksItemFree(int flowId, StepSubject subject, Integer exceptStepId) {
+    private void requirePicksItemFree(int flowId, StepSubject subject, @Nullable Integer exceptStepId) {
         if (subject != StepSubject.INCOMING) {
             throw new FlowRefusedException(FlowProblem.Code.ONLY_ARRIVAL_NAMES_ITEM);
         }

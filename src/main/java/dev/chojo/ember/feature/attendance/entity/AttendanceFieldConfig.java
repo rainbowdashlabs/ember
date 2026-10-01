@@ -64,7 +64,7 @@ public record AttendanceFieldConfig(
      * Returns the default value as a JSON string suitable for JSONB storage.
      * Handles the __TODAY__ sentinel for date fields.
      */
-    public String resolveDefaultValueJson() {
+    public @Nullable String resolveDefaultValueJson() {
         if (defaultValue == null) return null;
         if (defaultValue instanceof String s) {
             if ("__TODAY__".equals(s)) {

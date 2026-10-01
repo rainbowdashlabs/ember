@@ -14,6 +14,8 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Objects;
+
 /**
  * Whose gear a line points at.
  *
@@ -42,19 +44,22 @@ public class LineTargetService {
      * @throws IllegalArgumentException if the target points at something that does not exist
      */
     public int stationOf(LineTarget target) {
-        if (target.itemId() != null) {
+        Integer itemId = target.itemId();
+        if (itemId != null) {
             InventoryItem item = inventoryRepository
-                    .findItemById(target.itemId())
+                    .findItemById(itemId)
                     .orElseThrow(() -> new IllegalArgumentException("The item does not exist"));
             return stationOfInventory(item.inventoryId());
         }
-        if (target.artId() != null) {
+        Integer artId = target.artId();
+        if (artId != null) {
             InventoryArt art = artRepository
-                    .findById(target.artId())
+                    .findById(artId)
                     .orElseThrow(() -> new IllegalArgumentException("The kind does not exist"));
             return stationOfInventory(art.inventoryId());
         }
-        return stationOfInventory(target.inventoryId());
+        return stationOfInventory(
+                Objects.requireNonNull(target.inventoryId(), "A line names a piece, a kind or an inventory"));
     }
 
     /**

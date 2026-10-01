@@ -186,7 +186,7 @@ public class SelfCheckRoutes implements Routes {
         return session.hasPermission(StationPermission.MEMBER_GUARDIAN);
     }
 
-    private static LocalDate parseDueOn(String raw) {
+    private static @Nullable LocalDate parseDueOn(@Nullable String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
             return LocalDate.parse(raw.strip());

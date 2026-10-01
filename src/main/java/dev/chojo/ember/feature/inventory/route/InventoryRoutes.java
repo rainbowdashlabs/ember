@@ -230,7 +230,7 @@ public class InventoryRoutes implements Routes {
      * @param session who is asking
      * @return the cluster they act for, or {@code null} when they are acting as the station alone
      */
-    private Integer describingClusterId(UserSession session) {
+    private @Nullable Integer describingClusterId(UserSession session) {
         if (session.clusterId() == null) return null;
         if (!session.hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_EDIT)) return null;
         return session.clusterId();
@@ -686,7 +686,7 @@ public class InventoryRoutes implements Routes {
         if (isBlank(request.name())) {
             throw Refusal.ITEM_NEEDS_A_NAME.raise();
         }
-        ItemOwner owner = request.ownerKind() != null ? request.ownerKind() : ItemOwner.STATION;
+        ItemOwner owner = Objects.requireNonNullElse(request.ownerKind(), ItemOwner.STATION);
         requireMayCreate(session, owner);
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.createItem(
@@ -722,7 +722,7 @@ public class InventoryRoutes implements Routes {
         var request = ctx.bodyAsClass(IntakeRequest.class);
         var rows = request.rows() != null ? request.rows() : List.<InventoryIntakeRow>of();
         for (InventoryIntakeRow row : rows) {
-            requireMayCreate(session, row.ownerKind() != null ? row.ownerKind() : ItemOwner.STATION);
+            requireMayCreate(session, Objects.requireNonNullElse(row.ownerKind(), ItemOwner.STATION));
         }
         if (!session.hasPermission(StationPermission.INVENTORY_ASSIGN)
                 && !session.hasPermission(StationPermission.INVENTORY_EDIT)
@@ -976,7 +976,7 @@ public class InventoryRoutes implements Routes {
             try (var content = file.content()) {
                 attachment = new LossReportService.Attachment(
                         file.filename(),
-                        file.contentType() != null ? file.contentType() : "application/octet-stream",
+                        Objects.requireNonNullElse(file.contentType(), "application/octet-stream"),
                         content.readAllBytes());
             } catch (IOException ignored) {
                 throw Refusal.LOSS_REPORT_FILE_UNREADABLE.raise();
@@ -1244,7 +1244,7 @@ public class InventoryRoutes implements Routes {
                 session.stationId(),
                 body.memberIds(),
                 body.inventoryIds(),
-                body.extraFieldIds() != null ? body.extraFieldIds() : List.of(),
+                Objects.requireNonNullElse(body.extraFieldIds(), List.of()),
                 generatedBy,
                 !Boolean.FALSE.equals(body.showName()),
                 Boolean.TRUE.equals(body.showInternalId()),

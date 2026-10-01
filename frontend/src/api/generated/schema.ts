@@ -56366,7 +56366,7 @@ export interface components {
             origin: components["schemas"]["ClaimOrigin"];
             /** Format: int32 */
             quantity: number;
-            target: components["schemas"]["ResolvedTarget"];
+            target: components["schemas"]["ResolvedTarget"] | null;
             to: components["schemas"]["Instant"];
         };
         EquipmentHandover: {
@@ -57924,7 +57924,7 @@ export interface components {
             id: number;
             /** Format: int32 */
             inventoryId: number;
-            mergeKey: string | null;
+            mergeKey: string;
             name: string;
             note: string;
             /** Format: int32 */
@@ -57983,7 +57983,7 @@ export interface components {
             actorId: number | null;
             /** Format: int32 */
             containerId: number | null;
-            details: components["schemas"]["ContainerHistoryDetails"];
+            details: components["schemas"]["ContainerHistoryDetails"] | null;
             eventKind: components["schemas"]["ContainerEventKind"];
             eventTs: components["schemas"]["Instant"];
             /** Format: int32 */
@@ -62323,8 +62323,8 @@ export interface components {
             userType: components["schemas"]["StationUserType"] | null;
         };
         SessionMemberEntry: {
-            checkIn: components["schemas"]["LocalDateTime"];
-            checkOut: components["schemas"]["LocalDateTime"];
+            checkIn: components["schemas"]["LocalDateTime"] | null;
+            checkOut: components["schemas"]["LocalDateTime"] | null;
             hours: number;
             /** Format: int32 */
             memberId: number;

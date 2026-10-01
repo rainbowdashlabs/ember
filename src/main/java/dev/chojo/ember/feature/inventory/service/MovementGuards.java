@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -82,7 +83,7 @@ public class MovementGuards {
      * @param session  who is asking
      * @param memberId the member it is to be about, or {@code null}
      */
-    public void requireMayStartFor(UserSession session, Integer memberId) {
+    public void requireMayStartFor(UserSession session, @Nullable Integer memberId) {
         if (memberId == null || session.hasPermission(StationPermission.INVENTORY_MOVEMENTS)) return;
         if (!guardians.mayActFor(session, memberId)) {
             throw Refusal.MEMBER_NOT_YOURS_TO_ACT_FOR.raise();
@@ -103,7 +104,7 @@ public class MovementGuards {
      * @param movement the movement, or {@code null} when one is being started
      * @return the capacities they act in
      */
-    public ItemMovementService.Actor actorOf(UserSession session, ItemMovement movement) {
+    public ItemMovementService.Actor actorOf(UserSession session, @Nullable ItemMovement movement) {
         return new ItemMovementService.Actor(
                 session.member() != null ? session.member().id() : 0,
                 session.hasPermission(StationPermission.INVENTORY_MOVEMENTS),
@@ -121,12 +122,13 @@ public class MovementGuards {
      * @param movement the movement, or {@code null} when one is being started
      * @return {@code true} when they act for the owning cluster and hold its exchange permission
      */
-    public boolean hasOwnerRights(UserSession session, ItemMovement movement) {
+    public boolean hasOwnerRights(UserSession session, @Nullable ItemMovement movement) {
         if (session.clusterId() == null) return false;
         if (!session.hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_MOVEMENTS)) return false;
-        if (movement == null || movement.outgoingItemId() == null) return true;
+        Integer outgoingItemId = movement == null ? null : movement.outgoingItemId();
+        if (outgoingItemId == null) return true;
         Integer owner = inventory
-                .findItemById(movement.outgoingItemId())
+                .findItemById(outgoingItemId)
                 .map(InventoryItem::ownerClusterId)
                 .orElse(null);
         return owner == null || owner.equals(session.clusterId());

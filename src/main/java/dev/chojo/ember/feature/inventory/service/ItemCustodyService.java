@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +126,7 @@ public class ItemCustodyService {
      * @param containerId the container, or {@code null} to clear the location
      * @return the updated item, or empty if the item was not found
      */
-    public Optional<InventoryItem> placeInContainer(int itemId, Integer containerId) {
+    public Optional<InventoryItem> placeInContainer(int itemId, @Nullable Integer containerId) {
         var found = inventoryRepository.findItemById(itemId);
         if (found.isEmpty()) {
             log.warn("Container placement skipped: item {} not found", itemId);
@@ -161,7 +162,7 @@ public class ItemCustodyService {
      * @return the updated item, or empty if the item was not found
      * @throws BadRequestResponse if the item is borrowed from a federation partner
      */
-    public Optional<InventoryItem> markLost(int itemId, String note, Integer noteBy) {
+    public Optional<InventoryItem> markLost(int itemId, @Nullable String note, @Nullable Integer noteBy) {
         var found = inventoryRepository.findItemById(itemId);
         if (found.isEmpty()) {
             log.warn("Mark-lost skipped: item {} not found", itemId);
@@ -292,7 +293,11 @@ public class ItemCustodyService {
      * @throws BadRequestResponse if the step hands an item to a member the movement does not name
      */
     public Optional<InventoryItem> applyStepCustody(
-            int itemId, ItemCustody custody, Integer memberId, Integer movementId, Integer stepStationId) {
+            int itemId,
+            ItemCustody custody,
+            @Nullable Integer memberId,
+            @Nullable Integer movementId,
+            @Nullable Integer stepStationId) {
         var found = inventoryRepository.findItemById(itemId);
         if (found.isEmpty()) {
             log.warn("Step custody skipped: item {} not found", itemId);
@@ -350,7 +355,7 @@ public class ItemCustodyService {
      * @return the updated item, or empty if the item was not found
      */
     public Optional<InventoryItem> applyStepCustody(
-            int itemId, ItemCustody custody, Integer memberId, Integer movementId) {
+            int itemId, ItemCustody custody, @Nullable Integer memberId, @Nullable Integer movementId) {
         return applyStepCustody(itemId, custody, memberId, movementId, null);
     }
 

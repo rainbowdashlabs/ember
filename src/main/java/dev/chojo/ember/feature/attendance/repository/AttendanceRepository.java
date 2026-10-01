@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -426,7 +427,12 @@ public class AttendanceRepository {
      * @return the created session
      */
     public AttendanceSession createSession(
-            int templateId, Instant startTime, Instant endTime, Integer eventId, String title, Integer countedMinutes) {
+            int templateId,
+            Instant startTime,
+            Instant endTime,
+            @Nullable Integer eventId,
+            @Nullable String title,
+            @Nullable Integer countedMinutes) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO attendance_session(template_id, start_time, end_time, event_id, title, counted_minutes)
@@ -452,7 +458,8 @@ public class AttendanceRepository {
      * @param countedMinutes what a whole presence counts as, null to let the times decide again
      * @return {@code true} if the session was updated
      */
-    public boolean updateSession(int id, Instant startTime, Instant endTime, String title, Integer countedMinutes) {
+    public boolean updateSession(
+            int id, Instant startTime, Instant endTime, @Nullable String title, @Nullable Integer countedMinutes) {
         return query("""
                         UPDATE attendance_session
                         SET start_time = :start_time,
@@ -840,7 +847,11 @@ public class AttendanceRepository {
      * @return the created absence
      */
     public MemberAbsence createAbsence(
-            int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason, Integer createdBy) {
+            int memberId,
+            LocalDate absentFrom,
+            LocalDate absentUntil,
+            @Nullable String reason,
+            @Nullable Integer createdBy) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO member_absence(member_id, absent_from, absent_until, reason, created_by)

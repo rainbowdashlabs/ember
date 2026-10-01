@@ -176,7 +176,7 @@ public class SelfCheckReviewRoutes implements Routes {
                 task.checkId());
     }
 
-    private String nameOf(Integer memberId) {
+    private String nameOf(@Nullable Integer memberId) {
         if (memberId == null) return "";
         return Objects.requireNonNullElse(names.called(memberId), "");
     }

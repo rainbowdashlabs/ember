@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.equipment.entity.EquipmentHandover;
 import dev.chojo.ember.feature.equipment.entity.EquipmentNeed;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -91,10 +92,10 @@ public class EquipmentNeedRepository {
      */
     public EquipmentNeed create(
             int eventId,
-            LocalDate eventDate,
-            Integer itemId,
-            Integer artId,
-            Integer inventoryId,
+            @Nullable LocalDate eventDate,
+            @Nullable Integer itemId,
+            @Nullable Integer artId,
+            @Nullable Integer inventoryId,
             int quantity,
             int leadMinutes,
             int trailMinutes) {

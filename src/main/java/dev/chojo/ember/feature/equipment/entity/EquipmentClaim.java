@@ -35,7 +35,7 @@ import java.time.LocalDate;
  */
 public record EquipmentClaim(
         ClaimOrigin origin,
-        ResolvedTarget target,
+        @Nullable ResolvedTarget target,
         String label,
         @Nullable Integer eventId,
         @Nullable LocalDate eventDate,

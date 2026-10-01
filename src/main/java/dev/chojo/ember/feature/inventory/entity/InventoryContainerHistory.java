@@ -30,7 +30,7 @@ public record InventoryContainerHistory(
         ContainerEventKind eventKind,
         Instant eventTs,
         @Nullable Integer actorId,
-        ContainerHistoryDetails details) {
+        @Nullable ContainerHistoryDetails details) {
 
     /**
      * Creates a row mapping for database result set conversion.

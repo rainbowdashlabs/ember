@@ -176,12 +176,13 @@ public class LostAndFoundRoutes implements Routes {
         if (file == null) {
             throw Refusal.LOST_ITEM_UPLOAD_MISSING_FILE.raise();
         }
-        if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
+        String contentType = file.contentType();
+        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
             throw Refusal.LOST_ITEM_PICTURE_KIND_NOT_TAKEN.raise();
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            imageService.store(session.stationId(), id, data, file.contentType(), apiConfig.maxImageSizeBytes());
+            imageService.store(session.stationId(), id, data, contentType, apiConfig.maxImageSizeBytes());
             ctx.json(new MessageResponse("Image uploaded"));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument storing lost-and-found image for item {}", id, e);
@@ -232,11 +233,12 @@ public class LostAndFoundRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         var item = requireOwnedItem(ctx, id);
-        if (item.claimedBy() == null) {
+        Integer claimedBy = item.claimedBy();
+        if (claimedBy == null) {
             throw Refusal.LOST_ITEM_NOT_CLAIMED_TO_RELEASE.raise();
         }
         boolean isManager = session.hasPermission(StationPermission.LOST_AND_FOUND_MANAGE);
-        if (!isManager && !maySpeakFor(session, item.claimedBy())) {
+        if (!isManager && !maySpeakFor(session, claimedBy)) {
             throw Refusal.LOST_ITEM_CLAIM_NOT_YOURS_TO_RELEASE.raise();
         }
         if (!lostAndFoundService.release(id)) {
@@ -314,7 +316,8 @@ public class LostAndFoundRoutes implements Routes {
     }
 
     private LostAndFoundItemResponse toResponse(LostAndFoundItem item) {
-        String claimedByName = item.claimedBy() != null ? resolveMemberName(item.claimedBy()) : null;
+        Integer claimedBy = item.claimedBy();
+        String claimedByName = claimedBy != null ? resolveMemberName(claimedBy) : null;
         boolean hasImage = imageService.exists(item.stationId(), item.id());
         return new LostAndFoundItemResponse(
                 item.id(),

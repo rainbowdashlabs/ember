@@ -47852,7 +47852,11 @@
             "$ref" : "#/components/schemas/ClaimOrigin"
           },
           "target" : {
-            "$ref" : "#/components/schemas/ResolvedTarget"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ResolvedTarget"
+            }, {
+              "type" : "null"
+            } ]
           },
           "label" : {
             "type" : "string"
@@ -52361,7 +52365,7 @@
             "format" : "int32"
           },
           "mergeKey" : {
-            "type" : [ "string", "null" ]
+            "type" : "string"
           },
           "icon" : {
             "type" : [ "string", "null" ]
@@ -52510,7 +52514,11 @@
             "format" : "int32"
           },
           "details" : {
-            "$ref" : "#/components/schemas/ContainerHistoryDetails"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ContainerHistoryDetails"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "id", "containerId", "stationId", "eventKind", "eventTs", "actorId", "details" ]
@@ -64986,10 +64994,18 @@
             "$ref" : "#/components/schemas/AttendanceStatus"
           },
           "checkIn" : {
-            "$ref" : "#/components/schemas/LocalDateTime"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDateTime"
+            }, {
+              "type" : "null"
+            } ]
           },
           "checkOut" : {
-            "$ref" : "#/components/schemas/LocalDateTime"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDateTime"
+            }, {
+              "type" : "null"
+            } ]
           },
           "hours" : {
             "type" : "number"

@@ -345,19 +345,20 @@ public class InventoryCheckService {
      * @param checkedBy the member walking it
      */
     private void markMissing(CheckItemRequest result, int checkedBy) {
-        if (result.result() != CheckResult.LOST || result.itemId() == null) return;
+        Integer itemId = result.itemId();
+        if (result.result() != CheckResult.LOST || itemId == null) return;
         boolean borrowed = inventoryRepository
-                .findItemById(result.itemId())
+                .findItemById(itemId)
                 .map(InventoryItem::borrowed)
                 .orElse(false);
         if (borrowed) {
             log.info(
                     "Check found borrowed item {} missing; the loss stays on the check and goes to the owner "
                             + "on the lending request",
-                    result.itemId());
+                    itemId);
             return;
         }
-        custodyService.markLost(result.itemId(), result.note(), checkedBy);
+        custodyService.markLost(itemId, result.note(), checkedBy);
     }
 
     /**
@@ -560,7 +561,7 @@ public class InventoryCheckService {
                         owner,
                         null);
 
-        if (correction.replacesAPiece()) release(correction.oldItemId(), memberId);
+        correction.replacedPiece().ifPresent(oldItemId -> release(oldItemId, memberId));
         custodyService.assignToMember(replacement.id(), memberId, nameOf(memberId));
         log.info(
                 "Check corrected member {}: piece {} replaced by {}",

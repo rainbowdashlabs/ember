@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -109,7 +110,7 @@ public class LostAndFoundRepository {
      * @param createdBy   the member ID of the person reporting the item
      * @return the created item
      */
-    public LostAndFoundItem create(int stationId, String description, LocalDate foundAt, int createdBy) {
+    public LostAndFoundItem create(int stationId, @Nullable String description, LocalDate foundAt, int createdBy) {
         return insertReturning(
                 """
                 INSERT

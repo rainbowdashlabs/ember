@@ -31,6 +31,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -211,7 +212,7 @@ public class InventoryContainerRoutes implements Routes {
                     body.internalId(),
                     body.name(),
                     body.kindId(),
-                    body.description() != null ? body.description() : "",
+                    Objects.requireNonNullElse(body.description(), ""),
                     session.member().id());
             ctx.status(HttpStatus.CREATED).json(created);
         } catch (IllegalArgumentException ignored) {
@@ -262,7 +263,7 @@ public class InventoryContainerRoutes implements Routes {
                             body.internalId(),
                             body.name(),
                             body.kindId(),
-                            body.description() != null ? body.description() : "",
+                            Objects.requireNonNullElse(body.description(), ""),
                             session.member().id())
                     .ifPresentOrElse(ctx::json, () -> {
                         throw Refusal.CONTAINER_NOT_HERE_ON_CHANGE.raise();

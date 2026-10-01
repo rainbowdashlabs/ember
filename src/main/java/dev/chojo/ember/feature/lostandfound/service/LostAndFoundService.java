@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +95,7 @@ public class LostAndFoundService {
      * @param createdBy   the member ID of the person reporting the item
      * @return the created item
      */
-    public LostAndFoundItem create(int stationId, String description, LocalDate foundAt, int createdBy) {
+    public LostAndFoundItem create(int stationId, @Nullable String description, LocalDate foundAt, int createdBy) {
         var item = repository.create(stationId, description, foundAt, createdBy);
         notifier.notify(
                 StationAudience.wholeStation(stationId).except(createdBy),

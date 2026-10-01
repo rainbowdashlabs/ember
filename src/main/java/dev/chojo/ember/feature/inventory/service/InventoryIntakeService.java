@@ -18,12 +18,14 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -78,8 +80,8 @@ public class InventoryIntakeService {
                     blankToNull(row.internalId()),
                     name,
                     row.sizeId(),
-                    row.metadata() != null ? row.metadata() : InventoryItemMetadata.empty(),
-                    row.ownerKind() != null ? row.ownerKind() : theUsualOwner,
+                    Objects.requireNonNullElse(row.metadata(), InventoryItemMetadata.empty()),
+                    Objects.requireNonNullElse(row.ownerKind(), theUsualOwner),
                     null);
             Integer holder = row.memberId();
             written.add(
@@ -156,7 +158,7 @@ public class InventoryIntakeService {
         return new BadRequestResponse("Line %d: %s".formatted(line, why));
     }
 
-    private static String blankToNull(String value) {
+    private static @Nullable String blankToNull(@Nullable String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
 }

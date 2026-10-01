@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
 import dev.chojo.ember.feature.inventory.entity.MemberCheckSummary;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -60,7 +61,7 @@ public class InventoryCheckRepository {
      * @param reportedBy who reported it, where that is somebody else, or {@code null}
      * @return the created check
      */
-    public InventoryCheck createCheck(int stationId, int memberId, int checkedBy, Integer reportedBy) {
+    public InventoryCheck createCheck(int stationId, int memberId, int checkedBy, @Nullable Integer reportedBy) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO inventory_check(station_id, member_id, checked_by, scope, reported_by)
@@ -216,7 +217,7 @@ public class InventoryCheckRepository {
     /**
      * The first and last name of one member, empty where there is nobody to name.
      */
-    private String[] nameOf(Integer memberId) {
+    private String[] nameOf(@Nullable Integer memberId) {
         if (memberId == null) return new String[] {"", ""};
         return query("""
                 SELECT a.first_name, a.last_name FROM station_member sm
@@ -239,7 +240,7 @@ public class InventoryCheckRepository {
      * @return the created check item
      */
     public InventoryCheckItem createCheckItem(
-            int checkId, Integer itemId, Integer inventoryId, CheckResult result, String note) {
+            int checkId, @Nullable Integer itemId, @Nullable Integer inventoryId, CheckResult result, String note) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO inventory_check_item(check_id, item_id, inventory_id, result, note)

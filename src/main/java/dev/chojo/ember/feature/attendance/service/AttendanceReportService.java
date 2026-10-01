@@ -249,7 +249,7 @@ public class AttendanceReportService {
             Integer countedMinutes = session.countedMinutes();
             var sessionData = new SessionData(
                     session.id(),
-                    session.title() != null ? session.title() : "",
+                    Objects.requireNonNullElse(session.title(), ""),
                     session.startTime() != null
                             ? session.startTime().atZone(zone).toLocalDate()
                             : null,
@@ -444,7 +444,11 @@ public class AttendanceReportService {
      * that was added up.
      */
     private double computeHours(
-            AttendanceEntry entry, Instant checkIn, Instant checkOut, String rounding, AttendanceSession session) {
+            AttendanceEntry entry,
+            @Nullable Instant checkIn,
+            @Nullable Instant checkOut,
+            String rounding,
+            AttendanceSession session) {
         if (entry.status() != AttendanceEntry.AttendanceStatus.PRESENT || checkIn == null || checkOut == null) return 0;
         double hours = session.countedHours(checkIn, checkOut);
         return switch (rounding) {
@@ -586,8 +590,8 @@ public class AttendanceReportService {
             int memberId,
             String name,
             AttendanceEntry.AttendanceStatus status,
-            LocalDateTime checkIn,
-            LocalDateTime checkOut,
+            @Nullable LocalDateTime checkIn,
+            @Nullable LocalDateTime checkOut,
             double hours) {}
 
     /**

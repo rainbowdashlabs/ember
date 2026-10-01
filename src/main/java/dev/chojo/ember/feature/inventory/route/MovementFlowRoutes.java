@@ -39,6 +39,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -148,7 +149,7 @@ public class MovementFlowRoutes implements Routes {
      * The purpose a query asks about, read by hand because an enum in a query string has no converter
      * of its own and asking for one answers a wrong spelling with a fault rather than with a refusal.
      */
-    private MovementPurpose purposeOf(String written) {
+    private MovementPurpose purposeOf(@Nullable String written) {
         if (written == null || written.isBlank()) throw Refusal.MOVEMENT_PURPOSE_MISSING.raise();
         try {
             return MovementPurpose.valueOf(written.trim().toUpperCase(Locale.ROOT));
@@ -157,7 +158,7 @@ public class MovementFlowRoutes implements Routes {
         }
     }
 
-    private Integer optionalInt(Context ctx, String name) {
+    private @Nullable Integer optionalInt(Context ctx, String name) {
         String written = ctx.queryParam(name);
         if (written == null || written.isBlank()) return null;
         try {
@@ -325,7 +326,7 @@ public class MovementFlowRoutes implements Routes {
                 request.inventoryId(),
                 request.ownerKind(),
                 request.purpose(),
-                request.party() != null ? request.party() : MovementParty.STORE,
+                Objects.requireNonNullElse(request.party(), MovementParty.STORE),
                 request.flowId());
         ctx.status(HttpStatus.NO_CONTENT);
     }

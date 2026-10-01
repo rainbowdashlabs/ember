@@ -56,6 +56,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -219,7 +220,7 @@ public class MovementRoutes implements Routes {
                 request.inventoryId(),
                 request.oldSizeId(),
                 request.newSizeId(),
-                request.reason() != null ? request.reason() : "",
+                Objects.requireNonNullElse(request.reason(), ""),
                 actorOf(session, null),
                 request.pickedItemId());
         Integer selfCheckId = request.selfCheckId();
@@ -248,8 +249,8 @@ public class MovementRoutes implements Routes {
         ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(AcknowledgeStepRequest.class);
         Integer picked = request.pickedItemId();
-        if (request.newItem() != null)
-            picked = recordArrival(movement, request.newItem()).id();
+        NewItemRequest newItem = request.newItem();
+        if (newItem != null) picked = recordArrival(movement, newItem).id();
         var updated = movementService.acknowledge(
                 movement.id(), request.stepId(), actorOf(session, movement), request.note(), picked);
         ctx.json(toDetail(updated, session));
@@ -306,7 +307,7 @@ public class MovementRoutes implements Routes {
                 .orElseThrow(Refusal.MEMBER_NOT_AT_THIS_STATION::raise);
 
         var started = movementService.requestEverythingBack(
-                session.stationId(), member.id(), memberName(member.id()), actorOf(session, null));
+                session.stationId(), member.id(), names.called(member.id()), actorOf(session, null));
         ctx.json(started.stream().map(movement -> toResponse(movement, session)).toList());
     }
 
@@ -525,7 +526,7 @@ public class MovementRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    private ItemMovementService.Actor actorOf(UserSession session, ItemMovement movement) {
+    private ItemMovementService.Actor actorOf(UserSession session, @Nullable ItemMovement movement) {
         return guards.actorOf(session, movement);
     }
 
@@ -605,7 +606,7 @@ public class MovementRoutes implements Routes {
      * @param current the step being waited on, or {@code null} once the chain is over
      * @return the words for where it stands, or {@code null} at a chain's very beginning
      */
-    private String reachedLabel(List<MovementFlowStep> steps, MovementFlowStep current) {
+    private @Nullable String reachedLabel(List<MovementFlowStep> steps, MovementFlowStep current) {
         if (steps.isEmpty()) return null;
         if (current == null) return steps.getLast().label();
         int standing = steps.indexOf(current);
@@ -702,7 +703,7 @@ public class MovementRoutes implements Routes {
      * about the loss and not about the request: the item is still missing, and what was said about it is
      * still the last thing anybody knows.
      */
-    private LossReport lossReportOf(ItemMovement movement) {
+    private @Nullable LossReport lossReportOf(ItemMovement movement) {
         if (!movement.lostReport()) return null;
         InventoryItem item = movement.outgoingItemId() == null
                 ? null
@@ -717,7 +718,7 @@ public class MovementRoutes implements Routes {
                 document != null ? document.mimeType() : null);
     }
 
-    private String memberName(Integer memberId) {
+    private @Nullable String memberName(@Nullable Integer memberId) {
         if (memberId == null) return null;
         return names.called(memberId);
     }

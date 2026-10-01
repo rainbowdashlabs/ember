@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepo
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -135,7 +136,7 @@ public class InventoryFieldDefinitionService {
             FieldType fieldType,
             boolean required,
             int sortOrder,
-            FieldConfig config) {
+            @Nullable FieldConfig config) {
         return create(inventoryId, null, null, key, label, fieldType, required, sortOrder, config);
     }
 
@@ -159,14 +160,14 @@ public class InventoryFieldDefinitionService {
      */
     public InventoryFieldDefinition create(
             int inventoryId,
-            Integer artId,
-            Integer itemId,
+            @Nullable Integer artId,
+            @Nullable Integer itemId,
             String key,
             String label,
             FieldType fieldType,
             boolean required,
             int sortOrder,
-            FieldConfig config) {
+            @Nullable FieldConfig config) {
         if (key == null || !KEY_PATTERN.matcher(key).matches()) {
             throw new IllegalArgumentException(
                     "Field key must be lower-case ASCII, start with a letter, and use only [a-z0-9_]");
@@ -212,7 +213,7 @@ public class InventoryFieldDefinitionService {
      * @param artId       the kind the definition names, or {@code null}
      * @param itemId      the piece the definition names, or {@code null}
      */
-    private void requireInInventory(int inventoryId, Integer artId, Integer itemId) {
+    private void requireInInventory(int inventoryId, @Nullable Integer artId, @Nullable Integer itemId) {
         if (artId != null
                 && artRepository
                         .findById(artId)
@@ -229,7 +230,8 @@ public class InventoryFieldDefinitionService {
         }
     }
 
-    private List<InventoryFieldDefinition> sameLevel(int inventoryId, Integer artId, Integer itemId) {
+    private List<InventoryFieldDefinition> sameLevel(
+            int inventoryId, @Nullable Integer artId, @Nullable Integer itemId) {
         if (itemId != null) return repository.findByItem(itemId);
         if (artId != null) return repository.findByArt(artId);
         return repository.findInventoryLevel(inventoryId);

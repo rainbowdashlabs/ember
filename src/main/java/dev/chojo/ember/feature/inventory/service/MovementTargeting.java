@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 
@@ -53,7 +54,7 @@ public class MovementTargeting {
      * @param party          the end that is not the owner: a member, or the station's store
      * @param flowId         the chain those three resolve to
      */
-    public record Target(ItemOwner ownerKind, Integer ownerClusterId, MovementParty party, int flowId) {}
+    public record Target(ItemOwner ownerKind, @Nullable Integer ownerClusterId, MovementParty party, int flowId) {}
 
     /**
      * Works out the owner, the party and the chain for a movement that is about to be started, or for
@@ -74,10 +75,10 @@ public class MovementTargeting {
     public Target resolve(
             int stationId,
             MovementPurpose purpose,
-            Integer memberId,
-            Integer outgoingItemId,
-            Integer incomingItemId,
-            Integer inventoryId) {
+            @Nullable Integer memberId,
+            @Nullable Integer outgoingItemId,
+            @Nullable Integer incomingItemId,
+            @Nullable Integer inventoryId) {
         ItemOwner ownerKind = ownerOf(outgoingItemId, incomingItemId, inventoryId);
         Integer ownerClusterId = owningClusterOf(outgoingItemId != null ? outgoingItemId : incomingItemId, stationId);
         MovementParty party = memberId != null ? MovementParty.MEMBER : MovementParty.STORE;
@@ -118,7 +119,8 @@ public class MovementTargeting {
      * @param inventoryId    the inventory it is about, or {@code null}
      * @return whose gear it is
      */
-    public ItemOwner ownerOf(Integer outgoingItemId, Integer incomingItemId, Integer inventoryId) {
+    public ItemOwner ownerOf(
+            @Nullable Integer outgoingItemId, @Nullable Integer incomingItemId, @Nullable Integer inventoryId) {
         ItemOwner named = ownerOfItem(outgoingItemId);
         if (named != null) return named;
         named = ownerOfItem(incomingItemId);
@@ -167,7 +169,7 @@ public class MovementTargeting {
      * @param stationId the station running the movement
      * @return the owning body, or {@code null} when no body owns it
      */
-    public Integer owningClusterOf(Integer itemId, int stationId) {
+    public @Nullable Integer owningClusterOf(@Nullable Integer itemId, int stationId) {
         if (itemId != null) {
             Optional<InventoryItem> item = inventoryRepository.findItemById(itemId);
             if (item.isPresent()) return item.get().ownerClusterId();
@@ -211,11 +213,12 @@ public class MovementTargeting {
      * @return the association, or empty where the station owns it or the body is not here
      */
     public Optional<Cluster> owningCluster(Target target) {
-        if (target.ownerKind() != ItemOwner.CLUSTER || target.ownerClusterId() == null) return Optional.empty();
-        return clusterRepository.findById(target.ownerClusterId());
+        Integer ownerClusterId = target.ownerClusterId();
+        if (target.ownerKind() != ItemOwner.CLUSTER || ownerClusterId == null) return Optional.empty();
+        return clusterRepository.findById(ownerClusterId);
     }
 
-    private ItemOwner ownerOfItem(Integer itemId) {
+    private @Nullable ItemOwner ownerOfItem(@Nullable Integer itemId) {
         if (itemId == null) return null;
         return inventoryRepository
                 .findItemById(itemId)

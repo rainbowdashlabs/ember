@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.inventory.entity.VisibleRequirement;
 import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -283,7 +284,7 @@ public class InventoryRepository {
      * @param ownerClusterId the owning body when it runs on this instance, only ever set for CLUSTER
      * @return how many items now say something new
      */
-    public int restampOwners(int inventoryId, ItemOwner ownerKind, Integer ownerClusterId) {
+    public int restampOwners(int inventoryId, ItemOwner ownerKind, @Nullable Integer ownerClusterId) {
         return query("""
                 UPDATE inventory_item
                 SET owner_kind       = :owner_kind,
@@ -429,7 +430,7 @@ public class InventoryRepository {
      * @param position    the sort position
      * @param note        an optional note
      */
-    public void createSize(int inventoryId, String label, int position, String note) {
+    public void createSize(int inventoryId, String label, int position, @Nullable String note) {
         query(
                         "INSERT INTO inventory_size(inventory_id, label, position, note) VALUES(:inventory_id, :label, :position, :note);")
                 .single(call().bind("inventory_id", inventoryId)
@@ -912,7 +913,11 @@ public class InventoryRepository {
      * @return the created item
      */
     public InventoryItem createItem(
-            int inventoryId, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
+            int inventoryId,
+            @Nullable String internalId,
+            String name,
+            @Nullable Integer sizeId,
+            @Nullable InventoryItemMetadata metadata) {
         return createItem(inventoryId, internalId, name, sizeId, metadata, ItemOwner.STATION, null);
     }
 
@@ -934,12 +939,12 @@ public class InventoryRepository {
      */
     public InventoryItem createItem(
             int inventoryId,
-            String internalId,
+            @Nullable String internalId,
             String name,
-            Integer sizeId,
-            InventoryItemMetadata metadata,
-            ItemOwner ownerKind,
-            Integer ownerClusterId) {
+            @Nullable Integer sizeId,
+            @Nullable InventoryItemMetadata metadata,
+            @Nullable ItemOwner ownerKind,
+            @Nullable Integer ownerClusterId) {
         return createItem(inventoryId, internalId, name, sizeId, null, metadata, ownerKind, ownerClusterId);
     }
 
@@ -963,13 +968,13 @@ public class InventoryRepository {
      */
     public InventoryItem createItem(
             int inventoryId,
-            String internalId,
+            @Nullable String internalId,
             String name,
-            Integer sizeId,
-            Integer artId,
-            InventoryItemMetadata metadata,
-            ItemOwner ownerKind,
-            Integer ownerClusterId) {
+            @Nullable Integer sizeId,
+            @Nullable Integer artId,
+            @Nullable InventoryItemMetadata metadata,
+            @Nullable ItemOwner ownerKind,
+            @Nullable Integer ownerClusterId) {
         ItemOwner owner = ownerKind != null ? ownerKind : ItemOwner.STATION;
         return writeItem(
                 inventoryId,
@@ -1002,7 +1007,7 @@ public class InventoryRepository {
      */
     public InventoryItem createBorrowedItem(
             int inventoryId,
-            String internalId,
+            @Nullable String internalId,
             String name,
             InventoryItemMetadata metadata,
             int ownerStationId,
@@ -1022,15 +1027,15 @@ public class InventoryRepository {
 
     private InventoryItem writeItem(
             int inventoryId,
-            String internalId,
+            @Nullable String internalId,
             String name,
-            Integer sizeId,
-            Integer artId,
-            InventoryItemMetadata metadata,
+            @Nullable Integer sizeId,
+            @Nullable Integer artId,
+            @Nullable InventoryItemMetadata metadata,
             ItemOwner owner,
-            Integer ownerClusterId,
-            Integer ownerStationId,
-            Integer loanRequestItemId) {
+            @Nullable Integer ownerClusterId,
+            @Nullable Integer ownerStationId,
+            @Nullable Integer loanRequestItemId) {
         // Gear the station records but does not own is gear the station has, so it starts at the
         // station rather than in an owner's store the station has no shelf for.
         boolean heldByStation = owner != ItemOwner.STATION;
@@ -1114,7 +1119,12 @@ public class InventoryRepository {
      * @return {@code true} if the item was updated
      */
     public boolean updateItem(
-            int id, String internalId, String name, Integer sizeId, Integer artId, InventoryItemMetadata metadata) {
+            int id,
+            @Nullable String internalId,
+            String name,
+            @Nullable Integer sizeId,
+            @Nullable Integer artId,
+            @Nullable InventoryItemMetadata metadata) {
         return query("""
                 UPDATE inventory_item
                 SET
@@ -1170,7 +1180,7 @@ public class InventoryRepository {
      * @param sizeId      its size in the new inventory, or {@code null} when it has none there
      * @return {@code true} if the item was moved
      */
-    public boolean moveItemToInventory(int id, int inventoryId, Integer sizeId) {
+    public boolean moveItemToInventory(int id, int inventoryId, @Nullable Integer sizeId) {
         return query("""
                 UPDATE inventory_item
                 SET inventory_id = :inventory_id,
@@ -1202,7 +1212,11 @@ public class InventoryRepository {
      * @return {@code true} if the item row was updated
      */
     public boolean updateCustody(
-            int itemId, ItemCustody custody, Integer custodyStationId, Integer assignedTo, Integer custodyMovementId) {
+            int itemId,
+            ItemCustody custody,
+            @Nullable Integer custodyStationId,
+            @Nullable Integer assignedTo,
+            @Nullable Integer custodyMovementId) {
         return updateCustody(itemId, custody, custodyStationId, assignedTo, custodyMovementId, null);
     }
 
@@ -1220,10 +1234,10 @@ public class InventoryRepository {
     public boolean updateCustody(
             int itemId,
             ItemCustody custody,
-            Integer custodyStationId,
-            Integer assignedTo,
-            Integer custodyMovementId,
-            Integer custodyPartnerStationId) {
+            @Nullable Integer custodyStationId,
+            @Nullable Integer assignedTo,
+            @Nullable Integer custodyMovementId,
+            @Nullable Integer custodyPartnerStationId) {
         return query("""
                 UPDATE inventory_item
                 SET custody                    = :custody,
@@ -1255,7 +1269,7 @@ public class InventoryRepository {
      * @param noteBy who wrote it, or {@code null}
      * @return {@code true} if the item row was updated
      */
-    public boolean setLostNote(int itemId, String note, Integer noteBy) {
+    public boolean setLostNote(int itemId, @Nullable String note, @Nullable Integer noteBy) {
         return query("""
                 UPDATE inventory_item SET lost_note = :note, lost_note_by = :note_by WHERE id = :id;""")
                 .single(call().bind("note", note).bind("note_by", noteBy).bind("id", itemId))
@@ -1272,7 +1286,7 @@ public class InventoryRepository {
      * @param containerId the container ID, or {@code null} to clear the location
      * @return {@code true} if the item row was updated
      */
-    public boolean setItemContainer(int itemId, Integer containerId) {
+    public boolean setItemContainer(int itemId, @Nullable Integer containerId) {
         return query("""
                 UPDATE inventory_item
                 SET container_id = :container_id
@@ -1285,7 +1299,7 @@ public class InventoryRepository {
     /**
      * Returns whether the given station has any item whose internal id matches.
      */
-    public boolean itemInternalIdExists(int stationId, String internalId, Integer excludeItemId) {
+    public boolean itemInternalIdExists(int stationId, String internalId, @Nullable Integer excludeItemId) {
         return SqlSupport.exists(
                 """
                 SELECT 1 FROM inventory_item ii
@@ -1352,7 +1366,7 @@ public class InventoryRepository {
      * @param returned   when the item was returned
      */
     public void createHistoryWithDates(
-            int itemId, int memberId, String memberName, Instant givenOut, Instant returned) {
+            int itemId, int memberId, String memberName, Instant givenOut, @Nullable Instant returned) {
         query("""
                 INSERT INTO inventory_item_history(item_id, member_id, member_name, given_out, returned)
                 VALUES(:itemId, :memberId, :memberName, :givenOut, :returned);""")
@@ -1485,7 +1499,11 @@ public class InventoryRepository {
      * @return the created requirement
      */
     public InventoryRequirement createRequirement(
-            int inventoryId, StationUserType userType, int groupId, Integer stationGroupId, int quantity) {
+            int inventoryId,
+            @Nullable StationUserType userType,
+            int groupId,
+            @Nullable Integer stationGroupId,
+            int quantity) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO inventory_requirement(inventory_id, user_type, group_id, station_group_id, quantity)

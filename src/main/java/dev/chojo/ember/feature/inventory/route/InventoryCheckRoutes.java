@@ -45,6 +45,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -213,8 +214,8 @@ public class InventoryCheckRoutes implements Routes {
             throw Refusal.CONTAINER_CHECK_WITHOUT_ITEMS.raise();
         }
         List<CheckItemRequest> items = request.items().stream()
-                .map(i ->
-                        new CheckItemRequest(i.itemId(), i.inventoryId(), i.result(), i.note() != null ? i.note() : ""))
+                .map(i -> new CheckItemRequest(
+                        i.itemId(), i.inventoryId(), i.result(), Objects.requireNonNullElse(i.note(), "")))
                 .toList();
         var check = checkService.completeContainerCheck(
                 session.stationId(), containerId, session.member().id(), request.deep(), items);
@@ -270,8 +271,8 @@ public class InventoryCheckRoutes implements Routes {
         }
 
         List<CheckItemRequest> items = request.items().stream()
-                .map(i ->
-                        new CheckItemRequest(i.itemId(), i.inventoryId(), i.result(), i.note() != null ? i.note() : ""))
+                .map(i -> new CheckItemRequest(
+                        i.itemId(), i.inventoryId(), i.result(), Objects.requireNonNullElse(i.note(), "")))
                 .toList();
 
         var check = checkService.completeCheck(

@@ -43,7 +43,7 @@ public sealed interface ContainerHistoryDetails
      * @param json      raw JSONB string, may be null or blank
      * @return the parsed details, or {@code null} when absent or unreadable
      */
-    static ContainerHistoryDetails parse(ContainerEventKind eventKind, String json) {
+    static @Nullable ContainerHistoryDetails parse(@Nullable ContainerEventKind eventKind, @Nullable String json) {
         if (eventKind == null || json == null || json.isBlank()) return null;
         try {
             return MAPPER.readValue(json, eventKind.detailsClass());

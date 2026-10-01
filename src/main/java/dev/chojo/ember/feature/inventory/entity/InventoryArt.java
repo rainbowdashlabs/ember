@@ -42,7 +42,7 @@ public record InventoryArt(
         String name,
         String note,
         int position,
-        @Nullable String mergeKey,
+        String mergeKey,
         @Nullable String icon,
         @Nullable String color) {
 

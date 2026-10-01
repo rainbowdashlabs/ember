@@ -17,6 +17,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -135,7 +136,7 @@ public class InventoryArtService {
      * @throws BadRequestResponse when the inventory holds one thing in many copies, or when the name
      *                            is blank or already taken there
      */
-    public InventoryArt create(int inventoryId, String name, String note, int position) {
+    public InventoryArt create(int inventoryId, String name, @Nullable String note, int position) {
         return create(inventoryId, name, note, position, Glyph.NONE);
     }
 
@@ -149,7 +150,7 @@ public class InventoryArtService {
      * @param glyph       the picture the pieces of this kind are drawn with
      * @return the kind that was written
      */
-    public InventoryArt create(int inventoryId, String name, String note, int position, Glyph glyph) {
+    public InventoryArt create(int inventoryId, String name, @Nullable String note, int position, Glyph glyph) {
         Glyph painted = glyph.paintable();
         Inventory inventory = requireHeterogeneous(inventoryId);
         String trimmed = requireName(name);
@@ -176,7 +177,7 @@ public class InventoryArtService {
      * @param position its new sort position
      * @return the kind as it now stands, or empty when nothing changed
      */
-    public Optional<InventoryArt> update(int id, String name, String note, int position) {
+    public Optional<InventoryArt> update(int id, String name, @Nullable String note, int position) {
         Glyph current = artRepository
                 .findById(id)
                 .map(art -> new Glyph(art.icon(), art.color()))
@@ -194,7 +195,7 @@ public class InventoryArtService {
      * @param glyph    the picture the pieces of this kind are drawn with
      * @return the kind as it now stands, or empty when nothing changed
      */
-    public Optional<InventoryArt> update(int id, String name, String note, int position, Glyph glyph) {
+    public Optional<InventoryArt> update(int id, String name, @Nullable String note, int position, Glyph glyph) {
         Glyph painted = glyph.paintable();
         InventoryArt before = artRepository.findById(id).orElseThrow(NotFoundResponse::new);
         String trimmed = requireName(name);
@@ -239,7 +240,7 @@ public class InventoryArtService {
      * @param itemIds     the pieces
      * @return how many pieces changed
      */
-    public int assign(int inventoryId, Integer artId, List<Integer> itemIds) {
+    public int assign(int inventoryId, @Nullable Integer artId, List<Integer> itemIds) {
         List<Integer> owned = requireItemsOfInventory(inventoryId, itemIds);
         if (artId != null) requireArtOfInventory(inventoryId, artId);
         int changed = artRepository.setArt(artId, owned);

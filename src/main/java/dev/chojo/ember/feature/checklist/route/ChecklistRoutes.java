@@ -531,7 +531,7 @@ public class ChecklistRoutes implements Routes {
      * What the list follows, so the screen can say it. Absent means the list follows its filter, or
      * the appointment it used to follow has been deleted and it now follows nothing.
      */
-    private SourceOccurrenceResponse toSourceResponse(Checklist checklist) {
+    private @Nullable SourceOccurrenceResponse toSourceResponse(Checklist checklist) {
         if (!checklist.followsEvent()) return null;
         String eventName = eventCrudService
                 .findById(checklist.sourceEventId())
@@ -563,7 +563,7 @@ public class ChecklistRoutes implements Routes {
         return new OccurrenceSpec(event.id(), date);
     }
 
-    private static LocalDate parseDate(String raw) {
+    private static @Nullable LocalDate parseDate(String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
             return LocalDate.parse(raw.trim());
@@ -623,7 +623,7 @@ public class ChecklistRoutes implements Routes {
         return new RestrictionResponse(userTypes, groupIds, tagIds, memberIds, mode);
     }
 
-    private static FilterSpec toFilterSpec(RestrictionRequest req) {
+    private static FilterSpec toFilterSpec(@Nullable RestrictionRequest req) {
         if (req == null) return FilterSpec.empty();
         var userTypes = req.userTypes() != null ? req.userTypes() : List.<StationUserType>of();
         var groupIds = req.groupIds() != null ? req.groupIds() : List.<Integer>of();
@@ -632,9 +632,9 @@ public class ChecklistRoutes implements Routes {
         return new FilterSpec(userTypes, groupIds, tagIds, memberIds);
     }
 
-    private static RestrictionMode resolveMode(RestrictionRequest req) {
-        if (req == null || req.mode() == null) return RestrictionMode.AND;
-        return req.mode();
+    private static RestrictionMode resolveMode(@Nullable RestrictionRequest req) {
+        if (req == null) return RestrictionMode.AND;
+        return Objects.requireNonNullElse(req.mode(), RestrictionMode.AND);
     }
 
     private static String requireLabel(String label) {

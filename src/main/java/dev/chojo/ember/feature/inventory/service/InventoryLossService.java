@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Gear reported missing: who may say a piece is lost, what they have to write about it, and the
@@ -51,7 +52,8 @@ public class InventoryLossService {
      * @param selfCheckId the self-check the loss came up in, or {@code null}
      * @return the piece as it now stands
      */
-    public InventoryItem markLost(UserSession session, int itemId, String note, Integer selfCheckId) {
+    public InventoryItem markLost(
+            UserSession session, int itemId, @Nullable String note, @Nullable Integer selfCheckId) {
         var item = inventory.findItemById(itemId).orElseThrow(Refusal.ITEM_NOT_HERE_ON_LOSS::raise);
         String trimmed = note == null || note.isBlank() ? null : note.trim();
         if (!session.hasPermission(StationPermission.INVENTORY_EDIT)) {

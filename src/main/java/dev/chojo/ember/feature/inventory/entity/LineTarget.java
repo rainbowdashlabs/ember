@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * What one line of a list asks for: a named piece, a count of one kind of thing, or a count out of a
  * whole inventory.
@@ -20,7 +22,10 @@ package dev.chojo.ember.feature.inventory.entity;
  * @param artId       the kind of thing counted, or {@code null}
  * @param inventoryId the inventory counted out of, or {@code null}
  */
-public record LineTarget(Integer itemId, Integer artId, Integer inventoryId) {
+public record LineTarget(
+        @Nullable Integer itemId,
+        @Nullable Integer artId,
+        @Nullable Integer inventoryId) {
 
     public LineTarget {
         int named = (itemId == null ? 0 : 1) + (artId == null ? 0 : 1) + (inventoryId == null ? 0 : 1);
@@ -67,7 +72,7 @@ public record LineTarget(Integer itemId, Integer artId, Integer inventoryId) {
      * @param inventoryId the inventory column
      * @return the target
      */
-    public static LineTarget of(Integer itemId, Integer artId, Integer inventoryId) {
+    public static LineTarget of(@Nullable Integer itemId, @Nullable Integer artId, @Nullable Integer inventoryId) {
         return new LineTarget(itemId, artId, inventoryId);
     }
 

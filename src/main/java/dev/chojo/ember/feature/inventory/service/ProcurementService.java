@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +70,12 @@ public class ProcurementService {
      *
      * @param memberId who it is for, or {@code null} for an order a cluster places for its own store
      */
-    public Procurement create(int stationId, int inventoryId, Integer memberId, Integer sizeId, String notes) {
+    public Procurement create(
+            int stationId,
+            int inventoryId,
+            @Nullable Integer memberId,
+            @Nullable Integer sizeId,
+            @Nullable String notes) {
         String inventoryName = inventoryRepository
                 .findById(inventoryId)
                 .filter(inventory -> inventory.stationId() == stationId)

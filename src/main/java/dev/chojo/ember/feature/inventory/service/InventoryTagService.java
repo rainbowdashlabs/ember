@@ -16,6 +16,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,7 +96,7 @@ public class InventoryTagService {
      * @param color     optional hex colour for the badge
      * @return the tag, new or found
      */
-    public InventoryTag create(int stationId, String name, String color) {
+    public InventoryTag create(int stationId, String name, @Nullable String color) {
         String wanted = requireName(name);
         var existing = tagRepository.findByName(stationId, wanted);
         if (existing.isPresent()) return existing.get();
@@ -114,7 +115,7 @@ public class InventoryTagService {
      * @param position  where it should sit
      * @return the tag as it now stands
      */
-    public InventoryTag update(int stationId, int id, String name, String color, int position) {
+    public InventoryTag update(int stationId, int id, String name, @Nullable String color, int position) {
         var tag = requireOwnTag(stationId, id);
         String wanted = requireName(name);
         var clash = tagRepository.findByName(stationId, wanted);
@@ -207,7 +208,7 @@ public class InventoryTagService {
      * @param name       the word as somebody typed it
      * @return what was found
      */
-    public List<TaggedItemSummary> findItemsByTag(Collection<Integer> stationIds, String name) {
+    public List<TaggedItemSummary> findItemsByTag(Collection<Integer> stationIds, @Nullable String name) {
         if (name == null || name.isBlank()) return List.of();
         return tagRepository.findItemsByTag(stationIds, name);
     }

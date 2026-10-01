@@ -42,6 +42,7 @@ import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.DeserializationFeature;
@@ -139,7 +140,7 @@ public class AttendanceService {
         }
     }
 
-    private static String toJsonValue(Object value) {
+    private static @Nullable String toJsonValue(@Nullable Object value) {
         if (value == null) return null;
         try {
             return JSON.writeValueAsString(value);
@@ -307,7 +308,7 @@ public class AttendanceService {
      * @param day     the day to look on, null for the station's today
      * @return the sheet, or empty where that day has none
      */
-    public Optional<AttendanceSession> findSessionForEvent(int eventId, LocalDate day) {
+    public Optional<AttendanceSession> findSessionForEvent(int eventId, @Nullable LocalDate day) {
         var event = eventRepository.findById(eventId).orElse(null);
         if (event == null) return Optional.empty();
         var zone = timezoneOf(event.stationId());
@@ -348,7 +349,12 @@ public class AttendanceService {
      * @throws BadRequestResponse where the span or the counted minutes cannot be used
      */
     public AttendanceSession createSession(
-            int templateId, Instant startTime, Instant endTime, Integer eventId, String title, Integer countedMinutes) {
+            int templateId,
+            Instant startTime,
+            Instant endTime,
+            @Nullable Integer eventId,
+            @Nullable String title,
+            @Nullable Integer countedMinutes) {
         return createSession(templateId, startTime, endTime, eventId, title, countedMinutes, null, null);
     }
 
@@ -356,10 +362,10 @@ public class AttendanceService {
             int templateId,
             Instant startTime,
             Instant endTime,
-            Integer eventId,
-            String title,
-            Integer countedMinutes,
-            SessionAudience audience) {
+            @Nullable Integer eventId,
+            @Nullable String title,
+            @Nullable Integer countedMinutes,
+            @Nullable SessionAudience audience) {
         return createSession(templateId, startTime, endTime, eventId, title, countedMinutes, audience, null);
     }
 
@@ -375,11 +381,11 @@ public class AttendanceService {
             int templateId,
             Instant startTime,
             Instant endTime,
-            Integer eventId,
-            String title,
-            Integer countedMinutes,
-            SessionAudience audience,
-            LocalDate eventDate) {
+            @Nullable Integer eventId,
+            @Nullable String title,
+            @Nullable Integer countedMinutes,
+            @Nullable SessionAudience audience,
+            @Nullable LocalDate eventDate) {
         requireUsableSpan(startTime, endTime);
         requireUsableCountedMinutes(countedMinutes);
         // Determine title and default times from the linked event
@@ -522,7 +528,7 @@ public class AttendanceService {
      * happens to stand at its front: a date read that way is a number followed by the rest of the
      * date, and the rest is what the sheet would have choked on.
      */
-    private static String asJsonValue(String raw) {
+    private static @Nullable String asJsonValue(String raw) {
         try {
             STRICT_JSON.readTree(raw);
             return raw.trim();
@@ -685,7 +691,8 @@ public class AttendanceService {
      * @param demanded whether the appointment asked everybody to answer
      * @return the status to write, or null to leave the row as it stands
      */
-    private static AttendanceEntry.AttendanceStatus attendanceFor(RegistrationStatus answer, boolean demanded) {
+    private static AttendanceEntry.@Nullable AttendanceStatus attendanceFor(
+            @Nullable RegistrationStatus answer, boolean demanded) {
         if (answer == RegistrationStatus.ACCEPTED) return AttendanceEntry.AttendanceStatus.UNCONFIRMED;
         if (answer == RegistrationStatus.DECLINED || answer == RegistrationStatus.WITHDRAWN) {
             return AttendanceEntry.AttendanceStatus.DECLINED;
@@ -708,7 +715,7 @@ public class AttendanceService {
      * @throws BadRequestResponse where the span or the counted minutes cannot be used
      */
     public Optional<AttendanceSession> updateSession(
-            int id, Instant startTime, Instant endTime, String title, Integer countedMinutes) {
+            int id, Instant startTime, Instant endTime, @Nullable String title, @Nullable Integer countedMinutes) {
         requireUsableSpan(startTime, endTime);
         requireUsableCountedMinutes(countedMinutes);
         if (attendanceRepository.updateSession(id, startTime, endTime, title, countedMinutes)) {
@@ -774,7 +781,7 @@ public class AttendanceService {
      * @param countedMinutes what a whole presence counts as, null where the times decide
      * @throws BadRequestResponse naming what is wrong with the number
      */
-    private void requireUsableCountedMinutes(Integer countedMinutes) {
+    private void requireUsableCountedMinutes(@Nullable Integer countedMinutes) {
         if (countedMinutes == null) return;
         if (countedMinutes < 0) {
             throw new BadRequestResponse("The hours a sheet counts as cannot be negative");
@@ -1111,7 +1118,11 @@ public class AttendanceService {
     }
 
     public MemberAbsence createAbsence(
-            int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason, Integer createdBy) {
+            int memberId,
+            LocalDate absentFrom,
+            LocalDate absentUntil,
+            @Nullable String reason,
+            @Nullable Integer createdBy) {
         var absence = attendanceRepository.createAbsence(memberId, absentFrom, absentUntil, reason, createdBy);
         log.info("Created absence {} for member {} ({} - {})", absence.id(), memberId, absentFrom, absentUntil);
         return absence;
