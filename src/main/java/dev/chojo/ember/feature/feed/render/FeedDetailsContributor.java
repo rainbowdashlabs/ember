@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.feed.render;
 
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
+import org.jspecify.annotations.Nullable;
 
 /**
  * What a feature adds to the feed entries of its own notifications.
@@ -28,12 +29,12 @@ public interface FeedDetailsContributor {
     void contribute(NotificationParams params, Notification notification, FeedDetails details);
 
     /** The person who acted, which readers show as the entry's author, or null where there is none. */
-    default String author(NotificationParams params) {
+    default @Nullable String author(NotificationParams params) {
         return null;
     }
 
     /** The picture the entry shows, or null where it has none. */
-    default FeedImage image(NotificationParams params, Notification notification) {
+    default @Nullable FeedImage image(NotificationParams params, Notification notification) {
         return null;
     }
 }

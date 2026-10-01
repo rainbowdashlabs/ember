@@ -55597,7 +55597,7 @@ export interface components {
         CreateKbCommentRequest: {
             content?: string;
             /** Format: int32 */
-            parentId?: number;
+            parentId?: number | null;
         };
         CreateLendingRequest: {
             dateFrom?: components["schemas"]["LocalDate"];

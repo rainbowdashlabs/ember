@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -194,7 +195,7 @@ public class MediaReferenceRegistry {
     }
 
     /** Whether the file with these bytes is one of {@link #keptBackFiles(int)}. */
-    public boolean keptBack(Integer stationId, String contentHash) {
+    public boolean keptBack(@Nullable Integer stationId, String contentHash) {
         if (stationId == null || contentHash == null || contentHash.isBlank()) return false;
         return query("""
                 SELECT EXISTS (
@@ -225,7 +226,7 @@ public class MediaReferenceRegistry {
         }
     }
 
-    private void walkJsonForImageRefs(JsonNode node, Set<String> out) {
+    private void walkJsonForImageRefs(@Nullable JsonNode node, Set<String> out) {
         if (node == null || node.isNull()) return;
         if (node.isObject()) {
             var typeNode = node.get("contentType");

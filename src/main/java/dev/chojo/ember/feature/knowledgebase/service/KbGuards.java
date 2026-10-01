@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService.MemberAccess;
 import io.javalin.http.Context;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -32,7 +33,7 @@ public final class KbGuards {
      * The user type the reader holds at their own station, which is what an audience travelling with a
      * share is matched against. A session with rights but no member row of its own matches nothing named.
      */
-    public static StationUserType readerUserType(UserSession session) {
+    public static @Nullable StationUserType readerUserType(UserSession session) {
         var member = session.member();
         return member != null ? member.userType() : null;
     }
@@ -96,7 +97,11 @@ public final class KbGuards {
      * @param fileId   the file, or {@code null} when guarding a folder
      */
     public static void requireLevel(
-            Context ctx, KbAccessService accessService, Integer folderId, Integer fileId, KbAccessLevel required) {
+            Context ctx,
+            KbAccessService accessService,
+            @Nullable Integer folderId,
+            @Nullable Integer fileId,
+            KbAccessLevel required) {
         var level = accessService.effectiveLevel(accessOf(ctx, accessService), folderId, fileId);
         if (!level.covers(required)) throw Refusal.KB_ENTRY_NOT_YOURS_TO_OPEN.raise();
     }

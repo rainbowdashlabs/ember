@@ -146,7 +146,7 @@ public class UpdateCheckService implements TaskSource {
      * is refused rather than announced: reaching the higher number first would otherwise decide the
      * answer before the part that says it is not a finished release is ever looked at.
      */
-    private static int[] numbersOf(String version) {
+    private static int @Nullable [] numbersOf(String version) {
         String[] parts = version.split("\\.");
         int[] numbers = new int[parts.length];
         for (int i = 0; i < parts.length; i++) {

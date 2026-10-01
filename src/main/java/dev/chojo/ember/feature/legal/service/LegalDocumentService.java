@@ -12,6 +12,7 @@ import dev.chojo.ember.util.HtmlSanitizer;
 import dev.chojo.ember.util.Markdown;
 import dev.chojo.ember.util.Sha256;
 import dev.chojo.ember.util.TextDiff;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,7 @@ public class LegalDocumentService {
      * @param placeholderFile where the placeholder values are stored; falls back to
      *                        {@value #DEFAULT_PLACEHOLDER_FILE} when null or blank
      */
-    public LegalDocumentService(String placeholderFile) {
+    public LegalDocumentService(@Nullable String placeholderFile) {
         this.browserStorage = new BrowserStorageService();
         this.placeholders = new PlaceholderService(Path.of(
                 placeholderFile == null || placeholderFile.isBlank() ? DEFAULT_PLACEHOLDER_FILE : placeholderFile));
@@ -225,7 +226,7 @@ public class LegalDocumentService {
      * @param typeSlug the document type the bundled fallback is taken from
      * @return the rendered document with HTML, raw markdown, and version hash
      */
-    public RenderedDocument getDocument(Path baseDir, String locale, String typeSlug) {
+    public RenderedDocument getDocument(Path baseDir, String locale, @Nullable String typeSlug) {
         String markdown = readMarkdownDirectory(baseDir, locale);
         if (markdown.isEmpty()) {
             markdown = readMarkdownDirectoryFlat(baseDir);
@@ -264,7 +265,7 @@ public class LegalDocumentService {
      * the order has not changed. Every other document is left as it reads, and a reference into it
      * carries the section title instead of a number.
      */
-    private static LegalNumbering.Style styleFor(String typeSlug) {
+    private static LegalNumbering.Style styleFor(@Nullable String typeSlug) {
         return LegalDocumentType.TOS.slug().equals(typeSlug)
                 ? LegalNumbering.Style.PARAGRAPH
                 : LegalNumbering.Style.NONE;
@@ -282,7 +283,7 @@ public class LegalDocumentService {
      * Assembles the bundled document of a type the same way a directory of sections is assembled,
      * so the generated sections carry their generated content here too.
      */
-    private String readBundled(String typeSlug, String locale) {
+    private String readBundled(@Nullable String typeSlug, String locale) {
         if (typeSlug == null) return "";
         var sb = new StringBuilder();
         for (var section : DataInitializer.bundledDocument(typeSlug, locale)) {
@@ -300,7 +301,7 @@ public class LegalDocumentService {
      * The document type a directory stands for, taken from its name. Configuration may move the
      * directory, but not rename what it holds.
      */
-    private static String typeSlug(Path baseDir) {
+    private static @Nullable String typeSlug(Path baseDir) {
         Path name = baseDir.getFileName();
         return name == null ? null : name.toString();
     }
@@ -320,7 +321,7 @@ public class LegalDocumentService {
      * then falls back to generating the diff on-demand from archived markdown files.
      * This handles the case where multiple version changes occurred between user logins.
      */
-    public String getDiff(Path baseDir, String fromVersion, String toVersion) {
+    public @Nullable String getDiff(Path baseDir, String fromVersion, String toVersion) {
         if (fromVersion == null || toVersion == null || fromVersion.equals(toVersion)) {
             return null;
         }
@@ -442,7 +443,7 @@ public class LegalDocumentService {
         return sb.toString();
     }
 
-    private String readVersionFile(Path versionFile) {
+    private @Nullable String readVersionFile(Path versionFile) {
         if (!Files.exists(versionFile)) {
             return null;
         }

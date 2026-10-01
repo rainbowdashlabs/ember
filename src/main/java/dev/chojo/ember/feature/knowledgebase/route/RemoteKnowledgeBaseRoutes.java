@@ -132,7 +132,11 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
 
     public record FileContentResponse(int fileId, String content) {}
 
-    public record RemoteKbCommentRequest(UUID remoteMemberUid, String displayName, Integer parentId, String content) {}
+    public record RemoteKbCommentRequest(
+            UUID remoteMemberUid,
+            String displayName,
+            @Nullable Integer parentId,
+            String content) {}
 
     public record RemoteKbCommentUpdateRequest(UUID remoteMemberUid, String content) {}
 

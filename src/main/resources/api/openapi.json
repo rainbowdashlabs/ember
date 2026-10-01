@@ -45677,7 +45677,7 @@
         "type" : "object",
         "properties" : {
           "parentId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "content" : {

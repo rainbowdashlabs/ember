@@ -134,7 +134,7 @@ public class KnowledgeBaseRoutes implements Routes {
         this.browseService = browseService;
     }
 
-    private static String detectPandocFormat(String filename, String mimeType) {
+    private static @Nullable String detectPandocFormat(String filename, @Nullable String mimeType) {
         if (filename != null) {
             String lower = filename.toLowerCase();
             if (lower.endsWith(".docx")) return "docx";
@@ -164,7 +164,7 @@ public class KnowledgeBaseRoutes implements Routes {
         return file;
     }
 
-    private static Integer optionalFolderId(Context ctx, String param) {
+    private static @Nullable Integer optionalFolderId(Context ctx, String param) {
         return ctx.queryParam(param) != null
                 ? ctx.queryParamAsClass(param, Integer.class).get()
                 : null;
@@ -265,7 +265,7 @@ public class KnowledgeBaseRoutes implements Routes {
      * Creating something inside a folder is a write to that folder, so a member whose grant there
      * is read-only cannot drop a file into it by naming it in the request.
      */
-    private void requireWriteInFolder(Context ctx, Integer folderId) {
+    private void requireWriteInFolder(Context ctx, @Nullable Integer folderId) {
         if (folderId == null) return;
         requireLevel(ctx, accessService, folderId, null, KbAccessLevel.WRITE);
     }
@@ -410,7 +410,7 @@ public class KnowledgeBaseRoutes implements Routes {
      * Answers {@code 404} when the folder a move aims at is not one the caller may put anything
      * into. The target failing is the whole request failing, unlike a single entry of a selection.
      */
-    private void requireUsableTarget(Context ctx, Integer targetFolderId) {
+    private void requireUsableTarget(Context ctx, @Nullable Integer targetFolderId) {
         var session = UserSession.from(ctx);
         var problem =
                 moveService.checkTarget(KbGuards.accessOf(ctx, accessService), session.stationId(), targetFolderId);
@@ -429,9 +429,9 @@ public class KnowledgeBaseRoutes implements Routes {
         var session = UserSession.from(ctx);
         Integer folderId = optionalFolderId(ctx, "folderId");
         Integer fileId = optionalFolderId(ctx, "fileId");
-        if (folderId == null && fileId == null) throw Refusal.KB_MOVE_PREVIEW_NEEDS_AN_ENTRY.raise();
         if (folderId != null) requireOwnedFolder(ctx, service, folderId);
-        else requireOwnedFile(ctx, service, fileId);
+        else if (fileId != null) requireOwnedFile(ctx, service, fileId);
+        else throw Refusal.KB_MOVE_PREVIEW_NEEDS_AN_ENTRY.raise();
         ctx.json(moveService.preview(session.stationId(), folderId, fileId, optionalFolderId(ctx, "targetFolderId")));
     }
 
@@ -579,7 +579,7 @@ public class KnowledgeBaseRoutes implements Routes {
      * The member behind a session, or {@code null} for a session that holds station rights without
      * a member row of its own, which is what the trash then records as the deleting member.
      */
-    private static Integer memberIdOf(UserSession session) {
+    private static @Nullable Integer memberIdOf(UserSession session) {
         return session.member() == null ? null : session.member().id();
     }
 
@@ -866,8 +866,8 @@ public class KnowledgeBaseRoutes implements Routes {
                         SafeContentDisposition.build(SafeContentDisposition.Disposition.INLINE, file.name() + ".pdf"));
                 ctx.result(pdf.get());
             }
-            case YOUTUBE -> ctx.json(new YoutubeResponse(file.youtubeUrl()));
-            case LINK -> ctx.json(new LinkResponse(file.linkUrl()));
+            case YOUTUBE -> ctx.json(new YoutubeResponse(Objects.requireNonNullElse(file.youtubeUrl(), "")));
+            case LINK -> ctx.json(new LinkResponse(Objects.requireNonNullElse(file.linkUrl(), "")));
         }
     }
 
@@ -1249,12 +1249,13 @@ public class KnowledgeBaseRoutes implements Routes {
         requireLevel(ctx, accessService, id, null, KbAccessLevel.WRITE);
         var file = ctx.uploadedFile("icon");
         if (file == null) throw Refusal.KB_FOLDER_ICON_MISSING.raise();
-        if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
+        String contentType = file.contentType();
+        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
             throw Refusal.KB_FOLDER_ICON_KIND_NOT_TAKEN.raise();
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            iconService.store(session.stationId(), id, data, file.contentType(), 5 * 1024 * 1024);
+            iconService.store(session.stationId(), id, data, contentType, 5 * 1024 * 1024);
             service.updateFolder(id, folder.name(), folder.description(), iconService.key(id), folder.position());
             ctx.json(new MessageResponse("Icon updated"));
         } catch (IllegalArgumentException e) {
@@ -1277,13 +1278,14 @@ public class KnowledgeBaseRoutes implements Routes {
         requireLevel(ctx, accessService, null, fileId, KbAccessLevel.WRITE);
         var file = ctx.uploadedFile("image");
         if (file == null) throw Refusal.KB_ARTICLE_IMAGE_MISSING.raise();
-        if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
+        String contentType = file.contentType();
+        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
             throw Refusal.KB_ARTICLE_IMAGE_KIND_NOT_TAKEN.raise();
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             String imageId = "file-" + fileId + "-" + System.currentTimeMillis();
-            imageService.store(session.stationId(), imageId, data, file.contentType(), 10 * 1024 * 1024);
+            imageService.store(session.stationId(), imageId, data, contentType, 10 * 1024 * 1024);
             ctx.json(new ImageUploadResponse(imageId));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument storing KB image for file {}", fileId, e);

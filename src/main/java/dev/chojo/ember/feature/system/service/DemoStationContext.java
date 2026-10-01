@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.system.service;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
+import org.jspecify.annotations.Nullable;
 
 /**
  * One station and everything a seed run hangs on it.
@@ -27,7 +28,7 @@ public class DemoStationContext {
     private volatile DemoMemberSeeder.SeedResult members;
     private volatile DemoEventSeeder.SeedResult events;
     private volatile DemoNewsSeeder.SeedResult news;
-    private volatile LostAndFoundItem lostAndFoundItem;
+    private volatile @Nullable LostAndFoundItem lostAndFoundItem;
 
     public DemoStationContext(DemoStationProfile profile, Station station) {
         this.profile = profile;
@@ -84,11 +85,11 @@ public class DemoStationContext {
         this.news = news;
     }
 
-    public LostAndFoundItem lostAndFoundItem() {
+    public @Nullable LostAndFoundItem lostAndFoundItem() {
         return lostAndFoundItem;
     }
 
-    public void lostAndFoundItem(LostAndFoundItem lostAndFoundItem) {
+    public void lostAndFoundItem(@Nullable LostAndFoundItem lostAndFoundItem) {
         this.lostAndFoundItem = lostAndFoundItem;
     }
 }

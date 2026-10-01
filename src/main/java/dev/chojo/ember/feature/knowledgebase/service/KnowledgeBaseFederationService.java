@@ -205,7 +205,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * @param stationId the browsing station ID
      * @return the shared files of all partners that answered
      */
-    public FederatedKbBrowse browseFederatedKb(int stationId, StationUserType readerUserType) {
+    public FederatedKbBrowse browseFederatedKb(int stationId, @Nullable StationUserType readerUserType) {
         var gathered = browseSharedKb(stationId);
         return new FederatedKbBrowse(
                 named(gathered.folders()).stream()
@@ -224,7 +224,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * at the stations it reached, which is the whole of what a user type means across a share: the type is
      * the reader's, held at their own station.
      */
-    private static boolean mayRead(List<String> userTypes, StationUserType readerUserType) {
+    private static boolean mayRead(List<String> userTypes, @Nullable StationUserType readerUserType) {
         if (userTypes == null || userTypes.isEmpty()) return true;
         return readerUserType != null && userTypes.contains(readerUserType.name());
     }
@@ -237,7 +237,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * @param folderId          the folder being opened
      */
     public FederatedKbBrowse browseFederatedKbFolder(
-            int stationId, UUID partnerStationUid, int folderId, StationUserType readerUserType) {
+            int stationId, UUID partnerStationUid, int folderId, @Nullable StationUserType readerUserType) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
         var level =
                 transport.get(partner, RemoteKnowledgeBaseRoutes.BROWSE_KB_FOLDER.at(folderId), RemoteKbBrowse.class);
@@ -373,7 +373,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
      *     not with a reader of this kind
      */
     public PartnerEntry describePartnerFolder(
-            int stationId, UUID partnerStationUid, int folderId, StationUserType readerUserType) {
+            int stationId, UUID partnerStationUid, int folderId, @Nullable StationUserType readerUserType) {
         var level = browseFederatedKbFolder(stationId, partnerStationUid, folderId, readerUserType);
         var folder = level.trail().stream()
                 .filter(step -> step.remoteId() == folderId)
@@ -394,7 +394,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
      *
      * @param fileType the file's kind, {@code null} for a folder
      */
-    public record PartnerEntry(String title, String fileType, String stationName) {}
+    public record PartnerEntry(String title, @Nullable String fileType, String stationName) {}
 
     /**
      * Renders a partner's knowledge-base file as a PDF, headed with the partner's name.
@@ -507,14 +507,12 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * @param partnerIds the partnerships it is for, read only when the scope names stations
      */
     public FederationShare shareEntry(
-            int stationId, Integer fileId, Integer folderId, ShareScope scope, List<Integer> partnerIds) {
-        Integer parent = fileId != null
-                ? knowledgeBaseService.findFile(fileId).map(KbFile::folderId).orElse(null)
-                : knowledgeBaseService
-                        .findFolder(folderId)
-                        .map(KbFolder::parentId)
-                        .orElse(null);
-        var reachable = inheritedAim(stationId, parent);
+            int stationId,
+            @Nullable Integer fileId,
+            @Nullable Integer folderId,
+            ShareScope scope,
+            List<Integer> partnerIds) {
+        var reachable = inheritedAim(stationId, parentOf(fileId, folderId));
         if (reachable != null) {
             if (scope != ShareScope.SPECIFIC) {
                 throw new BadRequestResponse("The folder above this is shared with named stations only");
@@ -526,6 +524,19 @@ public class KnowledgeBaseFederationService implements FederationServer {
             }
         }
         return federationService.createKbShare(stationId, fileId, folderId, scope, partnerIds);
+    }
+
+    private @Nullable Integer parentOf(@Nullable Integer fileId, @Nullable Integer folderId) {
+        if (fileId != null) {
+            return knowledgeBaseService.findFile(fileId).map(KbFile::folderId).orElse(null);
+        }
+        if (folderId != null) {
+            return knowledgeBaseService
+                    .findFolder(folderId)
+                    .map(KbFolder::parentId)
+                    .orElse(null);
+        }
+        return null;
     }
 
     /**
@@ -542,12 +553,15 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * @param targetFolderId the folder they would go into, or {@code null} for the tree root
      * @return {@code true} when a share would end up wider than the target folder allows
      */
-    public boolean wouldOverreach(int stationId, Set<Integer> folderIds, Set<Integer> fileIds, Integer targetFolderId) {
+    public boolean wouldOverreach(
+            int stationId, Set<Integer> folderIds, Set<Integer> fileIds, @Nullable Integer targetFolderId) {
         var reachable = inheritedAim(stationId, targetFolderId);
         if (reachable == null) return false;
         for (var share : federationRepository.findKbShares(stationId)) {
-            boolean moved = (share.folderId() != null && folderIds.contains(share.folderId()))
-                    || (share.fileId() != null && fileIds.contains(share.fileId()));
+            Integer sharedFolderId = share.folderId();
+            Integer sharedFileId = share.fileId();
+            boolean moved = (sharedFolderId != null && folderIds.contains(sharedFolderId))
+                    || (sharedFileId != null && fileIds.contains(sharedFileId));
             if (!moved) continue;
             if (share.shareScope() != ShareScope.SPECIFIC) return true;
             var targets = federationRepository.findKbShareTargets(share.id());
@@ -569,7 +583,8 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * @param targetFolderId the folder it would go into, or {@code null} for the tree root
      * @return whether every partner, only named stations, or nobody outside would read it
      */
-    public PartnerReach reachUnder(int stationId, Integer folderId, Integer fileId, Integer targetFolderId) {
+    public PartnerReach reachUnder(
+            int stationId, @Nullable Integer folderId, @Nullable Integer fileId, @Nullable Integer targetFolderId) {
         var shares = federationRepository.findKbShares(stationId);
         for (var share : shares) {
             boolean own = fileId != null
@@ -608,7 +623,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * The stations the nearest shared folder above reaches, or {@code null} when nothing above narrows
      * anything: either no folder above is shared, or one is shared with everybody.
      */
-    private Set<Integer> inheritedAim(int stationId, Integer folderId) {
+    private @Nullable Set<Integer> inheritedAim(int stationId, @Nullable Integer folderId) {
         var shares = federationRepository.findKbShares(stationId);
         for (Integer id = folderId; id != null; ) {
             for (var share : shares) {
@@ -654,7 +669,11 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * @param partnerIds the stations named, as the partnerships that address them
      */
     public void setAudience(
-            int stationId, Integer fileId, Integer folderId, ShareScope scope, List<Integer> partnerIds) {
+            int stationId,
+            @Nullable Integer fileId,
+            @Nullable Integer folderId,
+            ShareScope scope,
+            List<Integer> partnerIds) {
         setAudience(stationId, fileId, folderId, true, scope, partnerIds);
     }
 
@@ -669,8 +688,8 @@ public class KnowledgeBaseFederationService implements FederationServer {
      */
     public void setAudience(
             int stationId,
-            Integer fileId,
-            Integer folderId,
+            @Nullable Integer fileId,
+            @Nullable Integer folderId,
             boolean shared,
             ShareScope scope,
             List<Integer> partnerIds) {
@@ -840,7 +859,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
     }
 
     /** Whether a folder, or anything above it, is one of the given folders. */
-    private boolean isInsideAnyOf(Integer folderId, Set<Integer> folders) {
+    private boolean isInsideAnyOf(@Nullable Integer folderId, Set<Integer> folders) {
         if (folders.isEmpty()) return false;
         for (Integer id = folderId; id != null; ) {
             if (folders.contains(id)) return true;
@@ -881,7 +900,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
      *
      * @return the user types named, or empty when the entry names none and is therefore for everybody
      */
-    private List<String> travellingUserTypes(Integer folderId, Integer fileId) {
+    private List<String> travellingUserTypes(@Nullable Integer folderId, @Nullable Integer fileId) {
         return accessService.findRestrictions(folderId, fileId).stream()
                 .map(KbAccessGrant::userType)
                 .filter(Objects::nonNull)
@@ -986,11 +1005,11 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * @param partner  the requesting partner
      * @param folderId the folder to ask about, or {@code null} for the root, which is never shared
      */
-    public boolean isFolderSharedWithPartner(FederationPartner partner, Integer folderId) {
+    public boolean isFolderSharedWithPartner(FederationPartner partner, @Nullable Integer folderId) {
         return isFolderShared(partner.stationId(), folderId, partner.id());
     }
 
-    private boolean isFolderShared(int servingStationId, Integer folderId, Integer readingPartnerId) {
+    private boolean isFolderShared(int servingStationId, @Nullable Integer folderId, Integer readingPartnerId) {
         return isInsideAnyOf(folderId, sharedFolderIds(servingStationId, readingPartnerId));
     }
 
@@ -1046,7 +1065,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
             int fileId,
             UUID memberUid,
             String displayName,
-            Integer parentId,
+            @Nullable Integer parentId,
             String content) {
         var partner = resolvePartner(stationId, partnerStationUid);
         var created = transport.send(
@@ -1213,7 +1232,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
                                 null,
                                 result.name(),
                                 result.description(),
-                                null,
+                                KbFileType.MARKDOWN,
                                 Instant.now(),
                                 false),
                         result.snippet(),
@@ -1250,7 +1269,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
                 .orElse(0);
     }
 
-    private FederationPartner findPartnerForStation(int localStationId, int remoteStationId) {
+    private @Nullable FederationPartner findPartnerForStation(int localStationId, int remoteStationId) {
         for (var partner : federationService.findPartners(localStationId)) {
             if (partnerStationId(partner) == remoteStationId
                     && partner.status() == FederationPartner.FederationStatus.ACTIVE) {

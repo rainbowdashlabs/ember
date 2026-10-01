@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +90,7 @@ public class KbFavouriteService {
     public KbFavourite markPartner(
             int stationId,
             int memberId,
-            StationUserType readerUserType,
+            @Nullable StationUserType readerUserType,
             KbFavouriteTarget target,
             UUID partnerStationUid,
             int entryId) {

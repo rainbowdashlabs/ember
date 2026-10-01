@@ -55,6 +55,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.ClusterQuotaDefaults;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -511,7 +512,8 @@ public class DemoClusterSeeder implements DemoSeeder {
      * the step the cluster owns. That is the state the whole model exists for: the station has done its part
      * and cannot do the next one, the gear is in the post, and the cluster is the one being waited on.
      */
-    private void seedMovements(Cluster cluster, DemoStationContext member, int poolId, Integer small, Integer large) {
+    private void seedMovements(
+            Cluster cluster, DemoStationContext member, int poolId, @Nullable Integer small, Integer large) {
         var head = member.members().head();
         if (head == null) return;
 

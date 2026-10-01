@@ -675,7 +675,7 @@ public class WaitingListRepository {
             String accessToken,
             String notes,
             WaitingListEntryStatus status,
-            ConsentProof consent) {
+            @Nullable ConsentProof consent) {
         return insertReturning(
                 """
                 INSERT

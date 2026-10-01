@@ -17,6 +17,7 @@ import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,7 +58,7 @@ public class FeedMetricsService implements ShutdownFlush, TaskSource {
      * Asynchronously records a finished feed render. Safe to call from the request thread -
      * the actual DB work happens off-thread.
      */
-    public void recordRender(String type, int status, long durationMs, int entryCount, String userAgent) {
+    public void recordRender(String type, int status, long durationMs, int entryCount, @Nullable String userAgent) {
         pending.add(new Render(type, status, durationMs, entryCount, userAgent));
         writer.submit(this::writePending);
     }
@@ -120,7 +121,12 @@ public class FeedMetricsService implements ShutdownFlush, TaskSource {
         }
     }
 
-    private record Render(String type, int status, long durationMs, int entryCount, String userAgent) {}
+    private record Render(
+            String type,
+            int status,
+            long durationMs,
+            int entryCount,
+            @Nullable String userAgent) {}
 
     @Override
     public List<ScheduledTask> scheduledTasks() {

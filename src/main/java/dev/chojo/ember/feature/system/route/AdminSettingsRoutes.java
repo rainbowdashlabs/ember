@@ -167,7 +167,7 @@ public class AdminSettingsRoutes implements Routes {
         return resolved;
     }
 
-    private static String safeLogoName(Context ctx) {
+    private static @Nullable String safeLogoName(Context ctx) {
         String name = ctx.pathParam("name");
         if (name == null) return null;
         if (name.endsWith(".png")) name = name.substring(0, name.length() - 4);
@@ -352,7 +352,7 @@ public class AdminSettingsRoutes implements Routes {
         }
     }
 
-    private byte[] readResource(String resourcePath) {
+    private byte @Nullable [] readResource(String resourcePath) {
         try (var is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
             if (is == null) return null;
             return is.readAllBytes();
@@ -1053,7 +1053,7 @@ public class AdminSettingsRoutes implements Routes {
      * same way the knowledge base does. Returns {@code null} when the request carries no file, so
      * the caller can fall back to markdown in the body.
      */
-    private static String uploadedMarkdown(Context ctx) {
+    private static @Nullable String uploadedMarkdown(Context ctx) {
         var file = ctx.uploadedFile("file");
         if (file == null) return null;
         try (var content = file.content()) {
@@ -1071,7 +1071,7 @@ public class AdminSettingsRoutes implements Routes {
      * The pandoc format of an uploaded file, or {@code null} when it is markdown or plain text
      * already and needs no conversion.
      */
-    private static String importFormat(String filename) {
+    private static @Nullable String importFormat(String filename) {
         String lower = filename == null ? "" : filename.toLowerCase(Locale.ROOT);
         if (lower.endsWith(".docx") || lower.endsWith(".doc")) return "docx";
         if (lower.endsWith(".odt")) return "odt";

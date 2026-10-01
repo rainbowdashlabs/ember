@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.documents.entity.DocumentTag;
 import dev.chojo.ember.util.sql.FullTextSearch;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +48,7 @@ public class DocumentRepository {
             long sizeBytes,
             boolean hidden,
             boolean keepOnArchive,
-            Integer uploadedBy,
+            @Nullable Integer uploadedBy,
             List<Integer> memberIds) {
         var document = query("""
                         INSERT INTO member_document(station_id, title, file_name, mime_type, size_bytes, hidden,
@@ -205,7 +206,7 @@ public class DocumentRepository {
     public List<Document> findByStation(
             int stationId,
             List<Integer> memberIds,
-            String search,
+            @Nullable String search,
             boolean includeHidden,
             boolean unboundOnly,
             String tsConfig,
@@ -244,7 +245,7 @@ public class DocumentRepository {
     public int countByStation(
             int stationId,
             List<Integer> memberIds,
-            String search,
+            @Nullable String search,
             boolean includeHidden,
             boolean unboundOnly,
             String tsConfig) {
@@ -272,7 +273,7 @@ public class DocumentRepository {
     }
 
     /** The values the two filters above need, bound only when the filter is there to use them. */
-    private static Call bindFilters(Call call, List<Integer> memberIds, String search) {
+    private static Call bindFilters(Call call, List<Integer> memberIds, @Nullable String search) {
         if (!memberIds.isEmpty()) call = call.bind("member_ids", memberIds, PostgreSqlTypes.INTEGER);
         if (search != null) {
             call = call.bind("tsquery", FullTextSearch.prefixTerms(search)).bind("like", "%" + search + "%");

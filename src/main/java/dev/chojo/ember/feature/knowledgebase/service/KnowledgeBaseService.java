@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.util.PdfText;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -81,7 +83,7 @@ public class KnowledgeBaseService {
      * @param parentId  the parent folder, or {@code null} for the tree root
      * @return the child folders
      */
-    public List<KbFolder> findFolders(int stationId, Integer parentId) {
+    public List<KbFolder> findFolders(int stationId, @Nullable Integer parentId) {
         return repository.findFolders(stationId, parentId);
     }
 
@@ -167,7 +169,8 @@ public class KnowledgeBaseService {
      * @param createdBy   the creating member
      * @return the created folder
      */
-    public KbFolder createFolder(int stationId, Integer parentId, String name, String description, int createdBy) {
+    public KbFolder createFolder(
+            int stationId, @Nullable Integer parentId, String name, String description, int createdBy) {
         var folder = repository.createFolder(stationId, parentId, name, description, createdBy);
         autoShareService.shareKbFolder(stationId, folder.id());
         log.info("KB folder {} created in station {} by member {}", folder.id(), stationId, createdBy);
@@ -184,7 +187,7 @@ public class KnowledgeBaseService {
      * @param position    the new sort position
      * @return {@code true} when the folder existed
      */
-    public boolean updateFolder(int id, String name, String description, String iconUrl, int position) {
+    public boolean updateFolder(int id, String name, String description, @Nullable String iconUrl, int position) {
         boolean updated = repository.updateFolder(id, name, description, iconUrl, position);
         if (updated) {
             log.info("KB folder {} updated", id);
@@ -201,7 +204,7 @@ public class KnowledgeBaseService {
      * @param folderId  the folder, or {@code null} for the tree root
      * @return the files
      */
-    public List<KbFile> findFiles(int stationId, Integer folderId) {
+    public List<KbFile> findFiles(int stationId, @Nullable Integer folderId) {
         return repository.findFiles(stationId, folderId);
     }
 
@@ -241,7 +244,7 @@ public class KnowledgeBaseService {
      * @return the created file
      */
     public KbFile createMarkdownFile(
-            int stationId, Integer folderId, String name, String description, String content, int createdBy) {
+            int stationId, @Nullable Integer folderId, String name, String description, String content, int createdBy) {
         var file = repository.createFile(
                 stationId,
                 folderId,
@@ -271,7 +274,12 @@ public class KnowledgeBaseService {
      * @return the created file
      */
     public KbFile createYoutubeFile(
-            int stationId, Integer folderId, String name, String description, String youtubeUrl, int createdBy) {
+            int stationId,
+            @Nullable Integer folderId,
+            String name,
+            String description,
+            String youtubeUrl,
+            int createdBy) {
         var file = repository.createFile(
                 stationId, folderId, name, description, KbFileType.YOUTUBE, null, 0, youtubeUrl, createdBy);
         contentService.storeExtractedText(file.id(), linkMetadataService.fetchYoutubeMetadata(youtubeUrl));
@@ -296,11 +304,11 @@ public class KnowledgeBaseService {
      */
     public KbFile createUploadedFile(
             int stationId,
-            Integer folderId,
+            @Nullable Integer folderId,
             String name,
             String description,
             byte[] data,
-            String mimeType,
+            @Nullable String mimeType,
             int createdBy) {
         KbFileType fileType = KbFileTypeDetector.detect(mimeType, name);
         byte[] payload = compressForStorage(data, mimeType);
@@ -346,14 +354,14 @@ public class KnowledgeBaseService {
      * @return the created file
      */
     public KbFile createLinkFile(
-            int stationId, Integer folderId, String name, String description, String linkUrl, int createdBy) {
+            int stationId, @Nullable Integer folderId, String name, String description, String linkUrl, int createdBy) {
         if (isBlank(name) || isBlank(description)) {
             var metadata = linkMetadataService.fetchUrlMetadata(linkUrl);
             if (isBlank(name)) {
-                name = metadata.title() != null ? metadata.title() : linkUrl;
+                name = Objects.requireNonNullElse(metadata.title(), linkUrl);
             }
             if (isBlank(description)) {
-                description = metadata.description() != null ? metadata.description() : "";
+                description = Objects.requireNonNullElse(metadata.description(), "");
             }
         }
         var file = repository.createFile(
@@ -374,7 +382,7 @@ public class KnowledgeBaseService {
      * @param position    the new sort position
      * @return {@code true} when the file existed
      */
-    public boolean updateFile(int id, String name, String description, String iconUrl, int position) {
+    public boolean updateFile(int id, String name, String description, @Nullable String iconUrl, int position) {
         boolean updated = repository.updateFile(id, name, description, iconUrl, position);
         if (updated) {
             log.info("KB file {} updated", id);
@@ -442,7 +450,7 @@ public class KnowledgeBaseService {
         log.info("KB file {} now points at {} related file(s)", fileId, targetFileIds.size());
     }
 
-    private static boolean isBlank(String value) {
+    private static boolean isBlank(@Nullable String value) {
         return value == null || value.isBlank();
     }
 
@@ -452,7 +460,7 @@ public class KnowledgeBaseService {
      * everything else is returned untouched. Failures fall back to the original bytes -
      * compression is opportunistic, never a hard requirement.
      */
-    private byte[] compressForStorage(byte[] data, String mimeType) {
+    private byte[] compressForStorage(byte[] data, @Nullable String mimeType) {
         if (officeCompressor.shouldCompress(mimeType, data.length)) {
             return officeCompressor.compress(data);
         }

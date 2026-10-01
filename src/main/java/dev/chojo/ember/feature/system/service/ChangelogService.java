@@ -65,7 +65,7 @@ public class ChangelogService {
      * @param updates     the operator's settings, which name the repository the links point at
      * @param releasesJson the record of tags, as the build writes it; null where none was shipped
      */
-    ChangelogService(Updates updates, String releasesJson) {
+    ChangelogService(Updates updates, @Nullable String releasesJson) {
         for (String locale : List.of(DEFAULT_LOCALE, FALLBACK_LOCALE)) {
             byLocale.put(locale, read(locale));
         }
@@ -76,9 +76,10 @@ public class ChangelogService {
     /**
      * Every version the changelog names, newest first, as it is written.
      *
-     * @param locale the language to read it in; anything else falls back to English
+     * @param locale the language to read it in; anything else falls back to English, and none to
+     *               German
      */
-    public List<ChangelogEntry> all(String locale) {
+    public List<ChangelogEntry> all(@Nullable String locale) {
         var versions = sectionsFor(locale);
         var fallback = byLocale.getOrDefault(FALLBACK_LOCALE, Map.of());
         List<ChangelogEntry> out = new ArrayList<>();
@@ -174,7 +175,7 @@ public class ChangelogService {
      * released without an entry of its own, and a comparison that skipped it would claim its changes
      * for its neighbour.
      */
-    private String compareUrl(String version, String tag) {
+    private @Nullable String compareUrl(String version, String tag) {
         String previous = null;
         String previousTag = null;
         for (var candidate : releases.entrySet()) {
@@ -196,7 +197,7 @@ public class ChangelogService {
      * the page then shows its entries without dates, which is what a fork's own build does until it
      * tags anything.
      */
-    private static Map<String, Release> readReleases(String json) {
+    private static Map<String, Release> readReleases(@Nullable String json) {
         Map<String, Release> found = new LinkedHashMap<>();
         if (json == null || json.isBlank()) {
             log.warn("No release dates shipped with the changelog");
@@ -218,7 +219,7 @@ public class ChangelogService {
     }
 
     /** Reads a resource that travels in the jar, or null where this build shipped none. */
-    static String readResource(String path) {
+    static @Nullable String readResource(String path) {
         try (InputStream is = ChangelogService.class.getClassLoader().getResourceAsStream(path)) {
             return is == null ? null : new String(is.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -227,7 +228,7 @@ public class ChangelogService {
         }
     }
 
-    private Map<String, String> sectionsFor(String locale) {
+    private Map<String, String> sectionsFor(@Nullable String locale) {
         var sections = byLocale.get(locale == null ? DEFAULT_LOCALE : locale.toLowerCase());
         return sections != null ? sections : byLocale.getOrDefault(DEFAULT_LOCALE, Map.of());
     }

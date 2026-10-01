@@ -27,6 +27,7 @@ import net.fortuna.ical4j.model.property.Location;
 import net.fortuna.ical4j.model.property.Uid;
 import net.fortuna.ical4j.model.property.Url;
 import net.fortuna.ical4j.model.property.immutable.ImmutableStatus;
+import org.jspecify.annotations.Nullable;
 
 import java.net.URI;
 import java.time.Instant;
@@ -65,7 +66,7 @@ public class IcalEventRenderer {
      * Unicode marker prefixed to status labels so the registration state remains visible in
      * monochrome clients and for users with colour-blindness.
      */
-    private static String withSymbol(String label, RegistrationStatus status) {
+    private static String withSymbol(String label, @Nullable RegistrationStatus status) {
         if (status == null) return label;
         return switch (status) {
             case ACCEPTED -> "✓ " + label;
@@ -239,8 +240,9 @@ public class IcalEventRenderer {
         if (event.requiresRegistration()) {
             sb.append(notificationText.resolveLocalized(ctx.locale(), "ical", "registrationRequired", null))
                     .append("\n");
-            if (event.registrationDeadline() != null) {
-                appendLine(sb, ctx.locale(), "label.deadline", formatInstant(event.registrationDeadline(), ctx));
+            Instant registrationDeadline = event.registrationDeadline();
+            if (registrationDeadline != null) {
+                appendLine(sb, ctx.locale(), "label.deadline", formatInstant(registrationDeadline, ctx));
             }
             Integer registrationLimit = event.registrationLimit();
             if (registrationLimit != null) {
@@ -298,7 +300,7 @@ public class IcalEventRenderer {
         return notificationText.resolveLocalized(locale, "ical", "summary.cancelledPrefix", null) + " ";
     }
 
-    private String firstLocation(List<EventField> fields) {
+    private @Nullable String firstLocation(List<EventField> fields) {
         for (var field : fields) {
             if (field.fieldType() == EventFieldType.LOCATION
                     && field.value() != null

@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The media files served to everyone, by content hash, for the public site: a station's, addressed by
@@ -50,7 +51,7 @@ public class PublicMediaService {
      * @param accept    the formats the browser takes
      * @return the file
      */
-    public MediaContent read(int stationId, String hash, String width, String accept) {
+    public MediaContent read(int stationId, String hash, @Nullable String width, @Nullable String accept) {
         return readFrom(stationId, hash, width, accept);
     }
 
@@ -62,16 +63,17 @@ public class PublicMediaService {
      * @param accept the formats the browser takes
      * @return the file
      */
-    public MediaContent readInstance(String hash, String width, String accept) {
+    public MediaContent readInstance(String hash, @Nullable String width, @Nullable String accept) {
         return readFrom(null, hash, width, accept);
     }
 
-    private MediaContent readFrom(Integer stationId, String hash, String width, String accept) {
+    private MediaContent readFrom(
+            @Nullable Integer stationId, String hash, @Nullable String width, @Nullable String accept) {
         return media.readVariant(stationId, hash, parseWidth(width), accept)
                 .orElseThrow(Refusal.PUBLIC_FILE_NOT_HERE::raise);
     }
 
-    private static Integer parseWidth(String raw) {
+    private static @Nullable Integer parseWidth(@Nullable String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
             int value = Integer.parseInt(raw);

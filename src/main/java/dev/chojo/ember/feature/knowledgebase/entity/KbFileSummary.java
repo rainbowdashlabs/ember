@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.entity;
 
 import dev.chojo.ember.feature.content.entity.ContentMode;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
@@ -59,7 +60,7 @@ public record KbFileSummary(
                 updatedAt,
                 null,
                 null,
-                null,
+                RestrictionMode.AND,
                 restricted,
                 null,
                 ContentMode.SIMPLE,

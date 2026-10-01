@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.federation.service.RefusedDestinationException;
 import dev.chojo.ember.feature.knowledgebase.entity.UrlMetadata;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,12 +57,12 @@ public class KbLinkMetadataService {
         this.outbound = outbound;
     }
 
-    private static String firstGroup(Pattern pattern, String body) {
+    private static @Nullable String firstGroup(Pattern pattern, String body) {
         var matcher = pattern.matcher(body);
         return matcher.find() ? matcher.group(1).trim() : null;
     }
 
-    private static String extractJsonString(String json, String key) {
+    private static @Nullable String extractJsonString(String json, String key) {
         return firstGroup(Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]+)\""), json);
     }
 
@@ -92,7 +93,7 @@ public class KbLinkMetadataService {
      * @param youtubeUrl the video to look up
      * @return the title and channel, or {@code null} when the video could not be looked up
      */
-    public String fetchYoutubeMetadata(String youtubeUrl) {
+    public @Nullable String fetchYoutubeMetadata(String youtubeUrl) {
         try {
             String body = get("https://www.youtube.com/oembed?url="
                     + URLEncoder.encode(youtubeUrl, StandardCharsets.UTF_8)
@@ -107,7 +108,7 @@ public class KbLinkMetadataService {
         }
     }
 
-    private String get(String url) throws Exception {
+    private @Nullable String get(String url) throws Exception {
         String target = url;
         for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
             HttpResponse<String> response;
@@ -137,7 +138,7 @@ public class KbLinkMetadataService {
         return outbound.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
-    private static String redirect(HttpResponse<String> response) {
+    private static @Nullable String redirect(HttpResponse<String> response) {
         int status = response.statusCode();
         if (status < 300 || status > 399) return null;
         return response.headers().firstValue("location").orElse(null);

@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,15 +132,14 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                         .findFirst()
                         .orElse(null));
 
+        var lostAndFoundItem = station.lostAndFoundItem();
         var showcase = new ShowcaseContext(
                 station.news().firstNewsId(),
                 station.events().stadtfestId(),
                 station.events().evUebung().id(),
                 nextMonday.toString(),
                 null,
-                station.lostAndFoundItem() == null
-                        ? null
-                        : station.lostAndFoundItem().id(),
+                lostAndFoundItem == null ? null : lostAndFoundItem.id(),
                 lendingRequestId,
                 boardId,
                 boardKey,
@@ -176,8 +176,9 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
     }
 
     private void seedNewsCategory(int memberId, ShowcaseContext ctx) {
-        var newsLink = ctx.newsId() != null
-                ? new NotificationData.NotificationLink("news-detail", Map.of("id", ctx.newsId()))
+        Integer newsId = ctx.newsId();
+        var newsLink = newsId != null
+                ? new NotificationData.NotificationLink("news-detail", Map.of("id", newsId))
                 : new NotificationData.NotificationLink("news-list");
 
         tell(
@@ -288,11 +289,12 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
     }
 
     private void seedInventoryCategory(int memberId, ShowcaseContext ctx) {
-        var exchangeLink = ctx.inventoryId() != null
-                ? new NotificationData.NotificationLink("inventory-movements", Map.of("id", ctx.inventoryId()))
+        Integer inventoryId = ctx.inventoryId();
+        var exchangeLink = inventoryId != null
+                ? new NotificationData.NotificationLink("inventory-movements", Map.of("id", inventoryId))
                 : new NotificationData.NotificationLink("inventory-movements");
-        var procurementLink = ctx.inventoryId() != null
-                ? new NotificationData.NotificationLink("inventory-procurement", Map.of("id", ctx.inventoryId()))
+        var procurementLink = inventoryId != null
+                ? new NotificationData.NotificationLink("inventory-procurement", Map.of("id", inventoryId))
                 : new NotificationData.NotificationLink("inventory-procurement");
 
         tell(
@@ -391,8 +393,9 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
     }
 
     private void seedLendingCategory(int memberId, ShowcaseContext ctx) {
-        var lendingLink = ctx.lendingRequestId() != null
-                ? new NotificationData.NotificationLink("lending-request", Map.of("id", ctx.lendingRequestId()))
+        Integer lendingRequestId = ctx.lendingRequestId();
+        var lendingLink = lendingRequestId != null
+                ? new NotificationData.NotificationLink("lending-request", Map.of("id", lendingRequestId))
                 : new NotificationData.NotificationLink("dashboard-overview");
 
         tell(
@@ -478,20 +481,20 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
      * The seeded records the showcase links to, and the station's today its dates are counted from.
      */
     public record ShowcaseContext(
-            Integer newsId,
-            Integer oneTimeEventId,
-            Integer recurringEventId,
-            String recurringEventDate,
-            Integer formId,
-            Integer lostAndFoundItemId,
-            Integer lendingRequestId,
-            Integer boardId,
-            String boardKey,
-            Integer boardTicketId,
-            Integer boardTicketNumber,
-            Integer procedureId,
-            Integer inventoryId,
-            Integer waitlistChildId,
-            Integer stationIdForStorage,
+            @Nullable Integer newsId,
+            @Nullable Integer oneTimeEventId,
+            @Nullable Integer recurringEventId,
+            @Nullable String recurringEventDate,
+            @Nullable Integer formId,
+            @Nullable Integer lostAndFoundItemId,
+            @Nullable Integer lendingRequestId,
+            @Nullable Integer boardId,
+            @Nullable String boardKey,
+            @Nullable Integer boardTicketId,
+            @Nullable Integer boardTicketNumber,
+            @Nullable Integer procedureId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer waitlistChildId,
+            @Nullable Integer stationIdForStorage,
             LocalDate today) {}
 }

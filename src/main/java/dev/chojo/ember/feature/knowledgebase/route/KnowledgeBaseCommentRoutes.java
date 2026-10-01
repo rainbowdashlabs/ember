@@ -32,6 +32,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -163,7 +164,7 @@ public class KnowledgeBaseCommentRoutes implements Routes {
         return CommentResponseMapper.fromKb(memberNameResolver, comment);
     }
 
-    public record CreateKbCommentRequest(Integer parentId, String content) {}
+    public record CreateKbCommentRequest(@Nullable Integer parentId, String content) {}
 
     public record UpdateKbCommentRequest(String content) {}
 }

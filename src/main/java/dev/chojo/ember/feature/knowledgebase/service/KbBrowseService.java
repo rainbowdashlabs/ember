@@ -54,7 +54,7 @@ public class KbBrowseService {
      * @param reader    what the reader may do, as the grants resolve it
      * @param sees  whether the reader manages the knowledge base, which shows every entry
      */
-    public BrowseResponse browse(int stationId, Integer folderId, MemberAccess reader, boolean sees) {
+    public BrowseResponse browse(int stationId, @Nullable Integer folderId, MemberAccess reader, boolean sees) {
         var folders = knowledgeBase.findFolders(stationId, folderId);
         var files = knowledgeBase.findFiles(stationId, folderId);
         if (!sees) {

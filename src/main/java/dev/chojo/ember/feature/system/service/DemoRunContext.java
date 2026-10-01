@@ -93,9 +93,14 @@ public class DemoRunContext {
     /**
      * The first station, which is what an instance-wide seeder means when it says "the demo station".
      *
-     * @return its context, or {@code null} while the station band has not run
+     * <p>Only the seeders that run after the station band ask for it, so asking before is a mistake
+     * in the seeding order and refused as one.
+     *
+     * @return its context
+     * @throws IllegalStateException while the station band has not run
      */
     public DemoStationContext primaryStation() {
-        return stations.isEmpty() ? null : stations.getFirst();
+        if (stations.isEmpty()) throw new IllegalStateException("The demo stations have not been seeded yet");
+        return stations.getFirst();
     }
 }

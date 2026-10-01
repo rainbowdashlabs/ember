@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Doing one thing to several knowledge-base entries at once.
@@ -75,7 +76,7 @@ public class KbBulkService {
             int stationId,
             List<Integer> folderIds,
             List<Integer> fileIds,
-            Integer targetFolderId) {
+            @Nullable Integer targetFolderId) {
         var collector = new Collector();
         for (int folderId : folderIds) {
             collector.folder(folderId, moveService.moveFolder(access, stationId, folderId, targetFolderId));
@@ -218,12 +219,16 @@ public class KbBulkService {
 
         void folder(int folderId, KbMoveService.MoveResult result) {
             if (result.moved()) doneFolderIds.add(folderId);
-            else refuse(result.name(), result.reason());
+            else refuse(result);
         }
 
         void file(int fileId, KbMoveService.MoveResult result) {
             if (result.moved()) doneFileIds.add(fileId);
-            else refuse(result.name(), result.reason());
+            else refuse(result);
+        }
+
+        private void refuse(KbMoveService.MoveResult refusal) {
+            refuse(refusal.name(), Objects.requireNonNull(refusal.reason(), "a refused move names its reason"));
         }
 
         void doneFolder(int folderId) {
@@ -234,7 +239,7 @@ public class KbBulkService {
             doneFileIds.add(fileId);
         }
 
-        void refuse(String name, KbRefusalReason reason) {
+        void refuse(@Nullable String name, KbRefusalReason reason) {
             refused.add(new RefusedEntry(name, reason));
         }
 

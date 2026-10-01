@@ -1115,7 +1115,7 @@ public class WaitingListService implements TaskSource {
             List<GuardianInput> guardians,
             Map<Integer, JsonNode> fieldValues,
             @Nullable String notes,
-            ConsentProof consent) {
+            @Nullable ConsentProof consent) {
         var entry = repository.createEntryWithStatus(
                 list.id(),
                 firstname,

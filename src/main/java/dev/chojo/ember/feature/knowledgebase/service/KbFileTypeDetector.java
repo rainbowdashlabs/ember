@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
 import java.util.Set;
@@ -35,7 +36,7 @@ public final class KbFileTypeDetector {
      * @param filename the uploaded file name, possibly {@code null}
      * @return the detected type, {@link KbFileType#OTHER} when nothing matches
      */
-    public static KbFileType detect(String mimeType, String filename) {
+    public static KbFileType detect(@Nullable String mimeType, @Nullable String filename) {
         if (mimeType != null) {
             if (PRESENTATION_MIME_TYPES.contains(mimeType)) return KbFileType.PRESENTATION;
             if (mimeType.equals("application/pdf")) return KbFileType.PDF;
@@ -54,7 +55,7 @@ public final class KbFileTypeDetector {
         return KbFileType.OTHER;
     }
 
-    private static boolean endsWithAny(String filename, Set<String> extensions) {
+    private static boolean endsWithAny(@Nullable String filename, Set<String> extensions) {
         if (filename == null) return false;
         String lower = filename.toLowerCase(Locale.ROOT);
         return extensions.stream().anyMatch(lower::endsWith);

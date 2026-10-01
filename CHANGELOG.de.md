@@ -127,6 +127,7 @@
 - **Hilfebeispiele ließen eine Berechtigung leer.** In den Beispielen des Hilfecenters zu Mitglieder-, Mitgliedstyp- und Gruppenberechtigungen erschienen die Rechte für Anwesenheits- und Terminverwaltung, die das Beispiel vergibt, als nicht vergeben. Die Beispiele zeigen sie jetzt angehakt.
 - **Die Mitgliederliste markierte nie ein unvollständiges Profil.** Mitglieder, die eine Pflichtfrage ihres Profils offen gelassen hatten, sahen in der Mitgliederliste aus wie alle anderen. Sie tragen jetzt „Unvollständig“ neben ihrem Namen, beurteilt wie bei der Erinnerung in ihrem eigenen Profil.
 - **Ehemalige Mitglieder konnten Listen und Exporte abbrechen lassen.** In manchen Fällen ließ ein ehemaliges Mitglied, dessen Konto entfernt worden war, den Anwesenheitsbericht und seinen Export, eine Inventarprüfung, die Bestands- und Bewegungsexporte, die Liste der betreuten Mitglieder eines Erziehungsberechtigten oder den Änderungsverlauf eines Profils mit einem Fehler abbrechen. Ein solches Mitglied erscheint jetzt mit Namen oder Nummer.
+- **„Im Browser öffnen" in einem Feed-Eintrag konnte ins Leere führen.** In manchen Fällen trug eine Benachrichtigung im RSS- oder Atom-Feed einen Knopf „Im Browser öffnen" ohne Ziel. Er öffnet jetzt dieselbe Seite wie der Eintrag selbst.
 
 ## v26.19.5
 

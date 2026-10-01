@@ -21,6 +21,7 @@ import dev.chojo.ember.util.Json;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,7 +128,7 @@ public class GdprExportService {
     /**
      * ZIP archive containing {@code data.json}, an optional {@code data.pdf}, and the user's KB files.
      */
-    public byte[] exportAccountDataAsZip(int accountId, String locale) {
+    public byte[] exportAccountDataAsZip(int accountId, @Nullable String locale) {
         var data = exportAccountData(accountId);
 
         try (var baos = new ByteArrayOutputStream();
@@ -207,7 +208,7 @@ public class GdprExportService {
                 .first();
     }
 
-    private byte[] generatePdf(Map<String, Object> data, String locale) {
+    private byte @Nullable [] generatePdf(Map<String, Object> data, @Nullable String locale) {
         String lang = locale != null && locale.startsWith("en") ? "en" : "de";
         try {
             return TypstCompiler.compileTemplate(data, lang + "/gdpr-export", null);

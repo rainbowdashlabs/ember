@@ -103,7 +103,12 @@ public class ApplicationLogRepository {
      */
     private record Filter(String sql, Call call) {}
 
-    private Filter filter(List<String> levels, String search, String logger, String threadGroup, Long before) {
+    private Filter filter(
+            List<String> levels,
+            @Nullable String search,
+            @Nullable String logger,
+            @Nullable String threadGroup,
+            @Nullable Long before) {
         String term = pattern(search);
         var wanted = levels.stream().filter(KNOWN_LEVELS::contains).toList();
         var sql = new StringBuilder();
@@ -141,7 +146,12 @@ public class ApplicationLogRepository {
      * @param limit       how many lines at most
      */
     public List<LogEntry> search(
-            List<String> levels, String search, String logger, String threadGroup, Long before, int limit) {
+            List<String> levels,
+            @Nullable String search,
+            @Nullable String logger,
+            @Nullable String threadGroup,
+            @Nullable Long before,
+            int limit) {
         var filter = filter(levels, search, logger, threadGroup, before);
         return query("""
                         SELECT
@@ -165,7 +175,11 @@ public class ApplicationLogRepository {
      * @param nameSearch a fragment of the logger name, which is how one below the limit is reached
      */
     public List<LogFacet> loggerFacets(
-            List<String> levels, String search, String threadGroup, String nameSearch, int limit) {
+            List<String> levels,
+            @Nullable String search,
+            @Nullable String threadGroup,
+            @Nullable String nameSearch,
+            int limit) {
         return facets("logger", levels, search, null, threadGroup, nameSearch, limit);
     }
 
@@ -175,17 +189,21 @@ public class ApplicationLogRepository {
      * @param nameSearch a fragment of the thread name, matched against the numbered-off form
      */
     public List<LogFacet> threadFacets(
-            List<String> levels, String search, String logger, String nameSearch, int limit) {
+            List<String> levels,
+            @Nullable String search,
+            @Nullable String logger,
+            @Nullable String nameSearch,
+            int limit) {
         return facets(THREAD_GROUP, levels, search, logger, null, nameSearch, limit);
     }
 
     private List<LogFacet> facets(
             String expression,
             List<String> levels,
-            String search,
-            String logger,
-            String threadGroup,
-            String nameSearch,
+            @Nullable String search,
+            @Nullable String logger,
+            @Nullable String threadGroup,
+            @Nullable String nameSearch,
             int limit) {
         var filter = filter(levels, search, logger, threadGroup, null);
         String term = pattern(nameSearch);
@@ -245,7 +263,7 @@ public class ApplicationLogRepository {
         query("DELETE FROM application_log;").single(call()).delete();
     }
 
-    private static String pattern(String search) {
+    private static @Nullable String pattern(@Nullable String search) {
         if (search == null || search.isBlank()) return null;
         return "%" + search.trim() + "%";
     }

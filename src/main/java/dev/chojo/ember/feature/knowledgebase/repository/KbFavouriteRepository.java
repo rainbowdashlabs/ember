@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.knowledgebase.repository;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFavourite;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFavouriteTarget;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -109,7 +110,7 @@ public class KbFavouriteRepository {
             UUID partnerStationUid,
             int entryId,
             String title,
-            String fileType,
+            @Nullable String fileType,
             String stationName) {
         query("""
                 INSERT INTO kb_favourite(member_id, target, partner_station_uid, partner_entry_id, title, file_type, station_name)
@@ -138,7 +139,7 @@ public class KbFavouriteRepository {
             UUID partnerStationUid,
             int entryId,
             String title,
-            String fileType,
+            @Nullable String fileType,
             String stationName) {
         query("""
                 UPDATE kb_favourite

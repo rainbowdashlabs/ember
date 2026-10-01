@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.media.entity.StationFileFolder;
 import dev.chojo.ember.feature.media.entity.StationFileTag;
 import dev.chojo.ember.feature.media.image.AcceptedFormats;
 import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.image.MediaTypes;
 import dev.chojo.ember.feature.media.repository.MediaFileRepository;
 import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
@@ -98,11 +99,19 @@ public class MediaLibraryService {
      * @param pageId    the page the upload came from, or {@code null} for a station-wide upload
      * @param memberId  the member uploading, or {@code null} when no member is in play (imports,
      *                  seeding, and anything the instance uploads)
+     * @param declaredType the type the upload declared, or {@code null} where it declared none, which
+     *                  is stored as {@link MediaTypes#UNTYPED}
      */
     public StationFile upload(
-            Integer stationId, Integer pageId, Integer memberId, String fileName, String mimeType, byte[] data)
+            @Nullable Integer stationId,
+            @Nullable Integer pageId,
+            @Nullable Integer memberId,
+            String fileName,
+            @Nullable String declaredType,
+            byte[] data)
             throws IOException {
-        boolean isImage = mimeType != null && mimeType.startsWith("image/");
+        String mimeType = Objects.requireNonNullElse(declaredType, MediaTypes.UNTYPED);
+        boolean isImage = mimeType.startsWith("image/");
         if (isImage) PixelBudget.requireWithin(data);
         if (stationId != null) {
             if (isImage) {
@@ -142,7 +151,10 @@ public class MediaLibraryService {
      * Non-image files always return the original.
      */
     public Optional<MediaContent> readVariant(
-            Integer stationId, String contentHash, Integer requestedWidth, String acceptHeader) {
+            @Nullable Integer stationId,
+            String contentHash,
+            @Nullable Integer requestedWidth,
+            @Nullable String acceptHeader) {
         if (contentHash == null || contentHash.isBlank()) return Optional.empty();
         var at = storage.locate(stationId, contentHash);
         return images.read(
@@ -161,7 +173,7 @@ public class MediaLibraryService {
      * none, and answers so rather than handing back the file under that name.
      */
     public Optional<MediaContent> readPicture(
-            Integer stationId, String contentHash, String mimeType, Integer requestedWidth) {
+            @Nullable Integer stationId, String contentHash, String mimeType, @Nullable Integer requestedWidth) {
         if (contentHash == null || contentHash.isBlank()) return Optional.empty();
         var at = storage.locate(stationId, contentHash);
         return images.picture(
@@ -169,7 +181,8 @@ public class MediaLibraryService {
     }
 
     /** The same, for a caller holding only the hash, which is how the delivery routes address a file. */
-    public Optional<MediaContent> readPicture(Integer stationId, String contentHash, Integer requestedWidth) {
+    public Optional<MediaContent> readPicture(
+            @Nullable Integer stationId, String contentHash, @Nullable Integer requestedWidth) {
         if (contentHash == null || contentHash.isBlank()) return Optional.empty();
         return fileRepository
                 .findByStationAndHash(stationId, contentHash)
@@ -179,7 +192,7 @@ public class MediaLibraryService {
     /**
      * Reads a file by station and content hash, which is how the delivery routes address it.
      */
-    public Optional<MediaContent> read(Integer stationId, String contentHash) {
+    public Optional<MediaContent> read(@Nullable Integer stationId, String contentHash) {
         if (contentHash == null || contentHash.isBlank()) return Optional.empty();
         if (fileRepository.findByStationAndHash(stationId, contentHash).isEmpty()) return Optional.empty();
         return original(stationId, contentHash);
@@ -191,7 +204,7 @@ public class MediaLibraryService {
         return original(file.stationId(), file.contentHash());
     }
 
-    private Optional<MediaContent> original(Integer stationId, String contentHash) {
+    private Optional<MediaContent> original(@Nullable Integer stationId, String contentHash) {
         var at = storage.locate(stationId, contentHash);
         return images.read(ImageProfile.LIBRARY, at.scope(), at.category(), at.key(), 0);
     }
@@ -207,7 +220,7 @@ public class MediaLibraryService {
      * @param contentHash the hash the file is addressed by
      * @return the file, or empty where that library holds none by this hash
      */
-    public Optional<StationFile> findByHash(Integer stationId, String contentHash) {
+    public Optional<StationFile> findByHash(@Nullable Integer stationId, String contentHash) {
         return fileRepository.findByStationAndHash(stationId, contentHash);
     }
 
@@ -219,7 +232,7 @@ public class MediaLibraryService {
      * @param stationId the station whose library to list, or null for the instance's own
      * @param keptBackToo whether the files events keep back from the room belong in the answer
      */
-    public List<FileListing> listLibrary(Integer stationId, boolean keptBackToo) {
+    public List<FileListing> listLibrary(@Nullable Integer stationId, boolean keptBackToo) {
         return decorate(stationId, withoutKeptBack(stationId, fileRepository.findByStation(stationId), keptBackToo));
     }
 
@@ -241,18 +254,19 @@ public class MediaLibraryService {
      * <p>Asked at the library door as well as at the event, because a file the event leaves out of
      * its list must not be reachable by knowing the hash of its bytes.
      */
-    public boolean keptBack(Integer stationId, String contentHash) {
+    public boolean keptBack(@Nullable Integer stationId, String contentHash) {
         return references.keptBack(stationId, contentHash);
     }
 
-    private List<StationFile> withoutKeptBack(Integer stationId, List<StationFile> files, boolean keptBackToo) {
+    private List<StationFile> withoutKeptBack(
+            @Nullable Integer stationId, List<StationFile> files, boolean keptBackToo) {
         if (keptBackToo || stationId == null) return files;
         Set<Integer> keptBack = references.keptBackFiles(stationId);
         if (keptBack.isEmpty()) return files;
         return files.stream().filter(file -> !keptBack.contains(file.id())).toList();
     }
 
-    private List<FileListing> decorate(Integer stationId, List<StationFile> files) {
+    private List<FileListing> decorate(@Nullable Integer stationId, List<StationFile> files) {
         // Which files nothing points at is worked out by reading a station's content. The instance
         // has none of that to read, so its files are listed without the claim rather than with a
         // guess: saying "unused" about a file nobody has looked for would be worse than saying
@@ -372,7 +386,7 @@ public class MediaLibraryService {
 
     // --- Metadata ---
 
-    public boolean updateFileMeta(int stationId, int fileId, String altText, String description) {
+    public boolean updateFileMeta(int stationId, int fileId, @Nullable String altText, @Nullable String description) {
         var existing = fileRepository.findById(fileId).orElse(null);
         if (existing == null || !Integer.valueOf(stationId).equals(existing.stationId())) {
             log.warn("Metadata update for media file {} skipped: not a file of station {}", fileId, stationId);
@@ -384,7 +398,7 @@ public class MediaLibraryService {
         return updated;
     }
 
-    public boolean moveFileToFolder(int stationId, int fileId, Integer folderId) {
+    public boolean moveFileToFolder(int stationId, int fileId, @Nullable Integer folderId) {
         var file = fileRepository.findById(fileId).orElse(null);
         if (file == null || !Integer.valueOf(stationId).equals(file.stationId())) return false;
         boolean moved = metaRepository.moveFileToFolder(fileId, folderId);
@@ -396,7 +410,7 @@ public class MediaLibraryService {
 
     // --- Folders ---
 
-    public StationFileFolder createFolder(int stationId, Integer parentId, String name, int sortOrder) {
+    public StationFileFolder createFolder(int stationId, @Nullable Integer parentId, String name, int sortOrder) {
         var folder = metaRepository.createFolder(stationId, parentId, name, sortOrder);
         log.info("Media folder {} created in station {}", folder.id(), stationId);
         return folder;
@@ -406,7 +420,7 @@ public class MediaLibraryService {
         return metaRepository.findFoldersByStation(stationId);
     }
 
-    public boolean updateFolder(int stationId, int folderId, Integer parentId, String name, int sortOrder) {
+    public boolean updateFolder(int stationId, int folderId, @Nullable Integer parentId, String name, int sortOrder) {
         var folder = metaRepository.findFolder(folderId).orElse(null);
         if (folder == null || folder.stationId() != stationId) return false;
         boolean updated = metaRepository.updateFolder(folderId, parentId, name, sortOrder);
@@ -428,7 +442,7 @@ public class MediaLibraryService {
 
     // --- Tags ---
 
-    public StationFileTag createTag(int stationId, String name, String color) {
+    public StationFileTag createTag(int stationId, String name, @Nullable String color) {
         var tag = metaRepository.createTag(stationId, name, color);
         log.info("Media tag {} created in station {}", tag.id(), stationId);
         return tag;
@@ -438,7 +452,7 @@ public class MediaLibraryService {
         return metaRepository.findTagsByStation(stationId);
     }
 
-    public boolean updateTag(int stationId, int tagId, String name, String color) {
+    public boolean updateTag(int stationId, int tagId, String name, @Nullable String color) {
         var tag = metaRepository.findTag(tagId).orElse(null);
         if (tag == null || tag.stationId() != stationId) return false;
         boolean updated = metaRepository.updateTag(tagId, name, color);
@@ -480,7 +494,7 @@ public class MediaLibraryService {
         return unassigned;
     }
 
-    private void recordUploader(int fileId, Integer memberId) {
+    private void recordUploader(int fileId, @Nullable Integer memberId) {
         if (memberId == null) return;
         fileRepository.addUploader(fileId, memberId);
     }

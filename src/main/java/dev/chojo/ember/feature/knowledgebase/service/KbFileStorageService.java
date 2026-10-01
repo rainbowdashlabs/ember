@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.util.FilePaths;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +69,7 @@ public class KbFileStorageService {
      * Persists the binary content for a (stationId, fileId) pair. Picks gzip transparently
      * when {@link TextCompressionPolicy#shouldGzip(String)} returns true.
      */
-    public void store(int stationId, int fileId, byte[] data, String contentType) {
+    public void store(int stationId, int fileId, byte[] data, @Nullable String contentType) {
         StorageScope.Station scope = stationScope(stationId);
         if (compression.shouldGzip(contentType)) {
             byte[] gzipped = compression.gzip(data);

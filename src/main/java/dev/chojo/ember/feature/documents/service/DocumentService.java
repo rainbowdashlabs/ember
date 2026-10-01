@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.image.MediaTypes;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
@@ -20,6 +21,7 @@ import dev.chojo.ember.util.PdfText;
 import dev.chojo.ember.util.sql.FullTextSearch;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,18 +65,21 @@ public class DocumentService {
      * Takes a document in, keeps its bytes and makes a picture of it where one can be made.
      *
      * @param memberIds the members it concerns, at least one
+     * @param declaredType the type the upload declared, or {@code null} where it declared none, which
+     *                     is kept as {@link MediaTypes#UNTYPED}
      */
     public Document store(
             int stationId,
             List<Integer> memberIds,
             String title,
             String fileName,
-            String mimeType,
+            @Nullable String declaredType,
             byte[] data,
             boolean hidden,
             boolean keepOnArchive,
-            Integer uploadedBy,
+            @Nullable Integer uploadedBy,
             List<String> tags) {
+        String mimeType = Objects.requireNonNullElse(declaredType, MediaTypes.UNTYPED);
         var document = repository.create(
                 stationId, title, fileName, mimeType, data.length, hidden, keepOnArchive, uploadedBy, memberIds);
         var scope = scope(stationId);

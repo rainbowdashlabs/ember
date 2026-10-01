@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbRefusalReason;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
@@ -15,6 +17,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +70,7 @@ public class KbMoveService {
      * @param targetFolderId the folder entries would go into, or {@code null} for the tree root
      * @return the reason it cannot be used, or {@code null} when it can
      */
-    public KbRefusalReason checkTarget(MemberAccess access, int stationId, Integer targetFolderId) {
+    public @Nullable KbRefusalReason checkTarget(MemberAccess access, int stationId, @Nullable Integer targetFolderId) {
         if (targetFolderId == null) return null;
         var target = repository.findFolderById(targetFolderId).orElse(null);
         if (target == null || target.stationId() != stationId) return KbRefusalReason.NOT_FOUND;
@@ -90,7 +93,7 @@ public class KbMoveService {
      * @param targetFolderId the folder it should sit in, or {@code null} for the tree root
      * @return whether it moved, and why it did not
      */
-    public MoveResult moveFolder(MemberAccess access, int stationId, int folderId, Integer targetFolderId) {
+    public MoveResult moveFolder(MemberAccess access, int stationId, int folderId, @Nullable Integer targetFolderId) {
         var folder = repository.findFolderById(folderId).orElse(null);
         if (folder == null || folder.stationId() != stationId) {
             return MoveResult.refused(null, KbRefusalReason.NOT_FOUND);
@@ -124,7 +127,7 @@ public class KbMoveService {
      * @param targetFolderId the folder it should sit in, or {@code null} for the tree root
      * @return whether it moved, and why it did not
      */
-    public MoveResult moveFile(MemberAccess access, int stationId, int fileId, Integer targetFolderId) {
+    public MoveResult moveFile(MemberAccess access, int stationId, int fileId, @Nullable Integer targetFolderId) {
         var file = repository.findFileById(fileId).orElse(null);
         if (file == null || file.stationId() != stationId) return MoveResult.refused(null, KbRefusalReason.NOT_FOUND);
         if (!accessService.effectiveLevel(access, null, fileId).covers(KbAccessLevel.MANAGE)) {
@@ -149,15 +152,24 @@ public class KbMoveService {
      * @param targetFolderId the folder it would go into, or {@code null} for the tree root
      * @return how far it reaches now and how far it would reach there
      */
-    public MovePreview preview(int stationId, Integer folderId, Integer fileId, Integer targetFolderId) {
+    public MovePreview preview(
+            int stationId, @Nullable Integer folderId, @Nullable Integer fileId, @Nullable Integer targetFolderId) {
         var mode =
                 stationRepository.findById(stationId).map(Station::publicKbMode).orElse(PublicKbMode.OFF);
-        Integer currentParent = folderId != null
-                ? repository.findFolderById(folderId).map(f -> f.parentId()).orElse(null)
-                : repository.findFileById(fileId).map(f -> f.folderId()).orElse(null);
+        Integer currentParent = currentParentOf(folderId, fileId);
         return new MovePreview(
                 reachOf(mode, stationId, folderId, fileId, currentParent, true),
                 reachOf(mode, stationId, folderId, fileId, targetFolderId, false));
+    }
+
+    private @Nullable Integer currentParentOf(@Nullable Integer folderId, @Nullable Integer fileId) {
+        if (folderId != null) {
+            return repository.findFolderById(folderId).map(KbFolder::parentId).orElse(null);
+        }
+        if (fileId != null) {
+            return repository.findFileById(fileId).map(KbFile::folderId).orElse(null);
+        }
+        return null;
     }
 
     /**
@@ -166,7 +178,12 @@ public class KbMoveService {
      * federation could otherwise see it, because that is the sharper thing to know about it.
      */
     private KbReach reachOf(
-            PublicKbMode mode, int stationId, Integer folderId, Integer fileId, Integer parentId, boolean current) {
+            PublicKbMode mode,
+            int stationId,
+            @Nullable Integer folderId,
+            @Nullable Integer fileId,
+            @Nullable Integer parentId,
+            boolean current) {
         boolean publicly = current
                 ? accessService.isPubliclyVisible(mode, folderId, fileId)
                 : accessService.isPubliclyVisibleUnder(mode, parentId, folderId, fileId);
@@ -199,12 +216,13 @@ public class KbMoveService {
      *               {@code null} only when there was no entry to name
      * @param reason why it stayed where it was, or {@code null} when it moved
      */
-    public record MoveResult(boolean moved, String name, KbRefusalReason reason) {
+    public record MoveResult(
+            boolean moved, @Nullable String name, @Nullable KbRefusalReason reason) {
         public static MoveResult moved(String name) {
             return new MoveResult(true, name, null);
         }
 
-        public static MoveResult refused(String name, KbRefusalReason reason) {
+        public static MoveResult refused(@Nullable String name, KbRefusalReason reason) {
             return new MoveResult(false, name, reason);
         }
     }

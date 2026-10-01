@@ -15,6 +15,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -183,7 +184,7 @@ public class ConsentService {
      * @param toVersion   the version hash to diff to
      * @return the line-based diff text, or null if unavailable
      */
-    public String getPrivacyDiff(String fromVersion, String toVersion) {
+    public @Nullable String getPrivacyDiff(String fromVersion, String toVersion) {
         return documentService.getDiff(privacyPolicyDir, fromVersion, toVersion);
     }
 
@@ -196,7 +197,7 @@ public class ConsentService {
      * @param toVersion   the version hash to diff to
      * @return the line-based diff text, or null if unavailable
      */
-    public String getTosDiff(String fromVersion, String toVersion) {
+    public @Nullable String getTosDiff(String fromVersion, String toVersion) {
         return documentService.getDiff(tosDir, fromVersion, toVersion);
     }
 
@@ -217,8 +218,8 @@ public class ConsentService {
             String privacyVersion,
             String tosVersion,
             String ipAddress,
-            String country,
-            String userAgent) {
+            @Nullable String country,
+            @Nullable String userAgent) {
         accountRepository.recordConsent(
                 accountId, consentVersion, privacyVersion, tosVersion, ipAddress, country, userAgent);
         log.info(
@@ -255,7 +256,10 @@ public class ConsentService {
      *                            documents and re-prompt)
      */
     public ConsentProof requireAcceptance(
-            Context ctx, String consentVersion, String privacyVersion, String tosVersion) {
+            Context ctx,
+            @Nullable String consentVersion,
+            @Nullable String privacyVersion,
+            @Nullable String tosVersion) {
         if (consentVersion == null || consentVersion.isBlank()) {
             throw new BadRequestResponse("consentVersion is required");
         }

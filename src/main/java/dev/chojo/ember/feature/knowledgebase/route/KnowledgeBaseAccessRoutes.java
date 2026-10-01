@@ -81,7 +81,7 @@ public class KnowledgeBaseAccessRoutes implements Routes {
      * Writes the audience of a folder or file, taking the levelled grants when the editor sent them
      * and the plain audience lists otherwise.
      */
-    private void applyRestrictions(Integer folderId, Integer fileId, KbRestrictionRequest req) {
+    private void applyRestrictions(@Nullable Integer folderId, @Nullable Integer fileId, KbRestrictionRequest req) {
         if (req.grants() != null) {
             accessService.setGrants(
                     folderId,

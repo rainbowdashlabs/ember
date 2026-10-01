@@ -132,7 +132,12 @@ public class DocumentCatalogService {
      * @param page          which page, counted from zero
      */
     public record StoreQuery(
-            List<Integer> memberIds, String search, boolean includeHidden, boolean unboundOnly, int size, int page) {}
+            List<Integer> memberIds,
+            @Nullable String search,
+            boolean includeHidden,
+            boolean unboundOnly,
+            int size,
+            int page) {}
 
     /**
      * One document as a reader sees it.

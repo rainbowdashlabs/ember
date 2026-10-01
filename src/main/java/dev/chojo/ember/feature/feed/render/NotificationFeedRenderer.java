@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.net.URISyntaxException;
 import java.time.ZoneId;
@@ -99,7 +100,7 @@ public class NotificationFeedRenderer {
         return module;
     }
 
-    private static String escapeHtml(String s) {
+    private static String escapeHtml(@Nullable String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
@@ -117,7 +118,7 @@ public class NotificationFeedRenderer {
     /**
      * The clock one station's times are written in, UTC where the station is unknown.
      */
-    private ZoneId zoneOf(Integer stationId) {
+    private ZoneId zoneOf(@Nullable Integer stationId) {
         if (stationId == null) return ZoneOffset.UTC;
         return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
     }
@@ -136,7 +137,8 @@ public class NotificationFeedRenderer {
         String link = notificationText.resolveNotificationUrl(ctx.baseUrl(), ctx.stationUid(), notification.data());
         String fallback = ctx.baseUrl() + "/station/dashboard/overview";
         if (ctx.stationUid() != null) fallback = fallback + "?station=" + ctx.stationUid();
-        entry.setLink(link != null ? link : fallback);
+        String target = link != null ? link : fallback;
+        entry.setLink(target);
 
         String author = author(notification);
         if (author != null) entry.setAuthor(author);
@@ -153,7 +155,7 @@ public class NotificationFeedRenderer {
         FeedImage image = image(notification);
         SyndContent html = new SyndContentImpl();
         html.setType("text/html");
-        html.setValue(renderHtml(notification, ctx, link, image));
+        html.setValue(renderHtml(notification, ctx, target, image));
         entry.setContents(new ArrayList<>(List.of(html)));
 
         if (ctx.images()) {
@@ -166,7 +168,7 @@ public class NotificationFeedRenderer {
     }
 
     /** The actor on the notification, which readers show as the entry's author. */
-    private String author(Notification notification) {
+    private @Nullable String author(Notification notification) {
         var params = notification.data().params();
         if (params == null) return null;
         return contributors.stream()
@@ -176,7 +178,7 @@ public class NotificationFeedRenderer {
                 .orElse(null);
     }
 
-    private FeedImage image(Notification notification) {
+    private @Nullable FeedImage image(Notification notification) {
         var params = notification.data().params();
         if (params == null) return null;
         return contributors.stream()
@@ -190,7 +192,7 @@ public class NotificationFeedRenderer {
      * Where a reader fetches an entry's picture: below the feed token, so no sign-in is needed. An
      * entry without a picture, or a render without a token, has none.
      */
-    private static String imageUrl(FeedImage image, RenderContext ctx) {
+    private static @Nullable String imageUrl(@Nullable FeedImage image, RenderContext ctx) {
         if (image == null || ctx.feedToken() == null) return null;
         return ctx.baseUrl() + "/api/v1/public/feed/" + ctx.feedToken() + "/" + image.path();
     }
@@ -201,7 +203,7 @@ public class NotificationFeedRenderer {
      * asks). Detail values are escaped before their line breaks become {@code <br>}, so a multi-line
      * preview keeps its paragraphs.
      */
-    private String renderHtml(Notification notification, RenderContext ctx, String link, FeedImage image) {
+    private String renderHtml(Notification notification, RenderContext ctx, String link, @Nullable FeedImage image) {
         var sb = new StringBuilder();
         sb.append("<div lang=\"")
                 .append(ctx.locale())
@@ -221,7 +223,7 @@ public class NotificationFeedRenderer {
 
         if (ctx.verbose()) {
             appendDetails(sb, collectDetails(notification, ctx));
-            if (ctx.images()) {
+            if (ctx.images() && image != null) {
                 String imageUrl = imageUrl(image, ctx);
                 if (imageUrl != null) {
                     sb.append("<img src=\"")

@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -128,7 +129,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         return station;
     }
 
-    private void requirePubliclyVisible(Station station, Integer folderId, Integer fileId) {
+    private void requirePubliclyVisible(Station station, @Nullable Integer folderId, @Nullable Integer fileId) {
         if (!accessService.isPubliclyVisible(station.publicKbMode(), folderId, fileId)) {
             throw Refusal.PUBLIC_KB_ENTRY_NOT_HERE.raise();
         }
@@ -245,8 +246,8 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                 var content = contentService.getMarkdownContent(id).orElse("");
                 ctx.contentType("text/plain").result(content);
             }
-            case YOUTUBE -> ctx.json(new YoutubeContentResponse(file.youtubeUrl() != null ? file.youtubeUrl() : ""));
-            case LINK -> ctx.json(new LinkContentResponse(file.linkUrl() != null ? file.linkUrl() : ""));
+            case YOUTUBE -> ctx.json(new YoutubeContentResponse(Objects.requireNonNullElse(file.youtubeUrl(), "")));
+            case LINK -> ctx.json(new LinkContentResponse(Objects.requireNonNullElse(file.linkUrl(), "")));
             case PDF, IMAGE, OTHER -> {
                 var contentType = contentService.getFileContentType(id);
                 var content = contentService.getFileContent(id);

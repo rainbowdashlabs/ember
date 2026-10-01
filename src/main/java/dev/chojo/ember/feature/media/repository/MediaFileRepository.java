@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -42,7 +43,12 @@ public class MediaFileRepository {
      *                  and every station can be served
      */
     public StationFile create(
-            Integer pageId, Integer stationId, String contentHash, String fileName, String mimeType, long fileSize) {
+            @Nullable Integer pageId,
+            @Nullable Integer stationId,
+            String contentHash,
+            String fileName,
+            String mimeType,
+            long fileSize) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
@@ -78,7 +84,7 @@ public class MediaFileRepository {
      *
      * @param stationId the station whose library to look in, or null for the instance's
      */
-    public Optional<StationFile> findByStationAndHash(Integer stationId, String contentHash) {
+    public Optional<StationFile> findByStationAndHash(@Nullable Integer stationId, String contentHash) {
         return query("""
                 SELECT %s
                 FROM station_file
@@ -101,7 +107,7 @@ public class MediaFileRepository {
      *
      * @param stationId the station whose library to list, or null for the instance's
      */
-    public List<StationFile> findByStation(Integer stationId) {
+    public List<StationFile> findByStation(@Nullable Integer stationId) {
         return query("""
                         SELECT %s FROM station_file
                         WHERE station_id IS NOT DISTINCT FROM :station_id
@@ -132,7 +138,7 @@ public class MediaFileRepository {
         return SqlSupport.deleteById("station_file", fileId);
     }
 
-    public boolean updateMeta(int fileId, String altText, String description) {
+    public boolean updateMeta(int fileId, @Nullable String altText, @Nullable String description) {
         return query("""
                 UPDATE station_file
                 SET default_alt_text = :alt, default_description = :description

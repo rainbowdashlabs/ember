@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.legal.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
@@ -39,8 +40,8 @@ public record ConsentProof(
         String privacyVersion,
         String tosVersion,
         String ipAddress,
-        String country,
-        String userAgent,
+        @Nullable String country,
+        @Nullable String userAgent,
         Instant consentedAt) {
 
     private static final ObjectMapper MAPPER = Json.CONFIG_MAPPER;
@@ -53,7 +54,7 @@ public record ConsentProof(
      * @param json the JSON payload as stored in the {@code consent_proof} column
      * @return the parsed proof, or {@code null} when none could be recovered
      */
-    public static ConsentProof parse(String json) {
+    public static @Nullable ConsentProof parse(@Nullable String json) {
         if (json == null || json.isBlank()) return null;
         try {
             return MAPPER.readValue(json, ConsentProof.class);

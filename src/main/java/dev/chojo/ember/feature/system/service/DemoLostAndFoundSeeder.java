@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +57,7 @@ public class DemoLostAndFoundSeeder implements DemoPerStationSeeder {
      * @return one of the seeded items so callers (e.g. the notification showcase) can
      * construct a deep link with a real id.
      */
-    public LostAndFoundItem seed(
+    public @Nullable LostAndFoundItem seed(
             LocalDate today,
             int stationId,
             List<StationMember> betreuer,

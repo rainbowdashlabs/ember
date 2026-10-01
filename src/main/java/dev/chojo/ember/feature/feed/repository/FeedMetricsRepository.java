@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.feed.entity.FeedMetricDaily;
 import dev.chojo.ember.feature.feed.entity.FeedUserAgentStat;
 import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -118,7 +119,7 @@ public class FeedMetricsRepository {
      * treat exceptions as non-fatal because feed rendering must never fail because of a
      * telemetry write.
      */
-    public void recordRequest(String userAgent) {
+    public void recordRequest(@Nullable String userAgent) {
         if (userAgent == null || userAgent.isBlank()) return;
         String truncated = userAgent.length() > UA_MAX_LENGTH ? userAgent.substring(0, UA_MAX_LENGTH) : userAgent;
         String hash = Sha256.hexPrefix(truncated, 16);

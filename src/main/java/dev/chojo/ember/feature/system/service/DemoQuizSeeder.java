@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -777,7 +778,7 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
         }
     }
 
-    private String generateShowcaseAnswer(QuizQuestion q) {
+    private @Nullable String generateShowcaseAnswer(QuizQuestion q) {
         try {
             var cfg = q.configNode();
             return switch (q.quizQuestionType()) {
@@ -865,7 +866,7 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
         }
     }
 
-    private String generateDemoAnswer(QuizQuestion q, boolean correct) {
+    private @Nullable String generateDemoAnswer(QuizQuestion q, boolean correct) {
         try {
             var cfg = q.configNode();
             return switch (q.quizQuestionType()) {

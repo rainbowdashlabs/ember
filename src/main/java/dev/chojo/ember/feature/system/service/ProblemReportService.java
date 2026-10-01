@@ -53,7 +53,7 @@ public class ProblemReportService {
      * @param request      the report as the dialog sent it
      * @return the report as stored
      */
-    public ProblemReport submit(int stationId, Integer memberId, String reporterName, ReportRequest request) {
+    public ProblemReport submit(int stationId, @Nullable Integer memberId, String reporterName, ReportRequest request) {
         if (request.message() == null || request.message().isBlank()) {
             throw Refusal.PROBLEM_REPORT_NEEDS_A_MESSAGE.raise();
         }
@@ -86,7 +86,7 @@ public class ProblemReportService {
      *                      of once it has gone, which is what a covered copy is
      * @return whether the report was queued, false when the queue is full
      */
-    public boolean forward(ProblemReport report, Integer pictureFileId, boolean temporary) {
+    public boolean forward(ProblemReport report, @Nullable Integer pictureFileId, boolean temporary) {
         Optional<MediaContent> picture = pictureFileId == null ? Optional.empty() : screenshots.read(pictureFileId);
         boolean queued = beacon.sendReportNow(
                 report,
@@ -125,8 +125,9 @@ public class ProblemReportService {
      */
     public MediaContent picture(int id) {
         var report = reports.findById(id).orElseThrow(Refusal.PROBLEM_REPORT_NOT_HERE::raise);
-        if (!report.hasScreenshot()) throw Refusal.PROBLEM_REPORT_HAS_NO_PICTURE.raise();
-        return screenshots.read(report.screenshotFileId()).orElseThrow(Refusal.PROBLEM_REPORT_PICTURE_NOT_HERE::raise);
+        Integer screenshotFileId = report.screenshotFileId();
+        if (screenshotFileId == null) throw Refusal.PROBLEM_REPORT_HAS_NO_PICTURE.raise();
+        return screenshots.read(screenshotFileId).orElseThrow(Refusal.PROBLEM_REPORT_PICTURE_NOT_HERE::raise);
     }
 
     /**

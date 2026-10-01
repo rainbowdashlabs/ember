@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.system.repository.ApplicationLogRepository;
 import dev.chojo.ember.feature.system.repository.ApplicationLogRepository.LogEntry;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +60,7 @@ public class ApplicationLogService {
      *               starts at the top, since it only serves reading further back
      * @param limit  how many lines at most, held between 1 and 500
      */
-    public ApplicationLogPage page(LogFilter filter, String before, int limit) {
+    public ApplicationLogPage page(LogFilter filter, @Nullable String before, int limit) {
         List<String> levels = filter.levelList();
         var logging = conf.main().logging();
         return new ApplicationLogPage(
@@ -85,10 +86,10 @@ public class ApplicationLogService {
      * again, and so that one below the top of the list can still be reached.
      *
      * @param threads whether threads rather than loggers are wanted
-     * @param name    a fragment of the name
+     * @param name    a fragment of the name, or null for all
      * @param limit   how many at most, held between 1 and 200
      */
-    public List<LogFacet> facets(LogFilter filter, boolean threads, String name, int limit) {
+    public List<LogFacet> facets(LogFilter filter, boolean threads, @Nullable String name, int limit) {
         int held = Math.clamp(limit, 1, 200);
         return threads
                 ? logs.threadFacets(filter.levelList(), filter.search(), filter.logger(), name, held)
@@ -129,7 +130,7 @@ public class ApplicationLogService {
         return config();
     }
 
-    private static Long cursor(String value) {
+    private static @Nullable Long cursor(@Nullable String value) {
         if (value == null || value.isBlank()) return null;
         try {
             return Long.valueOf(value.trim());
@@ -143,11 +144,15 @@ public class ApplicationLogService {
      *
      * @param levels the severities as the client sent them, separated by commas; unknown ones are
      *               dropped
-     * @param search a fragment of the message
-     * @param logger one logger
-     * @param thread one thread, numbered off
+     * @param search a fragment of the message, or null for all
+     * @param logger one logger, or null for all
+     * @param thread one thread, numbered off, or null for all
      */
-    public record LogFilter(String levels, String search, String logger, String thread) {
+    public record LogFilter(
+            @Nullable String levels,
+            @Nullable String search,
+            @Nullable String logger,
+            @Nullable String thread) {
         List<String> levelList() {
             String raw = levels == null ? "" : levels;
             return Arrays.stream(raw.split(","))

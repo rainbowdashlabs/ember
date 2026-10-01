@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.dataformat.xml.XmlMapper;
 import tools.jackson.dataformat.xml.XmlWriteFeature;
 import tools.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
@@ -61,12 +62,12 @@ public class SitemapService {
         this.apiConfig = apiConfig;
     }
 
-    private static String formatDate(Instant instant) {
+    private static @Nullable String formatDate(@Nullable Instant instant) {
         if (instant == null) return null;
         return W3C_DATETIME.format(instant.atOffset(ZoneOffset.UTC));
     }
 
-    private static Instant later(Instant current, Instant candidate) {
+    private static @Nullable Instant later(@Nullable Instant current, @Nullable Instant candidate) {
         if (candidate == null) return current;
         return current == null || candidate.isAfter(current) ? candidate : current;
     }
@@ -116,7 +117,7 @@ public class SitemapService {
         return XML_MAPPER.writeValueAsString(new Urlset(urls));
     }
 
-    private Instant addKnowledgeBase(Station station, String stationBase, List<UrlEntry> urls) {
+    private @Nullable Instant addKnowledgeBase(Station station, String stationBase, List<UrlEntry> urls) {
         Instant latest = null;
         for (var file : kbService.findAllPublicFiles(station.id(), station.publicKbMode())) {
             urls.add(new UrlEntry(
@@ -127,7 +128,7 @@ public class SitemapService {
         return latest;
     }
 
-    private Instant addPages(Station station, String stationBase, List<UrlEntry> urls) {
+    private @Nullable Instant addPages(Station station, String stationBase, List<UrlEntry> urls) {
         Instant latest = null;
         for (var page : pageService.listListedPages(station.id())) {
             var priority = page.parentId() == null ? "0.7" : "0.6";
@@ -187,7 +188,9 @@ public class SitemapService {
 
     record SitemapEntry(
             @JacksonXmlProperty(namespace = SITEMAP_NS) String loc,
-            @JacksonXmlProperty(namespace = SITEMAP_NS) String lastmod) {}
+
+            @JacksonXmlProperty(namespace = SITEMAP_NS) @Nullable
+            String lastmod) {}
 
     @JsonRootName(value = "urlset", namespace = SITEMAP_NS)
     record Urlset(
@@ -199,5 +202,7 @@ public class SitemapService {
             @JacksonXmlProperty(namespace = SITEMAP_NS) String loc,
             @JacksonXmlProperty(namespace = SITEMAP_NS) String priority,
             @JacksonXmlProperty(namespace = SITEMAP_NS) String changefreq,
-            @JacksonXmlProperty(namespace = SITEMAP_NS) String lastmod) {}
+
+            @JacksonXmlProperty(namespace = SITEMAP_NS) @Nullable
+            String lastmod) {}
 }

@@ -173,7 +173,7 @@ public class MediaRoutes implements Routes {
         ctx.result(picture.data());
     }
 
-    private static Integer parseOptionalWidth(String raw) {
+    private static @Nullable Integer parseOptionalWidth(@Nullable String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
             int value = Integer.parseInt(raw);

@@ -25,6 +25,7 @@ import dev.chojo.ember.util.FilePicture;
 import dev.chojo.ember.util.PixelBudget;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -299,7 +300,7 @@ public class ImageVariants {
      *
      * @return the picture, or null where none can be made
      */
-    private static BufferedImage librarySource(String mimeType, byte[] data, String key) {
+    private static @Nullable BufferedImage librarySource(String mimeType, byte[] data, String key) {
         try {
             if (isDocument(mimeType)) return FilePicture.firstPage(data, PDF_RENDER_DPI);
             if (ImageFormat.ofMimeType(mimeType).filter(ImageFormat.GIF::equals).isPresent()) return null;

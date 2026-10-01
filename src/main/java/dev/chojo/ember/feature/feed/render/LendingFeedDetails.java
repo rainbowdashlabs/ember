@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * What a feed entry says about a lending between stations: the other station, the request, its
@@ -49,7 +50,7 @@ public class LendingFeedDetails implements FeedDetailsContributor {
     }
 
     @Override
-    public String author(NotificationParams params) {
+    public @Nullable String author(NotificationParams params) {
         return params instanceof NotificationParams.LendingNewMessage p ? p.senderName() : null;
     }
 

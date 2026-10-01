@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.util.FilePicture;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +68,7 @@ public class KbFilePictureService {
      * kind that has none loses any picture it had before, which is what a PDF replaced by a
      * spreadsheet should do.
      */
-    public void make(int stationId, int fileId, String mimeType, byte[] data) {
+    public void make(int stationId, int fileId, @Nullable String mimeType, byte[] data) {
         unmakeable.remove(memo(stationId, fileId));
         String type = pictureType(mimeType, data);
         if (!FilePicture.exists(type)) {
@@ -93,7 +94,7 @@ public class KbFilePictureService {
      *
      * @param size the longest side wanted, answered by the nearest size kept at or above it
      */
-    public Optional<MediaContent> read(int stationId, int fileId, String mimeType, int size) {
+    public Optional<MediaContent> read(int stationId, int fileId, @Nullable String mimeType, int size) {
         var existing = images.read(PROFILE, scope(stationId), CATEGORY, key(fileId), size);
         if (existing.isPresent() || !mayHavePicture(mimeType)) return existing;
         if (unmakeable.contains(memo(stationId, fileId))) return Optional.empty();
@@ -110,7 +111,7 @@ public class KbFilePictureService {
      * a type that says nothing must not be taken for proof that there is none. A declared type that
      * says something else, a spreadsheet's, is believed.
      */
-    static String pictureType(String storedType, byte[] data) {
+    static @Nullable String pictureType(@Nullable String storedType, byte[] data) {
         if (!isUntyped(storedType)) return storedType;
         var image = ImageFormat.sniff(data);
         if (image.isPresent()) return image.get().mimeType();
@@ -118,11 +119,11 @@ public class KbFilePictureService {
     }
 
     /** Whether a file of this stored type may turn out to have a picture once its bytes are read. */
-    private static boolean mayHavePicture(String storedType) {
+    private static boolean mayHavePicture(@Nullable String storedType) {
         return FilePicture.exists(storedType) || isUntyped(storedType);
     }
 
-    private static boolean isUntyped(String storedType) {
+    private static boolean isUntyped(@Nullable String storedType) {
         return storedType == null || storedType.isBlank() || UNTYPED.contains(storedType.toLowerCase(Locale.ROOT));
     }
 

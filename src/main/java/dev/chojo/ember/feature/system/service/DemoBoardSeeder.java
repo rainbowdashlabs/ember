@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +63,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
-    private Comment ticketComment(int ticketId, Integer parentId, MemberIdentity author, String content) {
+    private Comment ticketComment(int ticketId, @Nullable Integer parentId, MemberIdentity author, String content) {
         return commentRepo.create(CommentEntityType.BOARD_TICKET, ticketId, null, parentId, author, content);
     }
 
@@ -847,10 +848,10 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
             int laneId,
             int ticketNumber,
             String title,
-            String description,
-            Integer assignedMemberId,
+            @Nullable String description,
+            @Nullable Integer assignedMemberId,
             TicketPriority priority,
-            LocalDate dueDate,
+            @Nullable LocalDate dueDate,
             int createdBy) {
         int num = boardRepo.nextTicketNumber(boardId);
         MemberIdentity assignee =

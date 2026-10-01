@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -237,10 +238,10 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
             int stationId,
             int templateId,
             String name,
-            String description,
+            @Nullable String description,
             boolean isPublic,
             int assignedBy,
-            Instant dueAt) {
+            @Nullable Instant dueAt) {
         var procedure =
                 repo.createProcedure(stationId, templateId, name, description, isPublic, assignedBy, dueAt, null, null);
 

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.feed.render;
 
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -58,7 +59,7 @@ public final class FeedDetails {
     }
 
     /** The {@code id} of the thing the notification links to, or null where it names none. */
-    public Integer linkId() {
+    public @Nullable Integer linkId() {
         return linkParam("id");
     }
 
@@ -66,7 +67,7 @@ public final class FeedDetails {
      * A numeric parameter of the notification's link, or null where the link has no such parameter
      * or it is not a number.
      */
-    public Integer linkParam(String key) {
+    public @Nullable Integer linkParam(String key) {
         var link = notification.data().link();
         if (link == null || link.routeParams() == null) return null;
         Object raw = link.routeParams().get(key);
@@ -93,7 +94,7 @@ public final class FeedDetails {
     }
 
     /** An entry of any bundle, with its placeholders filled from {@code params}. */
-    public String localized(String bundle, String key, Map<String, String> params) {
+    public String localized(String bundle, String key, @Nullable Map<String, String> params) {
         return notificationText.resolveLocalized(locale, bundle, key, params);
     }
 

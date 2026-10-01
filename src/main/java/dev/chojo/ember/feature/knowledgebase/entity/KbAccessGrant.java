@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.knowledgebase.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.api.auth.StationUserType;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -19,13 +20,13 @@ import java.util.List;
  */
 public record KbAccessGrant(
         int id,
-        Integer folderId,
-        Integer fileId,
-        StationUserType userType,
-        Integer groupId,
-        Integer tagId,
-        Integer memberId,
-        KbAccessLevel level) {
+        @Nullable Integer folderId,
+        @Nullable Integer fileId,
+        @Nullable StationUserType userType,
+        @Nullable Integer groupId,
+        @Nullable Integer tagId,
+        @Nullable Integer memberId,
+        @Nullable KbAccessLevel level) {
 
     public static RowMapping<KbAccessGrant> map() {
         return row -> new KbAccessGrant(
@@ -39,10 +40,21 @@ public record KbAccessGrant(
                 row.getEnum("level", KbAccessLevel.class));
     }
 
+    /** Whether this grant sits on the given folder. */
+    public boolean isOnFolder(int id) {
+        return folderId != null && folderId == id;
+    }
+
+    /** Whether this grant sits on the given file. */
+    public boolean isOnFile(int id) {
+        return fileId != null && fileId == id;
+    }
+
     /**
      * Tells whether this grant names the given member, through any of its subject shapes.
      */
-    public boolean matches(int memberId, StationUserType memberUserType, List<Integer> groupIds, List<Integer> tagIds) {
+    public boolean matches(
+            int memberId, @Nullable StationUserType memberUserType, List<Integer> groupIds, List<Integer> tagIds) {
         if (userType != null) return userType == memberUserType;
         if (groupId != null) return groupIds.contains(groupId);
         if (tagId != null) return tagIds.contains(tagId);

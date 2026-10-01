@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +56,7 @@ public class ProblemReportScreenshotService {
      * @param memberId who sent it, for the record the library keeps of its uploads
      * @return the identifier of the stored file, or empty where nothing was sent
      */
-    public Optional<Integer> store(String encoded, Integer memberId) {
+    public Optional<Integer> store(@Nullable String encoded, @Nullable Integer memberId) {
         if (encoded == null || encoded.isBlank()) return Optional.empty();
         byte[] picture = decode(encoded);
         ImageFormat format = formatOf(picture);
@@ -81,7 +82,7 @@ public class ProblemReportScreenshotService {
      * not its bytes could be reached, and a file left behind is a smaller wrong than a report that
      * refuses to be deleted.
      */
-    public void forget(Integer fileId) {
+    public void forget(@Nullable Integer fileId) {
         if (fileId == null) return;
         try {
             media.deleteFile(fileId);

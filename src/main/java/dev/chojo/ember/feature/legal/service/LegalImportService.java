@@ -5,11 +5,14 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,7 +50,7 @@ public final class LegalImportService {
      * @param references how many numbers were turned into references
      * @param unmatched  numbers that look like a reference but match no heading, as they appear
      */
-    public record Imported(String title, List<Section> sections, int references, Set<String> unmatched) {}
+    public record Imported(@Nullable String title, List<Section> sections, int references, Set<String> unmatched) {}
 
     private static final Pattern HEADING = Pattern.compile("^(#{1,6})\\s+(.*?)\\s*$");
 
@@ -175,7 +178,7 @@ public final class LegalImportService {
      * document itself and is kept as its opening section.
      */
     private static List<Section> split(List<String> lines, int sectionLevel) {
-        List<String> names = new ArrayList<>();
+        List<@Nullable String> names = new ArrayList<>();
         List<String> contents = new ArrayList<>();
         var current = new StringBuilder();
         String currentName = null;
@@ -200,7 +203,7 @@ public final class LegalImportService {
 
         List<Section> sections = new ArrayList<>();
         for (int i = 0; i < names.size(); i++) {
-            String displayName = names.get(i) == null ? "einleitung" : names.get(i);
+            String displayName = Objects.requireNonNullElse(names.get(i), "einleitung");
             sections.add(new Section(
                     "%03d-%s.md".formatted((i + 1) * ORDER_STEP, displayName),
                     displayName,
@@ -209,7 +212,8 @@ public final class LegalImportService {
         return List.copyOf(sections);
     }
 
-    private static void collect(List<String> names, List<String> contents, String name, String content) {
+    private static void collect(
+            List<@Nullable String> names, List<String> contents, @Nullable String name, String content) {
         if (content.isBlank()) return;
         names.add(name);
         contents.add(content);
