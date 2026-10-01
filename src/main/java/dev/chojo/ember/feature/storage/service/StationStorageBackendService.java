@@ -40,21 +40,6 @@ import java.util.Optional;
  */
 @Singleton
 public class StationStorageBackendService {
-    /**
-     * What a failed probe tells the client. The probe opens a connection to an address from the request,
-     * so a verbatim failure would tell apart a refused connection, a timeout and a protocol error, which
-     * is a port scan of whatever the address validator does not cover. The real cause goes to the log,
-     * where the operator can still read it.
-     *
-     * <p>What is said instead names the three things that are actually wrong when this happens and says
-     * where the rest of it is, because an operator who has mistyped a key needs to know to go and look
-     * rather than to conclude that Ember is broken.
-     */
-    static final String PROBE_FAILED =
-            "The storage backend would not accept these settings. The address, the credentials or the target "
-                    + "may be wrong, and the exact reason is in the instance log: it is kept there because this "
-                    + "endpoint opens a connection to an address the request names";
-
     private static final Logger log = LoggerFactory.getLogger(StationStorageBackendService.class);
 
     private final StationStorageConfigRepository repository;
@@ -203,9 +188,7 @@ public class StationStorageBackendService {
     }
 
     private static ProbeResult masked(int stationId, ProbeResult result) {
-        if (result.error() == null) return result;
-        log.warn("Storage backend probe for station {} failed: {}", stationId, result.error());
-        return new ProbeResult(result.healthy(), PROBE_FAILED, result.checkedAt());
+        return StorageProbeService.withoutReason("station " + stationId, result);
     }
 
     /**

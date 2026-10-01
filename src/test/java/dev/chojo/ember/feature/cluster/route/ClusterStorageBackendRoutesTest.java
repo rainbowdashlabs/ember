@@ -66,6 +66,7 @@ class ClusterStorageBackendRoutesTest {
         return new ClusterStorageBackendService.Policy(ClusterBackendReach.EVERY_STATION, false, current);
     }
 
+    /** The reason a probe failed would map the network behind the address, so it stays in the log. */
     @Test
     void theSavedStorageIsProbedAndMissingStorageRefused() {
         var current = new ClusterStorageConfig(8, CLUSTER_ID, CONFIG, true, Instant.EPOCH, Instant.EPOCH);
@@ -75,7 +76,7 @@ class ClusterStorageBackendRoutesTest {
         harness.run((server, client) -> {
             var storage = harness.as(TestSessions.clusterMember(CLUSTER_ID, ClusterPermission.CLUSTER_STORAGE));
             assertEquals(
-                    "timeout",
+                    StorageProbeService.PROBE_FAILED,
                     json(client.post(BASE + "/probe", null, storage))
                             .path("error")
                             .asString());
@@ -95,6 +96,20 @@ class ClusterStorageBackendRoutesTest {
                 harness.as(TestSessions.clusterMember(CLUSTER_ID, ClusterPermission.CLUSTER_STORAGE))));
 
         assertEquals(true, json(answer).path("healthy").asBoolean());
+    }
+
+    @Test
+    void storageNotSavedYetKeepsTheReasonItFailedOutOfTheAnswer() {
+        when(payloads.toEntity(any())).thenReturn(CONFIG);
+        when(probes.probe(CONFIG)).thenReturn(new ProbeResult(false, "Connection refused", "2026-09-01T10:00:00Z"));
+
+        var answer = harness.request(client -> client.post(
+                BASE + "/probe-config",
+                body("{\"type\": \"SFTP\", \"host\": \"sftp.test\"}"),
+                harness.as(TestSessions.clusterMember(CLUSTER_ID, ClusterPermission.CLUSTER_STORAGE))));
+
+        assertEquals(
+                StorageProbeService.PROBE_FAILED, json(answer).path("error").asString());
     }
 
     @Test

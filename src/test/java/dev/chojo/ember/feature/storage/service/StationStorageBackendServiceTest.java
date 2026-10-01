@@ -191,9 +191,8 @@ class StationStorageBackendServiceTest {
         var result = service.probe(ACTOR, STATION);
 
         assertFalse(result.healthy());
-        assertEquals(StationStorageBackendService.PROBE_FAILED, result.error());
-        verify(audit)
-                .recordProbe(ACTOR, STATION, StorageAuditOutcome.FAILED, StationStorageBackendService.PROBE_FAILED);
+        assertEquals(StorageProbeService.PROBE_FAILED, result.error());
+        verify(audit).recordProbe(ACTOR, STATION, StorageAuditOutcome.FAILED, StorageProbeService.PROBE_FAILED);
     }
 
     @Test

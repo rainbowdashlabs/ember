@@ -163,6 +163,7 @@
 - **Choosing a movement chain could fail when saved twice at once.** In some cases, when the chain for an inventory was chosen from two places at the same moment, one of them was refused with an error saying the entry already existed. Both saves now go through, and the last one is the chain that applies.
 - **Gear on a member's page disagreed with the movement list.** A piece with an exchange or return running named the step still being waited on, so a jacket read as taken back while it was still on the member, and a replacement waiting for the member to confirm it showed nothing at all. Each piece now shows the last step that happened and whose turn it is, exactly as the movement list does.
 - **The quick check named the step still being waited on.** During an inventory check, a piece with an exchange or return running showed the step the movement was waiting for, so a jacket read as taken back while it was still in hand, and a replacement waiting for the member to confirm it still offered a swap that was then refused. The quick check now shows the last step that happened and whose turn it is, exactly as the movement list does.
+- **Testing an association's storage showed the raw connection error.** A failed storage test on the association's storage screen showed the exact reason, such as a refused connection or a timeout, which says more about the network behind the address than it should. It now gives the same general answer as a station's storage test, and the exact reason is kept in the instance log.
 
 ## v26.19.5
 

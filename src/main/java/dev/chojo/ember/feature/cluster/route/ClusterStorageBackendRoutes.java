@@ -128,7 +128,12 @@ public class ClusterStorageBackendRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var policy = backendService.findPolicy(cluster.id());
         if (policy.current() == null) throw ClusterRefusal.CLUSTER_KEEPS_NO_STORAGE.raise();
-        ctx.json(probeService.probe(policy.current().config()));
+        ctx.json(withoutReason(cluster, probeService.probe(policy.current().config())));
+    }
+
+    /** A failed probe answered the way a station's is, with its reason kept in the log. */
+    private static ProbeResult withoutReason(Cluster cluster, ProbeResult result) {
+        return StorageProbeService.withoutReason("association " + cluster.id(), result);
     }
 
     @OpenApi(
@@ -139,8 +144,9 @@ public class ClusterStorageBackendRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BackendOverrideRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProbeResult.class)))
     private void probeConfig(Context ctx) {
-        requireActive(ctx);
-        ctx.json(probeService.probe(payloads.toEntity(ctx.bodyAsClass(BackendOverrideRequest.class))));
+        Cluster cluster = requireActive(ctx);
+        ctx.json(withoutReason(
+                cluster, probeService.probe(payloads.toEntity(ctx.bodyAsClass(BackendOverrideRequest.class)))));
     }
 
     @OpenApi(
