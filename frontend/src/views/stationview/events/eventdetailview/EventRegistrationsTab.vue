@@ -19,7 +19,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure, type Failure} from '@/util/failure'
 import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
-import type {EventPartnerPlaces, EventRegistrationFieldValue, RegistrationFieldResponse, RegistrationResponse, RegistrationStatsResponse, StationEvent} from '@/api/generated/schema'
+import type {EventRegistrationFieldValue, PartnerPlacesView, RegistrationFieldResponse, RegistrationResponse, RegistrationStatsResponse, StationEvent} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import {events, stationMembers as stationMembersApi} from '@/api'
@@ -62,7 +62,7 @@ const registrationStats = ref<RegistrationStatsResponse[]>([])
  * What each partner may do with this appointment. Read so the list can say which partners decide for
  * themselves rather than offering buttons the server would refuse.
  */
-const partnerPlaces = ref<EventPartnerPlaces[]>([])
+const partnerPlaces = ref<PartnerPlacesView[]>([])
 const allMembers = ref<MemberOption[]>([])
 const failure = ref<Failure | null>(null)
 const manualRegisterMemberId = ref('')

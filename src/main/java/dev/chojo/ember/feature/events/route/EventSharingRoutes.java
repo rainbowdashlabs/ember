@@ -11,7 +11,6 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
-import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -23,6 +22,7 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -211,29 +211,39 @@ public class EventSharingRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List what each partner station may do with an event",
             tags = {"Events"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventPartnerPlaces[].class)))
+            queryParams = @OpenApiParam(name = "eventDate", type = LocalDate.class),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PartnerPlacesView[].class)))
     private void listPartnerPlaces(Context ctx) {
         int eventId = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, eventId, crudService::findById, StationEvent::stationId);
         var date = ctx.queryParam("eventDate");
-        if (date == null) {
-            ctx.json(eventFederationService.partnerPlaces(eventId));
-            return;
-        }
-        var day = LocalDate.parse(date);
+        var day = date == null ? null : LocalDate.parse(date);
         ctx.json(eventFederationService.partnerPlaces(eventId).stream()
-                .map(places -> {
-                    var counted = eventFederationService.countPartnerPlaces(eventId, places.partnerId(), day);
-                    return new PartnerPlacesView(
-                            places.partnerId(), places.slotBudget(), places.partnerConfirms(), counted.taken());
-                })
+                .map(places -> new PartnerPlacesView(
+                        places.partnerId(),
+                        places.slotBudget(),
+                        places.partnerConfirms(),
+                        day == null
+                                ? null
+                                : eventFederationService
+                                        .countPartnerPlaces(eventId, places.partnerId(), day)
+                                        .taken()))
                 .toList());
     }
 
     /**
-     * @param taken how many of the partner's places are filled on the day asked about
+     * What one partner may do with an appointment.
+     *
+     * @param slotBudget      how many places the partner fills itself, or {@code null} for no cap
+     * @param partnerConfirms whether the partner decides about its own people
+     * @param taken           how many of the partner's places are filled on the day asked about, or
+     *                        {@code null} where no day was asked about
      */
-    public record PartnerPlacesView(int partnerId, Integer slotBudget, boolean partnerConfirms, int taken) {}
+    public record PartnerPlacesView(
+            int partnerId,
+            @Nullable Integer slotBudget,
+            boolean partnerConfirms,
+            @Nullable Integer taken) {}
 
     /**
      * Hands a partner a number of places, or takes the arrangement back.

@@ -16579,13 +16579,20 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/EventPartnerPlaces"
+                    "$ref" : "#/components/schemas/PartnerPlacesView"
                   }
                 }
               }
             }
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "eventDate",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          }
+        } ]
       }
     },
     "/api/v1/events/{id}/partner-places/{partnerId}" : {
@@ -48196,27 +48203,6 @@
           }
         }
       },
-      "EventPartnerPlaces" : {
-        "type" : "object",
-        "properties" : {
-          "eventId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "partnerId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "slotBudget" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "partnerConfirms" : {
-            "type" : "boolean"
-          }
-        },
-        "required" : [ "eventId", "partnerId", "slotBudget", "partnerConfirms" ]
-      },
       "EventRegisterRequest" : {
         "type" : "object",
         "properties" : {
@@ -58497,6 +58483,27 @@
           }
         },
         "required" : [ "headers", "rows" ]
+      },
+      "PartnerPlacesView" : {
+        "type" : "object",
+        "properties" : {
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "slotBudget" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "partnerConfirms" : {
+            "type" : "boolean"
+          },
+          "taken" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "partnerId", "slotBudget", "partnerConfirms", "taken" ]
       },
       "PartnerResponse" : {
         "type" : "object",

@@ -28,7 +28,6 @@ import type {
     EventCategory,
     EventField,
     EventFieldDefault,
-    EventPartnerPlaces,
     EventRegistration,
     EventRegistrationFieldValue,
     EventRegistrationOpening,
@@ -45,6 +44,7 @@ import type {
     GenerateDatesRequest,
     MessageResponse,
     NextDate,
+    PartnerPlacesView,
     PickerEvent,
     RegistrationCount,
     RegistrationFieldDefinition,
@@ -665,8 +665,8 @@ export async function removeFederationShare(eventId: number): Promise<void> {
  * <p>Absent from the list means the arrangement nobody configured: this station decides, member by
  * member, with no cap. That is how every shared appointment worked before any of this.
  */
-export async function getPartnerPlaces(eventId: number): Promise<EventPartnerPlaces[]> {
-    const res = await client.get<EventPartnerPlaces[]>(`/events/${eventId}/partner-places`)
+export async function getPartnerPlaces(eventId: number): Promise<PartnerPlacesView[]> {
+    const res = await client.get<PartnerPlacesView[]>(`/events/${eventId}/partner-places`)
     return res.data
 }
 

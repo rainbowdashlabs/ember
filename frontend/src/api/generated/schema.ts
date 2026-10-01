@@ -19838,7 +19838,9 @@ export interface paths {
         /** List what each partner station may do with an event */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    eventDate?: components["schemas"]["LocalDate"];
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -19851,7 +19853,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EventPartnerPlaces"][];
+                        "application/json": components["schemas"]["PartnerPlacesView"][];
                     };
                 };
             };
@@ -56366,15 +56368,6 @@ export interface components {
             title?: string;
             url?: string;
         };
-        EventPartnerPlaces: {
-            /** Format: int32 */
-            eventId: number;
-            partnerConfirms: boolean;
-            /** Format: int32 */
-            partnerId: number;
-            /** Format: int32 */
-            slotBudget: number | null;
-        };
         EventRegisterRequest: {
             eventDate?: string;
             fields?: components["schemas"]["EventRegistrationFieldValue"][];
@@ -60007,6 +60000,15 @@ export interface components {
         ParseResult: {
             headers: string[];
             rows: string[][];
+        };
+        PartnerPlacesView: {
+            partnerConfirms: boolean;
+            /** Format: int32 */
+            partnerId: number;
+            /** Format: int32 */
+            slotBudget: number | null;
+            /** Format: int32 */
+            taken: number | null;
         };
         PartnerResponse: {
             partner: components["schemas"]["FederationPartner"];
@@ -64514,7 +64516,6 @@ export type EventFieldDefault = components['schemas']['EventFieldDefault'];
 export type EventFieldEntry = components['schemas']['EventFieldEntry'];
 export type EventFieldType = components['schemas']['EventFieldType'];
 export type EventItem = components['schemas']['EventItem'];
-export type EventPartnerPlaces = components['schemas']['EventPartnerPlaces'];
 export type EventRegisterRequest = components['schemas']['EventRegisterRequest'];
 export type EventRegistration = components['schemas']['EventRegistration'];
 export type EventRegistrationFieldConfig = components['schemas']['EventRegistrationFieldConfig'];
@@ -65008,6 +65009,7 @@ export type PageVisibilityRequest = components['schemas']['PageVisibilityRequest
 export type Pair = components['schemas']['Pair'];
 export type PairRequestResponse = components['schemas']['PairRequestResponse'];
 export type ParseResult = components['schemas']['ParseResult'];
+export type PartnerPlacesView = components['schemas']['PartnerPlacesView'];
 export type PartnerResponse = components['schemas']['PartnerResponse'];
 export type PartnerStationsConfig = components['schemas']['PartnerStationsConfig'];
 export type PasskeyCodeResponse = components['schemas']['PasskeyCodeResponse'];
