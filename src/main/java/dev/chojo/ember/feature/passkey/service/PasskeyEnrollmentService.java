@@ -246,17 +246,21 @@ public class PasskeyEnrollmentService {
         return mailRecipientService.isReachable(accountId);
     }
 
+    /**
+     * Whether a token of this type may create a passkey. The setup, reset and verification mails may
+     * only on a passwordless instance: elsewhere a reset link must not mint a sign-in passkey past an
+     * enrolled second factor.
+     */
     private boolean isDoor(TokenType type) {
         if (type == TokenType.PASSKEY_ENROLLMENT) return true;
-        // The setup, reset and verification mails hold exactly this power on a passwordless
-        // instance and only their own errand anywhere else: on a mixed instance a reset link
-        // must not mint a sign-in passkey past an enrolled second factor.
         return PASSWORDLESS_DOORS.contains(type) && modeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS;
     }
 
+    /**
+     * Finds the token behind a link or a typed code. A link token arrives verbatim, a typed code
+     * grouped and in any case; whichever form matched is kept, because consuming goes by it.
+     */
     private Optional<Door> findDoor(String rawToken) {
-        // A typed 8-char code arrives grouped and case-mangled; a link token arrives verbatim.
-        // Whichever form matched is remembered, because consuming goes by the same raw value.
         Optional<Door> door = accountRepository.findToken(rawToken).map(token -> new Door(token, rawToken));
         if (door.isEmpty()) {
             String normalized = normalize(rawToken);

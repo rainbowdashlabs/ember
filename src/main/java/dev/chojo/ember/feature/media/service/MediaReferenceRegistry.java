@@ -133,6 +133,10 @@ public class MediaReferenceRegistry {
         }
     }
 
+    /**
+     * Adds every content hash the bodies the query returns mention. A body that cannot be read throws,
+     * so pruning never concludes that nothing references a file on bad data.
+     */
     private void collectFromText(String sql, int stationId, Set<String> out) {
         try {
             var bodies = query(sql)
@@ -147,8 +151,6 @@ public class MediaReferenceRegistry {
                 }
             }
         } catch (Exception e) {
-            // A body that cannot be read must never let pruning conclude "nothing references
-            // this". Fail loudly and let the caller decide, rather than deleting on bad data.
             throw new IllegalStateException("Failed to collect media references from a registered body", e);
         }
     }

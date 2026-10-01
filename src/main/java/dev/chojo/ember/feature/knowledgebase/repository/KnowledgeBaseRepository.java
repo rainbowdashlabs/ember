@@ -112,8 +112,6 @@ public class KnowledgeBaseRepository {
                 .all();
     }
 
-    // -- Files --
-
     public Optional<KbFolder> findFolderById(int id) {
         return query(
                         "SELECT %s, %s FROM kb_folder fo WHERE fo.id = :id %s;",
@@ -382,8 +380,6 @@ public class KnowledgeBaseRepository {
                 FILE_RESTRICTED);
     }
 
-    // -- File Content --
-
     public boolean updateFile(int id, String name, String description, @Nullable String iconUrl, int position) {
         return query("""
                 UPDATE kb_file
@@ -458,8 +454,6 @@ public class KnowledgeBaseRepository {
                 .changed();
     }
 
-    // -- Version History (Markdown) --
-
     public boolean setSourceReference(int fileId, int sourceFileId, int sourceStationId) {
         return query(
                         "UPDATE kb_file SET source_file_id = :source_file_id, source_station_id = :source_station_id WHERE id = :id;")
@@ -504,8 +498,6 @@ public class KnowledgeBaseRepository {
                 .map(row -> row.getString("text_content"))
                 .first();
     }
-
-    // -- Search Index --
 
     public List<KbFileVersion> findVersions(int fileId) {
         return query(
@@ -639,8 +631,6 @@ public class KnowledgeBaseRepository {
                 .map(row -> new KbSearchResult(KbFile.map().map(row), row.getString("snippet")))
                 .all();
     }
-
-    // -- Access Grants --
 
     public List<KbAccessGrant> findRestrictions(@Nullable Integer folderId, @Nullable Integer fileId) {
         if (folderId != null) {
@@ -811,8 +801,6 @@ public class KnowledgeBaseRepository {
         }
     }
 
-    // -- Tags --
-
     public List<KbTag> findTagsByStation(int stationId) {
         return query("SELECT %s FROM kb_tag WHERE station_id = :station_id ORDER BY name;", TAG_COLUMNS)
                 .single(call().bind("station_id", stationId))
@@ -833,7 +821,7 @@ public class KnowledgeBaseRepository {
                 RETURNING %s;""", call().bind("station_id", stationId).bind("name", name.toLowerCase()), KbTag.map(), TAG_COLUMNS);
     }
 
-    // Not yet exposed via routes - tag management UI not implemented
+    // TODO: expose tag deletion once tag management has a screen
     public boolean deleteTag(int id) {
         return SqlSupport.deleteById("kb_tag", id);
     }
@@ -965,8 +953,6 @@ public class KnowledgeBaseRepository {
         }
     }
 
-    // -- Related Files --
-
     public List<KbFile> findRelatedFiles(int fileId) {
         return query("""
                 SELECT
@@ -1039,8 +1025,6 @@ public class KnowledgeBaseRepository {
         }
     }
 
-    // -- Public Visibility --
-
     public Optional<Boolean> findPublicVisibility(@Nullable Integer folderId, @Nullable Integer fileId) {
         if (folderId != null) {
             return query("SELECT visible FROM kb_public_visibility WHERE folder_id = :folder_id;")
@@ -1089,8 +1073,6 @@ public class KnowledgeBaseRepository {
                     .delete();
         }
     }
-
-    // -- Trash --
 
     /**
      * Puts one article in the trash on its own.

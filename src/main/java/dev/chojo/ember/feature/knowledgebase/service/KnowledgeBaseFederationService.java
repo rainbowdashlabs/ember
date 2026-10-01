@@ -781,13 +781,14 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * <p>Keyed by the serving station rather than by a partnership, because a partnership row means the
      * opposite thing on each side of it: serving a partner, {@code stationId} is this station, and reading
      * a partner it is the one doing the reading.
+     *
+     * <p>Only the outermost shared folders stand here, since a nested one is reached by opening its parent,
+     * and an article inside a shared folder is left out so it does not show twice.
      */
     private RemoteKbBrowse servedLevel(int servingStationId, Integer readingPartnerId) {
         var shares = sharesReaching(servingStationId, readingPartnerId);
         var sharedFolders = sharedFolderIds(servingStationId, readingPartnerId);
 
-        // A folder inside a shared folder is reached by opening the one above it, not by standing on its own
-        // at the top. Only the outermost shared folders belong here.
         var folders = shares.stream()
                 .map(FederationShare::folderId)
                 .filter(Objects::nonNull)
@@ -798,8 +799,6 @@ public class KnowledgeBaseFederationService implements FederationServer {
                 .map(this::summary)
                 .toList();
 
-        // An article whose folder is shared arrives inside that folder, so offering it here as well would
-        // show it twice, once loose and once where it belongs.
         var files = shares.stream()
                 .map(FederationShare::fileId)
                 .filter(Objects::nonNull)

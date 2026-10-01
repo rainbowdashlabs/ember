@@ -103,7 +103,6 @@ public class InventoryExportService {
         var station = stationRepository.findById(stationId).orElse(null);
         if (station == null) return Optional.empty();
 
-        // Load inventories
         var allInventories = inventoryRepository.findByStation(stationId);
         var selectedInventories = inventoryIds.isEmpty()
                 ? allInventories
@@ -112,16 +111,13 @@ public class InventoryExportService {
                         .toList();
         if (selectedInventories.isEmpty()) return Optional.empty();
 
-        // Load all items for selected inventories
         var itemsByInventory = new LinkedHashMap<Integer, List<InventoryItem>>();
         for (var inv : selectedInventories) {
             itemsByInventory.put(inv.id(), inventoryRepository.findItems(inv.id()));
         }
 
-        // Build inventory column names
         var inventoryColumns = selectedInventories.stream().map(Inventory::name).toList();
 
-        // Build size maps for each inventory
         var inventorySizes = new LinkedHashMap<Integer, Map<Integer, String>>();
         for (var inv : selectedInventories) {
             var sizes = inventoryRepository.findSizes(inv.id());
@@ -135,7 +131,6 @@ public class InventoryExportService {
         var profileColumns = ProfileColumns.of(profileFieldRepository, extraFieldIds, locale);
         var extraFieldNames = profileColumns.names();
 
-        // Build rows for each member
         var rows = new ArrayList<Map<String, Object>>();
         for (int memberId : memberIds) {
             var member = stationMemberRepository.findById(memberId).orElse(null);
@@ -151,7 +146,6 @@ public class InventoryExportService {
                     ? List.<String>of()
                     : profileColumns.cellsOf(profileFieldRepository.findValues(memberId));
 
-            // Build items per inventory column (each item: {label, lost})
             var itemColumns = new ArrayList<List<ItemEntry>>();
             for (var inv : selectedInventories) {
                 var items = itemsByInventory.getOrDefault(inv.id(), List.of());
@@ -186,10 +180,8 @@ public class InventoryExportService {
             rows.add(row);
         }
 
-        // Sort by name
         rows.sort(Comparator.comparing(r -> (String) r.get("name")));
 
-        // Build data map
         var zone =
                 StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
         var data = new LinkedHashMap<String, Object>();

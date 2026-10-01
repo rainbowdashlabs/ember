@@ -110,11 +110,8 @@ public class GdprExportService {
             data.put("account", accountData);
         });
 
-        // Metadata-driven: every TRACKED gdprExport entry whose identityColumns reference
-        // ACCOUNT_ID is queried by GenericGdprExporter.
         data.put("accountTables", engine.exportByIdentity(IdentityType.ACCOUNT_ID, accountId));
 
-        // Per-station member data.
         var memberships = stationMemberRepository.findAllByAccountId(accountId);
         var stationDataList = new ArrayList<Map<String, Object>>();
         for (var member : memberships) {
@@ -175,6 +172,8 @@ public class GdprExportService {
      * {@code memberTables} map (rows where {@code MEMBER_ID} matches) and a {@code memberUidTables}
      * map (rows where {@code MEMBER_UID} matches - used by federation-aware columns like
      * {@code news.author_member_uid}). Empty maps when no TRACKED row references the member.
+     * The member's documents are exported separately, since they hang off a binding table the
+     * metadata-driven exporter cannot follow.
      */
     private Map<String, Object> exportMemberData(StationMember member) {
         int mid = member.id();
@@ -185,18 +184,13 @@ public class GdprExportService {
         if (member.nickname() != null) data.put("nickname", member.nickname());
         lookupStationName(member.stationId()).ifPresent(s -> data.put("stationName", s));
 
-        // Tables matching by integer member_id (most of the per-member data).
         data.put("memberTables", engine.exportByIdentity(IdentityType.MEMBER_ID, mid));
 
-        // Tables matching by member UUID - federation-aware columns like news.author_member_uid or
-        // board_ticket.creator_member_uid carry the UUID instead of the int id.
         UUID memberUid = memberLookupService.resolveUid(mid);
         data.put(
                 "memberUidTables",
                 memberUid == null ? Map.of() : engine.exportByIdentity(IdentityType.MEMBER_UID, memberUid));
 
-        // The documents kept for this member. They hang off a binding table rather than off a
-        // column of their own, which is the one thing the metadata-driven exporter cannot follow.
         data.put("documents", exportDocuments(member.stationId(), mid));
         return data;
     }

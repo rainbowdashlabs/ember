@@ -455,11 +455,9 @@ public class InventoryCheckService {
      * Calculates the inventory items required for a member based on their roles and groups.
      * Aggregates requirement quantities per inventory and compares against currently assigned items.
      *
-     * <p>A piece handed in for an exchange counts towards what the member has. The question here is
-     * whether they are equipped, not what is in their hands this minute, and an exchange over the body
-     * above the station takes weeks: counting the assignment alone would report a gap for all of it and
-     * send whoever walks the check off to order a jacket that is already in the post. The row says how
-     * many of them are away that way, so nobody is left wondering at a number that does not add up.
+     * <p>The cluster's requirements count too, read at the station and never copied. A piece handed in
+     * for an exchange counts towards what the member has, since an exchange can take weeks and would
+     * otherwise report a gap for gear already in the post; the row says how many are away that way.
      *
      * @param stationId the station ID
      * @param memberId  the member ID
@@ -469,24 +467,20 @@ public class InventoryCheckService {
         var member = stationMemberRepository.findById(memberId).orElse(null);
         StationUserType memberUserType = member != null ? member.userType() : null;
         List<MemberGroup> memberGroups = memberGroupRepository.findGroupsForMember(memberId);
-        // The cluster's requirements count here too: one definition, read at the station, never copied
         List<InventoryRequirement> allRequirements = inventoryRepository.findRequirementsCountingAt(stationId);
 
         var memberGroupIds = memberGroups.stream().map(MemberGroup::id).toList();
 
-        // Filter requirements applicable to this member
         List<InventoryRequirement> applicable = allRequirements.stream()
                 .filter(req -> (req.userType() != null && req.userType() == memberUserType)
                         || (req.groupId() != 0 && memberGroupIds.contains(req.groupId())))
                 .toList();
 
-        // Aggregate by inventory: sum required quantities (LinkedHashMap preserves position order)
         Map<Integer, Integer> requiredByInventory = new LinkedHashMap<>();
         for (InventoryRequirement req : applicable) {
             requiredByInventory.merge(req.inventoryId(), req.quantity(), Integer::sum);
         }
 
-        // Count assigned items per inventory
         List<InventoryItem> assignedItems = inventoryRepository.findItemsByMember(memberId);
         Map<Integer, Integer> assignedByInventory = new HashMap<>();
         for (InventoryItem item : assignedItems) {
@@ -499,7 +493,6 @@ public class InventoryCheckService {
             assignedByInventory.merge(item.inventoryId(), 1, Integer::sum);
         }
 
-        // Build result
         List<RequiredInventoryItem> result = new ArrayList<>();
         for (var entry : requiredByInventory.entrySet()) {
             int inventoryId = entry.getKey();
@@ -585,6 +578,7 @@ public class InventoryCheckService {
     /**
      * Who owns a piece a correction makes. Only an inventory that holds both owners has to be told;
      * anywhere else the inventory itself is the answer and asking would be a question with one option.
+     * A partner's gear arrives by handover only, so a correction never writes a piece as theirs.
      */
     private static ItemOwner ownerOfNewPiece(Inventory inventory, ItemCorrection correction) {
         return switch (inventory.inventoryType()) {
@@ -594,9 +588,6 @@ public class InventoryCheckService {
                 if (correction.ownerKind() == null) {
                     throw new BadRequestResponse("This inventory holds both owners, so the new piece needs one named");
                 }
-                // Gear belonging to a partner arrives by handover and by nothing else. A correction
-                // writing a new piece is the station saying what it has, and it cannot say that
-                // about somebody else's radio.
                 if (correction.ownerKind() == ItemOwner.PARTNER_STATION) {
                     throw new BadRequestResponse("A new piece cannot be written down as a partner station's");
                 }

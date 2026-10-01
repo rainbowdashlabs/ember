@@ -82,12 +82,14 @@ public class PageRoutes implements Routes {
         return requireOwnedOrNotFound(ctx, pageId, pageService::getPage, StationPage::stationId);
     }
 
+    /**
+     * The literal paths under {@code /pages} come before the ones taking a page id, or "landing" would
+     * be read as one.
+     */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/pages", this::list, StationPermission.PAGE_EDIT);
         routes.post(prefix + "/pages", this::create, StationPermission.PAGE_EDIT);
-        // Register the literal "/pages/landing" path BEFORE the variable "/pages/{pid}" routes so
-        // Javalin matches it as a literal segment instead of trying to parse "landing" as a page id.
         routes.put(prefix + "/pages/landing", this::setLandingPage, StationPermission.PAGE_MANAGER);
         routes.get(prefix + "/pages/search", this::searchPicker, StationPermission.PAGE_EDIT);
         routes.post(prefix + "/pages/member-list/resolve", this::resolveMemberList, StationPermission.PAGE_EDIT);
@@ -440,11 +442,9 @@ public class PageRoutes implements Routes {
         }
     }
 
-    // Response records
     record PagesListResponse(
             List<StationPage> pages, @Nullable Integer landingPageId) {}
 
-    // Request records
     /**
      * @param parentId the page the new one sits under, or {@code null} for the top level
      */

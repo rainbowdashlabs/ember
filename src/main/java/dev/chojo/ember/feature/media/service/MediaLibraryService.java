@@ -83,12 +83,11 @@ public class MediaLibraryService {
         this.quotaService = quotaService;
     }
 
-    // --- Upload and delivery ---
-
     /**
      * Stores a file for the station, or returns the one it already holds when the bytes are
      * identical. Either way {@code memberId} is recorded as an uploader, so a dedup hit still
-     * puts the file into that member's own list.
+     * puts the file into that member's own list. A dedup hit stores the bytes again, in case a crashed
+     * migration left the row without them.
      *
      * <p>An image declaring more pixels than {@link PixelBudget#MAX_PIXELS} is refused before
      * anything is stored, since making its variants would have to unpack every one of them.
@@ -124,8 +123,6 @@ public class MediaLibraryService {
 
         var existing = fileRepository.findByStationAndHash(stationId, contentHash);
         if (existing.isPresent()) {
-            // Defensive: a crashed migration could have left the row without its bytes. store()
-            // is idempotent for identical bytes.
             storage.store(stationId, contentHash, data, mimeType);
             recordUploader(existing.get().id(), memberId);
             return existing.get();
@@ -224,8 +221,6 @@ public class MediaLibraryService {
         return fileRepository.findByStationAndHash(stationId, contentHash);
     }
 
-    // --- Browsing ---
-
     /**
      * The whole library, for a member who holds one of the content permissions.
      *
@@ -266,11 +261,11 @@ public class MediaLibraryService {
         return files.stream().filter(file -> !keptBack.contains(file.id())).toList();
     }
 
+    /**
+     * The files with their tags, first uploader and whether anything uses them. Use is read from a
+     * station's content, so the instance's files never claim to be unused.
+     */
     private List<FileListing> decorate(@Nullable Integer stationId, List<StationFile> files) {
-        // Which files nothing points at is worked out by reading a station's content. The instance
-        // has none of that to read, so its files are listed without the claim rather than with a
-        // guess: saying "unused" about a file nobody has looked for would be worse than saying
-        // nothing.
         Set<Integer> unused = stationId == null ? Set.of() : findUnusedFileIds(stationId);
         var ids = files.stream().map(StationFile::id).toList();
         var tagAssignments = metaRepository.findTagAssignments(ids);
@@ -283,8 +278,6 @@ public class MediaLibraryService {
                         uploaders.get(f.id())))
                 .toList();
     }
-
-    // --- Deletion ---
 
     /**
      * Removes the file, its bytes and every uploader row. This is the manager's delete.
@@ -320,7 +313,8 @@ public class MediaLibraryService {
      * The "I uploaded the wrong picture" escape for a member without a content permission: their
      * uploader row goes, and the file goes with it only when the set empties and nothing
      * references it. Deleting bytes cannot be a per-owner act, so it must not let one member take
-     * away an image another has already put into a ticket.
+     * away an image another has already put into a ticket. An instance file has no uploader, so it
+     * never comes this way.
      *
      * @return whether the member had uploaded the file at all
      */
@@ -329,8 +323,6 @@ public class MediaLibraryService {
         if (file == null) return false;
         if (!fileRepository.removeUploader(fileId, memberId)) return false;
         if (fileRepository.hasAnyUploader(fileId)) return true;
-        // An instance file has no station whose content could point at it, and no member uploaded
-        // it either, so this path is never walked for one.
         Integer stationId = file.stationId();
         if (stationId != null && isReferenced(file, references.collect(stationId))) return true;
         deleteFile(fileId);
@@ -340,8 +332,6 @@ public class MediaLibraryService {
     public boolean mayRelease(int fileId, int memberId) {
         return fileRepository.hasUploader(fileId, memberId);
     }
-
-    // --- Pruning ---
 
     /**
      * The files nothing points at any more. A file somebody claims as their upload is never in
@@ -384,8 +374,6 @@ public class MediaLibraryService {
                 || referenced.contains(String.valueOf(file.id()));
     }
 
-    // --- Metadata ---
-
     public boolean updateFileMeta(int stationId, int fileId, @Nullable String altText, @Nullable String description) {
         var existing = fileRepository.findById(fileId).orElse(null);
         if (existing == null || !Integer.valueOf(stationId).equals(existing.stationId())) {
@@ -407,8 +395,6 @@ public class MediaLibraryService {
         }
         return moved;
     }
-
-    // --- Folders ---
 
     public StationFileFolder createFolder(int stationId, @Nullable Integer parentId, String name, int sortOrder) {
         var folder = metaRepository.createFolder(stationId, parentId, name, sortOrder);
@@ -439,8 +425,6 @@ public class MediaLibraryService {
         }
         return deleted;
     }
-
-    // --- Tags ---
 
     public StationFileTag createTag(int stationId, String name, @Nullable String color) {
         var tag = metaRepository.createTag(stationId, name, color);

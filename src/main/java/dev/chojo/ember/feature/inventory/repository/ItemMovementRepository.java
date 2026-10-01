@@ -302,8 +302,6 @@ public class ItemMovementRepository {
         return SqlSupport.deleteById("item_movement", id);
     }
 
-    // -- Log --
-
     public ItemMovementLog createLog(
             int movementId,
             @Nullable Integer stepId,

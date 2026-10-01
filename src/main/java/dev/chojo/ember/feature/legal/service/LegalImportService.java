@@ -77,7 +77,8 @@ public final class LegalImportService {
     private LegalImportService() {}
 
     /**
-     * Normalises a document into sections, anchors and references.
+     * Normalises a document into sections, anchors and references. The numbers are learned in a first
+     * pass, so a reference can point backwards as well as forwards.
      *
      * @param markdown the document as markdown, converted from whatever it arrived as
      * @return the sections to write, and what could not be matched
@@ -93,7 +94,6 @@ public final class LegalImportService {
         Set<String> anchors = new LinkedHashSet<>();
         String title = null;
 
-        // First pass: learn the numbers, so a reference can point backwards as well as forwards.
         List<String> rewritten = new ArrayList<>(lines.size());
         boolean inCode = false;
         for (String line : lines) {
@@ -175,7 +175,8 @@ public final class LegalImportService {
 
     /**
      * Cuts the document at its section headings. Everything before the first one belongs to the
-     * document itself and is kept as its opening section.
+     * document itself and is kept as its opening section, unless it is only a title, which then joins
+     * the section that follows it.
      */
     private static List<Section> split(List<String> lines, int sectionLevel) {
         List<@Nullable String> names = new ArrayList<>();
@@ -194,7 +195,6 @@ public final class LegalImportService {
         }
         collect(names, contents, currentName, current.toString());
 
-        // A title on its own is not a section: it belongs to the one that follows it.
         if (names.size() > 1 && names.getFirst() == null && isTitleOnly(contents.getFirst())) {
             contents.set(1, contents.getFirst().strip() + "\n\n" + contents.get(1));
             names.removeFirst();

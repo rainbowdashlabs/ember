@@ -40,8 +40,6 @@ public class ProcedureRepository {
     private static final String PROCEDURE_ITEM_COLUMNS =
             "id, procedure_id, title, description, note, public, user_assigned, position, checked, checked_at, checked_by";
 
-    // ── Templates ──
-
     public List<ProcedureTemplate> findTemplatesByStation(int stationId, boolean includeArchived) {
         var where = WhereBuilder.create().addIf(!includeArchived, "AND archived = FALSE");
         return query(
@@ -89,8 +87,6 @@ public class ProcedureRepository {
                 .update()
                 .changed();
     }
-
-    // ── Template Items ──
 
     public List<ProcedureTemplateItem> findTemplateItems(int templateId) {
         return query("""
@@ -154,8 +150,6 @@ public class ProcedureRepository {
         return deleteById("procedure_template_item", id);
     }
 
-    // ── Template Item Dependencies ──
-
     public List<int[]> findTemplateItemDependencies(int templateId) {
         return query("""
                 SELECT
@@ -193,8 +187,6 @@ public class ProcedureRepository {
                     .insert();
         }
     }
-
-    // ── Procedures ──
 
     public List<Procedure> findProceduresByStation(int stationId, @Nullable ProcedureStatus status) {
         var where = WhereBuilder.create().add("AND status = :status", "status", status);
@@ -329,8 +321,6 @@ public class ProcedureRepository {
         return deleteById("procedure", id);
     }
 
-    // ── Assignees ──
-
     public List<Integer> findAssigneeIds(int procedureId) {
         return query("SELECT member_id FROM procedure_assignee WHERE procedure_id = :procedure_id;")
                 .single(call().bind("procedure_id", procedureId))
@@ -356,8 +346,6 @@ public class ProcedureRepository {
                 .delete()
                 .changed();
     }
-
-    // ── Procedure Items ──
 
     public List<ProcedureItem> findItems(int procedureId) {
         return query(
@@ -449,8 +437,6 @@ public class ProcedureRepository {
                 .changed();
     }
 
-    // ── Procedure Item Dependencies ──
-
     public List<int[]> findItemDependencies(int procedureId) {
         return query("""
                 SELECT
@@ -493,8 +479,6 @@ public class ProcedureRepository {
                 .insert();
     }
 
-    // ── Snapshot (Template → Procedure) ──
-
     public ProcedureItem snapshotTemplateItem(int procedureId, ProcedureTemplateItem item) {
         return insertReturning(
                 """
@@ -513,8 +497,6 @@ public class ProcedureRepository {
                 ProcedureItem.map(),
                 PROCEDURE_ITEM_COLUMNS);
     }
-
-    // ── Sidebar Counts ──
 
     public int countOpenByAssigneeWithAvailableItems(int stationId, int memberId) {
         return count("""

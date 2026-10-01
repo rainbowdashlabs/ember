@@ -97,6 +97,10 @@ public class AdminNewsRoutes implements Routes {
                 prefix + "/admin/media/files/{fileId}", this::deleteInstanceFile, InstancePermission.ADMINISTRATOR);
     }
 
+    /**
+     * Lists the system entries as summaries. A rich entry's blocks are left unread, which would cost a
+     * query per row for something the list never shows.
+     */
     @OpenApi(
             path = "/api/v1/admin/news",
             methods = HttpMethod.GET,
@@ -110,8 +114,6 @@ public class AdminNewsRoutes implements Routes {
     private void list(Context ctx) {
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50);
-        // A list row shows a summary, so the blocks of a rich entry are left unread: fetching them
-        // for every row would ask the database once per row for something the list never shows.
         ctx.json(newsService.findSystem(offset, limit).stream()
                 .map(news -> toResponse(news, false))
                 .toList());
@@ -251,6 +253,10 @@ public class AdminNewsRoutes implements Routes {
         ctx.json(media.listLibrary(null, true));
     }
 
+    /**
+     * Takes a file into the instance library. It names no station and no uploader: an administrator
+     * is not a member of anything to record.
+     */
     @OpenApi(
             path = "/api/v1/admin/media/files",
             methods = HttpMethod.POST,
@@ -263,8 +269,6 @@ public class AdminNewsRoutes implements Routes {
         if (file.size() > apiConfig.maxUploadSizeBytes()) throw Refusal.INSTANCE_UPLOAD_TOO_LARGE.raise();
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            // No station and no member: the file belongs to the instance, and an administrator is
-            // not a member of anything to record as its uploader.
             ctx.status(HttpStatus.CREATED)
                     .json(media.upload(null, null, null, file.filename(), file.contentType(), data));
         } catch (IllegalArgumentException e) {
@@ -286,8 +290,8 @@ public class AdminNewsRoutes implements Routes {
     private void deleteInstanceFile(Context ctx) {
         int fileId = pathInt(ctx, "fileId");
         var file = media.findFile(fileId).orElseThrow(Refusal.INSTANCE_FILE_NOT_HERE::raise);
-        // A station's file is that station's business, however much of the instance one holds.
-        if (file.stationId() != null) {
+        boolean belongsToStation = file.stationId() != null;
+        if (belongsToStation) {
             throw Refusal.INSTANCE_FILE_NOT_HERE.raise();
         }
         if (!media.deleteFile(fileId)) {

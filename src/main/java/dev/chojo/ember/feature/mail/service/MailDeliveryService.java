@@ -107,7 +107,8 @@ public class MailDeliveryService {
      * <ul>
      *   <li><b>Blocked</b> means the receiving side refused our relay, not our message. Trying the
      *       same relay again would be refused the same way, so the mail goes straight to the next
-     *       provider in the chain. This is the case a relay on somebody's block list produces.
+     *       provider in the chain. This is the case a relay on somebody's block list produces. A soft
+     *       bounce that names our own sending address as refused is a block under the wrong label.
      *   <li><b>A soft bounce or an error</b> may pass on its own (a full mailbox, a server having
      *       a bad minute), so the same provider keeps its remaining attempts before the chain moves
      *       on.
@@ -120,8 +121,6 @@ public class MailDeliveryService {
         if (!status.worthRetrying()) return;
         Integer stationId = mail.stationId();
         var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
-        // A soft bounce that names our own sending address as the thing refused is a block wearing
-        // the wrong label: it will never pass, however often the same relay tries.
         boolean relayRefused = status == MailDeliveryStatus.BLOCKED || RelayBlockDetector.blamesTheRelay(blockReason);
         if (relayRefused) {
             chainService

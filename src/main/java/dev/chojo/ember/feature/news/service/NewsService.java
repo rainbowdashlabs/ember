@@ -330,24 +330,18 @@ public class NewsService {
         return newsRepository.hasPublicBlogEntries(stationId);
     }
 
-    // --- Blocks ---
-
     /**
      * Turns a plain entry into one built from blocks, putting what the author already wrote into a
      * single markdown block. Nothing is parsed and nothing is lost.
      *
-     * <p>The switch is one way. An author who wants the plain editor back copies the text into a
-     * new entry, which keeps the stored text of a rich entry derived: there is no path where
-     * somebody edits the projection and expects the blocks to follow.
+     * <p>The switch is one way, which keeps the stored text of a rich entry derived. A system entry's
+     * blocks belong to no station, since the entry is read in every one.
      */
     public Optional<News> switchToRich(int id) {
         var news = newsRepository.findById(id).orElse(null);
         if (news == null) return Optional.empty();
         if (news.contentMode() == ContentMode.RICH) return Optional.of(news);
 
-        // A system entry belongs to no station, and neither do its blocks: it is read in every
-        // station, so a container hanging off one of them would be the wrong owner and, since no
-        // station carries the id a system entry reads as, no owner at all.
         var container = blocks.create(news.systemEntry() ? null : news.stationId());
         String existing = news.contentMarkdown() == null ? "" : news.contentMarkdown();
         if (!existing.isBlank()) {
@@ -390,7 +384,9 @@ public class NewsService {
      * Saves the blocks of a rich entry and rewrites the stored text from them.
      *
      * <p>The projection runs on every save, including a save that only reorders blocks: a stale
-     * projection means a stale search summary, a stale notification preview and a stale feed.
+     * projection means a stale search summary, a stale notification preview and a stale feed. A
+     * system entry's pictures are addressed through the instance library rather than a station, since
+     * the stations that read it hold no copy of the file.
      */
     public Optional<News> saveBlocks(int id, List<ContentBlockService.RowData> rows) {
         var news = newsRepository.findById(id).orElse(null);
@@ -402,9 +398,6 @@ public class NewsService {
 
         blocks.save(containerId, rows, ContentBlockService.Scope.ARTICLE);
 
-        // The pictures of a system entry come out of the instance library, which is addressed by
-        // the literal scope rather than through a station: the entry is read in stations that hold
-        // no copy of the file.
         String mediaScope = news.systemEntry()
                 ? MediaLibraryService.INSTANCE_SCOPE
                 : String.valueOf(stationRepository.resolveUid(news.stationId()));
@@ -415,6 +408,10 @@ public class NewsService {
         return newsRepository.findById(id);
     }
 
+    /**
+     * Deletes an entry and its blocks, which the database does not remove along with it: the entry
+     * points at its container, not the other way round.
+     */
     public boolean delete(int id) {
         var news = newsRepository.findById(id).orElse(null);
         if (news == null) {
@@ -422,7 +419,6 @@ public class NewsService {
             return false;
         }
         if (newsRepository.delete(id)) {
-            // The container is the owned side, so nothing cleans it up for us.
             blocks.delete(news.containerId());
             eventBus.publish(new NewsDeleted(news.stationId(), id, news.title()));
             log.info("Deleted news {} on station {}", id, news.stationId());

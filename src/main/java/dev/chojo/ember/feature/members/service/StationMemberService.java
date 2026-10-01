@@ -141,8 +141,6 @@ public class StationMemberService {
         return memberRepository.delete(id);
     }
 
-    // -- Permissions --
-
     public List<Permission> findPermissions(int memberId) {
         return memberRepository.findPermissions(memberId);
     }
@@ -199,7 +197,6 @@ public class StationMemberService {
         PermissionValidation.validatePermissionChanges(
                 currentPermissions, desiredPermissionIds, allPermissions, callerPermissions);
 
-        // Check if LOGIN permission is being added - requires account with email
         var loginPerm = allPermissions.stream()
                 .filter(p -> p.permission() == StationPermission.LOGIN)
                 .findFirst();
@@ -227,7 +224,6 @@ public class StationMemberService {
             }
         }
 
-        // If LOGIN was just granted and the account has no credentials, send onboarding email
         if (addingLogin && authService != null && accountId != null) {
             var credential = accountRepository.findCredential(accountId);
             if (credential.isEmpty()) {
@@ -282,8 +278,6 @@ public class StationMemberService {
                 .sorted()
                 .toList();
     }
-
-    // -- Manager relations --
 
     public List<StationMember> findManaged(int managerId) {
         return memberRepository.findManaged(managerId);

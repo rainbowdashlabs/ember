@@ -327,7 +327,8 @@ public class MailImportService {
      *
      * <p>A message whose disposal fails is still a message that was imported, so this is written down and
      * not thrown: the alternative is a cycle that files a document and then reports the whole visit as a
-     * failure because a folder could not be made.
+     * failure because a folder could not be made. Doing nothing is a choice of its own, for a read-only
+     * account that cannot be asked to change anything.
      */
     private void applyAction(MailboxReader reader, MailRule rule, Message message) {
         try {
@@ -340,9 +341,7 @@ public class MailImportService {
                         reader.moveTo(message, folder);
                     }
                 }
-                case NOTHING -> {
-                    // A read-only account cannot be asked to change anything, which is why this exists.
-                }
+                case NOTHING -> {}
             }
         } catch (Exception e) {
             log.warn("Rule {} could not do what it says with a message it took", rule.id(), e);

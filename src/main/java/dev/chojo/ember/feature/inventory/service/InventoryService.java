@@ -75,8 +75,6 @@ public class InventoryService {
         this.stationGroupRepository = stationGroupRepository;
     }
 
-    // -- Inventories --
-
     /**
      * Finds all inventories for a station.
      *
@@ -271,11 +269,9 @@ public class InventoryService {
      * Everything live that would have to go before an inventory could change what kind of thing it
      * holds.
      *
-     * <p>Leaving the homogeneous half strands the three features that only make sense there, plus the
-     * size list, which belongs to that half and whose values the items are already carrying. Coming
-     * back the other way is blocked by the kinds the inventory has been given, for the mirror reason:
-     * the pieces are carrying those, and a kind cannot exist in an inventory of one thing in many
-     * copies.
+     * <p>Leaving the homogeneous half strands the features that only make sense there, plus the size
+     * list the items already carry. Going back is blocked by the kinds, which live only on the
+     * heterogeneous side and would leave every piece pointing at a level the inventory no longer has.
      *
      * @param inventory     the inventory as it stands
      * @param toHomogeneous the kind it is being asked to become
@@ -283,8 +279,6 @@ public class InventoryService {
      */
     public List<SwitchBlocker> blockersForSwitch(Inventory inventory, boolean toHomogeneous) {
         if (toHomogeneous) {
-            // The kinds are the one thing that lives only on the heterogeneous side. Going back with
-            // them still there would leave every piece pointing at a level the inventory no longer has.
             return inventoryRepository.findArtBlockers(inventory.id());
         }
         var blockers = new ArrayList<SwitchBlocker>();
@@ -393,8 +387,6 @@ public class InventoryService {
         throw new BadRequestResponse("This shelf still holds gear belonging to somebody else");
     }
 
-    // -- Sizes --
-
     /**
      * Creates a new size and returns all sizes for the inventory.
      *
@@ -446,8 +438,6 @@ public class InventoryService {
         log.warn("Delete of size {} did not change any row", sizeId);
         return Optional.empty();
     }
-
-    // -- Items --
 
     /**
      * Finds all items assigned to a member.
@@ -567,9 +557,8 @@ public class InventoryService {
      * <p>The kind sits beside the name and never replaces it: a piece may be called {@code Pager 01}
      * and be of the kind {@code Pager}, and both readings are wanted at once.
      *
-     * <p>The overload without a kind is the one the five automatic paths use, and their pieces have
-     * none. That is by design rather than a gap: stock-taking, hand-out, quick assign, check
-     * correction and procurement fulfilment all run with nobody present to say what a thing is.
+     * <p>The overload without a kind serves the automatic paths, which run with nobody present to say
+     * what a thing is. Gear belonging to a partner arrives by handover only and is never written here.
      *
      * @param inventoryId    the inventory ID
      * @param internalId     the internal identifier
@@ -592,8 +581,6 @@ public class InventoryService {
             @Nullable InventoryItemMetadata metadata,
             ItemOwner ownerKind,
             @Nullable Integer ownerClusterId) {
-        // Gear belonging to a partner arrives by handover and by nothing else, so it is never
-        // written down here. The rows for it are the lending flow's to make and to take away again.
         if (ownerKind == ItemOwner.PARTNER_STATION) {
             throw new BadRequestResponse("Gear belonging to a partner station arrives by handover, not by hand");
         }
@@ -1041,14 +1028,11 @@ public class InventoryService {
     /**
      * Refuses to let a station change gear it does not own.
      *
-     * <p>Holding something is not owning it. A station may hand a cluster's jacket to a member, put it on a
-     * shelf, check it and report it missing, because all of those are facts about where it is. What it may
-     * not do is rename it, resize it or delete it, because those are the owner's account of what the thing
-     * is, and the same row is what the owner reads.
-     *
-     * <p>The owner itself arrives here as a station request, because an association's gear sits on the station
-     * it owns and its screens act there. So the question is not "is this a station" but "is this the body the
-     * gear belongs to", which is what {@code actingClusterId} answers.
+     * <p>Holding is not owning: a station may move, check or report a cluster's gear, but renaming, resizing
+     * or deleting it is the owner's account of what it is. The owner arrives here as a station request, so
+     * {@code actingClusterId} says whether the caller is the body the gear belongs to. A borrowed piece is
+     * always its lender's. Gear of a body that does not use Ember stays editable, or a wrong record could
+     * never be put right.
      *
      * @param itemId          the item somebody wants to change
      * @param verb            what they wanted to do, for the message
@@ -1057,16 +1041,10 @@ public class InventoryService {
      */
     private void requireOwned(int itemId, String verb, @Nullable Integer actingClusterId) {
         inventoryRepository.findItemById(itemId).ifPresent(item -> {
-            // A borrowed piece has an owner who is right there and reading the same thing from the other
-            // end. What it is stays theirs; where it is stays the borrower's, and none of those verbs is
-            // about where it is.
             if (item.borrowed()) {
                 throw new ForbiddenResponse(
                         "This gear belongs to a partner station and can only be %s by them".formatted(verb));
             }
-            // Only where the owner is actually here to do it themselves. Gear kept for a body that does not
-            // use Ember belongs to nobody who could ever correct a name, so refusing the station would leave
-            // the record wrong for good with no way to put it right.
             Integer ownerClusterId = item.ownerClusterId();
             if (item.ownerKind() != ItemOwner.CLUSTER || ownerClusterId == null) return;
             if (ownerClusterId.equals(actingClusterId)) return;
@@ -1074,8 +1052,6 @@ public class InventoryService {
                     "This gear belongs to the body above the station and can only be %s by them".formatted(verb));
         });
     }
-
-    // -- History --
 
     /**
      * Finds the assignment history for an item.
@@ -1086,8 +1062,6 @@ public class InventoryService {
     public List<InventoryItemHistory> findHistory(int itemId) {
         return inventoryRepository.findHistory(itemId);
     }
-
-    // -- Requirements --
 
     /**
      * Finds all inventory requirements for a station.

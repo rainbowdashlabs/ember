@@ -28,15 +28,13 @@ public final class ScoreEvaluator {
         for (var name : fieldNames) {
             dummyVars.put(name, "1");
         }
-        // Also add built-in variables
         dummyVars.put("wartezeit_tage", "1");
         dummyVars.put("wartezeit_monate", "1");
         dummyVars.put("wartezeit_quartale", "1");
         dummyVars.put("wartezeit_jahre", "1");
         try {
-            // Preprocess age([field]) calls - replace with dummy number
-            String processed = formula.replaceAll("age\\(\\[[^]]+]\\)", "1");
-            String substituted = substituteVariables(processed, dummyVars);
+            String withoutAgeCalls = formula.replaceAll("age\\(\\[[^]]+]\\)", "1");
+            String substituted = substituteVariables(withoutAgeCalls, dummyVars);
             var tokens = tokenize(substituted);
             var parser = new Parser(tokens);
             parser.parseTernary();
@@ -80,8 +78,6 @@ public final class ScoreEvaluator {
         }
         return sb.toString();
     }
-
-    // --- Tokenizer ---
 
     private static List<Token> tokenize(String input) {
         var tokens = new ArrayList<Token>();
@@ -139,8 +135,6 @@ public final class ScoreEvaluator {
 
     private record TEof() implements Token {}
 
-    // --- Parser (recursive descent) ---
-
     private static class Parser {
         private final List<Token> tokens;
         private int pos;
@@ -150,7 +144,7 @@ public final class ScoreEvaluator {
             this.pos = 0;
         }
 
-        // ternary: comparison ? expression : expression
+        /** Parses {@code comparison ? ternary : ternary}, or a plain comparison. */
         double parseTernary() {
             double cond = parseComparison();
             if (matchOp("?")) {
@@ -178,7 +172,7 @@ public final class ScoreEvaluator {
             return false;
         }
 
-        // comparison: additive (==|!=|>|<|>=|<= additive)*
+        /** Parses {@code additive ((== | != | > | < | >= | <=) additive)*}; a comparison yields 1 or 0. */
         private double parseComparison() {
             double left = parseAdditive();
             while (peek() instanceof TOp(String op1) && isCompOp(op1)) {
@@ -208,7 +202,7 @@ public final class ScoreEvaluator {
             };
         }
 
-        // additive: multiplicative ((+|-) multiplicative)*
+        /** Parses {@code multiplicative ((+ | -) multiplicative)*}. */
         private double parseAdditive() {
             double left = parseMultiplicative();
             while (peek() instanceof TOp(String op1) && (op1.equals("+") || op1.equals("-"))) {
@@ -219,7 +213,7 @@ public final class ScoreEvaluator {
             return left;
         }
 
-        // multiplicative: unary ((*|/) unary)*
+        /** Parses {@code unary ((* | /) unary)*}; division by zero yields 0. */
         private double parseMultiplicative() {
             double left = parseUnary();
             while (peek() instanceof TOp(String op1) && (op1.equals("*") || op1.equals("/"))) {
@@ -230,7 +224,7 @@ public final class ScoreEvaluator {
             return left;
         }
 
-        // unary: -primary | primary
+        /** Parses {@code -primary} or {@code primary}. */
         private double parseUnary() {
             if (matchOp("-")) {
                 return -parsePrimary();
@@ -238,7 +232,10 @@ public final class ScoreEvaluator {
             return parsePrimary();
         }
 
-        // primary: number | string | ( ternary )
+        /**
+         * Parses a number, a string or a parenthesised ternary. A string evaluates to its hash, so two
+         * equal strings compare equal.
+         */
         private double parsePrimary() {
             Token t = peek();
             if (t instanceof TNum(double value1)) {
@@ -247,7 +244,6 @@ public final class ScoreEvaluator {
             }
             if (t instanceof TStr(String value)) {
                 advance();
-                // Strings evaluate to a hash for comparison - two equal strings produce the same value
                 return value.hashCode();
             }
             if (matchOp("(")) {

@@ -57,8 +57,6 @@ public class MemberGroupService {
         return groupRepository.delete(id);
     }
 
-    // -- Memberships --
-
     public List<StationMember> findMembers(int groupId) {
         return groupRepository.findMembers(groupId);
     }
@@ -66,8 +64,6 @@ public class MemberGroupService {
     public List<MemberGroup> findGroupsForMember(int memberId) {
         return groupRepository.findGroupsForMember(memberId);
     }
-
-    // -- Group Permissions --
 
     public List<Permission> findGroupPermissions(int groupId) {
         return groupRepository.findGroupPermissions(groupId);

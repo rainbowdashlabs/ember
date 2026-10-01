@@ -94,14 +94,15 @@ public class ProfileFieldRepository {
     /**
      * The fields asked of anyone in one of these groups.
      *
+     * <p>Where several groups reach one field, the assignment with the lowest position wins, which is
+     * where the field sits on the member's form.
+     *
      * @param stationId the station asking
      * @param groupIds  the groups the member is in
      * @return the definitions assigned to any of them, each once however many groups reach it
      */
     public List<AssignedProfileField> findByStationAndGroups(int stationId, List<Integer> groupIds) {
         if (groupIds.isEmpty()) return List.of();
-        // A member in two groups that are both asked the same question is asked it once. DISTINCT ON
-        // keeps the assignment with the lowest position, which is where the field sits on their form.
         return query("""
                 SELECT DISTINCT ON (f.id) %s
                 FROM profile_field f

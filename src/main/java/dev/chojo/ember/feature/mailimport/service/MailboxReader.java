@@ -393,17 +393,19 @@ public class MailboxReader implements AutoCloseable {
         message.setFlag(Flags.Flag.DELETED, true);
     }
 
+    /**
+     * Closes the folder and the store. A failure to close is ignored, since a folder or store that will not
+     * close cleanly has nothing left to tell.
+     */
     @Override
     public void close() {
         try {
             if (folder != null && folder.isOpen()) folder.close(true);
         } catch (MessagingException ignored) {
-            // A folder that will not close cleanly has nothing left to tell us.
         }
         try {
             store.close();
         } catch (MessagingException ignored) {
-            // Nor has a store.
         }
     }
 }

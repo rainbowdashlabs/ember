@@ -97,7 +97,7 @@ public class GdprDeletionService {
     /**
      * Anonymises a station member by running the engine for both the integer-id identity
      * ({@code MEMBER_ID}) and the UUID identity ({@code MEMBER_UID}). The avatar file is removed
-     * from disk as a non-DB side effect.
+     * from disk as a non-DB side effect, and the account goes too when this was its only membership.
      */
     public void anonymizeMember(int memberId) {
         var member = stationMemberRepository.findById(memberId).orElse(null);
@@ -112,7 +112,6 @@ public class GdprDeletionService {
             uidReport.log(log);
         }
 
-        // The account is cleaned up at the end if the deleted member was the only membership.
         if (accountId != null) {
             var remaining = stationMemberRepository.findAllByAccountId(accountId);
             if (remaining.isEmpty()) {
@@ -122,6 +121,10 @@ public class GdprDeletionService {
         }
     }
 
+    /**
+     * Runs the engine for the account and removes its avatar. The engine deletes the account row itself;
+     * the explicit delete afterwards is a safeguard against a missing strategy entry leaving it behind.
+     */
     private void deleteAccountData(int accountId) {
         UUID accountUid = accountRepository.resolveUid(accountId);
         var report = engine.deleteByIdentity(IdentityType.ACCOUNT_ID, accountId);
@@ -129,9 +132,6 @@ public class GdprDeletionService {
         if (accountUid != null) {
             avatarService.delete(accountUid);
         }
-        // account.id has DELETE_EXPLICIT on the strategy list and the engine handles it in phase 2.
-        // The repository delete is now redundant in the happy path, but kept as a final safeguard so
-        // a missing strategy entry doesn't leave a dangling account row.
         if (accountRepository.findById(accountId).isPresent()) {
             accountRepository.delete(accountId);
         }

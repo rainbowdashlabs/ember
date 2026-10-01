@@ -52,8 +52,6 @@ public class TwoFactorRepository {
     private static final String ACCOUNT_2FA_AUDIT_COLUMNS =
             "id, account_id, actor_id, event, factor_kind, user_agent, country, created_at";
 
-    // -- Factor CRUD --
-
     public TwoFactorFactor createFactor(int accountId, TwoFactorKind kind, String label) {
         return insertReturning(
                 """
@@ -170,8 +168,6 @@ public class TwoFactorRepository {
                 .all();
     }
 
-    // -- TOTP --
-
     public void createTotp(
             int factorId, byte[] secretEncrypted, short kid, short digits, short periodSeconds, String algorithm) {
         query("""
@@ -204,8 +200,6 @@ public class TwoFactorRepository {
                 SET last_used_step = :step
                 WHERE factor_id = :factor_id AND last_used_step < :step;""").single(call().bind("factor_id", factorId).bind("step", step)).update();
     }
-
-    // -- WebAuthn --
 
     /**
      * @param signIn whether this credential may start a sign-in on its own
@@ -354,8 +348,6 @@ public class TwoFactorRepository {
                 .changed();
     }
 
-    // -- Backup codes --
-
     public void createBackupCode(int factorId, String codeHash) {
         query("INSERT INTO account_2fa_backup_code (factor_id, code_hash) VALUES (:factor_id, :hash);")
                 .single(call().bind("factor_id", factorId).bind("hash", codeHash))
@@ -392,8 +384,6 @@ public class TwoFactorRepository {
                     SELECT id FROM account_2fa_factor WHERE account_id = :account_id AND kind = cast('BACKUP_CODES' AS TWO_FACTOR_KIND)
                 );""").single(call().bind("account_id", accountId)).update();
     }
-
-    // -- Trusted devices --
 
     public TrustedDevice createTrustedDevice(int accountId, String tokenHash, String userAgent, Instant trustedUntil) {
         return insertReturning(
@@ -448,8 +438,6 @@ public class TwoFactorRepository {
                 .single(call().bind("account_id", accountId))
                 .update();
     }
-
-    // -- Policy --
 
     public List<TwoFactorPolicy> findInstancePolicies() {
         return query(
@@ -523,8 +511,6 @@ public class TwoFactorRepository {
         return deleteById("two_factor_policy", id);
     }
 
-    // -- Session 2FA timestamp --
-
     /**
      * Stamps the session as freshly proved, recording what it was proved with. The kind matters as
      * much as the time: a route that must rest on somebody proving themselves at the keyboard has to
@@ -556,8 +542,6 @@ public class TwoFactorRepository {
                 .update()
                 .changed();
     }
-
-    // -- Audit --
 
     public void audit(
             int accountId,

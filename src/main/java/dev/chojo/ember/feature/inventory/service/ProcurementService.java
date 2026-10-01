@@ -66,7 +66,7 @@ public class ProcurementService {
     }
 
     /**
-     * Records something that has been ordered.
+     * Records something that has been ordered. Nobody is notified about an order that is for nobody.
      *
      * @param memberId who it is for, or {@code null} for an order a cluster places for its own store
      */
@@ -83,7 +83,6 @@ public class ProcurementService {
                 .orElseThrow(Refusal.INVENTORY_NOT_HERE_ON_PROCUREMENT::raise);
         inventoryService.requireHomogeneous(inventoryId, "ordering more");
         var procurement = procurementRepository.create(stationId, inventoryId, memberId, sizeId, notes);
-        // Nobody is told about an order that was for nobody
         if (memberId != null) {
             eventBus.publish(new ProcurementCreated(stationId, memberId, inventoryId, inventoryName));
         }
@@ -109,6 +108,10 @@ public class ProcurementService {
         return procurementRepository.findOpen(stationId);
     }
 
+    /**
+     * Marks an order as arrived. What arrives belongs to whoever ordered it: at a cluster's own store that
+     * is the cluster, and the piece rests there rather than landing on a person.
+     */
     public boolean fulfill(int id) {
         var procurement = procurementRepository.findById(id);
         if (procurement.isEmpty()) {
@@ -119,8 +122,6 @@ public class ProcurementService {
 
         var inv = inventoryService.findById(proc.inventoryId());
         if (inv.isPresent()) {
-            // What arrives belongs to whoever ordered it. At a cluster's own store that is the cluster,
-            // and it rests there until the cluster sends it somewhere rather than landing on a person.
             var owner = clusterRepository.findByHomeStation(proc.stationId());
             var item = owner.isPresent()
                     ? inventoryService.createItem(
@@ -145,7 +146,6 @@ public class ProcurementService {
                     .findById(proc.inventoryId())
                     .map(Inventory::name)
                     .orElse("?");
-            // Nobody is told about an order that was for nobody
             if (proc.memberId() != null) {
                 eventBus.publish(
                         new ProcurementFulfilled(proc.stationId(), proc.memberId(), proc.inventoryId(), inventoryName));

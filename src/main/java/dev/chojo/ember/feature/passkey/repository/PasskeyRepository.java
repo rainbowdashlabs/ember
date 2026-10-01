@@ -197,8 +197,6 @@ public class PasskeyRepository {
 
     public record OfferAnswer(Instant answeredAt, boolean declined) {}
 
-    // -- What the operator sees --
-
     /**
      * The three numbers the operator reads, because they mean different things: adoption is the
      * first, the size of the remaining rope the second, and the group that cannot move yet the

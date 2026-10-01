@@ -175,12 +175,13 @@ public class StationImportService {
      * applied (timezone, locale, themes, public toggles); all other TRACKED tables are inserted
      * alongside the station's existing data.
      *
+     * <p>A cluster's home station is refused: it holds what its cluster owns, and a merge would hand
+     * that cluster content nobody gave it.
+     *
      * @param targetStationId the station to merge into
      * @param bundle          the whole bundle, keyed by table name
      */
     public void importStationInto(int targetStationId, Map<String, Object> bundle) {
-        // A cluster's home station holds what its cluster owns; merging a foreign station into it would hand
-        // that cluster content nobody gave it
         stationRepository.findById(targetStationId).ifPresent(station -> {
             if (station.stationKind() == StationKind.CLUSTER_HOME) {
                 throw new BadRequestResponse("A cluster's home station cannot be imported into");

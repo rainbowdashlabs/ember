@@ -327,13 +327,11 @@ public class InventoryCheckRoutes implements Routes {
         int memberId = pathInt(ctx, "memberId");
         var request = ctx.bodyAsClass(AssignItemRequest.class);
         String memberName = NameParts.of(session.user().account()).called();
-        // Unassign old item if swapping
-        Integer oldItemId = request.oldItemId();
-        if (oldItemId != null && oldItemId > 0) {
-            inventoryService.assignItem(oldItemId, null, null);
+        Integer swappedOutItemId = request.oldItemId();
+        if (swappedOutItemId != null && swappedOutItemId > 0) {
+            inventoryService.assignItem(swappedOutItemId, null, null);
         }
         inventoryService.assignItem(request.newItemId(), memberId, memberName);
-        // Return refreshed check state
         var state = checkService.startCheck(
                 session.stationId(), memberId, session.member().id());
         ctx.json(state);

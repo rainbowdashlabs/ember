@@ -424,15 +424,15 @@ public class NewsRoutes implements Routes {
     }
 
     /**
-     * @param withBlocks whether to load the blocks of a rich entry. A listing leaves them out: a
-     *                   list row shows a summary, and loading every entry's blocks to build one
-     *                   would ask the database once per row for something nobody reads.
+     * A system entry is authored by the instance, which is nobody's member: its own name stands in
+     * for the author.
+     *
+     * @param withBlocks whether to load the blocks of a rich entry. A listing leaves them out, since
+     *                   it would cost a query per row for something nobody reads.
      */
     private NewsResponse toResponse(News news, boolean includeRestrictions, int viewerMemberId, boolean withBlocks) {
         var resolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
         String authorName = resolved != null && resolved.name() != null ? resolved.name() : "";
-        // The instance is nobody's member, so there is no identity to resolve and no avatar to
-        // draw. Its own name stands in, and the badge beside it says where the entry came from.
         if (news.systemEntry()) {
             authorName = NewsService.SYSTEM_AUTHOR_NAME;
         }
@@ -640,8 +640,6 @@ public class NewsRoutes implements Routes {
     private void recordView(Context ctx) {
         int id = pathInt(ctx, "id");
         StationSession session = StationSession.from(ctx);
-        // Whatever a member may read, they may be recorded as having read, which includes what the
-        // instance published to every station.
         requireReadable(ctx, id);
         newsService.recordView(id, session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -844,8 +842,6 @@ public class NewsRoutes implements Routes {
             content.setType("text/html");
             content.setValue(post.contentHtml());
             entry.setContents(List.of(content));
-            // One enclosure per attachment, which is what a feed reader expects to be handed a
-            // file. The body stays what the author wrote.
             var enclosures = new ArrayList<SyndEnclosure>();
             for (var attachment : attachmentService.list(post.id())) {
                 SyndEnclosure enclosure = new SyndEnclosureImpl();

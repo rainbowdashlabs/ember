@@ -128,8 +128,6 @@ public class NewsFederationService implements FederationServer {
                 });
     }
 
-    // -- Share management --
-
     /**
      * Configures federation sharing for a news article.
      *
@@ -202,8 +200,6 @@ public class NewsFederationService implements FederationServer {
     public Optional<NewsVisibilityRole> findVisibilityRole(int newsId) {
         return federationRepository.findVisibilityRole(newsId);
     }
-
-    // -- Serving partners --
 
     /**
      * The articles this station shares with a partner.
@@ -354,8 +350,6 @@ public class NewsFederationService implements FederationServer {
     private List<Integer> sharedWith(ServingPartner partner) {
         return findSharedNewsIds(partner.partnerId(), partner.servingStationId());
     }
-
-    // -- Federated comment author tracking --
 
     /**
      * Creates a comment from a remote federated member on a news article.

@@ -111,8 +111,6 @@ public class WaitingListService implements TaskSource {
         this.eventBus = eventBus;
     }
 
-    // --- List CRUD (delegates) ---
-
     public List<WaitingList> findByStation(int stationId) {
         return repository.findByStation(stationId);
     }
@@ -197,8 +195,6 @@ public class WaitingListService implements TaskSource {
         return updated;
     }
 
-    // --- Fields ---
-
     public void delete(int id) {
         repository.delete(id);
         log.info("Deleted waiting list {}", id);
@@ -272,8 +268,6 @@ public class WaitingListService implements TaskSource {
                 });
     }
 
-    // --- Invites ---
-
     public void deleteField(int fieldId) {
         repository.deleteField(fieldId);
         log.info("Deleted waiting-list field {}", fieldId);
@@ -294,14 +288,10 @@ public class WaitingListService implements TaskSource {
         return repository.findInviteByCode(code);
     }
 
-    // --- Registration ---
-
     public void deleteInvite(int inviteId) {
         repository.deleteInvite(inviteId);
         log.info("Deleted waiting-list invite {}", inviteId);
     }
-
-    // --- Public self-service ---
 
     public WaitingListEntry registerViaInvite(
             String inviteCode,
@@ -344,7 +334,6 @@ public class WaitingListService implements TaskSource {
 
         String displayName = entry.fullName();
 
-        // Send registration email to all guardians with an email
         var listForEmail = repository.findById(invite.listId()).orElse(null);
         String stationName = listForEmail != null ? resolveStationName(listForEmail.stationId()) : "";
         int stationId = stationIdForList(invite.listId());
@@ -363,7 +352,6 @@ public class WaitingListService implements TaskSource {
             }
         }
 
-        // Notify managers
         repository
                 .findById(invite.listId())
                 .ifPresent(list -> notifier.notify(
@@ -421,8 +409,6 @@ public class WaitingListService implements TaskSource {
                         },
                         () -> log.warn("Self-service withdrawal skipped: no waiting-list entry for token"));
     }
-
-    // --- Entry management ---
 
     public void confirmInterest(String token) {
         repository
@@ -539,8 +525,6 @@ public class WaitingListService implements TaskSource {
         repository.deleteEntry(entryId);
         log.info("Deleted waiting-list entry {}", entryId);
     }
-
-    // --- State transitions ---
 
     public int countEntries(int listId) {
         return repository.countEntriesByList(listId);
@@ -754,7 +738,6 @@ public class WaitingListService implements TaskSource {
                 groupMemberships.joinAutomatically(joinGroupId, memberId);
             }
 
-            // Create guardian accounts and link them to the member
             createGuardianAccounts(entry, memberId, list);
         }
 
@@ -774,7 +757,6 @@ public class WaitingListService implements TaskSource {
             throw new IllegalStateException("Cannot withdraw an entry that is already JOINED or WITHDRAWN");
         }
 
-        // Delete the linked member and its orphaned account
         Integer memberId = entry.memberId();
         if (memberId != null) {
             var member = stationMemberRepository.findById(memberId).orElse(null);
@@ -796,8 +778,6 @@ public class WaitingListService implements TaskSource {
         repository.deleteEntry(entryId);
         log.info("Withdrew waiting-list entry {} (was {})", entryId, entry.status());
     }
-
-    // --- Scoring ---
 
     /**
      * Computes the waiting-list position of an entry ranked by score (highest first),
@@ -831,8 +811,6 @@ public class WaitingListService implements TaskSource {
         }
         return 0;
     }
-
-    // --- Confirmation checker ---
 
     /**
      * The field a list reads a date of birth from, if it has declared one.
@@ -922,17 +900,22 @@ public class WaitingListService implements TaskSource {
             variables.put(field.name(), value);
         }
 
-        // Built-in generated fields: waiting time
+        putWaitingTime(variables, entry);
+        return ScoreEvaluator.evaluate(substituteAgeCalls(formula, variables), variables);
+    }
+
+    private static void putWaitingTime(Map<String, String> variables, WaitingListEntry entry) {
         long waitingDays = Duration.between(entry.createdAt(), Instant.now()).toDays();
         variables.put("wartezeit_tage", String.valueOf(waitingDays));
         variables.put("wartezeit_monate", String.valueOf(waitingDays / 30));
         variables.put("wartezeit_quartale", String.valueOf(waitingDays / 91));
         variables.put("wartezeit_jahre", String.valueOf(waitingDays / 365));
+    }
 
-        // Preprocess age([fieldname]) function calls - replace with computed age value
-        String processedFormula = formula;
+    /** Replaces every {@code age([field])} call with the age in years the field's date gives today. */
+    private static String substituteAgeCalls(String formula, Map<String, String> variables) {
         var agePattern = Pattern.compile("age\\(\\[([^]]+)]\\)");
-        var matcher = agePattern.matcher(processedFormula);
+        var matcher = agePattern.matcher(formula);
         var sb = new StringBuilder();
         while (matcher.find()) {
             String fieldName = matcher.group(1);
@@ -949,9 +932,7 @@ public class WaitingListService implements TaskSource {
             matcher.appendReplacement(sb, String.valueOf(age));
         }
         matcher.appendTail(sb);
-        processedFormula = sb.toString();
-
-        return ScoreEvaluator.evaluate(processedFormula, variables);
+        return sb.toString();
     }
 
     /**
@@ -965,7 +946,6 @@ public class WaitingListService implements TaskSource {
         if (!list.sendsMail()) return;
         String stationName = resolveStationName(list.stationId());
 
-        // Send initial reminders for expired entries
         var expired = repository.findExpiredConfirmations(list.id(), list.confirmIntervalDays());
         for (var entry : expired) {
             emailService.sendWaitlistConfirmReminderEmail(
@@ -978,7 +958,6 @@ public class WaitingListService implements TaskSource {
             repository.updateReminderSentAt(entry.id(), Instant.now());
         }
 
-        // Send pre-removal warning (2 weeks before the 30-day grace period ends)
         var preRemoval = repository.findPreRemovalWarningDue(list.id());
         for (var entry : preRemoval) {
             emailService.sendWaitlistRemovalWarningEmail(
@@ -990,7 +969,6 @@ public class WaitingListService implements TaskSource {
                     list.stationId());
         }
 
-        // Auto-remove entries past grace period
         var gracePeriodExpired = repository.findGracePeriodExpired(list.id());
         for (var entry : gracePeriodExpired) {
             repository.updateEntryStatus(entry.id(), WaitingListEntryStatus.WITHDRAWN);
@@ -1002,8 +980,6 @@ public class WaitingListService implements TaskSource {
                     list.id());
         }
     }
-
-    // --- Guardians ---
 
     public List<WaitingListEntryGuardian> findGuardiansByEntry(int entryId) {
         return repository.findGuardiansByEntry(entryId);
@@ -1144,8 +1120,6 @@ public class WaitingListService implements TaskSource {
         return entry;
     }
 
-    // --- Public waitlist ---
-
     public WaitingListEntry approvePendingEntry(int entryId) {
         var entry =
                 repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
@@ -1155,7 +1129,6 @@ public class WaitingListService implements TaskSource {
         repository.updateEntryStatus(entryId, WaitingListEntryStatus.WAITING);
         log.info("Approved pending waiting-list entry {}", entryId);
 
-        // Send registration confirmation email to guardians
         var list = repository.findById(entry.listId()).orElse(null);
         if (list == null || list.sendsMail()) {
             String stationName = list != null ? resolveStationName(list.stationId()) : "";

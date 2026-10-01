@@ -92,7 +92,6 @@ public class UserSettingsRoutes implements Routes {
                     request.feel() != null ? request.feel() : current.feel());
         }
 
-        // Build notification settings map from request
         var notifMap = new EnumMap<NotificationType, NotificationSetting>(NotificationType.class);
         if (request.notifications() != null) {
             for (var entry : request.notifications().entrySet()) {
@@ -127,7 +126,6 @@ public class UserSettingsRoutes implements Routes {
         String mailProviderUrl = first.map(MailChainEntry::providerUrl).orElse("");
         boolean mailConfigured = first.isPresent();
 
-        // Build response map with defaults for missing types
         var responseMap = new LinkedHashMap<NotificationType, NotificationToggle>();
         for (var type : NotificationType.values()) {
             var setting = notifSettings.get(type);

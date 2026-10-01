@@ -109,11 +109,8 @@ public class WaitingListRoutes implements Routes {
         return List.of();
     }
 
-    // --- Public ---
-
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Public endpoints
         routes.get(prefix + "/public/waiting-list/invite/{code}", this::getInviteInfo);
         routes.post(prefix + "/public/waiting-list/register", this::registerViaInvite);
         routes.get(prefix + "/public/waiting-list/entry/{token}", this::getEntryByToken);
@@ -121,23 +118,19 @@ public class WaitingListRoutes implements Routes {
         routes.post(prefix + "/public/waiting-list/entry/{token}/confirm", this::confirmInterest);
         routes.post(prefix + "/public/waiting-list/entry/{token}/answer", this::answerInvitation);
 
-        // Public waitlist registration
         routes.get(prefix + "/public/station/{stationUid}/waitlists", this::listPublicWaitlists);
         routes.get(prefix + "/public/station/{stationUid}/waitlists/{wid}/form", this::getPublicForm);
         routes.post(prefix + "/public/station/{stationUid}/waitlists/{wid}/register", this::submitPublicRegistration);
         routes.get(prefix + "/public/waitlist/verify/{token}", this::verifyPublicEmail);
 
-        // Read endpoints
         routes.get(prefix + "/waiting-lists", this::listAll, StationPermission.WAITLIST_READ);
         routes.get(prefix + "/waiting-lists/{id}", this::getById, StationPermission.WAITLIST_READ);
         routes.get(prefix + "/waiting-lists/{id}/fields", this::listFields, StationPermission.WAITLIST_READ);
         routes.get(prefix + "/waiting-lists/{id}/invites", this::listInvites, StationPermission.WAITLIST_READ);
         routes.get(prefix + "/waiting-lists/{id}/entries", this::listEntries, StationPermission.WAITLIST_READ);
 
-        // Add endpoints
         routes.post(prefix + "/waiting-lists/{id}/entries", this::createEntry, StationPermission.WAITLIST_ADD);
 
-        // Management endpoints
         routes.post(prefix + "/waiting-lists", this::create, StationPermission.WAITLIST_EDIT);
         routes.put(prefix + "/waiting-lists/{id}", this::update, StationPermission.WAITLIST_EDIT);
         routes.delete(prefix + "/waiting-lists/{id}", this::deleteList, StationPermission.WAITLIST_EDIT);
@@ -161,7 +154,6 @@ public class WaitingListRoutes implements Routes {
                 this::updateCreatedAt,
                 StationPermission.WAITLIST_EDIT);
 
-        // State transitions
         routes.post(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/invite",
                 this::inviteEntry,
@@ -183,7 +175,6 @@ public class WaitingListRoutes implements Routes {
                 this::withdrawEntry,
                 StationPermission.WAITLIST_EDIT);
 
-        // Approve/reject pending entries
         routes.post(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/approve",
                 this::approveEntry,
@@ -426,8 +417,6 @@ public class WaitingListRoutes implements Routes {
         return true;
     }
 
-    // --- Management ---
-
     @OpenApi(
             path = "/api/v1/public/waiting-list/entry/{token}/remove",
             methods = HttpMethod.POST,
@@ -559,8 +548,6 @@ public class WaitingListRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // --- Fields ---
-
     @OpenApi(
             path = "/api/v1/waiting-lists/{id}/visible-fields",
             methods = HttpMethod.PUT,
@@ -628,8 +615,6 @@ public class WaitingListRoutes implements Routes {
         ctx.json(field);
     }
 
-    // --- Invites ---
-
     @OpenApi(
             path = "/api/v1/waiting-lists/{id}/fields/{fieldId}",
             methods = HttpMethod.DELETE,
@@ -668,18 +653,17 @@ public class WaitingListRoutes implements Routes {
             try {
                 expiresAt = Instant.parse(requestedExpiry);
             } catch (Exception e) {
-                // Try parsing as date only (e.g., "2026-05-30") and convert to end of day UTC
-                expiresAt = LocalDate.parse(requestedExpiry)
-                        .atStartOfDay(ZoneOffset.UTC)
-                        .toInstant()
-                        .plusSeconds(86399);
+                expiresAt = lastSecondOfDateUtc(requestedExpiry);
             }
         }
         var invite = service.createInvite(listId, Objects.requireNonNullElse(request.maxUses(), 1), expiresAt);
         ctx.status(HttpStatus.CREATED).json(invite);
     }
 
-    // --- Entries ---
+    /** The last second, in UTC, of a plain date such as {@code 2026-05-30}. */
+    private static Instant lastSecondOfDateUtc(String isoDate) {
+        return LocalDate.parse(isoDate).atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(86399);
+    }
 
     @OpenApi(
             path = "/api/v1/waiting-lists/{id}/invites/{inviteId}",
@@ -785,8 +769,6 @@ public class WaitingListRoutes implements Routes {
                 .orElseThrow(Refusal.WAITING_LIST_ENTRY_NOT_HERE_AFTER_DATE_CHANGE::raise);
         ctx.json(updated);
     }
-
-    // --- State transitions ---
 
     @OpenApi(
             path = "/api/v1/waiting-lists/{id}/entries/{entryId}",
@@ -955,8 +937,6 @@ public class WaitingListRoutes implements Routes {
             throw Refusal.WAITING_LIST_ENTRY_NOT_WITHDRAWN.raise();
         }
     }
-
-    // --- Records ---
 
     private void validateFormula(@Nullable String formula, List<String> fieldNames) {
         if (formula == null || formula.isBlank()) return;

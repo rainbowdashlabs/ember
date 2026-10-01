@@ -148,8 +148,6 @@ public class MediaFileRepository {
                 .changed();
     }
 
-    // --- Uploaders ---
-
     /**
      * Records that this member brought the file in. Idempotent, so a member uploading the same
      * bytes twice keeps the timestamp of the first time they did.

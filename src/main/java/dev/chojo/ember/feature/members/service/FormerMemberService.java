@@ -79,13 +79,11 @@ public class FormerMemberService {
         if (member == null) return "Member not found";
         if (member.former()) return "Member is already former";
 
-        // Check: no inventory assigned
         var assignedItems = inventoryRepository.findItemsByMember(memberId);
         if (!assignedItems.isEmpty()) {
             return "Member still has " + assignedItems.size() + " inventory items assigned";
         }
 
-        // Check: only TEAM or MEMBER can become former (not GUARDIAN, MANAGER, ADMIN)
         var roles = memberRepository.findPermissions(memberId);
         boolean hasForbiddenRole = roles.stream()
                 .anyMatch(r -> r.permission() == StationPermission.MEMBER_GUARDIAN
@@ -121,10 +119,8 @@ public class FormerMemberService {
 
         log.info("Marking member {} as former", memberId);
 
-        // Remove all roles
         memberRepository.revokeAllPermissions(memberId);
 
-        // Remove all manager relations (both as manager and as managed)
         memberRepository.removeAllManagers(memberId);
         memberRepository.removeAllManaged(memberId);
 
@@ -134,22 +130,18 @@ public class FormerMemberService {
 
         selfCheckService.closeAllFor(memberId);
 
-        // Remove from all groups
         var groups = groupRepository.findGroupsForMember(memberId);
         for (var group : groups) {
             groupRepository.removeMember(group.id(), memberId);
         }
 
-        // Remove from all tags
         var tags = tagRepository.findTagsForMember(memberId);
         for (var tag : tags) {
             tagRepository.removeMember(tag.id(), memberId);
         }
 
-        // Delete absences
         attendanceRepository.deleteAbsencesByMember(memberId);
 
-        // Delete non-archived profile field values
         profileFieldRepository.deleteNonArchivedValues(memberId);
 
         documentService.releaseMember(memberId);
@@ -162,7 +154,6 @@ public class FormerMemberService {
             memberRepository.setDisplayNameAndClearAccount(memberId, frozen == null ? "" : frozen);
         }
 
-        // Set former flag
         memberRepository.setFormer(memberId, true);
 
         log.info("Member {} marked as former", memberId);

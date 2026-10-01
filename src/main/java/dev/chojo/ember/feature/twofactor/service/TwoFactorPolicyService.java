@@ -125,6 +125,9 @@ public class TwoFactorPolicyService {
      * Returns the per-member 2FA-status rows shown in the station-admin Security panel.
      * Enrolment is checked through {@link TwoFactorRepository#isEnrolled(int)}; mandate is
      * derived from elevated role / permission membership plus matching policy rows.
+     *
+     * <p>Enrolled means what the mandate asks for, not what the login screen does: a passkey-only
+     * account counts as compliant while its password path stays unchanged.
      */
     public List<MemberStatus> listStationMemberStatus(int stationId) {
         List<StationMember> members = memberRepository.findByStation(stationId);
@@ -142,8 +145,6 @@ public class TwoFactorPolicyService {
                 .map(m -> {
                     Account account = accountById.get(m.accountId());
                     if (account == null) return null;
-                    // What the mandate asks for, not what the login screen does: a passkey-only
-                    // account counts as compliant here while its password path stays unchanged.
                     boolean enrolled = repository.satisfiesTwoFactorMandate(account.id());
                     boolean mandated = isMandated(account, m, stationId, instancePolicies, stationPolicies);
                     return new MemberStatus(
@@ -195,7 +196,6 @@ public class TwoFactorPolicyService {
                 return true;
             }
         }
-        // Default permissions for the user type
         if (member.userType() != null) {
             for (StationPermission p : member.userType().defaultPermissions()) {
                 if (p == StationPermission.STATION_ADMINISTRATOR || p == StationPermission.STATION_MANAGER) {

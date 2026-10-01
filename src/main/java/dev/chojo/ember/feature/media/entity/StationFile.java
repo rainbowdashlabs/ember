@@ -19,6 +19,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  *
  * @param pageId the page a file was first uploaded for, or {@code 0} when it was brought in
  *               through the station-wide browser rather than from a page
+ * @param stationId the station holding the file, or {@code null} for a file the instance holds
  */
 public record StationFile(
         int id,
@@ -37,8 +38,6 @@ public record StationFile(
         return row -> new StationFile(
                 row.getInt("id"),
                 row.getInt("page_id"),
-                // Null for a file the instance holds. Read as an object rather than an int, so
-                // that "no station" arrives as no station rather than as station zero.
                 (Integer) row.getObject("station_id"),
                 row.getString("content_hash"),
                 row.getString("file_name"),

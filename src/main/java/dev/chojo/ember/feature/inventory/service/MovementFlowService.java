@@ -897,9 +897,12 @@ public class MovementFlowService {
         return flow;
     }
 
+    /**
+     * Creates a flow the station owns. The presets are ensured first, so writing a flow of one's own never
+     * keeps them from arriving.
+     */
     public MovementFlow createFlow(int stationId, String name, MovementPurpose purpose) {
         if (name == null || name.isBlank()) throw new FlowRefusedException(FlowProblem.Code.FLOW_NAME_REQUIRED);
-        // Before this one, so that writing a flow of your own is not what stops the presets arriving
         ensurePresets(stationId);
         MovementFlow flow = flowRepository.createFlow(stationId, name, purpose);
         log.info("Created movement flow {} ('{}', {}) for station {}", flow.id(), name, purpose, stationId);

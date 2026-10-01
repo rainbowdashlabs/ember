@@ -44,8 +44,6 @@ public class ProcedureService {
         this.eventBus = eventBus;
     }
 
-    // ── Templates ──
-
     public List<ProcedureTemplate> findTemplatesByStation(int stationId, boolean includeArchived) {
         return repository.findTemplatesByStation(stationId, includeArchived);
     }
@@ -125,8 +123,6 @@ public class ProcedureService {
         log.info("Procedure template {} now carries {} item dependency(s)", templateId, dependencies.size());
     }
 
-    // ── Procedures ──
-
     public List<Procedure> findProceduresByStation(int stationId, @Nullable ProcedureStatus status) {
         return repository.findProceduresByStation(stationId, status);
     }
@@ -174,12 +170,10 @@ public class ProcedureService {
         var procedure = repository.createProcedure(
                 stationId, templateId, name, description, isPublic, assignedBy, dueAt, eventId, eventDate);
 
-        // Snapshot template items if created from template
         if (templateId != null) {
             snapshotTemplate(procedure.id(), templateId);
         }
 
-        // Add assignees
         for (int memberId : assigneeIds) {
             repository.addAssignee(procedure.id(), memberId);
         }
@@ -258,8 +252,6 @@ public class ProcedureService {
         return repository.findAssigneeIds(procedureId);
     }
 
-    // ── Assignees ──
-
     public void addAssignees(int procedureId, List<Integer> memberIds, int assignedByMemberId) {
         var procedure = repository.findProcedureById(procedureId);
         if (procedure.isEmpty()) {
@@ -293,8 +285,6 @@ public class ProcedureService {
     public Optional<ProcedureItem> findItemById(int itemId) {
         return repository.findItemById(itemId);
     }
-
-    // ── Items ──
 
     public List<ProcedureItem> findItems(int procedureId) {
         return repository.findItems(procedureId);
@@ -340,7 +330,6 @@ public class ProcedureService {
             return false;
         }
 
-        // Validate dependencies are met
         var deps = repository.findItemDependencies(item.get().procedureId());
         var allItems = repository.findItems(item.get().procedureId());
         var checkedIds = allItems.stream()
@@ -409,8 +398,6 @@ public class ProcedureService {
         return repository.countOpenByAssigneeWithAvailableItems(stationId, memberId);
     }
 
-    // ── Sidebar Counts ──
-
     public int countOpenByStation(int stationId) {
         return repository.countOpenByStation(stationId);
     }
@@ -419,17 +406,15 @@ public class ProcedureService {
         var templateItems = repository.findTemplateItems(templateId);
         var templateDeps = repository.findTemplateItemDependencies(templateId);
 
-        // Map old template item IDs to new procedure item IDs
-        Map<Integer, Integer> idMapping = new HashMap<>();
+        Map<Integer, Integer> procedureItemIdByTemplateItemId = new HashMap<>();
         for (ProcedureTemplateItem item : templateItems) {
             ProcedureItem created = repository.snapshotTemplateItem(procedureId, item);
-            idMapping.put(item.id(), created.id());
+            procedureItemIdByTemplateItemId.put(item.id(), created.id());
         }
 
-        // Recreate dependencies with new IDs
         for (int[] dep : templateDeps) {
-            Integer newItemId = idMapping.get(dep[0]);
-            Integer newDependsOnId = idMapping.get(dep[1]);
+            Integer newItemId = procedureItemIdByTemplateItemId.get(dep[0]);
+            Integer newDependsOnId = procedureItemIdByTemplateItemId.get(dep[1]);
             if (newItemId != null && newDependsOnId != null) {
                 repository.addItemDependency(newItemId, newDependsOnId);
             }

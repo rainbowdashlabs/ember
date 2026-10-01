@@ -216,7 +216,6 @@ public class MemberNameResolver {
     public @Nullable String resolve(@Nullable MemberIdentity identity) {
         if (identity == null) return null;
 
-        // Try local: resolve the member UUID back to an internal ID via station lookup
         var station = stationRepository.findByUid(identity.stationUid()).orElse(null);
         if (station != null) {
             var memberId = memberService.resolveId(station.id(), identity.memberUid());
@@ -226,7 +225,6 @@ public class MemberNameResolver {
             }
         }
 
-        // Try federated name cache
         var partner = federationRepository.findPartnerByRemoteStationUid(identity.stationUid());
         if (partner.isPresent()) {
             var cached = eventFederationRepository
@@ -235,7 +233,6 @@ public class MemberNameResolver {
             if (cached != null) return cached;
         }
 
-        // Fallback to station name
         if (station != null) return station.name();
         return null;
     }
@@ -249,14 +246,12 @@ public class MemberNameResolver {
 
     /**
      * Enriches a MemberIdentity with display metadata (name, station name, name color, visible tag badge).
-     * Results are cached for 5 minutes after last access.
+     * Results are cached for 5 minutes after last access, but only once a name was found: a cached
+     * miss would keep a federated member nameless for the whole time after their name arrives.
      */
     public MemberIdentity enrichDisplay(MemberIdentity identity) {
         if (identity == null) return null;
 
-        // Resolve once, then cache only if we have a name. Caching null would keep federated
-        // members nameless for the full TTL even after their name lands in the partner cache
-        // (e.g. via a later signed federation push or a demo seeder re-run).
         var cached = displayCache.getIfPresent(identity.memberUid());
         var data = cached != null ? cached : resolveDisplayData(identity);
         if (cached == null && data.name() != null) {
@@ -277,7 +272,6 @@ public class MemberNameResolver {
                         name, stationName, resolveNameColor(memberId.get()), resolveDisplayTag(memberId.get()));
             }
         }
-        // Federated: fall back to the partner name cache for the remote member.
         var partner = federationRepository.findPartnerByRemoteStationUid(identity.stationUid());
         if (partner.isPresent()) {
             var name = eventFederationRepository

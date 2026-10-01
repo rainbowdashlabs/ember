@@ -74,17 +74,12 @@ public class PageService {
         this.stationRepository = stationRepository;
     }
 
-    // --- Page CRUD ---
-
     static String toSlug(String input) {
         if (input == null) return "";
         String normalized = Normalizer.normalize(input.toLowerCase(Locale.ROOT), Normalizer.Form.NFD);
-        // Remove diacritics
-        String ascii = normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-        // Replace non-alphanumeric with hyphens
-        String slug = ascii.replaceAll("[^a-z0-9]+", "-");
-        // Trim leading/trailing hyphens
-        return slug.replaceAll("^-+|-+$", "");
+        String withoutDiacritics = normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        String hyphenated = withoutDiacritics.replaceAll("[^a-z0-9]+", "-");
+        return hyphenated.replaceAll("^-+|-+$", "");
     }
 
     public StationPage create(int stationId, String title, @Nullable Integer parentId, int createdBy) {
@@ -380,12 +375,15 @@ public class PageService {
                 .map(this::resolveOgImageHash);
     }
 
+    /**
+     * Deletes a page and its blocks, which the database does not remove along with it: the page
+     * points at its container, not the other way round.
+     */
     public boolean deletePage(int pageId) {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return false;
         boolean deleted = pageRepository.delete(pageId);
         if (deleted) {
-            // The container is the owned side, so nothing cleans it up for us.
             blocks.delete(page.containerId());
             log.info("Page {} deleted from station {}", pageId, page.stationId());
         } else {
@@ -431,8 +429,6 @@ public class PageService {
         pageRepository.setLandingPage(stationId, pageId);
         log.info("Landing page for station {} set to page {}", stationId, pageId);
     }
-
-    // --- Landing page ---
 
     public Optional<StationPage> getLandingPage(int stationId) {
         return pageRepository
@@ -485,8 +481,6 @@ public class PageService {
         }
         throw new IllegalStateException("Could not generate unique slug");
     }
-
-    // --- Markdown rendering ---
 
     private StationPage renderMarkdownCells(StationPage page) {
         int stationId = page.stationId();
@@ -571,8 +565,6 @@ public class PageService {
         return descriptions.describe(stationId, cell);
     }
 
-    // --- Internal helpers ---
-
     private int maxChildDepth(int pageId) {
         var children =
                 pageRepository
@@ -589,8 +581,8 @@ public class PageService {
     }
 
     private void validateDepth(int parentId, int additionalLevels) {
-        int currentDepth = pageRepository.depth(parentId) + 1; // parent is already at some depth
-        if (currentDepth + additionalLevels > MAX_DEPTH) {
+        int depthBelowParent = pageRepository.depth(parentId) + 1;
+        if (depthBelowParent + additionalLevels > MAX_DEPTH) {
             throw new BadRequestResponse("Page hierarchy exceeds maximum depth of " + MAX_DEPTH);
         }
     }

@@ -210,7 +210,7 @@ public class ItemCustodyService {
 
     /**
      * Records that a missing item has turned up again. It goes back to whoever it was still on the
-     * record of, or to its store when nobody had it.
+     * record of, or to its store when nobody had it. The loss note goes with the loss.
      *
      * @param itemId the item ID
      * @return the updated item, or empty if the item was not found
@@ -228,7 +228,6 @@ public class ItemCustodyService {
         } else {
             writeResting(item);
         }
-        // A note about a loss that did not last is a note about nothing
         inventoryRepository.setLostNote(itemId, null, null);
         log.info("Item {} marked found", itemId);
         return inventoryRepository.findItemById(itemId);
@@ -288,7 +287,7 @@ public class ItemCustodyService {
      * @param memberId      the movement's member, needed only when the step hands the item to them
      * @param movementId    the movement, needed only when the step puts the item in the post
      * @param stepStationId the station running the movement, which is where the item is once a step leaves
-     *                      it at a station
+     *                      it at a station; for a cluster's gear it differs from the inventory's station
      * @return the updated item, or empty if the item was not found
      * @throws BadRequestResponse if the step hands an item to a member the movement does not name
      */
@@ -310,9 +309,6 @@ public class ItemCustodyService {
         }
 
         closeCurrentSpell(item);
-        // The station running the movement, not the one whose inventory the row sits in. For a station's own
-        // gear those are the same; for a cluster's they are not, and it is the movement that says where the
-        // item has actually got to.
         Integer stationId =
                 custody == ItemCustody.AT_STATION ? (stepStationId != null ? stepStationId : stationOf(item)) : null;
         Integer movement = custody == ItemCustody.IN_TRANSIT ? movementId : null;

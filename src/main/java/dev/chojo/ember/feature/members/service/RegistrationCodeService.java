@@ -72,8 +72,6 @@ public class RegistrationCodeService {
         log.info("Registration code deleted: id={}, station={}", id, stationId);
     }
 
-    // -- Code-Group assignments --
-
     /**
      * The groups somebody registering with a code of the station is put into.
      *

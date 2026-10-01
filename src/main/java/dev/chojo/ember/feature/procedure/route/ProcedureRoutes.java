@@ -50,7 +50,6 @@ public class ProcedureRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Templates
         routes.get(prefix + "/procedure-templates", this::listTemplates, StationPermission.PROCEDURE_MANAGER);
         routes.post(prefix + "/procedure-templates", this::createTemplate, StationPermission.PROCEDURE_MANAGER);
         routes.get(prefix + "/procedure-templates/{tid}", this::getTemplate, StationPermission.PROCEDURE_MANAGER);
@@ -74,7 +73,6 @@ public class ProcedureRoutes implements Routes {
                 this::setTemplateDependencies,
                 StationPermission.PROCEDURE_MANAGER);
 
-        // Procedures (USER can list/view their assigned procedures; PROCEDURE_READ sees all)
         routes.get(prefix + "/procedures", this::listProcedures, StationPermission.USER);
         routes.get(
                 prefix + "/procedures/for-event/{eid}",
@@ -87,12 +85,10 @@ public class ProcedureRoutes implements Routes {
         routes.post(prefix + "/procedures/{rid}/resolve", this::resolveProcedure, StationPermission.PROCEDURE_EDIT);
         routes.post(prefix + "/procedures/{rid}/reopen", this::reopenProcedure, StationPermission.PROCEDURE_EDIT);
 
-        // Assignees
         routes.post(prefix + "/procedures/{rid}/assignees", this::addAssignees, StationPermission.PROCEDURE_EDIT);
         routes.delete(
                 prefix + "/procedures/{rid}/assignees/{mid}", this::removeAssignee, StationPermission.PROCEDURE_EDIT);
 
-        // Items
         routes.post(prefix + "/procedures/{rid}/items", this::addItem, StationPermission.PROCEDURE_EDIT);
         routes.put(prefix + "/procedures/{rid}/items/{iid}", this::editItem, StationPermission.PROCEDURE_EDIT);
         routes.delete(prefix + "/procedures/{rid}/items/{iid}", this::deleteItem, StationPermission.PROCEDURE_EDIT);
@@ -102,8 +98,6 @@ public class ProcedureRoutes implements Routes {
                 this::setProcedureDependencies,
                 StationPermission.PROCEDURE_EDIT);
     }
-
-    // ── Template endpoints ──
 
     @OpenApi(
             path = "/api/v1/procedure-templates",
@@ -246,8 +240,6 @@ public class ProcedureRoutes implements Routes {
                 .toList();
     }
 
-    // ── Procedure endpoints ──
-
     @OpenApi(
             path = "/api/v1/procedures",
             methods = HttpMethod.GET,
@@ -260,7 +252,6 @@ public class ProcedureRoutes implements Routes {
 
         boolean canEdit = session.hasPermission(StationPermission.PROCEDURE_EDIT);
         if ("me".equals(assigneeParam) || !canEdit) {
-            // Non-EDIT users only see public procedures they're assigned to
             boolean publicOnly = !session.hasPermission(StationPermission.PROCEDURE_READ);
             ctx.json(procedureService.findProceduresByAssignee(
                     session.stationId(), session.member().id(), status, publicOnly));
@@ -312,7 +303,6 @@ public class ProcedureRoutes implements Routes {
         var assignees =
                 assigneeIds.stream().map(memberIdentityFactory::fromMemberId).toList();
 
-        // Filter private items for non-EDIT users
         if (!session.hasPermission(StationPermission.PROCEDURE_EDIT)) {
             items = items.stream().filter(ProcedureItem::isPublic).toList();
         }
@@ -399,8 +389,6 @@ public class ProcedureRoutes implements Routes {
                 procedureService.findProcedureById(rid).orElseThrow(Refusal.PROCEDURE_NOT_HERE_AFTER_REOPENING::raise));
     }
 
-    // ── Assignee endpoints ──
-
     @OpenApi(
             path = "/api/v1/procedures/{rid}/assignees",
             methods = HttpMethod.POST,
@@ -427,8 +415,6 @@ public class ProcedureRoutes implements Routes {
         procedureService.removeAssignee(rid, mid);
         ctx.json(procedureService.findAssigneeIds(rid));
     }
-
-    // ── Item endpoints ──
 
     @OpenApi(
             path = "/api/v1/procedures/{rid}/items",
@@ -486,7 +472,6 @@ public class ProcedureRoutes implements Routes {
         if (req.checked() != null) {
             boolean hasEdit = session.hasPermission(StationPermission.PROCEDURE_EDIT);
             if (req.checked()) {
-                // Non-EDIT users can only check user-assigned items they're assigned to
                 if (!hasEdit) {
                     var item = procedureService
                             .findItemById(iid)
@@ -515,8 +500,6 @@ public class ProcedureRoutes implements Routes {
         }
         ctx.json(procedureService.findItems(rid));
     }
-
-    // ── Request/Response records ──
 
     /**
      * A procedure template as it is created or renamed.

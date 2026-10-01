@@ -166,8 +166,6 @@ public class RegistrationCodeRoutes implements Routes {
                 stationOf(ctx, Refusal.REGISTRATION_CODE_NOT_HERE_TO_CHANGE_GROUPS), codeId, groupIds));
     }
 
-    // -- Request/Response records --
-
     public record CreateCodeRequest(String code, int maxUses) {}
 
     public record CodeDetail(int id, int stationId, String code, int maxUses, int uses, List<Integer> groupIds) {}

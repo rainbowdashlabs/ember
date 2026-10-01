@@ -65,13 +65,11 @@ public class TransferRoutes implements Routes {
         routes.post(prefix + "/station/transfer/abort", this::abortTransfer, StationPermission.STATION_IMPORT_EXPORT);
         routes.get(prefix + "/station/transfer/status", this::transferStatus, StationPermission.LOGIN);
 
-        // Token-authenticated export (public, for remote import)
         routes.get(prefix + "/public/transfer/{token}/tables", this::tokenListTables);
         routes.get(prefix + "/public/transfer/{token}/{table}", this::tokenExportTable);
         routes.post(prefix + "/public/transfer/{token}/abort", this::tokenAbortTransfer);
         routes.post(prefix + "/public/transfer/{token}/complete", this::tokenCompleteTransfer);
 
-        // Import (async, fetches from remote)
         routes.post(prefix + "/admin/transfer/import", this::startImport, InstancePermission.ADMINISTRATOR);
         routes.get(
                 prefix + "/admin/transfer/import/{stationUid}/progress",
@@ -130,8 +128,6 @@ public class TransferRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         ctx.json(transferService.status(session.stationId()));
     }
-
-    // -- Token-authenticated export --
 
     @OpenApi(
             path = "/api/v1/public/transfer/{token}/tables",
@@ -223,8 +219,6 @@ public class TransferRoutes implements Routes {
         transferService.complete(stationId, ctx.header("X-Ember-Importing-From"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // -- Import --
 
     @OpenApi(
             path = "/api/v1/admin/transfer/import",

@@ -31,8 +31,6 @@ public class PageRepository {
     private static final String STATION_PAGE_COLUMNS =
             "id, public_uid, station_id, parent_id, title, slug, visibility, sort_order, meta_description, og_image_id, container_id, created_by, created_at, updated_at";
 
-    // --- Page CRUD ---
-
     public StationPage create(int stationId, String title, String slug, @Nullable Integer parentId, int createdBy) {
         return SqlSupport.insertReturning(
                 """
@@ -331,8 +329,6 @@ public class PageRepository {
                 .single(call().bind("page_id", pageId).bind("station_id", stationId))
                 .update();
     }
-
-    // --- Landing page ---
 
     public Optional<Integer> getLandingPageId(int stationId) {
         return query("SELECT landing_page_id FROM station WHERE id = :id;")

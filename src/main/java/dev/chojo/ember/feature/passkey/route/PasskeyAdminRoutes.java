@@ -44,6 +44,10 @@ public class PasskeyAdminRoutes implements Routes {
         this.adminService = adminService;
     }
 
+    /**
+     * Registers the passkey administration routes. A password is retired only from an account that
+     * already holds a passkey, and never for everyone at once by accident.
+     */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/admin/config/auth/passkeys", this::getConfig, InstancePermission.ADMINISTRATOR);
@@ -56,8 +60,6 @@ public class PasskeyAdminRoutes implements Routes {
                 prefix + "/admin/config/auth/passkeys/report",
                 this::passwordlessReport,
                 InstancePermission.ADMINISTRATOR);
-        // The residue and the retiring: the rope comes away only from somebody already holding
-        // the other one, and never for a room full of people at once by accident.
         routes.get(prefix + "/admin/config/auth/passkeys/residue", this::residue, InstancePermission.ADMINISTRATOR);
         routes.post(
                 prefix + "/admin/accounts/{id}/password/retire",

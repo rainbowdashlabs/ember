@@ -147,6 +147,9 @@ public class TwoFactorService {
      * <p>Returns {@code false} when the target account does not exist; callers should treat
      * that as a 404. Reset never fails partially - the audit row is the source of truth even
      * if the email enqueue throws.
+     *
+     * <p>Password sign-in is switched back on: disabling every factor also took the member's
+     * passkeys, so a password sign-in they had switched off is their way back in.
      */
     public boolean resetAccount2FA(
             int targetAccountId,
@@ -160,9 +163,6 @@ public class TwoFactorService {
         repository.markAllBackupCodesUsed(targetAccountId);
         repository.revokeAllTrustedDevices(targetAccountId);
         accountRepository.deleteSessionsByAccount(targetAccountId);
-        // The reset exists for the member who cannot get in. Disabling every factor also took
-        // their passkeys, so a password sign-in they had switched off is their way back and is
-        // switched on again here. A no-op for an account holding no credential row.
         accountRepository.setPasswordLoginDisabled(targetAccountId, false);
 
         auditService.record(targetAccountId, actorAccountId, TwoFactorEvent.ADMIN_RESET, null, userAgent, country);
@@ -199,8 +199,6 @@ public class TwoFactorService {
         var factor = repository.findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES);
         return factor.map(f -> repository.countUnusedBackupCodes(f.id())).orElse(0);
     }
-
-    // -- TOTP enrollment --
 
     public TotpEnrollment beginTotpEnrollment(int accountId, String email) {
         String secret = totpService.generateSecret();
@@ -255,6 +253,9 @@ public class TwoFactorService {
      * id. If this leaves the account with no non-backup factors, the backup-code factor is also
      * disabled so the user is fully unenrolled. A sign-in-only passkey is not reachable here:
      * it is not a second factor, and its removal has rules of its own.
+     *
+     * <p>Every trusted device is revoked, since it would otherwise bypass the challenge with what
+     * remains.
      */
     public boolean removeFactor(int accountId, int factorId, @Nullable String userAgent, @Nullable String country) {
         var factors = repository.findActiveSecondFactorFactors(accountId);
@@ -272,8 +273,6 @@ public class TwoFactorService {
                     .findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES)
                     .ifPresent(f -> repository.disableFactor(f.id()));
         }
-        // A trusted device bypasses the 2FA challenge; removing a factor is a security event, so
-        // revoke every remembered device to force fresh verification with what remains.
         repository.revokeAllTrustedDevices(accountId);
         auditService.record(
                 accountId, null, TwoFactorEvent.REMOVED, target.get().kind(), userAgent, country);
@@ -328,8 +327,6 @@ public class TwoFactorService {
         log.info("Backup codes regenerated for account {} ({} codes)", accountId, codes.size());
         return codes;
     }
-
-    // -- Backup codes --
 
     /**
      * Generates a fresh set of backup codes for the account when none are active yet, returns
@@ -409,8 +406,6 @@ public class TwoFactorService {
                 unused.size());
         return new VerifyBackupCodeResult(false, unused.size());
     }
-
-    // -- Verification --
 
     /**
      * Stamps the session as freshly proved and records what proved it. Every caller says which proof

@@ -135,8 +135,6 @@ public class TestProtocolService implements FederationServer {
                 .anyMatch(share -> Objects.equals(share.protocolId(), protocolId));
     }
 
-    // -- Protocols --
-
     public List<TestProtocol> findProtocols(int stationId) {
         return repository.findProtocols(stationId);
     }
@@ -169,8 +167,6 @@ public class TestProtocolService implements FederationServer {
         else log.warn("Delete of test protocol {} did not change any row", id);
         return deleted;
     }
-
-    // -- Sections --
 
     public List<TestProtocolSection> findSections(int protocolId) {
         return repository.findSections(protocolId);
@@ -229,8 +225,6 @@ public class TestProtocolService implements FederationServer {
         return deleted;
     }
 
-    // -- Items --
-
     public List<TestProtocolItem> findItems(int sectionId) {
         return repository.findItems(sectionId);
     }
@@ -258,8 +252,6 @@ public class TestProtocolService implements FederationServer {
         else log.warn("Delete of protocol item {} did not change any row", id);
         return deleted;
     }
-
-    // -- Runs --
 
     public List<TestProtocolRun> findRuns(int stationId) {
         return repository.findRuns(stationId);
@@ -301,8 +293,6 @@ public class TestProtocolService implements FederationServer {
         else log.warn("Delete of protocol run {} did not change any row", id);
         return deleted;
     }
-
-    // -- Run Members --
 
     public List<TestProtocolRunMember> findRunMembers(int runId) {
         return repository.findRunMembers(runId);
@@ -350,7 +340,6 @@ public class TestProtocolService implements FederationServer {
         for (var entry : checks.entrySet()) {
             repository.upsertCheck(runMemberId, entry.getKey(), entry.getValue(), checkedBy);
         }
-        // Recalculate and update score
         var allChecks = repository.findChecks(runMemberId);
         var allItems = repository.findAllItemsByProtocol(protocolId);
         var itemPoints = allItems.stream().collect(Collectors.toMap(TestProtocolItem::id, TestProtocolItem::points));
@@ -369,8 +358,6 @@ public class TestProtocolService implements FederationServer {
                 checkedBy,
                 score);
     }
-
-    // -- Section Done --
 
     public List<Integer> findDoneSections(int runId, int memberId) {
         var rm = repository.findRunMember(runId, memberId);
@@ -412,7 +399,6 @@ public class TestProtocolService implements FederationServer {
         if (rm.isEmpty()) return false;
         int runMemberId = rm.get().id();
 
-        // Calculate total score from checked items
         var checks = repository.findChecks(runMemberId);
         var allItems = repository.findAllItemsByProtocol(protocolId);
         var itemPoints = allItems.stream().collect(Collectors.toMap(TestProtocolItem::id, TestProtocolItem::points));
@@ -437,8 +423,6 @@ public class TestProtocolService implements FederationServer {
         }
         return completed;
     }
-
-    // -- Federated protocols --
 
     public List<SharedProtocolItem> browseSharedProtocols(int stationId) {
         var partners = federationService.findPartners(stationId).stream()

@@ -56,8 +56,6 @@ public class TwoFactorAdminRoutes implements Routes {
         this.adminService = adminService;
     }
 
-    // -- Instance scope --
-
     private static short clampGraceDays(@Nullable Integer requested) {
         if (requested == null) return 7;
         int v = requested;
@@ -65,8 +63,6 @@ public class TwoFactorAdminRoutes implements Routes {
         if (v > 7) v = 7;
         return (short) v;
     }
-
-    // -- Station scope --
 
     private static @Nullable Integer actorMemberId(Context ctx) {
         UserSession session = UserSession.from(ctx);
@@ -87,7 +83,6 @@ public class TwoFactorAdminRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Instance-admin: policies across every station.
         routes.get(prefix + "/admin/2fa/policies", this::listInstancePolicies, InstancePermission.ADMINISTRATOR);
         routes.put(
                 prefix + "/admin/2fa/policies",
@@ -107,7 +102,6 @@ public class TwoFactorAdminRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
 
-        // Station-admin: policies for the caller's currently-selected station only.
         routes.get(
                 prefix + "/station/2fa/policies", this::listStationPolicies, StationPermission.STATION_ADMINISTRATOR);
         routes.put(

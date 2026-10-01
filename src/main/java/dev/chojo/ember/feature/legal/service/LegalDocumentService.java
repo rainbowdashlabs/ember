@@ -90,13 +90,13 @@ public class LegalDocumentService {
 
     /**
      * Initializes a document directory: checks for version changes, archives old content, generates diff.
+     * A directory without locale subdirectories is read flat.
      *
-     * @return true if the content changed since last startup
+     * @return true if the content changed since last startup, false on the very first one
      */
     public boolean initialize(Path baseDir) {
         String currentMarkdown = readMarkdownDirectory(baseDir, DEFAULT_LOCALE);
         if (currentMarkdown.isEmpty()) {
-            // Also try reading directly from base dir (flat layout without locale subdirs)
             currentMarkdown = readMarkdownDirectoryFlat(baseDir);
         }
         if (currentMarkdown.isEmpty()) {
@@ -115,7 +115,6 @@ public class LegalDocumentService {
             return false;
         }
 
-        // Content changed or first time
         try {
             Files.createDirectories(historyDir);
         } catch (IOException e) {
@@ -125,14 +124,12 @@ public class LegalDocumentService {
         if (previousHash != null) {
             log.info("Legal document changed: {} ({} -> {})", baseDir, previousHash, currentHash);
 
-            // Read the archived previous content for diff
             Path previousArchive = historyDir.resolve(previousHash + ".md");
             if (Files.exists(previousArchive)) {
                 try {
                     String previousMarkdown = Files.readString(previousArchive, StandardCharsets.UTF_8);
                     String diff = generateDiff(previousMarkdown, currentMarkdown);
 
-                    // Write diff file
                     Path diffFile = historyDir.resolve(previousHash + "_to_" + currentHash + ".diff");
                     Files.writeString(diffFile, diff, StandardCharsets.UTF_8);
                     log.info("Diff written to {}", diffFile);
@@ -144,7 +141,6 @@ public class LegalDocumentService {
             log.info("Legal document initialized: {} (version {})", baseDir, currentHash);
         }
 
-        // Archive current content
         try {
             Path archiveFile = historyDir.resolve(currentHash + ".md");
             Files.writeString(archiveFile, currentMarkdown, StandardCharsets.UTF_8);
@@ -152,10 +148,9 @@ public class LegalDocumentService {
             log.error("Failed to archive content", e);
         }
 
-        // Write version file
         writeVersionFile(versionFile, currentHash);
 
-        return previousHash != null; // Only report as "changed" if there was a previous version
+        return previousHash != null;
     }
 
     /**
@@ -232,7 +227,6 @@ public class LegalDocumentService {
             markdown = readMarkdownDirectoryFlat(baseDir);
         }
         if (markdown.isEmpty() && !DEFAULT_LOCALE.equals(locale)) {
-            // Fall back to default locale
             markdown = readMarkdownDirectory(baseDir, DEFAULT_LOCALE);
         }
         if (markdown.isEmpty()) {
@@ -328,7 +322,6 @@ public class LegalDocumentService {
 
         Path historyDir = baseDir.resolve("history");
 
-        // Try pre-computed diff first
         Path diffFile = historyDir.resolve(fromVersion + "_to_" + toVersion + ".diff");
         if (Files.exists(diffFile)) {
             try {
@@ -338,7 +331,6 @@ public class LegalDocumentService {
             }
         }
 
-        // Fall back to on-demand generation from archived markdown files
         Path fromArchive = historyDir.resolve(fromVersion + ".md");
         Path toArchive = historyDir.resolve(toVersion + ".md");
 
@@ -357,7 +349,6 @@ public class LegalDocumentService {
             String toMarkdown = Files.readString(toArchive, StandardCharsets.UTF_8);
             String diff = generateDiff(fromMarkdown, toMarkdown);
 
-            // Cache the generated diff for future requests
             try {
                 Files.writeString(diffFile, diff, StandardCharsets.UTF_8);
             } catch (IOException e) {
@@ -413,8 +404,7 @@ public class LegalDocumentService {
         List<Path> files = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.md")) {
             for (Path entry : stream) {
-                // Skip disabled files (prefixed with _)
-                if (FilePaths.nameOf(entry).startsWith("_")) continue;
+                if (isSwitchedOff(entry)) continue;
                 files.add(entry);
             }
         } catch (IOException e) {
@@ -441,6 +431,11 @@ public class LegalDocumentService {
             }
         }
         return sb.toString();
+    }
+
+    /** Whether a markdown file is switched off, which an underscore at the start of its name says. */
+    private static boolean isSwitchedOff(Path markdownFile) {
+        return FilePaths.nameOf(markdownFile).startsWith("_");
     }
 
     private @Nullable String readVersionFile(Path versionFile) {

@@ -72,8 +72,6 @@ public class MemberImportService {
         this.accountInviteService = accountInviteService;
     }
 
-    // -- API records --
-
     /**
      * Parses a CSV string into headers and rows using the specified separator.
      *
@@ -151,6 +149,9 @@ public class MemberImportService {
     /**
      * Imports members from CSV data, creating accounts, assigning roles and groups,
      * setting profile fields, and linking guardian/manager contacts.
+     *
+     * <p>A new contact's phone number lands in the station's one mobile number field, the same one its
+     * members answer, since a field is defined once for every audience.
      *
      * @param stationId the target station
      * @param csv       the CSV content
@@ -276,8 +277,6 @@ public class MemberImportService {
                         if (!contact.phone().isBlank()) {
                             int mgrId = manager.id();
                             int line = i + 2;
-                            // A question is written once now, so the guardians' mobile number is the
-                            // station's mobile number: there is no second copy to tell it apart from.
                             profileFields.stream()
                                     .filter(f -> f.name().equals("Mobilnummer"))
                                     .findFirst()
@@ -383,13 +382,11 @@ public class MemberImportService {
 
     private MemberPreview applyMappings(
             Map<String, String> row, List<ColumnMapping> mappings, List<ProfileField> fields) {
-        // Group mappings by target, sorted by mergeOrder for merging
         var byTarget = new LinkedHashMap<String, List<ColumnMapping>>();
         for (var m : mappings) {
             if ("skip".equals(m.target())) continue;
             byTarget.computeIfAbsent(m.target(), _ -> new ArrayList<>()).add(m);
         }
-        // Sort each group by mergeOrder
         byTarget.values().forEach(list -> list.sort(Comparator.comparingInt(ColumnMapping::mergeOrder)));
 
         String firstName = "", lastName = "", email = "", group = "";
@@ -443,11 +440,9 @@ public class MemberImportService {
     /**
      * The given name and surname of a contact, out of however many columns the file spends on them.
      *
-     * <p>A youth list usually spends one, headed "Kontakt 1" and holding a whole name. Pointed at the
-     * given name, as the wizard does by itself, it left the surname empty and the parent was written
-     * down as "Rita Sommer Sommer", the child's surname standing in for the missing one. The last word
-     * of a whole name is the surname it already carries, so it is read as one. A file that does spend
-     * two columns is left exactly as it is, and so is a name of one word.
+     * <p>A youth list usually spends one column on a whole name, which the wizard points at the given
+     * name; its last word is read as the surname, or the child's surname would stand in for it. Two
+     * columns, or a name of one word, are left as they are.
      *
      * @param first what was pointed at the given name
      * @param last  what was pointed at the surname, often nothing
@@ -462,6 +457,10 @@ public class MemberImportService {
         };
     }
 
+    /**
+     * Joins the columns mapped onto one target, each split and value-mapped as its mapping says. A
+     * negative split index counts from the end.
+     */
     private String buildMergedValue(Map<String, String> row, List<ColumnMapping> mappingsForTarget) {
         var parts = new ArrayList<String>();
         String separator = " ";
@@ -469,11 +468,10 @@ public class MemberImportService {
             String raw = row.getOrDefault(m.csvColumn(), "").trim();
             if (raw.isEmpty()) continue;
 
-            // Apply split if configured
             if (m.splitChar() != null && !m.splitChar().isEmpty()) {
                 String[] splitParts = raw.split(Pattern.quote(m.splitChar()), -1);
                 int idx = m.splitIndex();
-                if (idx < 0) idx = splitParts.length + idx; // negative index from end
+                if (idx < 0) idx = splitParts.length + idx;
                 if (idx >= 0 && idx < splitParts.length) {
                     raw = splitParts[idx].trim();
                 } else {
@@ -482,7 +480,6 @@ public class MemberImportService {
                 if (raw.isEmpty()) continue;
             }
 
-            // Apply value mapping if present
             if (m.valueMap() != null && !m.valueMap().isEmpty()) {
                 String mapped = m.valueMap().get(raw);
                 if (mapped == null) {
@@ -512,13 +509,11 @@ public class MemberImportService {
         return result;
     }
 
-    // -- Parse CSV headers --
-
+    /** One row keyed by its headers, a repeated header numbered so it does not overwrite the first. */
     private Map<String, String> mapRow(List<String> headers, List<String> cols) {
         var map = new LinkedHashMap<String, String>();
         for (int i = 0; i < headers.size() && i < cols.size(); i++) {
             String header = headers.get(i);
-            // Handle duplicate headers by appending index
             if (map.containsKey(header)) {
                 int suffix = 2;
                 while (map.containsKey(header + " (" + suffix + ")")) suffix++;
@@ -528,8 +523,6 @@ public class MemberImportService {
         }
         return map;
     }
-
-    // -- Preview with mapping --
 
     /**
      * Whether this row is about somebody the station already has, and what to call them if so.
@@ -719,12 +712,6 @@ public class MemberImportService {
         groups.add(created);
         return created;
     }
-
-    // -- Team Import --
-
-    // -- Mapping logic --
-
-    // -- Helpers --
 
     /**
      * Maps a CSV column to a target field with optional value transformation, merging, and splitting.

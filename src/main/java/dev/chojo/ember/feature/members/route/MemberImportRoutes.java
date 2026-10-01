@@ -32,7 +32,7 @@ import java.util.List;
  */
 @Singleton
 public class MemberImportRoutes implements Routes {
-    private static final int MAX_CSV_BYTES = 2 * 1024 * 1024; // 2 MB
+    private static final int MAX_CSV_BYTES = 2 * 1024 * 1024;
 
     private final MemberImportService importService;
 

@@ -37,8 +37,6 @@ public class QuizCatalogRepository {
             id, catalog_id, category_id, question_type, title, description, image_url, points, \
             auto_points, config, position, created_at, updated_at""";
 
-    // -- Catalogs --
-
     public List<QuizCatalog> findByStation(int stationId) {
         return query("SELECT %s FROM quiz_catalog WHERE station_id = :station_id ORDER BY name;", QUIZ_CATALOG_COLUMNS)
                 .single(call().bind("station_id", stationId))
@@ -155,8 +153,6 @@ public class QuizCatalogRepository {
                 .first();
     }
 
-    // -- Categories --
-
     public List<QuizCategory> findCategoriesByStation(int stationId) {
         return query(
                         "SELECT %s FROM quiz_category WHERE station_id = :station_id ORDER BY position;",
@@ -198,8 +194,6 @@ public class QuizCatalogRepository {
     public boolean deleteCategory(int id) {
         return deleteById("quiz_category", id);
     }
-
-    // -- Questions --
 
     public List<QuizQuestion> findQuestions(int catalogId) {
         return query(

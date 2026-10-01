@@ -120,8 +120,6 @@ public class EmailService implements TaskSource {
         }
     }
 
-    // -- Provider resolution --
-
     /**
      * Resolves the station-specific mail provider based on the station's mail configuration.
      * Does not fall back to the global provider; returns empty if no station config exists.
@@ -155,7 +153,9 @@ public class EmailService implements TaskSource {
      * Builds a {@link MailProvider} from raw config values without persisting anything. Returns
      * {@code null} when the provider is {@link MailProviderType#NONE}. The relays with a fixed
      * address all require STARTTLS; only a plain server and Sweego, whose address is configured, take
-     * the encryption from the configuration.
+     * the encryption from the configuration. Sweego gives every account its own relay host and port.
+     * Brevo carries the correlation header through to its delivery events, which ties an event back
+     * to its mail.
      */
     private static @Nullable MailProvider buildProvider(
             MailProviderType provider,
@@ -184,8 +184,6 @@ public class EmailService implements TaskSource {
                         senderName,
                         SENDGRID_CORRELATION_HEADER,
                         SENDGRID_CORRELATION_FORMAT);
-            // Sweego gives every account its own relay host and port, so both come from the
-            // configuration rather than from a constant that would be right for nobody.
             case SWEEGO ->
                 new SmtpMailProvider(
                         smtpHost,
@@ -197,8 +195,6 @@ public class EmailService implements TaskSource {
                         senderName,
                         SWEEGO_CORRELATION_HEADER,
                         null);
-            // Brevo carries this header through to its delivery events, which is what lets one
-            // of those events be traced back to the mail it belongs to.
             case BREVO ->
                 new SmtpMailProvider(
                         "smtp-relay.brevo.com",
@@ -377,8 +373,6 @@ public class EmailService implements TaskSource {
         }
         return false;
     }
-
-    // -- Station email (queued, with per-station limits checked on send) --
 
     /**
      * Sends an email verification link to a user.
@@ -621,8 +615,6 @@ public class EmailService implements TaskSource {
                 loadTemplate("managed-login-revoked.html", locale, vars));
     }
 
-    // -- Public send methods (system, via global provider queue) --
-
     public void sendPasswordResetEmail(String email, String name, String token, String locale) {
         String url = api.baseUrl() + "/reset-password?token=" + token;
         var vars = baseVars(name, null);
@@ -834,8 +826,6 @@ public class EmailService implements TaskSource {
                 .orElse(null);
     }
 
-    // -- Queue --
-
     private String resolveProviderSenderName(@Nullable Integer stationId) {
         var provider = resolveStationProvider(stationId);
         if (provider.isPresent() && provider.get() instanceof SmtpMailProvider smtp) {
@@ -866,8 +856,6 @@ public class EmailService implements TaskSource {
         queueRepository.enqueue(to, subject, htmlBody, null);
         log.debug("Email queued to={} subject={}", to, subject);
     }
-
-    // -- Template & helpers --
 
     /**
      * The provider whose turn it is for this mail, built from the chain it belongs to.

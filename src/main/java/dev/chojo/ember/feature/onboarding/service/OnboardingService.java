@@ -217,6 +217,7 @@ public class OnboardingService {
         log.debug("Onboarding task {} at {} level set to {} by member {}", taskId, level, state, memberId);
     }
 
+    /** A dismissed task stays dismissed, whatever its data would now say. */
     private OnboardingTaskView view(
             OnboardingTask task,
             @Nullable String subject,
@@ -227,7 +228,6 @@ public class OnboardingService {
         OnboardingMark mark = marks.get(id);
         OnboardingTaskState state;
         if (mark != null && mark.dismissed()) {
-            // Thrown away for good, and so not asked about again, whatever the data would now say.
             state = OnboardingTaskState.DISMISSED;
         } else if (task.derived()) {
             state = derived.done()

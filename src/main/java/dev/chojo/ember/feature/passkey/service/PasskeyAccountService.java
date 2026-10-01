@@ -115,9 +115,10 @@ public class PasskeyAccountService {
     }
 
     /**
-     * Switches password sign-in off or back on. Switching off is guarded server side by
-     * everything D6 and the review demand: the instance mode, a reachable address for the way
-     * back, and at least one passkey that has completed a sign-in ceremony.
+     * Switches password sign-in off or back on. Switching off is guarded server side by the
+     * instance mode, a reachable address for the way back, and at least one passkey that has
+     * completed a sign-in ceremony. The way back in without a passkey is a mail, so an address that
+     * cannot receive one is no way back.
      */
     public SwitchOutcome setPasswordLogin(
             int accountId, boolean enabled, @Nullable String userAgent, @Nullable String country) {
@@ -137,8 +138,6 @@ public class PasskeyAccountService {
         boolean reachable =
                 accountRepository.findById(accountId).map(Account::hasRealEmail).orElse(false);
         if (!reachable) {
-            // The way back in for a member without a passkey is a mail. An address that cannot
-            // receive one is no way back, so the switch is never offered to that account.
             return SwitchOutcome.NO_REACHABLE_ADDRESS;
         }
         if (!passkeyRepository.hasTriedSignInPasskey(accountId)) {

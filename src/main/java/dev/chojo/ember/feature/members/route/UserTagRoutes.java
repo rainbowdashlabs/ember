@@ -82,8 +82,6 @@ public class UserTagRoutes implements Routes {
         routes.post(prefix + "/tags/{id}/convert-to-group", this::convertToGroup, StationPermission.MEMBER_MANAGE_TAGS);
     }
 
-    // -- Tags --
-
     @OpenApi(
             path = "/api/v1/tags",
             methods = HttpMethod.GET,
@@ -138,8 +136,6 @@ public class UserTagRoutes implements Routes {
         }
     }
 
-    // -- Tag Members --
-
     @OpenApi(
             path = "/api/v1/tags/{id}",
             methods = HttpMethod.DELETE,
@@ -192,8 +188,6 @@ public class UserTagRoutes implements Routes {
         ctx.json(tagService.findMembers(tagId).stream().map(memberViews::named).toList());
     }
 
-    // -- Convert to Group --
-
     @OpenApi(
             path = "/api/v1/station-members/{memberId}/tags",
             methods = HttpMethod.GET,
@@ -224,8 +218,6 @@ public class UserTagRoutes implements Routes {
         tagService.convertToGroup(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // -- Request/Response records --
 
     /**
      * @param color the tag's colour, or {@code null} for none

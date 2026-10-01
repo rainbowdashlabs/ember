@@ -44,8 +44,6 @@ public class TestProtocolRepository {
     private static final String TEST_PROTOCOL_RUN_CHECK_COLUMNS =
             "run_member_id, item_id, checked, checked_by, checked_at";
 
-    // -- Protocols --
-
     public List<TestProtocol> findProtocols(int stationId) {
         return query(
                         "SELECT %s FROM test_protocol WHERE station_id = :station_id ORDER BY name;",
@@ -113,8 +111,6 @@ public class TestProtocolRepository {
     public boolean deleteProtocol(int id, int stationId) {
         return deleteByIdInStation("test_protocol", id, stationId);
     }
-
-    // -- Sections --
 
     public List<TestProtocolSection> findSections(int protocolId) {
         return query("""
@@ -192,8 +188,6 @@ public class TestProtocolRepository {
                 .first();
     }
 
-    // -- Items --
-
     public List<TestProtocolItem> findItems(int sectionId) {
         return query(
                         "SELECT %s FROM test_protocol_item WHERE section_id = :section_id ORDER BY position;",
@@ -265,8 +259,6 @@ public class TestProtocolRepository {
                 .first();
     }
 
-    // -- Runs --
-
     public List<TestProtocolRun> findRuns(int stationId) {
         return query(
                         "SELECT %s FROM test_protocol_run WHERE station_id = :station_id ORDER BY created_at DESC;",
@@ -311,8 +303,6 @@ public class TestProtocolRepository {
     public boolean deleteRun(int id, int stationId) {
         return deleteByIdInStation("test_protocol_run", id, stationId);
     }
-
-    // -- Run Members --
 
     public List<TestProtocolRunMember> findRunMembers(int runId) {
         return query(
@@ -387,8 +377,6 @@ public class TestProtocolRepository {
                 .changed();
     }
 
-    // -- Section Done --
-
     public List<Integer> findDoneSections(int runMemberId) {
         return query("SELECT section_id FROM test_protocol_run_section_done WHERE run_member_id = :run_member_id;")
                 .single(call().bind("run_member_id", runMemberId))
@@ -435,8 +423,6 @@ public class TestProtocolRepository {
                 .map(TestProtocolRunMember.map())
                 .all();
     }
-
-    // -- Checks --
 
     public List<TestProtocolRunCheck> findChecks(int runMemberId) {
         return query(

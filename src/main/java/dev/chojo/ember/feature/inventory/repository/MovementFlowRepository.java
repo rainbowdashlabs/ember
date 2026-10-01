@@ -35,8 +35,6 @@ public class MovementFlowRepository {
             "id, flow_id, position, label, actor, subject, custody_after, picks_item, archived";
     private static final String BINDING_COLUMNS = "station_id, inventory_id, owner_kind, purpose, party, flow_id";
 
-    // -- Flows --
-
     public Optional<MovementFlow> findFlowById(int id) {
         return SqlSupport.findById("movement_flow", FLOW_COLUMNS, id, MovementFlow.map());
     }
@@ -81,8 +79,6 @@ public class MovementFlowRepository {
                 .update()
                 .changed();
     }
-
-    // -- Steps --
 
     public Optional<MovementFlowStep> findStepById(int id) {
         return SqlSupport.findById("movement_flow_step", STEP_COLUMNS, id, MovementFlowStep.map());
@@ -189,8 +185,6 @@ public class MovementFlowRepository {
                 "SELECT coalesce(max(position), -1) + 1 FROM movement_flow_step WHERE flow_id = :flow_id;",
                 call().bind("flow_id", flowId));
     }
-
-    // -- Bindings --
 
     /**
      * The flow a station uses for an owner and a purpose. A binding naming the inventory wins over

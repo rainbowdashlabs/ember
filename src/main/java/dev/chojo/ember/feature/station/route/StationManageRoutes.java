@@ -693,8 +693,6 @@ public class StationManageRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(new MessageResponse("Import started"));
     }
 
-    // -- Module settings --
-
     @OpenApi(
             path = "/api/v1/station/manage/import/progress",
             methods = HttpMethod.GET,
@@ -793,8 +791,6 @@ public class StationManageRoutes implements Routes {
             boolean feelLocked,
             boolean logoLocked,
             @Nullable String clusterName) {}
-
-    // -- Station import into existing station --
 
     /**
      * What has become of this station's post: the queue, how each of its providers stands today,

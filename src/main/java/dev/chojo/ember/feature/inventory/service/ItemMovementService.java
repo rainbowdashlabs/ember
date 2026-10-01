@@ -279,8 +279,9 @@ public class ItemMovementService {
      * Starts a movement carrying more than the one piece it names.
      *
      * <p>The rest of the load is recorded before the first step is walked, because that step moves the whole
-     * consignment: recorded afterwards, the pieces would still be sitting in the store while the movement
-     * said it had sent them.
+     * consignment. A piece picked before the step that names it is written on the movement at once as a
+     * promise, so nothing else can promise it. An actor speaking for a body above the station is recorded
+     * without a member, since none of the station's people did it.
      *
      * @param carriedIncoming the further arriving pieces this movement carries
      * @see #create(int, MovementPurpose, Integer, String, Integer, Integer, Integer, Integer, String, Actor, Integer)
@@ -310,8 +311,6 @@ public class ItemMovementService {
         if (steps.isEmpty()) throw new BadRequestResponse("That flow has no steps to walk");
 
         MovementFlowStep first = steps.getFirst();
-        // A piece picked before the step that names it is promised rather than handed over: it is written
-        // on the movement at once, so nothing else can promise it, and the naming step later confirms it.
         Integer promised = namesIncomingItem(first) ? null : pickedItemId;
         ItemMovement movement = movementRepository.create(
                 stationId,
@@ -325,9 +324,6 @@ public class ItemMovementService {
                 oldSizeId,
                 newSizeId,
                 reason,
-                // Somebody acting for a body above the station belongs to no station, so there is no member
-                // to name. The record still says what was started and when; what it cannot say is which of
-                // the station's people did it, because none of them did.
                 actor.memberIdOrNull(),
                 lostReport);
         carry(movement.id(), StepSubject.INCOMING, carriedIncoming);
@@ -444,6 +440,9 @@ public class ItemMovementService {
     /**
      * The first step of the chain that the corrected world has not made true, which is where the movement
      * now stands. Empty when every step is satisfied, and the chain is therefore over.
+     *
+     * <p>A promised piece still sits where it always sat, which may be where a later step would put it, so
+     * its steps never count as satisfied before it is named.
      */
     private @Nullable MovementFlowStep stepTheWorldHasNotReached(ItemMovement movement) {
         List<MovementFlowStep> steps = stepsOf(movement);
@@ -453,9 +452,6 @@ public class ItemMovementService {
             MovementFlowStep step = steps.get(index);
             Integer itemId = movement.itemFor(step.subject());
             if (itemId == null) continue;
-            // A promised piece sits where it has always sat, which happens to be where some later step
-            // would put it. Reading that as the step being satisfied would carry the movement past steps
-            // nobody walked.
             if (step.subject() == StepSubject.INCOMING && promisedButNotYetNamed(movement, step)) continue;
             ItemCustody now = inventoryRepository
                     .findItemById(itemId)
@@ -658,6 +654,14 @@ public class ItemMovementService {
         return applyStep(movementId, stepId, actor, note, pickedItemId, true);
     }
 
+    /**
+     * Walks the step a movement stands on and moves its pieces.
+     *
+     * <p>A step reporting a loss leaves the missing piece where it is. The naming step confirms a promised
+     * piece, though another may be named instead; before it, the promised piece stays with whoever holds it.
+     * Everything the movement carries on this leg goes where the named piece goes, since a batch arrives
+     * whole or not at all.
+     */
     private ItemMovement applyStep(
             int movementId,
             int stepId,
@@ -680,27 +684,19 @@ public class ItemMovementService {
         }
 
         Integer subjectItemId = movement.itemFor(step.subject());
-        // A missing item is not somewhere else because a step was walked. It is missing, and the step that
-        // reports it says so about the request rather than about where the thing is.
         if (movement.lostReport() && step.subject() == StepSubject.OUTGOING) subjectItemId = null;
         if (step.picksItem()) {
-            // A promised piece was named when the movement was started, so this step confirms it rather than
-            // choosing. Naming another one here is allowed: the promise was a plan, not a commitment.
             Integer named = pickedItemId != null ? pickedItemId : movement.incomingItemId();
             if (named == null) throw new BadRequestResponse("This step names the arriving item, so name it");
             movementRepository.setIncomingItem(movementId, named);
             subjectItemId = named;
         } else if (step.subject() == StepSubject.INCOMING && promisedButNotYetNamed(movement, step)) {
-            // The piece is known and is not moving yet. Its custody belongs to whoever holds it until the
-            // step that actually sends it, so this step is acknowledged and nothing is touched.
             subjectItemId = null;
         }
 
         if (subjectItemId != null) {
             custodyService.applyStepCustody(
                     subjectItemId, step.custodyAfter(), movement.memberId(), movementId, movement.stationId());
-            // Everything else the movement carries on this leg goes where the named piece goes. A batch
-            // arrives once or not at all, so a step that moved one of twenty jackets moved all twenty.
             for (int carriedId : carried(movementId, step.subject())) {
                 custodyService.applyStepCustody(
                         carriedId, step.custodyAfter(), movement.memberId(), movementId, movement.stationId());

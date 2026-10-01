@@ -95,8 +95,6 @@ public class ProfileFieldService {
         this.permissionResolver = permissionResolver;
     }
 
-    // -- Field Definitions --
-
     /**
      * Which scopes a kind of member is asked.
      *
@@ -490,8 +488,6 @@ public class ProfileFieldService {
         return profileFieldRepository.isProfileComplete(memberId);
     }
 
-    // -- Field Values --
-
     public List<MergedValue> findValues(int memberId) {
         List<MergedValue> values = new ArrayList<>();
         for (var value : profileFieldRepository.findValues(memberId)) {
@@ -727,7 +723,6 @@ public class ProfileFieldService {
         Map<Integer, List<ProfileFieldChangeAcknowledgement>> acksByChange =
                 allAcks.stream().collect(Collectors.groupingBy(ProfileFieldChangeAcknowledgement::changeId));
 
-        // Resolve member names
         var enriched = changes.stream()
                 .map(c -> {
                     String memberName = stationMemberRepository
@@ -761,8 +756,6 @@ public class ProfileFieldService {
         log.info("Profile field change acknowledged: change={}, by={}", changeId, acknowledgedBy);
         return ack;
     }
-
-    // -- Change History --
 
     public List<ProfileFieldChangeAcknowledgement> acknowledgeAll(int memberId, int acknowledgedBy, String comment) {
         var unacknowledgedIds = changeRepository.findUnacknowledgedChangeIds(memberId, acknowledgedBy);

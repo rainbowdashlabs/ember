@@ -60,10 +60,13 @@ public class MovementFlowRoutes implements Routes {
         this.targeting = targeting;
     }
 
+    /**
+     * Registers the routes. The literal {@code resolve} route comes before the one taking an id, or it
+     * would never be reached.
+     */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/movement-flows", this::list, StationPermission.INVENTORY_MANAGER);
-        // Before the one that takes an id, or the literal would never be reached.
         routes.get(prefix + "/movement-flows/resolve", this::resolve, StationPermission.USER);
         routes.get(prefix + "/movement-flows/{id}", this::getFlow, StationPermission.INVENTORY_MANAGER);
         routes.post(prefix + "/movement-flows", this::createFlow, StationPermission.INVENTORY_MANAGER);
@@ -104,6 +107,8 @@ public class MovementFlowRoutes implements Routes {
      * <p>A combination nothing is bound to answers {@code 404} with a named error rather than the
      * service's refusal, because the wizard has a screen for that case and a link to where a chain is
      * written.
+     *
+     * <p>The one picked piece leaves on a return or an exchange and arrives on an issue.
      */
     @OpenApi(
             path = "/api/v1/movement-flows/resolve",
@@ -127,8 +132,6 @@ public class MovementFlowRoutes implements Routes {
         Integer itemId = optionalInt(ctx, "itemId");
         Integer inventoryId = optionalInt(ctx, "inventoryId");
 
-        // Which end the one picked piece sits on follows from the purpose: what leaves on a return or an
-        // exchange, what arrives on an issue, and neither on a request.
         boolean itemLeaves = purpose == MovementPurpose.RETURN || purpose == MovementPurpose.EXCHANGE;
         Integer outgoing = itemLeaves ? itemId : null;
         Integer incoming = itemLeaves ? null : itemId;

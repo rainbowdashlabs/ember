@@ -221,8 +221,6 @@ public class KbContentService {
         log.info("KB file {} content updated to version {} by member {}", fileId, nextVersion, updatedBy);
     }
 
-    // --- Blocks ---
-
     /**
      * Turns a plain markdown article into one built from blocks, putting what the author already
      * wrote into a single markdown block.

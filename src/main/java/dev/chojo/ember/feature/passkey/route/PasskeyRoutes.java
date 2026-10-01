@@ -113,13 +113,20 @@ public class PasskeyRoutes implements Routes {
         this.sessionCookies = sessionCookies;
     }
 
+    /**
+     * Registers the passkey routes.
+     *
+     * <p>The public mode endpoint reveals only which mode the instance is in, which the login screen
+     * needs and which is not sensitive. Sign-in and the device handshake are unauthenticated: sign-in
+     * is throttled by address on begin and finish, and the token a handshake hands out may create
+     * exactly one credential, as may a token door's bearer (a mail link, a QR code or a console
+     * line). The offer and its answer are a preference, so they ask for no step-up, and a trial
+     * mints nothing.
+     */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Which mode the instance is in, for the login screen. It reveals only that, which is
-        // not sensitive: the login screen shows or hides the passkey path with it.
         routes.get(prefix + "/public/settings/passkeys", this::publicMode);
 
-        // The passwordless sign-in - unauthenticated, throttled by IP on begin and finish both.
         routes.post(prefix + "/auth/passkey/begin", this::beginSignIn);
         routes.post(prefix + "/auth/passkey/finish", this::finishSignIn);
 
@@ -155,16 +162,12 @@ public class PasskeyRoutes implements Routes {
                 StationPermission.LOGIN,
                 StepUpCategory.ACCOUNT_SECURITY);
 
-        // The offer and its answer are a preference, not a security operation.
         routes.get(prefix + "/account/passkeys/offer", this::offerState, StationPermission.LOGIN);
         routes.post(prefix + "/account/passkeys/offer-answer", this::answerOffer, StationPermission.LOGIN);
 
-        // The trial: authenticated, its own challenge kind, mints nothing.
         routes.post(prefix + "/account/passkeys/trial/begin", this::beginTrial, StationPermission.LOGIN);
         routes.post(prefix + "/account/passkeys/trial/finish", this::finishTrial, StationPermission.LOGIN);
 
-        // The device handshake: the new device asks (unauthenticated), a signed-in device
-        // approves, and the enrolment token the poll returns may create exactly one credential.
         routes.post(prefix + "/auth/passkey/device-request", this::createDeviceRequest);
         routes.post(prefix + "/auth/passkey/device-request/poll", this::pollDeviceRequest);
 
@@ -174,9 +177,6 @@ public class PasskeyRoutes implements Routes {
         routes.post(prefix + "/auth/passkey/enroll/begin", this::beginDeviceEnrollment);
         routes.post(prefix + "/auth/passkey/enroll/finish", this::finishDeviceEnrollment);
 
-        // The token doors: a mail link, a QR in the room or a console line carries a bearer
-        // that may create one passkey. The lookup names whose account it is before the device
-        // asks for a fingerprint.
         routes.post(prefix + "/auth/passkey/token-enroll/lookup", this::lookupTokenEnrollment);
         routes.post(prefix + "/auth/passkey/token-enroll/begin", this::beginTokenEnrollment);
         routes.post(prefix + "/auth/passkey/token-enroll/finish", this::finishTokenEnrollment);
@@ -493,8 +493,6 @@ public class PasskeyRoutes implements Routes {
     private void publicMode(Context ctx) {
         ctx.json(new PublicModeResponse(modeService.effectiveMode()));
     }
-
-    // -- Sign-in --
 
     @OpenApi(
             path = "/api/v1/auth/passkey/begin",

@@ -126,8 +126,6 @@ public class StationExportService {
         return appVersion;
     }
 
-    // -- Transfer tokens --
-
     /**
      * Mints a single-use transfer token tied to the given station. The operator-visible token
      * is a base64url-encoded JSON object {@code {"host":"…","token":"…"}}; the database stores
@@ -361,8 +359,6 @@ public class StationExportService {
                 .map(row -> row.getInt("station_id"))
                 .first();
     }
-
-    // -- Export --
 
     /**
      * Exports a single table's data for chunked transfer with pagination. The output map

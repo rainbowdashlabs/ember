@@ -29,7 +29,6 @@ public record NewsViewer(MemberIdentity member, @Nullable Instant seenAt) {
         return row -> {
             UUID stationUid = row.get("station_uid", StandardValueConverter.UUID_STRING);
             UUID memberUid = row.get("member_uid", StandardValueConverter.UUID_STRING);
-            // Column comes back null for the unseen branch (LEFT JOIN against news_view).
             Instant seenAt = row.getObject("seen_at") != null ? row.get("seen_at", INSTANT_TIMESTAMP) : null;
             return new NewsViewer(new MemberIdentity(stationUid, memberUid), seenAt);
         };

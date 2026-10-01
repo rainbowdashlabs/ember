@@ -1025,6 +1025,10 @@ public class InventoryRepository {
                 loanRequestItemId);
     }
 
+    /**
+     * Inserts an item. Gear the station records but does not own starts held at the station, since
+     * the station has no shelf in the owner's store.
+     */
     private InventoryItem writeItem(
             int inventoryId,
             @Nullable String internalId,
@@ -1036,8 +1040,6 @@ public class InventoryRepository {
             @Nullable Integer ownerClusterId,
             @Nullable Integer ownerStationId,
             @Nullable Integer loanRequestItemId) {
-        // Gear the station records but does not own is gear the station has, so it starts at the
-        // station rather than in an owner's store the station has no shelf for.
         boolean heldByStation = owner != ItemOwner.STATION;
         return SqlSupport.insertReturning(
                 """

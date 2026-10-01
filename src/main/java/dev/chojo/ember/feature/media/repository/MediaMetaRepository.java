@@ -31,8 +31,6 @@ public class MediaMetaRepository {
     private static final String FOLDER_COLUMNS = "id, station_id, parent_id, name, sort_order, created_at";
     private static final String TAG_COLUMNS = "id, station_id, name, color";
 
-    // --- Folders ---
-
     public StationFileFolder createFolder(int stationId, @Nullable Integer parentId, String name, int sortOrder) {
         return SqlSupport.insertReturning(
                 """
@@ -84,8 +82,6 @@ public class MediaMetaRepository {
                 .update()
                 .changed();
     }
-
-    // --- Tags ---
 
     public StationFileTag createTag(int stationId, String name, @Nullable String color) {
         return SqlSupport.insertReturning(

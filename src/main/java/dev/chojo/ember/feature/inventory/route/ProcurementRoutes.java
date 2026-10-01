@@ -160,8 +160,8 @@ public class ProcurementRoutes implements Routes {
         }
     }
 
+    /** The order as the API shows it. An order a cluster places for its own store names no member. */
     private ProcurementResponse toResponse(Procurement procurement) {
-        // An order a cluster places for its own store is for nobody, so there is nobody to name
         var member = procurement.memberId() == null
                 ? null
                 : memberService.findById(procurement.memberId()).orElse(null);

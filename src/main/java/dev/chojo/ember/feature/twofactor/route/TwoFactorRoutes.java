@@ -93,14 +93,16 @@ public class TwoFactorRoutes implements Routes {
         return false;
     }
 
+    /**
+     * Registers the two-factor routes.
+     *
+     * <p>Enrollment, the first one included, carries the account security step-up category like
+     * everything else on the screen: it is the only guard first enrollment has. The WebAuthn sign-in
+     * routes are public and gated by the pre-auth token issued at password sign-in.
+     */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/account/2fa/status", this::getStatus, StationPermission.LOGIN);
-        // First-time enrollment used to be guarded by a session-bound password re-entry, because
-        // step-up waved through an account with no factor. Step-up asks everybody now, so first
-        // enrollment carries the same category as everything else on this screen and the
-        // re-entry is gone: without the category, removing it would have left first enrollment
-        // guarded by nothing at all.
         routes.post(
                 prefix + "/account/2fa/totp/begin",
                 this::beginTotp,
@@ -124,7 +126,6 @@ public class TwoFactorRoutes implements Routes {
         routes.post(prefix + "/auth/2fa", this::verify2fa);
         routes.post(prefix + "/auth/2fa/stepup", this::stepUp, StationPermission.LOGIN);
 
-        // Trusted-device management
         routes.get(prefix + "/account/2fa/trusted-devices", this::listTrustedDevices, StationPermission.LOGIN);
         routes.post(
                 prefix + "/account/2fa/trusted-devices/{id}/revoke",
@@ -137,9 +138,6 @@ public class TwoFactorRoutes implements Routes {
                 StationPermission.LOGIN,
                 StepUpCategory.ACCOUNT_SECURITY);
 
-        // WebAuthn enrollment - step-up only applies when the account is already enrolled
-        // in something else (the middleware exempts unenrolled accounts so the first
-        // factor can be added without a chicken-and-egg).
         routes.post(
                 prefix + "/account/2fa/webauthn/register/begin",
                 this::beginWebAuthnRegistration,
@@ -157,11 +155,9 @@ public class TwoFactorRoutes implements Routes {
                 StepUpCategory.ACCOUNT_SECURITY);
         routes.post(prefix + "/account/2fa/factors/{id}/rename", this::renameFactor, StationPermission.LOGIN);
 
-        // WebAuthn assertion at login - public, gated by the pre-auth token issued at password login.
         routes.post(prefix + "/auth/2fa/webauthn/begin", this::beginWebAuthnLogin);
         routes.post(prefix + "/auth/2fa/webauthn/finish", this::finishWebAuthnLogin);
 
-        // WebAuthn assertion for step-up - authenticated, updates session.two_factor_verified_at.
         routes.post(prefix + "/auth/2fa/stepup/webauthn/begin", this::beginWebAuthnStepUp, StationPermission.LOGIN);
         routes.post(prefix + "/auth/2fa/stepup/webauthn/finish", this::finishWebAuthnStepUp, StationPermission.LOGIN);
     }
@@ -439,7 +435,6 @@ public class TwoFactorRoutes implements Routes {
         if (factor.isEmpty()) {
             throw Refusal.SECURITY_KEY_NOT_REGISTERED.raise();
         }
-        // First-factor enrollment also seeds backup codes - the client must surface these once.
         List<String> issuedCodes = twoFactorService.issueInitialBackupCodesIfMissing(
                 session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         var f = factor.get();
@@ -603,8 +598,6 @@ public class TwoFactorRoutes implements Routes {
     private int consumeReadOnlyPreAuth(String preAuthToken) {
         return signIn.waitingAccount(preAuthToken, Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY);
     }
-
-    // -- Request / Response records --
 
     public record TwoFactorStatusResponse(
             boolean enrolled,

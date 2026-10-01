@@ -112,10 +112,13 @@ public class MovementRoutes implements Routes {
         this.inventoryService = inventoryService;
     }
 
+    /**
+     * Registers the routes. The literal paths come before the one taking an id, or they would never be
+     * reached.
+     */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/movements", this::list, StationPermission.USER);
-        // Both literals before the one that takes an id, or neither would ever be reached.
         routes.get(prefix + "/movements/at-member", this::listAtMember, StationPermission.USER);
         routes.post(prefix + "/movements", this::create, StationPermission.USER);
         routes.post(
@@ -317,6 +320,10 @@ public class MovementRoutes implements Routes {
                 .toList());
     }
 
+    /**
+     * Sends the file attached to a movement, read from the station that raised the report wherever the
+     * reader answers from.
+     */
     @OpenApi(
             path = "/api/v1/movements/{id}/document",
             methods = HttpMethod.GET,
@@ -329,7 +336,6 @@ public class MovementRoutes implements Routes {
         ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
         var document =
                 lossReportService.documentOf(movement.id()).orElseThrow(Refusal.MOVEMENT_DOCUMENT_NOT_HERE::raise);
-        // Kept by the station that raised the report, wherever the reader is answering from
         byte[] data = lossReportService
                 .read(movement.stationId(), document)
                 .orElseThrow(Refusal.MOVEMENT_DOCUMENT_NOT_READ::raise);
@@ -540,13 +546,15 @@ public class MovementRoutes implements Routes {
         return guards.requireVisible(session, movementId);
     }
 
+    /**
+     * A movement as a list row. The piece a row is about is what left, or what was promised where
+     * nothing left, since an issue and a request have no outgoing side.
+     */
     private MovementResponse toResponse(ItemMovement movement, UserSession session) {
         var steps = movementService.stepsOf(movement);
         var current = steps.stream()
                 .filter(s -> movement.currentStepId() != null && s.id() == movement.currentStepId())
                 .findFirst();
-        // The piece a row is about: what left, or what was promised where nothing left. An issue and a
-        // request have no outgoing side at all, and a row naming nothing says nothing.
         Integer subject = movement.outgoingItemId() != null ? movement.outgoingItemId() : movement.incomingItemId();
         var target = targeting.belongsOn(movement);
         var owner = targeting.owningCluster(target);
@@ -665,14 +673,14 @@ public class MovementRoutes implements Routes {
     /**
      * The whole chain: every step in order, what was acknowledged on each, and whether this caller
      * is the one being waited on. The frontend draws a stepper from exactly this.
+     *
+     * <p>A closed movement shows only the steps it walked, since a step added to the flow later would
+     * read as one somebody skipped. A walked step keeps the label it was walked under.
      */
     private MovementDetail toDetail(ItemMovement movement, UserSession session) {
         var logs = movementService.findLogs(movement.id());
         var actor = actorOf(session, movement);
         var steps = movementService.stepsOf(movement).stream()
-                // A movement that has closed is a record of what happened, so it shows the steps it walked
-                // and no others. The flow it read is free to grow afterwards, and a finished chain must not
-                // grow with it: a step nobody took would read as one somebody skipped.
                 .filter(step -> movement.state() == MovementState.OPEN
                         || logs.stream().anyMatch(l -> l.stepId() != null && l.stepId() == step.id()))
                 .map(step -> {
@@ -683,8 +691,6 @@ public class MovementRoutes implements Routes {
                     return new MovementStepResponse(
                             step.id(),
                             step.position(),
-                            // The words it was walked under, where it has been walked. Renaming a step
-                            // changes what the next movement says and never what a finished one said.
                             entry.map(l -> l.stepLabel()).orElseGet(step::label),
                             step.actor(),
                             step.subject(),

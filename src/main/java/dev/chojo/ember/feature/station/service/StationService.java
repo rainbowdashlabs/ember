@@ -115,7 +115,6 @@ public class StationService {
     public Station create(String name) {
         var station = stationRepository.create(name, DiscoveryVisibility.NEW_STATION_DEFAULT);
         federationService.ensureStationKey(station.id());
-        // Auto-generate a public slug from the station name
         var slug = SlugGenerator.uniqueSlug(
                 name, (s, _) -> stationRepository.findBySlug(s).isPresent(), 0);
         stationRepository.updatePublicSlug(station.id(), slug);
@@ -184,6 +183,13 @@ public class StationService {
         return Optional.empty();
     }
 
+    /**
+     * Saves a station's look and feel.
+     *
+     * <p>A setting its cluster has locked keeps what the cluster last wrote, whatever the station sent.
+     * Refusing the whole save instead would stop the station changing the parts it may still change,
+     * which arrive in the same request.
+     */
     public void updateThemeSettings(
             int id,
             String defaultTheme,
@@ -193,9 +199,6 @@ public class StationService {
             boolean allowUserFeel) {
         Station current = stationRepository.findById(id).orElseThrow(NotFoundResponse::new);
         Locks locks = lookAndFeelLocks(id);
-        // A locked setting keeps whatever the cluster last wrote, whatever the station sent. Refusing the
-        // whole save instead would stop a station changing the parts it may still change, which are on the
-        // same screen and in the same request.
         stationRepository.updateThemeSettings(
                 id,
                 locks.theme() ? current.defaultTheme() : defaultTheme,
@@ -410,8 +413,6 @@ public class StationService {
         return disabled;
     }
 
-    // -- Modules --
-
     /**
      * Replaces all disabled modules for a station with the given set.
      */
@@ -421,10 +422,10 @@ public class StationService {
     }
 
     /**
-     * Checks whether a module is enabled for a station.
+     * Checks whether a module is enabled for a station. A cluster's denial outranks the station's own
+     * answer.
      */
     public boolean isModuleEnabled(int stationId, StationModule module) {
-        // A cluster's denial outranks the station's own answer, whichever way that answer went
         if (clusterRepository.isModuleDeniedForStation(stationId, module)) return false;
         return !stationRepository.findDisabledModules(stationId).contains(module);
     }

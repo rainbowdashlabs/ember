@@ -124,8 +124,6 @@ public class MemberGroupRoutes implements Routes {
                 StationPermission.MEMBER_EDIT);
     }
 
-    // -- Groups --
-
     @OpenApi(
             path = "/api/v1/groups",
             methods = HttpMethod.GET,
@@ -236,8 +234,6 @@ public class MemberGroupRoutes implements Routes {
         }
     }
 
-    // -- Group Members --
-
     @OpenApi(
             path = "/api/v1/groups/{id}/members",
             methods = HttpMethod.GET,
@@ -335,8 +331,6 @@ public class MemberGroupRoutes implements Routes {
         ctx.json(userTypeChanges.consequences(memberId, ctx.pathParam("userType")));
     }
 
-    // -- Group Permissions --
-
     @OpenApi(
             path = "/api/v1/groups/{id}/permissions",
             methods = HttpMethod.GET,
@@ -389,8 +383,6 @@ public class MemberGroupRoutes implements Routes {
         groupService.convertToTag(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // -- Request/Response records --
 
     /**
      * A group as it is created or changed.

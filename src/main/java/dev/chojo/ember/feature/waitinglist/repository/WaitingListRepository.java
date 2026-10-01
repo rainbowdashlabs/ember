@@ -90,8 +90,6 @@ public class WaitingListRepository {
             id, token, list_id, firstname, lastname, email, guardians, field_values, notes, \
             created_at, expires_at, consent_proof""";
 
-    // --- Waiting List CRUD ---
-
     public List<WaitingList> findAll() {
         return query("SELECT %s FROM waiting_list ORDER BY created_at DESC;", WAITING_LIST_COLUMNS)
                 .single(call())
@@ -212,8 +210,6 @@ public class WaitingListRepository {
         deleteById("waiting_list", id);
     }
 
-    // --- Fields ---
-
     public Optional<WaitingListField> findFieldById(int id) {
         return SqlSupport.findById("waiting_list_field", WAITING_LIST_FIELD_COLUMNS, id, WaitingListField.map());
     }
@@ -285,8 +281,6 @@ public class WaitingListRepository {
         deleteById("waiting_list_field", fieldId);
     }
 
-    // --- Invites ---
-
     public List<WaitingListInvite> findInvitesByList(int listId) {
         return query(
                         "SELECT %s FROM waiting_list_invite WHERE list_id = :list_id ORDER BY created_at DESC;",
@@ -330,8 +324,6 @@ public class WaitingListRepository {
     public void deleteInvite(int inviteId) {
         deleteById("waiting_list_invite", inviteId);
     }
-
-    // --- Entries ---
 
     public List<WaitingListEntry> findEntriesByList(int listId) {
         return query(
@@ -550,8 +542,6 @@ public class WaitingListRepository {
                 call().bind("list_id", listId));
     }
 
-    // --- Entry Values ---
-
     public List<WaitingListEntryValue> findEntryValues(int entryId) {
         return query(
                         "SELECT %s FROM waiting_list_entry_value WHERE entry_id = :entry_id;",
@@ -595,8 +585,6 @@ public class WaitingListRepository {
                 WHERE wl.station_id = :station_id
                   AND wle.status = 'WAITING';""", call().bind("station_id", stationId));
     }
-
-    // --- Guardians ---
 
     public List<WaitingListEntryGuardian> findGuardiansByEntry(int entryId) {
         return query(
@@ -648,8 +636,6 @@ public class WaitingListRepository {
                 .single(call().bind("entry_id", entryId))
                 .delete();
     }
-
-    // --- Public waitlist queries ---
 
     public List<WaitingList> findPublicByStation(int stationId) {
         return query(
@@ -709,8 +695,6 @@ public class WaitingListRepository {
                 WaitingListEntry.map(),
                 WAITING_LIST_ENTRY_COLUMNS);
     }
-
-    // --- Verification tokens ---
 
     public void createVerificationToken(
             String token,

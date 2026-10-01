@@ -114,7 +114,8 @@ public class MovementExportService {
 
     /**
      * Exports the selected movements as a PDF. Groups them by member, resolves size labels, and renders
-     * the Typst template.
+     * the Typst template. A row is a member and a column an inventory, so a movement missing either is
+     * left off the sheet.
      *
      * @param stationId     the station ID
      * @param movementIds   the movements to include, or empty for all of the station's
@@ -128,8 +129,6 @@ public class MovementExportService {
         if (station == null) return Optional.empty();
 
         var allExchanges = movementService.findByStation(stationId).stream()
-                // One row is one member, and one column is one inventory. A movement missing either has no
-                // cell to stand in, so it is not a row with gaps: it is not on this sheet at all.
                 .filter(movement -> movement.memberId() != null && movement.inventoryId() != null)
                 .toList();
         var selectedExchanges = movementIds.isEmpty()
@@ -139,7 +138,6 @@ public class MovementExportService {
                         .toList();
         if (selectedExchanges.isEmpty()) return Optional.empty();
 
-        // Collect inventory names and size maps
         var inventoryNames = new LinkedHashMap<Integer, String>();
         var inventorySizes = new LinkedHashMap<Integer, Map<Integer, String>>();
         Set<Integer> inventoryOrder = new LinkedHashSet<>();
@@ -160,7 +158,6 @@ public class MovementExportService {
         var profileColumns = ProfileColumns.of(profileFieldRepository, extraFieldIds, locale);
         var extraFieldNames = profileColumns.names();
 
-        // Group exchanges by member
         var exchangesByMember = new LinkedHashMap<Integer, List<ItemMovement>>();
         for (var ex : selectedExchanges) {
             exchangesByMember
@@ -168,7 +165,6 @@ public class MovementExportService {
                     .add(ex);
         }
 
-        // Build rows
         var rows = new ArrayList<Map<String, Object>>();
         for (var entry : exchangesByMember.entrySet()) {
             int memberId = entry.getKey();
@@ -185,7 +181,6 @@ public class MovementExportService {
                     ? List.<String>of()
                     : profileColumns.cellsOf(profileFieldRepository.findValues(memberId));
 
-            // Build exchange columns (one per inventory, with old/new sizes)
             var exchanges = new ArrayList<SizeChange>();
             for (int invId : inventoryOrder) {
                 var sizeMap = inventorySizes.get(invId);

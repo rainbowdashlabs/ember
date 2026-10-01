@@ -60,7 +60,6 @@ public final class PermissionValidation {
                     .findFirst()
                     .orElseThrow(() -> new BadRequestResponse("Unknown permission ID: " + permissionId));
 
-            // Only check newly added permissions - existing are fine
             if (!currentIds.contains(permissionId) && !callerPermissions.contains(perm.permission())) {
                 throw new ForbiddenResponse("Cannot grant permission you do not have: " + perm.permission());
             }

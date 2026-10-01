@@ -53,8 +53,6 @@ public class QuizTestRepository {
             "id, attempt_id, question_id, section_id, answer, points, graded, position";
     private static final String QUIZ_TEST_FROZEN_QUESTION_COLUMNS = "id, test_id, question_id, section_id, position";
 
-    // -- Tests --
-
     public List<QuizTest> findByStation(int stationId) {
         return query("""
                 SELECT %s
@@ -183,8 +181,6 @@ public class QuizTestRepository {
                 call().bind("test_id", testId));
     }
 
-    // -- Sections --
-
     public List<QuizTestSection> findSections(int testId) {
         return query(
                         "SELECT %s FROM quiz_test_section WHERE test_id = :test_id ORDER BY position;",
@@ -229,8 +225,6 @@ public class QuizTestRepository {
                 .delete();
     }
 
-    // -- Section Sources --
-
     public List<QuizTestSectionSource> findSources(int sectionId) {
         return query(
                         "SELECT %s FROM quiz_test_section_source WHERE section_id = :section_id;",
@@ -264,8 +258,6 @@ public class QuizTestRepository {
                 .single(call().bind("section_id", sectionId))
                 .delete();
     }
-
-    // -- Attempts --
 
     public List<QuizTestAttempt> findAttempts(int testId) {
         return query(
@@ -326,8 +318,6 @@ public class QuizTestRepository {
                 .changed();
     }
 
-    // -- Attempt Questions --
-
     public List<QuizTestAttemptQuestion> findAttemptQuestions(int attemptId) {
         return query(
                         "SELECT %s FROM quiz_test_attempt_question WHERE attempt_id = :attempt_id ORDER BY position;",
@@ -347,8 +337,6 @@ public class QuizTestRepository {
                         .bind("position", position))
                 .insert();
     }
-
-    // -- Answers --
 
     public List<QuizTestAnswer> findAnswers(int attemptId) {
         return query(
@@ -394,8 +382,6 @@ public class QuizTestRepository {
                 .changed();
     }
 
-    // -- Member Access --
-
     public void grantMemberAccess(int testId, int memberId, @Nullable Instant closesAt) {
         query("""
                 INSERT INTO quiz_test_member_access(test_id, member_id, closes_at)
@@ -419,8 +405,6 @@ public class QuizTestRepository {
                 .single(call().bind("test_id", testId).bind("member_id", memberId))
                 .delete();
     }
-
-    // -- Frozen Questions --
 
     public List<QuizTestFrozenQuestion> findFrozenQuestions(int testId) {
         return query(
@@ -453,8 +437,6 @@ public class QuizTestRepository {
                 .single(call().bind("test_id", testId).bind("position", position))
                 .delete();
     }
-
-    // -- Restrictions --
 
     public boolean updateRestrictionMode(int testId, RestrictionMode mode) {
         return query("UPDATE quiz_test SET restriction_mode = :mode WHERE id = :id;")

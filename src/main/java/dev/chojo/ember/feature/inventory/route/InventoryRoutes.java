@@ -118,6 +118,14 @@ public class InventoryRoutes implements Routes {
         return s == null || s.isBlank();
     }
 
+    /**
+     * Registers the routes.
+     *
+     * <p>Marking gear lost is self-service: whoever holds it may say so. A loss report declares
+     * somebody else's gear gone, which is heavier than an exchange, so it needs the manager right. The
+     * settings are open to every member, who has to know whether a note is expected before being
+     * refused for leaving it out.
+     */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/my-inventory-items", this::myItems, StationPermission.USER);
@@ -137,7 +145,6 @@ public class InventoryRoutes implements Routes {
                 this::createAndHandOut,
                 StationPermission.INVENTORY_CREATE_EXTERNAL,
                 StationPermission.INVENTORY_CREATE_INTERNAL);
-        // Inventory CRUD - read vs write
         routes.get(prefix + "/inventories", this::list, StationPermission.INVENTORY_READ);
         routes.post(prefix + "/inventories", this::create, StationPermission.INVENTORY_CREATE);
         routes.get(prefix + "/inventories/all-items", this::listAllItems, StationPermission.INVENTORY_READ);
@@ -157,7 +164,6 @@ public class InventoryRoutes implements Routes {
                 prefix + "/inventories/{inventoryId}/sizes/{sizeId}",
                 this::deleteSize,
                 StationPermission.INVENTORY_EDIT);
-        // Items - read needs INVENTORY_READ, edit needs INVENTORY_EDIT, create needs INVENTORY_CREATE
         routes.get(prefix + "/inventories/{inventoryId}/items", this::listItems, StationPermission.INVENTORY_READ);
         routes.post(
                 prefix + "/inventories/{inventoryId}/items",
@@ -185,11 +191,8 @@ public class InventoryRoutes implements Routes {
                 this::setItemContainer,
                 StationPermission.INVENTORY_STORAGE);
         routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, StationPermission.INVENTORY_READ);
-        // Marking gear lost is self-service: whoever holds it may say so, and INVENTORY_EDIT reaches any of it
         routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, StationPermission.USER);
         routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, StationPermission.INVENTORY_EDIT);
-        // Declaring somebody else's gear gone is heavier than asking for a different size, so it is not
-        // the exchange right that reaches it
         routes.get(
                 prefix + "/inventory-items/{id}/loss-report",
                 this::lossReportTerms,
@@ -214,12 +217,9 @@ public class InventoryRoutes implements Routes {
 
         routes.post(prefix + "/inventories/members/export", this::exportMembers, StationPermission.INVENTORY_READ);
 
-        // A member has to know whether a note is expected before they are refused for leaving it out
         routes.get(prefix + "/inventory-settings", this::getInventorySettings, StationPermission.USER);
         routes.put(prefix + "/inventory-settings", this::updateInventorySettings, StationPermission.INVENTORY_MANAGER);
     }
-
-    // -- Inventories --
 
     /**
      * The body this caller answers for when they change how a piece of gear is described.
@@ -499,6 +499,10 @@ public class InventoryRoutes implements Routes {
                         });
     }
 
+    /**
+     * Updates an inventory. A request that leaves out whether the inventory is homogeneous keeps the
+     * current value, so renaming a drawer never turns it into one thing in many copies.
+     */
     @OpenApi(
             path = "/api/v1/inventories/{id}",
             methods = HttpMethod.PUT,
@@ -522,9 +526,6 @@ public class InventoryRoutes implements Routes {
         if (request.inventoryType() == null) {
             throw Refusal.INVENTORY_NEEDS_A_KIND_ON_CHANGE.raise();
         }
-        // A caller that says nothing about the kind is leaving it alone, not asking for the default.
-        // Reading a missing field as "one thing in many copies" would quietly undo a drawer every time
-        // somebody renamed it.
         boolean homogeneous = Objects.requireNonNullElse(request.homogeneous(), current.homogeneous());
         try {
             inventoryService
@@ -544,8 +545,6 @@ public class InventoryRoutes implements Routes {
                             "InventorySwitchRefusedException", refused.getMessage(), refused.blockers()));
         }
     }
-
-    // -- Sizes --
 
     @OpenApi(
             path = "/api/v1/inventories/{id}",
@@ -631,8 +630,6 @@ public class InventoryRoutes implements Routes {
                     throw Refusal.SIZE_NOT_CHANGED.raise();
                 });
     }
-
-    // -- Items --
 
     @OpenApi(
             path = "/api/v1/inventories/{inventoryId}/sizes/{sizeId}",
@@ -953,6 +950,10 @@ public class InventoryRoutes implements Routes {
         ctx.json(new LossReportTerms(requires.isPresent(), requires.orElse(null)));
     }
 
+    /**
+     * Reports a missing item. The request is multipart: the owner may demand a document, and a report
+     * written first with the document attached later would leave half a request standing.
+     */
     @OpenApi(
             path = "/api/v1/inventory-items/{id}/loss-report",
             methods = HttpMethod.POST,
@@ -968,8 +969,6 @@ public class InventoryRoutes implements Routes {
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
 
-        // Multipart, because the owner may demand a document and a report short of one is refused outright.
-        // Writing the report first and attaching afterwards would leave half a request standing.
         String note = ctx.formParam("note");
         var file = ctx.uploadedFile("document");
         LossReportService.Attachment attachment = null;
@@ -1125,8 +1124,6 @@ public class InventoryRoutes implements Routes {
             int loanRequestId,
             @Nullable String dueOn) {}
 
-    // -- Requirements --
-
     @OpenApi(
             path = "/api/v1/inventory-requirements",
             methods = HttpMethod.POST,
@@ -1258,8 +1255,6 @@ public class InventoryRoutes implements Routes {
         ctx.header("Content-Disposition", document.get().contentDisposition());
         ctx.result(document.get().bytes());
     }
-
-    // -- Request/Response records --
 
     /**
      * @param corrected whether a check ended the spell by putting the record right rather than by a hand-back

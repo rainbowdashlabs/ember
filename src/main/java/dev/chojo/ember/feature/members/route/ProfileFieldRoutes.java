@@ -61,6 +61,14 @@ public class ProfileFieldRoutes implements Routes {
     }
 
     /**
+     * Whether a new field lacks the name it needs. A spacer may arrive without one: it is a gap, and
+     * the service numbers it instead.
+     */
+    private static boolean isUnnamedNonSpacer(ProfileFieldRequest request) {
+        return isBlank(request.name()) && request.fieldType() != FieldType.SPACER;
+    }
+
+    /**
      * Loads a profile field definition and asserts it belongs to the caller's station.
      * Answers with 404 (rather than 403) when the field is absent or owned by another
      * station, so foreign field ids cannot be probed for existence.
@@ -79,11 +87,8 @@ public class ProfileFieldRoutes implements Routes {
         return requireOwnedOrNotFound(ctx, memberId, memberService::findById, StationMember::stationId);
     }
 
-    // -- Field Definitions --
-
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Field definitions (station config)
         routes.get(prefix + "/profile-fields", this::list, StationPermission.USER);
         routes.post(prefix + "/profile-fields", this::create, StationPermission.MEMBER_FIELDS);
         routes.put(prefix + "/profile-fields/order", this::reorder, StationPermission.MEMBER_FIELDS);
@@ -92,11 +97,9 @@ public class ProfileFieldRoutes implements Routes {
         routes.put(prefix + "/profile-fields/{id}", this::update, StationPermission.MEMBER_FIELDS);
         routes.delete(prefix + "/profile-fields/{id}", this::delete, StationPermission.MEMBER_FIELDS);
 
-        // Who a field is asked of, which is what makes one definition serve several audiences.
         routes.put(prefix + "/profile-fields/{id}/assignments", this::assign, StationPermission.MEMBER_FIELDS);
         routes.delete(prefix + "/profile-fields/{id}/assignments", this::unassign, StationPermission.MEMBER_FIELDS);
 
-        // Field values per member - MEMBER or TEAM can read/write own, MEMBER_MANAGER for any
         routes.get(prefix + "/station-members/{memberId}/fields", this::getApplicableFields, StationPermission.USER);
         routes.get(prefix + "/station-members/{memberId}/profile", this::getValues, StationPermission.USER);
         routes.put(prefix + "/station-members/{memberId}/profile", this::setValues, StationPermission.USER);
@@ -126,8 +129,7 @@ public class ProfileFieldRoutes implements Routes {
     private void create(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
-        // A spacer may arrive without a name: it is a gap, and the service numbers it instead.
-        if (request.fieldType() == null || isBlank(request.name()) && request.fieldType() != FieldType.SPACER) {
+        if (request.fieldType() == null || isUnnamedNonSpacer(request)) {
             throw Refusal.PROFILE_FIELD_DETAILS_MISSING_ON_CREATE.raise();
         }
         ctx.status(HttpStatus.CREATED)
@@ -271,8 +273,6 @@ public class ProfileFieldRoutes implements Routes {
                 });
     }
 
-    // -- Field Values --
-
     /**
      * Puts the fields in the given order, in one request rather than one per field.
      *
@@ -349,6 +349,14 @@ public class ProfileFieldRoutes implements Routes {
         ctx.json(profileFieldService.findValues(memberId));
     }
 
+    /**
+     * Writes a member's field values.
+     *
+     * <p>Whether a station field may be written is the assignment's to say and differs by audience, so
+     * it is read for this member; a field the member is never asked is not writable on them at all. A
+     * cluster's field is passed through, since whether the station may answer it is the cluster's to
+     * say and the service asks that.
+     */
     @OpenApi(
             path = "/api/v1/station-members/{memberId}/profile",
             methods = HttpMethod.PUT,
@@ -368,9 +376,6 @@ public class ProfileFieldRoutes implements Routes {
         var request = ctx.bodyAsClass(SetValuesRequest.class);
         boolean canEditReadonly = session.hasPermission(StationPermission.MEMBER_EDIT);
 
-        // Whether a field may be written is the assignment's to say and differs by audience, so it is
-        // read for the member being written rather than from the question itself. A field this member
-        // is never asked is not writable on them at all.
         Map<Integer, Boolean> readonlyForMember = profileFieldService.findApplicableFields(memberId).stream()
                 .filter(field -> field.origin() == FieldOrigin.STATION)
                 .collect(Collectors.toMap(
@@ -378,8 +383,6 @@ public class ProfileFieldRoutes implements Routes {
                         ProfileFieldService.MergedField::readonly,
                         (first, ignored) -> first));
 
-        // A cluster's question is not one of this station's, so it cannot be checked against the station's
-        // own list: whether the station may answer it is the cluster's to say, and the service asks that.
         List<FieldValueEntry> entries = request.values() != null
                 ? request.values().stream()
                         .filter(v -> {
@@ -405,8 +408,6 @@ public class ProfileFieldRoutes implements Routes {
     private static ProfileFieldConfig configOf(ProfileFieldRequest request) {
         return request.config() != null ? request.config() : ProfileFieldConfig.empty();
     }
-
-    // -- Request records --
 
     /**
      * @param config the field's settings as an object, the same shape the field is read back in.

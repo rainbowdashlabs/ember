@@ -65,15 +65,16 @@ public class PublicMapsRoutes implements Routes {
         routes.get(prefix + "/public/maps/tiles/{z}/{x}/{y}", this::getTile);
     }
 
+    /**
+     * The map settings members read. Unless the operator set a custom provider, the tile URL points at
+     * this instance's own cache, so every tile request goes through it.
+     */
     @OpenApi(
             path = "/api/v1/public/settings/maps",
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicMapsConfig.class)))
     private void getConfig(Context ctx) {
         var tiles = configService.tilesConfig();
-        // We deliberately rewrite the URL template to point at this instance's own cache
-        // endpoint when the operator hasn't overridden it via the CUSTOM provider; that way
-        // every member tile request goes through our cache by default.
         String urlTemplate;
         if (tiles.provider() == MapTileProvider.CUSTOM) {
             urlTemplate = tiles.resolvedUrlTemplate();

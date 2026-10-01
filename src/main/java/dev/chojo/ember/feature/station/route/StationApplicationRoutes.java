@@ -49,11 +49,9 @@ public class StationApplicationRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Public endpoints (no auth required)
         routes.post(prefix + "/station-applications", this::submit);
         routes.post(prefix + "/station-applications/verify", this::verify);
 
-        // Admin endpoints
         routes.get(prefix + "/admin/station-applications", this::list, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/station-applications/{id}", this::get, InstancePermission.ADMINISTRATOR);
         routes.post(prefix + "/admin/station-applications/{id}/accept", this::accept, InstancePermission.ADMINISTRATOR);

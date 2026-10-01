@@ -77,8 +77,6 @@ public class ConsentService {
         }
     }
 
-    // -- Document retrieval --
-
     /**
      * Called on application startup. Initializes all legal documents,
      * detects version changes, archives old content.
@@ -151,8 +149,6 @@ public class ConsentService {
         }
     }
 
-    // -- Version info --
-
     /**
      * Retrieves the GDPR consent text rendered for the given locale.
      *
@@ -162,8 +158,6 @@ public class ConsentService {
     public LegalDocumentService.RenderedDocument getConsentText(String locale) {
         return documentService.getDocument(consentDir, locale);
     }
-
-    // -- Diff --
 
     /**
      * Returns the current version hashes of all legal documents.
@@ -187,8 +181,6 @@ public class ConsentService {
     public @Nullable String getPrivacyDiff(String fromVersion, String toVersion) {
         return documentService.getDiff(privacyPolicyDir, fromVersion, toVersion);
     }
-
-    // -- Consent recording --
 
     /**
      * Gets the diff between two terms of service versions.
