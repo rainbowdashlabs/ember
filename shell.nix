@@ -1,5 +1,14 @@
 { pkgs ? import <nixpkgs> {}, ... }:
 
+let
+  # The browsers have to be the exact revisions the `@playwright/test` in frontend/package.json
+  # asks for, so they come from a nixpkgs pinned to a commit that packages that same version
+  # (1.63.0). Bump the pin together with the npm package.
+  playwrightPkgs = import (fetchTarball {
+    url = "https://github.com/NixOS/nixpkgs/archive/c59305bab2065cfecc4944690d9eedbb56f3a9fa.tar.gz";
+    sha256 = "16rsfnnxk6294sz6asx0shblirkhm4yyvkimq3v00c0y2114gp7b";
+  }) {};
+in
 pkgs.mkShell {
   packages = with pkgs; [jdk25 python314 pipenv nodejs_24 typst pandoc libreoffice-still libwebp qpdf];
 
@@ -7,7 +16,7 @@ pkgs.mkShell {
   # not what this one is. `playwright install --with-deps` therefore asks for sudo and fails. The
   # browsers come from nixpkgs instead, already linked against the right libraries, and the two
   # variables tell Playwright to use them and to stop trying to fetch its own.
-  PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
+  PLAYWRIGHT_BROWSERS_PATH = "${playwrightPkgs.playwright-driver.browsers}";
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
 
   # The backend resolves each external binary through its own *_BIN variable and falls back to
