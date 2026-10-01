@@ -8,7 +8,10 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import DummyAvailableTable from '@/views/helpcenter/stationview/inventory/lendingbrowsehelp/DummyAvailableTable.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import LendingOfferFilters from '@/views/stationview/inventory/lendingview/LendingOfferFilters.vue'
+import LendingOfferList from '@/views/stationview/inventory/lendingview/LendingOfferList.vue'
+import {offers} from './lendinghelp/fixtures'
 
 const {t} = useI18n()
 </script>
@@ -26,7 +29,12 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryLendingBrowse.step3') }}</p>
     </HelpSection>
 
-    <DummyAvailableTable/>
+    <HelpSection :title="t('helpCenter.inventoryLendingBrowse.dummyTitle')">
+      <NeutralContainer class="space-y-4">
+        <LendingOfferFilters search-query="" date-from="" date-to=""/>
+        <LendingOfferList :items="offers"/>
+      </NeutralContainer>
+    </HelpSection>
 
     <HelpTip>{{ t('helpCenter.inventoryLendingBrowse.tip') }}</HelpTip>
   </HelpArticle>

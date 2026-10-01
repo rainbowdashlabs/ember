@@ -9,21 +9,17 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import MutedText from '@/components/typography/MutedText.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import LendingBlockGroupTile from './lendingblocksview/LendingBlockGroupTile.vue'
+import type {GroupedBlock} from './lendingblocksview/types'
 import * as lending from '@/api/lending'
 import {inventory} from '@/api'
 import type {Inventory, InventoryBlock, InventoryItem} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {formatDate} from '@/util/format'
 import {describeFailure} from '@/util/failure'
 
 const routes = useInventoryRoutes()
@@ -35,23 +31,6 @@ const {loaded} = useSession()
 const blocks = ref<InventoryBlock[]>([])
 const inventories = ref<Inventory[]>([])
 const itemsMap = ref<Map<number, InventoryItem[]>>(new Map())
-
-interface BlockInventory {
-  inventoryId: number
-  inventoryName: string | null
-  allItems: boolean
-  items: { id: number; name: string | null; internalId: string | null }[]
-}
-
-interface GroupedBlock {
-  key: string
-  blockFrom: string
-  blockTo: string
-  reason: string
-  isFullBlock: boolean
-  inventories: BlockInventory[]
-  blockIds: number[]
-}
 
 /**
  * Blocks sharing a date range and a reason, shown as one. A block without an inventory covers all
@@ -148,10 +127,6 @@ async function handleDeleteGroup(group: GroupedBlock) {
   await loadBlocks()
 }
 
-function itemLabel(item: { id: number; name: string | null; internalId: string | null }): string {
-  if (item.name && item.internalId) return `${item.name} (${item.internalId})`
-  return item.name || item.internalId || `#${item.id}`
-}
 </script>
 
 <template>
@@ -177,27 +152,7 @@ function itemLabel(item: { id: number; name: string | null; internalId: string |
         :loading="loading"
     >
       <div class="flex flex-col gap-2">
-        <NeutralContainer v-for="group in groupedBlocks" :key="group.key">
-          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-medium">{{ formatDate(group.blockFrom) }} – {{ formatDate(group.blockTo) }}</span>
-                <PrimaryBadge v-if="group.isFullBlock">{{ t('lending.blockScopeAll') }}</PrimaryBadge>
-              </div>
-
-              <div v-if="group.inventories.length > 0" class="mt-2 space-y-1">
-                <div v-for="inv in group.inventories" :key="inv.inventoryId" class="flex items-center gap-2 text-xs">
-                  <SecondaryBadge>{{ inv.inventoryName || `#${inv.inventoryId}` }}</SecondaryBadge>
-                  <MutedText v-if="inv.allItems" size="sm">{{ t('lending.blockItemAll') }}</MutedText>
-                  <MutedText v-else size="sm">{{ inv.items.map(i => itemLabel(i)).join(', ') }}</MutedText>
-                </div>
-              </div>
-
-              <MutedText v-if="group.reason" tag="div" size="sm" class="mt-1">{{ group.reason }}</MutedText>
-            </div>
-            <DeleteButton @click="handleDeleteGroup(group)"/>
-          </div>
-        </NeutralContainer>
+        <LendingBlockGroupTile v-for="group in groupedBlocks" :key="group.key" :group="group" @delete="handleDeleteGroup(group)"/>
       </div>
     </AsyncSection>
   </ViewContent>

@@ -8,10 +8,21 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import DummyOffersPanel from './lendinghelp/DummyOffersPanel.vue'
-import DummyRequestsPanel from './lendinghelp/DummyRequestsPanel.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
+import LendingTabs from '@/views/stationview/inventory/lendingview/LendingTabs.vue'
+import LendingOfferFilters from '@/views/stationview/inventory/lendingview/LendingOfferFilters.vue'
+import LendingOfferList from '@/views/stationview/inventory/lendingview/LendingOfferList.vue'
+import LendingRequestList from '@/views/stationview/inventory/lendingview/LendingRequestList.vue'
+import {provideInventoryRoutes, STATION_INVENTORY_ROUTES} from '@/composables/useInventoryRoutes'
+import {incomingRequests, offers, outgoingRequests} from './lendinghelp/fixtures'
 
 const {t} = useI18n()
+
+provideInventoryRoutes({...STATION_INVENTORY_ROUTES, lendingRequest: undefined})
 </script>
 
 <template>
@@ -32,12 +43,26 @@ const {t} = useI18n()
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryLending.dummyOffersTitle')">
-      <DummyOffersPanel/>
+      <NeutralContainer class="space-y-4">
+        <ButtonRow>
+          <PrimaryButton :icon="['fas', 'calendar-xmark']">{{ t('lending.blocks') }}</PrimaryButton>
+          <SecondaryButton :icon="['fas', 'share-nodes']">{{ t('lendingShare.overview') }}</SecondaryButton>
+        </ButtonRow>
+        <LendingTabs model-value="offers"/>
+        <LendingOfferFilters search-query="" date-from="" date-to=""/>
+        <LendingOfferList :items="offers"/>
+      </NeutralContainer>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryLending.dummyRequestsTitle')">
       <p>{{ t('helpCenter.inventoryLending.requestsExplanation') }}</p>
-      <DummyRequestsPanel/>
+      <NeutralContainer class="space-y-4">
+        <LendingTabs model-value="requests"/>
+        <SubHeader>{{ t('lending.incoming') }}</SubHeader>
+        <LendingRequestList :entries="incomingRequests" direction="incoming"/>
+        <SubHeader>{{ t('lending.outgoing') }}</SubHeader>
+        <LendingRequestList :entries="outgoingRequests" direction="outgoing"/>
+      </NeutralContainer>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryLending.statusTitle')">
