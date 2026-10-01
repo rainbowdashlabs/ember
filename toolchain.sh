@@ -191,6 +191,9 @@ Backend
   be-federation-version Regenerate the federation contract version
   be-api-spec           Rewrite src/main/resources/api/openapi.json from the route annotations and the
                         records they name, as the API's own mapper writes them
+  be-settings-catalog   Rewrite frontend/src/data/generated/settings.json, every setting of the
+                        configuration file with its key, variable and default, which the help
+                        centre's list of environment variables is rendered from
   be-data-tracking      Refresh data_tracking.json from the live DB schema (testcontainer)
   be-data-tracking-check
                         The data tracking suite CI runs, including the check that the committed file
@@ -490,6 +493,7 @@ case "$cmd" in
     be-wrapper)    cd "$ROOT"; run ./gradlew wrapper --gradle-version "$@" ;;
     be-federation-version) cd "$ROOT"; run ./gradlew generateFederationVersion "$@" ;;
     be-api-spec)           cd "$ROOT"; run ./gradlew generateApiSpec "$@" ;;
+    be-settings-catalog)   cd "$ROOT"; run ./gradlew generateSettingsCatalog "$@" ;;
     be-data-tracking)      cd "$ROOT"; run ./gradlew refreshDataTracking spotlessJsonApply "$@" ;;
     be-data-tracking-check) cd "$ROOT"; run ./gradlew testTracking "$@" ;;
     be-cloudflare-ranges)

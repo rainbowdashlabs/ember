@@ -365,6 +365,14 @@ tasks {
         classpath = sourceSets.test.get().runtimeClasspath
     }
 
+    register<JavaExec>("generateSettingsCatalog") {
+        group = "build"
+        description = "Writes frontend/src/data/generated/settings.json from the configuration classes"
+        dependsOn("compileTestJava")
+        mainClass = "dev.chojo.ember.conf.SettingsCatalogCli"
+        classpath = sourceSets.test.get().runtimeClasspath
+    }
+
     val coverageData = fileTree("build/jacoco") { include(testSuiteNames.map { "$it.exec" }) }
 
     val coverageReport = register<JacocoReport>("jacocoFullReport") {

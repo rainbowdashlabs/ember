@@ -35,6 +35,7 @@
 - **Board-Felder können Pflichtfelder sein.** Ein Board-Feld lässt sich als Pflichtfeld markieren, sein Wert kann dann geändert, aber nicht geleert werden. Die Antworten eines Auswahlfelds werden wie überall eine pro Zeile eingetragen.
 - **Vorlagen bringen Anmeldefragen mit.** Im Editor für Terminvorlagen lassen sich die Fragen zur Anmeldung anlegen, im selben Editor wie an einem Termin.
 - **Zahlenfelder der Ausrüstung nehmen Schritte unter eins.** Der Schritt eines Zahlenfelds der Ausrüstung lässt sich im Feldeditor auf einen Bruchteil wie 0,5 setzen, womit das Feld Kommazahlen annimmt.
+- **Die Konfigurationshilfe nennt jede Einstellung.** Die Liste der Einstellungen und Umgebungsvariablen in der Hilfe wird aus dem Server selbst gelesen und zeigt jetzt auch die Grenzen für das Anmelden von Geräten, die älteren Ausweich-Mailanbieter und die verschlüsselten Speicher-Zugangsdaten, jeweils mit Schlüssel, Variable und Standardwert.
 
 ### Sicherheit
 

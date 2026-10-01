@@ -35,6 +35,7 @@
 - **Board fields can be required.** A board field can be marked as required, and its value can then be changed but not cleared. The answers of a choice field are entered one per line, as everywhere else.
 - **Templates carry registration questions.** The appointment template editor sets up the questions asked at registration, in the same editor as on an appointment.
 - **Gear number fields take a step below one.** The step of a gear number field can be set to a fraction such as 0.5 in the field editor, which lets the field take decimal numbers.
+- **Configuration help lists every setting.** The list of settings and environment variables in the help centre is taken from the server itself, so it now also shows the device sign-in limits, the older mail fallbacks and the encrypted storage credentials, each with its key, variable and default.
 
 ### Security
 
