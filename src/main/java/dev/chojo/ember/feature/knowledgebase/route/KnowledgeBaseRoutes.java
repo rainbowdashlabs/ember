@@ -1313,23 +1313,51 @@ public class KnowledgeBaseRoutes implements Routes {
                         () -> ctx.status(HttpStatus.NOT_FOUND));
     }
 
-    public record FolderRequest(Integer parentId, String name, String description, String iconUrl, Integer position) {}
+    /**
+     * @param parentId the folder this one sits in, or {@code null} for the top of the wiki
+     * @param iconUrl  the address of the folder's icon, or {@code null} for none
+     */
+    public record FolderRequest(
+            @Nullable Integer parentId,
+            String name,
+            String description,
+            @Nullable String iconUrl,
+            Integer position) {}
 
-    public record FileUpdateRequest(String name, String description, String iconUrl, Integer position) {}
+    /**
+     * @param iconUrl the address of the file's icon, or {@code null} for none
+     */
+    public record FileUpdateRequest(
+            String name, String description, @Nullable String iconUrl, Integer position) {}
 
-    public record MarkdownFileRequest(Integer folderId, String name, String description, String content) {}
+    /**
+     * @param folderId the folder the file is put into, or {@code null} for the top of the wiki
+     */
+    public record MarkdownFileRequest(@Nullable Integer folderId, String name, String description, String content) {}
 
-    public record YoutubeFileRequest(Integer folderId, String name, String description, String youtubeUrl) {}
+    /**
+     * @param folderId the folder the file is put into, or {@code null} for the top of the wiki
+     */
+    public record YoutubeFileRequest(@Nullable Integer folderId, String name, String description, String youtubeUrl) {}
 
-    public record LinkFileRequest(Integer folderId, String name, String description, String linkUrl) {}
+    /**
+     * @param folderId the folder the file is put into, or {@code null} for the top of the wiki
+     */
+    public record LinkFileRequest(@Nullable Integer folderId, String name, String description, String linkUrl) {}
 
     public record ContentUpdateRequest(String content) {}
 
     public record RelatedFilesRequest(List<Integer> fileIds) {}
 
-    public record MoveFolderRequest(Integer parentId) {}
+    /**
+     * @param parentId the folder it moves into, or {@code null} for the top of the wiki
+     */
+    public record MoveFolderRequest(@Nullable Integer parentId) {}
 
-    public record MoveFileRequest(Integer folderId) {}
+    /**
+     * @param folderId the folder it moves into, or {@code null} for the top of the wiki
+     */
+    public record MoveFileRequest(@Nullable Integer folderId) {}
 
     public record BulkMoveRequest(List<Integer> folderIds, List<Integer> fileIds, Integer targetFolderId) {}
 

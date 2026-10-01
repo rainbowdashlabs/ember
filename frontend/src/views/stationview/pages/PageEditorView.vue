@@ -116,9 +116,9 @@ async function save() {
         const request: SavePageRequest = {
             title: title.value,
             slug: slug.value,
-            parentId: parentId.value ?? undefined,
-            metaDescription: metaDescription.value || undefined,
-            ogImageId: page.value?.ogImageId ?? undefined,
+            parentId: parentId.value,
+            metaDescription: metaDescription.value || null,
+            ogImageId: page.value?.ogImageId ?? null,
             rows: saveRows,
         }
         const updated = await savePage(pageId.value, request)

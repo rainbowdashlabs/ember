@@ -113,7 +113,7 @@ async function handleCreateFolder() {
     if (!newFolderName.value.trim()) return
     try {
         await knowledgeBase.createFolder({
-            parentId: props.currentFolderId ?? undefined,
+            parentId: props.currentFolderId,
             name: newFolderName.value.trim(),
             description: newFolderDescription.value,
         })
@@ -128,7 +128,7 @@ async function handleCreateFile() {
     if (!newFileName.value.trim()) return
     try {
         const file = await knowledgeBase.createMarkdownFile({
-            folderId: props.currentFolderId ?? undefined,
+            folderId: props.currentFolderId,
             name: newFileName.value.trim(),
             description: newFileDescription.value,
         })
@@ -192,7 +192,7 @@ async function handleCreateYoutube() {
     if (!youtubeName.value.trim() || !youtubeUrl.value.trim()) return
     try {
         await knowledgeBase.createYoutubeFile({
-            folderId: props.currentFolderId ?? undefined,
+            folderId: props.currentFolderId,
             name: youtubeName.value.trim(),
             description: youtubeDescription.value,
             youtubeUrl: youtubeUrl.value.trim(),
@@ -208,7 +208,7 @@ async function handleCreateLink() {
     if (!linkUrl.value.trim()) return
     try {
         await knowledgeBase.createLinkFile({
-            folderId: props.currentFolderId ?? undefined,
+            folderId: props.currentFolderId,
             name: linkName.value.trim() || undefined,
             description: linkDescription.value.trim() || undefined,
             linkUrl: linkUrl.value.trim(),

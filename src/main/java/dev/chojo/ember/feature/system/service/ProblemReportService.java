@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -150,5 +151,5 @@ public class ProblemReportService {
             String recentRequests,
             String browserInfo,
             String screenSize,
-            String screenshot) {}
+            @Nullable String screenshot) {}
 }

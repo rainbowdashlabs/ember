@@ -27,6 +27,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -226,7 +227,10 @@ public class UserTagRoutes implements Routes {
 
     // -- Request/Response records --
 
-    public record TagRequest(String name, String color, boolean visible, int position) {}
+    /**
+     * @param color the tag's colour, or {@code null} for none
+     */
+    public record TagRequest(String name, @Nullable String color, boolean visible, int position) {}
 
     public record TagSetMembersRequest(List<Integer> memberIds) {}
 }

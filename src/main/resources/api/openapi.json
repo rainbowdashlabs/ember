@@ -41057,10 +41057,14 @@
         "type" : "object",
         "properties" : {
           "role" : {
-            "$ref" : "#/components/schemas/ProfileFieldScope"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ProfileFieldScope"
+            }, {
+              "type" : "null"
+            } ]
           },
           "groupId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "position" : {
@@ -41068,13 +41072,13 @@
             "format" : "int32"
           },
           "widthOverride" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "readonlyOverride" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "requiredOverride" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -42578,7 +42582,7 @@
         "type" : "object",
         "properties" : {
           "assignedMemberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -43997,13 +44001,13 @@
             "format" : "int32"
           },
           "widthOverride" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "readonlyOverride" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "requiredOverride" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -44045,7 +44049,7 @@
             "type" : "boolean"
           },
           "width" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "stationReadonly" : {
             "type" : "boolean"
@@ -44054,7 +44058,7 @@
             "type" : "boolean"
           },
           "stationGroupId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -45581,7 +45585,7 @@
             "type" : "string"
           },
           "parentId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -45718,17 +45722,21 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "assignedMemberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "priority" : {
             "$ref" : "#/components/schemas/TicketPriority"
           },
           "dueDate" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -49671,7 +49679,7 @@
             "type" : "string"
           },
           "iconUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "position" : {
             "type" : "integer",
@@ -49826,7 +49834,7 @@
         "type" : "object",
         "properties" : {
           "parentId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "name" : {
@@ -49836,7 +49844,7 @@
             "type" : "string"
           },
           "iconUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "position" : {
             "type" : "integer",
@@ -51168,14 +51176,18 @@
             "type" : "string"
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "position" : {
             "type" : "integer",
             "format" : "int32"
           },
           "rules" : {
-            "$ref" : "#/components/schemas/GroupRulesRequest"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/GroupRulesRequest"
+            }, {
+              "type" : "null"
+            } ]
           },
           "removeNonMatching" : {
             "type" : "boolean"
@@ -53645,7 +53657,7 @@
         "type" : "object",
         "properties" : {
           "pageId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -53681,14 +53693,14 @@
         "type" : "object",
         "properties" : {
           "id" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "name" : {
             "type" : "string"
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -54104,7 +54116,7 @@
         "type" : "object",
         "properties" : {
           "folderId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "name" : {
@@ -54363,17 +54375,21 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "assignedMemberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "priority" : {
             "$ref" : "#/components/schemas/TicketPriority"
           },
           "dueDate" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -54381,22 +54397,22 @@
         "type" : "object",
         "properties" : {
           "addressLine" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "postalCode" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "city" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "country" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "latitude" : {
-            "type" : "number"
+            "type" : [ "number", "null" ]
           },
           "longitude" : {
-            "type" : "number"
+            "type" : [ "number", "null" ]
           }
         }
       },
@@ -55402,7 +55418,7 @@
         "type" : "object",
         "properties" : {
           "folderId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "name" : {
@@ -55436,10 +55452,10 @@
         "type" : "object",
         "properties" : {
           "altText" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -55447,14 +55463,14 @@
         "type" : "object",
         "properties" : {
           "parentId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "name" : {
             "type" : "string"
           },
           "sortOrder" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -55476,7 +55492,7 @@
             "type" : "string"
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -56681,7 +56697,7 @@
         "type" : "object",
         "properties" : {
           "folderId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -56690,7 +56706,7 @@
         "type" : "object",
         "properties" : {
           "parentId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -56708,7 +56724,7 @@
         "type" : "object",
         "properties" : {
           "folderId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -59758,7 +59774,7 @@
             "type" : "boolean"
           },
           "width" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "keepOnArchive" : {
             "type" : "boolean"
@@ -62823,7 +62839,7 @@
             "type" : "string"
           },
           "screenshot" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -63809,14 +63825,14 @@
             "type" : "string"
           },
           "parentId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "metaDescription" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "ogImageId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "rows" : {
@@ -67333,7 +67349,7 @@
             "type" : "string"
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "visible" : {
             "type" : "boolean"
@@ -69035,17 +69051,21 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "assignedMemberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "priority" : {
             "$ref" : "#/components/schemas/TicketPriority"
           },
           "dueDate" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -70159,7 +70179,7 @@
         "type" : "object",
         "properties" : {
           "folderId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "name" : {

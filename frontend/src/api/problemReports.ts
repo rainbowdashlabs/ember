@@ -46,7 +46,7 @@ export async function submitReport(
         recentRequests: JSON.stringify(getRequestHistory()),
         browserInfo: navigator.userAgent,
         screenSize: `${window.innerWidth}x${window.innerHeight}`,
-        screenshot: screenshot ?? undefined,
+        screenshot,
     } satisfies ReportRequest)
     return res.data
 }

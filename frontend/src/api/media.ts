@@ -89,7 +89,7 @@ export async function uploadPageMediaFile(pageId: number, file: File): Promise<S
 
 export async function updateMediaFileMeta(
     fileId: number, altText: string | null, description: string | null): Promise<void> {
-    await files.update(fileId, {altText: altText ?? undefined, description: description ?? undefined})
+    await files.update(fileId, {altText, description})
 }
 
 export async function pruneMediaFiles(): Promise<MediaPruneResult> {
@@ -105,12 +105,12 @@ export const listMediaFolders = folders.list
 
 export async function createMediaFolder(
     name: string, parentId: number | null = null, sortOrder = 0): Promise<StationFileFolder> {
-    return folders.create({name, parentId: parentId ?? undefined, sortOrder})
+    return folders.create({name, parentId, sortOrder})
 }
 
 export async function updateMediaFolder(
     id: number, name: string, parentId: number | null, sortOrder: number): Promise<void> {
-    await folders.update(id, {name, parentId: parentId ?? undefined, sortOrder})
+    await folders.update(id, {name, parentId, sortOrder})
 }
 
 export const deleteMediaFolder = folders.remove
@@ -118,11 +118,11 @@ export const deleteMediaFolder = folders.remove
 export const listMediaTags = tags.list
 
 export async function createMediaTag(name: string, color: string | null = null): Promise<StationFileTag> {
-    return tags.create({name, color: color ?? undefined})
+    return tags.create({name, color})
 }
 
 export async function updateMediaTag(id: number, name: string, color: string | null): Promise<void> {
-    await tags.update(id, {name, color: color ?? undefined})
+    await tags.update(id, {name, color})
 }
 
 export const deleteMediaTag = tags.remove

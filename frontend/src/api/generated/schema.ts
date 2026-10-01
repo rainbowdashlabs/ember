@@ -53858,13 +53858,13 @@ export interface components {
         };
         AssignmentRequest: {
             /** Format: int32 */
-            groupId?: number;
+            groupId?: number | null;
             /** Format: int32 */
             position?: number;
-            readonlyOverride?: boolean;
-            requiredOverride?: boolean;
-            role?: components["schemas"]["ProfileFieldScope"];
-            widthOverride?: string;
+            readonlyOverride?: boolean | null;
+            requiredOverride?: boolean | null;
+            role?: components["schemas"]["ProfileFieldScope"] | null;
+            widthOverride?: string | null;
         };
         AssignRequest: {
             /** Format: int32 */
@@ -54387,7 +54387,7 @@ export interface components {
         };
         BoardTicketAssignRequest: {
             /** Format: int32 */
-            assignedMemberId?: number;
+            assignedMemberId?: number | null;
         };
         BoardTicketAttachment: {
             contentType: string;
@@ -54857,10 +54857,10 @@ export interface components {
         ClusterAssignmentRequest: {
             /** Format: int32 */
             position?: number;
-            readonlyOverride?: boolean;
-            requiredOverride?: boolean;
+            readonlyOverride?: boolean | null;
+            requiredOverride?: boolean | null;
             role?: string;
-            widthOverride?: string;
+            widthOverride?: string | null;
         };
         /** @enum {string} */
         ClusterBackendReach: "NONE" | "OWN_FILES" | "EVERY_STATION";
@@ -54876,9 +54876,9 @@ export interface components {
             readonly?: boolean;
             required?: boolean;
             /** Format: int32 */
-            stationGroupId?: number;
+            stationGroupId?: number | null;
             stationReadonly?: boolean;
-            width?: string;
+            width?: string | null;
         };
         ClusterFieldResponse: {
             config: components["schemas"]["ProfileFieldConfig"];
@@ -55422,7 +55422,7 @@ export interface components {
         };
         CreatePageRequest: {
             /** Format: int32 */
-            parentId?: number;
+            parentId?: number | null;
             title?: string;
         };
         CreatePresetRequest: {
@@ -55465,9 +55465,9 @@ export interface components {
         };
         CreateTicketRequest: {
             /** Format: int32 */
-            assignedMemberId?: number;
-            description?: string;
-            dueDate?: components["schemas"]["LocalDate"];
+            assignedMemberId?: number | null;
+            description?: string | null;
+            dueDate?: components["schemas"]["LocalDate"] | null;
             /** Format: int32 */
             laneId?: number;
             priority?: components["schemas"]["TicketPriority"];
@@ -56860,7 +56860,7 @@ export interface components {
         };
         FileUpdateRequest: {
             description?: string;
-            iconUrl?: string;
+            iconUrl?: string | null;
             name?: string;
             /** Format: int32 */
             position?: number;
@@ -56912,10 +56912,10 @@ export interface components {
         };
         FolderRequest: {
             description?: string;
-            iconUrl?: string;
+            iconUrl?: string | null;
             name?: string;
             /** Format: int32 */
-            parentId?: number;
+            parentId?: number | null;
             /** Format: int32 */
             position?: number;
         };
@@ -57338,12 +57338,12 @@ export interface components {
             name: string;
         };
         GroupRequest: {
-            color?: string;
+            color?: string | null;
             name?: string;
             /** Format: int32 */
             position?: number;
             removeNonMatching?: boolean;
-            rules?: components["schemas"]["GroupRulesRequest"];
+            rules?: components["schemas"]["GroupRulesRequest"] | null;
         };
         GroupRulesRequest: {
             /** Format: int32 */
@@ -58296,7 +58296,7 @@ export interface components {
         };
         LandingPageRequest: {
             /** Format: int32 */
-            pageId?: number;
+            pageId?: number | null;
         };
         LaneAssignee: {
             /** Format: int32 */
@@ -58310,9 +58310,9 @@ export interface components {
         /** @enum {string} */
         LanePreset: "SIMPLE" | "FEEDBACK";
         LaneRequest: {
-            color?: string;
+            color?: string | null;
             /** Format: int32 */
-            id?: number;
+            id?: number | null;
             name?: string;
         };
         LeaderboardResponse: {
@@ -58475,7 +58475,7 @@ export interface components {
         LinkFileRequest: {
             description?: string;
             /** Format: int32 */
-            folderId?: number;
+            folderId?: number | null;
             linkUrl?: string;
             name?: string;
         };
@@ -58571,19 +58571,19 @@ export interface components {
         };
         LocalUpdateTicketRequest: {
             /** Format: int32 */
-            assignedMemberId?: number;
-            description?: string;
-            dueDate?: components["schemas"]["LocalDate"];
+            assignedMemberId?: number | null;
+            description?: string | null;
+            dueDate?: components["schemas"]["LocalDate"] | null;
             priority?: components["schemas"]["TicketPriority"];
             title?: string;
         };
         LocationUpdate: {
-            addressLine?: string;
-            city?: string;
-            country?: string;
-            latitude?: number;
-            longitude?: number;
-            postalCode?: string;
+            addressLine?: string | null;
+            city?: string | null;
+            country?: string | null;
+            latitude?: number | null;
+            longitude?: number | null;
+            postalCode?: string | null;
         };
         LocationView: {
             addressLine: string | null;
@@ -58936,7 +58936,7 @@ export interface components {
             content?: string;
             description?: string;
             /** Format: int32 */
-            folderId?: number;
+            folderId?: number | null;
             name?: string;
         };
         MarkdownHtmlResponse: {
@@ -58956,22 +58956,22 @@ export interface components {
         /** @enum {string} */
         Match: "ANY" | "ALL";
         MediaFileMetaRequest: {
-            altText?: string;
-            description?: string;
+            altText?: string | null;
+            description?: string | null;
         };
         MediaFolderRequest: {
             name?: string;
             /** Format: int32 */
-            parentId?: number;
+            parentId?: number | null;
             /** Format: int32 */
-            sortOrder?: number;
+            sortOrder?: number | null;
         };
         MediaPruneResult: {
             /** Format: int32 */
             removed: number;
         };
         MediaTagRequest: {
-            color?: string;
+            color?: string | null;
             name?: string;
         };
         MemberAbsence: {
@@ -59387,11 +59387,11 @@ export interface components {
         };
         MoveFileRequest: {
             /** Format: int32 */
-            folderId?: number;
+            folderId?: number | null;
         };
         MoveFolderRequest: {
             /** Format: int32 */
-            parentId?: number;
+            parentId?: number | null;
         };
         MoveItemRequest: {
             /** Format: int32 */
@@ -59399,7 +59399,7 @@ export interface components {
         };
         MoveMediaFileRequest: {
             /** Format: int32 */
-            folderId?: number;
+            folderId?: number | null;
         };
         MovementDetail: {
             lossReport: components["schemas"]["LossReport"] | null;
@@ -60431,7 +60431,7 @@ export interface components {
             name?: string;
             readonly?: boolean;
             required?: boolean;
-            width?: string;
+            width?: string | null;
         };
         /** @enum {string} */
         ProfileFieldScope: "TRIAL" | "MEMBER" | "GUARDIAN" | "TEAM" | "MANAGER";
@@ -61484,7 +61484,7 @@ export interface components {
             message?: string;
             pageUrl?: string;
             recentRequests?: string;
-            screenshot?: string;
+            screenshot?: string | null;
             screenSize?: string;
             userRoles?: string;
         };
@@ -61815,11 +61815,11 @@ export interface components {
             tableType: components["schemas"]["FilterTableType"];
         };
         SavePageRequest: {
-            metaDescription?: string;
+            metaDescription?: string | null;
             /** Format: int32 */
-            ogImageId?: number;
+            ogImageId?: number | null;
             /** Format: int32 */
-            parentId?: number;
+            parentId?: number | null;
             rows?: components["schemas"]["BlockRowRequest"][];
             slug?: string;
             title?: string;
@@ -63050,7 +63050,7 @@ export interface components {
             tagName: string;
         };
         TagRequest: {
-            color?: string;
+            color?: string | null;
             name?: string;
             /** Format: int32 */
             position?: number;
@@ -63662,9 +63662,9 @@ export interface components {
         };
         UpdateTicketRequest: {
             /** Format: int32 */
-            assignedMemberId?: number;
-            description?: string;
-            dueDate?: components["schemas"]["LocalDate"];
+            assignedMemberId?: number | null;
+            description?: string | null;
+            dueDate?: components["schemas"]["LocalDate"] | null;
             priority?: components["schemas"]["TicketPriority"];
             title?: string;
         };
@@ -64051,7 +64051,7 @@ export interface components {
         YoutubeFileRequest: {
             description?: string;
             /** Format: int32 */
-            folderId?: number;
+            folderId?: number | null;
             name?: string;
             youtubeUrl?: string;
         };

@@ -240,10 +240,14 @@ public class ClusterFieldRoutes implements Routes {
      * How a cluster question is put to one kind of member.
      *
      * <p>No group here, unlike a station's: a member group belongs to one station, so a cluster has no
-     * way to name one.
+     * way to name one. An override left {@code null} takes the question's own setting.
      */
     public record ClusterAssignmentRequest(
-            String role, int position, String widthOverride, Boolean readonlyOverride, Boolean requiredOverride) {}
+            String role,
+            int position,
+            @Nullable String widthOverride,
+            @Nullable Boolean readonlyOverride,
+            @Nullable Boolean requiredOverride) {}
 
     @OpenApi(
             path = "/api/v1/cluster/fields/member/{memberId}",
@@ -323,7 +327,10 @@ public class ClusterFieldRoutes implements Routes {
      * A question a cluster asks, without reference to who is asked it.
      *
      * @param stationReadonly whether the people at the station may read the answer but not write it
-     * @param width           how much of a row it takes unless an audience overrides that
+     * @param width           how much of a row it takes unless an audience overrides that, or
+     *                        {@code null} for the whole row
+     * @param stationGroupId  the association's group of stations the question is pointed at, or
+     *                        {@code null} for none
      */
     public record ClusterFieldRequest(
             String name,
@@ -331,10 +338,10 @@ public class ClusterFieldRoutes implements Routes {
             ProfileFieldConfig config,
             Boolean required,
             Boolean readonly,
-            String width,
+            @Nullable String width,
             boolean stationReadonly,
             boolean keepOnArchive,
-            Integer stationGroupId) {}
+            @Nullable Integer stationGroupId) {}
 
     public record ClusterFieldResponse(
             int id,

@@ -451,14 +451,22 @@ public class PageRoutes implements Routes {
             List<StationPage> pages, @Nullable Integer landingPageId) {}
 
     // Request records
-    record CreatePageRequest(String title, Integer parentId) {}
+    /**
+     * @param parentId the page the new one sits under, or {@code null} for the top level
+     */
+    record CreatePageRequest(String title, @Nullable Integer parentId) {}
 
+    /**
+     * @param parentId        the page this one sits under, or {@code null} for the top level
+     * @param metaDescription the description search engines show, or {@code null} for none
+     * @param ogImageId       the picture a shared link shows, or {@code null} for none
+     */
     record SavePageRequest(
             String title,
             String slug,
-            Integer parentId,
-            String metaDescription,
-            Integer ogImageId,
+            @Nullable Integer parentId,
+            @Nullable String metaDescription,
+            @Nullable Integer ogImageId,
             List<BlockRowRequest> rows) {}
 
     record PageVisibilityRequest(PageVisibility visibility) {}
@@ -471,5 +479,8 @@ public class PageRoutes implements Routes {
 
     record ReplacePageShareLinkRequest(String currentToken) {}
 
-    record LandingPageRequest(Integer pageId) {}
+    /**
+     * @param pageId the page visitors land on, or {@code null} for none
+     */
+    record LandingPageRequest(@Nullable Integer pageId) {}
 }

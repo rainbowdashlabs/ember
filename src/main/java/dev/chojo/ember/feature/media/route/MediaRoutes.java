@@ -29,6 +29,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -431,11 +432,29 @@ public class MediaRoutes implements Routes {
 
     record MediaPruneResult(int removed) {}
 
-    record MediaFileMetaRequest(String altText, String description) {}
+    /**
+     * @param altText     the text read out in place of the picture, or {@code null} for none
+     * @param description what the file is, or {@code null} for nothing
+     */
+    record MediaFileMetaRequest(
+            @Nullable String altText, @Nullable String description) {}
 
-    record MediaFolderRequest(Integer parentId, String name, Integer sortOrder) {}
+    /**
+     * @param parentId  the folder this one sits in, or {@code null} for the top of the library
+     * @param sortOrder where it stands among its siblings, or {@code null} for the front
+     */
+    record MediaFolderRequest(
+            @Nullable Integer parentId,
+            String name,
+            @Nullable Integer sortOrder) {}
 
-    record MediaTagRequest(String name, String color) {}
+    /**
+     * @param color the tag's colour, or {@code null} for none
+     */
+    record MediaTagRequest(String name, @Nullable String color) {}
 
-    record MoveMediaFileRequest(Integer folderId) {}
+    /**
+     * @param folderId the folder the file moves into, or {@code null} for the top of the library
+     */
+    record MoveMediaFileRequest(@Nullable Integer folderId) {}
 }

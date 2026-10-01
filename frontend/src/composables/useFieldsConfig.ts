@@ -361,7 +361,7 @@ export function useFieldsConfig(port: FieldsPort) {
      */
     function withTarget<T extends EditableFieldRequest>(data: T): T {
         if (!port.listStationGroups) return data
-        return {...data, stationGroupId: selectedStationGroupId.value ?? undefined}
+        return {...data, stationGroupId: selectedStationGroupId.value}
     }
 
     /**
@@ -412,10 +412,10 @@ export function useFieldsConfig(port: FieldsPort) {
             config: parseFieldConfig(field.config),
             required: field.required,
             readonly: field.readonly,
-            width: field.width ?? undefined,
+            width: field.width,
             keepOnArchive: field.keepOnArchive,
             stationReadonly: field.stationReadonly,
-            ...(port.listStationGroups ? {stationGroupId: field.stationGroupId ?? undefined} : {}),
+            ...(port.listStationGroups ? {stationGroupId: field.stationGroupId} : {}),
             ...patch,
         }
     }
@@ -457,9 +457,9 @@ export function useFieldsConfig(port: FieldsPort) {
         await writeAssignment(selectedFieldId.value, {
             ...audience.target,
             position: audience.assignment.position,
-            widthOverride: audience.assignment.widthOverride ?? undefined,
-            readonlyOverride: audience.assignment.readonlyOverride ?? undefined,
-            requiredOverride: audience.assignment.requiredOverride ?? undefined,
+            widthOverride: audience.assignment.widthOverride,
+            readonlyOverride: audience.assignment.readonlyOverride,
+            requiredOverride: audience.assignment.requiredOverride,
             ...patch,
         })
     }
@@ -590,8 +590,8 @@ export function useFieldsConfig(port: FieldsPort) {
             role: previewRole.value,
             position: assignment.position,
             widthOverride: width,
-            readonlyOverride: assignment.readonlyOverride ?? undefined,
-            requiredOverride: assignment.requiredOverride ?? undefined,
+            readonlyOverride: assignment.readonlyOverride,
+            requiredOverride: assignment.requiredOverride,
         })
     }
 

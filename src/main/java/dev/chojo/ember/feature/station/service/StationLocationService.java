@@ -156,10 +156,10 @@ public class StationLocationService {
      * Request payload for {@code PUT /station/location}.
      */
     public record LocationUpdate(
-            String addressLine,
-            String postalCode,
-            String city,
-            String country,
-            BigDecimal latitude,
-            BigDecimal longitude) {}
+            @Nullable String addressLine,
+            @Nullable String postalCode,
+            @Nullable String city,
+            @Nullable String country,
+            @Nullable BigDecimal latitude,
+            @Nullable BigDecimal longitude) {}
 }

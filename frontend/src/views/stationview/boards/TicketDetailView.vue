@@ -199,7 +199,7 @@ async function refreshDetails() {
 }
 
 const {failure: saveFailure, run: runSaveTicket} = useAsyncAction(async () => {
-    await api.updateTicket({ title: title.value, description: description.value || undefined, assignedMemberId: assignedMemberId.value ? Number(assignedMemberId.value) : undefined, priority: priority.value, dueDate: dueDate.value || undefined })
+    await api.updateTicket({ title: title.value, description: description.value || null, assignedMemberId: assignedMemberId.value ? Number(assignedMemberId.value) : null, priority: priority.value, dueDate: dueDate.value || null })
     ticket.value = await api.getTicket()
     await loadDetails()
 }, {coalesce: true})

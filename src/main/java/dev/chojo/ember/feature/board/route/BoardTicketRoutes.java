@@ -25,6 +25,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -272,20 +273,37 @@ public class BoardTicketRoutes implements Routes {
         });
     }
 
+    /**
+     * @param description      what the ticket is about, or {@code null} for nothing
+     * @param assignedMemberId who holds the ticket, or {@code null} for nobody
+     * @param dueDate          when it is due, or {@code null} for no date
+     */
     public record CreateTicketRequest(
             int laneId,
             String title,
-            String description,
-            Integer assignedMemberId,
+            @Nullable String description,
+            @Nullable Integer assignedMemberId,
             TicketPriority priority,
-            LocalDate dueDate) {}
+            @Nullable LocalDate dueDate) {}
 
+    /**
+     * @param description      what the ticket is about, or {@code null} for nothing
+     * @param assignedMemberId who holds the ticket, or {@code null} for nobody
+     * @param dueDate          when it is due, or {@code null} for no date
+     */
     public record UpdateTicketRequest(
-            String title, String description, Integer assignedMemberId, TicketPriority priority, LocalDate dueDate) {}
+            String title,
+            @Nullable String description,
+            @Nullable Integer assignedMemberId,
+            TicketPriority priority,
+            @Nullable LocalDate dueDate) {}
 
     public record MoveTicketRequest(int toLaneId, int position) {}
 
     public record ReorderRequest(int laneId, List<Integer> orderedIds) {}
 
-    public record BoardTicketAssignRequest(Integer assignedMemberId) {}
+    /**
+     * @param assignedMemberId who takes the ticket, or {@code null} to take it off whoever holds it
+     */
+    public record BoardTicketAssignRequest(@Nullable Integer assignedMemberId) {}
 }

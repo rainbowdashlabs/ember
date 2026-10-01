@@ -195,7 +195,7 @@ function submit() {
     config: buildConfig(),
     required: fieldRequired.value,
     readonly: fieldReadonly.value,
-    width: fieldWidth.value === FieldWidths.FULL ? undefined : fieldWidth.value,
+    width: fieldWidth.value === FieldWidths.FULL ? null : fieldWidth.value,
     keepOnArchive: fieldKeepOnArchive.value,
   })
   saving.value = false

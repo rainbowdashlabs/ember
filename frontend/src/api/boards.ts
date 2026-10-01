@@ -21,6 +21,7 @@ import type {
     BoardLabel,
     BoardLane,
     BoardTicket,
+    BoardTicketAssignRequest,
     BoardTicketAttachment,
     BoardTicketCommentRequest,
     BoardTicketFieldValue,
@@ -364,8 +365,8 @@ export const deleteTicket = tickets.remove
 /** Hands the ticket to the member, or takes it off whoever holds it where no member is given. */
 export async function assignTicket(boardKey: string, ticketNumber: number, assignedMemberId: number | null): Promise<BoardTicket> {
     const res = await client.put<BoardTicket>(`/boards/${boardKey}/tickets/${ticketNumber}/assign`, {
-        assignedMemberId: assignedMemberId ?? undefined,
-    })
+        assignedMemberId,
+    } satisfies BoardTicketAssignRequest)
     return res.data
 }
 

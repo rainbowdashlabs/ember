@@ -114,7 +114,7 @@ export type EditableField = Omit<ProfileField, 'stationId' | 'config'> & {
 export type EditableFieldRequest = Omit<ProfileFieldRequest, 'config'> & {
     config?: FieldSettings
     stationReadonly?: boolean
-    stationGroupId?: number
+    stationGroupId?: number | null
 }
 
 /** Which audience an assignment is about: a kind of member, or one group. */

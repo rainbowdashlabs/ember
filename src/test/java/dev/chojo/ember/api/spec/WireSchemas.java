@@ -55,7 +55,9 @@ import java.util.function.Supplier;
  *       primitive is always there. A nullable property the mapper leaves out when it is null is optional
  *       rather than nullable.
  *   <li>A type only ever read as a request body has every property optional, since the mapper reads a
- *       missing property as null or the primitive default.
+ *       missing property as null or the primitive default. A property marked nullable also takes an
+ *       explicit null, whatever the type's inclusion rule says about writing, because that is how a
+ *       request names a value it clears.
  *   <li>A sealed hierarchy without a type id is the union of its records. An enum with an accessor
  *       returning the class of one of its members, the way a cell type names its config record, adds an
  *       object from each constant to that record, named {@code <Hierarchy>ByType}.

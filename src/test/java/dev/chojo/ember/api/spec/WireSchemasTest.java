@@ -98,6 +98,15 @@ class WireSchemasTest {
 
     record Request(String name, int size, @Nullable String note) {}
 
+    record Clearing(
+            @Nullable Integer parentId,
+            @Nullable Label label,
+            @Nullable Counts counts,
+            Label kept) {}
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record SparseRequest(@Nullable String color) {}
+
     record Wrapper(@JsonValue Map<String, Integer> values) {}
 
     record Counts(int members, int stations) {}
@@ -210,6 +219,40 @@ class WireSchemasTest {
         assertFalse(request.has("required"));
         assertEquals(
                 "[\"string\",\"null\"]", property(request, "note").get("type").toString());
+    }
+
+    @Test
+    void aNullableRequestPropertyIsOptionalAndTakesNullWhateverItHolds() {
+        var schemas = new WireSchemas(MAPPER);
+        schemas.schemaOf(Clearing.class, Direction.REQUEST);
+        var components = schemas.components();
+        ObjectNode clearing = components.get("Clearing");
+
+        assertFalse(clearing.has("required"));
+        assertEquals(
+                "[\"integer\",\"null\"]",
+                property(clearing, "parentId").get("type").toString());
+        assertEquals(
+                "[{\"$ref\":\"#/components/schemas/Label\"},{\"type\":\"null\"}]",
+                property(clearing, "label").get("anyOf").toString());
+        assertEquals(
+                "[{\"$ref\":\"#/components/schemas/Counts\"},{\"type\":\"null\"}]",
+                property(clearing, "counts").get("anyOf").toString());
+        assertEquals(
+                "#/components/schemas/Label",
+                property(clearing, "kept").get("$ref").asString());
+        assertEquals("[\"RED\",\"GREEN\"]", components.get("Label").get("enum").toString());
+    }
+
+    @Test
+    void aRequestTakesNullEvenWhereTheMapperLeavesNullOutOfWhatItWrites() {
+        var schemas = new WireSchemas(MAPPER);
+        schemas.schemaOf(SparseRequest.class, Direction.REQUEST);
+        ObjectNode request = schemas.components().get("SparseRequest");
+
+        assertFalse(request.has("required"));
+        assertEquals(
+                "[\"string\",\"null\"]", property(request, "color").get("type").toString());
     }
 
     @Test

@@ -35,6 +35,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
@@ -391,7 +392,11 @@ public class MemberGroupRoutes implements Routes {
      *                          rather than refused
      */
     public record GroupRequest(
-            String name, String color, int position, GroupRulesRequest rules, boolean removeNonMatching) {
+            String name,
+            @Nullable String color,
+            int position,
+            @Nullable GroupRulesRequest rules,
+            boolean removeNonMatching) {
         GroupRules groupRules() {
             return rules == null ? null : new GroupRules(rules.groupSetId(), Set.copyOf(rules.userTypes()));
         }

@@ -168,7 +168,7 @@ async function saveNow() {
             description: description.value,
             hideDoneAfterDays: hideDoneAfterDays.value,
         })
-        await boards.setLanes(boardKey.value, lanes.value.map(l => ({ id: l.id, name: l.name, color: l.color ?? undefined })))
+        await boards.setLanes(boardKey.value, lanes.value.map(l => ({ id: l.id, name: l.name, color: l.color })))
         if (hasBacklog.value && !board.value?.backlogLaneId) {
             await boards.enableBacklog(boardKey.value)
         } else if (!hasBacklog.value && board.value?.backlogLaneId) {

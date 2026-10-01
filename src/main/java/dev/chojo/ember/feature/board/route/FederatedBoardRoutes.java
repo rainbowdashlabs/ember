@@ -1165,8 +1165,17 @@ public class FederatedBoardRoutes implements Routes {
     record LocalCreateTicketRequest(
             Integer laneId, String title, String description, TicketPriority priority, LocalDate dueDate) {}
 
+    /**
+     * @param description      what the ticket is about, or {@code null} for nothing
+     * @param assignedMemberId who holds the ticket, or {@code null} for nobody
+     * @param dueDate          when it is due, or {@code null} for no date
+     */
     record LocalUpdateTicketRequest(
-            String title, String description, Integer assignedMemberId, TicketPriority priority, LocalDate dueDate) {}
+            String title,
+            @Nullable String description,
+            @Nullable Integer assignedMemberId,
+            TicketPriority priority,
+            @Nullable LocalDate dueDate) {}
 
     record LocalMoveTicketRequest(int toLaneId, int position) {}
 

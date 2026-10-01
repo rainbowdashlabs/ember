@@ -31,6 +31,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -419,30 +420,32 @@ public class ProfileFieldRoutes implements Routes {
      *               It used to be JSON text on the way in and an object on the way out, and the two
      *               halves of that never agreed: a setting the record did not name was dropped
      *               without a word, which is how a field of group scope lost its group.
+     * @param width  how much of a row the question takes by default, which an assignment may
+     *               override, or {@code null} for the whole row
      */
-    /** @param width how much of a row the question takes by default, which an assignment may override */
     public record ProfileFieldRequest(
             String name,
             ProfileFieldType fieldType,
             ProfileFieldConfig config,
             Boolean required,
             Boolean readonly,
-            String width,
+            @Nullable String width,
             Boolean keepOnArchive) {}
 
     /**
      * Who a field is asked of, and how it is put to them.
      *
      * <p>Exactly one of {@code role} and {@code groupId} is given. Sending both, or neither, is the
-     * caller failing to say who is asked.
+     * caller failing to say who is asked. An override left {@code null} takes the question's own
+     * setting.
      */
     public record AssignmentRequest(
-            ProfileFieldScope role,
-            Integer groupId,
+            @Nullable ProfileFieldScope role,
+            @Nullable Integer groupId,
             int position,
-            String widthOverride,
-            Boolean readonlyOverride,
-            Boolean requiredOverride) {}
+            @Nullable String widthOverride,
+            @Nullable Boolean readonlyOverride,
+            @Nullable Boolean requiredOverride) {}
 
     /** The fields of one audience in the order they should stand. */
     public record FieldOrderRequest(ProfileFieldScope role, List<Integer> fieldIds) {}

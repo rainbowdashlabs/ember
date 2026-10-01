@@ -191,7 +191,7 @@ export async function resolveMemberListSource(
 }
 
 export async function createPage(title: string, parentId?: number | null): Promise<StationPage> {
-    return pages.create({title, parentId: parentId ?? undefined})
+    return pages.create({title, parentId})
 }
 
 export const getPage = pages.get

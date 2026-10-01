@@ -39,6 +39,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 import java.util.Arrays;
@@ -596,7 +597,12 @@ public class BoardRoutes implements Routes {
 
     public record UpdateBoardRequest(String name, String description, int hideDoneAfterDays) {}
 
-    public record LaneRequest(Integer id, String name, String color) {}
+    /**
+     * @param id    the lane this one replaces, or {@code null} for a new lane
+     * @param color the lane's colour, or {@code null} for none
+     */
+    public record LaneRequest(
+            @Nullable Integer id, String name, @Nullable String color) {}
 
     /**
      * @param config the field's settings as an object. Which record they are follows from the field

@@ -146,7 +146,7 @@ const {
   run: saveTag,
 } = useAsyncAction(async () => {
   if (editingTag.value) {
-    await userTags.updateTag(editingTag.value.id, {name: tagName.value, color: tagColor.value || undefined, visible: tagVisible.value, position: tagPosition.value})
+    await userTags.updateTag(editingTag.value.id, {name: tagName.value, color: tagColor.value || null, visible: tagVisible.value, position: tagPosition.value})
   } else {
     await userTags.createTag({name: tagName.value, color: tagColor.value || undefined, visible: tagVisible.value, position: tagPosition.value})
   }

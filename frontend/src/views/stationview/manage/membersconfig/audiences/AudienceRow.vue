@@ -62,15 +62,15 @@ const readonlyValue = computed(() => {
 })
 
 function onWidth(value: string) {
-    emit('set', {widthOverride: value === '' ? undefined : value})
+    emit('set', {widthOverride: value === '' ? null : value})
 }
 
 function onRequired(value: string) {
-    emit('set', {requiredOverride: value === '' ? undefined : value === 'true'})
+    emit('set', {requiredOverride: value === '' ? null : value === 'true'})
 }
 
 function onReadonly(value: string) {
-    emit('set', {readonlyOverride: value === '' ? undefined : value === 'true'})
+    emit('set', {readonlyOverride: value === '' ? null : value === 'true'})
 }
 </script>
 
