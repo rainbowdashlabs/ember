@@ -38,7 +38,7 @@ class KbFileStorageServiceTest {
         config = Mockito.mock(Storage.class);
         Mockito.when(config.compressTextFiles()).thenReturn(true);
         var stationRepo = Mockito.mock(StationRepository.class);
-        Mockito.when(stationRepo.resolveUid(STATION_ID)).thenReturn(STATION_UID);
+        Mockito.when(stationRepo.requireUid(STATION_ID)).thenReturn(STATION_UID);
         var backend = new LocalStorageBackend(tempDir);
         var resolver = new StorageBackendResolver(backend);
         var storageService = new StorageService(resolver, backend);

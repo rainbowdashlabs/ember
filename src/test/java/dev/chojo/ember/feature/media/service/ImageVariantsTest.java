@@ -79,7 +79,7 @@ class ImageVariantsTest {
         Mockito.when(config.imageVariantsWebp()).thenReturn(true);
         Mockito.when(config.imageVariantsWidthList()).thenReturn(List.of(128, 256, 512));
         var stations = Mockito.mock(StationRepository.class);
-        Mockito.when(stations.resolveUid(STATION_ID)).thenReturn(MediaLayoutFixtures.STATION_UID);
+        Mockito.when(stations.requireUid(STATION_ID)).thenReturn(MediaLayoutFixtures.STATION_UID);
         library = new MediaStorageService(storage, stations, backend);
         images = new ImageVariants(storage, config, new ImageEncoder());
     }

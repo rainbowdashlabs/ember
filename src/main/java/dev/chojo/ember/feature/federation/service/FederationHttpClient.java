@@ -32,7 +32,6 @@ import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -405,8 +404,7 @@ public class FederationHttpClient {
         String nonce = UUID.randomUUID().toString();
         String signature = signer.signRequest(
                 localStationId, method, pathWithQuery, partnerStationUid, nonce, signedBody, timestampStr);
-        String stationUid = Objects.requireNonNull(
-                        stationRepository.resolveUid(localStationId), "a station signing its own request exists")
+        String stationUid = stationRepository.requireUid(localStationId)
                 .toString();
 
         var local = FederationContractVersions.current();

@@ -35,7 +35,6 @@ import java.security.KeyPairGenerator;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -811,7 +810,7 @@ public class FederationService {
      * Resolves an internal station ID to its UUID.
      */
     private UUID resolveStationUid(int stationId) {
-        return Objects.requireNonNull(stationRepository.resolveUid(stationId), "a station with partners exists");
+        return stationRepository.requireUid(stationId);
     }
 
     public record PairingCodeParts(

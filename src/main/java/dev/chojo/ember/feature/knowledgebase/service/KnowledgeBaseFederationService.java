@@ -439,7 +439,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
         var file = fileForPartner(partner, fileId);
         return RemoteKbFile.of(
                 file,
-                Objects.requireNonNull(stationRepository.resolveUid(file.stationId()), "a file's station exists"));
+                stationRepository.requireUid(file.stationId()));
     }
 
     /**

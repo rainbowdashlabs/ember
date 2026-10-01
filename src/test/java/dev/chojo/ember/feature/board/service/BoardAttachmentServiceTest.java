@@ -34,7 +34,7 @@ class BoardAttachmentServiceTest {
     @BeforeEach
     void setup() {
         var stationRepo = Mockito.mock(StationRepository.class);
-        Mockito.when(stationRepo.resolveUid(STATION_ID)).thenReturn(STATION_UID);
+        Mockito.when(stationRepo.requireUid(STATION_ID)).thenReturn(STATION_UID);
         var backend = new LocalStorageBackend(tempDir);
         var resolver = new StorageBackendResolver(backend);
         var storage = new StorageService(resolver, backend);

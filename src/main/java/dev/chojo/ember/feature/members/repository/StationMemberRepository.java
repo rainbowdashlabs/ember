@@ -277,9 +277,9 @@ public class StationMemberRepository {
      */
     public List<ClusterMemberRow> findClusterMembers(
             int clusterId,
-            String search,
-            Integer stationId,
-            StationUserType userType,
+            @Nullable String search,
+            @Nullable Integer stationId,
+            @Nullable StationUserType userType,
             boolean includeFormer,
             int limit,
             int offset) {
@@ -329,7 +329,11 @@ public class StationMemberRepository {
      * How many members that same search would find, for the paging.
      */
     public int countClusterMembers(
-            int clusterId, String search, Integer stationId, StationUserType userType, boolean includeFormer) {
+            int clusterId,
+            @Nullable String search,
+            @Nullable Integer stationId,
+            @Nullable StationUserType userType,
+            boolean includeFormer) {
         return SqlSupport.count(
                 """
                 SELECT count(*) AS cnt

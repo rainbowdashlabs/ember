@@ -42,7 +42,7 @@ class KbPdfPicturesTest {
         articleImages = mock(KbImageService.class);
         mediaLibrary = mock(MediaLibraryService.class);
         var stations = mock(StationRepository.class);
-        when(stations.resolveUid(STATION)).thenReturn(STATION_UID);
+        when(stations.requireUid(STATION)).thenReturn(STATION_UID);
         pictures = new KbPdfPictures(articleImages, mediaLibrary, stations);
     }
 

@@ -38,8 +38,8 @@ class MediaStorageServiceTest {
     @BeforeEach
     void setup() {
         var stationRepo = Mockito.mock(StationRepository.class);
-        Mockito.when(stationRepo.resolveUid(1)).thenReturn(stationOneUid);
-        Mockito.when(stationRepo.resolveUid(2)).thenReturn(stationTwoUid);
+        Mockito.when(stationRepo.requireUid(1)).thenReturn(stationOneUid);
+        Mockito.when(stationRepo.requireUid(2)).thenReturn(stationTwoUid);
         var backend = new LocalStorageBackend(tempDir);
         var storageService = new StorageService(new StorageBackendResolver(backend), backend);
         storage = new MediaStorageService(storageService, stationRepo, backend);

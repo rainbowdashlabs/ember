@@ -94,6 +94,7 @@ class LendingRequestViewServiceTest {
         service = new LendingRequestViewService(
                 lending, lendingRepository, stations, inventories, members, accounts, events);
         when(stations.resolveUid(STATION)).thenReturn(HERE);
+        when(stations.requireUid(STATION)).thenReturn(HERE);
         when(lending.stationName(any(), anyInt())).thenAnswer(call -> "Station " + call.getArgument(0));
     }
 

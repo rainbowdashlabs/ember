@@ -51,7 +51,7 @@ class FederationHttpClientTest {
             when(keys.privateKey(1))
                     .thenReturn(Optional.of(generator.generateKeyPair().getPrivate()));
             var stations = mock(StationRepository.class);
-            when(stations.resolveUid(1)).thenReturn(UUID.randomUUID());
+            when(stations.requireUid(1)).thenReturn(UUID.randomUUID());
             when(stations.findById(1)).thenReturn(Optional.empty());
             var client = new FederationHttpClient(
                     new StationSigner(keys, new FederationSigningService()),

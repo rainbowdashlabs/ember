@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.entity.LoginResult;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -65,7 +66,7 @@ public class SessionCookies {
      * @param ctx   the response to write to
      * @param login what the sign-in decided
      */
-    public void issue(Context ctx, LoginResult login) {
+    public void issue(Context ctx, @Nullable LoginResult login) {
         if (login != null && login.isSession()) {
             csrfGuard.requireOwnOrigin(ctx);
             issue(

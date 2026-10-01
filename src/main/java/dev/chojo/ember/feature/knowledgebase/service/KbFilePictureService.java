@@ -150,6 +150,6 @@ public class KbFilePictureService {
     }
 
     private StorageScope.Station scope(int stationId) {
-        return new StorageScope.Station(stationId, stationRepository.resolveUid(stationId));
+        return new StorageScope.Station(stationId, stationRepository.requireUid(stationId));
     }
 }

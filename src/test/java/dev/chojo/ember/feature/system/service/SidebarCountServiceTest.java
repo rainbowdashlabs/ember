@@ -70,7 +70,7 @@ class SidebarCountServiceTest {
         movementService = mock(ItemMovementService.class);
         ProcedureService procedureService = mock(ProcedureService.class);
         StationMemberService stationMemberService = mock(StationMemberService.class);
-        when(stationRepository.resolveUid(STATION_ID)).thenReturn(STATION_UID);
+        when(stationRepository.requireUid(STATION_ID)).thenReturn(STATION_UID);
 
         service = new SidebarCountService(
                 notificationInbox,

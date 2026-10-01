@@ -66,6 +66,19 @@ public class StationRepository {
     }
 
     /**
+     * Resolves the external UUID of a station the caller already knows exists, such as the station a
+     * stored row belongs to.
+     *
+     * @return the UUID
+     * @throws IllegalStateException when there is no such station
+     */
+    public UUID requireUid(int stationId) {
+        UUID uid = resolveUid(stationId);
+        if (uid == null) throw new IllegalStateException("No station with id " + stationId);
+        return uid;
+    }
+
+    /**
      * Resolves an external UUID to its internal station ID. Cached.
      */
     public Optional<Integer> resolveId(UUID uid) {

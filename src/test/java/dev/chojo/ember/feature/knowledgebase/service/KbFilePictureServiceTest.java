@@ -49,7 +49,7 @@ class KbFilePictureServiceTest {
     void setup() {
         var config = Mockito.mock(Storage.class);
         var stationRepo = Mockito.mock(StationRepository.class);
-        Mockito.when(stationRepo.resolveUid(STATION_ID)).thenReturn(STATION_UID);
+        Mockito.when(stationRepo.requireUid(STATION_ID)).thenReturn(STATION_UID);
         var backend = new LocalStorageBackend(tempDir);
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         files = Mockito.spy(new KbFileStorageService(storage, stationRepo, backend, new TextCompressionPolicy(config)));

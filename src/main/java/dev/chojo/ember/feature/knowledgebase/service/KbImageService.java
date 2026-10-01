@@ -77,7 +77,7 @@ public class KbImageService {
     }
 
     private StorageScope.Station scope(int stationId) {
-        UUID uid = stationRepository.resolveUid(stationId);
+        UUID uid = stationRepository.requireUid(stationId);
         return new StorageScope.Station(stationId, uid);
     }
 }

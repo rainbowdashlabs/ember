@@ -63,7 +63,7 @@ public class MediaStorageService {
         if (stationId == null) {
             return new Location(new StorageScope.Instance(), StorageCategory.INSTANCE_MEDIA_FILES, contentHash);
         }
-        UUID uid = stationRepository.resolveUid(stationId);
+        UUID uid = stationRepository.requireUid(stationId);
         return new Location(new StorageScope.Station(stationId, uid), StorageCategory.MEDIA_FILES, contentHash);
     }
 

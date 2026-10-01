@@ -40,7 +40,7 @@ class KbPictureWrappersTest {
         var backend = new LocalStorageBackend(root);
         images = new ImageVariants(new StorageService(new StorageBackendResolver(backend), backend));
         stations = Mockito.mock(StationRepository.class);
-        Mockito.when(stations.resolveUid(STATION_ID)).thenReturn(MediaLayoutFixtures.STATION_UID);
+        Mockito.when(stations.requireUid(STATION_ID)).thenReturn(MediaLayoutFixtures.STATION_UID);
     }
 
     @Test

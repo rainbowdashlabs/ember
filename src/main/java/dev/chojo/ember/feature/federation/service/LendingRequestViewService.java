@@ -265,8 +265,7 @@ public class LendingRequestViewService {
      * @return the lines lent out from it
      */
     public List<LentOutItem> lentOut(int inventoryId, int stationId) {
-        UUID stationUid = Objects.requireNonNull(
-                stationRepository.resolveUid(stationId), "the station owning an inventory exists");
+        UUID stationUid = stationRepository.requireUid(stationId);
         return lendingRepository.findLentOutByInventory(inventoryId, stationUid);
     }
 

@@ -481,8 +481,8 @@ public class ClusterStorageQuotaService {
             StationQuotas resolved,
             long usedBytes,
             List<StorageUsage> usage,
-            Integer presetId,
-            String presetName) {}
+            @Nullable Integer presetId,
+            @Nullable String presetName) {}
 
     /**
      * @param poolBytes the whole the cluster may hand out, or {@code null} when the instance set no cap

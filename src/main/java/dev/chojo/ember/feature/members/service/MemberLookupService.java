@@ -92,7 +92,7 @@ public class MemberLookupService {
      * address them as federated identities.
      */
     public List<MemberCompletion> findCompletions(int stationId) {
-        return memberRepository.findCompletions(stationId, stationRepository.resolveUid(stationId));
+        return memberRepository.findCompletions(stationId, stationRepository.requireUid(stationId));
     }
 
     /**

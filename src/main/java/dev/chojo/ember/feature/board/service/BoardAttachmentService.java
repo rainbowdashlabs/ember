@@ -120,7 +120,7 @@ public class BoardAttachmentService {
     }
 
     private StorageScope.Station stationScope(int stationId) {
-        UUID uid = stationRepository.resolveUid(stationId);
+        UUID uid = stationRepository.requireUid(stationId);
         return new StorageScope.Station(stationId, uid);
     }
 

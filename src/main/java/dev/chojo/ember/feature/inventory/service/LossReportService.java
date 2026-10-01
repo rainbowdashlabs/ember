@@ -179,7 +179,7 @@ public class LossReportService {
     }
 
     private StorageScope.Station scope(int stationId) {
-        return new StorageScope.Station(stationId, stationRepository.resolveUid(stationId));
+        return new StorageScope.Station(stationId, stationRepository.requireUid(stationId));
     }
 
     private static String contentKey(int documentId) {

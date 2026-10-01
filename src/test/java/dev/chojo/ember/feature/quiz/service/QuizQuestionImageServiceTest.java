@@ -33,7 +33,7 @@ class QuizQuestionImageServiceTest {
     void aQuestionPictureIsStoredReadAndLetGoOfUnderItsStation() throws IOException {
         var backend = new LocalStorageBackend(root);
         var stations = Mockito.mock(StationRepository.class);
-        Mockito.when(stations.resolveUid(STATION_ID)).thenReturn(MediaLayoutFixtures.STATION_UID);
+        Mockito.when(stations.requireUid(STATION_ID)).thenReturn(MediaLayoutFixtures.STATION_UID);
         var pictures = new QuizQuestionImageService(
                 new ImageVariants(new StorageService(new StorageBackendResolver(backend), backend)), stations);
         byte[] gif = MediaLayoutFixtures.picture("animated.gif");
