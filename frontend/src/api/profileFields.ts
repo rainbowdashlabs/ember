@@ -5,6 +5,7 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
+import {FieldTypes} from './fieldTypes'
 import type {
     AssignmentRequest,
     components,
@@ -19,38 +20,10 @@ import type {
 
 type Schemas = components['schemas']
 
-export type FieldTypeName = Schemas['ProfileFieldType']
-
-export const FieldTypes = {
-    TEXT: 'TEXT',
-    NUMBER: 'NUMBER',
-    DATE: 'DATE',
-    BOOLEAN: 'BOOLEAN',
-    ENUM: 'ENUM',
-    AGE: 'AGE',
-    /** A date field holding the date of birth. A station may declare at most one. */
-    BIRTH_DATE: 'BIRTH_DATE',
-    /**
-     * A date field holding the last day something is valid. It shows how close that day is and
-     * reminds people before it passes. No source for an age.
-     */
-    EXPIRY_DATE: 'EXPIRY_DATE',
-    /** A heading between fields rather than a field. It holds no answer and is asked of nobody. */
-    SECTION: 'SECTION',
-    /** A gap on a row. It holds no answer either, and keeps its width instead of taking the row. */
-    SPACER: 'SPACER',
-} as const satisfies Record<FieldTypeName, FieldTypeName>
-
-/** The field type a picked value names, or nothing where it names none the server knows. */
-export function fieldTypeOf(value: string): FieldTypeName | undefined {
-    return isFieldType(value) ? value : undefined
-}
-
-function isFieldType(value: string): value is FieldTypeName {
-    return Object.hasOwn(FieldTypes, value)
-}
-
-/** Field types that hold a date and can therefore serve as the source of a calculated age. */
+/**
+ * Field types that hold a date and can therefore serve as the source of a calculated age. An expiry
+ * date holds a date too, but nobody counts an age from the day a licence runs out.
+ */
 export const DATE_FIELD_TYPES: readonly string[] = [FieldTypes.DATE, FieldTypes.BIRTH_DATE]
 
 /** The kinds of member a question can be put to. A group is a target of its own, not one of these. */

@@ -10,20 +10,21 @@ import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.Question;
 
 /**
- * A custom field of a board, as the board's own station keeps and checks it.
+ * A custom field of a board, as the board's own station keeps and checks it and the board screens
+ * read it.
  *
- * <p>Its type is the shared field type. What leaves the server is the {@link BoardField}, which
- * spells the type the way partner stations and the board screens read it.
+ * <p>Its type is the shared field type. What partner stations are sent is the {@link BoardField},
+ * which spells the type the way they read it.
  *
- * @param id       the field
- * @param boardId  the board it belongs to
- * @param name     what the field is called
- * @param type     what kind of value it holds
- * @param config   its settings, the record its type names
- * @param position where it stands among the board's fields
+ * @param id        the field
+ * @param boardId   the board it belongs to
+ * @param name      what the field is called
+ * @param fieldType what kind of value it holds
+ * @param config    its settings, the record its type names
+ * @param position  where it stands among the board's fields
  */
 public record BoardFieldDefinition(
-        int id, int boardId, String name, FieldType type, BoardFieldConfig config, int position) {
+        int id, int boardId, String name, FieldType fieldType, BoardFieldConfig config, int position) {
 
     /**
      * This field as the one check reads it, which is what a ticket's value is measured against: a
@@ -31,13 +32,13 @@ public record BoardFieldDefinition(
      */
     public Question question() {
         return config.settings()
-                .asQuestion(name, type)
-                .orElseThrow(() -> new IllegalStateException("Every board field holds a value: " + type));
+                .asQuestion(name, fieldType)
+                .orElseThrow(() -> new IllegalStateException("Every board field holds a value: " + fieldType));
     }
 
     /** The type as the wire spells it, which also says which records the settings and values are. */
     public BoardFieldType wireType() {
-        return BoardFieldType.of(type);
+        return BoardFieldType.of(fieldType);
     }
 
     /** Creates a row mapping for database result set conversion. */

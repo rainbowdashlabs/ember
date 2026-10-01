@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
+import dev.chojo.ember.feature.question.FieldTypes;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -144,8 +145,17 @@ public class BatchEventService {
         return name;
     }
 
+    /**
+     * The fields every appointment of the batch asks.
+     *
+     * @throws io.javalin.http.HttpResponseException for a type an appointment does not offer
+     */
     private List<BatchFieldEntry> resolveFieldDefs(BatchRequest request) {
-        return Objects.requireNonNullElse(request.inlineFields(), List.of());
+        var fields = Objects.requireNonNullElse(request.inlineFields(), List.<BatchFieldEntry>of());
+        if (fields.stream().anyMatch(field -> !FieldTypes.APPOINTMENT.contains(field.fieldType()))) {
+            throw Refusal.BATCH_FIELD_TYPE_NOT_OFFERED.raise();
+        }
+        return fields;
     }
 
     private List<LocalDate> expandInterval(IntervalConfig interval) {

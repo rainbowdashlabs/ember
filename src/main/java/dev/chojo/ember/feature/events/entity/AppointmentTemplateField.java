@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * One question an appointment template hands the organiser of every appointment made from it.
  *
- * <p>What the server works with; screens read an {@link EventTemplateField}.
+ * <p>What the server works with and the template editor reads.
  *
  * @param defaultValue what an appointment made from this template starts the question off with, or
  *                     null where it starts empty. Kept apart from the answer the appointment ends up

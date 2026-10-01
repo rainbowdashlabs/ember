@@ -9,7 +9,6 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
@@ -19,6 +18,7 @@ import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -141,7 +141,7 @@ public class AttendanceRepository {
      * @param position   ordering position
      */
     public void createTemplateField(
-            int templateId, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
+            int templateId, String name, FieldType fieldType, AttendanceFieldConfig config, int position) {
         query("""
                 INSERT
                 INTO
@@ -150,7 +150,7 @@ public class AttendanceRepository {
                     (:template_id, :name, :field_type, :config::JSONB, :position);""")
                 .single(call().bind("template_id", templateId)
                         .bind("name", name)
-                        .bind("field_type", fieldType.fieldType())
+                        .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position))
                 .insert();
@@ -167,7 +167,7 @@ public class AttendanceRepository {
      * @return {@code true} if the field was updated
      */
     public boolean updateTemplateField(
-            int id, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
+            int id, String name, FieldType fieldType, AttendanceFieldConfig config, int position) {
         return query("""
                 UPDATE attendance_template_field
                 SET
@@ -177,7 +177,7 @@ public class AttendanceRepository {
                     position   = :position
                 WHERE id = :id;""")
                 .single(call().bind("name", name)
-                        .bind("field_type", fieldType.fieldType())
+                        .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("id", id))

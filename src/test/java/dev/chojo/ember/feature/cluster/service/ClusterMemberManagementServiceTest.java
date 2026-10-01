@@ -16,10 +16,10 @@ import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -257,18 +257,12 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         var peopled = stationWithMember(clusterId);
 
         var own = profileFieldService.create(
-                peopled.station().id(),
-                "Spindnummer",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.empty(),
-                false,
-                false,
-                null);
+                peopled.station().id(), "Spindnummer", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
         profileFieldService.assignToRole(own.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         var shared = clusterProfileFieldService.create(
                 clusterId,
                 "Mitgliedsnummer",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -300,7 +294,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Mitgliedsnummer",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,

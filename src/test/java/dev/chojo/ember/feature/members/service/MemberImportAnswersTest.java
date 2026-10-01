@@ -10,8 +10,8 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.service.MemberImportService.ColumnMapping;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -80,7 +80,7 @@ class MemberImportAnswersTest extends RepositoryTestBase {
     private record Imported(Optional<String> stored, List<String> warnings, List<String> previewWarnings) {}
 
     /** Imports one person with one cell under a new question of the given kind. */
-    private static Imported imported(ProfileFieldType type, String config, String cell) {
+    private static Imported imported(FieldType type, String config, String cell) {
         removeEverybody();
         var field = profileFieldRepo.create(
                 station.id(),
@@ -117,13 +117,12 @@ class MemberImportAnswersTest extends RepositoryTestBase {
     /** An age counts itself from a date, so a column mapped onto one is left out. */
     @Test
     void anAgeColumnIsSkipped() {
-        assertEquals(
-                Optional.empty(), imported(ProfileFieldType.AGE, "{}", "15").stored());
+        assertEquals(Optional.empty(), imported(FieldType.AGE, "{}", "15").stored());
     }
 
     @Test
     void aWholeNumberIsKeptAsANumber() {
-        var imported = imported(ProfileFieldType.NUMBER, "{}", "42");
+        var imported = imported(FieldType.NUMBER, "{}", "42");
 
         assertEquals(Optional.of("42"), imported.stored());
         assertEquals(List.of(), imported.warnings());
@@ -131,39 +130,35 @@ class MemberImportAnswersTest extends RepositoryTestBase {
 
     @Test
     void aNumberThatIsNoWholeNumberIsLeftOut() {
-        leftOutAndNamed(imported(ProfileFieldType.NUMBER, "{}", "viele"), "viele");
-        leftOutAndNamed(imported(ProfileFieldType.NUMBER, "{}", "2,5"), "2,5");
+        leftOutAndNamed(imported(FieldType.NUMBER, "{}", "viele"), "viele");
+        leftOutAndNamed(imported(FieldType.NUMBER, "{}", "2,5"), "2,5");
     }
 
     @Test
     void aGermanDayIsKeptAsAnIsoDay() {
         assertEquals(
                 Optional.of("\"2011-09-01\""),
-                imported(ProfileFieldType.DATE, "{}", "01.09.2011").stored());
+                imported(FieldType.DATE, "{}", "01.09.2011").stored());
     }
 
     @Test
     void aDayThatIsNoDayIsLeftOut() {
-        leftOutAndNamed(imported(ProfileFieldType.DATE, "{}", "irgendwann"), "irgendwann");
+        leftOutAndNamed(imported(FieldType.DATE, "{}", "irgendwann"), "irgendwann");
     }
 
     @Test
     void aChoiceTheQuestionDoesNotOfferIsLeftOut() {
         assertEquals(
                 Optional.of("\"M\""),
-                imported(ProfileFieldType.ENUM, "{\"options\":[\"S\",\"M\"]}", "M")
-                        .stored());
-        leftOutAndNamed(imported(ProfileFieldType.ENUM, "{\"options\":[\"S\",\"M\"]}", "XL"), "XL");
+                imported(FieldType.CHOICE, "{\"options\":[\"S\",\"M\"]}", "M").stored());
+        leftOutAndNamed(imported(FieldType.CHOICE, "{\"options\":[\"S\",\"M\"]}", "XL"), "XL");
     }
 
     @Test
     void aYesOrNoReadsItsWordsInBothLanguagesAndLeavesAnyOtherOut() {
+        assertEquals(Optional.of("true"), imported(FieldType.BOOLEAN, "{}", "x").stored());
         assertEquals(
-                Optional.of("true"),
-                imported(ProfileFieldType.BOOLEAN, "{}", "x").stored());
-        assertEquals(
-                Optional.of("false"),
-                imported(ProfileFieldType.BOOLEAN, "{}", "Nein").stored());
-        leftOutAndNamed(imported(ProfileFieldType.BOOLEAN, "{}", "vielleicht"), "vielleicht");
+                Optional.of("false"), imported(FieldType.BOOLEAN, "{}", "Nein").stored());
+        leftOutAndNamed(imported(FieldType.BOOLEAN, "{}", "vielleicht"), "vielleicht");
     }
 }

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonValue;
+import dev.chojo.ember.feature.question.FieldType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -52,11 +53,17 @@ public record ItemFieldValues(@JsonValue Map<String, FieldValue> values) {
     /**
      * Typed value for a single custom-field entry. The {@code kind}
      * discriminator drives Jackson's polymorphic deserialization.
+     *
+     * <p>The kind is the shared field type name. A choice answered before the names were shared
+     * says {@code ENUM}, which is still read.
      */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "kind")
     @JsonSubTypes({
         @JsonSubTypes.Type(value = ItemDateValue.class, name = "DATE"),
-        @JsonSubTypes.Type(value = ItemEnumValue.class, name = "ENUM"),
+        @JsonSubTypes.Type(
+                value = ItemEnumValue.class,
+                name = "CHOICE",
+                names = {"ENUM", "CHOICE"}),
         @JsonSubTypes.Type(value = ItemTextValue.class, name = "TEXT"),
         @JsonSubTypes.Type(value = ItemNumberValue.class, name = "NUMBER"),
         @JsonSubTypes.Type(value = ItemBooleanValue.class, name = "BOOLEAN")
@@ -97,15 +104,15 @@ public record ItemFieldValues(@JsonValue Map<String, FieldValue> values) {
     }
 
     /**
-     * Value variant for {@link FieldType#ENUM}.
+     * Value variant for {@link FieldType#CHOICE}.
      *
-     * @param value the picked enum option value
+     * @param value the picked option value
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ItemEnumValue(String value) implements FieldValue {
         @Override
         public FieldType fieldType() {
-            return FieldType.ENUM;
+            return FieldType.CHOICE;
         }
     }
 

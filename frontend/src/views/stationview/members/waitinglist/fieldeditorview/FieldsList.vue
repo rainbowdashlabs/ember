@@ -16,7 +16,6 @@ import FieldRow from './FieldRow.vue'
 const props = defineProps<{
   listName: string
   fields: WaitingListField[]
-  fieldTypeLabel: (type: string) => string
 }>()
 
 defineEmits<{
@@ -53,7 +52,6 @@ const sortedFields = computed(() =>
         :field="field"
         :index="index"
         :total="sortedFields.length"
-        :field-type-label="fieldTypeLabel"
         @move="(i, d) => $emit('move', i, d)"
         @edit="(f) => $emit('edit', f)"
         @delete="(f) => $emit('delete', f)"

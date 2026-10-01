@@ -24,7 +24,6 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
@@ -36,6 +35,8 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
@@ -249,7 +250,7 @@ public class ProfileFieldService {
     public record MergedField(
             int id,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             int position,
@@ -283,11 +284,12 @@ public class ProfileFieldService {
     public ProfileField create(
             int stationId,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
             @Nullable String width) {
+        requireOffered(fieldType);
         requireSingleBirthDate(stationId, fieldType, 0);
         String chosen = nameFor(stationId, fieldType, name);
         requireUsableDefault(chosen, fieldType, config);
@@ -301,7 +303,7 @@ public class ProfileFieldService {
     public Optional<ProfileField> update(
             int id,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
@@ -312,6 +314,7 @@ public class ProfileFieldService {
             log.warn("Profile field update affected no rows: id={}", id);
             return Optional.empty();
         }
+        requireOffered(fieldType);
         requireUsableDefault(name, fieldType, config);
         requireUsableExpiry(config);
         requireSingleBirthDate(existing.get().stationId(), fieldType, id);
@@ -321,6 +324,15 @@ public class ProfileFieldService {
         }
         log.warn("Profile field update affected no rows: id={}", id);
         return Optional.empty();
+    }
+
+    /**
+     * Refuses a type the member profile does not offer, such as a place or a ticket's assignee.
+     *
+     * @throws io.javalin.http.HttpResponseException {@link Refusal#PROFILE_FIELD_TYPE_NOT_OFFERED}
+     */
+    private static void requireOffered(FieldType fieldType) {
+        if (!FieldTypes.PROFILE.contains(fieldType)) throw Refusal.PROFILE_FIELD_TYPE_NOT_OFFERED.raise();
     }
 
     /**
@@ -335,8 +347,8 @@ public class ProfileFieldService {
      * @param name      what the screen sent, which may be nothing for a spacer
      * @return the name to file it under
      */
-    private String nameFor(int stationId, ProfileFieldType fieldType, String name) {
-        if (fieldType != ProfileFieldType.SPACER || name != null && !name.isBlank()) return name;
+    private String nameFor(int stationId, FieldType fieldType, String name) {
+        if (fieldType != FieldType.SPACER || name != null && !name.isBlank()) return name;
         var taken = profileFieldRepository.findByStation(stationId).stream()
                 .map(ProfileField::name)
                 .collect(Collectors.toSet());
@@ -358,10 +370,9 @@ public class ProfileFieldService {
      * @param excludedId the field being updated, so it does not clash with itself; 0 when creating
      * @throws BadRequestResponse if the station already has a date of birth
      */
-    private void requireSingleBirthDate(int stationId, ProfileFieldType fieldType, int excludedId) {
-        if (fieldType != ProfileFieldType.BIRTH_DATE) return;
-        for (ProfileField other :
-                profileFieldRepository.findAllByStationAndType(stationId, ProfileFieldType.BIRTH_DATE)) {
+    private void requireSingleBirthDate(int stationId, FieldType fieldType, int excludedId) {
+        if (fieldType != FieldType.BIRTH_DATE) return;
+        for (ProfileField other : profileFieldRepository.findAllByStationAndType(stationId, FieldType.BIRTH_DATE)) {
             if (other.id() == excludedId) continue;
             throw new BadRequestResponse("This station already asks for a date of birth: " + other.name()
                     + ". Assign that one to whoever else should be asked.");
@@ -568,7 +579,7 @@ public class ProfileFieldService {
      *
      * @throws BadRequestResponse naming the field and what is wrong with its starting value
      */
-    private void requireUsableDefault(String name, ProfileFieldType fieldType, ProfileFieldConfig config) {
+    private void requireUsableDefault(String name, FieldType fieldType, ProfileFieldConfig config) {
         new ProfileField(0, 0, name, fieldType, config, false, false, null, false)
                 .question()
                 .flatMap(QuestionCheck::defaultValue)

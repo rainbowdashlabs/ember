@@ -42,27 +42,6 @@ export const WaitingListEntryStatus = {
     JOINED: 'JOINED',
 } as const satisfies Record<WaitingListEntryStatusName, WaitingListEntryStatusName>
 
-export type WaitingListFieldTypeName = components['schemas']['WaitingListFieldType']
-
-export const WaitingListFieldTypes = {
-    TEXT: 'TEXT',
-    NUMBER: 'NUMBER',
-    DATE: 'DATE',
-    BOOLEAN: 'BOOLEAN',
-    ENUM: 'ENUM',
-    /**
-     * A date field carrying the date of birth. A list has at most one, which is what lets it work
-     * out an age without being told where to look. Stored exactly like a DATE field, so an ordinary
-     * date field becomes one without losing the answers already given.
-     */
-    BIRTH_DATE: 'BIRTH_DATE',
-} as const satisfies Record<WaitingListFieldTypeName, WaitingListFieldTypeName>
-
-/** Whether a value a picker hands back is one of the field types a list knows. */
-export function isWaitingListFieldType(value: string): value is WaitingListFieldTypeName {
-    return Object.hasOwn(WaitingListFieldTypes, value)
-}
-
 export type WaitingListAnswerName = components['schemas']['WaitingListAnswer']
 
 export const WaitingListAnswers = {

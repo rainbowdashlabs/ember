@@ -19,7 +19,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure, type Failure} from '@/util/failure'
 import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
-import type {EventRegistrationFieldValue, PartnerPlacesView, RegistrationFieldResponse, RegistrationResponse, RegistrationStatsResponse, StationEvent} from '@/api/generated/schema'
+import type {EventRegistrationFieldValue, PartnerPlacesView, EventRegistrationField, RegistrationResponse, RegistrationStatsResponse, StationEvent} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import {events, stationMembers as stationMembersApi} from '@/api'
@@ -67,7 +67,7 @@ const allMembers = ref<MemberOption[]>([])
 const failure = ref<Failure | null>(null)
 const manualRegisterMemberId = ref('')
 
-const registrationFields = ref<RegistrationFieldResponse[]>([])
+const registrationFields = ref<EventRegistrationField[]>([])
 const showFieldsModal = ref(false)
 const pendingRegistrationMemberId = ref<number | null>(null)
 

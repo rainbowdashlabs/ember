@@ -10,7 +10,6 @@ import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -101,19 +100,26 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                         draft(
                                 "Shirtgröße",
                                 FieldType.CHOICE,
-                                new EventRegistrationFieldConfig(
-                                        true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
+                                registrant(true, "M", List.of("S", "M", "L"), null, null, false),
                                 true),
-                        draft(
-                                "Begleitpersonen",
-                                FieldType.NUMBER,
-                                new EventRegistrationFieldConfig(false, "0", null, 0, 5, null, null, null, false),
-                                true)));
+                        draft("Begleitpersonen", FieldType.NUMBER, registrant(false, "0", null, 0, 5, false), true)));
     }
 
     private static RegistrationFieldDraft draft(
-            String name, FieldType type, EventRegistrationFieldConfig config, boolean overview) {
-        return new RegistrationFieldDraft(name, type, config.settings(), overview);
+            String name, FieldType type, EventQuestionSettings config, boolean overview) {
+        return new RegistrationFieldDraft(name, type, config, overview);
+    }
+
+    /** The settings of a question a registrant answers, with nothing an organiser would set. */
+    private static EventQuestionSettings registrant(
+            boolean required,
+            String defaultValue,
+            List<String> options,
+            Integer min,
+            Integer max,
+            boolean managersOnly) {
+        return new EventQuestionSettings(
+                options, null, null, null, null, false, false, required, defaultValue, min, max, managersOnly);
     }
 
     private static int fieldId(String name) {
@@ -174,11 +180,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
     void requiredQuestionWithoutDefaultIsRefused() {
         service.replaceFields(
                 event.id(),
-                List.of(draft(
-                        "Startnummer",
-                        FieldType.TEXT,
-                        new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false),
-                        true)));
+                List.of(draft("Startnummer", FieldType.TEXT, registrant(true, null, null, null, null, false), true)));
         assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(event.id(), Map.of()));
         seedFields();
     }
@@ -287,14 +289,9 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                         draft(
                                 "Shirtgröße",
                                 FieldType.CHOICE,
-                                new EventRegistrationFieldConfig(
-                                        true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
+                                registrant(true, "M", List.of("S", "M", "L"), null, null, false),
                                 true),
-                        draft(
-                                "Startnummer",
-                                FieldType.TEXT,
-                                new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, true),
-                                true)));
+                        draft("Startnummer", FieldType.TEXT, registrant(true, null, null, null, null, true), true)));
 
         assertEquals(2, service.findByEvent(event.id()).size(), "every question is asked of whoever registers");
 
@@ -329,14 +326,9 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                         draft(
                                 "Shirtgröße",
                                 FieldType.CHOICE,
-                                new EventRegistrationFieldConfig(
-                                        true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
+                                registrant(true, "M", List.of("S", "M", "L"), null, null, false),
                                 true),
-                        draft(
-                                "Startnummer",
-                                FieldType.TEXT,
-                                new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, true),
-                                true)));
+                        draft("Startnummer", FieldType.TEXT, registrant(true, null, null, null, null, true), true)));
         int size = fieldId("Shirtgröße");
         int startNumber = fieldId("Startnummer");
         LocalDate day = LocalDate.now().plusMonths(4).withDayOfMonth(7);
@@ -409,11 +401,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
 
         service.replaceFields(
                 event.id(),
-                List.of(draft(
-                        "Verpflegung",
-                        FieldType.TEXT,
-                        new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false),
-                        true)));
+                List.of(draft("Verpflegung", FieldType.TEXT, registrant(true, null, null, null, null, false), true)));
 
         assertEquals(
                 RegistrationStatus.ACCEPTED,
@@ -439,23 +427,13 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 event.id(),
                 List.of(
-                        draft(
-                                "Begleitpersonen",
-                                FieldType.NUMBER,
-                                new EventRegistrationFieldConfig(false, "0", null, 0, 9, null, null, null, false),
-                                true),
+                        draft("Begleitpersonen", FieldType.NUMBER, registrant(false, "0", null, 0, 9, false), true),
                         draft(
                                 "Shirtgröße",
                                 FieldType.CHOICE,
-                                new EventRegistrationFieldConfig(
-                                        true, "M", List.of("S", "M", "L", "XL"), null, null, null, null, null, false),
+                                registrant(true, "M", List.of("S", "M", "L", "XL"), null, null, false),
                                 true),
-                        draft(
-                                "Verpflegung",
-                                FieldType.TEXT,
-                                new EventRegistrationFieldConfig(
-                                        false, null, null, null, null, null, null, null, false),
-                                true)));
+                        draft("Verpflegung", FieldType.TEXT, registrant(false, null, null, null, null, false), true)));
 
         var carried = service.findValues(registration.id()).stream()
                 .collect(Collectors.toMap(RegistrationFieldValue::fieldId, RegistrationFieldValue::value));
@@ -465,11 +443,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
 
         service.replaceFields(
                 event.id(),
-                List.of(draft(
-                        "Verpflegung",
-                        FieldType.TEXT,
-                        new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, false),
-                        true)));
+                List.of(draft("Verpflegung", FieldType.TEXT, registrant(false, null, null, null, null, false), true)));
         assertTrue(service.findValues(registration.id()).isEmpty(), "a question that is gone takes its answers");
 
         registrationService.withdraw(registration.id());
@@ -485,8 +459,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                 List.of(draft(
                         "Shirtgröße",
                         FieldType.CHOICE,
-                        new EventRegistrationFieldConfig(
-                                true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
+                        registrant(true, "M", List.of("S", "M", "L"), null, null, false),
                         true)));
 
         var created = crudService.create(
@@ -544,7 +517,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.replaceFields(
                         event.id(),
-                        List.of(draft("Treffpunkt", FieldType.LOCATION, EventRegistrationFieldConfig.empty(), true))));
+                        List.of(draft("Treffpunkt", FieldType.LOCATION, EventQuestionSettings.empty(), true))));
         assertEquals(Refusal.REGISTRATION_QUESTION_TYPE_NOT_OFFERED, refusal.refusal());
         assertEquals(2, service.findByEvent(event.id()).size(), "nothing was written");
     }
@@ -567,7 +540,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
     @Order(15)
     void aYesIsStoredAsTrueHoweverItWasSent() {
         service.replaceFields(
-                event.id(), List.of(draft("Helm", FieldType.BOOLEAN, EventRegistrationFieldConfig.empty(), true)));
+                event.id(), List.of(draft("Helm", FieldType.BOOLEAN, EventQuestionSettings.empty(), true)));
 
         assertEquals(
                 "true",

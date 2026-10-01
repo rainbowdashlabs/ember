@@ -13,7 +13,6 @@ import dev.chojo.ember.feature.members.entity.MemberTableColumnKind;
 import dev.chojo.ember.feature.members.entity.MemberTablePeople;
 import dev.chojo.ember.feature.members.entity.MemberTableQuestion;
 import dev.chojo.ember.feature.members.entity.ProfileField;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -85,7 +84,7 @@ public class MemberTableService {
                     MemberTableColumnKind.PROFILE_FIELD,
                     null,
                     field.id(),
-                    MemberTableCellType.of(field.fieldType().fieldType())));
+                    MemberTableCellType.of(field.fieldType())));
         }
         return offered;
     }
@@ -161,12 +160,7 @@ public class MemberTableService {
             }
             case PROFILE_FIELD -> {
                 var field = readable.get(column.fieldId());
-                yield field == null
-                        ? null
-                        : headerOf(
-                                column,
-                                field.name(),
-                                MemberTableCellType.of(field.fieldType().fieldType()));
+                yield field == null ? null : headerOf(column, field.name(), MemberTableCellType.of(field.fieldType()));
             }
             case REGISTRATION_FIELD -> {
                 var question = questions.get(column.fieldId());
@@ -242,7 +236,7 @@ public class MemberTableService {
      * Renaming the question it counted from used to empty the age, which is why the id is preferred.
      */
     private static @Nullable ProfileField ageSourceOf(ProfileField field, Map<Integer, ProfileField> readable) {
-        if (field.fieldType() != ProfileFieldType.AGE) return null;
+        if (field.fieldType() != FieldType.AGE) return null;
         var config = field.config();
         if (config == null) return null;
         Integer sourceFieldId = config.sourceFieldId();
@@ -289,9 +283,9 @@ public class MemberTableService {
         private String profileValue(int fieldId, int memberId) {
             var field = readable.get(fieldId);
             if (field == null) return "";
-            if (field.fieldType() == ProfileFieldType.AGE) return ageAnswer(field, memberId);
+            if (field.fieldType() == FieldType.AGE) return ageAnswer(field, memberId);
             var stored = values.getOrDefault(fieldId, Map.of()).get(memberId);
-            return printed(field.fieldType().fieldType(), stored);
+            return printed(field.fieldType(), stored);
         }
 
         private String registrationAnswer(int questionId, int memberId) {

@@ -12,7 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import GuardianFields from './GuardianFields.vue'
-import DynamicFieldInput from './DynamicFieldInput.vue'
+import WaitingListAnswerInput from '@/components/waitinglist/WaitingListAnswerInput.vue'
 import type { GuardianInput } from '@/api/waitingList'
 import type { WaitingListInviteInfo } from '@/api/generated/schema'
 
@@ -57,12 +57,12 @@ const { t } = useI18n()
       @remove="emit('remove-guardian', $event)"
     />
 
-    <DynamicFieldInput
+    <WaitingListAnswerInput
       v-for="field in props.inviteInfo.fields"
       :key="field.id"
       :field="field"
-      :value="props.fieldValueOf(field.id)"
-      @update:value="emit('set-field-value', field.id, $event)"
+      :model-value="props.fieldValueOf(field.id)"
+      @update:model-value="emit('set-field-value', field.id, $event)"
     />
 
     <div class="space-y-1">

@@ -12,8 +12,8 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -70,7 +70,7 @@ class GdprExportServiceTest extends RepositoryTestBase {
 
         // Create profile field + value
         var field = profileFieldRepo.create(
-                stationId, "Telefon", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+                stationId, "Telefon", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.setValue(member.id(), field.id(), StringNode.valueOf("0151 12345678"));
 
         // Create group + assign member

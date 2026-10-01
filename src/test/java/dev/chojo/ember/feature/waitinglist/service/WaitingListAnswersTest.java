@@ -11,11 +11,11 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
-import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
 import org.jspecify.annotations.Nullable;
@@ -95,7 +95,7 @@ class WaitingListAnswersTest extends RepositoryTestBase {
                 .id();
     }
 
-    private @Nullable JsonNode kept(WaitingListFieldType type, String config, boolean required, JsonNode answer) {
+    private @Nullable JsonNode kept(FieldType type, String config, boolean required, JsonNode answer) {
         var field = service.createField(
                 listId,
                 type.name() + NAMES.incrementAndGet(),
@@ -118,30 +118,30 @@ class WaitingListAnswersTest extends RepositoryTestBase {
                 .orElse(null);
     }
 
-    private void refused(WaitingListFieldType type, String config, JsonNode answer) {
+    private void refused(FieldType type, String config, JsonNode answer) {
         assertThrows(BadRequestResponse.class, () -> kept(type, config, false, answer), answer + " under " + type);
     }
 
     @Test
     void aNumberIsWholeAndRefusesText() {
-        assertEquals("3", String.valueOf(kept(WaitingListFieldType.NUMBER, "{}", false, StringNode.valueOf("3"))));
-        refused(WaitingListFieldType.NUMBER, "{}", DecimalNode.valueOf(new BigDecimal("2.5")));
-        refused(WaitingListFieldType.NUMBER, "{}", StringNode.valueOf("zwei"));
+        assertEquals("3", String.valueOf(kept(FieldType.NUMBER, "{}", false, StringNode.valueOf("3"))));
+        refused(FieldType.NUMBER, "{}", DecimalNode.valueOf(new BigDecimal("2.5")));
+        refused(FieldType.NUMBER, "{}", StringNode.valueOf("zwei"));
     }
 
     @Test
     void aDayIsAnIsoDayInAString() {
         assertEquals(
                 StringNode.valueOf("2019-05-01"),
-                kept(WaitingListFieldType.BIRTH_DATE, "{}", false, StringNode.valueOf("2019-05-01")));
-        refused(WaitingListFieldType.DATE, "{}", StringNode.valueOf("01.05.2019"));
+                kept(FieldType.BIRTH_DATE, "{}", false, StringNode.valueOf("2019-05-01")));
+        refused(FieldType.DATE, "{}", StringNode.valueOf("01.05.2019"));
     }
 
     @Test
     void aYesOrNoIsKeptAsABoolean() {
-        assertEquals(BooleanNode.TRUE, kept(WaitingListFieldType.BOOLEAN, "{}", false, BooleanNode.TRUE));
-        assertEquals(BooleanNode.TRUE, kept(WaitingListFieldType.BOOLEAN, "{}", false, StringNode.valueOf("1")));
-        refused(WaitingListFieldType.BOOLEAN, "{}", StringNode.valueOf("ja"));
+        assertEquals(BooleanNode.TRUE, kept(FieldType.BOOLEAN, "{}", false, BooleanNode.TRUE));
+        assertEquals(BooleanNode.TRUE, kept(FieldType.BOOLEAN, "{}", false, StringNode.valueOf("1")));
+        refused(FieldType.BOOLEAN, "{}", StringNode.valueOf("ja"));
     }
 
     @Test
@@ -149,16 +149,16 @@ class WaitingListAnswersTest extends RepositoryTestBase {
         assertEquals(
                 StringNode.valueOf("Vormittag"),
                 kept(
-                        WaitingListFieldType.ENUM,
+                        FieldType.CHOICE,
                         "{\"options\":[\"Vormittag\",\"Nachmittag\"]}",
                         false,
                         StringNode.valueOf("Vormittag")));
-        refused(WaitingListFieldType.ENUM, "{\"options\":[\"Vormittag\",\"Nachmittag\"]}", StringNode.valueOf("Abend"));
+        refused(FieldType.CHOICE, "{\"options\":[\"Vormittag\",\"Nachmittag\"]}", StringNode.valueOf("Abend"));
     }
 
     @Test
     void aRequiredQuestionMayStayEmptyAndKeepsNothing() {
-        assertNull(kept(WaitingListFieldType.TEXT, "{}", true, StringNode.valueOf("")));
+        assertNull(kept(FieldType.TEXT, "{}", true, StringNode.valueOf("")));
     }
 
     @Test
@@ -166,7 +166,7 @@ class WaitingListAnswersTest extends RepositoryTestBase {
         var field = service.createField(
                 listId,
                 "Notiz" + NAMES.incrementAndGet(),
-                WaitingListFieldType.TEXT,
+                FieldType.TEXT,
                 WaitingListFieldConfig.parse("{}"),
                 0,
                 false,

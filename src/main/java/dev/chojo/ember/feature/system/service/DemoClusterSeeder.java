@@ -24,7 +24,6 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -38,7 +37,6 @@ import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.notifications.entity.Audience;
@@ -49,6 +47,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -594,7 +593,7 @@ public class DemoClusterSeeder implements DemoSeeder {
         var licence = fieldService.create(
                 cluster.id(),
                 "Führerscheinklasse",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -606,7 +605,7 @@ public class DemoClusterSeeder implements DemoSeeder {
         var breathing = fieldService.create(
                 cluster.id(),
                 "Atemschutztauglich",
-                ProfileFieldType.BOOLEAN,
+                FieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
                 false,
                 false,

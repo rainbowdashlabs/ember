@@ -18,10 +18,10 @@ import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
 import dev.chojo.ember.feature.members.entity.ExpirySettings;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.ProfileAnswers;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -108,7 +108,7 @@ public class ClusterProfileFieldService {
     public ClusterProfileField create(
             int clusterId,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
@@ -178,7 +178,7 @@ public class ClusterProfileFieldService {
             int clusterId,
             int fieldId,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
@@ -366,9 +366,9 @@ public class ClusterProfileFieldService {
      * <p>Which types an association asks is {@link FieldTypes#ASSOCIATION}. The one a station offers
      * and an association does not is the date of birth, which is why the refusal names it.
      */
-    private static void requireUsable(String name, ProfileFieldType fieldType, ProfileFieldConfig config) {
+    private static void requireUsable(String name, FieldType fieldType, ProfileFieldConfig config) {
         if (name == null || name.isBlank()) throw new BadRequestResponse("A field needs a name");
-        if (!FieldTypes.ASSOCIATION.contains(fieldType.fieldType())) {
+        if (!FieldTypes.ASSOCIATION.contains(fieldType)) {
             throw new BadRequestResponse(
                     "A station declares its own date of birth field, and a second one would collide with it");
         }
@@ -377,7 +377,7 @@ public class ClusterProfileFieldService {
         }
         ProfileFieldConfig settings = config == null ? ProfileFieldConfig.empty() : config;
         settings.settings(false)
-                .asQuestion(name, fieldType.fieldType())
+                .asQuestion(name, fieldType)
                 .flatMap(QuestionCheck::defaultValue)
                 .ifPresent(problem -> {
                     throw Refusal.CLUSTER_PROFILE_DEFAULT_NOT_ACCEPTED.raise(problem.message());

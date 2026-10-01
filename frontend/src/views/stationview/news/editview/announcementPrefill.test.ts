@@ -6,7 +6,7 @@
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
 import {buildAnnouncementDraft, type AnnouncedEvent} from './announcementPrefill'
-import type {EventField, StationEvent} from '@/api/generated/schema'
+import type {AppointmentField, StationEvent} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 
 const WORDS = {
@@ -25,14 +25,14 @@ const EVENT: StationEvent = {
     thresholdDays: null, repeatUntil: null, repeatCount: null, cancelled: false, cancelledAt: null, cancelReason: null,
 }
 
-function field(over: Partial<EventField>): EventField {
+function field(over: Partial<AppointmentField>): AppointmentField {
     return {
         id: 1,
         eventId: 7,
         name: '',
-        fieldType: 'STRING',
+        fieldType: 'TEXT',
         value: '',
-        config: {perDate: false, selfRegistration: false},
+        config: {perDate: false, selfRegistration: false, required: false, managersOnly: false},
         position: 0,
         overview: true,
         isPublic: false,
@@ -59,8 +59,8 @@ describe('buildAnnouncementDraft', () => {
             announced({
                 event: {...EVENT, requiresRegistration: true, registrationLimit: 12},
                 fields: [
-                    field({id: 1, name: 'Treffpunkt', fieldType: 'STRING', value: 'Gerätehaus', isPublic: false}),
-                    field({id: 3, name: 'Intern', fieldType: 'STRING', value: 'nicht sichtbar', overview: false}),
+                    field({id: 1, name: 'Treffpunkt', fieldType: 'TEXT', value: 'Gerätehaus', isPublic: false}),
+                    field({id: 3, name: 'Intern', fieldType: 'TEXT', value: 'nicht sichtbar', overview: false}),
                 ],
             }),
             audience(),

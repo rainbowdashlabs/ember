@@ -13,7 +13,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
-import type {RegistrationFieldResponse, RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
+import type {EventRegistrationField, RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
 import {useDataTable} from '@/composables/useDataTable'
 import RegistrationStatsMember from './registrationstatstable/RegistrationStatsMember.vue'
 import {registrationStatsColumns, SCORE_KEY, type RankedRegistration} from './registrationstatstable/registrationStatsColumns'
@@ -23,7 +23,7 @@ import {registrationStatsColumns, SCORE_KEY, type RankedRegistration} from './re
  * which a reader may resort or filter by any column.
  */
 const props = defineProps<{
-  fields?: RegistrationFieldResponse[]
+  fields?: EventRegistrationField[]
   registrations: RegistrationResponse[]
   stats: RegistrationStatsResponse[]
   showActions?: boolean

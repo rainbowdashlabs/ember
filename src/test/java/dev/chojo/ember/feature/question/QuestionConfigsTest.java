@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.question;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import org.junit.jupiter.api.Test;
@@ -113,8 +112,7 @@ class QuestionConfigsTest {
         assertEquals(5, config.max());
         assertTrue(config.managersOnly());
         assertEquals(config, EventQuestionSettings.parse(config.toJson()));
-        assertEquals(
-                config, EventRegistrationFieldConfig.of(config).settings(), "the screen's shape carries all of it");
+        assertEquals(config, config.registrants(), "the registrant part carries all of it");
     }
 
     /**

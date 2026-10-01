@@ -10,7 +10,7 @@ import type { CommentSource } from './comments'
 import type {
     AccessOverrideResponse,
     BoardChecklistItem,
-    BoardField,
+    BoardFieldDefinition,
     BoardLabel,
     BoardLane,
     BoardTicket,
@@ -90,7 +90,7 @@ export async function getAllTicketLabels(partnerUid: string, boardKey: string): 
 }
 
 export async function getFields(partnerUid: string, boardKey: string): Promise<TypedBoardField[]> {
-    const res = await client.get<BoardField[]>(`/federated/boards/${partnerUid}/${boardKey}/fields`)
+    const res = await client.get<BoardFieldDefinition[]>(`/federated/boards/${partnerUid}/${boardKey}/fields`)
     return typedFields(res.data)
 }
 

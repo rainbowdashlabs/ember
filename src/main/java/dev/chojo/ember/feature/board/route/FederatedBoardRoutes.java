@@ -14,7 +14,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
-import dev.chojo.ember.feature.board.entity.BoardField;
+import dev.chojo.ember.feature.board.entity.BoardFieldDefinition;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
@@ -466,7 +466,8 @@ public class FederatedBoardRoutes implements Routes {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
                 @OpenApiParam(name = "boardKey", type = String.class, required = true)
             },
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardField[].class)))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardFieldDefinition[].class)))
     private void federatedLocalGetFields(Context ctx) {
         var session = StationSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);

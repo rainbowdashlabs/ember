@@ -11,8 +11,9 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.service.MemberImportService.ColumnMapping;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterEach;
@@ -21,7 +22,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -193,7 +193,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
     }
 
     /** A question of this station, named apart from every other test's so the station can hold them all. */
-    private int field(String name, ProfileFieldType type) {
+    private int field(String name, FieldType type) {
         String unique = name + " " + NAMES.incrementAndGet();
         var created =
                 profileFieldRepo.create(station.id(), unique, type, ProfileFieldConfig.empty(), false, false, null);
@@ -232,7 +232,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
      */
     @Test
     void aPhoneNumberSurvivesBeingImported() {
-        int phone = field("Mobilnummer", ProfileFieldType.TEXT);
+        int phone = field("Mobilnummer", FieldType.TEXT);
         String csv = "Vorname;Name;Telefon\nMax;Müller;01700000000\n";
 
         var result = importMembers(
@@ -249,7 +249,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
     /** A surname is not JSON either, and quotes inside one must not break the document. */
     @Test
     void textWithQuotesIsStoredAsText() {
-        int nickname = field("Spitzname", ProfileFieldType.TEXT);
+        int nickname = field("Spitzname", FieldType.TEXT);
         String csv = "Vorname;Name;Spitzname\nMax;Müller;der \"Lange\"\n";
 
         importMembers(
@@ -265,9 +265,9 @@ class MemberImportServiceTest extends RepositoryTestBase {
     /** What a cell means follows the question it answers. */
     @Test
     void datesNumbersAndYesNoAreStoredAsWhatTheyAre() {
-        int birthday = field("Geburtstag", ProfileFieldType.DATE);
-        int shoes = field("Schuhgröße", ProfileFieldType.NUMBER);
-        int juleica = field("Juleica", ProfileFieldType.BOOLEAN);
+        int birthday = field("Geburtstag", FieldType.DATE);
+        int shoes = field("Schuhgröße", FieldType.NUMBER);
+        int juleica = field("Juleica", FieldType.BOOLEAN);
         String csv = "Vorname;Name;Geburtstag;Schuhe;Juleica\nMax;Müller;04.03.2011;42;Ja\n";
 
         importMembers(
@@ -291,7 +291,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
     /** Spaces around a cell are how a spreadsheet looks, not part of the answer. */
     @Test
     void spacesAroundACellAreNotPartOfIt() {
-        int nickname = field("Spitzname", ProfileFieldType.TEXT);
+        int nickname = field("Spitzname", FieldType.TEXT);
         String csv = "Vorname;Name;Spitzname\n  Max  ;  Müller  ;  Maxi  \n";
 
         importMembers(
@@ -367,7 +367,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
     @Test
     void theTelephoneNumberOfAParentSurvivesToo() {
         var phoneField = profileFieldRepo.create(
-                station.id(), "Mobilnummer", ProfileFieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+                station.id(), "Mobilnummer", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
         profileFieldRepo.assignToRole(phoneField.id(), ProfileFieldScope.GUARDIAN, 99, null, null, null);
         int phone = phoneField.id();
         String csv = "Vorname;Name;Kontakt;Telefon;Kontakt Email\n"
@@ -451,11 +451,9 @@ class MemberImportServiceTest extends RepositoryTestBase {
      */
     @Test
     void everyKindOfQuestionKeepsOrNamesAnAwkwardCell() {
-        var types = Arrays.stream(ProfileFieldType.values())
-                .filter(type -> type.holdsValue() && !type.isCalculated())
-                .toList();
+        var types = FieldTypes.PROFILE.stream().filter(FieldType::holdsValue).toList();
         var mappings = new ArrayList<ColumnMapping>(List.of(map("Vorname", "firstName"), map("Name", "lastName")));
-        var fieldsByType = new LinkedHashMap<ProfileFieldType, Integer>();
+        var fieldsByType = new LinkedHashMap<FieldType, Integer>();
         var header = new StringBuilder("Vorname;Name");
         var row = new StringBuilder("Max;Müller");
         for (var type : types) {

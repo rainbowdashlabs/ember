@@ -61,7 +61,7 @@ record ProfileColumns(List<ProfileField> fields, String language) {
         return answers.stream()
                 .filter(answer -> answer.fieldId() == field.id())
                 .findFirst()
-                .map(answer -> QuestionText.format(field.fieldType().fieldType(), answer.value(), Map.of(), language))
+                .map(answer -> QuestionText.format(field.fieldType(), answer.value(), Map.of(), language))
                 .orElse("");
     }
 }

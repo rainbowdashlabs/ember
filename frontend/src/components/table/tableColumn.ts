@@ -95,6 +95,7 @@ const TYPES_BY_FIELD: Record<string, ColumnType> = {
     EXPIRY_DATE: ColumnTypes.EXPIRY_DATE,
     BOOLEAN: ColumnTypes.BOOLEAN,
     ENUM: ColumnTypes.ENUM,
+    CHOICE: ColumnTypes.ENUM,
 }
 
 /**

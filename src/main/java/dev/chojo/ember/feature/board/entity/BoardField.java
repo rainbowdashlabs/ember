@@ -6,8 +6,8 @@
 package dev.chojo.ember.feature.board.entity;
 
 /**
- * A custom field of a board as it is sent: to partner stations a board is shared with, and to the
- * board screens. Every other path speaks of a {@link BoardFieldDefinition}.
+ * A custom field of a board as it is sent to partner stations a board is shared with. Every other
+ * path, the board screens included, speaks of a {@link BoardFieldDefinition}.
  *
  * <p>Its type keeps the spelling partners already read, so a partner on an older version still
  * understands the fields of a shared board.
@@ -31,5 +31,10 @@ public record BoardField(
     public static BoardField of(BoardFieldDefinition field) {
         return new BoardField(
                 field.id(), field.boardId(), field.name(), field.wireType(), field.config(), field.position());
+    }
+
+    /** This field under the shared type name, as a partner's board is shown on this station. */
+    public BoardFieldDefinition definition() {
+        return new BoardFieldDefinition(id, boardId, name, fieldType.fieldType(), config, position);
     }
 }

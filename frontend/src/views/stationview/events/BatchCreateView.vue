@@ -36,6 +36,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 import {describeFailure} from '@/util/failure'
+import {asSaved} from './eventshared/eventQuestions'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -125,7 +126,7 @@ function onScheduleDone(newRows: BatchRow[]) {
 
 const {running: saving, failure: createFailure, run: createBatch} = useAsyncAction(async () => {
   failure.value = null
-  const inlineFields: BatchFieldEntryDto[] = fieldDefs.value.flatMap(f => (f.name?.trim() ? [{
+  const inlineFields: BatchFieldEntryDto[] = fieldDefs.value.map(asSaved).flatMap(f => (f.name?.trim() ? [{
     name: f.name,
     fieldType: f.fieldType,
     config: f.config,

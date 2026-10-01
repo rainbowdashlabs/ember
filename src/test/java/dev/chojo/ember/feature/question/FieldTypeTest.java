@@ -5,11 +5,8 @@
  */
 package dev.chojo.ember.feature.question;
 
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.board.entity.BoardFieldType;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
-import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -100,7 +97,19 @@ class FieldTypeTest {
 
     @Test
     void theProfileOffersWhatItOffersToday() {
-        assertEquals(shared(ProfileFieldType.values()), FieldTypes.PROFILE);
+        assertEquals(
+                EnumSet.of(
+                        FieldType.TEXT,
+                        FieldType.NUMBER,
+                        FieldType.DATE,
+                        FieldType.BOOLEAN,
+                        FieldType.CHOICE,
+                        FieldType.AGE,
+                        FieldType.BIRTH_DATE,
+                        FieldType.EXPIRY_DATE,
+                        FieldType.SECTION,
+                        FieldType.SPACER),
+                FieldTypes.PROFILE);
     }
 
     /** The server refuses a date of birth on an association, and nothing else of the profile's types. */
@@ -113,7 +122,9 @@ class FieldTypeTest {
 
     @Test
     void theInventoryOffersWhatItOffersToday() {
-        assertEquals(shared(dev.chojo.ember.feature.inventory.entity.FieldType.values()), FieldTypes.INVENTORY);
+        assertEquals(
+                EnumSet.of(FieldType.DATE, FieldType.CHOICE, FieldType.TEXT, FieldType.NUMBER, FieldType.BOOLEAN),
+                FieldTypes.INVENTORY);
     }
 
     @Test
@@ -145,12 +156,34 @@ class FieldTypeTest {
 
     @Test
     void anAttendanceSheetOffersWhatItOffersToday() {
-        assertEquals(shared(AttendanceFieldType.values()), FieldTypes.ATTENDANCE);
+        assertEquals(
+                EnumSet.of(
+                        FieldType.TEXT,
+                        FieldType.NUMBER,
+                        FieldType.DATE,
+                        FieldType.TIME,
+                        FieldType.BOOLEAN,
+                        FieldType.CHOICE,
+                        FieldType.URL,
+                        FieldType.LONG_TEXT,
+                        FieldType.MEMBER,
+                        FieldType.MEMBER_LIST,
+                        FieldType.MEMBER_OF_GROUP,
+                        FieldType.MEMBER_LIST_OF_GROUP),
+                FieldTypes.ATTENDANCE);
     }
 
     @Test
     void aWaitingListOffersWhatItOffersToday() {
-        assertEquals(shared(WaitingListFieldType.values()), FieldTypes.WAITING_LIST);
+        assertEquals(
+                EnumSet.of(
+                        FieldType.TEXT,
+                        FieldType.NUMBER,
+                        FieldType.DATE,
+                        FieldType.BOOLEAN,
+                        FieldType.CHOICE,
+                        FieldType.BIRTH_DATE),
+                FieldTypes.WAITING_LIST);
     }
 
     @Test
@@ -164,23 +197,8 @@ class FieldTypeTest {
         for (var type : EventFieldType.values()) {
             assertEquals(type, EventFieldType.of(type.fieldType()));
         }
-        for (var type : ProfileFieldType.values()) {
-            assertEquals(type, ProfileFieldType.stored(type.fieldType().name()));
-        }
-        for (var type : AttendanceFieldType.values()) {
-            assertEquals(type, AttendanceFieldType.stored(type.fieldType().name()));
-        }
-        for (var type : WaitingListFieldType.values()) {
-            assertEquals(type, WaitingListFieldType.stored(type.fieldType().name()));
-        }
         for (var type : BoardFieldType.values()) {
             assertEquals(type, BoardFieldType.stored(type.fieldType().name()));
-        }
-        for (var type : dev.chojo.ember.feature.inventory.entity.FieldType.values()) {
-            assertEquals(
-                    type,
-                    dev.chojo.ember.feature.inventory.entity.FieldType.stored(
-                            type.fieldType().name()));
         }
         assertEquals(EventFieldType.STRING, EventFieldType.of(FieldType.TEXT));
         assertEquals(EventFieldType.TEXTAREA, EventFieldType.of(FieldType.LONG_TEXT));
@@ -191,7 +209,7 @@ class FieldTypeTest {
     void anOldSpellingIsNoLongerRead() {
         assertThrows(IllegalArgumentException.class, () -> FieldType.valueOf("STRING"));
         assertThrows(IllegalArgumentException.class, () -> EventFieldType.of(FieldType.AGE));
-        assertThrows(IllegalArgumentException.class, () -> ProfileFieldType.stored("ENUM"));
+        assertThrows(IllegalArgumentException.class, () -> FieldType.valueOf("ENUM"));
     }
 
     /** Every name a feature spells today, under the shared one it means. */

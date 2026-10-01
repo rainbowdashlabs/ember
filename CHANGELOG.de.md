@@ -31,6 +31,10 @@
 - **Bearbeitete Kommentare zu Neuigkeiten sind gekennzeichnet.** Ein Kommentar zu einer Neuigkeit, den seine Verfasserin oder sein Verfasser geändert hat, ist als bearbeitet markiert, wie Kommentare zu Terminen, Wiki-Dateien und Board-Tickets.
 - **Hinweise auf Kommentare lesen sich überall gleich.** Der Auszug, den ein Hinweis aus einem langen Kommentar zu einer Neuigkeit oder einer Wiki-Datei zitiert, endet jetzt mit „…“, wie schon bei Terminen und Board-Tickets. Ein Hinweis, dass du in einem Kommentar an einem Ticket erwähnt wurdest, nennt die Person, die ihn geschrieben hat, wo er bisher das Ticket nannte.
 - **Exporte geben Antworten einheitlich aus.** Die Mitgliederliste, die Anmeldetabelle, die Anwesenheitsliste, die Terminliste und die Inventarlisten der Mitglieder zeigen Ja und Nein als Wörter in der Sprache der Wache, Daten als Tage und genannte Mitglieder mit Namen. Manche gaben bisher den gespeicherten Wert aus, etwa „true“ oder die Nummer eines Mitglieds.
+- **Ein Name für jeden Feldtyp.** Jede Seite, auf der eine Wache eigene Felder anlegt, von Profilfragen bis zu Feldern an Boards, Gegenständen, Terminen, Anwesenheitslisten und Wartelisten, bietet die Typen unter denselben Namen in derselben Liste an. Antworten sehen auch überall gleich aus: Ja und Nein mit Zeichen und Wort, Tage und Uhrzeiten so, wie man sie schreibt, und Mitglieder mit ihrem Namen, jetzt auch auf Anwesenheitslisten, an Board-Tickets und auf der öffentlichen Statusseite der Warteliste.
+- **Board-Felder können Pflichtfelder sein.** Ein Board-Feld lässt sich als Pflichtfeld markieren, sein Wert kann dann geändert, aber nicht geleert werden. Die Antworten eines Auswahlfelds werden wie überall eine pro Zeile eingetragen.
+- **Vorlagen bringen Anmeldefragen mit.** Im Editor für Terminvorlagen lassen sich die Fragen bei der Anmeldung anlegen, im selben Editor wie an einem Termin, und ein Termin aus der Vorlage übernimmt sie.
+- **Zahlenfelder an Gegenständen nehmen Schritte unter eins.** Der Schritt eines Zahlenfelds an Gegenständen lässt sich im Feldeditor auf einen Bruchteil wie 0,5 setzen, womit das Feld Kommazahlen annimmt.
 
 ### Sicherheit
 
@@ -144,6 +148,9 @@
 - **Board-Felder nahmen jeden Wert.** Ein eigenes Feld an einem Board-Ticket ließ sich mit einem Datum speichern, das kein Datum ist, oder mit einer Auswahl, die das Feld nicht anbietet. Solche Werte werden jetzt beim Speichern abgewiesen.
 - **Datumsfelder von Anwesenheitslisten konnten nicht mit heute beginnen.** Ein Feld einer Anwesenheitsvorlage, das mit dem heutigen Datum beginnen soll, wurde beim Speichern mit dem Hinweis abgewiesen, es erwarte ein Datum. Es lässt sich wieder speichern, und neue Listen beginnen mit dem Tag, an dem sie angelegt werden.
 - **Wer eine Gruppe verlassen hatte, konnte sich nicht aus einem Feld austragen.** Ein Mitglied, das sich in ein Feld eines Termins eingetragen hatte, das auf eine Gruppe, einen Mitgliedstyp oder ein Tag beschränkt ist, wurde beim Austragen abgewiesen, nachdem es nicht mehr dazugehörte. Das Austragen klappt jetzt immer.
+- **Ja-Antworten konnten als Nein erscheinen.** In manchen Fällen erschien ein Ja, das eine ältere Version gespeichert hatte, bei den Feldern eines Termins und in den Antworten auf Anmeldefragen als Nein. Solche Antworten erscheinen jetzt überall als Ja.
+- **Ein Zahlenfeld am Board konnte keine Null halten.** Eine 0 in einem Zahlenfeld eines Tickets leerte das Feld. Die Null bleibt jetzt stehen.
+- **Antworten auf Anmeldefragen hielten sich nicht an die Grenzen der Frage.** In manchen Fällen nahm das Feld für eine Zahlenfrage Zahlen außerhalb ihres Bereichs, und eine auf eine Gruppe oder ein Tag beschränkte Mitgliederfrage bot alle Mitglieder an, sodass das Speichern dann scheiterte. Das Feld hält sich jetzt an den Bereich und bietet nur die Mitglieder an, die die Frage annimmt.
 
 ## v26.19.5
 

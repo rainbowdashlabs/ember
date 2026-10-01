@@ -7,10 +7,10 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
+import FieldAnswerInput from '@/components/input/FieldAnswerInput.vue'
 import type {AttendanceTemplateField} from '@/api/generated/schema'
+import {fieldTypeLabel} from '@/api/fieldTypes'
 import {DEFAULT_SOURCES} from './fieldDefaults'
-import {QuestionKinds, questionKindOf} from '@/util/questions'
 
 /**
  * What one field of the attendance sheet is filled in with before anybody is there.
@@ -28,31 +28,21 @@ const props = defineProps<{
 }>()
 
 /**
- * What kind of answer the sheet field takes, which decides the box the value is written in. A
- * choice offers the choices that sheet field has, so nothing can be filled in that the sheet would
- * then refuse.
+ * The choices the sheet field has, which its value is picked from, so nothing can be filled in that
+ * the sheet would then refuse.
  */
-const kind = computed(() => questionKindOf(props.field.fieldType) ?? QuestionKinds.TEXT)
-
-const options = computed<string[]>(() => ((props.field.config?.options as string[]) ?? []))
+const options = computed<string[]>(() => props.field.config?.options ?? [])
 
 const emit = defineEmits<{
   updateSource: [source: string]
   updateValue: [value: string]
 }>()
-
-/** The name of a kind of field as a station reads it, falling back to the bare value for a new one. */
-function typeLabel(fieldType?: string): string {
-  if (!fieldType) return ''
-  const key = `attendanceConfig.fieldTypeLabels.${fieldType}`
-  return t(key) === key ? fieldType : t(key)
-}
 </script>
 
 <template>
   <div data-testid="field-default-row" class="rounded-lg px-3 py-2 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20 space-y-2">
     <div class="text-sm font-medium">
-      {{ field.name }} <span class="text-xs text-(--text-muted)">({{ typeLabel(field.fieldType) }})</span>
+      {{ field.name }} <span class="text-xs text-(--text-muted)">({{ fieldTypeLabel(t, field.fieldType) }})</span>
     </div>
     <div class="grid gap-2 sm:grid-cols-2">
       <SelectInput
@@ -65,9 +55,9 @@ function typeLabel(fieldType?: string): string {
           {{ t(`events.defaultSources.${src}`) }}
         </option>
       </SelectInput>
-      <QuestionValueInput
+      <FieldAnswerInput
           v-if="source === 'VALUE'"
-          :kind="kind"
+          :field-type="field.fieldType"
           :model-value="value"
           :options="options"
           :placeholder="t('events.defaultValuePlaceholder')"

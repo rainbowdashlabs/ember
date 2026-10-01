@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -148,6 +149,23 @@ class EventTemplateServiceTest extends RepositoryTestBase {
         assertEquals("OnlyField", found.getFirst().name());
     }
 
+    /** An age counts itself from a profile, so a template does not take one and keeps its fields. */
+    @Test
+    @Order(12)
+    void aTypeAnAppointmentDoesNotOfferIsRefused() {
+        var before = service.findFields(templateId);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.replaceFields(
+                        templateId,
+                        List.of(new AppointmentTemplateFieldDraft(
+                                "Alter", FieldType.AGE, EventQuestionSettings.empty(), 0, false, false, null, null))));
+
+        assertEquals(Refusal.TEMPLATE_FIELD_TYPE_NOT_OFFERED, refused.refusal());
+        assertEquals(before, service.findFields(templateId), "nothing was written");
+    }
+
     /**
      * A question can only be tied to a field of the sheet the template actually names.
      *
@@ -161,12 +179,12 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     void aTieToAnotherSheetIsNotKept() {
         var ours = attendanceRepo.createTemplate(station.id(), "Unser Bogen");
         attendanceRepo.createTemplateField(
-                ours.id(), "Ausbilder", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                ours.id(), "Ausbilder", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         int mine = attendanceRepo.findTemplateFields(ours.id()).getFirst().id();
 
         var theirs = attendanceRepo.createTemplate(station.id(), "Fremder Bogen");
         attendanceRepo.createTemplateField(
-                theirs.id(), "Ausbilder", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                theirs.id(), "Ausbilder", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         int foreign = attendanceRepo.findTemplateFields(theirs.id()).getFirst().id();
 
         service.update(templateId, "Bogenprobe", null, null, null, null, null, null, null, null, ours.id(), null);

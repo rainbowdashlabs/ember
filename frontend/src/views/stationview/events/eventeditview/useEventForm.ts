@@ -7,7 +7,7 @@ import {computed, reactive, ref, watch} from 'vue'
 import {events} from '@/api'
 import {EventTypes, needsDayOfWeek} from '@/api/events'
 import type {
-    EventField,
+    AppointmentField,
     EventFieldEntry,
     EventRequest,
     StationEvent,
@@ -17,6 +17,7 @@ import {toRestriction} from '@/components/input/restriction'
 import {createEventFormState, eventTypeNamed} from './eventFormState'
 import {modelBindings} from './modelBindings'
 import {instantToLocalInput} from '@/util/format'
+import {asSaved} from '../eventshared/eventQuestions'
 
 /**
  * Owns the event editor form: its state, the mapping onto the editor body, and
@@ -88,7 +89,7 @@ export function useEventForm() {
     }
   }
 
-  function applyEventFields(fields: EventField[]) {
+  function applyEventFields(fields: AppointmentField[]) {
     state.fields = fields.map(f => ({
       id: f.id,
       name: f.name,
@@ -172,7 +173,7 @@ export function useEventForm() {
   }
 
   function namedFields(): EventFieldEntry[] {
-    return state.fields.filter(f => f.name?.trim())
+    return state.fields.filter(f => f.name?.trim()).map(asSaved)
   }
 
   return {state, props, handlers, applyTemplate, loadEvent, buildPayload, namedFields, endsBeforeItStarts}

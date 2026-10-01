@@ -26,7 +26,7 @@ import {userTypesOf, type MemberOption} from '@/components/input/select/memberOp
 import {useMemberPick} from '@/composables/useMemberPick'
 import {RegistrationStatus} from '@/api/events'
 import type {
-  RegistrationFieldResponse,
+  EventRegistrationField,
   RegistrationResponse,
   RegistrationStatsResponse,
   StationEvent,
@@ -46,7 +46,7 @@ const props = defineProps<{
   nonPendingRegistrations: StatusGroup[]
   registrationStats: RegistrationStatsResponse[]
   unregisteredMembers: MemberOption[]
-  registrationFields?: RegistrationFieldResponse[]
+  registrationFields?: EventRegistrationField[]
   /** The date in view, which is the one a table of who is coming is drawn for. */
   effectiveDate?: string | null
 }>()

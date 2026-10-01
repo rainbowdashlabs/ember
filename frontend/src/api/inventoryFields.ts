@@ -5,23 +5,13 @@
  */
 import client from './client'
 import {createScopedCrudResource} from './crud'
+import {FieldTypes, type FieldTypeName} from './fieldTypes'
 import type {
-    components,
     FieldConfig,
     FieldDefinitionRequest,
     FieldUpdateRequest,
     InventoryFieldDefinition,
 } from './generated/schema'
-
-export type FieldTypeName = components['schemas']['FieldType']
-
-export const FieldType = {
-    DATE: 'DATE',
-    ENUM: 'ENUM',
-    TEXT: 'TEXT',
-    NUMBER: 'NUMBER',
-    BOOLEAN: 'BOOLEAN',
-} as const satisfies Record<FieldTypeName, FieldTypeName>
 
 const fields = createScopedCrudResource<
     InventoryFieldDefinition,
@@ -103,17 +93,18 @@ export function hasInvalidFieldValues(
     return defs.some(def => numberFieldViolation(def, values[def.key]) !== null)
 }
 
+/** The settings a field of an inventory starts with; a type an inventory does not offer starts as text. */
 export function defaultFieldConfig(type: FieldTypeName): FieldConfig {
     switch (type) {
-        case FieldType.DATE:
+        case FieldTypes.DATE:
             return {kind: 'DATE'}
-        case FieldType.ENUM:
-            return {kind: 'ENUM', options: []}
-        case FieldType.TEXT:
-            return {kind: 'TEXT', multiline: false, maxLength: 200}
-        case FieldType.NUMBER:
+        case FieldTypes.CHOICE:
+            return {kind: 'CHOICE', options: []}
+        case FieldTypes.NUMBER:
             return {kind: 'NUMBER', min: null, max: null, step: null, unit: ''}
-        case FieldType.BOOLEAN:
+        case FieldTypes.BOOLEAN:
             return {kind: 'BOOLEAN', trueLabel: 'Yes', falseLabel: 'No'}
+        default:
+            return {kind: 'TEXT', multiline: false, maxLength: 200}
     }
 }

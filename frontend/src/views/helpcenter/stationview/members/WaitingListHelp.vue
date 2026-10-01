@@ -156,7 +156,7 @@ const { t } = useI18n()
             <div class="flex-1">
               <div class="flex items-center gap-2">
                 <span class="font-medium">{{ t('helpCenter.sample.members.age') }}</span>
-                <SecondaryBadge>{{ t('waitingList.typeNumber') }}</SecondaryBadge>
+                <SecondaryBadge>{{ t('fieldTypes.label.NUMBER') }}</SecondaryBadge>
                 <PrimaryBadge>{{ t('waitingList.required') }}</PrimaryBadge>
               </div>
             </div>
@@ -167,7 +167,7 @@ const { t } = useI18n()
             <div class="flex-1">
               <div class="flex items-center gap-2">
                 <span class="font-medium">{{ t('helpCenter.sample.members.experience') }}</span>
-                <SecondaryBadge>{{ t('waitingList.typeEnum') }}</SecondaryBadge>
+                <SecondaryBadge>{{ t('fieldTypes.label.CHOICE') }}</SecondaryBadge>
               </div>
               <MutedText class="mt-1">{{ t('waitingList.options') }}: {{ t('helpCenter.sample.members.experienceOptions') }}</MutedText>
             </div>

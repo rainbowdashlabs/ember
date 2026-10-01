@@ -13,7 +13,7 @@ import type {MemberGroup, ProfileField} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useCsvImport, type ParsedCsv} from '@/composables/useCsvImport'
 import {useFieldAudiences} from '@/composables/useFieldAudiences'
-import {fieldTypeLabel} from '@/views/stationview/manage/membersconfig/fieldTypes'
+import {fieldTypeLabel, FieldTypes} from '@/api/fieldTypes'
 import {createColumnMapping, SKIP_TARGET, type ColumnMapping, type PreviewResult} from './memberImport'
 
 /** One answer a target allows: what is stored, and what the reader picks it by. */
@@ -171,7 +171,7 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
         if (!mapping.target.startsWith('field:')) return false
         const fieldId = parseInt(mapping.target.substring(6))
         const field = fields.value.find(candidate => candidate.id === fieldId)
-        return field?.fieldType === 'BOOLEAN' || field?.fieldType === 'ENUM'
+        return field?.fieldType === FieldTypes.BOOLEAN || field?.fieldType === FieldTypes.CHOICE
     }
 
     /**
@@ -190,13 +190,13 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
         }
         if (!target.startsWith('field:')) return []
         const field = fields.value.find(candidate => candidate.id === parseInt(target.substring(6)))
-        if (field?.fieldType === 'BOOLEAN') {
+        if (field?.fieldType === FieldTypes.BOOLEAN) {
             return [
                 {value: 'true', label: t('memberImport.valueYes')},
                 {value: 'false', label: t('memberImport.valueNo')},
             ]
         }
-        if (field?.fieldType !== 'ENUM') return []
+        if (field?.fieldType !== FieldTypes.CHOICE) return []
         const options = parseFieldConfig(field.config).options
         return Array.isArray(options) ? options.map(option => ({value: String(option), label: String(option)})) : []
     }

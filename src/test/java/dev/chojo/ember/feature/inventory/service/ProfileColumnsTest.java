@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
+import dev.chojo.ember.feature.question.FieldType;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -24,16 +24,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ProfileColumnsTest {
     private static final int MEMBER = 5;
 
-    private static ProfileField fieldOf(int id, String name, ProfileFieldType type) {
+    private static ProfileField fieldOf(int id, String name, FieldType type) {
         return new ProfileField(id, 1, name, type, ProfileFieldConfig.empty(), false, false, null, false);
     }
 
     private static final List<ProfileField> FIELDS = List.of(
-            fieldOf(1, "Führerschein", ProfileFieldType.BOOLEAN),
-            fieldOf(2, "Atemschutz", ProfileFieldType.BOOLEAN),
-            fieldOf(3, "Geburtstag", ProfileFieldType.BIRTH_DATE),
-            fieldOf(4, "Schuhgröße", ProfileFieldType.NUMBER),
-            fieldOf(5, "Funkrufname", ProfileFieldType.TEXT));
+            fieldOf(1, "Führerschein", FieldType.BOOLEAN),
+            fieldOf(2, "Atemschutz", FieldType.BOOLEAN),
+            fieldOf(3, "Geburtstag", FieldType.BIRTH_DATE),
+            fieldOf(4, "Schuhgröße", FieldType.NUMBER),
+            fieldOf(5, "Funkrufname", FieldType.TEXT));
 
     private static List<String> cells(String language, ProfileFieldValue... answers) {
         return new ProfileColumns(FIELDS, language).cellsOf(List.of(answers));

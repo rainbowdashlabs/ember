@@ -7,12 +7,11 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import FieldTypePicker from '@/components/input/FieldTypePicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {FieldTypes} from '@/api/profileFields'
+import {FieldTypes, type FieldTypeName} from '@/api/fieldTypes'
 import {useFieldsCapabilities} from '@/composables/useFieldsConfig'
-import {FIELD_TYPE_ORDER, fieldTypeLabel} from '../fieldTypes'
 
 const props = defineProps<{
   /** False once another field of the station already is the birth date. */
@@ -25,7 +24,7 @@ const props = defineProps<{
 }>()
 
 const name = defineModel<string>('name', {required: true})
-const fieldType = defineModel<string>('fieldType', {required: true})
+const fieldType = defineModel<FieldTypeName>('fieldType', {required: true})
 const description = defineModel<string>('description', {required: true})
 
 const {t} = useI18n()
@@ -36,16 +35,8 @@ const {t} = useI18n()
  */
 const capabilities = useFieldsCapabilities()
 
-const availableOptions = computed(() => FIELD_TYPE_ORDER
-    .filter(type => capabilities.types.includes(type))
-    .filter((type) => {
-      // What the field already is stays on the list whatever else rules it out. A select whose
-      // value has no option shows nothing at all, which reads as a field with no type.
-      if (type === fieldType.value) return true
-      if (type === FieldTypes.BIRTH_DATE) return props.birthDateAvailable
-      return true
-    })
-    .map(type => ({value: type, label: fieldTypeLabel(t, type)})))
+/** A second date of birth is offered but not available: one per station is what makes it findable. */
+const unavailable = computed<FieldTypeName[]>(() => props.birthDateAvailable ? [] : [FieldTypes.BIRTH_DATE])
 </script>
 
 <template>
@@ -55,10 +46,9 @@ const availableOptions = computed(() => FIELD_TYPE_ORDER
       <TextInput v-model="name" data-testid="field-name" :placeholder="t('membersConfig.fieldNamePlaceholder')"/>
     </div>
     <div class="space-y-1">
-      <FieldLabel>{{ t('membersConfig.fieldType') }}</FieldLabel>
-      <SelectInput v-model="fieldType" data-testid="field-type">
-        <option v-for="ft in availableOptions" :key="ft.value" :value="ft.value">{{ ft.label }}</option>
-      </SelectInput>
+      <FieldLabel>{{ t('fieldTypes.type') }}</FieldLabel>
+      <FieldTypePicker v-model="fieldType" :types="capabilities.types" :unavailable="unavailable"
+                       data-testid="field-type"/>
     </div>
     <div v-if="props.named" class="space-y-1">
       <FieldLabel>{{ t('membersConfig.fieldDescription') }}</FieldLabel>

@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {RouteLocationRaw} from 'vue-router'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
@@ -112,7 +112,7 @@ function onRowClick(member: RosterMember) {
       <MemberTypeBadge :user-type="row.userType"/>
     </template>
     <template v-for="field in shownFields" :key="field.id" #[`cell-${field.id}`]="{row}">
-      <FieldValueDisplay v-if="answersOf(row)?.has(field.id)" :config="field.config" :field-type="field.fieldType" :value="answersOf(row)?.get(field.id)"/>
+      <QuestionValueDisplay v-if="answersOf(row)?.has(field.id)" :config="field.config" :field-type="field.fieldType" :value="answersOf(row)?.get(field.id)"/>
     </template>
     <template #after-row="{row, span}">
       <MemberExpansion

@@ -12,7 +12,7 @@ import {useBreakpoint} from '@/composables/useBreakpoint'
 import {useElementWidth} from '@/composables/useElementWidth'
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {fieldTypeLabel} from './fieldTypes'
+import {fieldTypeLabel} from '@/api/fieldTypes'
 import {fitsFieldGrid} from './fieldtable/fieldGrid'
 import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFieldsConfig'
 

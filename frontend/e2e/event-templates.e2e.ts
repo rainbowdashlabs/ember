@@ -27,7 +27,7 @@ async function openTemplate(page: Page, name: string) {
 
 /** The questions in the order the editor lists them, which is the order they will be asked in. */
 async function fieldNames(page: Page): Promise<string[]> {
-    return page.getByTestId('event-field-name').evaluateAll(
+    return page.getByTestId('event-field-list').getByTestId('event-field-name').evaluateAll(
         inputs => inputs.map(input => (input as HTMLInputElement).value),
     )
 }
@@ -76,12 +76,13 @@ test.describe('Event templates', () => {
         await openTemplate(page, 'Standard-Übung')
 
         await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
-        const added = page.getByTestId('event-field-name').last()
+        const questions = page.getByTestId('event-field-list')
+        const added = questions.getByTestId('event-field-name').last()
         await added.fill('Ausbilder')
 
-        await page.getByTestId('event-field-type').last().selectOption({label: 'Mitglied aus Gruppe'})
+        await questions.getByTestId('event-field-type').last().selectOption({label: 'Mitglied aus Gruppe'})
 
-        const groups = page.getByTestId('event-field-group').last()
+        const groups = questions.getByTestId('question-group').last()
         await expect(groups).toBeVisible()
         await expect(groups.locator('option')).not.toHaveCount(1)
     })
@@ -194,7 +195,7 @@ test.describe('Event templates', () => {
         await take.click()
 
         // It arrives as a question of the appointment, under the sheet's own name
-        await expect(page.getByTestId('event-field-name').last()).toHaveValue(offered)
+        await expect(page.getByTestId('event-field-list').getByTestId('event-field-name').last()).toHaveValue(offered)
         // and tied to the field it came from, which is what the dropdown would otherwise be for
         await expect(page.locator(`[data-testid="${taken}"]`),
             'a field already taken is not offered again').toHaveCount(0)

@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionValues;
@@ -68,14 +68,14 @@ public final class ProfileAnswers {
      * @return the document to keep, or null where nothing is kept
      * @throws RefusalResponse {@link Refusal#PROFILE_ANSWER_NOT_ACCEPTED} naming what is wrong with the answer
      */
-    public static @Nullable JsonNode kept(ProfileFieldType type, Optional<Question> question, String said) {
+    public static @Nullable JsonNode kept(FieldType type, Optional<Question> question, String said) {
         if (type.isCalculated() && !said.isEmpty()) {
             throw Refusal.PROFILE_AGE_TAKES_NO_ANSWER.raise();
         }
         question.flatMap(asked -> QuestionCheck.answerIfGiven(asked, said)).ifPresent(problem -> {
             throw Refusal.PROFILE_ANSWER_NOT_ACCEPTED.raise(problem.message());
         });
-        return QuestionValues.write(type.fieldType(), said);
+        return QuestionValues.write(type, said);
     }
 
     /**

@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Ref} from 'vue'
-import {ageSourceOf, FieldTypes, parseFieldConfig, type FieldOriginName, type FieldSettings} from '@/api/profileFields'
+import {ageSourceOf, parseFieldConfig, type FieldOriginName, type FieldSettings} from '@/api/profileFields'
+import {FieldTypes} from '@/api/fieldTypes'
 import type {MergedValue, ProfileFieldAssignment} from '@/api/generated/schema'
 import {computeAge} from '@/util/age'
 

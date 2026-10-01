@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.question.FieldType;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -53,7 +54,7 @@ public record AssignedProfileField(ProfileField field, ProfileFieldAssignment as
                         row.getInt("id"),
                         row.getInt("station_id"),
                         row.getString("name"),
-                        ProfileFieldType.stored(row.getString("field_type")),
+                        FieldType.valueOf(row.getString("field_type")),
                         ProfileFieldConfig.parse(row.getString("config")),
                         row.getBoolean("required"),
                         row.getBoolean("readonly"),

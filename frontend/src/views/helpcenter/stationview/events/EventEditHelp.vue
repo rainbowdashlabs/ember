@@ -18,8 +18,19 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import RepeatEndField from '@/views/stationview/events/eventshared/RepeatEndField.vue'
+import RegistrationFieldsEditor from '@/views/stationview/events/eventshared/RegistrationFieldsEditor.vue'
+import {emptySettings} from '@/views/stationview/events/eventshared/eventQuestions'
+import type {RegistrationFieldDefinition} from '@/api/generated/schema'
 
 const {t} = useI18n()
+
+/** A shirt size asked of everyone, in the editor that writes it. */
+const SHIRT_SIZE: RegistrationFieldDefinition[] = [{
+  name: 'Shirtgröße',
+  fieldType: 'CHOICE',
+  config: {...emptySettings(), options: ['S', 'M', 'L', 'XL'], required: true, defaultValue: 'M'},
+  overview: true,
+}]
 </script>
 
 <template>
@@ -128,27 +139,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.eventEdit.registrationFieldsDefaults') }}</p>
       <p>{{ t('helpCenter.eventEdit.registrationFieldsOverview') }}</p>
 
-      <!-- Dummy: a shirt size question -->
-      <NeutralContainer class="space-y-3 mt-3">
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-1">
-            <FieldLabel>{{ t('events.registrationFields.fieldName') }}</FieldLabel>
-            <TextInput model-value="Shirtgröße" disabled/>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('events.registrationFields.defaultValue') }}</FieldLabel>
-            <TextInput model-value="M" disabled/>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <ToggleInput :model-value="true"/>
-          <span class="text-sm">{{ t('events.registrationFields.required') }}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <ToggleInput :model-value="true"/>
-          <span class="text-sm">{{ t('events.registrationFields.overview') }}</span>
-        </div>
-      </NeutralContainer>
+      <RegistrationFieldsEditor :model-value="SHIRT_SIZE" class="mt-3"/>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventEdit.remindersTitle')">

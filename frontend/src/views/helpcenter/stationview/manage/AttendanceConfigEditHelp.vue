@@ -103,7 +103,7 @@ const {t} = useI18n()
         <NeutralContainer class="flex items-center justify-between py-2 px-3">
           <div>
             <span class="text-sm font-medium">{{ t('helpCenter.exampleFields.remark') }}</span>
-            <MutedText class="ml-2">{{ t('helpCenter.fieldTypes.text') }}</MutedText>
+            <MutedText class="ml-2">{{ t('fieldTypes.label.TEXT') }}</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <EditButton disabled/>
@@ -113,7 +113,7 @@ const {t} = useI18n()
         <NeutralContainer class="flex items-center justify-between py-2 px-3">
           <div>
             <span class="text-sm font-medium">{{ t('helpCenter.exampleFields.rank') }}</span>
-            <MutedText class="ml-2">{{ t('helpCenter.fieldTypes.enum') }}</MutedText>
+            <MutedText class="ml-2">{{ t('fieldTypes.label.CHOICE') }}</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <EditButton disabled/>
@@ -123,7 +123,7 @@ const {t} = useI18n()
         <NeutralContainer class="flex items-center justify-between py-2 px-3">
           <div>
             <span class="text-sm font-medium">{{ t('helpCenter.exampleFields.arrival') }}</span>
-            <MutedText class="ml-2">{{ t('helpCenter.fieldTypes.time') }}</MutedText>
+            <MutedText class="ml-2">{{ t('fieldTypes.label.TIME') }}</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <EditButton disabled/>

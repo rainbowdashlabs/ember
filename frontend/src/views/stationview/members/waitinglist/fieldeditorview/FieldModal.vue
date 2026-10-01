@@ -6,18 +6,17 @@
 <script setup lang="ts">
 import Modal from '@/components/feedback/Modal.vue'
 import FieldModalForm from './FieldModalForm.vue'
+import type {FieldTypeName} from '@/api/fieldTypes'
+import type {QuestionSettingsModel} from '@/components/input/questionsettings/questionSettings'
 
 const modelValue = defineModel<boolean>({required: true})
 const fieldName = defineModel<string>('fieldName', {required: true})
-const fieldType = defineModel<string>('fieldType', {required: true})
-const fieldRequired = defineModel<boolean>('fieldRequired', {required: true})
+const fieldType = defineModel<FieldTypeName>('fieldType', {required: true})
+const fieldSettings = defineModel<QuestionSettingsModel>('fieldSettings', {required: true})
 const fieldPublic = defineModel<boolean>('fieldPublic', {required: true})
-const fieldEnumOptions = defineModel<string[]>('fieldEnumOptions', {required: true})
 
 defineProps<{
   isEdit: boolean
-  fieldTypes: readonly string[]
-  fieldTypeLabel: (type: string) => string
   saving: boolean
 }>()
 
@@ -35,12 +34,9 @@ function close() {
     <FieldModalForm
       v-model:field-name="fieldName"
       v-model:field-type="fieldType"
-      v-model:field-required="fieldRequired"
+      v-model:field-settings="fieldSettings"
       v-model:field-public="fieldPublic"
-      v-model:field-enum-options="fieldEnumOptions"
       :is-edit="isEdit"
-      :field-types="fieldTypes"
-      :field-type-label="fieldTypeLabel"
       :saving="saving"
       @save="emit('save')"
       @cancel="close"

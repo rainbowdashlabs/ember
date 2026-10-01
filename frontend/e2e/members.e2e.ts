@@ -249,7 +249,7 @@ test.describe('Members', () => {
         await page.getByRole('button', {name: 'Feld hinzufügen'}).first().click()
         const dialog = page.locator('[role="dialog"]').first()
         await dialog.getByPlaceholder('Name des Feldes').fill(field)
-        await dialog.getByRole('combobox').first().selectOption('ENUM')
+        await dialog.getByRole('combobox').first().selectOption('CHOICE')
 
         // A row per choice: the second one is added rather than typed after a separator nobody
         // agrees on. A comma inside a choice stays inside it.

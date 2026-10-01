@@ -503,7 +503,7 @@ test.describe('Events', () => {
 
             const asked = await managerPage.request.put(`/api/v1/events/${eventId}/registration-fields`, {
                 headers: managerHeaders,
-                data: {fields: [{name: question, fieldType: 'STRING', config: {required: true}, overview: true}]},
+                data: {fields: [{name: question, fieldType: 'TEXT', config: {required: true}, overview: true}]},
             })
             expect(asked.ok(), `and the appointment gained a question afterwards (${await asked.text()})`).toBeTruthy()
 

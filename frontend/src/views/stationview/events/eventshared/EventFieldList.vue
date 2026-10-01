@@ -10,20 +10,19 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import EventFieldEditor from './EventFieldEditor.vue'
+import EventQuestionEditor from './EventQuestionEditor.vue'
 import AttendanceFieldPicker from './AttendanceFieldPicker.vue'
 import DragList from '@/components/input/DragList.vue'
 import FieldLayoutPreview from '@/components/profilefields/FieldLayoutPreview.vue'
 import {configOf} from '@/components/profilefields/fieldLayout'
 import {moveWithin} from '@/util/reorder'
-import {EventFieldTypes} from '@/api/events'
 import type {
   AttendanceTemplateField,
-  EventFieldConfig,
   EventFieldEntry,
   MemberGroup,
   UserTag,
 } from '@/api/generated/schema'
+import {blankQuestion, emptySettings} from './eventQuestions'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
@@ -51,27 +50,12 @@ const quickFields = [
 
 const existingNames = computed(() => new Set(fields.value.map(f => (f.name ?? '').toLowerCase())))
 
-/** The settings a new question starts with: none of its own. */
-function plainConfig(): EventFieldConfig {
-  return {selfRegistration: false, perDate: false}
-}
-
 function addQuickField(qf: typeof quickFields[number]) {
-  fields.value = [...fields.value, {
-    name: qf.name,
-    fieldType: EventFieldTypes.STRING,
-    config: plainConfig(),
-    value: '',
-    overview: qf.overview,
-    attendanceFieldId: null,
-    isPublic: qf.isPublic,
-  }]
+  fields.value = [...fields.value, {...blankQuestion(), name: qf.name, overview: qf.overview, isPublic: qf.isPublic}]
 }
 
 function addField() {
-  fields.value = [...fields.value, {
-    name: '', fieldType: EventFieldTypes.STRING, config: plainConfig(), value: '', overview: false, attendanceFieldId: null,
-  }]
+  fields.value = [...fields.value, blankQuestion()]
 }
 
 /** The sheet fields the questions already fill in, so none of them is offered a second time. */
@@ -90,7 +74,7 @@ function takeAttendanceField(field: AttendanceTemplateField) {
     name: field.name,
     fieldType: field.fieldType,
     config: {
-      ...plainConfig(),
+      ...emptySettings(),
       options: field.config.options ?? undefined,
       groupId: field.config.groupId ?? undefined,
       width: field.config.width ?? undefined,
@@ -163,7 +147,8 @@ function moveField(fromIndex: number, toIndex: number) {
   <div data-testid="event-field-list">
     <DragList :items="fields" :key-fn="(_, index) => index" @reorder="moveField">
     <template #default="{index}">
-      <EventFieldEditor
+      <EventQuestionEditor
+          mode="organiser"
           :model-value="fields[index]!"
           :attendance-fields="attendanceFields"
           :show-value="showValue"

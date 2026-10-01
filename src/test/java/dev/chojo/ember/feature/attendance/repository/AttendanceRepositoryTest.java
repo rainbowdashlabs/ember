@@ -9,7 +9,6 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
@@ -18,6 +17,7 @@ import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -95,8 +95,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void createTemplateField() {
-        attendanceRepo.createTemplateField(
-                templateId, "Notes", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+        attendanceRepo.createTemplateField(templateId, "Notes", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         var fields = attendanceRepo.findTemplateFields(templateId);
         assertEquals(1, fields.size());
         assertEquals("Notes", fields.getFirst().name());
@@ -107,7 +106,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Order(11)
     void updateTemplateField() {
         assertTrue(attendanceRepo.updateTemplateField(
-                fieldId, "Comment", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 2));
+                fieldId, "Comment", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 2));
         var fields = attendanceRepo.findTemplateFields(templateId);
         assertEquals("Comment", fields.getFirst().name());
         assertEquals(2, fields.getFirst().position());
@@ -226,7 +225,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     void setAndFindSessionField() {
         // Re-create a template field for this test
         attendanceRepo.createTemplateField(
-                templateId, "Location", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+                templateId, "Location", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         int fId = attendanceRepo.findTemplateFields(templateId).getFirst().id();
 
         attendanceRepo.setSessionField(sessionId, fId, "\"Room A\"");

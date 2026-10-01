@@ -13,6 +13,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
 import dev.chojo.ember.feature.board.entity.BoardFieldDefinition;
+import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.service.BoardAttachmentService;
@@ -40,6 +41,8 @@ import static dev.chojo.ember.api.RouteHarness.PREFIX;
 import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -113,26 +116,41 @@ class BoardFieldValueRouteTest extends RepositoryTestBase {
         return new BoardFieldDefinition(0, 0, name, type, config, 0);
     }
 
-    private static int ticket() {
+    private static BoardTicket ticket() {
         return tickets.createTicket(
-                        boardId,
-                        laneId,
-                        "Aufgabe",
-                        "",
-                        null,
-                        TicketPriority.MEDIUM,
-                        null,
-                        memberIdentityFactory.local(station.id(), member.id()))
-                .ticketNumber();
+                boardId,
+                laneId,
+                "Aufgabe",
+                "",
+                null,
+                TicketPriority.MEDIUM,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()));
     }
 
     private static UserSession user() {
         return stationSession(member, StationPermission.BOARD_USE).user();
     }
 
+    private static String fieldPath(BoardTicket ticket, String field) {
+        return PREFIX + "/boards/BFV/tickets/%d/fields/%d".formatted(ticket.ticketNumber(), fieldIds.get(field));
+    }
+
+    private static Response fill(BoardTicket ticket, String field, String value) {
+        return harness.request(client -> client.put(fieldPath(ticket, field), body(value), harness.as(user())));
+    }
+
     private static Response fill(String field, String value) {
-        String path = PREFIX + "/boards/BFV/tickets/%d/fields/%d".formatted(ticket(), fieldIds.get(field));
-        return harness.request(client -> client.put(path, body(value), harness.as(user())));
+        return fill(ticket(), field, value);
+    }
+
+    private static Response clear(BoardTicket ticket, String field) {
+        return harness.request(client -> client.delete(fieldPath(ticket, field), null, harness.as(user())));
+    }
+
+    private static boolean holds(BoardTicket ticket, String field) {
+        return tickets.findFieldValues(ticket.id()).stream()
+                .anyMatch(value -> value.fieldId() == fieldIds.get(field) && value.value() != null);
     }
 
     private static void accepted(String field, String value) {
@@ -175,5 +193,24 @@ class BoardFieldValueRouteTest extends RepositoryTestBase {
     @Test
     void whatDoesNotReadAsTheFieldsRecordStaysRefused() {
         refused("Aufwand", "{\"value\":\"drei\"}");
+    }
+
+    /** Taking the value away is emptying the field, which a required one does not allow either. */
+    @Test
+    void aRequiredFieldIsNotCleared() {
+        var ticket = ticket();
+        assertEquals(200, fill(ticket, "Pflicht", "{\"value\":\"da\"}").code());
+
+        assertEquals(Refusal.TICKET_FIELD_VALUE_REQUIRED, refusalOf(clear(ticket, "Pflicht")));
+        assertTrue(holds(ticket, "Pflicht"), "the value stays");
+    }
+
+    @Test
+    void aFieldThatIsNotRequiredIsCleared() {
+        var ticket = ticket();
+        assertEquals(200, fill(ticket, "Aufwand", "{\"value\":3}").code());
+
+        assertEquals(204, clear(ticket, "Aufwand").code());
+        assertFalse(holds(ticket, "Aufwand"), "the value is gone");
     }
 }

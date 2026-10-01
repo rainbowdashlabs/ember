@@ -11,8 +11,8 @@ import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -65,12 +65,12 @@ public class ClusterProfileFieldRepository {
      * @param fieldType the type to look for
      * @return the fields, grouped by association and oldest first within one
      */
-    public List<ClusterProfileField> findAllByType(ProfileFieldType fieldType) {
+    public List<ClusterProfileField> findAllByType(FieldType fieldType) {
         return query("""
                 SELECT %s FROM cluster_profile_field
                 WHERE field_type = :field_type
                 ORDER BY cluster_id, id;""", FIELD_COLUMNS)
-                .single(call().bind("field_type", fieldType.fieldType()))
+                .single(call().bind("field_type", fieldType))
                 .map(ClusterProfileField.map())
                 .all();
     }
@@ -237,7 +237,7 @@ public class ClusterProfileFieldRepository {
     public ClusterProfileField create(
             int clusterId,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
@@ -257,7 +257,7 @@ public class ClusterProfileFieldRepository {
                 RETURNING %s;""",
                 call().bind("cluster_id", clusterId)
                         .bind("name", name)
-                        .bind("field_type", fieldType.fieldType())
+                        .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("required", required)
                         .bind("readonly", readonly)
@@ -272,7 +272,7 @@ public class ClusterProfileFieldRepository {
     public boolean update(
             int id,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
@@ -294,7 +294,7 @@ public class ClusterProfileFieldRepository {
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("name", name)
-                        .bind("field_type", fieldType.fieldType())
+                        .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("required", required)
                         .bind("readonly", readonly)

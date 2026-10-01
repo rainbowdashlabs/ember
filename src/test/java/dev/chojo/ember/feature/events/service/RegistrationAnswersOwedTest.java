@@ -10,7 +10,6 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -114,8 +113,8 @@ class RegistrationAnswersOwedTest extends RepositoryTestBase {
         return new RegistrationFieldDraft(
                 name,
                 FieldType.TEXT,
-                new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, managersOnly)
-                        .settings(),
+                new EventQuestionSettings(
+                        null, null, null, null, null, false, false, true, null, null, null, managersOnly),
                 true);
     }
 

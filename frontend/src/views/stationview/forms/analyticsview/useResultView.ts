@@ -9,7 +9,7 @@ import {useRoute, useRouter} from 'vue-router'
 import {forms, memberGroups, profileFields, userTags} from '@/api'
 import {ResultDimension, type ResultFilterState, type ResultGroupingState} from '@/api/forms'
 import type {FormAnalytics, FormResultGroup, MemberGroup, ProfileField, UserTag} from '@/api/generated/schema'
-import {FieldTypes} from '@/api/profileFields'
+import {FieldTypes} from '@/api/fieldTypes'
 import {StationUserType, StationUserTypeLabels} from '@/api/types'
 import {useThemePaint} from '@/composables/useThemePaint'
 import {neutralSeriesColor, seriesColor, SERIES_LIMIT} from '@/util/seriesPalette'
@@ -17,7 +17,7 @@ import type {GroupSeries} from './groupedChart'
 import {decodeView, encodeView, NO_VALUE_GROUP, toQuery} from './resultQuery'
 
 /** The kinds of profile field results can be filtered and grouped by. */
-const GROUPABLE_FIELD_TYPES: string[] = [FieldTypes.ENUM, FieldTypes.BOOLEAN, FieldTypes.NUMBER]
+const GROUPABLE_FIELD_TYPES: string[] = [FieldTypes.CHOICE, FieldTypes.BOOLEAN, FieldTypes.NUMBER]
 
 /**
  * The filtered and grouped view of a form's results.

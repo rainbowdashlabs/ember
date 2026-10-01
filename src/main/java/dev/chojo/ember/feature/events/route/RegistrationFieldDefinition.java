@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.events.route;
 
-import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
+import dev.chojo.ember.feature.question.FieldType;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
@@ -16,19 +16,22 @@ import java.util.Objects;
  * One registration question as a request names it, for an event and for an event template alike.
  *
  * @param name      the question
- * @param fieldType the kind of answer it takes
+ * @param fieldType the kind of answer it takes; none reads as a line of text
  * @param config    its settings; none reads as the empty ones
  * @param overview  whether the answer shows in the registration overview
  */
 public record RegistrationFieldDefinition(
-        String name, EventFieldType fieldType, @Nullable EventRegistrationFieldConfig config, boolean overview) {
+        String name,
+        @Nullable FieldType fieldType,
+        @Nullable EventQuestionSettings config,
+        boolean overview) {
 
     RegistrationFieldDraft toDraft() {
         return new RegistrationFieldDraft(
                 name,
-                Objects.requireNonNullElse(fieldType, EventFieldType.STRING).fieldType(),
-                Objects.requireNonNullElse(config, EventRegistrationFieldConfig.empty())
-                        .settings(),
+                Objects.requireNonNullElse(fieldType, FieldType.TEXT),
+                Objects.requireNonNullElse(config, EventQuestionSettings.empty())
+                        .registrants(),
                 overview);
     }
 }

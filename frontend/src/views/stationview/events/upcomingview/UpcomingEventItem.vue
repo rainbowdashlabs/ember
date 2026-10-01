@@ -16,12 +16,12 @@ import MutedIcon from '@/components/display/MutedIcon.vue'
 import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import EventHeadline from '../eventshared/EventHeadline.vue'
-import EventFieldValue from '../eventshared/EventFieldValue.vue'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import EventRegistrationActions from '../eventshared/EventRegistrationActions.vue'
 import type {
   CancellationNotice,
   EventCategory,
-  EventField,
+  AppointmentField,
   EventSummary,
   RegistrationResponse,
 } from '@/api/generated/schema'
@@ -34,7 +34,7 @@ const props = defineProps<{
   endDate: string | null
   /** What kind of appointment this is, absent where it was put in no category. */
   category?: EventCategory | null
-  overviewFields: EventField[]
+  overviewFields: AppointmentField[]
   registrationSummary: { accepted: number; pending: number; declined: number; total: number }
   detailRoute: RouteLocationRaw
   eligibleMembers: AnswerablePerson[]
@@ -95,7 +95,7 @@ const containerClass = computed(() => [
         </p>
         <ProseExcerpt :html="renderMarkdown(event.description)" class="mt-0.5" max-height="max-h-32"/>
         <div v-if="overviewFields.length" class="flex flex-wrap gap-3 text-xs mt-1">
-          <span v-for="f in overviewFields" :key="f.id" class="text-(--text-muted)"><span class="font-medium">{{ f.name }}:</span> <EventFieldValue :field-type="f.fieldType" :value="f.value"/></span>
+          <span v-for="f in overviewFields" :key="f.id" class="text-(--text-muted)"><span class="font-medium">{{ f.name }}:</span> <QuestionValueDisplay :field-type="f.fieldType" :value="f.value"/></span>
         </div>
       </div>
       <div v-if="registrationSummary.total > 0" class="flex items-center gap-2 text-xs">

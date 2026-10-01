@@ -13,11 +13,11 @@ import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.ProfileField;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionKind;
 import dev.chojo.ember.feature.question.QuestionValues;
@@ -102,8 +102,7 @@ public class MemberImportService {
      */
     private List<ProfileField> valueFields(int stationId) {
         return profileFieldRepository.findByStation(stationId).stream()
-                .filter(field ->
-                        field.fieldType().holdsValue() && !field.fieldType().isCalculated())
+                .filter(field -> field.fieldType().holdsValue())
                 .toList();
     }
 
@@ -629,7 +628,7 @@ public class MemberImportService {
             warnings.add(refusedCell(line, field, cell));
             return false;
         }
-        JsonNode kept = QuestionValues.write(field.fieldType().fieldType(), answer.get());
+        JsonNode kept = QuestionValues.write(field.fieldType(), answer.get());
         if (kept == null) return false;
         profileFieldRepository.setValue(memberId, field.id(), kept);
         return true;
@@ -671,8 +670,8 @@ public class MemberImportService {
      * @param fieldType the kind of question it answers
      * @return the answer as plain text
      */
-    private static String asAnswer(String value, ProfileFieldType fieldType) {
-        var kind = fieldType.fieldType().kind().orElse(null);
+    private static String asAnswer(String value, FieldType fieldType) {
+        var kind = fieldType.kind().orElse(null);
         if (kind == QuestionKind.DATE) return asIsoDate(value);
         if (kind == QuestionKind.BOOLEAN) return asBoolean(value);
         return value;

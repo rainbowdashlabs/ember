@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {FieldSettings, FieldTypeName} from '@/api/profileFields'
+import type {FieldSettings} from '@/api/profileFields'
+import type {FieldTypeName} from '@/api/fieldTypes'
 
 /**
  * One question a template writes down.
@@ -96,7 +97,7 @@ export const fieldTemplates: FieldTemplate[] = [
     name: 'Geschlecht', icon: 'rainbow', fields: [
       {
         name: 'Geschlecht',
-        fieldType: 'ENUM',
+        fieldType: 'CHOICE',
         config: {options: ['Männlich', 'Weiblich', 'Divers', 'Nicht-binär', 'Andere']},
         readonly: true,
       },
@@ -106,7 +107,7 @@ export const fieldTemplates: FieldTemplate[] = [
     name: 'Jugendflamme', icon: 'fire', fields: [
       {
         name: 'Jugendflamme',
-        fieldType: 'ENUM',
+        fieldType: 'CHOICE',
         config: {options: ['Keine', 'Jugendflamme 1', 'Jugendflamme 2', 'Jugendflamme 3']},
         readonly: true,
       },

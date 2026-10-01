@@ -11,7 +11,10 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
+import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -37,6 +40,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -139,15 +143,33 @@ public class FederatedEventRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "A partner station's shared event",
             tags = {"Federation"},
-            responses =
-                    @OpenApiResponse(
-                            status = "200",
-                            content = @OpenApiContent(from = RemoteEventRoutes.RemoteEventDetail.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PartnerEventDetail.class)))
     private void federatedGetEvent(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int eventId = pathInt(ctx, "id");
-        ctx.json(eventFederationService.getFederatedEvent(session.stationId(), stationUid, eventId));
+        ctx.json(PartnerEventDetail.of(
+                eventFederationService.getFederatedEvent(session.stationId(), stationUid, eventId)));
+    }
+
+    /**
+     * A partner's appointment as this station's screens read it: what the partner sent, with its
+     * questions under the shared type names.
+     *
+     * @param places what the partner set aside for this station, or {@code null} where it decides as
+     *               it always did
+     */
+    public record PartnerEventDetail(
+            SharedEvent event, List<AppointmentField> publicFields, RemoteEventRoutes.@Nullable RemotePlaces places) {
+
+        static PartnerEventDetail of(RemoteEventRoutes.RemoteEventDetail detail) {
+            return new PartnerEventDetail(
+                    detail.event(),
+                    detail.publicFields().stream()
+                            .map(EventField::appointmentField)
+                            .toList(),
+                    detail.places());
+        }
     }
 
     /** The files a partner's event hands over, as that partner is willing to hand them over. */

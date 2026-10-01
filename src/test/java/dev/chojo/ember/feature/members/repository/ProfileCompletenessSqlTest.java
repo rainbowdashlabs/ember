@@ -9,9 +9,9 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterEach;
@@ -64,13 +64,7 @@ class ProfileCompletenessSqlTest extends RepositoryTestBase {
 
     private int requiredOf(ProfileFieldScope role) {
         var field = profileFieldRepo.create(
-                station.id(),
-                "Pflicht " + role,
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                true,
-                false,
-                null);
+                station.id(), "Pflicht " + role, FieldType.TEXT, ProfileFieldConfig.parse("{}"), true, false, null);
         profileFieldRepo.assignToRole(field.id(), role, 0, null, null, null);
         return field.id();
     }
@@ -97,7 +91,7 @@ class ProfileCompletenessSqlTest extends RepositoryTestBase {
     @Test
     void aRequiredAgeIsNeverLeftOpen() {
         var age = profileFieldRepo.create(
-                station.id(), "Alter", ProfileFieldType.AGE, ProfileFieldConfig.parse("{}"), true, false, null);
+                station.id(), "Alter", FieldType.AGE, ProfileFieldConfig.parse("{}"), true, false, null);
         profileFieldRepo.assignToRole(age.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
 
         assertTrue(complete());
@@ -117,7 +111,7 @@ class ProfileCompletenessSqlTest extends RepositoryTestBase {
         var field = clusterProfileFieldRepo.create(
                 cluster.id(),
                 "Verbandsnummer",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.parse("{}"),
                 true,
                 false,

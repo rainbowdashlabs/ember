@@ -26,8 +26,8 @@ const CATEGORIES: EventCategory[] = [
 ]
 const ATTENDANCE_TEMPLATES = [{id: 1, stationId: 'demo', name: 'Übungsabend'}]
 const FIELDS: EventFieldEntry[] = [
-  {name: 'Ort', fieldType: 'STRING', overview: true, isPublic: true, value: 'Gerätehaus'},
-  {name: 'Treffpunkt', fieldType: 'STRING', overview: true, isPublic: false, value: 'Fahrzeughalle'},
+  {name: 'Ort', fieldType: 'TEXT', overview: true, isPublic: true, value: 'Gerätehaus'},
+  {name: 'Treffpunkt', fieldType: 'TEXT', overview: true, isPublic: false, value: 'Fahrzeughalle'},
 ]
 const REMINDERS = [7, 1]
 

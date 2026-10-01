@@ -12,7 +12,6 @@ import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
@@ -134,7 +133,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Order(10)
     void createTemplateField() {
         var fields = service.createTemplateField(
-                templateId, "Location", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+                templateId, "Location", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         assertFalse(fields.isEmpty());
         assertEquals("Location", fields.getFirst().name());
     }
@@ -152,7 +151,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var fields = service.findTemplateFields(templateId);
         int fieldId = fields.getFirst().id();
         var result = service.updateTemplateField(
-                templateId, fieldId, "Room", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+                templateId, fieldId, "Room", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         assertTrue(result.isPresent());
         assertEquals("Room", result.get().getFirst().name());
     }
@@ -161,7 +160,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Order(13)
     void updateTemplateFieldNonExistent() {
         assertTrue(service.updateTemplateField(
-                        templateId, 99999, "X", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1)
+                        templateId, 99999, "X", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1)
                 .isEmpty());
     }
 
@@ -179,6 +178,21 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Order(15)
     void deleteTemplateFieldNonExistent() {
         assertTrue(service.deleteTemplateField(templateId, 99999).isEmpty());
+    }
+
+    /** A place belongs to an appointment, so a sheet does not take one and writes nothing. */
+    @Test
+    @Order(16)
+    void createTemplateFieldRefusesATypeTheSheetDoesNotOffer() {
+        int before = service.findTemplateFields(templateId).size();
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.createTemplateField(
+                        templateId, "Treffpunkt", FieldType.LOCATION, AttendanceFieldConfig.parse("{}"), 1));
+
+        assertEquals(Refusal.ATTENDANCE_FIELD_TYPE_NOT_OFFERED, refused.refusal());
+        assertEquals(before, service.findTemplateFields(templateId).size());
     }
 
     // -- Template Groups --
@@ -272,8 +286,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Order(26)
     void setAndFindSessionFields() {
         // Create a template field first
-        service.createTemplateField(
-                templateId, "Notes", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+        service.createTemplateField(templateId, "Notes", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         int fieldId = service.findTemplateFields(templateId).getFirst().id();
 
         var fields =
@@ -846,8 +859,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Order(54)
     void syncTakesTheAnswersOfTheEventIntoTheSheet() {
         var sheet = service.createTemplate(station.id(), "Antwort Vorlage");
-        service.createTemplateField(
-                sheet.id(), "Thema", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+        service.createTemplateField(sheet.id(), "Thema", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         int sheetFieldId = service.findTemplateFields(sheet.id()).getFirst().id();
 
         var event = eventRepo.create(
@@ -909,8 +921,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Order(54)
     void anAnswerThatLooksLikeANumberStillReachesTheSheet() {
         var sheet = service.createTemplate(station.id(), "Datum Vorlage");
-        service.createTemplateField(
-                sheet.id(), "Datum", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+        service.createTemplateField(sheet.id(), "Datum", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         int sheetFieldId = service.findTemplateFields(sheet.id()).getFirst().id();
 
         var event = eventRepo.create(
@@ -1209,11 +1220,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var autoAttendTemplate = service.createTemplate(station.id(), "AutoAttend Template");
         var fieldJson = "{\"autoAttend\":true}";
         service.createTemplateField(
-                autoAttendTemplate.id(),
-                "Members",
-                AttendanceFieldType.MEMBER,
-                AttendanceFieldConfig.parse(fieldJson),
-                1);
+                autoAttendTemplate.id(), "Members", FieldType.MEMBER, AttendanceFieldConfig.parse(fieldJson), 1);
         var fields = service.findTemplateFields(autoAttendTemplate.id());
         int fieldId = fields.getFirst().id();
 
@@ -1317,7 +1324,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         // Create a template with a field
         var fieldTemplate = service.createTemplate(station.id(), "Field Default Template");
         var fields = service.createTemplateField(
-                fieldTemplate.id(), "Location", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+                fieldTemplate.id(), "Location", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         int attendanceFieldId = fields.getFirst().id();
 
         // Create event field linked to attendance field - value must be valid JSON
@@ -1397,11 +1404,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var autoAttendTemplate2 = service.createTemplate(station.id(), "ParseTest Template");
         var fieldJson = "{\"autoAttend\":true}";
         service.createTemplateField(
-                autoAttendTemplate2.id(),
-                "Members",
-                AttendanceFieldType.MEMBER,
-                AttendanceFieldConfig.parse(fieldJson),
-                1);
+                autoAttendTemplate2.id(), "Members", FieldType.MEMBER, AttendanceFieldConfig.parse(fieldJson), 1);
         var fields2 = service.findTemplateFields(autoAttendTemplate2.id());
         int fieldId2 = fields2.getFirst().id();
 
@@ -1441,7 +1444,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var defaultTemplate = service.createTemplate(station.id(), "Default Value Template");
         var fieldJson = "{\"defaultValue\":\"Room 101\"}";
         service.createTemplateField(
-                defaultTemplate.id(), "Room", AttendanceFieldType.STRING, AttendanceFieldConfig.parse(fieldJson), 1);
+                defaultTemplate.id(), "Room", FieldType.TEXT, AttendanceFieldConfig.parse(fieldJson), 1);
         var templateFields = service.findTemplateFields(defaultTemplate.id());
 
         var session = openSheet(
@@ -1480,24 +1483,24 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         var fieldTemplate = service.createTemplate(station.id(), "Source Defaults Template");
         var nameField = service.createTemplateField(
-                fieldTemplate.id(), "EventName", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+                fieldTemplate.id(), "EventName", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         int nameFieldId = nameField.getFirst().id();
         var descField = service.createTemplateField(
-                fieldTemplate.id(), "EventDesc", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 2);
+                fieldTemplate.id(), "EventDesc", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 2);
         int descFieldId = descField.stream()
                 .filter(f -> "EventDesc".equals(f.name()))
                 .findFirst()
                 .orElseThrow()
                 .id();
         var startField = service.createTemplateField(
-                fieldTemplate.id(), "EventStart", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 3);
+                fieldTemplate.id(), "EventStart", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 3);
         int startFieldId = startField.stream()
                 .filter(f -> "EventStart".equals(f.name()))
                 .findFirst()
                 .orElseThrow()
                 .id();
         var endField = service.createTemplateField(
-                fieldTemplate.id(), "EventEnd", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 4);
+                fieldTemplate.id(), "EventEnd", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 4);
         int endFieldId = endField.stream()
                 .filter(f -> "EventEnd".equals(f.name()))
                 .findFirst()
@@ -1777,7 +1780,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var autoTemplate = service.createTemplate(station.id(), "AutoNew Template");
         var fieldJson = "{\"autoAttend\":true}";
         service.createTemplateField(
-                autoTemplate.id(), "Members", AttendanceFieldType.MEMBER, AttendanceFieldConfig.parse(fieldJson), 1);
+                autoTemplate.id(), "Members", FieldType.MEMBER, AttendanceFieldConfig.parse(fieldJson), 1);
         var fields = service.findTemplateFields(autoTemplate.id());
         int fieldId = fields.getFirst().id();
 

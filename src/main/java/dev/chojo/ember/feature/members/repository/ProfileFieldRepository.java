@@ -11,8 +11,8 @@ import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -293,14 +293,14 @@ public class ProfileFieldRepository {
      * @param fieldType the type to look for
      * @return the fields, oldest first
      */
-    public List<ProfileField> findAllByStationAndType(int stationId, ProfileFieldType fieldType) {
+    public List<ProfileField> findAllByStationAndType(int stationId, FieldType fieldType) {
         return query("""
                 SELECT %s
                 FROM profile_field
                 WHERE station_id = :station_id
                   AND field_type = :field_type
                 ORDER BY id;""", PROFILE_FIELD_COLUMNS)
-                .single(call().bind("station_id", stationId).bind("field_type", fieldType.fieldType()))
+                .single(call().bind("station_id", stationId).bind("field_type", fieldType))
                 .map(ProfileField.map())
                 .all();
     }
@@ -311,13 +311,13 @@ public class ProfileFieldRepository {
      * @param fieldType the type to look for
      * @return the fields, grouped by station and oldest first within one
      */
-    public List<ProfileField> findAllByType(ProfileFieldType fieldType) {
+    public List<ProfileField> findAllByType(FieldType fieldType) {
         return query("""
                 SELECT %s
                 FROM profile_field
                 WHERE field_type = :field_type
                 ORDER BY station_id, id;""", PROFILE_FIELD_COLUMNS)
-                .single(call().bind("field_type", fieldType.fieldType()))
+                .single(call().bind("field_type", fieldType))
                 .map(ProfileField.map())
                 .all();
     }
@@ -328,7 +328,7 @@ public class ProfileFieldRepository {
     public ProfileField create(
             int stationId,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
@@ -340,7 +340,7 @@ public class ProfileFieldRepository {
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
-                        .bind("field_type", fieldType.fieldType())
+                        .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("required", required)
                         .bind("readonly", readonly)
@@ -355,7 +355,7 @@ public class ProfileFieldRepository {
     public boolean update(
             int id,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
@@ -373,7 +373,7 @@ public class ProfileFieldRepository {
                     keep_on_archive  = :keep_on_archive
                 WHERE id = :id;""")
                 .single(call().bind("name", name)
-                        .bind("field_type", fieldType.fieldType())
+                        .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("required", required)
                         .bind("readonly", readonly)

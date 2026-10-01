@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -141,12 +142,12 @@ class EventFieldServiceTest extends RepositoryTestBase {
     void aTieToAnotherSheetIsNotKept() {
         var ours = attendanceRepo.createTemplate(station.id(), "Bogen des Termins");
         attendanceRepo.createTemplateField(
-                ours.id(), "Ausbilder", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                ours.id(), "Ausbilder", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         int mine = attendanceRepo.findTemplateFields(ours.id()).getFirst().id();
 
         var theirs = attendanceRepo.createTemplate(station.id(), "Ein anderer Bogen");
         attendanceRepo.createTemplateField(
-                theirs.id(), "Ausbilder", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                theirs.id(), "Ausbilder", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         int foreign = attendanceRepo.findTemplateFields(theirs.id()).getFirst().id();
 
         var onOurSheet = eventRepo.create(
@@ -308,5 +309,22 @@ class EventFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 eventId, List.of(new EventFieldDraft("Farbe", FieldType.CHOICE, choice, "blau", true, null, false)));
         assertEquals("blau", service.findByEvent(eventId).getFirst().value());
+    }
+
+    /** An age counts itself from a profile, so an appointment does not take one and keeps its fields. */
+    @Test
+    @Order(8)
+    void aTypeAnAppointmentDoesNotOfferIsRefused() {
+        var before = service.findByEvent(eventId);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.replaceFields(
+                        eventId,
+                        List.of(new EventFieldDraft(
+                                "Alter", FieldType.AGE, EventQuestionSettings.empty(), "", false, null, false))));
+
+        assertEquals(Refusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED, refused.refusal());
+        assertEquals(before, service.findByEvent(eventId), "nothing was written");
     }
 }

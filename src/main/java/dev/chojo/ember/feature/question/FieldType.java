@@ -102,6 +102,16 @@ public enum FieldType {
         return kind().isPresent();
     }
 
+    /**
+     * Whether the value is worked out from another field rather than given.
+     *
+     * <p>An age counts itself from a date, so nobody writes one and nobody has changed one: a change
+     * recorded against it is a change nobody made.
+     */
+    public boolean isCalculated() {
+        return this == AGE;
+    }
+
     /** Whether an answer to this names members. */
     public boolean namesMembers() {
         return kind().map(QuestionKind::namesMembers).orElse(false);

@@ -6,12 +6,12 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
-import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -136,12 +136,23 @@ class InventoryAnswersTest extends RepositoryTestBase {
                 new FieldConfig.EnumConfig.EnumOption("blue", "Blau"),
                 new FieldConfig.EnumConfig.EnumOption("red", "Rot")));
 
-        var piece = written(FieldType.ENUM, options, false, "colour", new ItemFieldValues.ItemEnumValue("blue"));
-        assertEquals("{\"fields\": {\"colour\": {\"kind\": \"ENUM\", \"value\": \"blue\"}}}", storedMetadata(piece));
+        var piece = written(FieldType.CHOICE, options, false, "colour", new ItemFieldValues.ItemEnumValue("blue"));
+        assertEquals("{\"fields\": {\"colour\": {\"kind\": \"CHOICE\", \"value\": \"blue\"}}}", storedMetadata(piece));
 
         assertThrows(
                 BadRequestResponse.class,
-                () -> written(FieldType.ENUM, options, false, "colour", new ItemFieldValues.ItemEnumValue("Blau")));
+                () -> written(FieldType.CHOICE, options, false, "colour", new ItemFieldValues.ItemEnumValue("Blau")));
+    }
+
+    /** A choice kept before the field types shared their names still reads as the same choice. */
+    @Test
+    void aChoiceKeptUnderItsOldNameIsStillRead() {
+        var metadata =
+                InventoryItemMetadata.parse("{\"fields\": {\"colour\": {\"kind\": \"ENUM\", \"value\": \"blue\"}}}");
+
+        assertEquals(
+                Map.of("colour", new ItemFieldValues.ItemEnumValue("blue")),
+                metadata.fields().values());
     }
 
     @Test

@@ -14,11 +14,9 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
-import dev.chojo.ember.feature.events.entity.EventField;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
@@ -26,6 +24,7 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
+import dev.chojo.ember.feature.question.FieldType;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -42,7 +41,6 @@ import org.jspecify.annotations.Nullable;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 
@@ -331,16 +329,12 @@ public class EventStructureRoutes implements Routes {
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             queryParams = @OpenApiParam(name = "date", type = String.class),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AppointmentField[].class)))
     private void getFields(Context ctx) {
         StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, id);
-        ctx.json(wire(eventFieldService.findByEvent(id, askedDate(ctx))));
-    }
-
-    private static List<EventField> wire(List<AppointmentField> fields) {
-        return fields.stream().map(EventField::of).toList();
+        ctx.json(eventFieldService.findByEvent(id, askedDate(ctx)));
     }
 
     /**
@@ -368,7 +362,10 @@ public class EventStructureRoutes implements Routes {
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetEventFieldsRequest.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AppointmentField[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void setFields(Context ctx) {
         StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -376,7 +373,7 @@ public class EventStructureRoutes implements Routes {
         var req = ctx.bodyAsClass(SetEventFieldsRequest.class);
         eventFieldService.replaceFields(
                 id, req.fields().stream().map(EventFieldEntry::toDraft).toList());
-        ctx.json(wire(eventFieldService.findByEvent(id)));
+        ctx.json(eventFieldService.findByEvent(id));
     }
 
     @OpenApi(
@@ -390,7 +387,7 @@ public class EventStructureRoutes implements Routes {
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FieldDateValueRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AppointmentField.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setFieldValueOnDate(Context ctx) {
@@ -400,7 +397,7 @@ public class EventStructureRoutes implements Routes {
         requireOwnedEvent(crudService, eventId, session);
         var req = ctx.bodyAsClass(FieldDateValueRequest.class);
         if (req.date() == null) throw Refusal.EVENT_FIELD_VALUE_NEEDS_A_DAY.raise();
-        ctx.json(EventField.of(eventFieldService.setValueOn(eventId, fieldId, req.date(), req.value())));
+        ctx.json(eventFieldService.setValueOn(eventId, fieldId, req.date(), req.value()));
     }
 
     @OpenApi(
@@ -413,18 +410,18 @@ public class EventStructureRoutes implements Routes {
                 @OpenApiParam(name = "fieldId", type = Integer.class, required = true)
             },
             queryParams = @OpenApiParam(name = "date", type = String.class),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AppointmentField.class)))
     private void selfRegisterField(Context ctx) {
         var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         int fieldId = pathInt(ctx, "fieldId");
         visibility.requireVisibleEvent(session, eventId);
-        ctx.json(EventField.of(eventFieldService.toggleSelfRegistration(
+        ctx.json(eventFieldService.toggleSelfRegistration(
                 eventId,
                 fieldId,
                 session.member().id(),
                 askedDate(ctx),
-                session.hasPermission(StationPermission.EVENT_MANAGER))));
+                session.hasPermission(StationPermission.EVENT_MANAGER)));
     }
 
     /**
@@ -443,11 +440,8 @@ public class EventStructureRoutes implements Routes {
         var session = StationSession.from(ctx);
         var events = crudService.findByStation(session.stationId());
         var nextDates = occurrenceCalendar.datesInView(events);
-        var fields = eventFieldService.findOverviewFieldsByEvents(
-                events.stream().map(StationEvent::id).toList(), nextDates);
-        var answer = new LinkedHashMap<Integer, List<EventField>>();
-        fields.forEach((eventId, asked) -> answer.put(eventId, wire(asked)));
-        ctx.json(answer);
+        ctx.json(eventFieldService.findOverviewFieldsByEvents(
+                events.stream().map(StationEvent::id).toList(), nextDates));
     }
 
     @OpenApi(
@@ -482,8 +476,8 @@ public class EventStructureRoutes implements Routes {
     public record EventFieldEntry(
             @Nullable Integer id,
             String name,
-            @Nullable EventFieldType fieldType,
-            @Nullable EventFieldConfig config,
+            @Nullable FieldType fieldType,
+            @Nullable EventQuestionSettings config,
             @Nullable String value,
             @Nullable Boolean overview,
             @Nullable Integer attendanceFieldId,
@@ -494,8 +488,9 @@ public class EventStructureRoutes implements Routes {
             return new EventFieldDraft(
                     id,
                     name,
-                    Objects.requireNonNullElse(fieldType, EventFieldType.STRING).fieldType(),
-                    Objects.requireNonNullElse(config, EventFieldConfig.empty()).settings(),
+                    Objects.requireNonNullElse(fieldType, FieldType.TEXT),
+                    Objects.requireNonNullElse(config, EventQuestionSettings.empty())
+                            .organisers(),
                     Objects.requireNonNullElse(value, ""),
                     Boolean.TRUE.equals(overview),
                     attendanceFieldId,

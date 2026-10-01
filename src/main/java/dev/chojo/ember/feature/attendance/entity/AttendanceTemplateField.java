@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.attendance.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.Question;
 
 /**
@@ -19,12 +20,7 @@ import dev.chojo.ember.feature.question.Question;
  * @param position   ordering position within the template
  */
 public record AttendanceTemplateField(
-        int id,
-        int templateId,
-        String name,
-        AttendanceFieldType fieldType,
-        AttendanceFieldConfig config,
-        int position) {
+        int id, int templateId, String name, FieldType fieldType, AttendanceFieldConfig config, int position) {
     /**
      * This field as everything that checks a question reads it.
      *
@@ -33,7 +29,7 @@ public record AttendanceTemplateField(
      */
     public Question question() {
         return config.settings()
-                .asQuestion(name, fieldType.fieldType())
+                .asQuestion(name, fieldType)
                 .orElseThrow(() -> new IllegalStateException("Every sheet field holds a value: " + fieldType));
     }
 
@@ -45,7 +41,7 @@ public record AttendanceTemplateField(
                 row.getInt("id"),
                 row.getInt("template_id"),
                 row.getString("name"),
-                AttendanceFieldType.stored(row.getString("field_type")),
+                FieldType.valueOf(row.getString("field_type")),
                 AttendanceFieldConfig.parse(row.getString("config")),
                 row.getInt("position"));
     }

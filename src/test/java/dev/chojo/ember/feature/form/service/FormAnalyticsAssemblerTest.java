@@ -18,11 +18,11 @@ import dev.chojo.ember.feature.form.service.FormResultQuery.ResultFilter;
 import dev.chojo.ember.feature.form.service.FormResultQuery.ResultGrouping;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.NotFoundResponse;
@@ -173,13 +173,7 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
         var born = LocalDate.of(2010, 1, 1);
         int age = Period.between(born, LocalDate.now()).getYears();
         var field = profileFieldRepo.create(
-                station.id(),
-                "Geburtstag",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.parse("{}"),
-                false,
-                false,
-                null);
+                station.id(), "Geburtstag", FieldType.BIRTH_DATE, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.setValue(submitterMember.id(), field.id(), StringNode.valueOf(born.toString()));
         try {
             var exactly = new ResultFilter(null, null, null, null, null, null, age, age);

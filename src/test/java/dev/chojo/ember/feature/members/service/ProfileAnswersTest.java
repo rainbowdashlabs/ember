@@ -15,8 +15,8 @@ import dev.chojo.ember.feature.members.entity.MemberTablePeople;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -72,11 +72,11 @@ class ProfileAnswersTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
-    private static ProfileField ask(ProfileFieldType type, String config) {
+    private static ProfileField ask(FieldType type, String config) {
         return ask(type, config, false);
     }
 
-    private static ProfileField ask(ProfileFieldType type, String config, boolean required) {
+    private static ProfileField ask(FieldType type, String config, boolean required) {
         var field = service.create(
                 station.id(),
                 type.name() + " " + NAMES.incrementAndGet(),
@@ -139,7 +139,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
 
     @Test
     void textTakesAnyLineAndKeepsItAsAJsonString() {
-        var field = ask(ProfileFieldType.TEXT, "{}");
+        var field = ask(FieldType.TEXT, "{}");
 
         assertEquals("\"irgendwas\"", stored(field, "\"irgendwas\""));
         assertEquals("\"42\"", stored(field, "\"42\""));
@@ -148,7 +148,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
     /** A number is a whole one, as the box every screen draws for it, and is kept as a number. */
     @Test
     void aNumberIsWholeAndKeptAsANumber() {
-        var field = ask(ProfileFieldType.NUMBER, "{}");
+        var field = ask(FieldType.NUMBER, "{}");
 
         assertEquals("42", stored(field, "42"));
         assertEquals("42", stored(field, "\"42\""));
@@ -160,7 +160,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
     /** An answer stored before anything checked it is not measured again when the save leaves it alone. */
     @Test
     void anUntouchedOldAnswerIsNotMeasuredAgain() {
-        var field = ask(ProfileFieldType.NUMBER, "{}");
+        var field = ask(FieldType.NUMBER, "{}");
         int member = freshMember();
         profileFieldRepo.setValue(member, field.id(), DecimalNode.valueOf(new BigDecimal("42.5")));
 
@@ -171,7 +171,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
 
     @Test
     void aDateTakesAnIsoDayOnly() {
-        var field = ask(ProfileFieldType.DATE, "{}");
+        var field = ask(FieldType.DATE, "{}");
 
         assertEquals("\"2011-09-01\"", stored(field, "\"2011-09-01\""));
         refused(field, "\"01.09.2011\"");
@@ -179,7 +179,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
 
     @Test
     void aYesOrNoTakesFourSpellingsInEitherShapeAndKeepsABoolean() {
-        var field = ask(ProfileFieldType.BOOLEAN, "{}");
+        var field = ask(FieldType.BOOLEAN, "{}");
 
         assertEquals("true", stored(field, "true"));
         assertEquals("true", stored(field, "\"true\""));
@@ -190,7 +190,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
 
     @Test
     void aChoiceTakesOnlyItsOptions() {
-        var field = ask(ProfileFieldType.ENUM, "{\"options\":[\"S\",\"M\",\"L\"]}");
+        var field = ask(FieldType.CHOICE, "{\"options\":[\"S\",\"M\",\"L\"]}");
 
         assertEquals("\"M\"", stored(field, "\"M\""));
         refused(field, "\"XL\"");
@@ -199,7 +199,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
     /** Nothing said is nothing kept: the answer is left out rather than stored empty. */
     @Test
     void aRequiredQuestionMayStayEmpty() {
-        var field = ask(ProfileFieldType.TEXT, "{}", true);
+        var field = ask(FieldType.TEXT, "{}", true);
 
         assertEquals(Optional.empty(), kept(field, "\"\""));
     }
@@ -207,7 +207,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
     /** Emptying an answer takes it off the profile. */
     @Test
     void anEmptiedAnswerIsRemoved() {
-        var field = ask(ProfileFieldType.TEXT, "{}");
+        var field = ask(FieldType.TEXT, "{}");
         int member = freshMember();
         service.setValues(member, List.of(new FieldValueEntry(field.id(), "\"Florian\"")), member);
 
@@ -219,7 +219,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
     /** An age counts itself from a date, so a value written under it is refused and nothing is kept. */
     @Test
     void anAgeTakesNoAnswer() {
-        var field = ask(ProfileFieldType.AGE, "{}");
+        var field = ask(FieldType.AGE, "{}");
         int member = freshMember();
 
         var refusal = assertThrows(
@@ -233,7 +233,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
 
     @Test
     void aHeadingKeepsNothingWrittenUnderIt() {
-        var field = ask(ProfileFieldType.SECTION, "{}");
+        var field = ask(FieldType.SECTION, "{}");
 
         assertEquals(Optional.empty(), kept(field, "\"Notiz\""));
     }
@@ -241,7 +241,7 @@ class ProfileAnswersTest extends RepositoryTestBase {
     /** Every spelling of yes is kept as one, so the member table prints each of them as yes. */
     @Test
     void theMemberTablePrintsEverySpellingOfYesAsJa() {
-        var field = ask(ProfileFieldType.BOOLEAN, "{}");
+        var field = ask(FieldType.BOOLEAN, "{}");
 
         assertEquals("Ja", printed(field, "true"));
         assertEquals("Ja", printed(field, "\"true\""));
@@ -251,9 +251,9 @@ class ProfileAnswersTest extends RepositoryTestBase {
 
     @Test
     void theMemberTablePrintsNumbersChoicesAndDatesAsTheyRead() {
-        assertEquals("42", printed(ask(ProfileFieldType.NUMBER, "{}"), "42"));
-        assertEquals("M", printed(ask(ProfileFieldType.ENUM, "{\"options\":[\"S\",\"M\"]}"), "\"M\""));
-        assertEquals("01.09.2011", printed(ask(ProfileFieldType.DATE, "{}"), "\"2011-09-01\""));
-        assertEquals("Florian", printed(ask(ProfileFieldType.TEXT, "{}"), "\"Florian\""));
+        assertEquals("42", printed(ask(FieldType.NUMBER, "{}"), "42"));
+        assertEquals("M", printed(ask(FieldType.CHOICE, "{\"options\":[\"S\",\"M\"]}"), "\"M\""));
+        assertEquals("01.09.2011", printed(ask(FieldType.DATE, "{}"), "\"2011-09-01\""));
+        assertEquals("Florian", printed(ask(FieldType.TEXT, "{}"), "\"Florian\""));
     }
 }

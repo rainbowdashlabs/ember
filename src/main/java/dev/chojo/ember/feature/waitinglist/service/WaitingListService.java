@@ -26,6 +26,8 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -39,7 +41,6 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
-import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
@@ -210,11 +211,12 @@ public class WaitingListService implements TaskSource {
     public WaitingListField createField(
             int listId,
             String name,
-            WaitingListFieldType fieldType,
+            FieldType fieldType,
             WaitingListFieldConfig config,
             int position,
             boolean required,
             boolean isPublic) {
+        requireOffered(fieldType);
         requireSingleBirthDate(listId, fieldType, 0);
         var field = repository.createField(listId, name, fieldType, config, position, required, isPublic);
         log.info("Created waiting-list field {} on list {} (type {})", field.id(), listId, fieldType);
@@ -224,11 +226,12 @@ public class WaitingListService implements TaskSource {
     public Optional<WaitingListField> updateField(
             int fieldId,
             String name,
-            WaitingListFieldType fieldType,
+            FieldType fieldType,
             WaitingListFieldConfig config,
             int position,
             boolean required,
             boolean isPublic) {
+        requireOffered(fieldType);
         repository
                 .findFieldById(fieldId)
                 .ifPresent(field -> requireSingleBirthDate(field.listId(), fieldType, fieldId));
@@ -242,6 +245,15 @@ public class WaitingListService implements TaskSource {
     }
 
     /**
+     * Refuses a type a waiting list does not offer, such as a member or a place.
+     *
+     * @throws io.javalin.http.HttpResponseException {@link Refusal#WAITING_LIST_FIELD_TYPE_NOT_OFFERED}
+     */
+    private static void requireOffered(FieldType fieldType) {
+        if (!FieldTypes.WAITING_LIST.contains(fieldType)) throw Refusal.WAITING_LIST_FIELD_TYPE_NOT_OFFERED.raise();
+    }
+
+    /**
      * Rejects a second birth date field on the same list.
      *
      * <p>One is what makes the age findable without being told where it is. Two would leave the
@@ -249,10 +261,10 @@ public class WaitingListService implements TaskSource {
      *
      * @param excludedId the field being changed, so it does not clash with itself; 0 when creating
      */
-    private void requireSingleBirthDate(int listId, WaitingListFieldType fieldType, int excludedId) {
-        if (fieldType != WaitingListFieldType.BIRTH_DATE) return;
+    private void requireSingleBirthDate(int listId, FieldType fieldType, int excludedId) {
+        if (fieldType != FieldType.BIRTH_DATE) return;
         findFieldsByList(listId).stream()
-                .filter(existing -> existing.fieldType() == WaitingListFieldType.BIRTH_DATE)
+                .filter(existing -> existing.fieldType() == FieldType.BIRTH_DATE)
                 .filter(existing -> existing.id() != excludedId)
                 .findFirst()
                 .ifPresent(existing -> {
@@ -464,7 +476,7 @@ public class WaitingListService implements TaskSource {
         for (var answer : fieldValues.entrySet()) {
             var field = fields.get(answer.getKey());
             if (field == null) continue;
-            var stored = QuestionValues.write(field.fieldType().fieldType(), QuestionValues.read(answer.getValue()));
+            var stored = QuestionValues.write(field.fieldType(), QuestionValues.read(answer.getValue()));
             if (stored == null) {
                 repository.deleteEntryValue(entryId, field.id());
             } else {
@@ -830,7 +842,7 @@ public class WaitingListService implements TaskSource {
      */
     public Optional<WaitingListField> birthDateField(int listId) {
         return findFieldsByList(listId).stream()
-                .filter(field -> field.fieldType() == WaitingListFieldType.BIRTH_DATE)
+                .filter(field -> field.fieldType() == FieldType.BIRTH_DATE)
                 .findFirst();
     }
 

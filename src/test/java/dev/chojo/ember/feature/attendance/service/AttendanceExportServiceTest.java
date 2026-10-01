@@ -10,10 +10,10 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -162,7 +162,7 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
                 AttendanceEntry.EntrySource.EXPECTED);
     }
 
-    private static AttendanceTemplateField fieldOf(int id, String name, AttendanceFieldType type) {
+    private static AttendanceTemplateField fieldOf(int id, String name, FieldType type) {
         return new AttendanceTemplateField(id, 0, name, type, AttendanceFieldConfig.parse("{}"), id);
     }
 
@@ -174,12 +174,12 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
     @Test
     void theSheetsAnswersArePrintedAsEveryExportPrintsThem() {
         var fields = List.of(
-                fieldOf(1, "Fahrzeug geprüft", AttendanceFieldType.BOOLEAN),
-                fieldOf(2, "Funk geprüft", AttendanceFieldType.BOOLEAN),
-                fieldOf(3, "Datum", AttendanceFieldType.DATE),
-                fieldOf(4, "Leitung", AttendanceFieldType.MEMBER_LIST_OF_GROUP),
-                fieldOf(5, "Bemerkung", AttendanceFieldType.STRING),
-                fieldOf(6, "Thema", AttendanceFieldType.STRING));
+                fieldOf(1, "Fahrzeug geprüft", FieldType.BOOLEAN),
+                fieldOf(2, "Funk geprüft", FieldType.BOOLEAN),
+                fieldOf(3, "Datum", FieldType.DATE),
+                fieldOf(4, "Leitung", FieldType.MEMBER_LIST_OF_GROUP),
+                fieldOf(5, "Bemerkung", FieldType.TEXT),
+                fieldOf(6, "Thema", FieldType.TEXT));
         var values = Map.of(
                 1, "\"1\"",
                 2, "true",
@@ -210,9 +210,9 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
     void aSheetWithAnsweredFieldsRenders() {
         int templateId = attendanceRepo.findSessionById(sessionId).orElseThrow().templateId();
         attendanceRepo.createTemplateField(
-                templateId, "Fahrzeug geprüft", AttendanceFieldType.BOOLEAN, AttendanceFieldConfig.parse("{}"), 0);
+                templateId, "Fahrzeug geprüft", FieldType.BOOLEAN, AttendanceFieldConfig.parse("{}"), 0);
         attendanceRepo.createTemplateField(
-                templateId, "Leitung", AttendanceFieldType.MEMBER, AttendanceFieldConfig.parse("{}"), 1);
+                templateId, "Leitung", FieldType.MEMBER, AttendanceFieldConfig.parse("{}"), 1);
         var fields = attendanceRepo.findTemplateFields(templateId);
         attendanceRepo.setSessionField(sessionId, fields.get(0).id(), "\"1\"");
         attendanceRepo.setSessionField(sessionId, fields.get(1).id(), String.valueOf(member.id()));

@@ -9,18 +9,27 @@ import { uploadFile } from './upload'
 import type { CommentSource } from './comments'
 import { StationPermission } from './types'
 import { downloadAuthed } from '@/util/downloadAuthed'
+import { isYes } from '@/util/questions'
+import { FieldTypes, OfferedFieldTypes } from './fieldTypes'
 import type {
     AccessData,
     AccessRequest,
     Board,
     BoardActivityEntry,
     BoardChecklistItem,
-    BoardField,
     BoardFieldConfig,
-    BoardFieldConfigByType,
+    BoardFieldDefinition,
     BoardFieldValue,
-    BoardFieldValueByType,
     BoardLabel,
+    BooleanValue,
+    DateValue,
+    Enum,
+    EnumValue,
+    LaneAssignee,
+    LaneAssigneeValue,
+    NumberValue,
+    Simple,
+    StringValue,
     BoardLane,
     BoardTicket,
     BoardTicketAssignRequest,
@@ -85,20 +94,35 @@ export const LanePreset = {
     FEEDBACK: 'FEEDBACK',
 } as const satisfies Record<LanePresetName, LanePresetName>
 
-export type BoardFieldTypeName = Schemas['BoardFieldType']
+/** The field types a board offers. */
+export type BoardFieldTypeName = (typeof OfferedFieldTypes.BOARD)[number]
 
-export const BoardFieldType = {
-    STRING: 'STRING',
-    NUMBER: 'NUMBER',
-    BOOLEAN: 'BOOLEAN',
-    ENUM: 'ENUM',
-    DATE: 'DATE',
-    LANE_ASSIGNEE: 'LANE_ASSIGNEE',
-} as const satisfies Record<BoardFieldTypeName, BoardFieldTypeName>
-
-/** Whether a value a picker hands back names a field type the server knows. */
+/** Whether a value a picker hands back names a field type a board offers. */
 export function isBoardFieldType(value: unknown): value is BoardFieldTypeName {
-    return typeof value === 'string' && Object.hasOwn(BoardFieldType, value)
+    return OfferedFieldTypes.BOARD.some(type => type === value)
+}
+
+/**
+ * The settings record each board field type keeps, as the server binds them. Written down here
+ * because the shared type names do not say which record a board's settings are.
+ */
+type BoardFieldConfigByType = {
+    TEXT: Simple
+    NUMBER: Simple
+    BOOLEAN: Simple
+    DATE: Simple
+    CHOICE: Enum
+    LANE_ASSIGNEE: LaneAssignee
+}
+
+/** The value record each board field type keeps, as the server binds them. */
+type BoardFieldValueByType = {
+    TEXT: StringValue
+    NUMBER: NumberValue
+    BOOLEAN: BooleanValue
+    DATE: DateValue
+    CHOICE: EnumValue
+    LANE_ASSIGNEE: LaneAssigneeValue
 }
 
 /** A board as its own station sends it, or as a partner's board arrives through federation. */
@@ -109,7 +133,7 @@ export type AnyBoard = Board | RemoteBoard
  * holds the settings of exactly that type.
  */
 export type TypedBoardField = {
-    [K in BoardFieldTypeName]: Omit<BoardField, 'fieldType' | 'config'> & {fieldType: K; config: BoardFieldConfigByType[K]}
+    [K in BoardFieldTypeName]: Omit<BoardFieldDefinition, 'fieldType' | 'config'> & {fieldType: K; config: BoardFieldConfigByType[K]}
 }[BoardFieldTypeName]
 
 /** A ticket's value of one field, as the record the field's type names. */
@@ -125,7 +149,7 @@ export type TypedBoardFieldValue = {
  * say which one a field holds. This and {@link typedFieldValues} are the one place that reads the
  * pairing.
  */
-export function typedFields(fields: BoardField[]): TypedBoardField[] {
+export function typedFields(fields: BoardFieldDefinition[]): TypedBoardField[] {
     return fields as TypedBoardField[]
 }
 
@@ -140,16 +164,36 @@ export type BoardFieldRaw = string | number | boolean
 /** The bare value a ticket holds for a field, or null where it holds none. */
 export function rawFieldValue(entry: TypedBoardFieldValue): BoardFieldRaw | null {
     if (entry.value === null) return null
-    if (entry.fieldType === BoardFieldType.LANE_ASSIGNEE) return entry.value.memberId
+    if (entry.fieldType === FieldTypes.LANE_ASSIGNEE) return entry.value.memberId
     return entry.value.value
 }
 
 /** The value record the server binds for a field of the given type, built from what the screen holds. */
 export function fieldValueBody(fieldType: BoardFieldTypeName, raw: BoardFieldRaw): BoardFieldValue {
-    if (fieldType === BoardFieldType.LANE_ASSIGNEE) return {memberId: Number(raw)}
-    if (typeof raw === 'boolean') return {value: raw}
-    if (typeof raw === 'number') return {value: raw}
+    if (fieldType === FieldTypes.LANE_ASSIGNEE) return {memberId: Number(raw)}
     return {value: raw}
+}
+
+/**
+ * What a ticket holds for a field, as the text every answer box reads: a yes as {@code true}, a
+ * number as its digits, a member as their id, and nothing as an empty answer.
+ */
+export function fieldValueText(raw: BoardFieldRaw | null | undefined): string {
+    return raw === null || raw === undefined ? '' : String(raw)
+}
+
+/**
+ * The text an answer box hands back as what a ticket holds for a field of this type, or null where
+ * it holds nothing. A zero stays a zero.
+ */
+export function fieldValueOfText(fieldType: BoardFieldTypeName, text: string): BoardFieldRaw | null {
+    if (text === '') return null
+    if (fieldType === FieldTypes.BOOLEAN) return isYes(text)
+    if (fieldType === FieldTypes.NUMBER || fieldType === FieldTypes.LANE_ASSIGNEE) {
+        const number = Number(text)
+        return Number.isNaN(number) ? null : number
+    }
+    return text
 }
 
 /**
@@ -174,8 +218,8 @@ export function fieldDraftOf(field: TypedBoardField): BoardFieldDraft {
         options: [],
         laneId: null,
     }
-    if (field.fieldType === BoardFieldType.ENUM) return {...draft, options: field.config.options}
-    if (field.fieldType === BoardFieldType.LANE_ASSIGNEE) return {...draft, laneId: field.config.laneId}
+    if (field.fieldType === FieldTypes.CHOICE) return {...draft, options: field.config.options}
+    if (field.fieldType === FieldTypes.LANE_ASSIGNEE) return {...draft, laneId: field.config.laneId}
     return draft
 }
 
@@ -184,8 +228,8 @@ export function fieldDraftOf(field: TypedBoardField): BoardFieldDraft {
  * server reads as that type's empty settings.
  */
 function fieldConfigOf(draft: BoardFieldDraft): BoardFieldConfig {
-    if (draft.fieldType === BoardFieldType.ENUM) return {required: draft.required, options: draft.options}
-    if (draft.fieldType === BoardFieldType.LANE_ASSIGNEE && draft.laneId !== null) {
+    if (draft.fieldType === FieldTypes.CHOICE) return {required: draft.required, options: draft.options}
+    if (draft.fieldType === FieldTypes.LANE_ASSIGNEE && draft.laneId !== null) {
         return {required: draft.required, laneId: draft.laneId}
     }
     return {required: draft.required}
@@ -285,14 +329,14 @@ export async function disableBacklog(boardKey: string): Promise<void> {
 }
 
 export async function getFields(boardKey: string): Promise<TypedBoardField[]> {
-    const res = await client.get<BoardField[]>(`/boards/${boardKey}/fields`)
+    const res = await client.get<BoardFieldDefinition[]>(`/boards/${boardKey}/fields`)
     return typedFields(res.data)
 }
 
 /** Replaces the board's fields by the drafts, in their order, each with the settings its type keeps. */
 export async function setFields(boardKey: string, drafts: BoardFieldDraft[]): Promise<TypedBoardField[]> {
     const body: FieldRequest[] = drafts.map(draft => ({name: draft.name, fieldType: draft.fieldType, config: fieldConfigOf(draft)}))
-    const res = await client.put<BoardField[]>(`/boards/${boardKey}/fields`, body)
+    const res = await client.put<BoardFieldDefinition[]>(`/boards/${boardKey}/fields`, body)
     return typedFields(res.data)
 }
 

@@ -8,13 +8,11 @@ import BoardGeneralSection from './BoardGeneralSection.vue'
 import BoardLanesSection from './BoardLanesSection.vue'
 import BoardFieldsSection from './BoardFieldsSection.vue'
 import type { LaneDraft } from './BoardLanesSection.vue'
-import type { FieldTypeOption } from './BoardFieldsSection.vue'
 import type { BoardFieldDraft, BoardFieldTypeName } from '@/api/boards'
 
 defineProps<{
     lanes: LaneDraft[]
     fields: BoardFieldDraft[]
-    fieldTypeOptions: FieldTypeOption[]
 }>()
 
 const name = defineModel<string>('name', { required: true })
@@ -56,7 +54,6 @@ const emit = defineEmits<{
             :lanes="lanes"
             :new-field-name="newFieldName"
             :new-field-type="newFieldType"
-            :field-type-options="fieldTypeOptions"
             @update:new-field-name="v => newFieldName = v"
             @update:new-field-type="v => newFieldType = v"
             @add="emit('addField')"

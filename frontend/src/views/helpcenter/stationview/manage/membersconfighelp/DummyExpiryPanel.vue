@@ -8,8 +8,8 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
-import {FieldTypes} from '@/api/profileFields'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
+import {FieldTypes} from '@/api/fieldTypes'
 import {expirySettingsOf, type ExpirySettings} from '@/util/expiry'
 import ExpiryDateFields from '@/views/stationview/manage/membersconfig/fieldmodal/ExpiryDateFields.vue'
 
@@ -34,9 +34,9 @@ const examples = [inDays(400), inDays(20), inDays(-12)]
   <NeutralContainer class="space-y-4">
     <ExpiryDateFields v-model="settings"/>
     <div class="space-y-1">
-      <FieldLabel>{{ t('membersConfig.typeLabels.EXPIRY_DATE') }}</FieldLabel>
+      <FieldLabel>{{ t('fieldTypes.label.EXPIRY_DATE') }}</FieldLabel>
       <p v-for="example in examples" :key="example" class="text-sm">
-        <FieldValueDisplay :value="example" :field-type="FieldTypes.EXPIRY_DATE" :config="{warnFromDays: 90}"/>
+        <QuestionValueDisplay :value="example" :field-type="FieldTypes.EXPIRY_DATE" :config="{warnFromDays: 90}"/>
       </p>
     </div>
   </NeutralContainer>

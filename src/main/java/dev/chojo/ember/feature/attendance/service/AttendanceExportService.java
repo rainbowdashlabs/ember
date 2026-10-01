@@ -335,7 +335,7 @@ public class AttendanceExportService {
             String language) {
         var lines = new ArrayList<NameValue>();
         for (var field : fields) {
-            String text = QuestionText.format(field.fieldType().fieldType(), values.get(field.id()), names, language);
+            String text = QuestionText.format(field.fieldType(), values.get(field.id()), names, language);
             if (!text.isBlank()) lines.add(new NameValue(field.name(), text));
         }
         return lines;
@@ -345,7 +345,7 @@ public class AttendanceExportService {
     private Map<Integer, String> memberNames(List<AttendanceTemplateField> fields, Map<Integer, String> values) {
         var names = new HashMap<Integer, String>();
         for (var field : fields) {
-            if (!field.fieldType().fieldType().namesMembers()) continue;
+            if (!field.fieldType().namesMembers()) continue;
             for (int memberId : QuestionValues.memberIds(QuestionValues.read(values.get(field.id())))) {
                 names.computeIfAbsent(memberId, this::resolveMemberName);
             }

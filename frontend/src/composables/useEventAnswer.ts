@@ -9,7 +9,7 @@ import {events} from '@/api'
 import {apiErrorStatus} from '@/util/apiError'
 import {showToast} from '@/util/toast'
 import type {AnyEvent} from '@/api/events'
-import type {EventRegistrationFieldValue, RegistrationFieldResponse} from '@/api/generated/schema'
+import type {EventRegistrationFieldValue, EventRegistrationField} from '@/api/generated/schema'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {describeFailure, type Failure} from '@/util/failure'
 import type {AnswerablePerson} from '@/util/eventAnswers'
@@ -22,7 +22,7 @@ export interface AnswerPrompt {
     event: AnyEvent
     date: string
     people: AnswerablePerson[]
-    fields: RegistrationFieldResponse[]
+    fields: EventRegistrationField[]
     attending: boolean
 }
 

@@ -16,10 +16,10 @@ import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.question.FieldType;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -127,7 +127,7 @@ public class ProfileFieldRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
         // A spacer may arrive without a name: it is a gap, and the service numbers it instead.
-        if (request.fieldType() == null || isBlank(request.name()) && request.fieldType() != ProfileFieldType.SPACER) {
+        if (request.fieldType() == null || isBlank(request.name()) && request.fieldType() != FieldType.SPACER) {
             throw Refusal.PROFILE_FIELD_DETAILS_MISSING_ON_CREATE.raise();
         }
         ctx.status(HttpStatus.CREATED)
@@ -418,7 +418,7 @@ public class ProfileFieldRoutes implements Routes {
      */
     public record ProfileFieldRequest(
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             Boolean required,
             Boolean readonly,

@@ -11,7 +11,6 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventDateCancellation;
-import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventRecurrence;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -192,7 +191,6 @@ public class PublicEventRoutes implements Routes {
                 .findByEvent(id, occurrenceCalendar.dateInView(event).orElse(null))
                 .stream()
                 .filter(AppointmentField::isPublic)
-                .map(EventField::of)
                 .toList();
 
         var stationCalendar = occurrenceCalendar.forStation(station.id());
@@ -309,7 +307,6 @@ public class PublicEventRoutes implements Routes {
         }
         var fields = overviewFields.getOrDefault(e.id(), List.of()).stream()
                 .filter(AppointmentField::isPublic)
-                .map(EventField::of)
                 .toList();
         return new PublicEventResponse(
                 e.id(),
@@ -351,7 +348,7 @@ public class PublicEventRoutes implements Routes {
             Instant endTime,
             @Nullable Integer categoryId,
             @Nullable String categoryName,
-            List<EventField> publicFields,
+            List<AppointmentField> publicFields,
             boolean cancelled,
             List<LocalDate> cancelledDates) {}
 
@@ -371,7 +368,7 @@ public class PublicEventRoutes implements Routes {
             Instant startTime,
             Instant endTime,
             @Nullable EventCategory category,
-            List<EventField> publicFields,
+            List<AppointmentField> publicFields,
             boolean cancelled,
             List<LocalDate> cancelledDates) {}
 }

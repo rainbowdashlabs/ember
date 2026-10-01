@@ -9,6 +9,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type {InventoryFieldDefinition} from '@/api/generated/schema'
+import {fieldTypeLabel} from '@/api/fieldTypes'
 
 withDefaults(
     defineProps<{
@@ -30,7 +31,7 @@ const {t} = useI18n()
 <template>
   <div class="py-2 flex items-center gap-3 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
     <span class="font-medium">{{ field.label }}</span>
-    <span class="text-xs text-(--text-muted)">{{ t(`inventory.fields.types.${field.fieldType}`) }}</span>
+    <span class="text-xs text-(--text-muted)">{{ fieldTypeLabel(t, field.fieldType) }}</span>
     <SecondaryBadge v-if="scopeLabel">{{ scopeLabel }}</SecondaryBadge>
     <span v-if="field.required" class="text-xs text-error">{{ t('inventory.fields.required') }}</span>
     <div class="ml-auto flex gap-2">

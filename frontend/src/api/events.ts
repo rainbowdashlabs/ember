@@ -26,7 +26,7 @@ import type {
     EventAttachment,
     EventBreak,
     EventCategory,
-    EventField,
+    AppointmentField,
     EventFieldDefault,
     EventRegistration,
     EventRegistrationFieldValue,
@@ -36,7 +36,6 @@ import type {
     EventSummary,
     EventTemplate,
     EventTemplateFieldData,
-    EventTemplateRegistrationField,
     FederatedEventItem,
     FederatedRegistrationAnswer,
     FederationShareResponse,
@@ -48,11 +47,12 @@ import type {
     PickerEvent,
     RegistrationCount,
     RegistrationFieldDefinition,
-    RegistrationFieldResponse,
+    EventRegistrationField,
     RegistrationResponse,
     RegistrationStatsResponse,
     RemoteAttachment,
-    RemoteEventDetail,
+    PartnerEventDetail,
+    RegistrationTemplateField,
     RemoteMemberRegistration,
     SetEventFieldsRequest,
     ShareScope,
@@ -63,28 +63,6 @@ import type {
     UpdateTemplateRequest,
     WithdrawalResponse,
 } from './generated/schema'
-
-export type EventFieldTypeName = components['schemas']['EventFieldType']
-
-export const EventFieldTypes = {
-    STRING: 'STRING',
-    NUMBER: 'NUMBER',
-    TIME: 'TIME',
-    DATE: 'DATE',
-    BOOLEAN: 'BOOLEAN',
-    ENUM: 'ENUM',
-    URL: 'URL',
-    TEXTAREA: 'TEXTAREA',
-    LOCATION: 'LOCATION',
-    MEMBER: 'MEMBER',
-    MEMBER_LIST: 'MEMBER_LIST',
-    MEMBER_OF_GROUP: 'MEMBER_OF_GROUP',
-    MEMBER_LIST_OF_GROUP: 'MEMBER_LIST_OF_GROUP',
-    MEMBER_OF_TYPE: 'MEMBER_OF_TYPE',
-    MEMBER_LIST_OF_TYPE: 'MEMBER_LIST_OF_TYPE',
-    MEMBER_OF_TAG: 'MEMBER_OF_TAG',
-    MEMBER_LIST_OF_TAG: 'MEMBER_LIST_OF_TAG',
-} as const satisfies Record<EventFieldTypeName, EventFieldTypeName>
 
 export type RegistrationStatusName = components['schemas']['RegistrationStatus']
 
@@ -323,8 +301,8 @@ export async function reorderCategories(orderedIds: number[]): Promise<EventCate
     return res.data
 }
 
-export async function listRegistrationFields(eventId: number): Promise<RegistrationFieldResponse[]> {
-    const res = await client.get<RegistrationFieldResponse[]>(`/events/${eventId}/registration-fields`)
+export async function listRegistrationFields(eventId: number): Promise<EventRegistrationField[]> {
+    const res = await client.get<EventRegistrationField[]>(`/events/${eventId}/registration-fields`)
     return res.data
 }
 
@@ -346,8 +324,8 @@ export async function updateRegistrationFieldValues(
 export async function setTemplateRegistrationFields(
     templateId: number,
     fields: RegistrationFieldDefinition[],
-): Promise<EventTemplateRegistrationField[]> {
-    const res = await client.put<EventTemplateRegistrationField[]>(
+): Promise<RegistrationTemplateField[]> {
+    const res = await client.put<RegistrationTemplateField[]>(
         `/event-templates/${templateId}/registration-fields`,
         {fields},
     )
@@ -501,8 +479,8 @@ export async function exportEventList(data: {
  * The questions of an appointment. With a date, as they stand on that occurrence; without one, as
  * the appointment itself carries them, which is what the editor edits.
  */
-export async function getEventFields(eventId: number, date?: string | null): Promise<EventField[]> {
-    const res = await client.get<EventField[]>(`/events/${eventId}/fields`, {params: date ? {date} : undefined})
+export async function getEventFields(eventId: number, date?: string | null): Promise<AppointmentField[]> {
+    const res = await client.get<AppointmentField[]>(`/events/${eventId}/fields`, {params: date ? {date} : undefined})
     return res.data
 }
 
@@ -512,13 +490,13 @@ export async function setEventFieldValueOn(
     fieldId: number,
     date: string,
     value: string,
-): Promise<EventField> {
-    const res = await client.put<EventField>(`/events/${eventId}/fields/${fieldId}/value`, {date, value})
+): Promise<AppointmentField> {
+    const res = await client.put<AppointmentField>(`/events/${eventId}/fields/${fieldId}/value`, {date, value})
     return res.data
 }
 
-export async function setEventFields(eventId: number, data: SetEventFieldsRequest): Promise<EventField[]> {
-    const res = await client.put<EventField[]>(`/events/${eventId}/fields`, data)
+export async function setEventFields(eventId: number, data: SetEventFieldsRequest): Promise<AppointmentField[]> {
+    const res = await client.put<AppointmentField[]>(`/events/${eventId}/fields`, data)
     return res.data
 }
 
@@ -526,8 +504,8 @@ export async function toggleFieldSelfRegistration(
     eventId: number,
     fieldId: number,
     date?: string | null,
-): Promise<EventField> {
-    const res = await client.post<EventField>(
+): Promise<AppointmentField> {
+    const res = await client.post<AppointmentField>(
         `/events/${eventId}/fields/${fieldId}/self-register`,
         undefined,
         {params: date ? {date} : undefined},
@@ -535,8 +513,8 @@ export async function toggleFieldSelfRegistration(
     return res.data
 }
 
-export async function getOverviewFields(): Promise<Record<number, EventField[]>> {
-    const res = await client.get<Record<number, EventField[]>>('/events/overview-fields')
+export async function getOverviewFields(): Promise<Record<number, AppointmentField[]>> {
+    const res = await client.get<Record<number, AppointmentField[]>>('/events/overview-fields')
     return res.data
 }
 
@@ -601,8 +579,8 @@ export async function confirmOwnFederatedMember(stationUid: string, eventId: num
     await client.post(`/federated/${stationUid}/events/${eventId}/register/confirm`, {eventDate, memberId})
 }
 
-export async function getFederatedEvent(stationUid: string, eventId: number): Promise<RemoteEventDetail> {
-    const res = await client.get<RemoteEventDetail>(`/federated/${stationUid}/events/${eventId}`)
+export async function getFederatedEvent(stationUid: string, eventId: number): Promise<PartnerEventDetail> {
+    const res = await client.get<PartnerEventDetail>(`/federated/${stationUid}/events/${eventId}`)
     return res.data
 }
 

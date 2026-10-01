@@ -403,10 +403,19 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "fieldId", type = Integer.class, required = true)
             },
-            responses = @OpenApiResponse(status = "204"))
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void deleteFieldValue(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        ticketService.deleteFieldValue(guards.editableTicketId(ctx, session), pathInt(ctx, "fieldId"));
+        int ticketId = guards.editableTicketId(ctx, session);
+        int fieldId = pathInt(ctx, "fieldId");
+        int boardId = guards.resolveBoardId(ctx, session.stationId());
+        boolean required = boardService.findFields(boardId).stream()
+                .anyMatch(field -> field.id() == fieldId && field.config().required());
+        if (required) throw Refusal.TICKET_FIELD_VALUE_REQUIRED.raise();
+        ticketService.deleteFieldValue(ticketId, fieldId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

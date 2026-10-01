@@ -3,22 +3,49 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
-import FieldValueDisplay from './FieldValueDisplay.vue'
-import {FieldTypes} from '@/api/profileFields'
+import QuestionValueDisplay from './QuestionValueDisplay.vue'
+import {FieldTypes} from '@/api/fieldTypes'
 
 /**
  * An answer as a station reads it.
  *
  * <p>What is settled here is the age behind a birth date: that it is there by default, that a field
- * can say it should not be, and that turning it off leaves the date itself alone.
+ * can say it should not be, and that turning it off leaves the date itself alone. And that a yes
+ * reads as yes however it was stored, which is what screens that only knew one spelling got wrong.
  */
-describe('FieldValueDisplay', () => {
+describe('QuestionValueDisplay', () => {
     function show(value: unknown, fieldType: string, config?: Record<string, unknown>) {
-        return mount(FieldValueDisplay, {props: {value, fieldType, config}}).text()
+        return mount(QuestionValueDisplay, {props: {value, fieldType, config}}).text()
     }
+
+    it('reads a yes stored as true, as the text true or as 1', () => {
+        for (const value of [true, 'true', '1']) {
+            expect(show(value, FieldTypes.BOOLEAN)).toBe('Ja')
+        }
+        expect(show('false', FieldTypes.BOOLEAN)).toBe('Nein')
+        expect(show(false, FieldTypes.BOOLEAN)).toBe('Nein')
+    })
+
+    it('calls a yes what the field calls it', () => {
+        const wrapper = mount(QuestionValueDisplay, {
+            props: {value: true, fieldType: FieldTypes.BOOLEAN, yesLabel: 'Geprüft', noLabel: 'Offen'},
+        })
+        expect(wrapper.text()).toBe('Geprüft')
+    })
+
+    it('names the members an answer names', () => {
+        const wrapper = mount(QuestionValueDisplay, {
+            props: {value: '[1,2]', fieldType: FieldTypes.MEMBER_LIST, memberNames: new Map([[1, 'Anna'], [2, 'Ben']])},
+        })
+        expect(wrapper.text()).toBe('Anna, Ben')
+    })
+
+    it('writes a time the way a clock reads', () => {
+        expect(show('09:30:00', FieldTypes.TIME)).toBe('09:30')
+    })
 
     it('writes a date the way it is read', () => {
         expect(show('2019-11-03', FieldTypes.DATE)).toBe('03.11.2019')
@@ -49,7 +76,7 @@ describe('FieldValueDisplay', () => {
         }
 
         function state(value: string, config?: Record<string, unknown>, bare = false) {
-            const wrapper = mount(FieldValueDisplay, {props: {value, fieldType: FieldTypes.EXPIRY_DATE, config, bare}})
+            const wrapper = mount(QuestionValueDisplay, {props: {value, fieldType: FieldTypes.EXPIRY_DATE, config, bare}})
             return wrapper.find('[data-testid="expiry-state"]')
         }
 

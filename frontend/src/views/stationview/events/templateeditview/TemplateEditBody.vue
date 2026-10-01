@@ -10,6 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import EventFieldList from '../eventshared/EventFieldList.vue'
+import RegistrationFieldsEditor from '../eventshared/RegistrationFieldsEditor.vue'
 import EventReminderEditor from '../eventshared/EventReminderEditor.vue'
 import EventDefaultsSection from './EventDefaultsSection.vue'
 import TemplateAudienceSection from './TemplateAudienceSection.vue'
@@ -21,6 +22,7 @@ import type {
     EventCategory,
     EventFieldEntry,
     MemberGroup,
+    RegistrationFieldDefinition,
     UserTag,
 } from '@/api/generated/schema'
 
@@ -52,6 +54,7 @@ const restriction = defineModel<RestrictionSelection>('restriction', {required: 
 const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {required: true})
 const reminderDays = defineModel<number[]>('reminderDays', {required: true})
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
+const registrationFields = defineModel<RegistrationFieldDefinition[]>('registrationFields', {required: true})
 
 const {t} = useI18n()
 </script>
@@ -97,6 +100,8 @@ const {t} = useI18n()
         show-value
     />
   </NeutralContainer>
+
+  <RegistrationFieldsEditor v-if="requiresRegistration" v-model="registrationFields"/>
 
   <SaveButton :disabled="!name.trim()" :action="save"/>
 </template>

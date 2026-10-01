@@ -9,7 +9,7 @@ import { multiDayEndDate, type AllEventRestrictions } from '@/api/events'
 import type {
   EventBreak,
   EventCategory,
-  EventField,
+  AppointmentField,
   EventSummary,
   ManagedMember,
   MemberGroup,
@@ -51,7 +51,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   const eligibleMembers = ref<Record<number, number[]>>({})
   const managedMembers = ref<ManagedMember[]>([])
   const registrationCounts = ref<RegistrationCount[]>([])
-  const overviewFields = ref<Record<number, EventField[]>>({})
+  const overviewFields = ref<Record<number, AppointmentField[]>>({})
   const categories = ref<EventCategory[]>([])
   const restrictions = ref<AllEventRestrictions>({})
   const groups = ref<MemberGroup[]>([])

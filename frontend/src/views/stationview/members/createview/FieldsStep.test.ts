@@ -6,7 +6,7 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import FieldsStep from './FieldsStep.vue'
-import {FieldTypes, type FieldTypeName} from '@/api/profileFields'
+import {FieldTypes, type FieldTypeName} from '@/api/fieldTypes'
 import type {ProfileField, ProfileFieldConfig} from '@/api/generated/schema'
 
 const NO_SETTINGS: ProfileFieldConfig = {

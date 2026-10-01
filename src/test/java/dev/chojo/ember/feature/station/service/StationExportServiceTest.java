@@ -9,8 +9,8 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestStationKeys;
@@ -52,7 +52,7 @@ class StationExportServiceTest extends RepositoryTestBase {
         memberGroupRepo.addMember(group.id(), member.id());
 
         var telefon = profileFieldRepo.create(
-                stationId, "Telefon", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+                stationId, "Telefon", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(telefon.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
     }
 

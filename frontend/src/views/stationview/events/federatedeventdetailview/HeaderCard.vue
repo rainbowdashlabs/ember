@@ -12,12 +12,13 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {EventField, SharedEvent} from '@/api/generated/schema'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
+import type {AppointmentField, SharedEvent} from '@/api/generated/schema'
 import {formatDate, formatTime} from '@/util/format'
 
 const props = defineProps<{
   event: SharedEvent
-  publicFields: EventField[]
+  publicFields: AppointmentField[]
 }>()
 
 const {t} = useI18n()
@@ -72,7 +73,7 @@ const repeatEnd = computed(() => {
       <MutedText size="sm" class="font-medium">{{ t('federatedEventDetail.fields') }}</MutedText>
       <div class="flex flex-wrap gap-3 text-sm">
         <span v-for="field in props.publicFields" :key="field.id" class="text-(--text-muted)">
-          <span class="font-medium">{{ field.name }}:</span> {{ field.value || '-' }}
+          <span class="font-medium">{{ field.name }}:</span> <QuestionValueDisplay :field-type="field.fieldType" :value="field.value"/>
         </span>
       </div>
     </div>

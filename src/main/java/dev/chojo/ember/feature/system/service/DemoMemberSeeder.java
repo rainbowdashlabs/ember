@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -22,6 +21,7 @@ import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -125,20 +125,19 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 groupBetreuer.id(), List.of(StationUserType.TEAM, StationUserType.MANAGER));
 
         // -- Profile fields put to the team (Betreuer) --
-        var fieldJuleica = askOf(stationId, "JuLeiCa", ProfileFieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 0);
+        var fieldJuleica = askOf(stationId, "JuLeiCa", FieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 0);
         var fieldJuleicaAblauf = askOf(
                 stationId,
                 "JuLeiCa Ablaufdatum",
-                ProfileFieldType.EXPIRY_DATE,
+                FieldType.EXPIRY_DATE,
                 "{\"warnFromDays\":90,\"reminderDays\":[90,30],\"remindManagement\":true}",
                 ProfileFieldScope.TEAM,
                 1);
-        var fieldFuehrerschein =
-                askOf(stationId, "Führerschein", ProfileFieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 2);
+        var fieldFuehrerschein = askOf(stationId, "Führerschein", FieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 2);
         var fieldFuehrerscheinAblauf = askOf(
                 stationId,
                 "Führerschein Ablaufdatum",
-                ProfileFieldType.EXPIRY_DATE,
+                FieldType.EXPIRY_DATE,
                 "{\"warnFromDays\":60,\"reminderDays\":[60,14]}",
                 ProfileFieldScope.TEAM,
                 3);
@@ -147,17 +146,17 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var fieldTelefon = askOf(
                 stationId,
                 "Mobilnummer",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 "{\"overview\":true}",
                 true,
                 ProfileFieldScope.GUARDIAN,
                 0,
                 false);
-        var fieldFestnetz = askOf(stationId, "Festnetz", ProfileFieldType.TEXT, "{}", ProfileFieldScope.GUARDIAN, 1);
+        var fieldFestnetz = askOf(stationId, "Festnetz", FieldType.TEXT, "{}", ProfileFieldScope.GUARDIAN, 1);
         var fieldNewsletter = askOf(
                 stationId,
                 "Newsletter per Mail",
-                ProfileFieldType.BOOLEAN,
+                FieldType.BOOLEAN,
                 "{\"defaultValue\":true}",
                 ProfileFieldScope.GUARDIAN,
                 2);
@@ -166,7 +165,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var fieldPersonalnummer = askOf(
                 stationId,
                 "Personalnummer",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 "{\"overview\":true}",
                 false,
                 ProfileFieldScope.MEMBER,
@@ -175,7 +174,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var fieldGeschlecht = askOf(
                 stationId,
                 "Geschlecht",
-                ProfileFieldType.ENUM,
+                FieldType.CHOICE,
                 "{\"overview\":true,\"options\":[\"männlich\",\"weiblich\",\"divers\"]}",
                 false,
                 ProfileFieldScope.MEMBER,
@@ -189,7 +188,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var fieldGeburtstag = askOf(
                 stationId,
                 "Geburtstag",
-                ProfileFieldType.BIRTH_DATE,
+                FieldType.BIRTH_DATE,
                 "{\"overview\":true}",
                 true,
                 ProfileFieldScope.MEMBER,
@@ -202,25 +201,18 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var fieldAllergien = askOf(
                 stationId,
                 "Allergien",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 "{\"overview\":true,\"notifyOnChange\":true}",
                 ProfileFieldScope.MEMBER,
                 3);
-        var fieldLeistungsspange = askOf(
-                stationId, "Leistungsspange", ProfileFieldType.BOOLEAN, "{}", false, ProfileFieldScope.MEMBER, 4, true);
+        var fieldLeistungsspange =
+                askOf(stationId, "Leistungsspange", FieldType.BOOLEAN, "{}", false, ProfileFieldScope.MEMBER, 4, true);
         var fieldLeistungsspangeDatum = askOf(
-                stationId,
-                "Leistungsspange Datum",
-                ProfileFieldType.DATE,
-                "{}",
-                false,
-                ProfileFieldScope.MEMBER,
-                5,
-                true);
+                stationId, "Leistungsspange Datum", FieldType.DATE, "{}", false, ProfileFieldScope.MEMBER, 5, true);
         var fieldJugendflamme = askOf(
                 stationId,
                 "Jugendflamme",
-                ProfileFieldType.ENUM,
+                FieldType.CHOICE,
                 "{\"options\":[\"%s\",\"%s\",\"%s\",\"%s\"]}"
                         .formatted(
                                 NO_JUGENDFLAMME,
@@ -231,8 +223,8 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 ProfileFieldScope.MEMBER,
                 6,
                 true);
-        var fieldJugendflammeDatum = askOf(
-                stationId, "Jugendflamme Datum", ProfileFieldType.DATE, "{}", false, ProfileFieldScope.MEMBER, 7, true);
+        var fieldJugendflammeDatum =
+                askOf(stationId, "Jugendflamme Datum", FieldType.DATE, "{}", false, ProfileFieldScope.MEMBER, 7, true);
 
         // -- Users --
         // Betreuer (team role, in Betreuer group)
@@ -704,7 +696,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
      * @return the definition, so a caller can assign it to somebody else as well
      */
     private ProfileField askOf(
-            int stationId, String name, ProfileFieldType type, String config, ProfileFieldScope role, int position) {
+            int stationId, String name, FieldType type, String config, ProfileFieldScope role, int position) {
         return askOf(stationId, name, type, config, false, role, position, false);
     }
 
@@ -717,7 +709,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
     private ProfileField askOf(
             int stationId,
             String name,
-            ProfileFieldType type,
+            FieldType type,
             String config,
             boolean required,
             ProfileFieldScope role,

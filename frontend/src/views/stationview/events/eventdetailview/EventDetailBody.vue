@@ -25,9 +25,9 @@ import {isRecurringEvent} from '@/api/events'
 import type {
   AbsentMemberResponse,
   CancellationNotice,
-  EventField,
+  AppointmentField,
   EventRegistrationFieldValue,
-  RegistrationFieldResponse,
+  EventRegistrationField,
   RegistrationResponse,
   StationEvent,
 } from '@/api/generated/schema'
@@ -42,7 +42,7 @@ import {useSession} from '@/composables/useSession'
 const props = defineProps<{
   event: StationEvent
   eventId: number
-  fields: EventField[]
+  fields: AppointmentField[]
   allMembers: MemberLike[]
   reminders: number[]
   absentMembers: AbsentMemberResponse[]
@@ -70,7 +70,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   cancelled: []
   'answers-updated': []
-  'field-updated': [field: EventField]
+  'field-updated': [field: AppointmentField]
   register: [people: AnswerablePerson[]]
   decline: [people: AnswerablePerson[]]
   withdraw: [registrationId: number]
@@ -135,7 +135,7 @@ function toAttendance() {
  * opening again. Read here rather than in the sign-up list, because this block offers to correct an
  * answer long after it was given.
  */
-const registrationFields = ref<RegistrationFieldResponse[]>([])
+const registrationFields = ref<EventRegistrationField[]>([])
 
 onMounted(async () => {
   if (!props.event.requiresRegistration) return

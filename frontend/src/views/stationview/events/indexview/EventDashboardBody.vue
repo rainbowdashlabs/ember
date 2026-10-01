@@ -18,7 +18,7 @@ import type {
   DatedEvent,
   EventBreak,
   EventCategory,
-  EventField,
+  AppointmentField,
   EventSummary,
 } from '@/api/generated/schema'
 
@@ -36,7 +36,7 @@ const props = defineProps<{
   isEmpty: boolean
   categories: EventCategory[]
   templates: AttendanceTemplate[]
-  overviewFields: Record<number, EventField[]>
+  overviewFields: Record<number, AppointmentField[]>
   breaks: EventBreak[]
 }>()
 

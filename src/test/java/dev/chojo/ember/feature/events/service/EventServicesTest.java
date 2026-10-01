@@ -10,10 +10,9 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
 import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
@@ -319,9 +318,10 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(22)
     void aQuestionAddedAfterSigningUpLeavesTheRegistrationShortOfAnAnswer() {
         var fieldRepo = new EventRegistrationFieldRepository();
-        var required = new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false);
+        var required =
+                new EventQuestionSettings(null, null, null, null, null, false, false, true, null, null, null, false);
         fieldRepo.replaceFields(
-                eventId, List.of(new RegistrationFieldDraft("Allergies", FieldType.TEXT, required.settings(), false)));
+                eventId, List.of(new RegistrationFieldDraft("Allergies", FieldType.TEXT, required, false)));
 
         var owing = registrationService.findShortOfAnswer(List.of(member.id()));
         assertEquals(1, owing.size());
@@ -943,7 +943,7 @@ class EventServicesTest extends RepositoryTestBase {
         attendanceRepo.createTemplateField(
                 sheet.id(),
                 "Wetter",
-                AttendanceFieldType.ENUM,
+                FieldType.CHOICE,
                 AttendanceFieldConfig.parse("{\"options\":[\"trocken\",\"nass\"]}"),
                 0);
         int fieldId = attendanceRepo.findTemplateFields(sheet.id()).getFirst().id();
@@ -1993,7 +1993,7 @@ class EventServicesTest extends RepositoryTestBase {
     void resolveFieldDefaultsWithEventStartTime() {
         var template = attendanceRepo.createTemplate(station.id(), "StartTimeTemplate");
         attendanceRepo.createTemplateField(
-                template.id(), "StartField", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "StartField", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int fieldId = fields.getFirst().id();
 
@@ -2030,7 +2030,7 @@ class EventServicesTest extends RepositoryTestBase {
     void resolveFieldDefaultsWithEventEndTime() {
         var template = attendanceRepo.createTemplate(station.id(), "EndTimeTemplate");
         attendanceRepo.createTemplateField(
-                template.id(), "EndField", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "EndField", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int fieldId = fields.getFirst().id();
 
@@ -2069,7 +2069,7 @@ class EventServicesTest extends RepositoryTestBase {
         // resolveFieldDefaults returns empty map for non-existent events.
         var template = attendanceRepo.createTemplate(station.id(), "NullStartTemplate");
         attendanceRepo.createTemplateField(
-                template.id(), "NullStartField", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "NullStartField", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int fieldId = fields.getFirst().id();
 
@@ -2107,7 +2107,7 @@ class EventServicesTest extends RepositoryTestBase {
     void resolveFieldDefaultsWithNullEndTime() {
         var template = attendanceRepo.createTemplate(station.id(), "NullEndTemplate");
         attendanceRepo.createTemplateField(
-                template.id(), "NullEndField", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "NullEndField", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int fieldId = fields.getFirst().id();
 
@@ -2447,9 +2447,9 @@ class EventServicesTest extends RepositoryTestBase {
         // Create an attendance template with two fields
         var template = attendanceRepo.createTemplate(station.id(), "EventDefaultTemplate");
         attendanceRepo.createTemplateField(
-                template.id(), "FieldA", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "FieldA", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         attendanceRepo.createTemplateField(
-                template.id(), "FieldB", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+                template.id(), "FieldB", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         var fields = attendanceRepo.findTemplateFields(template.id());
         assertFalse(fields.isEmpty());
         int fieldAId = fields.get(0).id();
@@ -2494,7 +2494,7 @@ class EventServicesTest extends RepositoryTestBase {
         // Using an unknown source type - should be skipped (returns null, not added to result)
         var template = attendanceRepo.createTemplate(station.id(), "EventDefaultTemplate2");
         attendanceRepo.createTemplateField(
-                template.id(), "TestField2", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "TestField2", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int attendanceFieldId = fields.getFirst().id();
 
@@ -2531,7 +2531,7 @@ class EventServicesTest extends RepositoryTestBase {
     void resolveFieldDefaultsWithEventDescriptionSource() {
         var template = attendanceRepo.createTemplate(station.id(), "EventDefaultTemplate3");
         attendanceRepo.createTemplateField(
-                template.id(), "TestField3", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "TestField3", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int attendanceFieldId = fields.getFirst().id();
 

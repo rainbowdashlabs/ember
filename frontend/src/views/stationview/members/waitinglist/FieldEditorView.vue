@@ -13,7 +13,8 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type { WaitingList, WaitingListField, WaitingListFieldConfig } from '@/api/generated/schema'
 import { waitingList } from '@/api'
-import { isWaitingListFieldType } from '@/api/waitingList'
+import { FieldTypes, type FieldTypeName } from '@/api/fieldTypes'
+import type { QuestionSettingsModel } from '@/components/input/questionsettings/questionSettings'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useConfirmAction } from '@/composables/useConfirmAction'
@@ -35,25 +36,9 @@ const fields = ref<WaitingListField[]>([])
 const showFieldModal = ref(false)
 const editingField = ref<WaitingListField | null>(null)
 const fieldName = ref('')
-const fieldType = ref('TEXT')
-const fieldRequired = ref(false)
+const fieldType = ref<FieldTypeName>(FieldTypes.TEXT)
+const fieldSettings = ref<QuestionSettingsModel>({})
 const fieldPublic = ref(true)
-const fieldEnumOptions = ref<string[]>([])
-
-const fieldTypes = ['TEXT', 'NUMBER', 'DATE', 'BIRTH_DATE', 'BOOLEAN', 'ENUM'] as const
-
-const fieldTypeLabels: Record<string, string> = {
-  TEXT: t('waitingList.typeText'),
-  NUMBER: t('waitingList.typeNumber'),
-  DATE: t('waitingList.typeDate'),
-  BOOLEAN: t('waitingList.typeBoolean'),
-  ENUM: t('waitingList.typeEnum'),
-  BIRTH_DATE: t('waitingList.typeBirthDate'),
-}
-
-function fieldTypeLabel(ft: string): string {
-  return fieldTypeLabels[ft] ?? ft
-}
 
 const sortedFields = computed(() =>
   [...fields.value].sort((a, b) => a.position - b.position),
@@ -80,10 +65,9 @@ const {loading, failure} = useAsyncLoader(async () => {
 function openAddField() {
   editingField.value = null
   fieldName.value = ''
-  fieldType.value = 'TEXT'
-  fieldRequired.value = false
+  fieldType.value = FieldTypes.TEXT
+  fieldSettings.value = {}
   fieldPublic.value = true
-  fieldEnumOptions.value = []
   showFieldModal.value = true
 }
 
@@ -91,28 +75,26 @@ function openEditField(field: WaitingListField) {
   editingField.value = field
   fieldName.value = field.name
   fieldType.value = field.fieldType
-  fieldRequired.value = field.required
+  fieldSettings.value = {required: field.required, options: [...(field.config?.options ?? [])]}
   fieldPublic.value = field.isPublic ?? true
-  fieldEnumOptions.value = [...(field.config?.options ?? [])]
   showFieldModal.value = true
 }
 
 function buildConfig(): WaitingListFieldConfig {
-  const options = usableOptions(fieldEnumOptions.value)
-  if (fieldType.value !== 'ENUM' || options.length === 0) return {}
+  const options = usableOptions(fieldSettings.value.options ?? [])
+  if (fieldType.value !== FieldTypes.CHOICE || options.length === 0) return {}
   return {options}
 }
 
 const { running: savingField, failure: saveFieldFailure, run: saveField } = useAsyncAction(async () => {
-  const type = fieldType.value
-  if (!fieldName.value.trim() || !isWaitingListFieldType(type)) return
+  if (!fieldName.value.trim()) return
   failure.value = null
   const data = {
     name: fieldName.value.trim(),
-    fieldType: type,
+    fieldType: fieldType.value,
     config: buildConfig(),
     position: editingField.value?.position ?? fields.value.length,
-    required: fieldRequired.value,
+    required: fieldSettings.value.required ?? false,
     isPublic: fieldPublic.value,
   }
   if (editingField.value) {
@@ -197,7 +179,6 @@ function goBack() {
         v-if="!loading && list"
         :list-name="list.name"
         :fields="fields"
-        :field-type-label="fieldTypeLabel"
         @add="openAddField"
         @edit="openEditField"
         @delete="requestDelete"
@@ -208,12 +189,9 @@ function goBack() {
         v-model="showFieldModal"
         v-model:field-name="fieldName"
         v-model:field-type="fieldType"
-        v-model:field-required="fieldRequired"
+        v-model:field-settings="fieldSettings"
         v-model:field-public="fieldPublic"
-        v-model:field-enum-options="fieldEnumOptions"
         :is-edit="!!editingField"
-        :field-types="fieldTypes"
-        :field-type-label="fieldTypeLabel"
         :saving="savingField"
         @save="saveField"
       />

@@ -7,14 +7,12 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -165,7 +163,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         attendanceRepository.createTemplateField(
                 templateUebung.id(),
                 "Thema",
-                AttendanceFieldType.STRING,
+                FieldType.TEXT,
                 AttendanceFieldConfig.parse("{\"defaultValue\":\"Grundausbildung\"}"),
                 0);
 
@@ -878,31 +876,33 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                         new RegistrationFieldDraft(
                                 "Shirtgröße",
                                 FieldType.CHOICE,
-                                new EventRegistrationFieldConfig(
-                                                true,
-                                                "M",
-                                                List.of("XS", "S", "M", "L", "XL", "XXL"),
-                                                null,
-                                                null,
-                                                null,
-                                                null,
-                                                null,
-                                                false)
-                                        .settings(),
+                                new EventQuestionSettings(
+                                        List.of("XS", "S", "M", "L", "XL", "XXL"),
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        false,
+                                        false,
+                                        true,
+                                        "M",
+                                        null,
+                                        null,
+                                        false),
                                 true),
                         new RegistrationFieldDraft(
                                 "Begleitpersonen",
                                 FieldType.NUMBER,
-                                new EventRegistrationFieldConfig(false, "0", null, 0, 5, null, null, null, false)
-                                        .settings(),
+                                new EventQuestionSettings(
+                                        null, null, null, null, null, false, false, false, "0", 0, 5, false),
                                 true),
                         new RegistrationFieldDraft(
                                 "Anmerkungen", FieldType.LONG_TEXT, EventQuestionSettings.empty(), false),
                         new RegistrationFieldDraft(
                                 "Startnummer",
                                 FieldType.TEXT,
-                                new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, true)
-                                        .settings(),
+                                new EventQuestionSettings(
+                                        null, null, null, null, null, false, false, false, null, null, null, true),
                                 true)));
 
         var fields = registrationFieldService.findByEvent(marathon.id());

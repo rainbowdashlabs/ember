@@ -13,11 +13,11 @@ import dev.chojo.ember.feature.form.service.FormResultQuery.ResultGrouping;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.question.FieldType;
 import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,10 +61,10 @@ class FormResultGroupingTest {
         var fields = mock(ProfileFieldRepository.class);
         when(fields.findByStation(STATION))
                 .thenReturn(List.of(
-                        field(SHIRT, ProfileFieldType.ENUM, List.of("S", "M", "L")),
-                        field(FIRST_AID, ProfileFieldType.BOOLEAN, null),
-                        field(YEARS, ProfileFieldType.NUMBER, null),
-                        field(40, ProfileFieldType.TEXT, null)));
+                        field(SHIRT, FieldType.CHOICE, List.of("S", "M", "L")),
+                        field(FIRST_AID, FieldType.BOOLEAN, null),
+                        field(YEARS, FieldType.NUMBER, null),
+                        field(40, FieldType.TEXT, null)));
         grouping = new FormResultGrouping(groups, tags, fields);
     }
 
@@ -196,7 +196,7 @@ class FormResultGroupingTest {
         return buckets.stream().map(Bucket::key).toList();
     }
 
-    private static ProfileField field(int id, ProfileFieldType type, List<String> options) {
+    private static ProfileField field(int id, FieldType type, List<String> options) {
         var config = new ProfileFieldConfig(
                 null, false, false, options, null, false, null, null, null, null, null, null, null, null, null);
         return new ProfileField(id, STATION, "Feld " + id, type, config, false, false, null, false);

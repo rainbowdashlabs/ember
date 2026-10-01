@@ -16,7 +16,7 @@ import type {
   AttendanceTemplate,
   CancellationNotice,
   EventCategory,
-  EventField,
+  AppointmentField,
   ManagedMember,
   MemberCompletion,
   RegistrationResponse,
@@ -54,7 +54,7 @@ const focusedDate = computed(() => {
 const event = ref<StationEvent | null>(null)
 const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
-const fields = ref<EventField[]>([])
+const fields = ref<AppointmentField[]>([])
 const reminders = ref<number[]>([])
 const absentMembers = ref<AbsentMemberResponse[]>([])
 const managedMembers = ref<ManagedMember[]>([])
@@ -253,7 +253,7 @@ async function onEventCancelled() {
   await reload()
 }
 
-function onFieldUpdated(field: EventField) {
+function onFieldUpdated(field: AppointmentField) {
   const i = fields.value.findIndex(f => f.id === field.id)
   if (i >= 0) fields.value.splice(i, 1, field)
 }

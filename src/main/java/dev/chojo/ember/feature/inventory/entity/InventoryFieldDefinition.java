@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionSettings;
 import org.jspecify.annotations.Nullable;
@@ -59,7 +60,7 @@ public record InventoryFieldDefinition(
     public Question question() {
         return settings()
                 .withRequired(required)
-                .asQuestion(label, fieldType.fieldType())
+                .asQuestion(label, fieldType)
                 .orElseThrow(() -> new IllegalStateException("Every inventory field holds a value: " + fieldType));
     }
 
@@ -82,7 +83,7 @@ public record InventoryFieldDefinition(
      */
     public static RowMapping<InventoryFieldDefinition> map() {
         return row -> {
-            FieldType type = FieldType.stored(row.getString("field_type"));
+            FieldType type = FieldType.valueOf(row.getString("field_type"));
             return new InventoryFieldDefinition(
                     row.getInt("id"),
                     row.getInt("inventory_id"),

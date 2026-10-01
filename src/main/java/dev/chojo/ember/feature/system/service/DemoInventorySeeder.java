@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.system.service;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
-import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainer;
@@ -31,6 +30,7 @@ import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -771,7 +771,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                 new FieldConfig.EnumConfig.EnumOption("good", "Gut"),
                 new FieldConfig.EnumConfig.EnumOption("worn", "Abgenutzt")));
         fieldDefinitionService.create(stiefelId, "last_service", "Letzter Service", FieldType.DATE, false, 10, null);
-        fieldDefinitionService.create(stiefelId, "condition", "Zustand", FieldType.ENUM, false, 20, condition);
+        fieldDefinitionService.create(stiefelId, "condition", "Zustand", FieldType.CHOICE, false, 20, condition);
         fieldDefinitionService.create(stiefelId, "notes", "Notizen", FieldType.TEXT, false, 30, null);
         fieldDefinitionService.create(
                 stiefelId,

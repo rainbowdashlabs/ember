@@ -7,7 +7,7 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import ProfileFieldsLayout, {type LaidOutField} from './ProfileFieldsLayout.vue'
-import {FieldTypes} from '@/api/profileFields'
+import {FieldTypes} from '@/api/fieldTypes'
 
 /**
  * The form a member's answers are given on.

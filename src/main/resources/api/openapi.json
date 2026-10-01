@@ -7657,7 +7657,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/BoardField"
+                    "$ref" : "#/components/schemas/BoardFieldDefinition"
                   }
                 }
               }
@@ -7684,8 +7684,18 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/BoardField"
+                    "$ref" : "#/components/schemas/BoardFieldDefinition"
                   }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
                 }
               }
             }
@@ -8968,6 +8978,16 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -13585,8 +13605,18 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/EventTemplateField"
+                    "$ref" : "#/components/schemas/AppointmentTemplateField"
                   }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
                 }
               }
             }
@@ -13634,8 +13664,18 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/EventTemplateRegistrationField"
+                    "$ref" : "#/components/schemas/RegistrationTemplateField"
                   }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
                 }
               }
             }
@@ -15416,7 +15456,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/EventField"
+                  "$ref" : "#/components/schemas/AppointmentField"
                 }
               }
             }
@@ -15457,7 +15497,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/EventField"
+                  "$ref" : "#/components/schemas/AppointmentField"
                 }
               }
             }
@@ -15559,7 +15599,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/RegistrationFieldResponse"
+                    "$ref" : "#/components/schemas/EventRegistrationField"
                   }
                 }
               }
@@ -16529,7 +16569,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/EventField"
+                    "$ref" : "#/components/schemas/AppointmentField"
                   }
                 }
               }
@@ -16563,8 +16603,18 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/EventField"
+                    "$ref" : "#/components/schemas/AppointmentField"
                   }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
                 }
               }
             }
@@ -16992,7 +17042,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/BoardField"
+                    "$ref" : "#/components/schemas/BoardFieldDefinition"
                   }
                 }
               }
@@ -18704,7 +18754,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/RemoteEventDetail"
+                  "$ref" : "#/components/schemas/PartnerEventDetail"
                 }
               }
             }
@@ -41175,6 +41225,86 @@
           }
         }
       },
+      "AppointmentField" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "fieldType" : {
+            "$ref" : "#/components/schemas/FieldType"
+          },
+          "config" : {
+            "$ref" : "#/components/schemas/EventQuestionSettings"
+          },
+          "value" : {
+            "type" : "string"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "overview" : {
+            "type" : "boolean"
+          },
+          "attendanceFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "isPublic" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "eventId", "name", "fieldType", "config", "value", "position", "overview", "attendanceFieldId", "isPublic" ]
+      },
+      "AppointmentTemplateField" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "fieldType" : {
+            "$ref" : "#/components/schemas/FieldType"
+          },
+          "config" : {
+            "$ref" : "#/components/schemas/EventQuestionSettings"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "overview" : {
+            "type" : "boolean"
+          },
+          "isPublic" : {
+            "type" : "boolean"
+          },
+          "attendanceFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "defaultValue" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "templateId", "name", "fieldType", "config", "position", "overview", "isPublic", "attendanceFieldId", "defaultValue" ]
+      },
       "ApprovalCandidate" : {
         "type" : "object",
         "properties" : {
@@ -41434,10 +41564,6 @@
         },
         "required" : [ "required", "groupId", "autoAttend", "options", "defaultValue", "width" ]
       },
-      "AttendanceFieldType" : {
-        "type" : "string",
-        "enum" : [ "STRING", "NUMBER", "DATE", "TIME", "BOOLEAN", "ENUM", "URL", "TEXTAREA", "MEMBER", "MEMBER_LIST", "MEMBER_OF_GROUP", "MEMBER_LIST_OF_GROUP" ]
-      },
       "AttendanceFieldValueEntry" : {
         "type" : "object",
         "properties" : {
@@ -41625,7 +41751,7 @@
             "type" : "string"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/AttendanceFieldType"
+            "$ref" : "#/components/schemas/FieldType"
           },
           "config" : {
             "$ref" : "#/components/schemas/AttendanceFieldConfig"
@@ -42037,14 +42163,14 @@
           },
           "fieldType" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/EventFieldType"
+              "$ref" : "#/components/schemas/FieldType"
             }, {
               "type" : "null"
             } ]
           },
           "config" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/EventFieldConfig"
+              "$ref" : "#/components/schemas/EventQuestionSettings"
             }, {
               "type" : "null"
             } ]
@@ -42608,7 +42734,16 @@
         },
         "required" : [ "id", "ticketId", "parentId", "author", "content", "deleted", "createdAt", "updatedAt" ]
       },
-      "BoardField" : {
+      "BoardFieldConfig" : {
+        "oneOf" : [ {
+          "$ref" : "#/components/schemas/Enum"
+        }, {
+          "$ref" : "#/components/schemas/LaneAssignee"
+        }, {
+          "$ref" : "#/components/schemas/Simple"
+        } ]
+      },
+      "BoardFieldDefinition" : {
         "type" : "object",
         "properties" : {
           "id" : {
@@ -42623,7 +42758,7 @@
             "type" : "string"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/BoardFieldType"
+            "$ref" : "#/components/schemas/FieldType"
           },
           "config" : {
             "$ref" : "#/components/schemas/BoardFieldConfig"
@@ -42634,43 +42769,6 @@
           }
         },
         "required" : [ "id", "boardId", "name", "fieldType", "config", "position" ]
-      },
-      "BoardFieldConfig" : {
-        "oneOf" : [ {
-          "$ref" : "#/components/schemas/Enum"
-        }, {
-          "$ref" : "#/components/schemas/LaneAssignee"
-        }, {
-          "$ref" : "#/components/schemas/Simple"
-        } ]
-      },
-      "BoardFieldConfigByType" : {
-        "type" : "object",
-        "properties" : {
-          "STRING" : {
-            "$ref" : "#/components/schemas/Simple"
-          },
-          "NUMBER" : {
-            "$ref" : "#/components/schemas/Simple"
-          },
-          "BOOLEAN" : {
-            "$ref" : "#/components/schemas/Simple"
-          },
-          "ENUM" : {
-            "$ref" : "#/components/schemas/Enum"
-          },
-          "DATE" : {
-            "$ref" : "#/components/schemas/Simple"
-          },
-          "LANE_ASSIGNEE" : {
-            "$ref" : "#/components/schemas/LaneAssignee"
-          }
-        },
-        "required" : [ "STRING", "NUMBER", "BOOLEAN", "ENUM", "DATE", "LANE_ASSIGNEE" ]
-      },
-      "BoardFieldType" : {
-        "type" : "string",
-        "enum" : [ "STRING", "NUMBER", "BOOLEAN", "ENUM", "DATE", "LANE_ASSIGNEE" ]
       },
       "BoardFieldValue" : {
         "oneOf" : [ {
@@ -42686,30 +42784,6 @@
         }, {
           "$ref" : "#/components/schemas/StringValue"
         } ]
-      },
-      "BoardFieldValueByType" : {
-        "type" : "object",
-        "properties" : {
-          "STRING" : {
-            "$ref" : "#/components/schemas/StringValue"
-          },
-          "NUMBER" : {
-            "$ref" : "#/components/schemas/NumberValue"
-          },
-          "BOOLEAN" : {
-            "$ref" : "#/components/schemas/BooleanValue"
-          },
-          "ENUM" : {
-            "$ref" : "#/components/schemas/EnumValue"
-          },
-          "DATE" : {
-            "$ref" : "#/components/schemas/DateValue"
-          },
-          "LANE_ASSIGNEE" : {
-            "$ref" : "#/components/schemas/LaneAssigneeValue"
-          }
-        },
-        "required" : [ "STRING", "NUMBER", "BOOLEAN", "ENUM", "DATE", "LANE_ASSIGNEE" ]
       },
       "BoardLabel" : {
         "type" : "object",
@@ -42907,7 +42981,7 @@
             "format" : "int32"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/BoardFieldType"
+            "$ref" : "#/components/schemas/FieldType"
           },
           "value" : {
             "anyOf" : [ {
@@ -44311,7 +44385,7 @@
             "type" : "string"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/ProfileFieldType"
+            "$ref" : "#/components/schemas/FieldType"
           },
           "config" : {
             "$ref" : "#/components/schemas/ProfileFieldConfig"
@@ -47804,7 +47878,7 @@
         "properties" : {
           "kind" : {
             "type" : "string",
-            "enum" : [ "ENUM" ]
+            "enum" : [ "CHOICE" ]
           },
           "options" : {
             "type" : "array",
@@ -48254,78 +48328,6 @@
         },
         "required" : [ "id", "eventId", "partnerId", "remoteMemberId", "eventDate", "status", "createdAt", "standing" ]
       },
-      "EventField" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "eventId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "fieldType" : {
-            "$ref" : "#/components/schemas/EventFieldType"
-          },
-          "config" : {
-            "$ref" : "#/components/schemas/EventFieldConfig"
-          },
-          "value" : {
-            "type" : "string"
-          },
-          "position" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "overview" : {
-            "type" : "boolean"
-          },
-          "attendanceFieldId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "isPublic" : {
-            "type" : "boolean"
-          }
-        },
-        "required" : [ "id", "eventId", "name", "fieldType", "config", "value", "position", "overview", "attendanceFieldId", "isPublic" ]
-      },
-      "EventFieldConfig" : {
-        "type" : "object",
-        "properties" : {
-          "options" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string"
-            }
-          },
-          "groupId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "userType" : {
-            "$ref" : "#/components/schemas/StationUserType"
-          },
-          "tagId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "selfRegistration" : {
-            "type" : "boolean"
-          },
-          "width" : {
-            "type" : "string"
-          },
-          "perDate" : {
-            "type" : "boolean"
-          }
-        },
-        "required" : [ "selfRegistration", "perDate" ]
-      },
       "EventFieldDefault" : {
         "type" : "object",
         "properties" : {
@@ -48358,14 +48360,14 @@
           },
           "fieldType" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/EventFieldType"
+              "$ref" : "#/components/schemas/FieldType"
             }, {
               "type" : "null"
             } ]
           },
           "config" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/EventFieldConfig"
+              "$ref" : "#/components/schemas/EventQuestionSettings"
             }, {
               "type" : "null"
             } ]
@@ -48385,10 +48387,6 @@
           }
         }
       },
-      "EventFieldType" : {
-        "type" : "string",
-        "enum" : [ "STRING", "NUMBER", "DATE", "TIME", "BOOLEAN", "ENUM", "URL", "TEXTAREA", "LOCATION", "MEMBER", "MEMBER_LIST", "MEMBER_OF_GROUP", "MEMBER_LIST_OF_GROUP", "MEMBER_OF_TYPE", "MEMBER_LIST_OF_TYPE", "MEMBER_OF_TAG", "MEMBER_LIST_OF_TAG" ]
-      },
       "EventItem" : {
         "type" : "object",
         "properties" : {
@@ -48405,6 +48403,55 @@
             "type" : "string"
           }
         }
+      },
+      "EventQuestionSettings" : {
+        "type" : "object",
+        "properties" : {
+          "options" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "groupId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "userType" : {
+            "$ref" : "#/components/schemas/StationUserType"
+          },
+          "tagId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "width" : {
+            "type" : "string"
+          },
+          "selfRegistration" : {
+            "type" : "boolean"
+          },
+          "perDate" : {
+            "type" : "boolean"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "defaultValue" : {
+            "type" : "string"
+          },
+          "min" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "max" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "managersOnly" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "selfRegistration", "perDate", "required", "managersOnly" ]
       },
       "EventRegisterRequest" : {
         "type" : "object",
@@ -48468,45 +48515,35 @@
         },
         "required" : [ "id", "eventId", "memberId", "eventDate", "status", "createdAt", "createdBy", "statusChangedAt", "previousStatus", "fromField" ]
       },
-      "EventRegistrationFieldConfig" : {
+      "EventRegistrationField" : {
         "type" : "object",
         "properties" : {
-          "required" : {
-            "type" : "boolean"
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
           },
-          "defaultValue" : {
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
             "type" : "string"
           },
-          "options" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string"
-            }
+          "fieldType" : {
+            "$ref" : "#/components/schemas/FieldType"
           },
-          "min" : {
+          "config" : {
+            "$ref" : "#/components/schemas/EventQuestionSettings"
+          },
+          "position" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "max" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "groupId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "userType" : {
-            "$ref" : "#/components/schemas/StationUserType"
-          },
-          "tagId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "managersOnly" : {
+          "overview" : {
             "type" : "boolean"
           }
         },
-        "required" : [ "required", "managersOnly" ]
+        "required" : [ "id", "eventId", "name", "fieldType", "config", "position", "overview" ]
       },
       "EventRegistrationFieldValue" : {
         "type" : "object",
@@ -48786,46 +48823,6 @@
         },
         "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadlineOffset", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit" ]
       },
-      "EventTemplateField" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "templateId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "fieldType" : {
-            "$ref" : "#/components/schemas/EventFieldType"
-          },
-          "config" : {
-            "$ref" : "#/components/schemas/EventFieldConfig"
-          },
-          "position" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "overview" : {
-            "type" : "boolean"
-          },
-          "isPublic" : {
-            "type" : "boolean"
-          },
-          "attendanceFieldId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "defaultValue" : {
-            "type" : [ "string", "null" ]
-          }
-        },
-        "required" : [ "id", "templateId", "name", "fieldType", "config", "position", "overview", "isPublic", "attendanceFieldId", "defaultValue" ]
-      },
       "EventTemplateFieldData" : {
         "type" : "object",
         "properties" : {
@@ -48833,11 +48830,15 @@
             "type" : "string"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/EventFieldType"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FieldType"
+            }, {
+              "type" : "null"
+            } ]
           },
           "config" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/EventFieldConfig"
+              "$ref" : "#/components/schemas/EventQuestionSettings"
             }, {
               "type" : "null"
             } ]
@@ -48860,36 +48861,6 @@
             "type" : [ "string", "null" ]
           }
         }
-      },
-      "EventTemplateRegistrationField" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "templateId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "fieldType" : {
-            "$ref" : "#/components/schemas/EventFieldType"
-          },
-          "config" : {
-            "$ref" : "#/components/schemas/EventRegistrationFieldConfig"
-          },
-          "position" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "overview" : {
-            "type" : "boolean"
-          }
-        },
-        "required" : [ "id", "templateId", "name", "fieldType", "config", "position", "overview" ]
       },
       "EventType" : {
         "type" : "string",
@@ -49644,7 +49615,7 @@
           "mapping" : {
             "BOOLEAN" : "#/components/schemas/BooleanConfig",
             "DATE" : "#/components/schemas/DateConfig",
-            "ENUM" : "#/components/schemas/EnumConfig",
+            "CHOICE" : "#/components/schemas/EnumConfig",
             "NUMBER" : "#/components/schemas/NumberConfig",
             "TEXT" : "#/components/schemas/TextConfig"
           }
@@ -49734,14 +49705,14 @@
             "type" : "string"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/BoardFieldType"
+            "$ref" : "#/components/schemas/FieldType"
           },
           "config" : { }
         }
       },
       "FieldType" : {
         "type" : "string",
-        "enum" : [ "DATE", "ENUM", "TEXT", "NUMBER", "BOOLEAN" ]
+        "enum" : [ "TEXT", "LONG_TEXT", "NUMBER", "DATE", "TIME", "BOOLEAN", "CHOICE", "URL", "MEMBER", "MEMBER_LIST", "BIRTH_DATE", "EXPIRY_DATE", "AGE", "SECTION", "SPACER", "LOCATION", "MEMBER_OF_GROUP", "MEMBER_LIST_OF_GROUP", "MEMBER_OF_TYPE", "MEMBER_LIST_OF_TYPE", "MEMBER_OF_TAG", "MEMBER_LIST_OF_TAG", "LANE_ASSIGNEE" ]
       },
       "FieldUpdateRequest" : {
         "type" : "object",
@@ -49778,7 +49749,7 @@
           "mapping" : {
             "BOOLEAN" : "#/components/schemas/ItemBooleanValue",
             "DATE" : "#/components/schemas/ItemDateValue",
-            "ENUM" : "#/components/schemas/ItemEnumValue",
+            "CHOICE" : "#/components/schemas/ItemEnumValue",
             "NUMBER" : "#/components/schemas/ItemNumberValue",
             "TEXT" : "#/components/schemas/ItemTextValue"
           }
@@ -53233,7 +53204,7 @@
         "properties" : {
           "kind" : {
             "type" : "string",
-            "enum" : [ "ENUM" ]
+            "enum" : [ "CHOICE" ]
           },
           "value" : {
             "type" : "string"
@@ -56731,7 +56702,7 @@
             "type" : "string"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/ProfileFieldType"
+            "$ref" : "#/components/schemas/FieldType"
           },
           "config" : {
             "$ref" : "#/components/schemas/ProfileFieldConfig"
@@ -58690,6 +58661,28 @@
         },
         "required" : [ "headers", "rows" ]
       },
+      "PartnerEventDetail" : {
+        "type" : "object",
+        "properties" : {
+          "event" : {
+            "$ref" : "#/components/schemas/SharedEvent"
+          },
+          "publicFields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AppointmentField"
+            }
+          },
+          "places" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RemotePlaces"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "event", "publicFields", "places" ]
+      },
       "PartnerPlacesView" : {
         "type" : "object",
         "properties" : {
@@ -59849,7 +59842,7 @@
             "type" : "string"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/ProfileFieldType"
+            "$ref" : "#/components/schemas/FieldType"
           },
           "config" : {
             "$ref" : "#/components/schemas/ProfileFieldConfig"
@@ -60059,7 +60052,7 @@
             "type" : "string"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/ProfileFieldType"
+            "$ref" : "#/components/schemas/FieldType"
           },
           "config" : {
             "$ref" : "#/components/schemas/ProfileFieldConfig"
@@ -60085,10 +60078,6 @@
       "ProfileFieldTarget" : {
         "type" : "string",
         "enum" : [ "ROLE", "GROUP" ]
-      },
-      "ProfileFieldType" : {
-        "type" : "string",
-        "enum" : [ "TEXT", "NUMBER", "DATE", "BOOLEAN", "ENUM", "AGE", "BIRTH_DATE", "EXPIRY_DATE", "SECTION", "SPACER" ]
       },
       "ProfileFieldValue" : {
         "type" : "object",
@@ -60487,7 +60476,7 @@
           "publicFields" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/EventField"
+              "$ref" : "#/components/schemas/AppointmentField"
             }
           },
           "cancelled" : {
@@ -60542,7 +60531,7 @@
           "publicFields" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/EventField"
+              "$ref" : "#/components/schemas/AppointmentField"
             }
           },
           "cancelled" : {
@@ -62504,11 +62493,15 @@
             "type" : "string"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/EventFieldType"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FieldType"
+            }, {
+              "type" : "null"
+            } ]
           },
           "config" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/EventRegistrationFieldConfig"
+              "$ref" : "#/components/schemas/EventQuestionSettings"
             }, {
               "type" : "null"
             } ]
@@ -62528,28 +62521,6 @@
             }
           }
         }
-      },
-      "RegistrationFieldResponse" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "fieldType" : {
-            "$ref" : "#/components/schemas/EventFieldType"
-          },
-          "config" : {
-            "$ref" : "#/components/schemas/EventRegistrationFieldConfig"
-          },
-          "overview" : {
-            "type" : "boolean"
-          }
-        },
-        "required" : [ "id", "name", "fieldType", "config", "overview" ]
       },
       "RegistrationFieldsRequest" : {
         "type" : "object",
@@ -62678,6 +62649,36 @@
             }
           }
         }
+      },
+      "RegistrationTemplateField" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "fieldType" : {
+            "$ref" : "#/components/schemas/FieldType"
+          },
+          "config" : {
+            "$ref" : "#/components/schemas/EventQuestionSettings"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "overview" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "templateId", "name", "fieldType", "config", "position", "overview" ]
       },
       "RegistrationUpdateItem" : {
         "type" : "object",
@@ -62816,28 +62817,6 @@
           }
         },
         "required" : [ "catalog", "categories", "questions" ]
-      },
-      "RemoteEventDetail" : {
-        "type" : "object",
-        "properties" : {
-          "event" : {
-            "$ref" : "#/components/schemas/SharedEvent"
-          },
-          "publicFields" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/EventField"
-            }
-          },
-          "places" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/RemotePlaces"
-            }, {
-              "type" : "null"
-            } ]
-          }
-        },
-        "required" : [ "event", "publicFields", "places" ]
       },
       "RemoteKbFile" : {
         "type" : "object",
@@ -67904,7 +67883,7 @@
           "fields" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/EventTemplateField"
+              "$ref" : "#/components/schemas/AppointmentTemplateField"
             }
           },
           "restriction" : {
@@ -67920,7 +67899,7 @@
           "registrationFields" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/EventTemplateRegistrationField"
+              "$ref" : "#/components/schemas/RegistrationTemplateField"
             }
           }
         },
@@ -67933,7 +67912,7 @@
             "type" : "string"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/AttendanceFieldType"
+            "$ref" : "#/components/schemas/FieldType"
           },
           "config" : {
             "$ref" : "#/components/schemas/AttendanceFieldConfig"
@@ -69865,7 +69844,7 @@
             "type" : "string"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/WaitingListFieldType"
+            "$ref" : "#/components/schemas/FieldType"
           },
           "config" : {
             "$ref" : "#/components/schemas/WaitingListFieldConfig"
@@ -69904,7 +69883,7 @@
             "type" : "string"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/WaitingListFieldType"
+            "$ref" : "#/components/schemas/FieldType"
           },
           "config" : {
             "anyOf" : [ {
@@ -69924,10 +69903,6 @@
             "type" : [ "boolean", "null" ]
           }
         }
-      },
-      "WaitingListFieldType" : {
-        "type" : "string",
-        "enum" : [ "TEXT", "NUMBER", "DATE", "BOOLEAN", "ENUM", "BIRTH_DATE" ]
       },
       "WaitingListGuardianRequest" : {
         "type" : "object",

@@ -5,41 +5,37 @@
  */
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
-import NumberInput from '@/components/input/number/NumberInput.vue'
+import LabelledField from '@/components/input/LabelledField.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import QuestionBoundsEditor from '@/components/input/questionsettings/QuestionBoundsEditor.vue'
 import type {NumberConfig} from '@/api/generated/schema'
 
-const props = defineProps<{
-    config: NumberConfig
-}>()
+/**
+ * The bounds and the step of a number on a piece of equipment, written the way every number field
+ * writes them, and the unit, which is this feature's own.
+ */
+const config = defineModel<NumberConfig>('config', {required: true})
 
 const {t} = useI18n()
 
-const writable = props.config as {
-    min: number | undefined
-    max: number | undefined
-    step: number | undefined
-    unit: string
+function update(patch: Partial<NumberConfig>) {
+    config.value = {...config.value, ...patch}
 }
 </script>
 
 <template>
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mt-3">
-        <label class="flex flex-col gap-1 text-sm">
-            <span>{{ t('inventory.fields.number.min') }}</span>
-            <NumberInput v-model="writable.min" />
-        </label>
-        <label class="flex flex-col gap-1 text-sm">
-            <span>{{ t('inventory.fields.number.max') }}</span>
-            <NumberInput v-model="writable.max" />
-        </label>
-        <label class="flex flex-col gap-1 text-sm">
-            <span>{{ t('inventory.fields.number.step') }}</span>
-            <NumberInput v-model="writable.step" />
-        </label>
-        <label class="flex flex-col gap-1 text-sm">
-            <span>{{ t('inventory.fields.number.unit') }}</span>
-            <TextInput v-model="writable.unit" />
-        </label>
+    <div class="flex flex-wrap items-start gap-4 mt-3">
+        <QuestionBoundsEditor
+            :max="config.max"
+            :min="config.min"
+            :step="config.step"
+            with-step
+            @update:max="max => update({max: max ?? null})"
+            @update:min="min => update({min: min ?? null})"
+            @update:step="step => update({step: step ?? null})"
+        />
+        <LabelledField :label="t('inventory.fields.number.unit')" class="w-32">
+            <TextInput :model-value="config.unit" @update:model-value="unit => update({unit: String(unit ?? '')})"/>
+        </LabelledField>
     </div>
 </template>

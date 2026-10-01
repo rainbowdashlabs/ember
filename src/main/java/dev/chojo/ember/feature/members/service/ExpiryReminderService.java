@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.members.entity.ExpirySettings;
 import dev.chojo.ember.feature.members.entity.ExpiryState;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.SentExpiryReminder;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -28,6 +27,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
@@ -161,10 +161,10 @@ public class ExpiryReminderService implements TaskSource {
     }
 
     private List<ExpiryField> expiryFields() {
-        var ofStations = profileFieldRepository.findAllByType(ProfileFieldType.EXPIRY_DATE).stream()
+        var ofStations = profileFieldRepository.findAllByType(FieldType.EXPIRY_DATE).stream()
                 .map(field -> new ExpiryField(
                         FieldOrigin.STATION, field.id(), field.name(), field.config(), field.stationId()));
-        var ofClusters = clusterFieldRepository.findAllByType(ProfileFieldType.EXPIRY_DATE).stream()
+        var ofClusters = clusterFieldRepository.findAllByType(FieldType.EXPIRY_DATE).stream()
                 .map(field -> new ExpiryField(
                         FieldOrigin.CLUSTER, field.id(), field.name(), field.config(), field.clusterId()));
         return Stream.concat(ofStations, ofClusters).toList();

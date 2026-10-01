@@ -17,8 +17,9 @@ import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -292,13 +293,16 @@ public class ClusterFieldRoutes implements Routes {
         return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_FIELDS::raise);
     }
 
-    private static ProfileFieldType parseType(String raw) {
-        if (raw == null || raw.isBlank()) return ProfileFieldType.TEXT;
-        try {
-            return ProfileFieldType.valueOf(raw);
-        } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_FIELD_TYPE_UNKNOWN.raise(raw);
-        }
+    /**
+     * The type a request names, where it is one a profile question can have at all. Whether an
+     * association may ask it is the service's to say, since it names the one it may not.
+     */
+    private static FieldType parseType(String raw) {
+        if (raw == null || raw.isBlank()) return FieldType.TEXT;
+        return FieldTypes.PROFILE.stream()
+                .filter(type -> type.name().equals(raw))
+                .findFirst()
+                .orElseThrow(() -> Refusal.CLUSTER_FIELD_TYPE_UNKNOWN.raise(raw));
     }
 
     private static ProfileFieldScope parseScope(String raw) {
@@ -347,7 +351,7 @@ public class ClusterFieldRoutes implements Routes {
     public record ClusterFieldResponse(
             int id,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,

@@ -7,9 +7,8 @@
 import {mount} from '@vue/test-utils'
 import {defineComponent} from 'vue'
 import {describe, expect, it} from 'vitest'
-import {
-  FieldTypes, type EditableField, type EditableFieldRequest, type FieldTypeName, type ProfileFieldScopeName,
-} from '@/api/profileFields'
+import type {EditableField, EditableFieldRequest, ProfileFieldScopeName} from '@/api/profileFields'
+import {FieldTypes, OfferedFieldTypes, type FieldTypeName} from '@/api/fieldTypes'
 import type {ProfileFieldAssignment} from '@/api/generated/schema'
 import {STATION_ROLES, useFieldsConfig, type FieldsPort} from './useFieldsConfig'
 
@@ -42,7 +41,7 @@ function portOf(
     unassign: async () => undefined,
     reorder: async () => undefined,
     roles: STATION_ROLES,
-    types: Object.values(FieldTypes),
+    types: OfferedFieldTypes.PROFILE,
     stationReadonly: false,
   }
 }

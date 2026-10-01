@@ -10,14 +10,14 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
 import EventMetaGrid from './EventMetaGrid.vue'
-import type {EventField, StationEvent} from '@/api/generated/schema'
+import type {AppointmentField, StationEvent} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import ProseContent from '@/components/display/ProseContent.vue'
 
 defineProps<{
   event: StationEvent
   eventId: number
-  fields: EventField[]
+  fields: AppointmentField[]
   allMembers: MemberLike[]
   currentMemberId: number
   startFormatted: string
@@ -29,7 +29,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'field-updated', field: EventField): void
+  (e: 'field-updated', field: AppointmentField): void
 }>()
 
 const {t} = useI18n()

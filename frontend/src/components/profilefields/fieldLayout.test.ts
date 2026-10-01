@@ -5,7 +5,7 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {FieldTypes} from '@/api/profileFields'
+import {FieldTypes} from '@/api/fieldTypes'
 import {valueFields} from './fieldLayout'
 
 describe('valueFields', () => {

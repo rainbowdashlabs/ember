@@ -5,23 +5,30 @@
  */
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
-import {EventFieldTypes, RegistrationStatus, type RegistrationStatusName} from '@/api/events'
-import type {RegistrationFieldResponse, RegistrationResponse} from '@/api/generated/schema'
+import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
+import {FieldTypes} from '@/api/fieldTypes'
+import type {EventRegistrationField, RegistrationResponse} from '@/api/generated/schema'
 import {answerTotals, localAnswers, membersToRegister, rowsOnDate} from './eventAnswers'
 
-const MEALS: RegistrationFieldResponse = {
+const SETTINGS = {required: false, managersOnly: false, selfRegistration: false, perDate: false}
+
+const MEALS: EventRegistrationField = {
   id: 1,
+  eventId: 7,
+  position: 0,
   name: 'Ernährung',
-  fieldType: EventFieldTypes.ENUM,
-  config: {options: ['Mischkost', 'Vegetarisch'], required: true, managersOnly: false},
+  fieldType: FieldTypes.CHOICE,
+  config: {...SETTINGS, options: ['Mischkost', 'Vegetarisch'], required: true},
   overview: true,
 }
 
-const GUESTS: RegistrationFieldResponse = {
+const GUESTS: EventRegistrationField = {
   id: 2,
+  eventId: 7,
+  position: 1,
   name: 'Begleitung',
-  fieldType: EventFieldTypes.NUMBER,
-  config: {required: false, managersOnly: false},
+  fieldType: FieldTypes.NUMBER,
+  config: SETTINGS,
   overview: true,
 }
 
@@ -82,8 +89,8 @@ describe('answerTotals', () => {
   })
 
   it('has no total to show for free text', () => {
-    const text: RegistrationFieldResponse = {
-      ...MEALS, id: 3, name: 'Hinweis', fieldType: EventFieldTypes.STRING, config: {required: false, managersOnly: false},
+    const text: EventRegistrationField = {
+      ...MEALS, id: 3, name: 'Hinweis', fieldType: FieldTypes.TEXT, config: SETTINGS,
     }
 
     const totals = answerTotals([text], [registration(1, RegistrationStatus.ACCEPTED, {3: 'Bitte früher'})])

@@ -9,19 +9,20 @@ import {useI18n} from 'vue-i18n'
 import {AxiosError} from 'axios'
 import {configOf, spanForWidth} from '@/components/profilefields/fieldLayout'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
-import EventFieldValue from '../eventshared/EventFieldValue.vue'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PerDateFieldValue from './PerDateFieldValue.vue'
-import {EventFieldTypes} from '@/api/events'
-import type {EventField} from '@/api/generated/schema'
+import {namesMembers, namesSeveralMembers} from '@/api/fieldTypes'
+import type {AppointmentField} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {events} from '@/api'
+import {memberIdsOf} from '@/util/questions'
 import {showToast} from '@/util/toast'
 
 const props = defineProps<{
   eventId: number
-  fields: EventField[]
+  fields: AppointmentField[]
   allMembers: MemberLike[]
   currentMemberId: number
   startFormatted: string
@@ -34,89 +35,31 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'field-updated', field: EventField): void
+  (e: 'field-updated', field: AppointmentField): void
 }>()
 
 const {t} = useI18n()
 
-const memberById = computed(() => {
-  const map = new Map<number, MemberLike>()
-  for (const m of props.allMembers) map.set(m.id, m)
-  return map
-})
+/** The station's members by id, under the name a reader knows them by. */
+const memberNames = computed(() =>
+    new Map(props.allMembers.map(m => [m.id, m.name ?? m.email ?? `#${m.id}`] as const)))
 
-const MEMBER_FIELDS: string[] = [
-  EventFieldTypes.MEMBER,
-  EventFieldTypes.MEMBER_LIST,
-  EventFieldTypes.MEMBER_OF_GROUP,
-  EventFieldTypes.MEMBER_LIST_OF_GROUP,
-  EventFieldTypes.MEMBER_OF_TYPE,
-  EventFieldTypes.MEMBER_LIST_OF_TYPE,
-  EventFieldTypes.MEMBER_OF_TAG,
-  EventFieldTypes.MEMBER_LIST_OF_TAG,
-]
-
-const LIST_FIELDS: string[] = [
-  EventFieldTypes.MEMBER_LIST,
-  EventFieldTypes.MEMBER_LIST_OF_GROUP,
-  EventFieldTypes.MEMBER_LIST_OF_TYPE,
-  EventFieldTypes.MEMBER_LIST_OF_TAG,
-]
-
-function isMemberField(field: EventField): boolean {
-  return MEMBER_FIELDS.includes(field.fieldType ?? '')
-}
-
-function isListField(field: EventField): boolean {
-  return LIST_FIELDS.includes(field.fieldType ?? '')
-}
-
-function selfRegistrationEnabled(field: EventField): boolean {
-  const cfg = (field.config ?? {}) as { selfRegistration?: boolean }
-  return cfg.selfRegistration === true
-}
-
-function perDateEnabled(field: EventField): boolean {
-  const cfg = (field.config ?? {}) as { perDate?: boolean }
-  return cfg.perDate === true
-}
-
-function memberIdsOf(field: EventField): number[] {
-  const raw = field.value
-  if (!raw) return []
-  const trimmed = raw.trim()
-  try {
-    const parsed = JSON.parse(trimmed)
-    if (Array.isArray(parsed)) return parsed.map(Number).filter(n => Number.isFinite(n))
-    if (typeof parsed === 'number') return [parsed]
-  } catch { /* ignore */ }
-  const n = Number(trimmed)
-  return Number.isFinite(n) && trimmed !== '' ? [n] : []
-}
-
-function memberNamesOf(field: EventField): string {
-  const ids = memberIdsOf(field)
-  if (!ids.length) return '–'
-  return ids
-      .map(id => {
-        const m = memberById.value.get(id)
-        return m?.name ?? m?.email ?? `#${id}`
-      })
-      .join(', ')
+function offersSelfRegistration(field: AppointmentField): boolean {
+  return namesMembers(field.fieldType) && field.config.selfRegistration
 }
 
 type SelfRegState = 'CAN_REGISTER' | 'CAN_REMOVE' | 'OCCUPIED'
 
-function selfRegState(field: EventField): SelfRegState {
-  const ids = memberIdsOf(field)
+function selfRegState(field: AppointmentField): SelfRegState {
+  const ids = memberIdsOf(field.value).map(Number)
   if (ids.includes(props.currentMemberId)) return 'CAN_REMOVE'
-  if (!isListField(field) && ids.length > 0) return 'OCCUPIED'
+  if (!namesSeveralMembers(field.fieldType) && ids.length > 0) return 'OCCUPIED'
   return 'CAN_REGISTER'
 }
 
 const submitting = ref<Set<number>>(new Set())
 
-async function toggle(field: EventField) {
+async function toggle(field: AppointmentField) {
   if (submitting.value.has(field.id)) return
   submitting.value.add(field.id)
   try {
@@ -153,11 +96,10 @@ async function toggle(field: EventField) {
     </div>
     <div v-for="field in fields" :key="field.id" :class="spanForWidth(configOf(field.config).width)">
       <DetailLabel>{{ field.name }}</DetailLabel>
-      <p v-if="isMemberField(field)" class="text-sm">{{ memberNamesOf(field) }}</p>
-      <p v-else class="text-sm">
-        <EventFieldValue :field-type="field.fieldType" :value="field.value"/>
+      <p class="text-sm">
+        <QuestionValueDisplay :field-type="field.fieldType" :member-names="memberNames" :value="field.value"/>
       </p>
-      <div v-if="isMemberField(field) && selfRegistrationEnabled(field)" class="mt-1">
+      <div v-if="offersSelfRegistration(field)" class="mt-1">
         <PrimaryButton
             v-if="selfRegState(field) === 'CAN_REGISTER'"
             :disabled="submitting.has(field.id)"
@@ -180,7 +122,7 @@ async function toggle(field: EventField) {
         </SecondaryButton>
       </div>
       <PerDateFieldValue
-          v-if="canEditEvent && effectiveDate && perDateEnabled(field)"
+          v-if="canEditEvent && effectiveDate && field.config.perDate"
           :event-id="eventId"
           :field="field"
           :date="effectiveDate"

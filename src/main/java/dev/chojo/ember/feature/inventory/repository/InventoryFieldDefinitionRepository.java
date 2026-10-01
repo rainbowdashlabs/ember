@@ -6,8 +6,8 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
-import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -143,7 +143,7 @@ public class InventoryFieldDefinitionRepository {
                         .bind("item_id", itemId)
                         .bind("key", key)
                         .bind("label", label)
-                        .bind("field_type", fieldType.fieldType())
+                        .bind("field_type", fieldType)
                         .bind("required", required)
                         .bind("sort_order", sortOrder)
                         .bind("config", FieldConfig.toJsonOrEmpty(config)),

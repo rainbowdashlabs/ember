@@ -13,7 +13,7 @@ import dev.chojo.ember.feature.question.FieldType;
  * copies these into it; the copies are independent afterwards, so editing a template never rewrites
  * questions members have already answered.
  *
- * <p>What the server works with; screens read an {@link EventTemplateRegistrationField}.
+ * <p>What the server works with and the template editor reads.
  */
 public record RegistrationTemplateField(
         int id,

@@ -10589,7 +10589,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["BoardField"][];
+                        "application/json": components["schemas"]["BoardFieldDefinition"][];
                     };
                 };
             };
@@ -10616,7 +10616,16 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["BoardField"][];
+                        "application/json": components["schemas"]["BoardFieldDefinition"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
                 /** @description Not Found */
@@ -11798,6 +11807,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
                 };
             };
         };
@@ -17823,7 +17841,16 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EventTemplateField"][];
+                        "application/json": components["schemas"]["AppointmentTemplateField"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
                 /** @description Not Found */
@@ -17874,7 +17901,16 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EventTemplateRegistrationField"][];
+                        "application/json": components["schemas"]["RegistrationTemplateField"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -18570,7 +18606,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EventField"];
+                        "application/json": components["schemas"]["AppointmentField"];
                     };
                 };
             };
@@ -18612,7 +18648,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EventField"];
+                        "application/json": components["schemas"]["AppointmentField"];
                     };
                 };
                 /** @description Bad Request */
@@ -18709,7 +18745,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RegistrationFieldResponse"][];
+                        "application/json": components["schemas"]["EventRegistrationField"][];
                     };
                 };
             };
@@ -19859,7 +19895,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EventField"][];
+                        "application/json": components["schemas"]["AppointmentField"][];
                     };
                 };
             };
@@ -19886,7 +19922,16 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EventField"][];
+                        "application/json": components["schemas"]["AppointmentField"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -21620,7 +21665,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RemoteEventDetail"];
+                        "application/json": components["schemas"]["PartnerEventDetail"];
                     };
                 };
             };
@@ -22640,7 +22685,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["BoardField"][];
+                        "application/json": components["schemas"]["BoardFieldDefinition"][];
                     };
                 };
             };
@@ -54078,6 +54123,38 @@ export interface components {
         ApplyTierRequest: {
             stationUids?: string[];
         };
+        AppointmentField: {
+            /** Format: int32 */
+            attendanceFieldId: number | null;
+            config: components["schemas"]["EventQuestionSettings"];
+            /** Format: int32 */
+            eventId: number;
+            fieldType: components["schemas"]["FieldType"];
+            /** Format: int32 */
+            id: number;
+            isPublic: boolean;
+            name: string;
+            overview: boolean;
+            /** Format: int32 */
+            position: number;
+            value: string;
+        };
+        AppointmentTemplateField: {
+            /** Format: int32 */
+            attendanceFieldId: number | null;
+            config: components["schemas"]["EventQuestionSettings"];
+            defaultValue: string | null;
+            fieldType: components["schemas"]["FieldType"];
+            /** Format: int32 */
+            id: number;
+            isPublic: boolean;
+            name: string;
+            overview: boolean;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            templateId: number;
+        };
         AppointRequest: {
             accountUid?: string;
         };
@@ -54172,8 +54249,6 @@ export interface components {
             required: boolean;
             width: string | null;
         };
-        /** @enum {string} */
-        AttendanceFieldType: "STRING" | "NUMBER" | "DATE" | "TIME" | "BOOLEAN" | "ENUM" | "URL" | "TEXTAREA" | "MEMBER" | "MEMBER_LIST" | "MEMBER_OF_GROUP" | "MEMBER_LIST_OF_GROUP";
         AttendanceFieldValueEntry: {
             /** Format: int32 */
             fieldId?: number;
@@ -54240,7 +54315,7 @@ export interface components {
         };
         AttendanceTemplateField: {
             config: components["schemas"]["AttendanceFieldConfig"];
-            fieldType: components["schemas"]["AttendanceFieldType"];
+            fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
             name: string;
@@ -54371,8 +54446,8 @@ export interface components {
         BatchFieldEntryDto: {
             /** Format: int32 */
             attendanceFieldId?: number | null;
-            config?: components["schemas"]["EventFieldConfig"] | null;
-            fieldType?: components["schemas"]["EventFieldType"] | null;
+            config?: components["schemas"]["EventQuestionSettings"] | null;
+            fieldType?: components["schemas"]["FieldType"] | null;
             name?: string;
             overview?: boolean | null;
         };
@@ -54575,37 +54650,19 @@ export interface components {
             ticketId: number;
             updatedAt: components["schemas"]["Instant"] | null;
         };
-        BoardField: {
+        BoardFieldConfig: components["schemas"]["Enum"] | components["schemas"]["LaneAssignee"] | components["schemas"]["Simple"];
+        BoardFieldDefinition: {
             /** Format: int32 */
             boardId: number;
             config: components["schemas"]["BoardFieldConfig"];
-            fieldType: components["schemas"]["BoardFieldType"];
+            fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
             name: string;
             /** Format: int32 */
             position: number;
         };
-        BoardFieldConfig: components["schemas"]["Enum"] | components["schemas"]["LaneAssignee"] | components["schemas"]["Simple"];
-        BoardFieldConfigByType: {
-            BOOLEAN: components["schemas"]["Simple"];
-            DATE: components["schemas"]["Simple"];
-            ENUM: components["schemas"]["Enum"];
-            LANE_ASSIGNEE: components["schemas"]["LaneAssignee"];
-            NUMBER: components["schemas"]["Simple"];
-            STRING: components["schemas"]["Simple"];
-        };
-        /** @enum {string} */
-        BoardFieldType: "STRING" | "NUMBER" | "BOOLEAN" | "ENUM" | "DATE" | "LANE_ASSIGNEE";
         BoardFieldValue: components["schemas"]["BooleanValue"] | components["schemas"]["DateValue"] | components["schemas"]["EnumValue"] | components["schemas"]["LaneAssigneeValue"] | components["schemas"]["NumberValue"] | components["schemas"]["StringValue"];
-        BoardFieldValueByType: {
-            BOOLEAN: components["schemas"]["BooleanValue"];
-            DATE: components["schemas"]["DateValue"];
-            ENUM: components["schemas"]["EnumValue"];
-            LANE_ASSIGNEE: components["schemas"]["LaneAssigneeValue"];
-            NUMBER: components["schemas"]["NumberValue"];
-            STRING: components["schemas"]["StringValue"];
-        };
         BoardLabel: {
             /** Format: int32 */
             boardId: number;
@@ -54681,7 +54738,7 @@ export interface components {
         BoardTicketFieldValue: {
             /** Format: int32 */
             fieldId: number;
-            fieldType: components["schemas"]["BoardFieldType"];
+            fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             ticketId: number;
             value: components["schemas"]["BoardFieldValue"] | null;
@@ -55144,7 +55201,7 @@ export interface components {
         };
         ClusterFieldResponse: {
             config: components["schemas"]["ProfileFieldConfig"];
-            fieldType: components["schemas"]["ProfileFieldType"];
+            fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
             keepOnArchive: boolean;
@@ -56376,7 +56433,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            kind: "ENUM";
+            kind: "CHOICE";
             options: components["schemas"]["EnumOption"][];
         };
         Enumeration: {
@@ -56541,33 +56598,6 @@ export interface components {
             standing: boolean;
             status: components["schemas"]["RegistrationStatus"];
         };
-        EventField: {
-            /** Format: int32 */
-            attendanceFieldId: number | null;
-            config: components["schemas"]["EventFieldConfig"];
-            /** Format: int32 */
-            eventId: number;
-            fieldType: components["schemas"]["EventFieldType"];
-            /** Format: int32 */
-            id: number;
-            isPublic: boolean;
-            name: string;
-            overview: boolean;
-            /** Format: int32 */
-            position: number;
-            value: string;
-        };
-        EventFieldConfig: {
-            /** Format: int32 */
-            groupId?: number;
-            options?: string[];
-            perDate: boolean;
-            selfRegistration: boolean;
-            /** Format: int32 */
-            tagId?: number;
-            userType?: components["schemas"]["StationUserType"];
-            width?: string;
-        };
         EventFieldDefault: {
             /** Format: int32 */
             eventId: number;
@@ -56579,8 +56609,8 @@ export interface components {
         EventFieldEntry: {
             /** Format: int32 */
             attendanceFieldId?: number | null;
-            config?: components["schemas"]["EventFieldConfig"] | null;
-            fieldType?: components["schemas"]["EventFieldType"] | null;
+            config?: components["schemas"]["EventQuestionSettings"] | null;
+            fieldType?: components["schemas"]["FieldType"] | null;
             /** Format: int32 */
             id?: number | null;
             isPublic?: boolean | null;
@@ -56588,13 +56618,29 @@ export interface components {
             overview?: boolean | null;
             value?: string | null;
         };
-        /** @enum {string} */
-        EventFieldType: "STRING" | "NUMBER" | "DATE" | "TIME" | "BOOLEAN" | "ENUM" | "URL" | "TEXTAREA" | "LOCATION" | "MEMBER" | "MEMBER_LIST" | "MEMBER_OF_GROUP" | "MEMBER_LIST_OF_GROUP" | "MEMBER_OF_TYPE" | "MEMBER_LIST_OF_TYPE" | "MEMBER_OF_TAG" | "MEMBER_LIST_OF_TAG";
         EventItem: {
             date?: string;
             location?: string;
             title?: string;
             url?: string;
+        };
+        EventQuestionSettings: {
+            defaultValue?: string;
+            /** Format: int32 */
+            groupId?: number;
+            managersOnly: boolean;
+            /** Format: int32 */
+            max?: number;
+            /** Format: int32 */
+            min?: number;
+            options?: string[];
+            perDate: boolean;
+            required: boolean;
+            selfRegistration: boolean;
+            /** Format: int32 */
+            tagId?: number;
+            userType?: components["schemas"]["StationUserType"];
+            width?: string;
         };
         EventRegisterRequest: {
             eventDate?: string;
@@ -56618,20 +56664,17 @@ export interface components {
             status: components["schemas"]["RegistrationStatus"];
             statusChangedAt: components["schemas"]["Instant"];
         };
-        EventRegistrationFieldConfig: {
-            defaultValue?: string;
+        EventRegistrationField: {
+            config: components["schemas"]["EventQuestionSettings"];
             /** Format: int32 */
-            groupId?: number;
-            managersOnly: boolean;
+            eventId: number;
+            fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
-            max?: number;
+            id: number;
+            name: string;
+            overview: boolean;
             /** Format: int32 */
-            min?: number;
-            options?: string[];
-            required: boolean;
-            /** Format: int32 */
-            tagId?: number;
-            userType?: components["schemas"]["StationUserType"];
+            position: number;
         };
         EventRegistrationFieldValue: {
             /** Format: int32 */
@@ -56732,45 +56775,17 @@ export interface components {
             title: string | null;
             viewRestrictionMode: components["schemas"]["RestrictionMode"];
         };
-        EventTemplateField: {
-            /** Format: int32 */
-            attendanceFieldId: number | null;
-            config: components["schemas"]["EventFieldConfig"];
-            defaultValue: string | null;
-            fieldType: components["schemas"]["EventFieldType"];
-            /** Format: int32 */
-            id: number;
-            isPublic: boolean;
-            name: string;
-            overview: boolean;
-            /** Format: int32 */
-            position: number;
-            /** Format: int32 */
-            templateId: number;
-        };
         EventTemplateFieldData: {
             /** Format: int32 */
             attendanceFieldId?: number | null;
-            config?: components["schemas"]["EventFieldConfig"] | null;
+            config?: components["schemas"]["EventQuestionSettings"] | null;
             defaultValue?: string | null;
-            fieldType?: components["schemas"]["EventFieldType"];
+            fieldType?: components["schemas"]["FieldType"] | null;
             isPublic?: boolean;
             name?: string;
             overview?: boolean;
             /** Format: int32 */
             position?: number;
-        };
-        EventTemplateRegistrationField: {
-            config: components["schemas"]["EventRegistrationFieldConfig"];
-            fieldType: components["schemas"]["EventFieldType"];
-            /** Format: int32 */
-            id: number;
-            name: string;
-            overview: boolean;
-            /** Format: int32 */
-            position: number;
-            /** Format: int32 */
-            templateId: number;
         };
         /** @enum {string} */
         EventType: "ONE_TIME" | "RECURRING" | "MONTHLY_FIRST" | "QUARTERLY" | "YEARLY";
@@ -57062,11 +57077,11 @@ export interface components {
         FieldOrigin: "STATION" | "CLUSTER";
         FieldRequest: {
             config?: unknown;
-            fieldType?: components["schemas"]["BoardFieldType"];
+            fieldType?: components["schemas"]["FieldType"];
             name?: string;
         };
         /** @enum {string} */
-        FieldType: "DATE" | "ENUM" | "TEXT" | "NUMBER" | "BOOLEAN";
+        FieldType: "TEXT" | "LONG_TEXT" | "NUMBER" | "DATE" | "TIME" | "BOOLEAN" | "CHOICE" | "URL" | "MEMBER" | "MEMBER_LIST" | "BIRTH_DATE" | "EXPIRY_DATE" | "AGE" | "SECTION" | "SPACER" | "LOCATION" | "MEMBER_OF_GROUP" | "MEMBER_LIST_OF_GROUP" | "MEMBER_OF_TYPE" | "MEMBER_LIST_OF_TYPE" | "MEMBER_OF_TAG" | "MEMBER_LIST_OF_TAG" | "LANE_ASSIGNEE";
         FieldUpdateRequest: {
             config?: components["schemas"]["FieldConfig"];
             label?: string;
@@ -58311,7 +58326,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            kind: "ENUM";
+            kind: "CHOICE";
             value: string;
         };
         ItemFieldValues: {
@@ -59566,7 +59581,7 @@ export interface components {
         };
         MergedField: {
             config: components["schemas"]["ProfileFieldConfig"];
-            fieldType: components["schemas"]["ProfileFieldType"];
+            fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
             name: string;
@@ -60228,6 +60243,11 @@ export interface components {
             headers: string[];
             rows: string[][];
         };
+        PartnerEventDetail: {
+            event: components["schemas"]["SharedEvent"];
+            places: components["schemas"]["RemotePlaces"] | null;
+            publicFields: components["schemas"]["AppointmentField"][];
+        };
         PartnerPlacesView: {
             partnerConfirms: boolean;
             /** Format: int32 */
@@ -60624,7 +60644,7 @@ export interface components {
         };
         ProfileField: {
             config: components["schemas"]["ProfileFieldConfig"];
-            fieldType: components["schemas"]["ProfileFieldType"];
+            fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
             keepOnArchive: boolean;
@@ -60704,7 +60724,7 @@ export interface components {
         };
         ProfileFieldRequest: {
             config?: components["schemas"]["ProfileFieldConfig"];
-            fieldType?: components["schemas"]["ProfileFieldType"];
+            fieldType?: components["schemas"]["FieldType"];
             keepOnArchive?: boolean;
             name?: string;
             readonly?: boolean;
@@ -60715,8 +60735,6 @@ export interface components {
         ProfileFieldScope: "TRIAL" | "MEMBER" | "GUARDIAN" | "TEAM" | "MANAGER";
         /** @enum {string} */
         ProfileFieldTarget: "ROLE" | "GROUP";
-        /** @enum {string} */
-        ProfileFieldType: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "ENUM" | "AGE" | "BIRTH_DATE" | "EXPIRY_DATE" | "SECTION" | "SPACER";
         ProfileFieldValue: {
             /** Format: int32 */
             fieldId: number;
@@ -60849,7 +60867,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
-            publicFields: components["schemas"]["EventField"][];
+            publicFields: components["schemas"]["AppointmentField"][];
             startTime: components["schemas"]["Instant"];
         };
         PublicEventResponse: {
@@ -60866,7 +60884,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
-            publicFields: components["schemas"]["EventField"][];
+            publicFields: components["schemas"]["AppointmentField"][];
             /** Format: uuid */
             publicUid: string;
             startTime: components["schemas"]["Instant"];
@@ -61555,21 +61573,13 @@ export interface components {
             status: components["schemas"]["RegistrationStatus"];
         };
         RegistrationFieldDefinition: {
-            config?: components["schemas"]["EventRegistrationFieldConfig"] | null;
-            fieldType?: components["schemas"]["EventFieldType"];
+            config?: components["schemas"]["EventQuestionSettings"] | null;
+            fieldType?: components["schemas"]["FieldType"] | null;
             name?: string;
             overview?: boolean;
         };
         RegistrationFieldDefinitionsRequest: {
             fields?: components["schemas"]["RegistrationFieldDefinition"][];
-        };
-        RegistrationFieldResponse: {
-            config: components["schemas"]["EventRegistrationFieldConfig"];
-            fieldType: components["schemas"]["EventFieldType"];
-            /** Format: int32 */
-            id: number;
-            name: string;
-            overview: boolean;
         };
         RegistrationFieldsRequest: {
             fields?: components["schemas"]["EventRegistrationFieldValue"][];
@@ -61615,6 +61625,18 @@ export interface components {
         RegistrationTableRequest: {
             columns?: components["schemas"]["MemberTableColumn"][];
             date?: string;
+        };
+        RegistrationTemplateField: {
+            config: components["schemas"]["EventQuestionSettings"];
+            fieldType: components["schemas"]["FieldType"];
+            /** Format: int32 */
+            id: number;
+            name: string;
+            overview: boolean;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            templateId: number;
         };
         RegistrationUpdateItem: {
             eventDate: components["schemas"]["LocalDate"];
@@ -61662,11 +61684,6 @@ export interface components {
             catalog: components["schemas"]["QuizCatalog"];
             categories: components["schemas"]["QuizCategory"][];
             questions: components["schemas"]["QuizQuestion"][];
-        };
-        RemoteEventDetail: {
-            event: components["schemas"]["SharedEvent"];
-            places: components["schemas"]["RemotePlaces"] | null;
-            publicFields: components["schemas"]["EventField"][];
         };
         RemoteKbFile: {
             conversionStatus: components["schemas"]["ConversionStatus"] | null;
@@ -63396,15 +63413,15 @@ export interface components {
             userTypes: components["schemas"]["StationUserType"][];
         };
         TemplateDetailResponse: {
-            fields: components["schemas"]["EventTemplateField"][];
-            registrationFields: components["schemas"]["EventTemplateRegistrationField"][];
+            fields: components["schemas"]["AppointmentTemplateField"][];
+            registrationFields: components["schemas"]["RegistrationTemplateField"][];
             reminderDays: number[];
             restriction: components["schemas"]["TemplateRestrictions"];
             template: components["schemas"]["EventTemplate"];
         };
         TemplateFieldRequest: {
             config?: components["schemas"]["AttendanceFieldConfig"];
-            fieldType?: components["schemas"]["AttendanceFieldType"];
+            fieldType?: components["schemas"]["FieldType"];
             name?: string;
             /** Format: int32 */
             position?: number;
@@ -64110,7 +64127,7 @@ export interface components {
         };
         WaitingListField: {
             config: components["schemas"]["WaitingListFieldConfig"];
-            fieldType: components["schemas"]["WaitingListFieldType"];
+            fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
             isPublic: boolean;
@@ -64127,15 +64144,13 @@ export interface components {
         };
         WaitingListFieldRequest: {
             config?: components["schemas"]["WaitingListFieldConfig"] | null;
-            fieldType?: components["schemas"]["WaitingListFieldType"];
+            fieldType?: components["schemas"]["FieldType"];
             isPublic?: boolean | null;
             name?: string;
             /** Format: int32 */
             position?: number;
             required?: boolean;
         };
-        /** @enum {string} */
-        WaitingListFieldType: "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "ENUM" | "BIRTH_DATE";
         WaitingListGuardianRequest: {
             email?: string | null;
             firstname?: string | null;
@@ -64389,6 +64404,8 @@ export type ApplicationStatus = components['schemas']['ApplicationStatus'];
 export type ApplyPresetRequest = components['schemas']['ApplyPresetRequest'];
 export type ApplyRequest = components['schemas']['ApplyRequest'];
 export type ApplyTierRequest = components['schemas']['ApplyTierRequest'];
+export type AppointmentField = components['schemas']['AppointmentField'];
+export type AppointmentTemplateField = components['schemas']['AppointmentTemplateField'];
 export type AppointRequest = components['schemas']['AppointRequest'];
 export type ApprovalCandidate = components['schemas']['ApprovalCandidate'];
 export type ArtAssignRequest = components['schemas']['ArtAssignRequest'];
@@ -64405,7 +64422,6 @@ export type AttachmentRequest = components['schemas']['AttachmentRequest'];
 export type AttemptStatus = components['schemas']['AttemptStatus'];
 export type AttendanceEntry = components['schemas']['AttendanceEntry'];
 export type AttendanceFieldConfig = components['schemas']['AttendanceFieldConfig'];
-export type AttendanceFieldType = components['schemas']['AttendanceFieldType'];
 export type AttendanceFieldValueEntry = components['schemas']['AttendanceFieldValueEntry'];
 export type AttendanceMonth = components['schemas']['AttendanceMonth'];
 export type AttendanceReportPreset = components['schemas']['AttendanceReportPreset'];
@@ -64457,12 +64473,9 @@ export type BoardActivityEntry = components['schemas']['BoardActivityEntry'];
 export type BoardActivityType = components['schemas']['BoardActivityType'];
 export type BoardChecklistItem = components['schemas']['BoardChecklistItem'];
 export type BoardComment = components['schemas']['BoardComment'];
-export type BoardField = components['schemas']['BoardField'];
 export type BoardFieldConfig = components['schemas']['BoardFieldConfig'];
-export type BoardFieldConfigByType = components['schemas']['BoardFieldConfigByType'];
-export type BoardFieldType = components['schemas']['BoardFieldType'];
+export type BoardFieldDefinition = components['schemas']['BoardFieldDefinition'];
 export type BoardFieldValue = components['schemas']['BoardFieldValue'];
-export type BoardFieldValueByType = components['schemas']['BoardFieldValueByType'];
 export type BoardLabel = components['schemas']['BoardLabel'];
 export type BoardLane = components['schemas']['BoardLane'];
 export type BoardShareMode = components['schemas']['BoardShareMode'];
@@ -64744,15 +64757,13 @@ export type EventBreak = components['schemas']['EventBreak'];
 export type EventCategory = components['schemas']['EventCategory'];
 export type EventExportRequest = components['schemas']['EventExportRequest'];
 export type EventFederationRegistration = components['schemas']['EventFederationRegistration'];
-export type EventField = components['schemas']['EventField'];
-export type EventFieldConfig = components['schemas']['EventFieldConfig'];
 export type EventFieldDefault = components['schemas']['EventFieldDefault'];
 export type EventFieldEntry = components['schemas']['EventFieldEntry'];
-export type EventFieldType = components['schemas']['EventFieldType'];
 export type EventItem = components['schemas']['EventItem'];
+export type EventQuestionSettings = components['schemas']['EventQuestionSettings'];
 export type EventRegisterRequest = components['schemas']['EventRegisterRequest'];
 export type EventRegistration = components['schemas']['EventRegistration'];
-export type EventRegistrationFieldConfig = components['schemas']['EventRegistrationFieldConfig'];
+export type EventRegistrationField = components['schemas']['EventRegistrationField'];
 export type EventRegistrationFieldValue = components['schemas']['EventRegistrationFieldValue'];
 export type EventRegistrationOpening = components['schemas']['EventRegistrationOpening'];
 export type EventRegistrations = components['schemas']['EventRegistrations'];
@@ -64760,9 +64771,7 @@ export type EventRequest = components['schemas']['EventRequest'];
 export type EventRestrictions = components['schemas']['EventRestrictions'];
 export type EventSummary = components['schemas']['EventSummary'];
 export type EventTemplate = components['schemas']['EventTemplate'];
-export type EventTemplateField = components['schemas']['EventTemplateField'];
 export type EventTemplateFieldData = components['schemas']['EventTemplateFieldData'];
-export type EventTemplateRegistrationField = components['schemas']['EventTemplateRegistrationField'];
 export type EventType = components['schemas']['EventType'];
 export type Expected = components['schemas']['Expected'];
 export type ExportColumnRequest = components['schemas']['ExportColumnRequest'];
@@ -65243,6 +65252,7 @@ export type PageVisibilityRequest = components['schemas']['PageVisibilityRequest
 export type Pair = components['schemas']['Pair'];
 export type PairRequestResponse = components['schemas']['PairRequestResponse'];
 export type ParseResult = components['schemas']['ParseResult'];
+export type PartnerEventDetail = components['schemas']['PartnerEventDetail'];
 export type PartnerPlacesView = components['schemas']['PartnerPlacesView'];
 export type PartnerResponse = components['schemas']['PartnerResponse'];
 export type PartnerStationsConfig = components['schemas']['PartnerStationsConfig'];
@@ -65303,7 +65313,6 @@ export type ProfileFieldConfig = components['schemas']['ProfileFieldConfig'];
 export type ProfileFieldRequest = components['schemas']['ProfileFieldRequest'];
 export type ProfileFieldScope = components['schemas']['ProfileFieldScope'];
 export type ProfileFieldTarget = components['schemas']['ProfileFieldTarget'];
-export type ProfileFieldType = components['schemas']['ProfileFieldType'];
 export type ProfileFieldValue = components['schemas']['ProfileFieldValue'];
 export type ProtocolChecksRequest = components['schemas']['ProtocolChecksRequest'];
 export type ProtocolDetailResponse = components['schemas']['ProtocolDetailResponse'];
@@ -65414,19 +65423,18 @@ export type RegistrationCode = components['schemas']['RegistrationCode'];
 export type RegistrationCount = components['schemas']['RegistrationCount'];
 export type RegistrationFieldDefinition = components['schemas']['RegistrationFieldDefinition'];
 export type RegistrationFieldDefinitionsRequest = components['schemas']['RegistrationFieldDefinitionsRequest'];
-export type RegistrationFieldResponse = components['schemas']['RegistrationFieldResponse'];
 export type RegistrationFieldsRequest = components['schemas']['RegistrationFieldsRequest'];
 export type RegistrationResponse = components['schemas']['RegistrationResponse'];
 export type RegistrationStatsResponse = components['schemas']['RegistrationStatsResponse'];
 export type RegistrationStatus = components['schemas']['RegistrationStatus'];
 export type RegistrationTableRequest = components['schemas']['RegistrationTableRequest'];
+export type RegistrationTemplateField = components['schemas']['RegistrationTemplateField'];
 export type RegistrationUpdateItem = components['schemas']['RegistrationUpdateItem'];
 export type RelatedFilesRequest = components['schemas']['RelatedFilesRequest'];
 export type RelatedFilesResponse = components['schemas']['RelatedFilesResponse'];
 export type RemoteAttachment = components['schemas']['RemoteAttachment'];
 export type RemoteBoard = components['schemas']['RemoteBoard'];
 export type RemoteCatalogDetail = components['schemas']['RemoteCatalogDetail'];
-export type RemoteEventDetail = components['schemas']['RemoteEventDetail'];
 export type RemoteKbFile = components['schemas']['RemoteKbFile'];
 export type RemoteMemberRegistration = components['schemas']['RemoteMemberRegistration'];
 export type RemotePlaces = components['schemas']['RemotePlaces'];
@@ -65765,7 +65773,6 @@ export type WaitingListEntryWithScore = components['schemas']['WaitingListEntryW
 export type WaitingListField = components['schemas']['WaitingListField'];
 export type WaitingListFieldConfig = components['schemas']['WaitingListFieldConfig'];
 export type WaitingListFieldRequest = components['schemas']['WaitingListFieldRequest'];
-export type WaitingListFieldType = components['schemas']['WaitingListFieldType'];
 export type WaitingListGuardianRequest = components['schemas']['WaitingListGuardianRequest'];
 export type WaitingListInvitation = components['schemas']['WaitingListInvitation'];
 export type WaitingListInvitationAnswer = components['schemas']['WaitingListInvitationAnswer'];

@@ -187,7 +187,7 @@ public class BoardService {
         repository.deleteAllFields(boardId);
         for (int i = 0; i < fields.size(); i++) {
             var f = fields.get(i);
-            repository.createField(boardId, f.name(), f.type(), f.config(), i);
+            repository.createField(boardId, f.name(), f.fieldType(), f.config(), i);
         }
         log.info("Replaced fields on board {} with {} fields", boardId, fields.size());
     }

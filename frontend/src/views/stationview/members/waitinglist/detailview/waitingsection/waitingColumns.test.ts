@@ -5,9 +5,10 @@
  */
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
-import {WaitingListFieldTypes} from '@/api/waitingList'
+import {FieldTypes} from '@/api/fieldTypes'
 import type {WaitingListEntryWithScore, WaitingListField} from '@/api/generated/schema'
 import {sortValueOf} from '@/components/table/columnFilter'
+import {ColumnTypes} from '@/components/table/tableColumn'
 import {BIRTH_DATE_KEY, fieldIdOfColumn, waitingColumns} from './waitingColumns'
 
 const YES_NO = {yes: 'Ja', no: 'Nein'}
@@ -29,13 +30,17 @@ function entry(values: Record<number, unknown>): WaitingListEntryWithScore {
 const t = (key: string) => key
 
 describe('waitingColumns', () => {
-    const fields = [field(1, WaitingListFieldTypes.BIRTH_DATE), field(2, WaitingListFieldTypes.BOOLEAN), field(3, WaitingListFieldTypes.NUMBER)]
+    const fields = [field(1, FieldTypes.BIRTH_DATE), field(2, FieldTypes.BOOLEAN), field(3, FieldTypes.NUMBER), field(4, FieldTypes.CHOICE)]
     const columns = waitingColumns({t, fields, visibleFieldIds: new Set([2])})
 
     it('gives the date of birth a pinned column of its own and offers only the other questions', () => {
         const birthDate = columns.find(column => column.key === BIRTH_DATE_KEY)
         expect(birthDate?.pinned).toBe(true)
-        expect(columns.filter(column => !column.pinned).map(column => column.key)).toEqual(['field-2', 'field-3'])
+        expect(columns.filter(column => !column.pinned).map(column => column.key)).toEqual(['field-2', 'field-3', 'field-4'])
+    })
+
+    it('offers a choice question as a column of its choices', () => {
+        expect(columns.find(column => column.key === 'field-4')?.type).toBe(ColumnTypes.ENUM)
     })
 
     it('shows the questions the list keeps as shown, and only those', () => {

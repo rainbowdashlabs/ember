@@ -16,7 +16,8 @@ import BoardStructureSections from './boardsettingsview/BoardStructureSections.v
 import BoardAccessSections from './boardsettingsview/BoardAccessSections.vue'
 import type { LaneDraft } from './boardsettingsview/BoardLanesSection.vue'
 import { boards, stationMembers, memberGroups, userTags, federation } from '@/api'
-import { BoardFieldType, fieldDraftOf, type BoardFieldDraft, type BoardFieldTypeName } from '@/api/boards'
+import { fieldDraftOf, type BoardFieldDraft, type BoardFieldTypeName } from '@/api/boards'
+import { FieldTypes } from '@/api/fieldTypes'
 import type {
   Board,
   FederationConfigResponse,
@@ -52,7 +53,7 @@ const lanes = ref<LaneDraft[]>([])
 const newLaneName = ref('')
 const fields = ref<BoardFieldDraft[]>([])
 const newFieldName = ref('')
-const newFieldType = ref<BoardFieldTypeName>(BoardFieldType.STRING)
+const newFieldType = ref<BoardFieldTypeName>(FieldTypes.TEXT)
 
 const allRoles = ref<Permission[]>([])
 const allGroups = ref<MemberGroup[]>([])
@@ -228,7 +229,7 @@ function addField() {
     if (!newFieldName.value.trim()) return
     fields.value.push({ name: newFieldName.value.trim(), fieldType: newFieldType.value, required: false, options: [], laneId: null })
     newFieldName.value = ''
-    newFieldType.value = BoardFieldType.STRING
+    newFieldType.value = FieldTypes.TEXT
 }
 
 function removeField(index: number) {
@@ -243,15 +244,6 @@ function moveField(index: number, dir: -1 | 1) {
     fields.value[index] = target
     fields.value[newIndex] = current
 }
-
-const fieldTypeOptions = [
-    { value: BoardFieldType.STRING, label: 'boards.fieldTypeString' },
-    { value: BoardFieldType.NUMBER, label: 'boards.fieldTypeNumber' },
-    { value: BoardFieldType.BOOLEAN, label: 'boards.fieldTypeBoolean' },
-    { value: BoardFieldType.ENUM, label: 'boards.fieldTypeEnum' },
-    { value: BoardFieldType.DATE, label: 'boards.fieldTypeDate' },
-    { value: BoardFieldType.LANE_ASSIGNEE, label: 'boards.fieldTypeLaneAssignee' },
-]
 
 function goBack() {
     if (board.value) router.push(`/station/boards/${board.value.shortKey}`)
@@ -292,7 +284,6 @@ const pageSubtitle = computed(() => board.value?.name || t('pages.board-settings
                     v-model:new-field-type="newFieldType"
                     :lanes="lanes"
                     :fields="fields"
-                    :field-type-options="fieldTypeOptions"
                     @add-lane="addLane"
                     @remove-lane="removeLane"
                     @move-lane="moveLane"

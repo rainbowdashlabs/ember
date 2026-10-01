@@ -10,14 +10,14 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
-import EventFieldValue from '../eventshared/EventFieldValue.vue'
-import type {EventField, EventSummary} from '@/api/generated/schema'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
+import type {AppointmentField, EventSummary} from '@/api/generated/schema'
 import {renderMarkdown} from '@/util/markdown'
 
 defineProps<{
   event: EventSummary
   detailRoute: RouteLocationRaw
-  overviewFields: EventField[]
+  overviewFields: AppointmentField[]
   formatTime: (iso?: string) => string
   showAttendance: boolean
 }>()
@@ -40,7 +40,7 @@ const {t} = useI18n()
     <div v-if="overviewFields.length" class="flex flex-wrap gap-3 text-xs">
       <span v-for="f in overviewFields" :key="f.id" class="text-(--text-muted)">
         <span class="font-medium">{{ f.name }}:</span>
-        <EventFieldValue :field-type="f.fieldType" :value="f.value"/>
+        <QuestionValueDisplay :field-type="f.fieldType" :value="f.value"/>
       </span>
     </div>
     <div class="flex gap-2">

@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import type {ProfileFieldChange} from '@/api/generated/schema'
 
 /**
@@ -30,11 +30,11 @@ function decoded(val: string | null): unknown {
 <template>
   <div class="flex items-center gap-2 text-xs">
     <span data-testid="change-side" class="text-(--text-muted)">
-      <FieldValueDisplay :value="decoded(change.oldValue)" :field-type="change.fieldType ?? undefined" bare/>
+      <QuestionValueDisplay :value="decoded(change.oldValue)" :field-type="change.fieldType" bare/>
     </span>
     <MutedIcon :icon="['fas', 'chevron-right']"/>
     <span data-testid="change-side" class="font-medium">
-      <FieldValueDisplay :value="decoded(change.newValue)" :field-type="change.fieldType ?? undefined" bare/>
+      <QuestionValueDisplay :value="decoded(change.newValue)" :field-type="change.fieldType" bare/>
     </span>
   </div>
 </template>

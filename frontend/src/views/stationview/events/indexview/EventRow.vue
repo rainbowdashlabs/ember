@@ -15,9 +15,9 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
-import EventFieldValue from '../eventshared/EventFieldValue.vue'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import {isRecurringEvent, multiDayEndDate} from '@/api/events'
-import type {DatedEvent, EventCategory, EventField} from '@/api/generated/schema'
+import type {AppointmentField, DatedEvent, EventCategory} from '@/api/generated/schema'
 import {eventTypeLabelKey} from '../eventshared/eventTypeLabel'
 import {formatDate, formatDaySpan, formatTime, toIsoDate, todayIsoDate, weekdayName} from '@/util/format'
 
@@ -38,7 +38,7 @@ const props = defineProps<{
   category?: EventCategory | null
   /** The attendance template it records against, empty where it records against none. */
   templateName: string
-  fields: EventField[]
+  fields: AppointmentField[]
 }>()
 
 const emit = defineEmits<{
@@ -114,7 +114,7 @@ const detailRoute = computed(() => {
         <span v-if="dateNote" class="text-sm text-(--text-muted)">{{ dateNote }}</span>
         <span v-if="templateName" class="text-xs text-primary">{{ templateName }}</span>
         <span v-for="field in fields" :key="field.id" class="text-xs text-(--text-muted)">
-          {{ field.name }}: <EventFieldValue :field-type="field.fieldType" :value="field.value"/>
+          {{ field.name }}: <QuestionValueDisplay :field-type="field.fieldType" :value="field.value"/>
         </span>
       </div>
       <div class="flex items-center gap-2">

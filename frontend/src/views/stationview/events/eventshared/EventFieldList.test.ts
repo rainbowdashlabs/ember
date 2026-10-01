@@ -7,18 +7,19 @@ import {describe, expect, it} from 'vitest'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import EventFieldList from './EventFieldList.vue'
 import type {EventFieldEntry} from '@/api/generated/schema'
+import {emptySettings} from './eventQuestions'
 
 /**
  * The order of the questions is the order they are asked in, and moving one used to mean deleting
  * everything below it and typing it in again.
  */
 describe('EventFieldList', () => {
-    const plain = {selfRegistration: false, perDate: false}
+    const plain = emptySettings()
 
     function twoFields(): EventFieldEntry[] {
         return [
-            {name: 'Ort', fieldType: 'STRING', config: plain, value: '', overview: true, attendanceFieldId: null},
-            {name: 'Treffpunkt', fieldType: 'STRING', config: plain, value: '', overview: true, attendanceFieldId: null},
+            {name: 'Ort', fieldType: 'TEXT', config: plain, value: '', overview: true, attendanceFieldId: null},
+            {name: 'Treffpunkt', fieldType: 'TEXT', config: plain, value: '', overview: true, attendanceFieldId: null},
         ]
     }
 

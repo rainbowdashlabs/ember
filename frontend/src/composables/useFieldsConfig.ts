@@ -8,10 +8,11 @@ import {useI18n} from 'vue-i18n'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {
-    DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
+    DATE_FIELD_TYPES, parseFieldConfig,
     type AssignmentTarget, type EditableField, type EditableFieldRequest, type FieldSettings,
-    type FieldSwitchName, type FieldTypeName, type ProfileFieldScopeName,
+    type FieldSwitchName, type ProfileFieldScopeName,
 } from '@/api/profileFields'
+import {FieldTypes, OfferedFieldTypes, type FieldTypeName} from '@/api/fieldTypes'
 import type {AssignmentRequest, MemberGroup, ProfileFieldAssignment, StationGroupResponse} from '@/api/generated/schema'
 import {asAsked} from '@/util/profileFields'
 import {moveWithin} from '@/util/reorder'
@@ -44,8 +45,11 @@ export interface FieldsPort {
     reorder(role: ProfileFieldScopeName, fieldIds: number[]): Promise<unknown>
     /** The kinds of member this owner may ask, in the order the forms are listed. */
     roles: readonly ProfileFieldScopeName[]
-    /** Which field types this owner may choose. A template naming any other does not offer itself. */
-    types: readonly string[]
+    /**
+     * Which field types this owner may choose, in the order the type picker offers them. A template
+     * naming any other does not offer itself.
+     */
+    types: readonly FieldTypeName[]
     /** The groups a question can be pointed at. An association has none: a group belongs to one station. */
     listGroups?: () => Promise<MemberGroup[]>
     /** The station groups a question can be pointed at, when this owner files its stations at all. */
@@ -131,8 +135,11 @@ export interface FormEntry {
 export interface FieldsCapabilities {
     /** Whether to offer the three way choice of who may change an answer in place of one toggle. */
     writability: boolean
-    /** The types this owner may choose. A template naming any other does not offer itself. */
-    types: readonly string[]
+    /**
+     * The types this owner may choose, in the order the type picker offers them. A template naming any
+     * other does not offer itself.
+     */
+    types: readonly FieldTypeName[]
     /** Whether a question here can be put to a group of members, which only a station's can. */
     groups: boolean
 }
@@ -142,7 +149,7 @@ const FIELDS_CAPABILITIES: InjectionKey<FieldsCapabilities> = Symbol('fieldsCapa
 /** What a station may draw, which is the answer for anything mounted outside one of these screens. */
 const STATION_CAPABILITIES: FieldsCapabilities = {
     writability: false,
-    types: Object.values(FieldTypes),
+    types: OfferedFieldTypes.PROFILE,
     groups: true,
 }
 

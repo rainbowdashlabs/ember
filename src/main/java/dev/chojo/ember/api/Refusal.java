@@ -632,6 +632,13 @@ public enum Refusal {
     /** An absence of one's own that went before the deletion reached it. */
     MY_ABSENCE_NOT_HERE_TO_DELETE(Area.ATTENDANCE, 46, HttpStatus.NOT_FOUND, Sentences.ABSENCE_NOT_HERE_ON_WRITE),
 
+    /** A field of an attendance sheet given a type the sheet does not offer. */
+    ATTENDANCE_FIELD_TYPE_NOT_OFFERED(
+            Area.ATTENDANCE,
+            47,
+            HttpStatus.BAD_REQUEST,
+            "Attendance sheets do not offer that type, so nothing was saved"),
+
     /** A body arrived that is not JSON at all. */
     BODY_NOT_JSON(Area.BODY, 1, HttpStatus.BAD_REQUEST, "The request body is not valid JSON, so nothing was saved"),
 
@@ -1050,6 +1057,14 @@ public enum Refusal {
 
     /** A ticket named by number in a request from another instance, which that board does not use. */
     REMOTE_TICKET_NOT_HERE_BY_NUMBER(Area.BOARDS, 55, HttpStatus.NOT_FOUND, Sentences.BOARD_TICKET_NOT_HERE),
+
+    /** A field of a board given a type a board does not offer. */
+    BOARD_FIELD_TYPE_NOT_OFFERED(
+            Area.BOARDS, 56, HttpStatus.BAD_REQUEST, "Boards do not offer that type of field, so nothing was saved"),
+
+    /** The value of a required ticket field, being cleared. */
+    TICKET_FIELD_VALUE_REQUIRED(
+            Area.BOARDS, 57, HttpStatus.BAD_REQUEST, "This field has to be filled in, so it was not cleared"),
 
     /** Documents at all, at a station that has switched them off. */
     DOCUMENTS_SWITCHED_OFF(Area.DOCUMENTS, 1, HttpStatus.NOT_FOUND, "This station does not keep documents"),
@@ -1794,6 +1809,13 @@ public enum Refusal {
     MOVEMENT_NOT_HERE_AFTER_RECHAIN(
             Area.INVENTORY, 113, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
 
+    /** A field of an inventory given a type an inventory does not offer. */
+    INVENTORY_FIELD_TYPE_NOT_OFFERED(
+            Area.INVENTORY,
+            114,
+            HttpStatus.BAD_REQUEST,
+            "Inventories do not offer that type of field, so nothing was saved"),
+
     /** A registration whose answers were to be changed and is gone. */
     EVENT_REGISTRATION_NOT_HERE_ON_FIELD_CHANGE(
             Area.EVENTS, 1, HttpStatus.NOT_FOUND, Sentences.EVENT_REGISTRATION_NOT_HERE),
@@ -2241,6 +2263,27 @@ public enum Refusal {
             110,
             HttpStatus.BAD_REQUEST,
             "Registration questions do not take that kind of answer, so nothing was saved"),
+
+    /** A field of an appointment given a type an appointment does not offer. */
+    APPOINTMENT_FIELD_TYPE_NOT_OFFERED(
+            Area.EVENTS,
+            111,
+            HttpStatus.BAD_REQUEST,
+            "Appointments do not offer that type of field, so nothing was saved"),
+
+    /** A field of an appointment template given a type an appointment does not offer. */
+    TEMPLATE_FIELD_TYPE_NOT_OFFERED(
+            Area.EVENTS,
+            112,
+            HttpStatus.BAD_REQUEST,
+            "Appointments do not offer that type of field, so the template was not saved"),
+
+    /** A field of appointments created together given a type an appointment does not offer. */
+    BATCH_FIELD_TYPE_NOT_OFFERED(
+            Area.EVENTS,
+            113,
+            HttpStatus.BAD_REQUEST,
+            "Appointments do not offer that type of field, so none was created"),
 
     /** A list of comments asked for on a day that is not a date. */
     COMMENT_DAY_NOT_A_DATE(Area.COMMENTS, 1, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),
@@ -2714,6 +2757,13 @@ public enum Refusal {
     /** A waiting list whose join group belongs to another station, or is gone. */
     WAITING_LIST_JOIN_GROUP_NOT_HERE(
             Area.WAITING_LISTS, 50, HttpStatus.NOT_FOUND, Sentences.GROUP_NOT_HERE_NOTHING_SAVED),
+
+    /** A question of a waiting list given a type a waiting list does not offer. */
+    WAITING_LIST_FIELD_TYPE_NOT_OFFERED(
+            Area.WAITING_LISTS,
+            51,
+            HttpStatus.BAD_REQUEST,
+            "Waiting lists do not offer that type of question, so nothing was saved"),
 
     /** Nobody expected this one, and the log is where it is explained. */
     UNEXPECTED_FAULT(Area.GENERAL, 1, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.UNEXPECTED_FAULT),
@@ -4017,6 +4067,13 @@ public enum Refusal {
     /** A profile answer the question does not take, such as an unknown choice or a day that is no date. */
     PROFILE_ANSWER_NOT_ACCEPTED(
             Area.MEMBERS, 148, HttpStatus.BAD_REQUEST, "That answer does not suit this question, so nothing was saved"),
+
+    /** A profile question given a type the member profile does not offer. */
+    PROFILE_FIELD_TYPE_NOT_OFFERED(
+            Area.MEMBERS,
+            149,
+            HttpStatus.BAD_REQUEST,
+            "The member profile does not offer that type of question, so nothing was saved"),
 
     /** Asking to set an instance up far more often than a person could. */
     SETUP_TOO_OFTEN(Area.INSTALLATION, 1, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),

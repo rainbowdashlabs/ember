@@ -21,7 +21,7 @@ import {EventStates} from '@/api/events'
 import type {
   EventBreak,
   EventCategory,
-  EventField,
+  AppointmentField,
   EventSummary,
   RegistrationResponse,
   UpcomingEventOccurrence,
@@ -45,7 +45,7 @@ const props = defineProps<{
   eventBreaks: EventBreak[]
   filteredTodayEvents: EventSummary[]
   occurrences: PagedListView<UpcomingEventOccurrence>
-  overviewFields: Record<number, EventField[]>
+  overviewFields: Record<number, AppointmentField[]>
   myRegistrations: RegistrationResponse[]
   managedMembersCount: number
   registering: boolean

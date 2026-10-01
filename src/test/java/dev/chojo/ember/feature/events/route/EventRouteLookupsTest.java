@@ -136,7 +136,7 @@ class EventRouteLookupsTest {
                 visibility);
         var harness = RouteHarness.serving(routes);
         var request = body("""
-                {"fields": [{"id": null, "name": "Größe", "fieldType": "STRING", "config": null, "value": null,
+                {"fields": [{"id": null, "name": "Größe", "fieldType": "TEXT", "config": null, "value": null,
                              "overview": null, "attendanceFieldId": null, "isPublic": true}]}""");
 
         harness.run((server, client) -> {
@@ -169,7 +169,7 @@ class EventRouteLookupsTest {
                 new EventTemplateRoutes(templates, mock(EventTemplateRestrictionService.class)),
                 registrationRoutes(reminder));
         var request = body("""
-                {"fields": [{"name": "Shirt", "fieldType": "STRING", "config": null, "overview": true}]}""");
+                {"fields": [{"name": "Shirt", "fieldType": "TEXT", "config": null, "overview": true}]}""");
         var draft = new RegistrationFieldDraft("Shirt", FieldType.TEXT, EventQuestionSettings.empty(), true);
 
         harness.run((server, client) -> {

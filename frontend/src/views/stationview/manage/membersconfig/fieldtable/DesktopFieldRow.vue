@@ -13,7 +13,7 @@ import DesktopFieldToggles from './DesktopFieldToggles.vue'
 import AudienceCount from './AudienceCount.vue'
 import type {EditableField, FieldSwitchName} from '@/api/profileFields'
 import {isSection, widthOf} from '@/components/profilefields/fieldLayout'
-import {widthLabel} from '../fieldTypes'
+import {widthLabel} from '../fieldWidths'
 import {fieldGrid} from './fieldGrid'
 import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFieldsConfig'
 

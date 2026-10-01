@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FieldTypes} from '@/api/profileFields'
+import {FieldTypes} from '@/api/fieldTypes'
 
 /**
  * The little a layout decision needs to know about a field.

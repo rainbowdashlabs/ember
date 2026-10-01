@@ -15,7 +15,7 @@ import type {AnswerablePerson} from '@/util/eventAnswers'
 import type {PagedListView} from '@/composables/usePagedList'
 import type {
   EventCategory,
-  EventField,
+  AppointmentField,
   EventSummary,
   RegistrationResponse,
   UpcomingEventOccurrence,
@@ -33,7 +33,7 @@ defineProps<{
   list: PagedListView<UpcomingEventOccurrence>
   answerable: boolean
   categories: EventCategory[]
-  overviewFields: Record<number, EventField[]>
+  overviewFields: Record<number, AppointmentField[]>
   myRegistrations: RegistrationResponse[]
   managedMembersCount: number
   registering: boolean

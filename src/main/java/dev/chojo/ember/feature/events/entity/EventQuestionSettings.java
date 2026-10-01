@@ -100,6 +100,24 @@ public record EventQuestionSettings(
                 .orElseThrow(() -> new IllegalArgumentException(type + " holds no answer"));
     }
 
+    /**
+     * Only the part the organiser's question owns, which is what such a question stores: whatever
+     * belongs to a registrant's question is dropped rather than kept where nothing reads it.
+     */
+    public EventQuestionSettings organisers() {
+        return new EventQuestionSettings(
+                options, groupId, userType, tagId, width, selfRegistration, perDate, false, null, null, null, false);
+    }
+
+    /**
+     * Only the part a registrant's question owns, which is what such a question stores: whatever
+     * belongs to the organiser's question is dropped rather than kept where nothing reads it.
+     */
+    public EventQuestionSettings registrants() {
+        return new EventQuestionSettings(
+                options, groupId, userType, tagId, null, false, false, required, defaultValue, min, max, managersOnly);
+    }
+
     /** The same settings with another starting value, which a template keeps beside them. */
     public EventQuestionSettings withDefault(@Nullable String value) {
         return new EventQuestionSettings(

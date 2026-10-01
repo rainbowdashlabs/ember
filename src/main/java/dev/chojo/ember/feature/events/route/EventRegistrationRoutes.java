@@ -13,10 +13,8 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -441,16 +439,12 @@ public class EventRegistrationRoutes implements Routes {
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
             responses =
-                    @OpenApiResponse(
-                            status = "200",
-                            content = @OpenApiContent(from = RegistrationFieldResponse[].class)))
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRegistrationField[].class)))
     private void listRegistrationFields(Context ctx) {
         StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         visibility.requireVisibleEvent(session, eventId);
-        ctx.json(registrationFieldService.findByEvent(eventId).stream()
-                .map(RegistrationFieldResponse::of)
-                .toList());
+        ctx.json(registrationFieldService.findByEvent(eventId));
     }
 
     @OpenApi(
@@ -989,20 +983,6 @@ public class EventRegistrationRoutes implements Routes {
     public record EventRegistrationFieldValue(int fieldId, String value) {}
 
     public record RegistrationFieldsRequest(List<EventRegistrationFieldValue> fields) {}
-
-    public record RegistrationFieldResponse(
-            int id, String name, EventFieldType fieldType, EventRegistrationFieldConfig config, boolean overview) {
-
-        /** The shape screens read a registration question in. */
-        static RegistrationFieldResponse of(EventRegistrationField field) {
-            return new RegistrationFieldResponse(
-                    field.id(),
-                    field.name(),
-                    EventFieldType.of(field.fieldType()),
-                    EventRegistrationFieldConfig.of(field.config()),
-                    field.overview());
-        }
-    }
 
     public record RegistrationFieldDefinitionsRequest(List<RegistrationFieldDefinition> fields) {}
 

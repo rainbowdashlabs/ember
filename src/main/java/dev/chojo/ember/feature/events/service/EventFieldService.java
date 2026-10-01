@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
@@ -13,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.MemberEligibility;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionKind;
@@ -140,8 +142,13 @@ public class EventFieldService {
      * <p>Every answer is measured as it would be anywhere else, a member question's narrowing
      * included, and stored in the one shape its type is stored in. A member the appointment already
      * names stays named on the next save although they may have left the group since.
+     *
+     * @throws io.javalin.http.HttpResponseException for a type an appointment does not offer
      */
     public void replaceFields(int eventId, List<EventFieldDraft> fields) {
+        if (fields.stream().anyMatch(field -> !FieldTypes.APPOINTMENT.contains(field.fieldType()))) {
+            throw Refusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED.raise();
+        }
         var keeping = NamedAlready.in(
                 repository.findByEvent(eventId).stream()
                         .map(AppointmentField::value)

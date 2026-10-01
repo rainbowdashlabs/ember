@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationTemplateField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.MemberEligibility;
 import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionCheck;
@@ -157,8 +158,13 @@ public class EventTemplateService {
      * sheet nobody opens: the value is written and never seen again. Such a tie is dropped here
      * rather than stored, because the only ways to acquire one are a stale value left behind when
      * the sheet was changed and a caller that is not the editor.
+     *
+     * @throws io.javalin.http.HttpResponseException for a type an appointment does not offer
      */
     public void replaceFields(int templateId, List<AppointmentTemplateFieldDraft> fields) {
+        if (fields.stream().anyMatch(field -> !FieldTypes.APPOINTMENT.contains(field.fieldType()))) {
+            throw Refusal.TEMPLATE_FIELD_TYPE_NOT_OFFERED.raise();
+        }
         var keeping = NamedAlready.in(
                 repository.findFields(templateId).stream()
                         .map(AppointmentTemplateField::defaultValue)

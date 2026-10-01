@@ -10,8 +10,9 @@ import org.jspecify.annotations.Nullable;
 /**
  * A question of an appointment and its answer, as screens and partner stations read it.
  *
- * <p>Only what crosses the wire speaks this shape; the server works with {@link AppointmentField}. The
- * components stay because a partner station compares them before it shares an appointment.
+ * <p>Only what crosses the wire to a partner station speaks this shape; the server and its own screens
+ * work with {@link AppointmentField}. The components stay because a partner station compares them
+ * before it shares an appointment.
  */
 public record EventField(
         int id,
@@ -38,5 +39,20 @@ public record EventField(
                 field.overview(),
                 field.attendanceFieldId(),
                 field.isPublic());
+    }
+
+    /** This question under the shared type name, as a partner's appointment is shown on this station. */
+    public AppointmentField appointmentField() {
+        return new AppointmentField(
+                id,
+                eventId,
+                name,
+                fieldType.fieldType(),
+                config.settings(),
+                value,
+                position,
+                overview,
+                attendanceFieldId,
+                isPublic);
     }
 }

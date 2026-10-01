@@ -14,8 +14,8 @@ import org.jspecify.annotations.Nullable;
  * A question the organiser answers once for an appointment, or once per date of it, together with
  * the answer it carries.
  *
- * <p>What the server works with. Screens and partner stations are handed an {@link EventField}, which
- * keeps the names they have always read.
+ * <p>What the server and its own screens work with. Partner stations are handed an {@link EventField},
+ * which keeps the names they have always read.
  *
  * @param value             the answer, in the one shape its type is stored in
  * @param attendanceFieldId the field of the attendance sheet the answer fills in, or null

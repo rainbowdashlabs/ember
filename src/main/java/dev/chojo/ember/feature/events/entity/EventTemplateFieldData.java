@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import dev.chojo.ember.feature.question.FieldType;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
@@ -17,8 +18,8 @@ import java.util.Objects;
  */
 public record EventTemplateFieldData(
         String name,
-        EventFieldType fieldType,
-        @Nullable EventFieldConfig config,
+        @Nullable FieldType fieldType,
+        @Nullable EventQuestionSettings config,
         int position,
         boolean overview,
         boolean isPublic,
@@ -29,8 +30,9 @@ public record EventTemplateFieldData(
     public AppointmentTemplateFieldDraft toDraft() {
         return new AppointmentTemplateFieldDraft(
                 name,
-                Objects.requireNonNullElse(fieldType, EventFieldType.STRING).fieldType(),
-                Objects.requireNonNullElse(config, EventFieldConfig.empty()).settings(),
+                Objects.requireNonNullElse(fieldType, FieldType.TEXT),
+                Objects.requireNonNullElse(config, EventQuestionSettings.empty())
+                        .organisers(),
                 position,
                 overview,
                 isPublic,

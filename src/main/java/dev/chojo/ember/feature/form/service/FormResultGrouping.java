@@ -9,10 +9,10 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.form.service.FormRespondents.Respondent;
 import dev.chojo.ember.feature.form.service.FormResultQuery.ResultGrouping;
 import dev.chojo.ember.feature.members.entity.ProfileField;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.question.FieldType;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -135,7 +135,7 @@ public class FormResultGrouping {
                 .orElseThrow(() -> new BadRequestResponse("Unknown profile field to group by"));
         Function<Respondent, String> answer =
                 respondent -> respondent.fieldValues().get(field.id());
-        if (field.fieldType() == ProfileFieldType.NUMBER && FormResultQuery.notEmpty(grouping.bounds())) {
+        if (field.fieldType() == FieldType.NUMBER && FormResultQuery.notEmpty(grouping.bounds())) {
             return brackets(respondents, grouping.bounds(), respondent -> {
                 var value = answer.apply(respondent);
                 return value == null ? null : FormResultQuery.numberOf(value);
@@ -149,7 +149,7 @@ public class FormResultGrouping {
 
     private static List<Category> categoriesOf(ProfileField field, List<Respondent> respondents) {
         return switch (field.fieldType()) {
-            case ENUM -> {
+            case CHOICE -> {
                 var config = field.config();
                 List<String> options = config == null ? null : config.options();
                 yield Objects.requireNonNullElse(options, List.<String>of()).stream()

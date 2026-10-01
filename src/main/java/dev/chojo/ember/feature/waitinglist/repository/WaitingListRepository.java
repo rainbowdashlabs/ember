@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.waitinglist.repository;
 
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
@@ -15,7 +16,6 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
-import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.entity.WaitlistVerificationToken;
@@ -230,7 +230,7 @@ public class WaitingListRepository {
     public WaitingListField createField(
             int listId,
             String name,
-            WaitingListFieldType fieldType,
+            FieldType fieldType,
             WaitingListFieldConfig config,
             int position,
             boolean required,
@@ -242,7 +242,7 @@ public class WaitingListRepository {
                 RETURNING %s;""",
                 call().bind("list_id", listId)
                         .bind("name", name)
-                        .bind("field_type", fieldType.fieldType())
+                        .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("required", required)
@@ -254,7 +254,7 @@ public class WaitingListRepository {
     public Optional<WaitingListField> updateField(
             int fieldId,
             String name,
-            WaitingListFieldType fieldType,
+            FieldType fieldType,
             WaitingListFieldConfig config,
             int position,
             boolean required,
@@ -272,7 +272,7 @@ public class WaitingListRepository {
                 RETURNING %s;""", WAITING_LIST_FIELD_COLUMNS)
                 .single(call().bind("id", fieldId)
                         .bind("name", name)
-                        .bind("field_type", fieldType.fieldType())
+                        .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("required", required)

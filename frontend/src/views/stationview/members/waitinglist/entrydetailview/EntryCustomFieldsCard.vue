@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import EntryCustomFieldInput from './EntryCustomFieldInput.vue'
+import WaitingListAnswerInput from '@/components/waitinglist/WaitingListAnswerInput.vue'
 import type { WaitingListField } from '@/api/generated/schema'
 
 defineProps<{
@@ -26,12 +26,12 @@ const { t } = useI18n()
   <NeutralContainer v-if="fields.length > 0" class="space-y-4">
     <SubHeader>{{ t('waitingList.customFields') }}</SubHeader>
     <div class="grid gap-4 sm:grid-cols-2">
-      <EntryCustomFieldInput
+      <WaitingListAnswerInput
         v-for="field in fields"
         :key="field.id"
         :field="field"
-        :value="values.get(field.id) ?? ''"
-        @update:value="(v: string) => emit('update:value', field.id, v)"
+        :model-value="values.get(field.id) ?? ''"
+        @update:model-value="(v: string) => emit('update:value', field.id, v)"
       />
     </div>
   </NeutralContainer>

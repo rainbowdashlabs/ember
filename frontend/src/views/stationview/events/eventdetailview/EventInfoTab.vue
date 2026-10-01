@@ -15,14 +15,14 @@ import EventGeneralInfoPanel from './EventGeneralInfoPanel.vue'
 import EventAttachmentsPanel from './EventAttachmentsPanel.vue'
 import {isRecurringEvent} from '@/api/events'
 import {eventCommentSource} from '@/api/comments'
-import type {AbsentMemberResponse, EventField, StationEvent} from '@/api/generated/schema'
+import type {AbsentMemberResponse, AppointmentField, StationEvent} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
 const props = defineProps<{
   event: StationEvent
   eventId: number
-  fields: EventField[]
+  fields: AppointmentField[]
   allMembers: MemberLike[]
   currentMemberId: number
   absentMembers: AbsentMemberResponse[]
@@ -38,7 +38,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'field-updated', field: EventField): void
+  (e: 'field-updated', field: AppointmentField): void
 }>()
 
 const {t} = useI18n()

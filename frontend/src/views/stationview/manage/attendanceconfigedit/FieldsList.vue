@@ -16,6 +16,7 @@ import type {AttendanceTemplateField, MemberGroup} from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
 import FieldLayoutPreview from '@/components/profilefields/FieldLayoutPreview.vue'
 import {configOf} from '@/components/profilefields/fieldLayout'
+import {fieldTypeLabel} from '@/api/fieldTypes'
 
 const props = defineProps<{
   fields: AttendanceTemplateField[]
@@ -37,19 +38,7 @@ const emit = defineEmits<{
   reorder: [fromIndex: number, toIndex: number]
 }>()
 
-const {t, te} = useI18n()
-
-/**
- * What a field's kind is called, from the same list the form offers when one is chosen.
- *
- * <p>It read a second list of its own before, keyed in lower case while the kinds are stored in upper
- * case, so nothing ever matched and every row showed the raw value. Two lists of the same thing is how
- * that happened, so there is one now.
- */
-function fieldTypeLabel(value: string): string {
-  const key = `attendanceConfig.fieldTypeLabels.${value}`
-  return te(key) ? t(key) : value
-}
+const {t} = useI18n()
 
 /** What a field's settings say, in the shape this list reads them in. */
 function parseConfig(config: string | Record<string, unknown> | undefined): AttendanceFieldConfig {
@@ -85,7 +74,7 @@ function groupName(groupId: number): string {
             <div>
               <span class="font-medium">{{ field.name }}</span>
               <span v-if="parseConfig(field.config).required" class="ml-1 text-xs text-error">*</span>
-              <MutedText size="sm" class="ml-2">({{ fieldTypeLabel(field.fieldType ?? '') }})</MutedText>
+              <MutedText size="sm" class="ml-2">({{ fieldTypeLabel(t, field.fieldType) }})</MutedText>
               <MutedText v-if="parseConfig(field.config).groupId" class="ml-1">
                 - {{ groupName(parseConfig(field.config).groupId!) }}
               </MutedText>

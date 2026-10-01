@@ -95,7 +95,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-cluster-team-groups', path: '/helpcenter/cluster/team/groups', i18nPrefix: 'helpCenter.clusterMemberGroups'},
     {route: 'help-attendance-module-overview', path: '/helpcenter/station/attendance', i18nPrefix: 'helpCenter.attendanceOverview'},
     {route: 'help-station-attendance-config', path: '/helpcenter/station/attendance/config', i18nPrefix: 'helpCenter.attendanceConfig'},
-    {route: 'help-station-attendance-config-edit', path: '/helpcenter/station/attendance/config/edit', i18nPrefix: ['helpCenter.attendanceConfigEdit', 'helpCenter.fieldTypes']},
+    {route: 'help-station-attendance-config-edit', path: '/helpcenter/station/attendance/config/edit', i18nPrefix: 'helpCenter.attendanceConfigEdit'},
     {route: 'help-attendance-new', path: '/helpcenter/station/attendance/new', i18nPrefix: 'helpCenter.attendanceNew'},
     {route: 'help-attendance-past', path: '/helpcenter/station/attendance/past', i18nPrefix: 'helpCenter.attendancePast'},
     {route: 'help-attendance-report', path: '/helpcenter/station/attendance/report', i18nPrefix: ['helpCenter.attendanceReport', 'helpCenter.sample.attendance']},

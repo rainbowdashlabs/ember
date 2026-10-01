@@ -10,10 +10,10 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
-import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
-import dev.chojo.ember.feature.events.entity.EventTemplateRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationTemplateField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventTemplateRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
@@ -127,19 +127,11 @@ public class EventTemplateRoutes implements Routes {
         var template = requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var reminderDays = eventTemplateService.findReminderDays(id);
         ctx.json(new TemplateDetailResponse(
-                template, fieldsOf(id), restrictionsOf(id), reminderDays, registrationFieldsOf(id)));
-    }
-
-    private List<EventTemplateField> fieldsOf(int templateId) {
-        return eventTemplateService.findFields(templateId).stream()
-                .map(EventTemplateField::of)
-                .toList();
-    }
-
-    private List<EventTemplateRegistrationField> registrationFieldsOf(int templateId) {
-        return eventTemplateService.findRegistrationFields(templateId).stream()
-                .map(EventTemplateRegistrationField::of)
-                .toList();
+                template,
+                eventTemplateService.findFields(id),
+                restrictionsOf(id),
+                reminderDays,
+                eventTemplateService.findRegistrationFields(id)));
     }
 
     /** What the template hands its appointments, as the editor and the appointment both read it. */
@@ -156,10 +148,10 @@ public class EventTemplateRoutes implements Routes {
             tags = {"Event Templates"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetRegistrationFieldsRequest.class)),
-            responses =
-                    @OpenApiResponse(
-                            status = "200",
-                            content = @OpenApiContent(from = EventTemplateRegistrationField[].class)))
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationTemplateField[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void setRegistrationFields(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
@@ -167,7 +159,7 @@ public class EventTemplateRoutes implements Routes {
         var fields = req.fields() == null ? List.<RegistrationFieldDefinition>of() : req.fields();
         eventTemplateService.replaceRegistrationFields(
                 id, fields.stream().map(RegistrationFieldDefinition::toDraft).toList());
-        ctx.json(registrationFieldsOf(id));
+        ctx.json(eventTemplateService.findRegistrationFields(id));
     }
 
     @OpenApi(
@@ -231,7 +223,8 @@ public class EventTemplateRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetFieldsRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventTemplateField[].class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AppointmentTemplateField[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setFields(Context ctx) {
@@ -240,7 +233,7 @@ public class EventTemplateRoutes implements Routes {
         var req = ctx.bodyAsClass(SetFieldsRequest.class);
         eventTemplateService.replaceFields(
                 id, req.fields().stream().map(EventTemplateFieldData::toDraft).toList());
-        ctx.json(fieldsOf(id));
+        ctx.json(eventTemplateService.findFields(id));
     }
 
     @OpenApi(
@@ -318,10 +311,10 @@ public class EventTemplateRoutes implements Routes {
 
     public record TemplateDetailResponse(
             EventTemplate template,
-            List<EventTemplateField> fields,
+            List<AppointmentTemplateField> fields,
             TemplateRestrictions restriction,
             List<Integer> reminderDays,
-            List<EventTemplateRegistrationField> registrationFields) {}
+            List<RegistrationTemplateField> registrationFields) {}
 
     /**
      * Both audiences a template hands to the appointments written from it.

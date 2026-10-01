@@ -49,7 +49,6 @@
   "frontend/src/components/content/blockeditor/EditorRow.vue": 2,
   "frontend/src/components/content/blockeditor/PartnerStationListEditor.vue": 1,
   "frontend/src/components/display/AppIcon.test.ts": 1,
-  "frontend/src/components/display/FieldValueDisplay.test.ts": 1,
   "frontend/src/components/display/LayeredEmberLogo.vue": 6,
   "frontend/src/components/documents/FilePreviewModal.test.ts": 1,
   "frontend/src/components/documents/FileView.test.ts": 1,

@@ -15,7 +15,6 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
@@ -35,6 +34,7 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.CsvWriter;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -1434,8 +1434,7 @@ public class AttendanceRoutes implements Routes {
     /**
      * Request body for creating or updating a template field.
      */
-    public record TemplateFieldRequest(
-            String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {}
+    public record TemplateFieldRequest(String name, FieldType fieldType, AttendanceFieldConfig config, int position) {}
 
     /**
      * Request body for creating or updating an attendance session.

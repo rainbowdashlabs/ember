@@ -14,7 +14,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import {StationPermission} from '@/api/types'
 import {partnerEventCommentSource} from '@/api/comments'
-import type {RemoteEventDetail, RemoteMemberRegistration} from '@/api/generated/schema'
+import type {PartnerEventDetail, RemoteMemberRegistration} from '@/api/generated/schema'
 import {events} from '@/api'
 import {UNDO_WINDOW_MS} from '@/api/events'
 import {showToast} from '@/util/toast'
@@ -35,7 +35,7 @@ const {sessionInfo, hasPermission} = useSession()
 const stationUid = ref(route.params.stationUid as string)
 const eventId = ref(Number(route.params.eventId))
 
-const detail = ref<RemoteEventDetail | null>(null)
+const detail = ref<PartnerEventDetail | null>(null)
 const myRegistrations = ref<RemoteMemberRegistration[]>([])
 const selectedMemberUid = ref('')
 

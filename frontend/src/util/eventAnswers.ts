@@ -3,10 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {EventFieldTypes, RegistrationStatus, type RegistrationStatusName} from '@/api/events'
+import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
+import {FieldTypes} from '@/api/fieldTypes'
 import type {
     EventRegistrationFieldValue,
-    RegistrationFieldResponse,
+    EventRegistrationField,
     RegistrationResponse,
 } from '@/api/generated/schema'
 
@@ -214,7 +215,7 @@ export interface AnswerTotal {
  * place rather than been given one.
  */
 export function answerTotals(
-    fields: RegistrationFieldResponse[],
+    fields: EventRegistrationField[],
     registrations: Pick<RegistrationResponse, 'status' | 'fields'>[],
 ): AnswerTotal[] {
     const counted = registrations.filter(registration => registration.status === RegistrationStatus.ACCEPTED)
@@ -224,7 +225,7 @@ export function answerTotals(
 
     const totals: AnswerTotal[] = []
     for (const field of fields) {
-        if (field.fieldType === EventFieldTypes.NUMBER) {
+        if (field.fieldType === FieldTypes.NUMBER) {
             const sum = answersOf(field.id)
                 .map(Number)
                 .filter(value => !Number.isNaN(value))
@@ -232,7 +233,7 @@ export function answerTotals(
             totals.push({label: field.name, text: String(sum)})
             continue
         }
-        if (field.fieldType !== EventFieldTypes.ENUM) continue
+        if (field.fieldType !== FieldTypes.CHOICE) continue
         const answers = answersOf(field.id)
         const perOption = (field.config.options ?? [])
             .map(option => ({option, count: answers.filter(answer => answer === option).length}))

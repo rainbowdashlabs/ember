@@ -31,6 +31,10 @@
 - **Edited news comments say so.** A comment on a news entry that its author changed is marked as edited, the same as comments on appointments, wiki files and board tickets.
 - **Comment notices read the same everywhere.** The excerpt a notice quotes from a long comment on a news entry or a wiki file now ends with "…", as it already did for appointments and board tickets. A notice that you were mentioned in a comment on a ticket names the person who wrote it, where it used to name the ticket.
 - **Exports print answers the same way.** The member list, the registration table, the attendance sheet, the appointment list and the member inventory lists show yes and no as words in the station's language, dates as days and named members by name. Some of them used to print the stored value, such as "true" or a member's number.
+- **One name for each field type.** Every screen where a station sets up fields of its own, from profile questions to board, gear, appointment, attendance and waiting list fields, offers the types under the same names in the same list. Answers read the same everywhere too: yes and no with a mark and a word, days and times as they are written, and members by their names, now also on attendance sheets, board tickets and the public waiting list status page.
+- **Board fields can be required.** A board field can be marked as required, and its value can then be changed but not cleared. The answers of a choice field are entered one per line, as everywhere else.
+- **Templates carry registration questions.** The appointment template editor sets up the questions asked at registration, in the same editor as on an appointment, and an appointment made from the template takes them over.
+- **Gear number fields take a step below one.** The step of a gear number field can be set to a fraction such as 0.5 in the field editor, which lets the field take decimal numbers.
 
 ### Security
 
@@ -144,6 +148,9 @@
 - **Board fields took any value.** A custom field on a board ticket could be saved with a date that is not a date or with a choice the field does not offer. Such values are now refused when they are saved.
 - **Attendance date fields could not start at today.** Saving an attendance template field set to start at today's date was refused with a message that it expects a date. It is saved again, and new sheets start at the day they are made.
 - **Members who had left a group could not take themselves off a field.** A member who had put themselves into an appointment field limited to a group, a member type or a tag was refused when taking themselves out again after leaving it. Taking yourself out now always works.
+- **Yes answers could show as no.** In some cases a yes saved by an older version showed as no among an appointment's fields and in the answers to registration questions. Such answers now show as yes everywhere.
+- **A board number field could not hold zero.** Entering 0 into a number field of a ticket emptied the field. Zero is now kept.
+- **Registration answers ignored the question's limits.** In some cases the box for answering a number question took numbers outside its range, and a member question limited to a group or a tag offered every member, so saving then failed. The box now keeps to the range and offers only the members the question takes.
 
 ## v26.19.5
 

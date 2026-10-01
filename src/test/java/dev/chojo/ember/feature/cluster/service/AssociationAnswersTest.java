@@ -11,7 +11,7 @@ import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterEach;
@@ -56,7 +56,7 @@ class AssociationAnswersTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
-    private ClusterProfileField ask(ProfileFieldType type, String config) {
+    private ClusterProfileField ask(FieldType type, String config) {
         return clusterProfileFieldService.create(
                 clusterId,
                 type.name() + " " + NAMES.incrementAndGet(),
@@ -70,13 +70,13 @@ class AssociationAnswersTest extends RepositoryTestBase {
                 null);
     }
 
-    private String stored(ProfileFieldType type, String config, String answer) {
+    private String stored(FieldType type, String config, String answer) {
         var field = ask(type, config);
         clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), answer), memberId);
         return clusterProfileFieldService.findValues(clusterId, memberId).get(field.id());
     }
 
-    private void refused(ProfileFieldType type, String config, String answer) {
+    private void refused(FieldType type, String config, String answer) {
         var field = ask(type, config);
         assertThrows(
                 RefusalResponse.class,
@@ -86,32 +86,32 @@ class AssociationAnswersTest extends RepositoryTestBase {
 
     @Test
     void aNumberIsWholeAndKeptAsANumber() {
-        assertEquals("2", stored(ProfileFieldType.NUMBER, "{}", "\"2\""));
-        refused(ProfileFieldType.NUMBER, "{}", "\"zwei\"");
-        refused(ProfileFieldType.NUMBER, "{}", "2.5");
+        assertEquals("2", stored(FieldType.NUMBER, "{}", "\"2\""));
+        refused(FieldType.NUMBER, "{}", "\"zwei\"");
+        refused(FieldType.NUMBER, "{}", "2.5");
     }
 
     @Test
     void aDateTakesAnIsoDayOnly() {
-        assertEquals("\"2011-09-01\"", stored(ProfileFieldType.DATE, "{}", "\"2011-09-01\""));
-        refused(ProfileFieldType.DATE, "{}", "\"01.09.2011\"");
+        assertEquals("\"2011-09-01\"", stored(FieldType.DATE, "{}", "\"2011-09-01\""));
+        refused(FieldType.DATE, "{}", "\"01.09.2011\"");
     }
 
     @Test
     void aChoiceTakesOnlyItsOptions() {
-        assertEquals("\"M\"", stored(ProfileFieldType.ENUM, "{\"options\":[\"S\",\"M\"]}", "\"M\""));
-        refused(ProfileFieldType.ENUM, "{\"options\":[\"S\",\"M\"]}", "\"XL\"");
+        assertEquals("\"M\"", stored(FieldType.CHOICE, "{\"options\":[\"S\",\"M\"]}", "\"M\""));
+        refused(FieldType.CHOICE, "{\"options\":[\"S\",\"M\"]}", "\"XL\"");
     }
 
     @Test
     void aYesOrNoKeepsABooleanAndRefusesAnyOtherWord() {
-        assertEquals("true", stored(ProfileFieldType.BOOLEAN, "{}", "\"1\""));
-        refused(ProfileFieldType.BOOLEAN, "{}", "\"vielleicht\"");
+        assertEquals("true", stored(FieldType.BOOLEAN, "{}", "\"1\""));
+        refused(FieldType.BOOLEAN, "{}", "\"vielleicht\"");
     }
 
     @Test
     void anAgeTakesNoAnswer() {
-        var field = ask(ProfileFieldType.AGE, "{}");
+        var field = ask(FieldType.AGE, "{}");
 
         var refusal = assertThrows(
                 RefusalResponse.class,
@@ -123,19 +123,18 @@ class AssociationAnswersTest extends RepositoryTestBase {
     @Test
     void aQuestionCannotStartFromAnAnswerItRefuses() {
         assertThrows(
-                RefusalResponse.class,
-                () -> ask(ProfileFieldType.ENUM, "{\"options\":[\"S\"],\"defaultValue\":\"XL\"}"));
+                RefusalResponse.class, () -> ask(FieldType.CHOICE, "{\"options\":[\"S\"],\"defaultValue\":\"XL\"}"));
     }
 
     @Test
     void nothingSaidIsNothingKept() {
-        assertNull(stored(ProfileFieldType.TEXT, "{}", "\"\""));
+        assertNull(stored(FieldType.TEXT, "{}", "\"\""));
     }
 
     /** The station writing an answer to its association's question is measured the same way. */
     @Test
     void theStationWritingAnAnswerIsMeasuredToo() {
-        var field = ask(ProfileFieldType.ENUM, "{\"options\":[\"S\",\"M\"]}");
+        var field = ask(FieldType.CHOICE, "{\"options\":[\"S\",\"M\"]}");
 
         assertThrows(
                 RefusalResponse.class,

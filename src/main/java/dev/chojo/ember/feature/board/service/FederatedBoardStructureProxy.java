@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.feature.board.entity.BoardField;
+import dev.chojo.ember.feature.board.entity.BoardFieldDefinition;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
@@ -110,15 +111,19 @@ public class FederatedBoardStructureProxy implements FederationServer {
     }
 
     /**
-     * Returns the custom fields of a federated board.
+     * Returns the custom fields of a federated board, under the shared type names the board screens
+     * read.
      *
      * @param partnerId the partner record id
      * @param boardKey  the board short key
      * @return the fields
      */
-    public List<BoardField> proxyGetFields(int partnerId, String boardKey) {
-        return transport.getList(
-                locator.requirePartner(partnerId), RemoteBoardRoutes.GET_FIELDS.at(boardKey), BoardField.class);
+    public List<BoardFieldDefinition> proxyGetFields(int partnerId, String boardKey) {
+        return transport
+                .getList(locator.requirePartner(partnerId), RemoteBoardRoutes.GET_FIELDS.at(boardKey), BoardField.class)
+                .stream()
+                .map(BoardField::definition)
+                .toList();
     }
 
     /**

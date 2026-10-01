@@ -282,7 +282,7 @@ test.describe('Waiting lists', () => {
         await page.goto(`/station/members/waiting-lists/${id}/fields`)
         await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
         await page.getByPlaceholder('Name des Feldes').fill(fieldName)
-        await page.getByRole('combobox').first().selectOption('ENUM')
+        await page.getByRole('combobox').first().selectOption('CHOICE')
 
         await page.getByTestId('question-option-add').click()
         await page.getByTestId('question-option-0').fill('rot')

@@ -9,7 +9,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import {defaultFieldConfig, FieldType, type FieldTypeName} from '@/api/inventoryFields'
+import {defaultFieldConfig} from '@/api/inventoryFields'
+import {FieldTypes, type FieldTypeName} from '@/api/fieldTypes'
 import type {DraftField} from './types'
 import FieldDraftMetaForm from './FieldDraftMetaForm.vue'
 import TextFieldConfigForm from './TextFieldConfigForm.vue'
@@ -43,19 +44,19 @@ function onTypeChanged(value: FieldTypeName) {
         </SubHeader>
         <FieldDraftMetaForm v-model:draft="draft" @type-changed="onTypeChanged" />
         <TextFieldConfigForm
-            v-if="draft.config.kind === FieldType.TEXT"
+            v-if="draft.config.kind === FieldTypes.TEXT"
             v-model:config="draft.config"
         />
         <NumberFieldConfigForm
-            v-else-if="draft.config.kind === FieldType.NUMBER"
-            :config="draft.config"
+            v-else-if="draft.config.kind === FieldTypes.NUMBER"
+            v-model:config="draft.config"
         />
         <BooleanFieldConfigForm
-            v-else-if="draft.config.kind === FieldType.BOOLEAN"
+            v-else-if="draft.config.kind === FieldTypes.BOOLEAN"
             v-model:config="draft.config"
         />
         <EnumFieldConfigForm
-            v-else-if="draft.config.kind === FieldType.ENUM"
+            v-else-if="draft.config.kind === FieldTypes.CHOICE"
             v-model:config="draft.config"
         />
         <ButtonRow pair align="end" class="mt-3">

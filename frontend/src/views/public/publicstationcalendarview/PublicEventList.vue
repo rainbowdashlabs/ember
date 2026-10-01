@@ -13,6 +13,7 @@ import type {PublicEventResponse as PublicEvent} from '@/api/generated/schema'
 import {renderMarkdown} from '@/util/markdown'
 import {formatDate, formatTime, formatWeekdayDate, weekdayName} from '@/util/format'
 import ProseContent from '@/components/display/ProseContent.vue'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 
 defineProps<{
   events: PublicEvent[]
@@ -61,7 +62,7 @@ function isRecurring(eventType?: string): boolean {
       <ProseContent v-if="ev.description" v-html="renderMarkdown(ev.description)"/>
       <div v-if="ev.publicFields?.length" class="flex flex-wrap gap-3 text-xs text-(--text-muted)">
         <span v-for="f in ev.publicFields" :key="f.name">
-          <span class="font-medium">{{ f.name }}:</span> {{ f.value }}
+          <span class="font-medium">{{ f.name }}:</span> <QuestionValueDisplay :field-type="f.fieldType" :value="f.value"/>
         </span>
       </div>
     </NeutralContainer>

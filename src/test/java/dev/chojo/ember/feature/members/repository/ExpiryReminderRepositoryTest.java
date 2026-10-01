@@ -9,9 +9,9 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.SentExpiryReminder;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -56,7 +56,7 @@ class ExpiryReminderRepositoryTest extends RepositoryTestBase {
 
     private static ProfileField field(String name) {
         return profileFieldRepo.create(
-                station.id(), name, ProfileFieldType.EXPIRY_DATE, ProfileFieldConfig.empty(), false, false, null);
+                station.id(), name, FieldType.EXPIRY_DATE, ProfileFieldConfig.empty(), false, false, null);
     }
 
     @Test
@@ -113,15 +113,15 @@ class ExpiryReminderRepositoryTest extends RepositoryTestBase {
         var there = profileFieldRepo.create(
                 other.id(),
                 "Atemschutz gültig bis",
-                ProfileFieldType.EXPIRY_DATE,
+                FieldType.EXPIRY_DATE,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
                 null);
         var plain = profileFieldRepo.create(
-                station.id(), "Beitrittsdatum", ProfileFieldType.DATE, ProfileFieldConfig.empty(), false, false, null);
+                station.id(), "Beitrittsdatum", FieldType.DATE, ProfileFieldConfig.empty(), false, false, null);
 
-        var found = profileFieldRepo.findAllByType(ProfileFieldType.EXPIRY_DATE).stream()
+        var found = profileFieldRepo.findAllByType(FieldType.EXPIRY_DATE).stream()
                 .map(ProfileField::id)
                 .toList();
 
@@ -137,7 +137,7 @@ class ExpiryReminderRepositoryTest extends RepositoryTestBase {
         var expiring = clusterProfileFieldRepo.create(
                 cluster.id(),
                 "Maschinist gültig bis",
-                ProfileFieldType.EXPIRY_DATE,
+                FieldType.EXPIRY_DATE,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -147,7 +147,7 @@ class ExpiryReminderRepositoryTest extends RepositoryTestBase {
                 null);
         clusterProfileFieldRepo.setValue(member.id(), expiring.id(), StringNode.valueOf("2027-03-31"));
 
-        var found = clusterProfileFieldRepo.findAllByType(ProfileFieldType.EXPIRY_DATE).stream()
+        var found = clusterProfileFieldRepo.findAllByType(FieldType.EXPIRY_DATE).stream()
                 .map(field -> field.id())
                 .toList();
         var answers = clusterProfileFieldRepo.findValuesOfField(expiring.id());

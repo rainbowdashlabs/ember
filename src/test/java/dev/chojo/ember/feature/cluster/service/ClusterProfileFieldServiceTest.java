@@ -10,7 +10,7 @@ import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -53,27 +53,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
     void anOrderIsWrittenInOneGo() {
         int clusterId = freshCluster();
         var first = clusterProfileFieldService.create(
-                clusterId,
-                "Erste",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.empty(),
-                false,
-                false,
-                null,
-                true,
-                false,
-                null);
+                clusterId, "Erste", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null, true, false, null);
         var second = clusterProfileFieldService.create(
-                clusterId,
-                "Zweite",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.empty(),
-                false,
-                false,
-                null,
-                true,
-                false,
-                null);
+                clusterId, "Zweite", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null, true, false, null);
         clusterProfileFieldService.assignToRole(clusterId, first.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         clusterProfileFieldService.assignToRole(clusterId, second.id(), ProfileFieldScope.MEMBER, 1, null, null, null);
 
@@ -115,7 +97,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Funkrufname",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -153,7 +135,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var licence = clusterProfileFieldService.create(
                 clusterId,
                 "Führerscheinklasse",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -206,7 +188,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var fit = clusterProfileFieldService.create(
                 clusterId,
                 "Atemschutztauglich",
-                ProfileFieldType.BOOLEAN,
+                FieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -263,7 +245,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         clusterProfileFieldService.create(
                 clusterId,
                 "Funkrufname",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -277,7 +259,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 () -> clusterProfileFieldService.create(
                         clusterId,
                         "Funkrufname",
-                        ProfileFieldType.TEXT,
+                        FieldType.TEXT,
                         ProfileFieldConfig.empty(),
                         false,
                         false,
@@ -290,7 +272,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         clusterProfileFieldService.create(
                 clusterId,
                 "Funkrufname",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -313,7 +295,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 () -> clusterProfileFieldService.create(
                         clusterId,
                         "Geburtstag",
-                        ProfileFieldType.BIRTH_DATE,
+                        FieldType.BIRTH_DATE,
                         ProfileFieldConfig.empty(),
                         false,
                         false,
@@ -332,7 +314,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Erste Hilfe gültig bis",
-                ProfileFieldType.EXPIRY_DATE,
+                FieldType.EXPIRY_DATE,
                 ProfileFieldConfig.parse("{\"warnFromDays\":90,\"reminderDays\":[90,30]}"),
                 false,
                 false,
@@ -360,7 +342,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 () -> clusterProfileFieldService.create(
                         clusterId,
                         "Erste Hilfe gültig bis",
-                        ProfileFieldType.EXPIRY_DATE,
+                        FieldType.EXPIRY_DATE,
                         ProfileFieldConfig.parse("{\"warnFromDays\":-1}"),
                         false,
                         false,
@@ -380,7 +362,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 () -> clusterProfileFieldService.create(
                         clusterId,
                         "  ",
-                        ProfileFieldType.TEXT,
+                        FieldType.TEXT,
                         ProfileFieldConfig.empty(),
                         false,
                         false,
@@ -398,7 +380,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Atemschutz",
-                ProfileFieldType.BOOLEAN,
+                FieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -431,7 +413,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Atemschutztauglich",
-                ProfileFieldType.BOOLEAN,
+                FieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -471,7 +453,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Atemschutz",
-                ProfileFieldType.BOOLEAN,
+                FieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -510,7 +492,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Vorläufig",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -524,7 +506,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 clusterId,
                 field.id(),
                 "Endgültig",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 true,
                 false,
@@ -554,7 +536,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 otherClusterId,
                 "Fremd",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -574,7 +556,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Einzeln",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -598,7 +580,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Nachschlagen",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -621,7 +603,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Unverändert",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,

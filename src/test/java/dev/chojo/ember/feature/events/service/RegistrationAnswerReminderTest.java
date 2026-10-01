@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -103,7 +103,7 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
         return new RegistrationFieldDraft(
                 name,
                 FieldType.TEXT,
-                new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false).settings(),
+                new EventQuestionSettings(null, null, null, null, null, false, false, true, null, null, null, false),
                 true);
     }
 
@@ -111,7 +111,7 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
         return new RegistrationFieldDraft(
                 name,
                 FieldType.TEXT,
-                new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, false).settings(),
+                new EventQuestionSettings(null, null, null, null, null, false, false, false, null, null, null, false),
                 true);
     }
 

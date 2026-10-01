@@ -20,12 +20,12 @@ import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileField;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.ManagedMemberService.ValueEntry;
 import dev.chojo.ember.feature.members.service.ProfileFieldService.MergedValue;
+import dev.chojo.ember.feature.question.FieldType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -64,7 +64,7 @@ class ManagedMemberServiceTest {
     }
 
     private static ProfileField field(int id) {
-        return new ProfileField(id, STATION_ID, "F" + id, ProfileFieldType.TEXT, null, false, false, null, false);
+        return new ProfileField(id, STATION_ID, "F" + id, FieldType.TEXT, null, false, false, null, false);
     }
 
     @BeforeEach

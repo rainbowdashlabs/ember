@@ -14,8 +14,8 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -98,13 +98,7 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
     @Test
     void aBirthdayFollowsTheScopeOfTheFieldItLivesIn() {
         var field = profileFieldRepo.create(
-                station.id(),
-                "Geburtstag",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.empty(),
-                false,
-                false,
-                null);
+                station.id(), "Geburtstag", FieldType.BIRTH_DATE, ProfileFieldConfig.empty(), false, false, null);
         profileFieldRepo.assignToRole(field.id(), ProfileFieldScope.MANAGER, 0, null, null, null);
         profileFieldRepo.setValue(
                 member.id(),

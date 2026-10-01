@@ -10,10 +10,10 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.ProfileField;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.FieldType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -103,8 +103,8 @@ class MemberViewServiceTest {
     void theRegisterOnlyCarriesTheAnswersTheReaderMayRead() {
         when(members.findRichMembers(STATION_ID, true)).thenReturn(List.of(richMember()));
         when(profileFields.findReadableBy(any(Integer.class), any()))
-                .thenReturn(List.of(new ProfileField(
-                        5, STATION_ID, "Größe", ProfileFieldType.TEXT, null, false, false, null, false)));
+                .thenReturn(List.of(
+                        new ProfileField(5, STATION_ID, "Größe", FieldType.TEXT, null, false, false, null, false)));
 
         var rows = service.richMembers(STATION_ID, true, Set.of(StationPermission.MEMBER_READ));
 

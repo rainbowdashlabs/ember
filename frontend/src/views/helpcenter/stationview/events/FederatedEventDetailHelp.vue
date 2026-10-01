@@ -10,7 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import HeaderCard from '@/views/stationview/events/federatedeventdetailview/HeaderCard.vue'
-import type {EventField, SharedEvent} from '@/api/generated/schema'
+import type {AppointmentField, SharedEvent} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -28,14 +28,14 @@ const EVENT: SharedEvent = {
   repeatCount: null,
 }
 
-const PUBLIC_FIELDS: EventField[] = [
+const PUBLIC_FIELDS: AppointmentField[] = [
   {
     id: 1,
     eventId: 1,
     name: 'Treffpunkt',
     value: 'Hof der Wache',
-    fieldType: 'STRING',
-    config: {perDate: false, selfRegistration: false},
+    fieldType: 'TEXT',
+    config: {perDate: false, selfRegistration: false, required: false, managersOnly: false},
     position: 0,
     overview: false,
     isPublic: true,

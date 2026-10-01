@@ -15,7 +15,6 @@ import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ExpiryReminderRepository;
 import dev.chojo.ember.feature.notifications.entity.Audience;
@@ -28,6 +27,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -120,7 +120,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
 
     private ProfileField expiryField(String name, String config) {
         var field = profileFieldRepo.create(
-                station.id(), name, ProfileFieldType.EXPIRY_DATE, ProfileFieldConfig.parse(config), false, true, null);
+                station.id(), name, FieldType.EXPIRY_DATE, ProfileFieldConfig.parse(config), false, true, null);
         profileFieldRepo.assignToRole(field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         return field;
     }
@@ -469,7 +469,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
         profileFieldRepo.update(
                 field.id(),
                 field.name(),
-                ProfileFieldType.EXPIRY_DATE,
+                FieldType.EXPIRY_DATE,
                 ProfileFieldConfig.parse("{\"reminderDays\":[30,20],\"remindManagement\":true}"),
                 false,
                 true,
@@ -531,7 +531,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldRepo.create(
                 clusterId,
                 "Maschinist gültig bis",
-                ProfileFieldType.EXPIRY_DATE,
+                FieldType.EXPIRY_DATE,
                 ProfileFieldConfig.parse("{\"remindManagement\":true}"),
                 false,
                 true,

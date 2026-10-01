@@ -53,15 +53,15 @@ class EventQuestionSettingsTest {
 
     @Test
     void aRegistrantsQuestionRoundTripsThroughTheColumnAndTheScreen() {
-        var screen = new EventRegistrationFieldConfig(true, "2", null, 0, 5, null, null, null, true);
-        var parsed = EventQuestionSettings.parse(screen.settings().toJson());
+        var screen = new EventQuestionSettings(null, null, null, null, null, false, false, true, "2", 0, 5, true);
+        var parsed = EventQuestionSettings.parse(screen.toJson());
 
         assertTrue(parsed.required());
         assertEquals("2", parsed.defaultValue());
         assertEquals(0, parsed.min());
         assertEquals(5, parsed.max());
         assertTrue(parsed.managersOnly());
-        assertEquals(screen, EventRegistrationFieldConfig.of(parsed));
+        assertEquals(screen, parsed.registrants());
     }
 
     @Test

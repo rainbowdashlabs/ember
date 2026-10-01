@@ -52,12 +52,12 @@ const {t} = useI18n()
         <HelpSection :title="t('helpCenter.boardSettings.fieldTypesTitle')">
             <p>{{ t('helpCenter.boardSettings.fieldTypesText') }}</p>
             <HelpList>
-                <li><strong>{{ t('boards.fieldTypeString') }}:</strong> {{ t('helpCenter.boardSettings.typeStringDesc') }}</li>
-                <li><strong>{{ t('boards.fieldTypeNumber') }}:</strong> {{ t('helpCenter.boardSettings.typeNumberDesc') }}</li>
-                <li><strong>{{ t('boards.fieldTypeBoolean') }}:</strong> {{ t('helpCenter.boardSettings.typeBooleanDesc') }}</li>
-                <li><strong>{{ t('boards.fieldTypeEnum') }}:</strong> {{ t('helpCenter.boardSettings.typeEnumDesc') }}</li>
-                <li><strong>{{ t('boards.fieldTypeDate') }}:</strong> {{ t('helpCenter.boardSettings.typeDateDesc') }}</li>
-                <li><strong>{{ t('boards.fieldTypeLaneAssignee') }}:</strong> {{ t('helpCenter.boardSettings.typeLaneAssigneeDesc') }}</li>
+                <li><strong>{{ t('fieldTypes.label.TEXT') }}:</strong> {{ t('helpCenter.boardSettings.typeStringDesc') }}</li>
+                <li><strong>{{ t('fieldTypes.label.NUMBER') }}:</strong> {{ t('helpCenter.boardSettings.typeNumberDesc') }}</li>
+                <li><strong>{{ t('fieldTypes.label.BOOLEAN') }}:</strong> {{ t('helpCenter.boardSettings.typeBooleanDesc') }}</li>
+                <li><strong>{{ t('fieldTypes.label.CHOICE') }}:</strong> {{ t('helpCenter.boardSettings.typeEnumDesc') }}</li>
+                <li><strong>{{ t('fieldTypes.label.DATE') }}:</strong> {{ t('helpCenter.boardSettings.typeDateDesc') }}</li>
+                <li><strong>{{ t('fieldTypes.label.LANE_ASSIGNEE') }}:</strong> {{ t('helpCenter.boardSettings.typeLaneAssigneeDesc') }}</li>
             </HelpList>
         </HelpSection>
 

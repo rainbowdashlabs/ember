@@ -10,7 +10,6 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
@@ -33,6 +32,8 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.MemberEligibility;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionValues;
@@ -221,21 +222,16 @@ public class AttendanceService {
     // -- Template Fields --
 
     public List<AttendanceTemplateField> createTemplateField(
-            int templateId, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
-        requireUsableDefault(name, fieldType, config);
+            int templateId, String name, FieldType fieldType, AttendanceFieldConfig config, int position) {
+        requireUsable(name, fieldType, config);
         attendanceRepository.createTemplateField(templateId, name, fieldType, config, position);
         log.info("Created attendance template field for template {} (type {})", templateId, fieldType);
         return attendanceRepository.findTemplateFields(templateId);
     }
 
     public Optional<List<AttendanceTemplateField>> updateTemplateField(
-            int templateId,
-            int fieldId,
-            String name,
-            AttendanceFieldType fieldType,
-            AttendanceFieldConfig config,
-            int position) {
-        requireUsableDefault(name, fieldType, config);
+            int templateId, int fieldId, String name, FieldType fieldType, AttendanceFieldConfig config, int position) {
+        requireUsable(name, fieldType, config);
         if (attendanceRepository.updateTemplateField(fieldId, name, fieldType, config, position)) {
             log.info("Updated attendance template field {} for template {}", fieldId, templateId);
             return Optional.of(attendanceRepository.findTemplateFields(templateId));
@@ -245,11 +241,15 @@ public class AttendanceService {
     }
 
     /**
-     * Refuses a field set up to start from a value it would then refuse as an answer.
+     * Refuses a field of a type a sheet does not offer, or one set up to start from a value it would
+     * then refuse as an answer.
      *
-     * @throws BadRequestResponse naming the field and what is wrong with its starting value
+     * @throws io.javalin.http.HttpResponseException {@link Refusal#ATTENDANCE_FIELD_TYPE_NOT_OFFERED}
+     * @throws BadRequestResponse                    naming the field and what is wrong with its
+     *                                               starting value
      */
-    private void requireUsableDefault(String name, AttendanceFieldType fieldType, AttendanceFieldConfig config) {
+    private void requireUsable(String name, FieldType fieldType, AttendanceFieldConfig config) {
+        if (!FieldTypes.ATTENDANCE.contains(fieldType)) throw Refusal.ATTENDANCE_FIELD_TYPE_NOT_OFFERED.raise();
         var field = new AttendanceTemplateField(0, 0, name, fieldType, config, 0);
         QuestionCheck.defaultValue(field.question()).ifPresent(problem -> {
             throw new BadRequestResponse(problem.message());
@@ -513,7 +513,7 @@ public class AttendanceService {
      * @param answer    the answer as plain text
      */
     private void writeSessionField(int sessionId, AttendanceTemplateField field, @Nullable String answer) {
-        var stored = QuestionValues.write(field.fieldType().fieldType(), answer);
+        var stored = QuestionValues.write(field.fieldType(), answer);
         if (stored == null) {
             attendanceRepository.deleteSessionField(sessionId, field.id());
             return;

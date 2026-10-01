@@ -6,9 +6,8 @@
 package dev.chojo.ember.feature.members.repository;
 
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
 
-import java.util.Arrays;
 import java.util.stream.Collectors;
 
 /**
@@ -78,9 +77,10 @@ public final class ProfileCompletenessSql {
 
     /** The types nobody answers: headings and gaps, and an age, which counts itself from a date. */
     private static String answerlessTypes() {
-        return Arrays.stream(ProfileFieldType.values())
-                .filter(type -> !type.holdsValue() || type.isCalculated())
-                .map(type -> "'" + type.fieldType().name() + "'")
+        return FieldTypes.PROFILE.stream()
+                .filter(type -> !type.holdsValue())
+                .sorted()
+                .map(type -> "'" + type.name() + "'")
                 .collect(Collectors.joining(", "));
     }
 }

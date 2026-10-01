@@ -9,11 +9,11 @@ import type {RouteLocationRaw} from 'vue-router'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import TodayEventCard from './TodayEventCard.vue'
-import type {EventField, EventSummary} from '@/api/generated/schema'
+import type {AppointmentField, EventSummary} from '@/api/generated/schema'
 
 defineProps<{
   events: EventSummary[]
-  overviewFields: Record<number, EventField[]>
+  overviewFields: Record<number, AppointmentField[]>
   canManageAttendance: boolean
   detailRoute: (event: EventSummary) => RouteLocationRaw
   formatTime: (iso?: string) => string

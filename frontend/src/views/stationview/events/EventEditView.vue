@@ -25,6 +25,7 @@ import {useEventFieldDefaults} from './eventeditview/useEventFieldDefaults'
 import {useEventFederationShare} from './eventeditview/useEventFederationShare'
 import {useEventAttachments} from './eventeditview/useEventAttachments'
 import AttachmentsCard from './eventeditview/AttachmentsCard.vue'
+import {asSaved} from './eventshared/eventQuestions'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -148,7 +149,7 @@ async function writeEvent() {
   await fieldDefaults.save(savedEventId, isEdit.value)
   await events.setEventReminders(savedEventId, form.state.reminders)
   await events.setEventFields(savedEventId, {fields: form.namedFields()})
-  await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name?.trim()))
+  await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name?.trim()).map(asSaved))
   await federationShare.save(savedEventId)
 }
 

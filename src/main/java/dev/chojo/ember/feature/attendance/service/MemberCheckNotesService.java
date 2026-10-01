@@ -18,9 +18,9 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldScopes;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -205,7 +205,7 @@ public class MemberCheckNotesService {
      */
     private Map<Integer, Integer> birthdays(int stationId, Set<ProfileFieldScope> readableScopes) {
         var field = profileFieldRepository.findReadableBy(stationId, readableScopes).stream()
-                .filter(candidate -> candidate.fieldType() == ProfileFieldType.BIRTH_DATE)
+                .filter(candidate -> candidate.fieldType() == FieldType.BIRTH_DATE)
                 .findFirst()
                 .orElse(null);
         if (field == null) return Map.of();

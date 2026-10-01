@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {describe, expect, it} from 'vitest'
-import {FieldTypes} from '@/api/profileFields'
-import {CLUSTER_FIELD_TYPES} from '@/api/clusterFields'
+import {FieldTypes, OfferedFieldTypes, type FieldTypeName} from '@/api/fieldTypes'
 import {expirySettingsOf} from '@/util/expiry'
 import {fieldTemplates} from './fieldTemplates'
 
@@ -46,7 +45,7 @@ describe('fieldTemplates', () => {
   it('offers the templates with an expiry date to an association', () => {
     const offered = fieldTemplates
       .filter(template => template.fields.every(field =>
-        (CLUSTER_FIELD_TYPES as readonly string[]).includes(field.fieldType)))
+        (OfferedFieldTypes.ASSOCIATION as readonly FieldTypeName[]).includes(field.fieldType)))
       .map(template => template.name)
 
     expect(offered).toEqual(expect.arrayContaining(['Führerschein', 'JuLeiCa', 'Erste Hilfe Kurs']))

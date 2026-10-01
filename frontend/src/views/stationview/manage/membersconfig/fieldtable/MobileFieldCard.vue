@@ -16,7 +16,7 @@ import WritabilitySelect from './WritabilitySelect.vue'
 import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFieldsConfig'
 import {type EditableField, type FieldSwitchName, parseFieldConfig} from '@/api/profileFields'
 import {holdsAnswer, isSection, widthOf} from '@/components/profilefields/fieldLayout'
-import {widthLabel} from '../fieldTypes'
+import {widthLabel} from '../fieldWidths'
 
 const {t} = useI18n()
 const writabilityId = useId()

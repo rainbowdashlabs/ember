@@ -18,7 +18,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import {useAnswerMembers} from './useAnswerMembers'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import type {RegistrationFieldResponse} from '@/api/generated/schema'
+import type {EventRegistrationField} from '@/api/generated/schema'
 import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
 
 /**
@@ -34,7 +34,7 @@ import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
 const props = defineProps<{
     people: AnswerablePerson<K>[]
     /** The questions the event asks. Empty when it asks none, and ignored when declining. */
-    fields: RegistrationFieldResponse[]
+    fields: EventRegistrationField[]
     /** Whether this dialog is saying yes. Saying no needs no answers. */
     attending: boolean
     busy?: boolean
@@ -56,7 +56,7 @@ const answers = ref(new Map()) as Ref<Map<K, Record<number, string>>>
 
 const asksQuestions = computed(() => props.attending && props.fields.length > 0)
 
-const {allMembers, loadMembers} = useAnswerMembers(computed(() => props.fields))
+const {allMembers, groupMembers, tagMembers, loadMembers} = useAnswerMembers(computed(() => props.fields))
 
 /**
  * What each person's answers start out as: whatever the question was given as its starting point.
@@ -149,8 +149,10 @@ function confirm() {
                     <FieldLabel>{{ field.name }}{{ field.config?.required ? ' *' : '' }}</FieldLabel>
                     <EventFieldValueInput
                         :field-type="field.fieldType"
-                        :config="{...field.config}"
+                        :config="field.config"
                         :all-members="allMembers"
+                        :group-members="groupMembers"
+                        :tag-members="tagMembers"
                         :model-value="answerFor(key, field.id)"
                         @update:model-value="value => setAnswer(key, field.id, value)"
                     />

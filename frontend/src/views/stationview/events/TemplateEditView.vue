@@ -23,12 +23,13 @@ import type {
     EventCategory,
     EventFieldEntry,
     MemberGroup,
+    RegistrationFieldDefinition,
     TemplateDetailResponse,
     UserTag,
 } from '@/api/generated/schema'
 import {attendance, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
-import {EventFieldTypes} from '@/api/events'
 import {eventTypeNamed} from './eventeditview/eventFormState'
+import {asSaved} from './eventshared/eventQuestions'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
@@ -67,6 +68,7 @@ const requiresConfirmation = ref(false)
 const registrationLimit = ref<number | undefined>(undefined)
 const attendanceTemplateId = ref('')
 const fields = ref<EventFieldEntry[]>([])
+const registrationFields = ref<RegistrationFieldDefinition[]>([])
 const reminderDays = ref<number[]>([])
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
@@ -105,6 +107,12 @@ function seedForm(detail: TemplateDetailResponse) {
     overview: f.overview,
     attendanceFieldId: f.attendanceFieldId,
     isPublic: f.isPublic,
+  }))
+  registrationFields.value = detail.registrationFields.map(f => ({
+    name: f.name,
+    fieldType: f.fieldType,
+    config: f.config,
+    overview: f.overview,
   }))
 }
 
@@ -154,9 +162,9 @@ async function save() {
       view: viewRestriction.value,
     })
     await events.setTemplateFields(templateId.value, {
-      fields: fields.value.map((f, i) => ({
+      fields: fields.value.map(asSaved).map((f, i) => ({
         name: f.name,
-        fieldType: f.fieldType ?? EventFieldTypes.STRING,
+        fieldType: f.fieldType,
         config: f.config,
         position: i,
         overview: f.overview ?? false,
@@ -165,6 +173,10 @@ async function save() {
         defaultValue: f.value?.trim() ? f.value : null,
       })),
     })
+    await events.setTemplateRegistrationFields(
+        templateId.value,
+        registrationFields.value.filter(f => f.name?.trim()).map(asSaved),
+    )
   } catch (e) {
     reportCaughtError(e, 'TemplateEditView.save')
     failure.value = describeFailure(e, t)
@@ -202,6 +214,7 @@ async function save() {
           v-model:view-restriction="viewRestriction"
           v-model:reminder-days="reminderDays"
           v-model:fields="fields"
+          v-model:registration-fields="registrationFields"
           :categories="categories"
           :attendance-templates="attendanceTemplates"
           :sheet-fields="sheetFields"

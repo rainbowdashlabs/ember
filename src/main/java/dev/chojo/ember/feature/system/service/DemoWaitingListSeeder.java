@@ -10,9 +10,9 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
-import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -94,17 +94,11 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                 null);
 
         var birthdayField = waitingListRepository.createField(
-                list.id(),
-                "Geburtsdatum",
-                WaitingListFieldType.BIRTH_DATE,
-                WaitingListFieldConfig.EMPTY,
-                0,
-                true,
-                true);
+                list.id(), "Geburtsdatum", FieldType.BIRTH_DATE, WaitingListFieldConfig.EMPTY, 0, true, true);
         var expField = waitingListRepository.createField(
                 list.id(),
                 "Erfahrung",
-                WaitingListFieldType.ENUM,
+                FieldType.CHOICE,
                 new WaitingListFieldConfig(List.of("Anfänger", "Fortgeschritten"), null),
                 1,
                 true,
@@ -125,21 +119,9 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                 null,
                 null);
         waitingListRepository.createField(
-                kinderList.id(),
-                "Name des Kindes",
-                WaitingListFieldType.TEXT,
-                WaitingListFieldConfig.EMPTY,
-                0,
-                true,
-                true);
+                kinderList.id(), "Name des Kindes", FieldType.TEXT, WaitingListFieldConfig.EMPTY, 0, true, true);
         waitingListRepository.createField(
-                kinderList.id(),
-                "Geburtsdatum",
-                WaitingListFieldType.BIRTH_DATE,
-                WaitingListFieldConfig.EMPTY,
-                1,
-                true,
-                true);
+                kinderList.id(), "Geburtsdatum", FieldType.BIRTH_DATE, WaitingListFieldConfig.EMPTY, 1, true, true);
         waitingListRepository.createInvite(kinderList.id(), "demo-kinder-invite" + codeSuffix, 10, null);
 
         // --- Schnupperstunde: a list that asks for nothing beyond a name and an address ---

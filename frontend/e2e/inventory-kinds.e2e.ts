@@ -145,7 +145,7 @@ test.describe('The two kinds of inventory', () => {
         await expect(panel).toBeVisible()
         await panel.getByTestId('add-field').click()
         await panel.getByTestId('field-label').fill('Farbe')
-        await panel.getByTestId('field-type').selectOption('ENUM')
+        await panel.getByTestId('field-type').selectOption('CHOICE')
         await panel.getByTestId('field-save').click()
 
         await expect(async () => {

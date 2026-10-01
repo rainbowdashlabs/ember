@@ -3,11 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {EventField, StationEvent} from '@/api/generated/schema'
+import type {AppointmentField, StationEvent} from '@/api/generated/schema'
 import {CellContentType, type CellContentTypeName} from '@/api/pageManage'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import type {RestrictionSelection} from '@/api/types'
-import {eventFieldText} from '@/views/stationview/events/eventshared/eventFieldText'
+import {answerText} from '@/util/questions'
 import {occurrenceLabel} from '@/util/occurrenceLabel'
 import {announcementSentences, type Say} from './announcementSentences'
 
@@ -51,7 +51,7 @@ export interface AnnouncedEvent {
     /** The occurrence being announced, or null where the appointment has no date at all. */
     date: string | null
     /** The appointment's custom fields, of which the overview ones are carried. */
-    fields: EventField[]
+    fields: AppointmentField[]
     /** The station's clock, which the moments in the text are written on. */
     timezone?: string | null
 }
@@ -91,7 +91,7 @@ export function buildAnnouncementDraft(
         .filter(field => field.overview && field.name)
         .map(field => ({
             name: field.name,
-            text: eventFieldText(field, names, {yes: words.yes, no: words.no}),
+            text: answerText(field.fieldType, field.value.trim(), {yes: words.yes, no: words.no, names}),
             isPublic: field.isPublic,
         }))
         .filter(field => field.text !== '')

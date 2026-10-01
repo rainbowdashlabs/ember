@@ -15,8 +15,7 @@ import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.DatedEvent;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
 import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
@@ -36,6 +35,7 @@ import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import io.javalin.http.Context;
@@ -867,8 +867,8 @@ public class EventRoutes implements Routes {
 
     public record BatchFieldEntryDto(
             String name,
-            @Nullable EventFieldType fieldType,
-            @Nullable EventFieldConfig config,
+            @Nullable FieldType fieldType,
+            @Nullable EventQuestionSettings config,
             @Nullable Boolean overview,
             @Nullable Integer attendanceFieldId) {
 
@@ -876,8 +876,9 @@ public class EventRoutes implements Routes {
         BatchFieldEntry toEntry() {
             return new BatchFieldEntry(
                     name,
-                    Objects.requireNonNullElse(fieldType, EventFieldType.STRING).fieldType(),
-                    Objects.requireNonNullElse(config, EventFieldConfig.empty()).settings(),
+                    Objects.requireNonNullElse(fieldType, FieldType.TEXT),
+                    Objects.requireNonNullElse(config, EventQuestionSettings.empty())
+                            .organisers(),
                     Boolean.TRUE.equals(overview),
                     attendanceFieldId);
         }

@@ -13,7 +13,6 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
-import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
 import dev.chojo.ember.feature.board.entity.BoardFieldDefinition;
 import dev.chojo.ember.feature.board.entity.BoardFieldType;
@@ -29,6 +28,8 @@ import dev.chojo.ember.feature.board.service.SharedBoardChangeService;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -287,16 +288,12 @@ public class BoardRoutes implements Routes {
             summary = "Get custom fields for a board",
             tags = {"Boards"},
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardField[].class)))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardFieldDefinition[].class)))
     private void getFields(Context ctx) {
         StationSession session = StationSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
-        ctx.json(fieldsOf(id));
-    }
-
-    /** The fields of a board as the board screens read them. */
-    private List<BoardField> fieldsOf(int boardId) {
-        return boardService.findFields(boardId).stream().map(BoardField::of).toList();
+        ctx.json(boardService.findFields(id));
     }
 
     @OpenApi(
@@ -307,7 +304,8 @@ public class BoardRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FieldRequest[].class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardField[].class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardFieldDefinition[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setFields(Context ctx) {
@@ -316,7 +314,7 @@ public class BoardRoutes implements Routes {
         var req = ctx.bodyAsClass(FieldRequest[].class);
         boardService.replaceFields(
                 id, Arrays.stream(req).map(f -> f.definition(id)).toList());
-        ctx.json(fieldsOf(id));
+        ctx.json(boardService.findFields(id));
     }
 
     @OpenApi(
@@ -606,15 +604,17 @@ public class BoardRoutes implements Routes {
      *               type beside them, so they are bound once that is known rather than while the
      *               request is read.
      */
-    public record FieldRequest(String name, BoardFieldType fieldType, JsonNode config) {
+    public record FieldRequest(String name, FieldType fieldType, JsonNode config) {
         /**
          * The field this request describes, as the board keeps it.
          *
          * @param boardId the board it is for
+         * @throws io.javalin.http.HttpResponseException for a type a board does not offer
          */
         public BoardFieldDefinition definition(int boardId) {
+            if (!FieldTypes.BOARD.contains(fieldType)) throw Refusal.BOARD_FIELD_TYPE_NOT_OFFERED.raise();
             return new BoardFieldDefinition(
-                    0, boardId, name, fieldType.fieldType(), BoardFieldConfig.parse(fieldType, config), 0);
+                    0, boardId, name, fieldType, BoardFieldConfig.parse(BoardFieldType.of(fieldType), config), 0);
         }
     }
 

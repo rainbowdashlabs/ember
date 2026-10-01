@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
@@ -28,7 +29,6 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
-import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -143,19 +143,31 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void fieldCrud() {
-        var field = service.createField(
-                listId, "Name", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, true, true);
+        var field =
+                service.createField(listId, "Name", FieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, true, true);
         assertNotNull(field);
 
         var fields = service.findFieldsByList(listId);
         assertEquals(1, fields.size());
 
         var updated = service.updateField(
-                field.id(), "Full Name", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true);
+                field.id(), "Full Name", FieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true);
         assertTrue(updated.isPresent());
         assertEquals("Full Name", updated.get().name());
 
         service.deleteField(field.id());
+        assertTrue(service.findFieldsByList(listId).isEmpty());
+    }
+
+    /** A member is somebody already in the station, so a waiting list does not ask for one. */
+    @Test
+    void aTypeTheListDoesNotOfferIsRefused() {
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.createField(
+                        listId, "Pate", FieldType.MEMBER, WaitingListFieldConfig.parse("{}"), 0, false, true));
+
+        assertEquals(Refusal.WAITING_LIST_FIELD_TYPE_NOT_OFFERED, refused.refusal());
         assertTrue(service.findFieldsByList(listId).isEmpty());
     }
 
@@ -173,8 +185,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void registerViaInvite() {
         var invite = service.createInvite(listId, 1, null);
-        var field = service.createField(
-                listId, "Age", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
+        var field =
+                service.createField(listId, "Age", FieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
 
         var entry = service.registerViaInvite(
                 invite.code(),
@@ -253,9 +265,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void scoreEvaluation() {
         var ageField = service.createField(
-                listId, "Alter", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
+                listId, "Alter", FieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
         var expField = service.createField(
-                listId, "Erfahrung", WaitingListFieldType.ENUM, WaitingListFieldConfig.parse("{}"), 1, true, true);
+                listId, "Erfahrung", FieldType.CHOICE, WaitingListFieldConfig.parse("{}"), 1, true, true);
         var list = service.update(
                         listId,
                         "Scored",
@@ -334,7 +346,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void updateEntryWithFieldValues() {
         var field = service.createField(
-                listId, "Score", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, false, true);
+                listId, "Score", FieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, false, true);
         var entry = service.createEntry(
                 listId, "A", "B", guardians("", "e@test.com"), Map.of(field.id(), IntNode.valueOf(5)), "");
         service.updateEntry(
@@ -723,7 +735,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void scoreEvaluationWithAgeFunction() {
         var dobField = service.createField(
-                listId, "Geburtsdatum", WaitingListFieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
+                listId, "Geburtsdatum", FieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
         var list = service.update(
                         listId, "AgeScored", "", "age([Geburtsdatum])", 180, null, null, 5, false, true, null, null)
                 .orElseThrow();
@@ -1263,7 +1275,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void scoreEvaluationWithInvalidDateField() {
         var dobField = service.createField(
-                listId, "BadDate", WaitingListFieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, false, true);
+                listId, "BadDate", FieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, false, true);
         var list = service.update(
                         listId, "BadDateScored", "", "age([BadDate])", 180, null, null, 5, false, true, null, null)
                 .orElseThrow();
@@ -1283,11 +1295,11 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void anAnswerTheQuestionDoesNotTakeIsRefused() {
         var dateField = service.createField(
-                listId, "Geburtstag", WaitingListFieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, false, true);
+                listId, "Geburtstag", FieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, false, true);
         var choiceField = service.createField(
                 listId,
                 "Gruppe",
-                WaitingListFieldType.ENUM,
+                FieldType.CHOICE,
                 WaitingListFieldConfig.parse("{\"options\":[\"A\",\"B\"]}"),
                 1,
                 false,
@@ -1371,9 +1383,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void findPublicFieldsByList() {
         var publicField = service.createField(
-                listId, "PubField", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true);
+                listId, "PubField", FieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true);
         var privateField = service.createField(
-                listId, "PrivField", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 1, false, false);
+                listId, "PrivField", FieldType.TEXT, WaitingListFieldConfig.parse("{}"), 1, false, false);
         var publicFields = service.findPublicFieldsByList(listId);
         assertTrue(publicFields.stream().anyMatch(f -> f.id() == publicField.id()));
         assertTrue(publicFields.stream().noneMatch(f -> f.id() == privateField.id()));
@@ -1384,7 +1396,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var publicList = service.create(
                 station.id(), "PubReg " + UUID.randomUUID(), "", null, 180, null, null, 5, true, true, null, null);
         service.createField(
-                publicList.id(), "Age", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
+                publicList.id(), "Age", FieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
 
         service.submitPublicRegistration(
                 publicList.id(),
@@ -1484,9 +1496,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void findPublicFieldsByListReturnsOnlyPublic() {
         var pub = service.createField(
-                listId, "PubF2", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 10, false, true);
+                listId, "PubF2", FieldType.TEXT, WaitingListFieldConfig.parse("{}"), 10, false, true);
         var priv = service.createField(
-                listId, "PrivF2", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 11, false, false);
+                listId, "PrivF2", FieldType.TEXT, WaitingListFieldConfig.parse("{}"), 11, false, false);
         var pubFields = service.findPublicFieldsByList(listId);
         assertTrue(pubFields.stream().anyMatch(f -> f.id() == pub.id()));
         assertFalse(pubFields.stream().anyMatch(f -> f.id() == priv.id()));
@@ -1515,9 +1527,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertTrue(service.update(gone, "Ghost", "", null, 180, null, null, 5, false, true, null, null)
                 .isEmpty());
         assertTrue(service.updateVisibleFields(gone, "[]").isEmpty());
-        assertTrue(service.updateField(
-                        gone, "Ghost", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true)
-                .isEmpty());
+        assertTrue(
+                service.updateField(gone, "Ghost", FieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true)
+                        .isEmpty());
     }
 
     /**
@@ -1527,7 +1539,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void waitingPositionRanksByScoreHighestFirst() {
         var ageField = service.createField(
-                listId, "Alter", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
+                listId, "Alter", FieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
         service.update(listId, "Ranked", "", "[Alter]", 180, null, null, 5, false, true, null, null)
                 .orElseThrow();
 
@@ -1762,13 +1774,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void aListReadsTheAgeFromWhicheverFieldIsTheBirthDate() {
         int list = birthDateListWith(null, null);
         var field = service.createField(
-                list,
-                "Wann geboren",
-                WaitingListFieldType.BIRTH_DATE,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                true,
-                true);
+                list, "Wann geboren", FieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
 
         var age = service.ageFromSubmitted(list, bornYearsAgo(field.id(), 11));
 
@@ -1779,7 +1785,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void aListWithoutABirthDateFieldWorksOutNoAge() {
         int list = birthDateListWith(null, null);
         var field = service.createField(
-                list, "Irgendein Datum", WaitingListFieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
+                list, "Irgendein Datum", FieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
 
         assertTrue(service.ageFromSubmitted(list, bornYearsAgo(field.id(), 11)).isEmpty());
     }
@@ -1788,14 +1794,14 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void aSecondBirthDateFieldIsRefused() {
         int list = birthDateListWith(null, null);
         service.createField(
-                list, "Geburtstag", WaitingListFieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
+                list, "Geburtstag", FieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
 
         assertThrows(
                 io.javalin.http.BadRequestResponse.class,
                 () -> service.createField(
                         list,
                         "Noch ein Geburtstag",
-                        WaitingListFieldType.BIRTH_DATE,
+                        FieldType.BIRTH_DATE,
                         WaitingListFieldConfig.parse("{}"),
                         1,
                         true,
@@ -1807,23 +1813,17 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void theBirthDateFieldMayBeUpdatedWithoutClashingWithItself() {
         int list = birthDateListWith(null, null);
         var field = service.createField(
-                list, "Geburtstag", WaitingListFieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
+                list, "Geburtstag", FieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
 
         assertDoesNotThrow(() -> service.updateField(
-                field.id(),
-                "Geburtsdatum",
-                WaitingListFieldType.BIRTH_DATE,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                true,
-                true));
+                field.id(), "Geburtsdatum", FieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true));
     }
 
     @Test
     void somebodyTooYoungIsTurnedAwayAtRegistration() {
         int list = birthDateListWith(12, null);
         var field = service.createField(
-                list, "Geburtstag", WaitingListFieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
+                list, "Geburtstag", FieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
         var actual = service.findById(list).orElseThrow();
 
         assertThrows(
@@ -1837,7 +1837,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void anUnansweredBirthDateDoesNotTurnAnybodyAway() {
         int list = birthDateListWith(12, null);
         service.createField(
-                list, "Geburtstag", WaitingListFieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
+                list, "Geburtstag", FieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
         var actual = service.findById(list).orElseThrow();
 
         assertDoesNotThrow(() -> service.requireOldEnoughToRegister(actual, java.util.Map.of()));

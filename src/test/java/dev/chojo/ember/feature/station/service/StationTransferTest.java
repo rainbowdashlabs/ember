@@ -9,7 +9,6 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
@@ -23,9 +22,9 @@ import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
@@ -201,19 +200,13 @@ class StationTransferTest extends RepositoryTestBase {
 
         // --- Profile fields ---
         var fieldTelefon = profileFieldRepo.create(
-                sourceStationId, "Telefon", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+                sourceStationId, "Telefon", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(fieldTelefon.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         var fieldGeburtstag = profileFieldRepo.create(
-                sourceStationId,
-                "Geburtstag",
-                ProfileFieldType.DATE,
-                ProfileFieldConfig.parse("{}"),
-                false,
-                false,
-                null);
+                sourceStationId, "Geburtstag", FieldType.DATE, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(fieldGeburtstag.id(), ProfileFieldScope.MEMBER, 1, null, null, null);
         var fieldNotizen = profileFieldRepo.create(
-                sourceStationId, "Notizen", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+                sourceStationId, "Notizen", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(fieldNotizen.id(), ProfileFieldScope.TEAM, 0, null, null, null);
         profileFieldRepo.setValue(manager.id(), fieldTelefon.id(), StringNode.valueOf("0151-11111"));
         profileFieldRepo.setValue(trainer.id(), fieldTelefon.id(), StringNode.valueOf("0151-22222"));
@@ -223,16 +216,12 @@ class StationTransferTest extends RepositoryTestBase {
         // --- Attendance templates ---
         var templateStandard = attendanceRepo.createTemplate(sourceStationId, "Standard-Übung");
         attendanceRepo.createTemplateField(
-                templateStandard.id(), "Leiter", AttendanceFieldType.MEMBER, AttendanceFieldConfig.parse("{}"), 0);
+                templateStandard.id(), "Leiter", FieldType.MEMBER, AttendanceFieldConfig.parse("{}"), 0);
         attendanceRepo.createTemplateField(
-                templateStandard.id(), "Thema", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+                templateStandard.id(), "Thema", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         var templateSonder = attendanceRepo.createTemplate(sourceStationId, "Sondertermin");
         attendanceRepo.createTemplateField(
-                templateSonder.id(),
-                "Verantwortlich",
-                AttendanceFieldType.MEMBER,
-                AttendanceFieldConfig.parse("{}"),
-                0);
+                templateSonder.id(), "Verantwortlich", FieldType.MEMBER, AttendanceFieldConfig.parse("{}"), 0);
 
         // --- Event categories ---
         var catTraining = eventCategoryRepo.create(sourceStationId, "Training", 0, "#ff6421");

@@ -8,7 +8,7 @@ import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EventFieldValueInput from '../eventshared/EventFieldValueInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import type {EventField} from '@/api/generated/schema'
+import type {AppointmentField} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {events} from '@/api'
 import {showToast} from '@/util/toast'
@@ -24,13 +24,13 @@ import {describeFailure, type Failure} from '@/util/failure'
  */
 const props = defineProps<{
   eventId: number
-  field: EventField
+  field: AppointmentField
   date: string
   allMembers: MemberLike[]
 }>()
 
 const emit = defineEmits<{
-  (e: 'saved', field: EventField): void
+  (e: 'saved', field: AppointmentField): void
 }>()
 
 const {t} = useI18n()

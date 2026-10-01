@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.Question;
 import org.jspecify.annotations.Nullable;
 
@@ -38,7 +39,7 @@ public record ProfileField(
         int id,
         int stationId,
         String name,
-        ProfileFieldType fieldType,
+        FieldType fieldType,
         ProfileFieldConfig config,
         boolean required,
         boolean readonly,
@@ -52,7 +53,7 @@ public record ProfileField(
      * takes whole numbers only.
      */
     public Optional<Question> question() {
-        return config.settings(required).asQuestion(name, fieldType.fieldType());
+        return config.settings(required).asQuestion(name, fieldType);
     }
 
     /**
@@ -63,7 +64,7 @@ public record ProfileField(
                 row.getInt("id"),
                 row.getInt("station_id"),
                 row.getString("name"),
-                ProfileFieldType.stored(row.getString("field_type")),
+                FieldType.valueOf(row.getString("field_type")),
                 ProfileFieldConfig.parse(row.getString("config")),
                 row.getBoolean("required"),
                 row.getBoolean("readonly"),

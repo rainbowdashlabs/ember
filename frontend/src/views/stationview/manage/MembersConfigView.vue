@@ -11,7 +11,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import ProfileFieldModal from './membersconfig/FieldModal.vue'
 import FieldsWorkspace from './membersconfig/FieldsWorkspace.vue'
-import {FieldTypes} from '@/api/profileFields'
+import {OfferedFieldTypes} from '@/api/fieldTypes'
 import {memberGroups, profileFields} from '@/api'
 import {STATION_ROLES, useFieldsConfig, type FieldsPort} from '@/composables/useFieldsConfig'
 
@@ -28,7 +28,7 @@ const port: FieldsPort = {
   unassign: (fieldId, target) => profileFields.unassignField(fieldId, target),
   reorder: (role, fieldIds) => profileFields.reorderFields(role, fieldIds),
   roles: STATION_ROLES,
-  types: Object.values(FieldTypes),
+  types: OfferedFieldTypes.PROFILE,
   listGroups: () => memberGroups.listGroups(),
   stationReadonly: false,
 }

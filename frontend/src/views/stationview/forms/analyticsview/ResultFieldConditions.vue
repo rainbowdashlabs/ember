@@ -12,7 +12,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {ResultFieldConditionState} from '@/api/forms'
-import {FieldTypes} from '@/api/profileFields'
+import {FieldTypes} from '@/api/fieldTypes'
 import type {ProfileField} from '@/api/generated/schema'
 
 /**

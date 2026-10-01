@@ -14,7 +14,8 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import ProfileFieldModal from '@/views/stationview/manage/membersconfig/FieldModal.vue'
 import FieldsWorkspace from '@/views/stationview/manage/membersconfig/FieldsWorkspace.vue'
 import {clusterFields, clusterStationGroups} from '@/api'
-import {CLUSTER_FIELD_ROLES, CLUSTER_FIELD_TYPES} from '@/api/clusterFields'
+import {CLUSTER_FIELD_ROLES} from '@/api/clusterFields'
+import {OfferedFieldTypes} from '@/api/fieldTypes'
 import {useFieldsConfig, type FieldsPort} from '@/composables/useFieldsConfig'
 
 const {t} = useI18n()
@@ -38,7 +39,7 @@ const port: FieldsPort = {
   unassign: (fieldId, target) => clusterFields.unassignField(fieldId, target),
   reorder: (role, fieldIds) => clusterFields.reorderFields(role, fieldIds),
   roles: CLUSTER_FIELD_ROLES,
-  types: CLUSTER_FIELD_TYPES,
+  types: OfferedFieldTypes.ASSOCIATION,
   stationReadonly: true,
   listStationGroups: () => clusterStationGroups.listGroups(),
 }

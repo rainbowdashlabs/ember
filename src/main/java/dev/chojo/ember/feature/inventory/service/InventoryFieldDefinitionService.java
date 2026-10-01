@@ -5,13 +5,15 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
-import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -178,6 +180,9 @@ public class InventoryFieldDefinitionService {
         if (fieldType == null) {
             throw new IllegalArgumentException("Field type is required");
         }
+        if (!FieldTypes.INVENTORY.contains(fieldType)) {
+            throw Refusal.INVENTORY_FIELD_TYPE_NOT_OFFERED.raise();
+        }
         if (artId != null && itemId != null) {
             throw new IllegalArgumentException("A field belongs to a kind or to a single piece, never to both");
         }
@@ -286,14 +291,17 @@ public class InventoryFieldDefinitionService {
 
     /**
      * Returns the default-shaped config for the given field type.
+     *
+     * @throws IllegalArgumentException for a type an inventory does not offer
      */
     public FieldConfig defaultConfig(FieldType type) {
         return switch (type) {
             case DATE -> new FieldConfig.DateConfig();
-            case ENUM -> new FieldConfig.EnumConfig(List.of());
+            case CHOICE -> new FieldConfig.EnumConfig(List.of());
             case TEXT -> new FieldConfig.TextConfig(false, 200);
             case NUMBER -> new FieldConfig.NumberConfig(null, null, null, "");
             case BOOLEAN -> new FieldConfig.BooleanConfig("Yes", "No");
+            default -> throw new IllegalArgumentException("An inventory does not offer " + type);
         };
     }
 }

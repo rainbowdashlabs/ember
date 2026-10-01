@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {FieldTypeName} from '@/api/inventoryFields'
+import type {FieldTypeName} from '@/api/fieldTypes'
 import type {FieldConfig} from '@/api/generated/schema'
 
 /**

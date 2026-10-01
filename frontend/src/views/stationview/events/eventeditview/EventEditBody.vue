@@ -148,7 +148,7 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
       @update:value="(fieldId, value) => emit('update:fieldDefaultValue', fieldId, value)"
   />
 
-  <RegistrationFieldsEditor v-if="requiresRegistration" v-model="registrationFields"/>
+  <RegistrationFieldsEditor v-if="requiresRegistration" v-model="registrationFields" :all-members="props.allMembers"/>
 
   <ButtonRow pair align="end">
     <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>

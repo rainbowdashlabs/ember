@@ -11,32 +11,27 @@ import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DragList from '@/components/input/DragList.vue'
 import {moveWithin} from '@/util/reorder'
-import RegistrationFieldRow from './RegistrationFieldRow.vue'
-import {EventFieldTypes} from '@/api/events'
+import EventQuestionEditor from './EventQuestionEditor.vue'
+import {blankQuestion} from './eventQuestions'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import type {RegistrationFieldDefinition} from '@/api/generated/schema'
 
+/**
+ * The questions every registrant of an appointment, or of the appointments made from a template, is
+ * asked. Each is written in the one question editor every appointment question uses.
+ */
 const fields = defineModel<RegistrationFieldDefinition[]>({required: true})
+
+defineProps<{
+  /** Whom a question naming a member may start from. */
+  allMembers?: MemberLike[]
+}>()
 
 const {t} = useI18n()
 
-const TYPES = [
-  {value: EventFieldTypes.STRING, label: t('eventFields.typeString')},
-  {value: EventFieldTypes.TEXTAREA, label: t('eventFields.typeTextarea')},
-  {value: EventFieldTypes.NUMBER, label: t('eventFields.typeNumber')},
-  {value: EventFieldTypes.BOOLEAN, label: t('eventFields.typeBoolean')},
-  {value: EventFieldTypes.ENUM, label: t('eventFields.typeEnum')},
-  {value: EventFieldTypes.DATE, label: t('eventFields.typeDate')},
-  {value: EventFieldTypes.TIME, label: t('eventFields.typeTime')},
-  {value: EventFieldTypes.MEMBER, label: t('eventFields.typeMember')},
-]
-
 function addField() {
-  fields.value = [...fields.value, {
-    name: '',
-    fieldType: EventFieldTypes.STRING,
-    config: {required: false, managersOnly: false},
-    overview: true,
-  }]
+  const {name, fieldType, config} = blankQuestion()
+  fields.value = [...fields.value, {name, fieldType, config, overview: true}]
 }
 
 function removeField(index: number) {
@@ -53,7 +48,7 @@ function replace(index: number, field: RegistrationFieldDefinition) {
 </script>
 
 <template>
-  <NeutralContainer class="space-y-4">
+  <NeutralContainer class="space-y-4" data-testid="registration-question-list">
     <div>
       <SubHeader>{{ t('events.registrationFields.sectionTitle') }}</SubHeader>
       <MutedText tag="p" size="sm">{{ t('events.registrationFields.sectionHint') }}</MutedText>
@@ -65,9 +60,10 @@ function replace(index: number, field: RegistrationFieldDefinition) {
 
     <DragList :items="fields" :key-fn="(_, index) => index" @reorder="move">
       <template #default="{index}">
-        <RegistrationFieldRow
+        <EventQuestionEditor
+            mode="registrant"
+            :all-members="allMembers"
             :model-value="fields[index]!"
-            :types="TYPES"
             @update:model-value="f => replace(index, f)"
             @remove="removeField(index)"
         />

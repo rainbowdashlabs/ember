@@ -6,13 +6,13 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {EventFieldTypes} from '@/api/events'
-import type {EventRegistrationFieldValue, RegistrationFieldResponse} from '@/api/generated/schema'
+import type {EventRegistrationFieldValue, EventRegistrationField} from '@/api/generated/schema'
+import {answerText} from '@/util/questions'
 
 const props = defineProps<{
-  fields: RegistrationFieldResponse[]
+  fields: EventRegistrationField[]
   values?: EventRegistrationFieldValue[]
-  /** Resolves member ids for member-typed answers; ids are shown as-is without it. */
+  /** Resolves member ids for member-typed answers; ids are shown as numbers without it. */
   memberNames?: Map<number, string>
   /** Only the questions marked for the list, which is what a row shows. */
   overviewOnly?: boolean
@@ -27,24 +27,9 @@ interface Answer {
   missing: boolean
 }
 
-function displayValue(field: RegistrationFieldResponse, raw: string): string {
-  if (field.fieldType === EventFieldTypes.BOOLEAN) {
-    return raw === 'true' ? t('common.yes') : t('common.no')
-  }
-  if (field.fieldType.startsWith('MEMBER')) {
-    return raw
-        .replace(/[[\]"]/g, '')
-        .split(',')
-        .map(part => part.trim())
-        .filter(part => part !== '')
-        .map(part => props.memberNames?.get(Number(part)) ?? `#${part}`)
-        .join(', ')
-  }
-  return raw
-}
-
 const answers = computed<Answer[]>(() => {
   const byField = new Map((props.values ?? []).map(v => [v.fieldId, v.value]))
+  const words = {yes: t('common.yes'), no: t('common.no'), names: props.memberNames}
   return props.fields
       .filter(field => !props.overviewOnly || field.overview)
       .map((field) => {
@@ -52,7 +37,7 @@ const answers = computed<Answer[]>(() => {
         return {
           id: field.id,
           label: field.name,
-          value: raw === '' ? '' : displayValue(field, raw),
+          value: answerText(field.fieldType, raw, words),
           missing: raw === '' && field.config.required,
         }
       })

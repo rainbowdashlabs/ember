@@ -377,6 +377,7 @@ export default {
     'AT-044': ABSENCE_NOT_HERE,
     'AT-045': 'Diese Abwesenheit kannst du nicht zurücknehmen',
     'AT-046': ABSENCE_NOT_HERE_ON_WRITE,
+    'AT-047': 'Anwesenheitslisten bieten diesen Feldtyp nicht an, es wurde nichts gespeichert',
 
     'B-001': 'Die Anfrage war kein gültiges JSON, es wurde nichts gespeichert',
     'B-002': 'Die Anfrage enthält ein Feld, das diese Schnittstelle nicht annimmt',
@@ -493,6 +494,8 @@ export default {
     'BO-053': BOARD_TICKET_NOT_HERE,
     'BO-054': COMMENT_NOT_HERE,
     'BO-055': BOARD_TICKET_NOT_HERE,
+    'BO-056': 'Boards bieten diesen Feldtyp nicht an, es wurde nichts gespeichert',
+    'BO-057': 'Dieses Feld muss ausgefüllt sein, deshalb wurde es nicht geleert',
 
     'D-001': 'Diese Wache führt keine Dokumente',
     'D-002': DOCUMENT_NOT_YOURS,
@@ -701,6 +704,7 @@ export default {
     'I-111': PROCUREMENT_NOT_HERE,
     'I-112': PROCUREMENT_NOT_HERE,
     'I-113': CHANGE_SAVED_BUT_NOT_READ_BACK,
+    'I-114': 'Inventare bieten diesen Feldtyp nicht an, es wurde nichts gespeichert',
 
     'E-001': REGISTRATION_NOT_HERE,
     'E-002': STATION_NOT_HERE,
@@ -812,6 +816,9 @@ export default {
     'E-108': 'Ein Artikel kann nur einen Termin zeigen, den alle Mitglieder sehen dürfen, es wurde nichts gespeichert',
     'E-109': TEMPLATE_NOT_HERE,
     'E-110': 'Anmeldefragen nehmen diese Art Antwort nicht an, es wurde nichts gespeichert',
+    'E-111': 'Termine bieten diesen Feldtyp nicht an, es wurde nichts gespeichert',
+    'E-112': 'Termine bieten diesen Feldtyp nicht an, die Vorlage wurde nicht gespeichert',
+    'E-113': 'Termine bieten diesen Feldtyp nicht an, es wurde kein Termin angelegt',
 
     'CM-001': DAY_NOT_A_DATE,
     'CM-002': COMMENT_NEEDS_TEXT,
@@ -920,6 +927,7 @@ export default {
     'W-048': 'Die Gruppe für den Beitritt nimmt keine Mitglieder auf, es wurde nichts gespeichert',
     'W-049': GROUP_NOT_HERE_NOTHING_SAVED,
     'W-050': GROUP_NOT_HERE_NOTHING_SAVED,
+    'W-051': 'Wartelisten bieten diesen Fragetyp nicht an, es wurde nichts gespeichert',
 
     'G-001': UNEXPECTED_FAULT,
     'G-002': UNEXPECTED_FAULT,
@@ -1255,6 +1263,7 @@ export default {
     'M-147': 'Ein Alter wird aus einem Datum berechnet und nimmt keine eigene Antwort an, '
         + 'es wurde nichts gespeichert',
     'M-148': 'Diese Antwort passt nicht zu dieser Frage, es wurde nichts gespeichert',
+    'M-149': 'Das Mitgliederprofil bietet diesen Fragetyp nicht an, es wurde nichts gespeichert',
 
     'N-001': TOO_MANY_ATTEMPTS,
 

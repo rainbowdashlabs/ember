@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FieldType, type FieldTypeName} from '@/api/inventoryFields'
+import {FieldTypes, type FieldTypeName} from '@/api/fieldTypes'
+import {isYes} from '@/util/questions'
 import type {FieldValue, InventoryFieldDefinition, InventoryItemMetadata} from '@/api/generated/schema'
 
 /**
@@ -24,17 +25,17 @@ export function parseItemMetadata(raw: InventoryItemMetadata | null | undefined)
 export function fieldValueOf(type: FieldTypeName, value: unknown): FieldValue | null {
     if (value === undefined || value === null || value === '') return null
     switch (type) {
-        case FieldType.NUMBER: {
+        case FieldTypes.NUMBER: {
             const num = Number(value)
             return Number.isNaN(num) ? null : {kind: 'NUMBER', value: num}
         }
-        case FieldType.BOOLEAN:
-            return {kind: 'BOOLEAN', value: value === true || value === 'true'}
-        case FieldType.DATE:
+        case FieldTypes.BOOLEAN:
+            return {kind: 'BOOLEAN', value: isYes(value)}
+        case FieldTypes.DATE:
             return {kind: 'DATE', value: String(value)}
-        case FieldType.ENUM:
-            return {kind: 'ENUM', value: String(value)}
-        case FieldType.TEXT:
+        case FieldTypes.CHOICE:
+            return {kind: 'CHOICE', value: String(value)}
+        default:
             return {kind: 'TEXT', value: String(value)}
     }
 }

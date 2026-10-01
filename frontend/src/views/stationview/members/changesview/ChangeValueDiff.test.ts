@@ -6,7 +6,7 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import ChangeValueDiff from './ChangeValueDiff.vue'
-import {FieldTypes} from '@/api/profileFields'
+import {FieldTypes} from '@/api/fieldTypes'
 import type {ProfileFieldChange} from '@/api/generated/schema'
 
 /**

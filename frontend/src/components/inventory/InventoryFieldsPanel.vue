@@ -13,7 +13,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DragList from '@/components/input/DragList.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {inventoryFields} from '@/api'
-import {defaultFieldConfig, FieldType} from '@/api/inventoryFields'
+import {defaultFieldConfig} from '@/api/inventoryFields'
+import {FieldTypes} from '@/api/fieldTypes'
 import type {InventoryFieldDefinition} from '@/api/generated/schema'
 import FieldDraftEditor from './fields/FieldDraftEditor.vue'
 import FieldRow from './fields/FieldRow.vue'
@@ -76,10 +77,10 @@ function newDraft(): DraftField {
     itemId: props.itemId,
     key: '',
     label: '',
-    fieldType: FieldType.TEXT,
+    fieldType: FieldTypes.TEXT,
     required: false,
     sortOrder: sortedFields.value.length * 10,
-    config: defaultFieldConfig(FieldType.TEXT),
+    config: defaultFieldConfig(FieldTypes.TEXT),
   }
 }
 

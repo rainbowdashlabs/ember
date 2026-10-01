@@ -105,7 +105,7 @@ export function useItemTable(options: ItemTableOptions) {
     const config = def.config
     switch (config.kind) {
       case 'DATE': return {...base, type: ColumnTypes.DATE}
-      case 'ENUM': return {...base, type: ColumnTypes.ENUM, options: config.options}
+      case 'CHOICE': return {...base, type: ColumnTypes.ENUM, options: config.options}
       case 'BOOLEAN': return {...base, type: ColumnTypes.BOOLEAN, booleanLabels: {yes: config.trueLabel, no: config.falseLabel}}
       case 'NUMBER': return {
         ...base,

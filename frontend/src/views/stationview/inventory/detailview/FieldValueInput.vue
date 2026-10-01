@@ -6,10 +6,10 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
-import {FieldType, numberFieldViolation} from '@/api/inventoryFields'
+import FieldAnswerInput from '@/components/input/FieldAnswerInput.vue'
+import {numberFieldViolation} from '@/api/inventoryFields'
+import {FieldTypes} from '@/api/fieldTypes'
 import type {EnumConfig, InventoryFieldDefinition, NumberConfig, TextConfig} from '@/api/generated/schema'
-import {QuestionKinds, questionKindOf, type QuestionKindName} from '@/util/questions'
 
 /**
  * Answering one of the fields a piece of equipment carries.
@@ -36,28 +36,25 @@ const numberError = computed(() => {
 
 const textConfig = computed<TextConfig | null>(() => (props.field.config.kind === 'TEXT' ? props.field.config : null))
 const numberConfig = computed<NumberConfig | null>(() => (props.field.config.kind === 'NUMBER' ? props.field.config : null))
-const enumConfig = computed<EnumConfig | null>(() => (props.field.config.kind === 'ENUM' ? props.field.config : null))
+const enumConfig = computed<EnumConfig | null>(() => (props.field.config.kind === 'CHOICE' ? props.field.config : null))
 
 /** A long answer is a text field the station marked as one, which no other feature says separately. */
-const kind = computed<QuestionKindName>(() => {
-  if (textConfig.value?.multiline) return QuestionKinds.LONG_TEXT
-  return questionKindOf(props.field.fieldType) ?? QuestionKinds.TEXT
-})
+const answerType = computed(() => (textConfig.value?.multiline ? FieldTypes.LONG_TEXT : props.field.fieldType))
 
 const asText = computed(() => (value.value == null ? '' : String(value.value)))
 
 /** Back into the shape a piece of equipment stores: a number, a yes or a no, or nothing at all. */
 function write(next: string) {
   if (next === '') {
-    value.value = props.field.fieldType === FieldType.BOOLEAN ? false : null
+    value.value = props.field.fieldType === FieldTypes.BOOLEAN ? false : null
     return
   }
-  if (props.field.fieldType === FieldType.NUMBER) {
+  if (props.field.fieldType === FieldTypes.NUMBER) {
     const parsed = Number(next)
     value.value = Number.isNaN(parsed) ? null : parsed
     return
   }
-  if (props.field.fieldType === FieldType.BOOLEAN) {
+  if (props.field.fieldType === FieldTypes.BOOLEAN) {
     value.value = next === 'true'
     return
   }
@@ -66,14 +63,14 @@ function write(next: string) {
 </script>
 
 <template>
-  <QuestionValueInput
-      :kind="kind"
-      :max="numberConfig?.max ?? undefined"
+  <FieldAnswerInput
+      :field-type="answerType"
+      :max="numberConfig?.max"
       :max-length="textConfig?.maxLength || undefined"
-      :min="numberConfig?.min ?? undefined"
+      :min="numberConfig?.min"
       :model-value="asText"
       :options="enumConfig?.options ?? []"
-      :step="numberConfig?.step ?? 1"
+      :step="numberConfig?.step"
       @update:model-value="write($event)"
   />
   <p v-if="numberError" class="text-xs text-error mt-1">{{ numberError }}</p>
