@@ -30,7 +30,7 @@ public final class TypstCompiler {
             Files.writeString(typFile, source);
             for (var entry : resources.entrySet()) {
                 Path resFile = tempDir.resolve(entry.getKey());
-                Files.createDirectories(resFile.getParent());
+                FilePaths.createParentDirectories(resFile);
                 Files.write(resFile, entry.getValue());
             }
             return runTypst(tempDir, typFile, pdfFile);
@@ -70,7 +70,7 @@ public final class TypstCompiler {
         try {
             Path templateSource = Path.of("templates", "typst", templateName);
             Path templateFile = tempDir.resolve(templateName);
-            Files.createDirectories(templateFile.getParent());
+            FilePaths.createParentDirectories(templateFile);
             Path templateDir = templateFile.getParent();
 
             if (logo != null) {

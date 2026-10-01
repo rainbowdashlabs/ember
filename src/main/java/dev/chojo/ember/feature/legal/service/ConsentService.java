@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.legal.entity.DocumentVersions;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
+import dev.chojo.ember.util.FilePaths;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
@@ -141,8 +142,8 @@ public class ConsentService {
     private static boolean holdsMarkdown(Path dir) {
         if (!Files.isDirectory(dir)) return false;
         try (var paths = Files.walk(dir)) {
-            return paths.anyMatch(path ->
-                    Files.isRegularFile(path) && path.getFileName().toString().endsWith(".md"));
+            return paths.anyMatch(
+                    path -> Files.isRegularFile(path) && FilePaths.nameOf(path).endsWith(".md"));
         } catch (IOException e) {
             log.warn("Failed to look for legal texts in {}", dir, e);
             return false;

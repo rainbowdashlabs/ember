@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.util.FilePaths;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -129,7 +130,7 @@ public class BoardAttachmentService {
         log.info("Migrating legacy board-attachment layout from {}", legacyRoot);
         try (Stream<Path> ticketDirs = Files.list(legacyRoot)) {
             for (Path ticketDir : ticketDirs.filter(Files::isDirectory).toList()) {
-                String name = ticketDir.getFileName().toString();
+                String name = FilePaths.nameOf(ticketDir);
                 int ticketId;
                 try {
                     ticketId = Integer.parseInt(name);
@@ -149,7 +150,7 @@ public class BoardAttachmentService {
                         .resolve("attachments")
                         .resolve("board")
                         .resolve(name);
-                Files.createDirectories(target.getParent());
+                FilePaths.createParentDirectories(target);
                 if (Files.exists(target)) continue;
                 Files.move(ticketDir, target, StandardCopyOption.ATOMIC_MOVE);
             }

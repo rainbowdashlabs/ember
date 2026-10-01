@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.tracking;
 
+import dev.chojo.ember.util.FilePaths;
 import dev.chojo.ember.util.Json;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.SerializationContext;
@@ -61,7 +62,7 @@ public final class DataTrackingLoader {
     public static void write(Path file, DataTracking tracking) throws IOException {
         var sorted = withSortedMaps(tracking);
         String json = MAPPER.writeValueAsString(sorted) + System.lineSeparator();
-        Files.createDirectories(file.getParent());
+        FilePaths.createParentDirectories(file);
         Files.writeString(file, json, StandardCharsets.UTF_8);
     }
 

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
+import dev.chojo.ember.util.FilePaths;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -285,7 +286,7 @@ public class MapTileCacheService {
     private void store(TileKey key, byte[] bytes, TileFormat format) {
         Path path = key.path(root, format);
         try {
-            Files.createDirectories(path.getParent());
+            FilePaths.createParentDirectories(path);
             Files.write(path, bytes);
             index.put(key, new CachedTile(path, format.contentType, bytes.length));
         } catch (IOException e) {
@@ -457,7 +458,7 @@ public class MapTileCacheService {
 
         /** The format a cached file was kept as, read from its extension. */
         static Optional<TileFormat> ofFile(Path file) {
-            String name = file.getFileName().toString();
+            String name = FilePaths.nameOf(file);
             String extension = name.substring(name.lastIndexOf('.') + 1);
             return Stream.of(values())
                     .filter(format -> format.extension.equals(extension))

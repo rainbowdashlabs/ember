@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.util.FilePaths;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -166,7 +167,7 @@ public class KbFileStorageService {
         log.info("Migrating legacy kb-files layout from {}", legacyRoot);
         try (Stream<Path> fileDirs = Files.list(legacyRoot)) {
             for (Path fileDir : fileDirs.filter(Files::isDirectory).toList()) {
-                String name = fileDir.getFileName().toString();
+                String name = FilePaths.nameOf(fileDir);
                 int fileId;
                 try {
                     fileId = Integer.parseInt(name);
@@ -185,7 +186,7 @@ public class KbFileStorageService {
                         .resolve(uid.toString())
                         .resolve("kb-files")
                         .resolve(name);
-                Files.createDirectories(target.getParent());
+                FilePaths.createParentDirectories(target);
                 if (Files.exists(target)) continue;
                 Files.move(fileDir, target, StandardCopyOption.ATOMIC_MOVE);
             }

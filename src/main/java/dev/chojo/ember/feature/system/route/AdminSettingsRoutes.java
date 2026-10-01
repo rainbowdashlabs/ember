@@ -53,6 +53,7 @@ import dev.chojo.ember.feature.system.service.SecuritySettingsService.TotpConfig
 import dev.chojo.ember.feature.system.service.SecuritySettingsService.TwoFactorCoreConfigRequest;
 import dev.chojo.ember.feature.system.service.SecuritySettingsService.TwoFactorCoreConfigResponse;
 import dev.chojo.ember.feature.system.service.SecuritySettingsService.WebAuthnConfig;
+import dev.chojo.ember.util.FilePaths;
 import dev.chojo.ember.util.MailAddress;
 import dev.chojo.ember.util.PandocConverter;
 import io.javalin.http.Context;
@@ -882,8 +883,8 @@ public class AdminSettingsRoutes implements Routes {
         List<String> locales = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path entry : stream) {
-                if (Files.isDirectory(entry) && !entry.getFileName().toString().equals("history")) {
-                    locales.add(entry.getFileName().toString());
+                if (Files.isDirectory(entry) && !FilePaths.nameOf(entry).equals("history")) {
+                    locales.add(FilePaths.nameOf(entry));
                 }
             }
         } catch (IOException e) {
@@ -965,7 +966,7 @@ public class AdminSettingsRoutes implements Routes {
             stream.forEach(sorted::add);
             Collections.sort(sorted);
             for (Path file : sorted) {
-                String rawName = file.getFileName().toString();
+                String rawName = FilePaths.nameOf(file);
                 boolean enabled = !rawName.startsWith("_");
                 boolean generated = BrowserStorageService.isGeneratedSection(rawName);
                 String content = generated

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.system.service.DataInitializer;
+import dev.chojo.ember.util.FilePaths;
 import dev.chojo.ember.util.HtmlSanitizer;
 import dev.chojo.ember.util.Markdown;
 import dev.chojo.ember.util.Sha256;
@@ -167,7 +168,7 @@ public class LegalDocumentService {
         if (!Files.isDirectory(baseDir)) return;
         try (DirectoryStream<Path> locales = Files.newDirectoryStream(baseDir, Files::isDirectory)) {
             for (Path localeDir : locales) {
-                if (localeDir.getFileName().toString().equals("history")) continue;
+                if (FilePaths.nameOf(localeDir).equals("history")) continue;
                 ensureGeneratedSectionInLocale(localeDir);
             }
         } catch (IOException e) {
@@ -179,7 +180,7 @@ public class LegalDocumentService {
         int highestPrefix = 0;
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(localeDir, "*.md")) {
             for (Path entry : stream) {
-                String name = entry.getFileName().toString();
+                String name = FilePaths.nameOf(entry);
                 if (BrowserStorageService.isGeneratedSection(name)) return;
                 var matcher = ORDER_PREFIX.matcher(name);
                 if (matcher.find()) {
@@ -412,7 +413,7 @@ public class LegalDocumentService {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.md")) {
             for (Path entry : stream) {
                 // Skip disabled files (prefixed with _)
-                if (entry.getFileName().toString().startsWith("_")) continue;
+                if (FilePaths.nameOf(entry).startsWith("_")) continue;
                 files.add(entry);
             }
         } catch (IOException e) {
@@ -428,7 +429,7 @@ public class LegalDocumentService {
                 if (!sb.isEmpty()) {
                     sb.append("\n\n");
                 }
-                String name = file.getFileName().toString();
+                String name = FilePaths.nameOf(file);
                 if (BrowserStorageService.isGeneratedSection(name)) {
                     sb.append(browserStorage.toMarkdown(locale));
                 } else {

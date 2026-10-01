@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.util.FilePaths;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -267,7 +268,7 @@ public class DataInitializer {
                 log.warn("Template not found: {}", templateFile);
                 return false;
             }
-            Files.createDirectories(target.getParent());
+            FilePaths.createParentDirectories(target);
             Files.copy(in, target);
             return true;
         } catch (IOException e) {

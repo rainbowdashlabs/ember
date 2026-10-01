@@ -86,7 +86,7 @@ public final class DevErrorWriter {
 
     private static boolean hashFileExists(String hash) throws IOException {
         try (var files = Files.list(ERROR_DIR)) {
-            return files.anyMatch(p -> p.getFileName().toString().contains(hash));
+            return files.anyMatch(p -> FilePaths.nameOf(p).contains(hash));
         }
     }
 

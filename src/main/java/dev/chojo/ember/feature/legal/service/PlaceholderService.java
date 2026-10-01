@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.feature.legal.entity.DocumentPlaceholder;
+import dev.chojo.ember.util.FilePaths;
 import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -155,7 +156,7 @@ public class PlaceholderService {
 
         try (DirectoryStream<Path> locales = Files.newDirectoryStream(baseDir, Files::isDirectory)) {
             for (Path localeDir : locales) {
-                String locale = localeDir.getFileName().toString();
+                String locale = FilePaths.nameOf(localeDir);
                 if (locale.equals("history")) continue;
                 scanLocale(localeDir, typeSlug, locale, found);
             }
@@ -177,7 +178,7 @@ public class PlaceholderService {
         Collections.sort(files);
 
         for (Path file : files) {
-            String name = file.getFileName().toString();
+            String name = FilePaths.nameOf(file);
             String section = name.replaceFirst("^_?\\d+-", "").replaceFirst("\\.md$", "");
             try {
                 for (String placeholder : namesIn(Files.readString(file, StandardCharsets.UTF_8))) {
