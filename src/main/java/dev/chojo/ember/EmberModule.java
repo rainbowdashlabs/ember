@@ -420,7 +420,6 @@ public class EmberModule extends AbstractModule {
         bind(MailFilingService.MemberNaming.class).to(StationMemberNaming.class);
         bind(MemberEligibility.class).to(StationMemberEligibility.class);
         bind(CellDescriptions.PageAddressing.class).to(StationPageAddressing.class);
-        bind(MemberEligibility.class).to(StationMemberEligibility.class);
         Multibinder<BlockReferences> blockReferencesBinder = Multibinder.newSetBinder(binder(), BlockReferences.class);
         blockReferencesBinder.addBinding().to(NewsBlockReferences.class);
         blockReferencesBinder.addBinding().to(EventBlockReferences.class);
