@@ -15,6 +15,7 @@ import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -89,7 +90,7 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
                         new RestrictionSelection(List.of(), List.of(), List.of(), List.of(other.id()), null));
 
         var comments = new CommentService(
-                eventCommentRepo,
+                commentRepo,
                 BUS,
                 newStationMemberService(null, null),
                 stationRepo,
@@ -256,10 +257,10 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
         remove(as(author), parent);
         remove(as(author), single);
 
-        var placeholder = eventCommentRepo.findById(parent).orElseThrow();
+        var placeholder = commentRepo.findById(CommentEntityType.EVENT, parent).orElseThrow();
         assertTrue(placeholder.deleted());
         assertEquals("", placeholder.content());
-        assertTrue(eventCommentRepo.findById(single).isEmpty());
+        assertTrue(commentRepo.findById(CommentEntityType.EVENT, single).isEmpty());
     }
 
     @Test

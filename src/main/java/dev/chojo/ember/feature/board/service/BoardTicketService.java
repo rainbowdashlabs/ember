@@ -30,6 +30,7 @@ import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -53,6 +54,7 @@ public class BoardTicketService {
     private static final Logger log = LoggerFactory.getLogger(BoardTicketService.class);
 
     private final BoardTicketRepository ticketRepository;
+    private final CommentRepository comments;
     private final BoardRepository boardRepository;
     private final BoardService boardService;
     private final DomainEventBus eventBus;
@@ -65,6 +67,7 @@ public class BoardTicketService {
     @Inject
     public BoardTicketService(
             BoardTicketRepository ticketRepository,
+            CommentRepository comments,
             BoardRepository boardRepository,
             BoardService boardService,
             DomainEventBus eventBus,
@@ -74,6 +77,7 @@ public class BoardTicketService {
             BoardAttachmentService attachmentService,
             CommentMentions mentions) {
         this.ticketRepository = ticketRepository;
+        this.comments = comments;
         this.boardRepository = boardRepository;
         this.boardService = boardService;
         this.eventBus = eventBus;
@@ -416,13 +420,14 @@ public class BoardTicketService {
     }
 
     public List<BoardComment> findComments(int ticketId) {
-        return ticketRepository.findComments(ticketId);
+        return comments.findByTarget(CommentEntityType.BOARD_TICKET, ticketId).stream()
+                .map(BoardComment::of)
+                .toList();
     }
 
-    // -- Comments --
-
     public BoardComment createComment(int ticketId, Integer parentId, MemberIdentity author, String content) {
-        var comment = ticketRepository.createComment(ticketId, parentId, author, content);
+        var comment = BoardComment.of(
+                comments.create(CommentEntityType.BOARD_TICKET, ticketId, null, parentId, author, content));
         ticketRepository.findById(ticketId).ifPresent(ticket -> {
             notifyWatchers(ticketId, ticket.boardId(), "Neuer Kommentar", null);
             mentions.announce(mentionOrigin(ticket, author, comment.id(), content), content);
@@ -444,7 +449,7 @@ public class BoardTicketService {
         var previous = findComments(ticketId).stream()
                 .filter(comment -> comment.id() == id)
                 .findFirst();
-        if (!ticketRepository.updateComment(id, content)) {
+        if (!comments.update(CommentEntityType.BOARD_TICKET, id, content)) {
             log.warn("Update for comment {} affected zero rows", id);
             return false;
         }
@@ -492,7 +497,7 @@ public class BoardTicketService {
      * @return {@code true} when a comment was removed
      */
     public boolean deleteComment(int ticketId, int id) {
-        boolean deleted = ticketRepository.deleteComment(id);
+        boolean deleted = comments.delete(CommentEntityType.BOARD_TICKET, id);
         if (deleted) {
             eventBus.publish(new CommentDeleted(stationOf(ticketId), CommentEntityType.BOARD_TICKET, id));
             log.info("Deleted comment {}", id);

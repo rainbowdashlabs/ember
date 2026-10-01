@@ -11,7 +11,7 @@ import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
+import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -31,7 +31,7 @@ public class CommentService {
     private static final Logger log = LoggerFactory.getLogger(CommentService.class);
     private static final int PREVIEW_LENGTH = 100;
 
-    private final EventCommentRepository commentRepository;
+    private final CommentRepository commentRepository;
     private final DomainEventBus eventBus;
     private final StationMemberService stationMemberService;
     private final StationRepository stationRepository;
@@ -39,7 +39,7 @@ public class CommentService {
 
     @Inject
     public CommentService(
-            EventCommentRepository commentRepository,
+            CommentRepository commentRepository,
             DomainEventBus eventBus,
             StationMemberService stationMemberService,
             StationRepository stationRepository,
@@ -62,7 +62,7 @@ public class CommentService {
      * @return the list of comments
      */
     public List<Comment> findByEvent(int eventId) {
-        return commentRepository.findByEvent(eventId);
+        return commentRepository.findByTarget(CommentEntityType.EVENT, eventId);
     }
 
     /**
@@ -71,7 +71,7 @@ public class CommentService {
      * comments stamped with exactly that occurrence.
      */
     public List<Comment> findByEventAndDate(int eventId, LocalDate eventDate) {
-        return commentRepository.findByEventAndDate(eventId, eventDate);
+        return commentRepository.findByEventOccurrence(eventId, eventDate);
     }
 
     /**
@@ -81,7 +81,7 @@ public class CommentService {
      * @return the comment, if found
      */
     public Optional<Comment> findById(int id) {
-        return commentRepository.findById(id);
+        return commentRepository.findById(CommentEntityType.EVENT, id);
     }
 
     /**
@@ -91,7 +91,7 @@ public class CommentService {
      * @return the owning station, empty when there is no such comment
      */
     public Optional<Integer> findCommentStation(int commentId) {
-        return commentRepository.findCommentStation(commentId);
+        return commentRepository.findById(CommentEntityType.EVENT, commentId).map(Comment::stationId);
     }
 
     /**
@@ -115,7 +115,8 @@ public class CommentService {
             String content,
             String entityTitle,
             LocalDate eventDate) {
-        var comment = commentRepository.create(eventId, parentId, author, content, eventDate);
+        var comment =
+                commentRepository.create(CommentEntityType.EVENT, eventId, eventDate, parentId, author, content);
         log.info("Created event comment {} on event {} (station {})", comment.id(), eventId, stationId);
 
         // Resolve author to local member ID (null if federated / not on this station)
@@ -123,7 +124,7 @@ public class CommentService {
 
         // Notify parent comment author on reply (skip for federated comments without a local author)
         if (parentId != null && authorMemberId != null) {
-            commentRepository.findById(parentId).ifPresent(parent -> {
+            commentRepository.findById(CommentEntityType.EVENT, parentId).ifPresent(parent -> {
                 Integer parentAuthorId = resolveLocalMemberId(stationId, parent.author());
                 if (parentAuthorId != null && !parentAuthorId.equals(authorMemberId)) {
                     eventBus.publish(new CommentCreated(
@@ -163,8 +164,8 @@ public class CommentService {
      * @return {@code true} if the comment was updated
      */
     public boolean update(int stationId, int id, String authorName, String content) {
-        var previous = commentRepository.findById(id);
-        boolean updated = commentRepository.update(id, content);
+        var previous = commentRepository.findById(CommentEntityType.EVENT, id);
+        boolean updated = commentRepository.update(CommentEntityType.EVENT, id, content);
         if (!updated) {
             log.warn("Update for event comment {} affected zero rows", id);
             return false;
@@ -221,8 +222,8 @@ public class CommentService {
      * @return {@code true} if the comment was deleted
      */
     public boolean delete(int id) {
-        int stationId = commentRepository.findCommentStation(id).orElse(0);
-        boolean deleted = commentRepository.delete(id);
+        int stationId = findCommentStation(id).orElse(0);
+        boolean deleted = commentRepository.delete(CommentEntityType.EVENT, id);
         if (deleted) {
             eventBus.publish(new CommentDeleted(stationId, CommentEntityType.EVENT, id));
             log.info("Deleted event comment {}", id);

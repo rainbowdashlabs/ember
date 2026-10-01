@@ -83,6 +83,7 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
 
         news = new NewsService(
                 newsRepo,
+                commentRepo,
                 contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,
@@ -246,7 +247,7 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
         var answer = remove(as(stranger, StationPermission.NEWS_MANAGER), id);
 
         assertEquals(Refusal.NEWS_COMMENT_NOT_HERE_ON_DELETE, refusalOf(answer));
-        assertTrue(newsRepo.findCommentById(id).isPresent());
+        assertTrue(news.findCommentById(id).isPresent());
     }
 
     @Test
@@ -258,7 +259,7 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
 
         remove(as(author), parent);
 
-        assertTrue(newsRepo.findCommentById(parent).orElseThrow().deleted());
+        assertTrue(news.findCommentById(parent).orElseThrow().deleted());
         assertEquals(2, news.countComments(entry));
     }
 

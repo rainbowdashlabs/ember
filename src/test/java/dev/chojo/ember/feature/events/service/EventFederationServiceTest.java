@@ -110,7 +110,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         crudService = newEventServices(eventBus).crud();
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
         commentService = new CommentService(
-                eventCommentRepo,
+                commentRepo,
                 COMMENT_BUS,
                 memberSvc,
                 stationRepo,
@@ -125,7 +125,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 stationRepo,
                 crudService,
                 commentService,
-                eventCommentRepo,
+                commentRepo,
                 new MemberNameResolver(
                         memberSvc,
                         accountRepo,
@@ -942,7 +942,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(54)
     void updateRemoteCommentNotFederated() {
-        var localComment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Local comment", null);
+        var localComment = localComment("Local comment");
         assertThrows(
                 ForbiddenResponse.class,
                 () -> service.updateRemoteComment(localPartner, localComment.id(), REMOTE_MEMBER_1, "Edited"));
@@ -972,7 +972,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(57)
     void deleteRemoteCommentNotFederated() {
-        var localComment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Local comment to delete", null);
+        var localComment = localComment("Local comment to delete");
         assertThrows(
                 ForbiddenResponse.class,
                 () -> service.deleteRemoteComment(localPartner, localComment.id(), REMOTE_MEMBER_1));
@@ -985,7 +985,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(58)
     void aPartnersCommentTellsNobodyButItsRemovalIsAnnounced() {
-        var local = eventCommentRepo.create(eventId, null, testMemberIdentity, "Frage von hier", null);
+        var local = localComment("Frage von hier");
         reset(COMMENT_BUS);
 
         var reply = service.createRemoteComment(
@@ -1005,22 +1005,29 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         && deleted.entityType() == CommentEntityType.EVENT));
     }
 
+    private static Comment localComment(String content) {
+        return commentRepo.create(CommentEntityType.EVENT, eventId, null, null, testMemberIdentity, content);
+    }
+
     // -- Comment support: toCommentResponse --
 
     @Test
     @Order(60)
     void toCommentResponseDeletedComment() {
-        var comment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Will be deleted", null);
+        var comment = localComment("Will be deleted");
         commentService.delete(comment.id());
         var deletedComment = new Comment(
                 comment.id(),
+                comment.type(),
+                comment.targetId(),
+                comment.stationId(),
+                comment.eventDate(),
                 comment.parentId(),
                 comment.author(),
                 "",
                 true,
                 comment.createdAt(),
-                comment.updatedAt(),
-                comment.eventDate());
+                comment.updatedAt());
         var response = service.toCommentResponse(deletedComment);
         assertTrue(response.deleted());
         assertEquals("", response.content());
@@ -1031,7 +1038,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void toCommentResponseLocalAuthor() {
-        var comment = eventCommentRepo.create(eventId, null, testMemberIdentity, "Local author comment", null);
+        var comment = localComment("Local author comment");
         var response = service.toCommentResponse(comment);
         assertFalse(response.deleted());
         assertEquals("Local author comment", response.content());

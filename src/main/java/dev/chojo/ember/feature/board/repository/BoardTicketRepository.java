@@ -10,7 +10,6 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.board.entity.BoardActivityEntry;
 import dev.chojo.ember.feature.board.entity.BoardActivityType;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
-import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
@@ -52,8 +51,6 @@ public class BoardTicketRepository {
     private static final String TRANSITION_COLUMNS =
             "id, ticket_id, from_lane_id, to_lane_id, actor_station_uid, actor_member_uid, moved_at";
     private static final String CHECKLIST_ITEM_COLUMNS = "id, ticket_id, title, checked, position";
-    private static final String COMMENT_COLUMNS =
-            "id, ticket_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at";
     private static final String WEBLINK_COLUMNS = "id, ticket_id, url, title, position";
     private static final String ATTACHMENT_COLUMNS =
             "id, ticket_id, filename, original_name, content_type, size_bytes, uploader_station_uid, uploader_member_uid, created_at";
@@ -359,80 +356,11 @@ public class BoardTicketRepository {
         return SqlSupport.deleteById("board_ticket_checklist_item", id);
     }
 
-    // -- Comments --
-
     public void reorderChecklistItems(int ticketId, List<Integer> orderedIds) {
         SqlSupport.reorder("board_ticket_checklist_item", "position", "ticket_id", ticketId, orderedIds);
     }
 
-    public List<BoardComment> findComments(int ticketId) {
-        return query(
-                        "SELECT %s FROM board_ticket_comment WHERE ticket_id = :ticket_id ORDER BY created_at;",
-                        COMMENT_COLUMNS)
-                .single(call().bind("ticket_id", ticketId))
-                .map(BoardComment.map())
-                .all();
-    }
-
-    public BoardComment createComment(int ticketId, Integer parentId, MemberIdentity author, String content) {
-        return SqlSupport.insertReturning(
-                """
-                INSERT INTO board_ticket_comment(ticket_id, parent_id, author_station_uid, author_member_uid, content)
-                VALUES (:ticket_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content)
-                RETURNING %s;""",
-                call().bind("ticket_id", ticketId)
-                        .bind("parent_id", parentId)
-                        .bind(
-                                "author_station_uid",
-                                author != null ? author.stationUid() : null,
-                                StandardValueConverter.UUID_STRING)
-                        .bind(
-                                "author_member_uid",
-                                author != null ? author.memberUid() : null,
-                                StandardValueConverter.UUID_STRING)
-                        .bind("content", content),
-                BoardComment.map(),
-                COMMENT_COLUMNS);
-    }
-
-    public boolean updateComment(int id, String content) {
-        return query("UPDATE board_ticket_comment SET content = :content, updated_at = now() WHERE id = :id;")
-                .single(call().bind("id", id).bind("content", content))
-                .update()
-                .changed();
-    }
-
-    /**
-     * Soft-deletes a comment if it has children, or hard-deletes it if it has none.
-     *
-     * @param id the comment ID
-     * @return {@code true} if the comment was deleted or marked as deleted
-     */
-    public boolean deleteComment(int id) {
-        if (hasCommentChildren(id)) {
-            return query("UPDATE board_ticket_comment SET deleted = TRUE, content = '' WHERE id = :id;")
-                    .single(call().bind("id", id))
-                    .update()
-                    .changed();
-        }
-        return SqlSupport.deleteById("board_ticket_comment", id);
-    }
-
     // -- Watchers --
-
-    /**
-     * Checks whether a comment has any child replies.
-     *
-     * @param id the comment ID
-     * @return {@code true} if the comment has children
-     */
-    public boolean hasCommentChildren(int id) {
-        return query("SELECT exists(SELECT 1 FROM board_ticket_comment WHERE parent_id = :id);")
-                .single(call().bind("id", id))
-                .map(row -> row.getBoolean(1))
-                .first()
-                .orElse(false);
-    }
 
     /**
      * The federated identities watching a ticket. Translating them back to local member IDs is the
@@ -677,7 +605,7 @@ public class BoardTicketRepository {
 
     public List<BoardActivityEntry> findActivity(int ticketId) {
         return query("""
-                SELECT 'COMMENT' AS type, id, created_at AS ts FROM board_ticket_comment WHERE ticket_id = :ticket_id AND NOT deleted
+                SELECT 'COMMENT' AS type, id, created_at AS ts FROM comment WHERE board_ticket_id = :ticket_id AND NOT deleted
                 UNION ALL
                 SELECT 'TRANSITION' AS type, id, moved_at AS ts FROM board_ticket_transition WHERE ticket_id = :ticket_id
                 UNION ALL

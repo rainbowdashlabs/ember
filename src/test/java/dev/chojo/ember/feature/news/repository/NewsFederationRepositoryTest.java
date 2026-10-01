@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.news.repository;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -77,8 +78,7 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         partnerIdB = partnerB.id();
 
         // Create a comment for federated author tests
-        var comment = newsRepo.createComment(news1.id(), null, authorIdentity, "Test comment");
-        int commentId = comment.id();
+        commentRepo.create(CommentEntityType.NEWS, news1.id(), null, null, authorIdentity, "Test comment");
     }
 
     @AfterAll

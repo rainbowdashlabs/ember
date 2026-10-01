@@ -9,10 +9,10 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
-import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -35,7 +35,7 @@ public class KbCommentService {
     private static final int PREVIEW_LENGTH = 100;
 
     private final KnowledgeBaseRepository repository;
-    private final KbCommentRepository commentRepository;
+    private final CommentRepository commentRepository;
     private final MemberIdentityFactory memberIdentityFactory;
     private final StationMemberService stationMemberService;
     private final DomainEventBus eventBus;
@@ -44,7 +44,7 @@ public class KbCommentService {
     @Inject
     public KbCommentService(
             KnowledgeBaseRepository repository,
-            KbCommentRepository commentRepository,
+            CommentRepository commentRepository,
             MemberIdentityFactory memberIdentityFactory,
             StationMemberService stationMemberService,
             DomainEventBus eventBus,
@@ -71,7 +71,7 @@ public class KbCommentService {
      * @return the comment, or empty when there is none by that id
      */
     public Optional<KbComment> findComment(int commentId) {
-        return commentRepository.findById(commentId);
+        return commentRepository.findById(CommentEntityType.KB, commentId).map(KbComment::of);
     }
 
     /**
@@ -88,7 +88,8 @@ public class KbCommentService {
     public KbComment createComment(
             int stationId, int fileId, Integer parentId, int authorId, String authorName, String content) {
         var identity = memberIdentityFactory.fromMemberId(authorId);
-        var comment = commentRepository.create(fileId, parentId, identity, content);
+        var comment =
+                KbComment.of(commentRepository.create(CommentEntityType.KB, fileId, null, parentId, identity, content));
         log.info(
                 "KB comment {} created on file {} in station {} by member {}",
                 comment.id(),
@@ -127,8 +128,8 @@ public class KbCommentService {
      * @param content    the new comment body
      */
     public void updateComment(int stationId, int commentId, int authorId, String authorName, String content) {
-        var previous = commentRepository.findById(commentId);
-        commentRepository.update(commentId, content);
+        var previous = findComment(commentId);
+        commentRepository.update(CommentEntityType.KB, commentId, content);
         previous.ifPresent(comment -> {
             String fileTitle =
                     repository.findFileById(comment.fileId()).map(KbFile::name).orElse("");
@@ -168,8 +169,8 @@ public class KbCommentService {
      * @return {@code true} when a comment was removed
      */
     public boolean deleteComment(int stationId, int commentId) {
-        var comment = commentRepository.findById(commentId).orElse(null);
-        if (comment == null || !commentRepository.delete(commentId)) {
+        var comment = findComment(commentId).orElse(null);
+        if (comment == null || !commentRepository.delete(CommentEntityType.KB, commentId)) {
             log.warn("Delete for knowledge comment {} skipped: not found", commentId);
             return false;
         }
@@ -180,7 +181,7 @@ public class KbCommentService {
 
     private Integer parentAuthorId(Integer parentId) {
         if (parentId == null) return null;
-        var parentComment = commentRepository.findById(parentId).orElse(null);
+        var parentComment = findComment(parentId).orElse(null);
         if (parentComment == null || parentComment.author() == null) return null;
         return stationMemberService.resolveMemberId(parentComment.author()).orElse(null);
     }

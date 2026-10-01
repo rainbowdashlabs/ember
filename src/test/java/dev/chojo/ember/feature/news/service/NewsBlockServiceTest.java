@@ -45,6 +45,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
     static void setup() {
         service = new NewsService(
                 newsRepo,
+                commentRepo,
                 contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,
@@ -323,6 +324,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
     private static NewsService describingService(MediaLibraryService media) {
         return new NewsService(
                 newsRepo,
+                commentRepo,
                 contentBlocks(),
                 new CellDescriptions(media, (stationId, pageUid) -> Optional.empty()),
                 stationRepo,

@@ -19,7 +19,6 @@ import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
-import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
 import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
@@ -59,7 +58,6 @@ import static org.mockito.Mockito.when;
  */
 class KbCommentBehaviourTest extends RepositoryTestBase {
     private static final DomainEventBus BUS = mock(DomainEventBus.class);
-    private static final KbCommentRepository COMMENTS = new KbCommentRepository();
 
     private static Station station;
     private static Station elsewhere;
@@ -89,14 +87,15 @@ class KbCommentBehaviourTest extends RepositoryTestBase {
         var responses = mock(KnowledgeBaseFederationService.class);
         when(responses.toCommentResponse(any()))
                 .thenAnswer(call -> CommentResponseMapper.fromKb(memberNameResolver, call.<KbComment>getArgument(0)));
-        when(responses.listComments(anyInt())).thenAnswer(call -> COMMENTS.findByFile(call.getArgument(0)).stream()
-                .map(comment -> CommentResponseMapper.fromKb(memberNameResolver, comment))
-                .toList());
+        when(responses.listComments(anyInt()))
+                .thenAnswer(call -> commentRepo.findByTarget(CommentEntityType.KB, call.getArgument(0)).stream()
+                        .map(comment -> CommentResponseMapper.fromKb(memberNameResolver, KbComment.of(comment)))
+                        .toList());
         var names = mock(KbAuthorNameService.class);
         when(names.resolveMemberName(anyInt())).thenReturn("Anna Author");
         var comments = new KbCommentService(
                 knowledgeBaseRepo,
-                COMMENTS,
+                commentRepo,
                 memberIdentityFactory,
                 newStationMemberService(null, null),
                 BUS,
@@ -227,7 +226,7 @@ class KbCommentBehaviourTest extends RepositoryTestBase {
 
         remove(as(author), parent);
 
-        var placeholder = COMMENTS.findById(parent).orElseThrow();
+        var placeholder = commentRepo.findById(CommentEntityType.KB, parent).orElseThrow();
         assertTrue(placeholder.deleted());
         assertEquals("", placeholder.content());
     }

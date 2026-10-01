@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:986f049c87be514c46ab25b77602b6da7bc7ac79d3cc5cc4150f04dc618bc5c9",
-  "generatedAt": "2026-09-30T22:11:36Z",
+  "schemaHash": "sha256:a87e8cc8b7619df4c287ac1f91219f125612ebae3b3ac1213775a55d49f0cbe5",
+  "generatedAt": "2026-10-01T09:26:32Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -2877,113 +2877,6 @@
       },
       "description": "Checklist items within a ticket."
     },
-    "board_ticket_comment": {
-      "feature": "boards",
-      "scope": "STATION",
-      "tableHash": "sha256:7b7e3da7a2059deaa334771dc24f7d2de25a81a82b00f37519bc7d4bffff2b29",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Auto-generated primary key."
-        },
-        {
-          "name": "ticket_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "References the ticket."
-        },
-        {
-          "name": "parent_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "Parent comment for threading. NULL for top-level comments."
-        },
-        {
-          "name": "author_station_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true,
-          "description": "Station UUID of the comment author."
-        },
-        {
-          "name": "author_member_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true,
-          "description": "Member UUID of the comment author."
-        },
-        {
-          "name": "content",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "Comment text."
-        },
-        {
-          "name": "deleted",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Soft-delete flag."
-        },
-        {
-          "name": "created_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true,
-          "description": "When the comment was created."
-        },
-        {
-          "name": "updated_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "When the comment was last edited."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "parent_id",
-          "refTable": "board_ticket_comment",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "ticket_id",
-          "refTable": "board_ticket",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "TRACKED"
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "MEMBER_UID",
-            "column": "author_member_uid"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "author_member_uid",
-            "strategy": "ANONYMIZE",
-            "reason": "Comment preserved, authorship anonymised"
-          }
-        ]
-      },
-      "description": "Comments on board tickets (threaded via parent_id)."
-    },
     "board_ticket_field_value": {
       "feature": "boards",
       "scope": "STATION",
@@ -5581,6 +5474,172 @@
       },
       "description": "Permissions a cluster grants to everybody of a given user type."
     },
+    "comment": {
+      "feature": "comment",
+      "scope": "STATION",
+      "tableHash": "sha256:05f5561877dbebb265b6b102f99027508b86489fe726c39398df51f390ff9f41",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The station owning what the comment was written on, copied from it. NULL only under a news entry the instance published to every station."
+        },
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The appointment the comment was written on, NULL for every other target."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": true,
+          "verified": true,
+          "description": "For a comment on one occurrence of a recurring appointment, the date of that occurrence. NULL for one-time appointments, for comments on the whole appointment and for every other target."
+        },
+        {
+          "name": "news_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The news entry the comment was written on, NULL for every other target."
+        },
+        {
+          "name": "kb_file_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The knowledge base file the comment was written on, NULL for every other target."
+        },
+        {
+          "name": "board_ticket_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The board ticket the comment was written on, NULL for every other target."
+        },
+        {
+          "name": "parent_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The comment this one answers, always on the same target. NULL for top-level comments and for answers whose parent is gone."
+        },
+        {
+          "name": "author_station_uid",
+          "type": "uuid",
+          "nullable": true,
+          "verified": true,
+          "description": "Station UUID of the comment author, which can be a partner station."
+        },
+        {
+          "name": "author_member_uid",
+          "type": "uuid",
+          "nullable": true,
+          "verified": true,
+          "description": "Member UUID of the comment author within that station."
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Comment text. Empty once a comment with answers is deleted."
+        },
+        {
+          "name": "deleted",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Soft-delete flag for a comment that still has answers. Content is hidden but threading is preserved."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the comment was created."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the comment was last edited. NULL when never edited."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "board_ticket_id",
+          "refTable": "board_ticket",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "kb_file_id",
+          "refTable": "kb_file",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "news_id",
+          "refTable": "news",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "parent_id",
+          "refTable": "comment",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_UID",
+            "column": "author_member_uid"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "author_member_uid",
+            "strategy": "ANONYMIZE",
+            "reason": "Content preserved, authorship anonymised"
+          }
+        ]
+      },
+      "description": "Threaded comments on appointments, news entries, knowledge base files and board tickets. Exactly one target column is set, and that column says what the comment was written on."
+    },
     "content_container": {
       "feature": "content",
       "scope": "STATION",
@@ -6692,118 +6751,6 @@
         "reason": "Event structure/template data, not per-member"
       },
       "description": "Categories for station events (e.g. Training, Meeting)."
-    },
-    "event_comment": {
-      "feature": "events",
-      "scope": "STATION",
-      "tableHash": "sha256:5e9e6b9ae89a049f5005dcdeecdebcbea967cec0cd02207e4231d1fc260b53b3",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Auto-generated primary key."
-        },
-        {
-          "name": "event_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "References the station event."
-        },
-        {
-          "name": "parent_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "Parent comment for threading. NULL for top-level comments."
-        },
-        {
-          "name": "content",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "Comment text."
-        },
-        {
-          "name": "deleted",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Soft-delete flag. Content is hidden but threading is preserved."
-        },
-        {
-          "name": "created_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true,
-          "description": "When the comment was created."
-        },
-        {
-          "name": "updated_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "When the comment was last edited."
-        },
-        {
-          "name": "author_station_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true
-        },
-        {
-          "name": "author_member_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true
-        },
-        {
-          "name": "event_date",
-          "type": "date",
-          "nullable": true,
-          "verified": true,
-          "description": "For comments on a specific occurrence of a recurring event. NULL for one-time events or for whole-event-level comments."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "event_id",
-          "refTable": "station_event",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "parent_id",
-          "refTable": "event_comment",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        }
-      ],
-      "stationTransfer": {
-        "status": "TRACKED"
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "MEMBER_UID",
-            "column": "author_member_uid"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "author_member_uid",
-            "strategy": "ANONYMIZE",
-            "reason": "Content preserved, authorship anonymised"
-          }
-        ]
-      },
-      "description": "Comments on station events (threaded via parent_id)."
     },
     "event_date_cancellation": {
       "feature": "events",
@@ -14153,104 +14100,6 @@
       },
       "description": "Who may reach a knowledge-base folder or file, and what they may do with it. A row names an audience; its level, when set, also decides whether that audience may only read, may write, or may manage."
     },
-    "kb_comment": {
-      "feature": "knowledgebase",
-      "scope": "STATION",
-      "tableHash": "sha256:1121d7011700ce015ea1952b18c0a2f439559ac210a8e4e2e3625d48b1a7fe74",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "file_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "parent_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true
-        },
-        {
-          "name": "author_station_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true
-        },
-        {
-          "name": "author_member_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true
-        },
-        {
-          "name": "content",
-          "type": "text",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "deleted",
-          "type": "bool",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "created_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "updated_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "file_id",
-          "refTable": "kb_file",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "parent_id",
-          "refTable": "kb_comment",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        }
-      ],
-      "stationTransfer": {
-        "status": "TRACKED"
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "MEMBER_UID",
-            "column": "author_member_uid"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "author_member_uid",
-            "strategy": "ANONYMIZE",
-            "reason": "Content preserved, authorship anonymised"
-          }
-        ]
-      },
-      "description": "Threaded comments on knowledge base files."
-    },
     "kb_favourite": {
       "feature": "knowledgebase",
       "scope": "STATION",
@@ -17434,114 +17283,6 @@
         "reason": "Names a file an entry hands out, not a member."
       },
       "description": "A file a news entry hands over, pointing at the station media library rather than holding bytes of its own."
-    },
-    "news_comment": {
-      "feature": "news",
-      "scope": "STATION",
-      "tableHash": "sha256:371171d8f7d18924f52d2463097df1617a5caea6eaee440908dc4324dab48b0d",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Auto-generated primary key."
-        },
-        {
-          "name": "news_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "References the news article."
-        },
-        {
-          "name": "parent_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "Parent comment for threading. NULL for top-level comments."
-        },
-        {
-          "name": "content",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "Comment text."
-        },
-        {
-          "name": "created_at",
-          "type": "timestamp",
-          "nullable": false,
-          "verified": true,
-          "description": "When the comment was created."
-        },
-        {
-          "name": "updated_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "When the comment was last edited."
-        },
-        {
-          "name": "deleted",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Soft-delete flag. Content is hidden but threading is preserved."
-        },
-        {
-          "name": "author_station_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true
-        },
-        {
-          "name": "author_member_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "news_id",
-          "refTable": "news",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "parent_id",
-          "refTable": "news_comment",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        }
-      ],
-      "stationTransfer": {
-        "status": "TRACKED",
-        "ignoredColumns": [
-          "updated_at"
-        ]
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "MEMBER_UID",
-            "column": "author_member_uid"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "author_member_uid",
-            "strategy": "ANONYMIZE",
-            "reason": "Content preserved, authorship anonymised"
-          }
-        ]
-      },
-      "description": "Comments on news articles (threaded via parent_id)."
     },
     "news_federation_share": {
       "feature": "federation",

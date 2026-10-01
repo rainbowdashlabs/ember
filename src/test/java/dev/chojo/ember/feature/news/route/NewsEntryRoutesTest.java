@@ -45,6 +45,7 @@ class NewsEntryRoutesTest extends BlockReferenceTestBase {
     static void setupClass() {
         var newsService = new NewsService(
                 newsRepo,
+                commentRepo,
                 contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,

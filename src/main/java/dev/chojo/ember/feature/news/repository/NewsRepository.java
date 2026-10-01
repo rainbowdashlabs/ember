@@ -10,7 +10,6 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.news.entity.News;
-import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.feature.restriction.RestrictionType;
@@ -29,7 +28,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * Repository for persisting and querying news articles, comments, group restrictions, and acknowledgements.
+ * Repository for persisting and querying news articles, group restrictions, and acknowledgements.
  */
 @Singleton
 public class NewsRepository {
@@ -43,8 +42,6 @@ public class NewsRepository {
             RestrictionSql.visibleFor(RestrictionType.NEWS, "n.id", ":member_id", ":is_manager");
     private static final String NEWS_VISIBLE_FOR_STATION_MEMBER =
             RestrictionSql.visibleFor(RestrictionType.NEWS, ":news_id", "sm.id", "sm.id = ANY(:manager_ids)");
-    private static final String NEWS_COMMENT_COLUMNS =
-            "id, news_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at";
 
     /**
      * Creates a new news article and returns the persisted entity.
@@ -344,139 +341,6 @@ public class NewsRepository {
                 ) AS exists;""", NEWS_UNRESTRICTED)
                 .single(call().bind("station_id", stationId))
                 .map(row -> row.getBoolean("exists"))
-                .first()
-                .orElse(false);
-    }
-
-    /**
-     * Creates a comment on a news article.
-     *
-     * @param newsId   the news article ID
-     * @param parentId parent comment ID for replies, or {@code null} for top-level comments
-     * @param author   identity of the comment author, or {@code null} for federated/system comments
-     * @param content  comment text
-     * @return the newly created comment
-     */
-    public NewsComment createComment(int newsId, Integer parentId, MemberIdentity author, String content) {
-        return SqlSupport.insertReturning(
-                """
-                INSERT INTO news_comment(news_id, parent_id, author_station_uid, author_member_uid, content)
-                VALUES(:news_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content)
-                RETURNING %s;""",
-                call().bind("news_id", newsId)
-                        .bind("parent_id", parentId)
-                        .bind(
-                                "author_station_uid",
-                                author != null ? author.stationUid() : null,
-                                StandardValueConverter.UUID_STRING)
-                        .bind(
-                                "author_member_uid",
-                                author != null ? author.memberUid() : null,
-                                StandardValueConverter.UUID_STRING)
-                        .bind("content", content),
-                NewsComment.map(),
-                NEWS_COMMENT_COLUMNS);
-    }
-
-    /**
-     * Retrieves all comments for a news article, ordered by creation time ascending.
-     *
-     * @param newsId the news article ID
-     * @return list of comments
-     */
-    public List<NewsComment> findCommentsByNews(int newsId) {
-        return query(
-                        "SELECT %s FROM news_comment WHERE news_id = :news_id ORDER BY created_at ASC;",
-                        NEWS_COMMENT_COLUMNS)
-                .single(call().bind("news_id", newsId))
-                .map(NewsComment.map())
-                .all();
-    }
-
-    /**
-     * The comments on an entry written from one station.
-     *
-     * <p>A system entry is read in every station, and what one station says under it is its own
-     * business: a station is shown the part of the conversation it wrote. The instance reads the
-     * whole of it through {@link #findCommentsByNews(int)}.
-     *
-     * @param newsId     the news article ID
-     * @param stationUid the station whose comments to return
-     * @return the comments written from that station, oldest first
-     */
-    public List<NewsComment> findCommentsByNewsForStation(int newsId, UUID stationUid) {
-        return query("""
-                        SELECT %s FROM news_comment
-                        WHERE news_id = :news_id AND author_station_uid = :station_uid::UUID
-                        ORDER BY created_at ASC;""", NEWS_COMMENT_COLUMNS)
-                .single(call().bind("news_id", newsId)
-                        .bind("station_uid", stationUid, StandardValueConverter.UUID_STRING))
-                .map(NewsComment.map())
-                .all();
-    }
-
-    /**
-     * Counts the total number of comments on a news article.
-     *
-     * @param newsId the news article ID
-     * @return comment count
-     */
-    public int countComments(int newsId) {
-        return SqlSupport.count(
-                "SELECT count(*) AS cnt FROM news_comment WHERE news_id = :news_id;", call().bind("news_id", newsId));
-    }
-
-    /**
-     * Finds a comment by its ID.
-     *
-     * @param id the comment ID
-     * @return the comment, or empty if not found
-     */
-    public Optional<NewsComment> findCommentById(int id) {
-        return SqlSupport.findById("news_comment", NEWS_COMMENT_COLUMNS, id, NewsComment.map());
-    }
-
-    /**
-     * Updates the content of a comment.
-     *
-     * @param id      the comment ID
-     * @param content new comment text
-     * @return {@code true} if a row was updated
-     */
-    public boolean updateComment(int id, String content) {
-        return query("UPDATE news_comment SET content = :content WHERE id = :id;")
-                .single(call().bind("id", id).bind("content", content))
-                .update()
-                .changed();
-    }
-
-    /**
-     * Soft-deletes a comment if it has children, or hard-deletes it if it has none.
-     *
-     * @param id the comment ID
-     * @return {@code true} if the comment was deleted or marked as deleted
-     */
-    public boolean deleteComment(int id) {
-        boolean hasChildren = hasCommentChildren(id);
-        if (hasChildren) {
-            return query("UPDATE news_comment SET deleted = TRUE, content = '' WHERE id = :id;")
-                    .single(call().bind("id", id))
-                    .update()
-                    .changed();
-        }
-        return SqlSupport.deleteById("news_comment", id);
-    }
-
-    /**
-     * Checks whether a comment has any child replies.
-     *
-     * @param id the comment ID
-     * @return {@code true} if the comment has children
-     */
-    public boolean hasCommentChildren(int id) {
-        return query("SELECT exists(SELECT 1 FROM news_comment WHERE parent_id = :id);")
-                .single(call().bind("id", id))
-                .map(row -> row.getBoolean(1))
                 .first()
                 .orElse(false);
     }

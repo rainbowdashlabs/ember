@@ -13,6 +13,7 @@ import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.event.events.NewsDeleted;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.CellConfig;
@@ -59,6 +60,7 @@ public class NewsService {
     private static final int COMMENT_PREVIEW_LENGTH = 100;
 
     private final NewsRepository newsRepository;
+    private final CommentRepository comments;
     private final ContentBlockService blocks;
     private final CellDescriptions descriptions;
     /**
@@ -79,6 +81,7 @@ public class NewsService {
     @Inject
     public NewsService(
             NewsRepository newsRepository,
+            CommentRepository comments,
             ContentBlockService blocks,
             CellDescriptions descriptions,
             StationRepository stationRepository,
@@ -89,6 +92,7 @@ public class NewsService {
             MemberNameResolver memberNameResolver,
             CommentMentions mentions) {
         this.newsRepository = newsRepository;
+        this.comments = comments;
         this.blocks = blocks;
         this.descriptions = descriptions;
         this.stationRepository = stationRepository;
@@ -211,7 +215,9 @@ public class NewsService {
      * @return the comments written from that station
      */
     public List<NewsComment> findCommentsForStation(int newsId, UUID stationUid) {
-        return newsRepository.findCommentsByNewsForStation(newsId, stationUid);
+        return comments.findByTargetFrom(CommentEntityType.NEWS, newsId, stationUid).stream()
+                .map(NewsComment::of)
+                .toList();
     }
 
     /**
@@ -483,7 +489,7 @@ public class NewsService {
      * @return comment count
      */
     public int countComments(int newsId) {
-        return newsRepository.countComments(newsId);
+        return comments.count(CommentEntityType.NEWS, newsId);
     }
 
     /**
@@ -498,14 +504,14 @@ public class NewsService {
      */
     public NewsComment createComment(
             int stationId, int newsId, Integer parentId, MemberIdentity author, String authorName, String content) {
-        var comment = newsRepository.createComment(newsId, parentId, author, content);
+        var comment = NewsComment.of(comments.create(CommentEntityType.NEWS, newsId, null, parentId, author, content));
         log.info("Created news comment {} on news {} (station {})", comment.id(), newsId, stationId);
         var news = newsRepository.findById(newsId).orElse(null);
         if (news != null) {
             String preview = commentPreview(content);
             Integer parentAuthorMemberId = null;
             if (parentId != null) {
-                var parentComment = newsRepository.findCommentById(parentId).orElse(null);
+                var parentComment = findCommentById(parentId).orElse(null);
                 if (parentComment != null && parentComment.author() != null) {
                     parentAuthorMemberId = memberLookupService
                             .resolveId(stationId, parentComment.author().memberUid())
@@ -567,7 +573,9 @@ public class NewsService {
      * @return list of comments
      */
     public List<NewsComment> findComments(int newsId) {
-        return newsRepository.findCommentsByNews(newsId);
+        return comments.findByTarget(CommentEntityType.NEWS, newsId).stream()
+                .map(NewsComment::of)
+                .toList();
     }
 
     /**
@@ -577,7 +585,7 @@ public class NewsService {
      * @return the comment, or empty if not found
      */
     public Optional<NewsComment> findCommentById(int id) {
-        return newsRepository.findCommentById(id);
+        return comments.findById(CommentEntityType.NEWS, id).map(NewsComment::of);
     }
 
     /**
@@ -591,7 +599,7 @@ public class NewsService {
      * @return {@code true} if the comment was updated
      */
     public boolean updateOwnComment(int stationId, int id, String authorName, String content) {
-        var previous = newsRepository.findCommentById(id);
+        var previous = findCommentById(id);
         if (!updateComment(id, content)) return false;
         previous.ifPresent(comment -> announceAddedMentions(stationId, comment, authorName, content));
         return true;
@@ -618,7 +626,7 @@ public class NewsService {
      * @return {@code true} if the comment was updated
      */
     public boolean updateComment(int id, String content) {
-        boolean updated = newsRepository.updateComment(id, content);
+        boolean updated = comments.update(CommentEntityType.NEWS, id, content);
         if (updated) {
             log.info("Updated news comment {}", id);
         } else {
@@ -634,12 +642,12 @@ public class NewsService {
      * @return {@code true} if the comment was deleted
      */
     public boolean deleteComment(int stationId, int id) {
-        var comment = newsRepository.findCommentById(id).orElse(null);
+        var comment = findCommentById(id).orElse(null);
         if (comment == null) {
             log.warn("Delete for news comment {} skipped: not found", id);
             return false;
         }
-        if (newsRepository.deleteComment(id)) {
+        if (comments.delete(CommentEntityType.NEWS, id)) {
             eventBus.publish(new CommentDeleted(stationId, CommentEntityType.NEWS, id));
             log.info("Deleted news comment {} on station {}", id, stationId);
             return true;

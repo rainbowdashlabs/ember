@@ -48,7 +48,7 @@ class CommentServiceTest extends RepositoryTestBase {
     static void setup() {
         eventBus = mock(DomainEventBus.class);
         service = new CommentService(
-                eventCommentRepo,
+                commentRepo,
                 eventBus,
                 newStationMemberService(null, null),
                 stationRepo,

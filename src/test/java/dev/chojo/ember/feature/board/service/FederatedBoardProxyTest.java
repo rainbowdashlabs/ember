@@ -146,6 +146,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var attachmentSvc = new BoardAttachmentService(fbpStorage, stationRepo, fbpBackend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,
+                commentRepo,
                 boardRepo,
                 boardService,
                 new DomainEventBus(Set.of()),

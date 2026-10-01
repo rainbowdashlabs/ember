@@ -405,3 +405,188 @@ CREATE TRIGGER member_group_spread_set
     FOR EACH ROW
     WHEN (OLD.group_set_id IS DISTINCT FROM NEW.group_set_id)
 EXECUTE FUNCTION ember_schema.member_group_spread_set();
+
+CREATE TABLE ember_schema.comment
+(
+    id                 SERIAL PRIMARY KEY,
+    station_id         INTEGER REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    event_id           INTEGER REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    event_date         DATE,
+    news_id            INTEGER REFERENCES ember_schema.news (id) ON DELETE CASCADE,
+    kb_file_id         INTEGER REFERENCES ember_schema.kb_file (id) ON DELETE CASCADE,
+    board_ticket_id    INTEGER REFERENCES ember_schema.board_ticket (id) ON DELETE CASCADE,
+    parent_id          INTEGER REFERENCES ember_schema.comment (id) ON DELETE SET NULL,
+    author_station_uid UUID,
+    author_member_uid  UUID,
+    content            TEXT        NOT NULL,
+    deleted            BOOLEAN     NOT NULL DEFAULT FALSE,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at         TIMESTAMPTZ,
+    CONSTRAINT comment_one_target CHECK (num_nonnulls(event_id, news_id, kb_file_id, board_ticket_id) = 1),
+    CONSTRAINT comment_date_on_event CHECK (event_date IS NULL OR event_id IS NOT NULL),
+    CONSTRAINT comment_station_known CHECK (station_id IS NOT NULL OR news_id IS NOT NULL)
+);
+
+CREATE INDEX idx_comment_station ON ember_schema.comment (station_id);
+CREATE INDEX idx_comment_event ON ember_schema.comment (event_id, event_date) WHERE event_id IS NOT NULL;
+CREATE INDEX idx_comment_news ON ember_schema.comment (news_id) WHERE news_id IS NOT NULL;
+CREATE INDEX idx_comment_kb_file ON ember_schema.comment (kb_file_id) WHERE kb_file_id IS NOT NULL;
+CREATE INDEX idx_comment_board_ticket ON ember_schema.comment (board_ticket_id) WHERE board_ticket_id IS NOT NULL;
+CREATE INDEX idx_comment_parent ON ember_schema.comment (parent_id) WHERE parent_id IS NOT NULL;
+
+COMMENT ON TABLE ember_schema.comment
+    IS 'Threaded comments on appointments, news entries, knowledge base files and board tickets. Exactly one target column is set, and that column says what the comment was written on.';
+COMMENT ON COLUMN ember_schema.comment.id
+    IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.comment.station_id
+    IS 'The station owning what the comment was written on, copied from it. NULL only under a news entry the instance published to every station.';
+COMMENT ON COLUMN ember_schema.comment.event_id
+    IS 'The appointment the comment was written on, NULL for every other target.';
+COMMENT ON COLUMN ember_schema.comment.event_date
+    IS 'For a comment on one occurrence of a recurring appointment, the date of that occurrence. NULL for one-time appointments, for comments on the whole appointment and for every other target.';
+COMMENT ON COLUMN ember_schema.comment.news_id
+    IS 'The news entry the comment was written on, NULL for every other target.';
+COMMENT ON COLUMN ember_schema.comment.kb_file_id
+    IS 'The knowledge base file the comment was written on, NULL for every other target.';
+COMMENT ON COLUMN ember_schema.comment.board_ticket_id
+    IS 'The board ticket the comment was written on, NULL for every other target.';
+COMMENT ON COLUMN ember_schema.comment.parent_id
+    IS 'The comment this one answers, always on the same target. NULL for top-level comments and for answers whose parent is gone.';
+COMMENT ON COLUMN ember_schema.comment.author_station_uid
+    IS 'Station UUID of the comment author, which can be a partner station.';
+COMMENT ON COLUMN ember_schema.comment.author_member_uid
+    IS 'Member UUID of the comment author within that station.';
+COMMENT ON COLUMN ember_schema.comment.content
+    IS 'Comment text. Empty once a comment with answers is deleted.';
+COMMENT ON COLUMN ember_schema.comment.deleted
+    IS 'Soft-delete flag for a comment that still has answers. Content is hidden but threading is preserved.';
+COMMENT ON COLUMN ember_schema.comment.created_at
+    IS 'When the comment was created.';
+COMMENT ON COLUMN ember_schema.comment.updated_at
+    IS 'When the comment was last edited. NULL when never edited.';
+
+INSERT INTO ember_schema.comment
+    (id, station_id, event_id, event_date, author_station_uid, author_member_uid, content, deleted, created_at,
+     updated_at)
+SELECT c.id,
+       e.station_id,
+       c.event_id,
+       c.event_date,
+       c.author_station_uid,
+       c.author_member_uid,
+       c.content,
+       c.deleted,
+       c.created_at,
+       c.updated_at
+FROM ember_schema.event_comment c
+         JOIN ember_schema.station_event e ON e.id = c.event_id;
+
+UPDATE ember_schema.comment c
+SET parent_id = old.parent_id
+FROM ember_schema.event_comment old
+WHERE old.id = c.id
+  AND old.parent_id IS NOT NULL;
+
+CREATE TEMP TABLE comment_id_move
+(
+    kind   TEXT    NOT NULL,
+    old_id INTEGER NOT NULL,
+    new_id INTEGER NOT NULL,
+    PRIMARY KEY (kind, old_id)
+) ON COMMIT DROP;
+
+INSERT INTO comment_id_move (kind, old_id, new_id)
+SELECT moved.kind,
+       moved.old_id,
+       (SELECT coalesce(max(id), 0) FROM ember_schema.comment) + row_number() OVER (ORDER BY moved.kind_order, moved.old_id)
+FROM (SELECT 1 AS kind_order, 'NEWS' AS kind, id AS old_id
+      FROM ember_schema.news_comment
+      UNION ALL
+      SELECT 2, 'KB', id
+      FROM ember_schema.kb_comment
+      UNION ALL
+      SELECT 3, 'BOARD_TICKET', id
+      FROM ember_schema.board_ticket_comment) moved;
+
+INSERT INTO ember_schema.comment
+    (id, station_id, news_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at)
+SELECT m.new_id,
+       n.station_id,
+       c.news_id,
+       c.author_station_uid,
+       c.author_member_uid,
+       c.content,
+       c.deleted,
+       c.created_at::TIMESTAMPTZ,
+       c.updated_at
+FROM ember_schema.news_comment c
+         JOIN ember_schema.news n ON n.id = c.news_id
+         JOIN comment_id_move m ON m.kind = 'NEWS' AND m.old_id = c.id;
+
+INSERT INTO ember_schema.comment
+    (id, station_id, kb_file_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at)
+SELECT m.new_id,
+       f.station_id,
+       c.file_id,
+       c.author_station_uid,
+       c.author_member_uid,
+       c.content,
+       c.deleted,
+       c.created_at,
+       c.updated_at
+FROM ember_schema.kb_comment c
+         JOIN ember_schema.kb_file f ON f.id = c.file_id
+         JOIN comment_id_move m ON m.kind = 'KB' AND m.old_id = c.id;
+
+INSERT INTO ember_schema.comment
+    (id, station_id, board_ticket_id, author_station_uid, author_member_uid, content, deleted, created_at,
+     updated_at)
+SELECT m.new_id,
+       b.station_id,
+       c.ticket_id,
+       c.author_station_uid,
+       c.author_member_uid,
+       c.content,
+       c.deleted,
+       c.created_at,
+       c.updated_at
+FROM ember_schema.board_ticket_comment c
+         JOIN ember_schema.board_ticket t ON t.id = c.ticket_id
+         JOIN ember_schema.board b ON b.id = t.board_id
+         JOIN comment_id_move m ON m.kind = 'BOARD_TICKET' AND m.old_id = c.id;
+
+UPDATE ember_schema.comment c
+SET parent_id = parent.new_id
+FROM (SELECT 'NEWS' AS kind, id, parent_id
+      FROM ember_schema.news_comment
+      UNION ALL
+      SELECT 'KB', id, parent_id
+      FROM ember_schema.kb_comment
+      UNION ALL
+      SELECT 'BOARD_TICKET', id, parent_id
+      FROM ember_schema.board_ticket_comment) old
+         JOIN comment_id_move child ON child.kind = old.kind AND child.old_id = old.id
+         JOIN comment_id_move parent ON parent.kind = old.kind AND parent.old_id = old.parent_id
+WHERE c.id = child.new_id;
+
+SELECT setval(pg_get_serial_sequence('ember_schema.comment', 'id'),
+              (SELECT coalesce(max(id), 0) + 1 FROM ember_schema.comment), FALSE);
+
+UPDATE ember_schema.notification n
+SET data      = jsonb_set(n.data, '{link,query,comment}', to_jsonb(m.new_id)),
+    dedup_key = CASE
+                    WHEN n.dedup_key IS NOT NULL
+                        THEN md5(n.type || jsonb_set(n.data, '{link,query,comment}', to_jsonb(m.new_id))::TEXT)
+        END
+FROM comment_id_move m
+WHERE n.data -> 'link' ->> 'route' = CASE m.kind
+                                         WHEN 'NEWS' THEN 'news-detail'
+                                         WHEN 'KB' THEN 'kb-file'
+                                         ELSE 'ticket-detail'
+    END
+  AND n.data -> 'link' -> 'query' -> 'comment' = to_jsonb(m.old_id);
+
+DROP TABLE ember_schema.event_comment;
+DROP TABLE ember_schema.news_comment;
+DROP TABLE ember_schema.kb_comment;
+DROP TABLE ember_schema.board_ticket_comment;

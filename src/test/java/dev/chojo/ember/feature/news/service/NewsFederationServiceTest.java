@@ -87,6 +87,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         var eventBus = new DomainEventBus(Set.of());
         newsService = new NewsService(
                 newsRepo,
+                commentRepo,
                 contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,

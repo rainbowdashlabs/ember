@@ -45,7 +45,7 @@ import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.cluster.service.ClusterStationGroupService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageBackendService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService;
-import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
+import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
@@ -325,7 +325,7 @@ public abstract class RepositoryTestBase {
     protected static StationApplicationRepository stationApplicationRepo;
     protected static StationMailProviderRepository stationMailProviderRepo;
     protected static WaitingListRepository waitingListRepo;
-    protected static EventCommentRepository eventCommentRepo;
+    protected static CommentRepository commentRepo;
     protected static NoteRepository noteRepo;
     protected static FeedTokenRepository feedTokenRepo;
     protected static FeedMetricsRepository feedMetricsRepo;
@@ -561,7 +561,7 @@ public abstract class RepositoryTestBase {
         stationApplicationRepo = new StationApplicationRepository();
         stationMailProviderRepo = new StationMailProviderRepository();
         waitingListRepo = new WaitingListRepository();
-        eventCommentRepo = new EventCommentRepository();
+        commentRepo = new CommentRepository();
         noteRepo = new NoteRepository();
         feedTokenRepo = new FeedTokenRepository();
         feedMetricsRepo = new FeedMetricsRepository();

@@ -70,6 +70,7 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,
+                commentRepo,
                 boardRepo,
                 boardService,
                 noBus(),

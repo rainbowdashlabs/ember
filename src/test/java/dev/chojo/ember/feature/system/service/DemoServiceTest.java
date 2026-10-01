@@ -61,7 +61,6 @@ import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
-import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
 import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
@@ -172,7 +171,6 @@ class DemoServiceTest extends RepositoryTestBase {
         var federationRepo = new FederationRepository();
         var eventFederationRepo = new EventFederationRepository();
         var eventTemplateRepo = new EventTemplateRepository();
-        var kbCommentRepo = new KbCommentRepository();
         var newsFederationRepo = new NewsFederationRepository();
         var lendingRepo = new LendingRepository();
 
@@ -193,6 +191,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var eventServices = newEventServices(noOpBus);
         var newsService = new NewsService(
                 newsRepo,
+                commentRepo,
                 contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,
@@ -223,8 +222,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var feedTokenService = new FeedTokenService(feedTokenRepo);
 
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
-        var commentService =
-                new CommentService(eventCommentRepo, noOpBus, memberSvc, stationRepo, silentCommentMentions());
+        var commentService = new CommentService(commentRepo, noOpBus, memberSvc, stationRepo, silentCommentMentions());
         var kbStorageConfig = new Storage();
         var kbBackend = new LocalStorageBackend();
         var kbResolver = new StorageBackendResolver(kbBackend);
@@ -235,7 +233,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var kbContentService = new KbContentService(
                 knowledgeBaseRepo, contentBlocks(), noCellDescriptions(), stationRepo, kbFileStorage, kbSearchService);
         var kbCommentService = new KbCommentService(
-                knowledgeBaseRepo, kbCommentRepo, memberIdentityFactory, memberSvc, noOpBus, silentCommentMentions());
+                knowledgeBaseRepo, commentRepo, memberIdentityFactory, memberSvc, noOpBus, silentCommentMentions());
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 kbFileStorage,
@@ -262,7 +260,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationRepo,
                 federationTransport,
                 stationRepo,
-                kbCommentRepo,
+                commentRepo,
                 kbCommentService,
                 eventFederationRepo,
                 memberNameResolver,
@@ -317,7 +315,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationRepo,
                 eventServices.crud(),
                 commentService,
-                eventCommentRepo,
+                commentRepo,
                 memberNameResolver,
                 federationFanout,
                 federationEntityResolver,
@@ -377,6 +375,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var boardAttachmentSvc = new BoardAttachmentService(kbStorageSvc, stationRepo, kbBackend);
         var boardTicketService = new BoardTicketService(
                 boardTicketRepo,
+                commentRepo,
                 boardRepo,
                 boardService,
                 noOpBus,
@@ -491,7 +490,13 @@ class DemoServiceTest extends RepositoryTestBase {
                 artRepo,
                 demoClock);
         var boardSeeder = new DemoBoardSeeder(
-                boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory, demoClock);
+                boardRepo,
+                boardTicketRepo,
+                commentRepo,
+                federatedBoardService,
+                federationService,
+                memberIdentityFactory,
+                demoClock);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
         var selfCheckSeeder = new DemoSelfCheckSeeder(selfCheckRepo, inventoryRepo, itemCustodyService, demoClock);
         var demoStorageConfig = new Storage();

@@ -30,7 +30,6 @@ class NewsRepositoryTest extends RepositoryTestBase {
     private static Account account;
     private static StationMember member;
     private static int newsId;
-    private static int commentId;
 
     @BeforeAll
     static void setup() {
@@ -117,64 +116,6 @@ class NewsRepositoryTest extends RepositoryTestBase {
         assertTrue(
                 restrictionRepo.findRestrictions(RestrictionType.NEWS, newsId).isEmpty());
         memberGroupRepo.delete(group.id());
-    }
-
-    // -- Comments --
-
-    @Test
-    @Order(20)
-    void createComment() {
-        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
-        var comment = newsRepo.createComment(newsId, null, authorIdentity, "Great news!");
-        assertNotNull(comment);
-        assertEquals("Great news!", comment.content());
-        commentId = comment.id();
-    }
-
-    @Test
-    @Order(21)
-    void findCommentsByNews() {
-        assertEquals(1, newsRepo.findCommentsByNews(newsId).size());
-    }
-
-    @Test
-    @Order(22)
-    void countComments() {
-        assertEquals(1, newsRepo.countComments(newsId));
-    }
-
-    @Test
-    @Order(23)
-    void findCommentById() {
-        assertTrue(newsRepo.findCommentById(commentId).isPresent());
-        assertTrue(newsRepo.findCommentById(99999).isEmpty());
-    }
-
-    @Test
-    @Order(24)
-    void updateComment() {
-        assertTrue(newsRepo.updateComment(commentId, "Updated comment"));
-        assertEquals(
-                "Updated comment",
-                newsRepo.findCommentById(commentId).orElseThrow().content());
-    }
-
-    @Test
-    @Order(25)
-    void createReply() {
-        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
-        var reply = newsRepo.createComment(newsId, commentId, authorIdentity, "Reply to comment");
-        assertNotNull(reply);
-        assertEquals(commentId, reply.parentId());
-        assertEquals(2, newsRepo.countComments(newsId));
-        newsRepo.deleteComment(reply.id());
-    }
-
-    @Test
-    @Order(26)
-    void deleteComment() {
-        assertTrue(newsRepo.deleteComment(commentId));
-        assertEquals(0, newsRepo.countComments(newsId));
     }
 
     // -- Acknowledgements --

@@ -38,6 +38,7 @@ class NewsServiceTest extends RepositoryTestBase {
     static void setup() {
         service = new NewsService(
                 newsRepo,
+                commentRepo,
                 contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,
@@ -381,6 +382,7 @@ class NewsServiceTest extends RepositoryTestBase {
         var published = new java.util.ArrayList<Object>();
         var notifyingService = new NewsService(
                 newsRepo,
+                commentRepo,
                 contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,
@@ -423,6 +425,7 @@ class NewsServiceTest extends RepositoryTestBase {
         };
         var mentioningService = new NewsService(
                 newsRepo,
+                commentRepo,
                 contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,

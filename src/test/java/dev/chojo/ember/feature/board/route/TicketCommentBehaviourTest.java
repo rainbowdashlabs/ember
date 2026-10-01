@@ -91,6 +91,7 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
         var backend = new LocalStorageBackend();
         tickets = new BoardTicketService(
                 boardTicketRepo,
+                commentRepo,
                 boardRepo,
                 boards,
                 BUS,
@@ -203,7 +204,7 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
         assertEquals(200, change(other, number, id, "von Otto umgeschrieben").code());
         assertEquals(
                 "von Otto umgeschrieben",
-                boardTicketRepo.findComments(ticketId(number)).getFirst().content());
+                tickets.findComments(ticketId(number)).getFirst().content());
         assertEquals(204, remove(other, number, second).code());
         assertEquals(Refusal.BOARD_NOT_YOURS_TO_EDIT, refusalOf(remove(reader, number, id)));
         assertTrue(published().stream()
@@ -218,8 +219,7 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
         int id = write(writer, number, "alt");
 
         assertEquals(200, change(writer, number, id, "").code());
-        assertEquals(
-                "", boardTicketRepo.findComments(ticketId(number)).getFirst().content());
+        assertEquals("", tickets.findComments(ticketId(number)).getFirst().content());
     }
 
     @Test

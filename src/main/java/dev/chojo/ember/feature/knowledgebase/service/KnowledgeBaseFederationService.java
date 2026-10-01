@@ -9,6 +9,8 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -34,7 +36,6 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
-import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.FileContentResponse;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.RemoteKbCommentDeleteRequest;
@@ -84,7 +85,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
     private final FederationRepository federationRepository;
     private final FederationTransport transport;
     private final StationRepository stationRepository;
-    private final KbCommentRepository commentRepository;
+    private final CommentRepository commentRepository;
     private final KbCommentService commentService;
     private final EventFederationRepository eventFederationRepository;
     private final MemberNameResolver memberNameResolver;
@@ -102,7 +103,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
             FederationRepository federationRepository,
             FederationTransport transport,
             StationRepository stationRepository,
-            KbCommentRepository commentRepository,
+            CommentRepository commentRepository,
             KbCommentService commentService,
             EventFederationRepository eventFederationRepository,
             MemberNameResolver memberNameResolver,
@@ -1022,7 +1023,8 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * resolved for local and federated authors alike.
      */
     public List<CommentResponse> listComments(int fileId) {
-        return commentRepository.findByFile(fileId).stream()
+        return commentRepository.findByTarget(CommentEntityType.KB, fileId).stream()
+                .map(KbComment::of)
                 .map(this::toCommentResponse)
                 .toList();
     }
@@ -1102,7 +1104,8 @@ public class KnowledgeBaseFederationService implements FederationServer {
                 .map(FederationPartner::partnerStationId)
                 .orElse(null);
         var author = partnerStationUid != null ? new MemberIdentity(partnerStationUid, remoteMemberUid) : null;
-        var comment = commentRepository.create(fileId, parentId, author, content);
+        var comment =
+                KbComment.of(commentRepository.create(CommentEntityType.KB, fileId, null, parentId, author, content));
         eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
         log.info("KB remote comment {} created on file {} from partner {}", comment.id(), fileId, partnerId);
         return comment;
@@ -1115,7 +1118,7 @@ public class KnowledgeBaseFederationService implements FederationServer {
     public KbComment updateRemoteComment(
             FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
         requireRemoteCommentAuthor(partner, commentId, remoteMemberUid, "edit");
-        commentRepository.update(commentId, content);
+        commentRepository.update(CommentEntityType.KB, commentId, content);
         log.info("KB remote comment {} edited from partner {}", commentId, partner.id());
         return requireComment(commentId);
     }
@@ -1225,7 +1228,10 @@ public class KnowledgeBaseFederationService implements FederationServer {
     }
 
     private KbComment requireComment(int commentId) {
-        return commentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        return commentRepository
+                .findById(CommentEntityType.KB, commentId)
+                .map(KbComment::of)
+                .orElseThrow(NotFoundResponse::new);
     }
 
     private int partnerStationId(FederationPartner partner) {

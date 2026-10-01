@@ -5,15 +5,11 @@
  */
 package dev.chojo.ember.feature.board.entity;
 
-import de.chojo.sadu.mapper.rowmapper.RowMapping;
-import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.feature.comment.entity.Comment;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-import java.util.UUID;
-
-import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 public record BoardComment(
         int id,
@@ -25,24 +21,22 @@ public record BoardComment(
         Instant createdAt,
         @Nullable Instant updatedAt) {
 
-    public static RowMapping<BoardComment> map() {
-        return row -> {
-            UUID authorStationUid = row.get("author_station_uid", StandardValueConverter.UUID_STRING);
-            UUID authorMemberUid = row.get("author_member_uid", StandardValueConverter.UUID_STRING);
-            MemberIdentity author = (authorStationUid != null && authorMemberUid != null)
-                    ? new MemberIdentity(authorStationUid, authorMemberUid)
-                    : null;
-
-            return new BoardComment(
-                    row.getInt("id"),
-                    row.getInt("ticket_id"),
-                    row.getObject("parent_id", Integer.class),
-                    author,
-                    row.getString("content"),
-                    row.getBoolean("deleted"),
-                    row.get("created_at", INSTANT_TIMESTAMP),
-                    row.get("updated_at", INSTANT_TIMESTAMP));
-        };
+    /**
+     * The board view of a stored comment on a ticket.
+     *
+     * @param comment a comment whose target is a board ticket
+     * @return the same comment as a board comment
+     */
+    public static BoardComment of(Comment comment) {
+        return new BoardComment(
+                comment.id(),
+                comment.targetId(),
+                comment.parentId(),
+                comment.author(),
+                comment.content(),
+                comment.deleted(),
+                comment.createdAt(),
+                comment.updatedAt());
     }
 
     public BoardComment withAuthor(MemberIdentity author) {

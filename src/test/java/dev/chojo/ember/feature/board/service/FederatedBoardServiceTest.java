@@ -88,6 +88,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         var attachmentSvc = new BoardAttachmentService(fbStorage, stationRepo, fbBackend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,
+                commentRepo,
                 boardRepo,
                 new BoardService(
                         boardRepo,

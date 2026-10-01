@@ -50,6 +50,7 @@ class ChangelogAnnouncerTest extends RepositoryTestBase {
     static void setup() {
         newsService = new NewsService(
                 newsRepo,
+                commentRepo,
                 contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,

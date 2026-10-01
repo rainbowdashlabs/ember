@@ -32,7 +32,6 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbRefusalReason;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
-import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService.MemberAccess;
 import dev.chojo.ember.feature.knowledgebase.service.KbMoveService.KbReach;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -100,7 +99,7 @@ class KbMoveServiceTest extends RepositoryTestBase {
                 federationRepo,
                 mock(FederationTransport.class),
                 stationRepo,
-                new KbCommentRepository(),
+                commentRepo,
                 mock(KbCommentService.class),
                 mock(EventFederationRepository.class),
                 memberNameResolver,

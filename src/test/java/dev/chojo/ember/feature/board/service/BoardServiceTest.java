@@ -81,6 +81,7 @@ class BoardServiceTest extends RepositoryTestBase {
         var attachmentSvc = new BoardAttachmentService(btStorage, stationRepo, btBackend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,
+                commentRepo,
                 boardRepo,
                 boardService,
                 new DomainEventBus(Set.of()),

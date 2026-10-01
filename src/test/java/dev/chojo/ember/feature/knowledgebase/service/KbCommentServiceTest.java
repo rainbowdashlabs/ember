@@ -13,12 +13,12 @@ import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
+import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
-import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
-import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.*;
 
 class KbCommentServiceTest extends RepositoryTestBase {
     private static KbCommentService service;
-    private static KbCommentRepository commentRepository;
+    private static CommentRepository commentRepository;
     private static DomainEventBus eventBus;
     private static StationMemberService stationMemberService;
     private static MemberLookupService memberLookup;
@@ -51,7 +51,7 @@ class KbCommentServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        commentRepository = mock(KbCommentRepository.class);
+        commentRepository = mock(CommentRepository.class);
         eventBus = mock(DomainEventBus.class);
         stationMemberService = mock(StationMemberService.class);
         memberLookup = mock(MemberLookupService.class);
@@ -86,8 +86,23 @@ class KbCommentServiceTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
-    private static KbComment storedComment(int id, Integer parentId, String content) {
-        return new KbComment(id, fileId, parentId, null, content, false, Instant.now(), null);
+    private static Comment storedComment(int id, Integer parentId, String content) {
+        return stored(id, parentId, null, content);
+    }
+
+    private static Comment stored(int id, Integer parentId, MemberIdentity author, String content) {
+        return new Comment(
+                id,
+                CommentEntityType.KB,
+                fileId,
+                station.id(),
+                null,
+                parentId,
+                author,
+                content,
+                false,
+                Instant.now(),
+                null);
     }
 
     private static List<DomainEvent> publishedEvents() {
@@ -103,7 +118,8 @@ class KbCommentServiceTest extends RepositoryTestBase {
 
     @Test
     void aCommentIsFoundByItsId() {
-        when(commentRepository.findById(500)).thenReturn(Optional.of(storedComment(500, null, "Hallo")));
+        when(commentRepository.findById(CommentEntityType.KB, 500))
+                .thenReturn(Optional.of(storedComment(500, null, "Hallo")));
 
         assertEquals("Hallo", service.findComment(500).orElseThrow().content());
         assertTrue(service.findComment(501).isEmpty());
@@ -121,7 +137,7 @@ class KbCommentServiceTest extends RepositoryTestBase {
         int numericMemberId = member.id() + 2000;
         String content = "Ping @[%s/%s:Alice] and @[%d:Bob] and @[GROUP:Crew:7]"
                 .formatted(station.uid(), mentionedUid, numericMemberId);
-        when(commentRepository.create(anyInt(), any(), any(), anyString()))
+        when(commentRepository.create(eq(CommentEntityType.KB), anyInt(), any(), any(), any(), anyString()))
                 .thenReturn(storedComment(500, null, content));
         when(memberLookup.resolveId(station.id(), mentionedUid)).thenReturn(Optional.of(mentionedMemberId));
 
@@ -168,7 +184,7 @@ class KbCommentServiceTest extends RepositoryTestBase {
         UUID unknownUid = UUID.randomUUID();
         String content = "@[%s/%s:Me] @[%s/not-a-uuid:Broken] @[%s/%s:Ghost] @[%d:Self]"
                 .formatted(station.uid(), selfUid, station.uid(), station.uid(), unknownUid, member.id());
-        when(commentRepository.create(anyInt(), any(), any(), anyString()))
+        when(commentRepository.create(eq(CommentEntityType.KB), anyInt(), any(), any(), any(), anyString()))
                 .thenReturn(storedComment(501, null, content));
         when(memberLookup.resolveId(station.id(), selfUid)).thenReturn(Optional.of(member.id()));
         when(memberLookup.resolveId(station.id(), unknownUid)).thenReturn(Optional.empty());
@@ -192,13 +208,14 @@ class KbCommentServiceTest extends RepositoryTestBase {
         int addedMemberId = member.id() + 4000;
         String before = "Hi @[%s/%s:Kept] @[GROUP:Crew:7]".formatted(station.uid(), keptUid);
         String after = before + " and @[%s/%s:Added] @[EVENT:Everyone:9]".formatted(station.uid(), addedUid);
-        when(commentRepository.findById(502)).thenReturn(Optional.of(storedComment(502, null, before)));
+        when(commentRepository.findById(CommentEntityType.KB, 502))
+                .thenReturn(Optional.of(storedComment(502, null, before)));
         when(memberLookup.resolveId(station.id(), keptUid)).thenReturn(Optional.of(keptMemberId));
         when(memberLookup.resolveId(station.id(), addedUid)).thenReturn(Optional.of(addedMemberId));
 
         service.updateComment(station.id(), 502, member.id(), "Author", after);
 
-        verify(commentRepository).update(502, after);
+        verify(commentRepository).update(CommentEntityType.KB, 502, after);
         var events = publishedEvents();
         var mentioned = events.stream()
                 .filter(MentionedInComment.class::isInstance)
@@ -221,7 +238,8 @@ class KbCommentServiceTest extends RepositoryTestBase {
     void editsThatKeepTheMentionsAnnounceNothing() {
         UUID keptUid = UUID.randomUUID();
         String before = "Hi @[%s/%s:Kept]".formatted(station.uid(), keptUid);
-        when(commentRepository.findById(503)).thenReturn(Optional.of(storedComment(503, null, before)));
+        when(commentRepository.findById(CommentEntityType.KB, 503))
+                .thenReturn(Optional.of(storedComment(503, null, before)));
         when(memberLookup.resolveId(station.id(), keptUid)).thenReturn(Optional.of(member.id() + 3000));
 
         service.updateComment(station.id(), 503, member.id(), "Author", before + " (typo fixed)");
@@ -236,11 +254,10 @@ class KbCommentServiceTest extends RepositoryTestBase {
     @Test
     void repliesCarryTheParentAuthor() {
         var parentIdentity = new MemberIdentity(station.uid(), UUID.randomUUID());
-        when(commentRepository.create(anyInt(), any(), any(), anyString()))
+        when(commentRepository.create(eq(CommentEntityType.KB), anyInt(), any(), any(), any(), anyString()))
                 .thenReturn(storedComment(502, 400, "reply body"));
-        when(commentRepository.findById(400))
-                .thenReturn(Optional.of(
-                        new KbComment(400, fileId, null, parentIdentity, "parent body", false, Instant.now(), null)));
+        when(commentRepository.findById(CommentEntityType.KB, 400))
+                .thenReturn(Optional.of(stored(400, null, parentIdentity, "parent body")));
         when(stationMemberService.resolveMemberId(parentIdentity)).thenReturn(Optional.of(77));
 
         service.createComment(station.id(), fileId, 400, member.id(), "Author", "reply body");
@@ -260,9 +277,9 @@ class KbCommentServiceTest extends RepositoryTestBase {
      */
     @Test
     void repliesToAnUnresolvableParentStillAnnounceThemselves() {
-        when(commentRepository.create(anyInt(), any(), any(), anyString()))
+        when(commentRepository.create(eq(CommentEntityType.KB), anyInt(), any(), any(), any(), anyString()))
                 .thenReturn(storedComment(504, 401, "orphan reply"));
-        when(commentRepository.findById(401)).thenReturn(Optional.empty());
+        when(commentRepository.findById(CommentEntityType.KB, 401)).thenReturn(Optional.empty());
 
         service.createComment(station.id(), fileId, 401, member.id(), "Author", "orphan reply");
 
@@ -280,7 +297,7 @@ class KbCommentServiceTest extends RepositoryTestBase {
      */
     @Test
     void commentsOnAMissingFileAnnounceThemselvesWithoutATitle() {
-        when(commentRepository.create(anyInt(), any(), any(), anyString()))
+        when(commentRepository.create(eq(CommentEntityType.KB), anyInt(), any(), any(), any(), anyString()))
                 .thenReturn(storedComment(505, null, "ghost file"));
 
         service.createComment(station.id(), 999999, null, member.id(), "Author", "ghost file");
@@ -300,7 +317,7 @@ class KbCommentServiceTest extends RepositoryTestBase {
     @Test
     void longCommentsAreTruncatedIntoAShortPreview() {
         String content = "x".repeat(150);
-        when(commentRepository.create(anyInt(), any(), any(), anyString()))
+        when(commentRepository.create(eq(CommentEntityType.KB), anyInt(), any(), any(), any(), anyString()))
                 .thenReturn(storedComment(503, null, content));
 
         service.createComment(station.id(), fileId, null, member.id(), "Author", content);
@@ -319,8 +336,9 @@ class KbCommentServiceTest extends RepositoryTestBase {
      */
     @Test
     void deletingACommentAnnouncesWhichCommentWent() {
-        when(commentRepository.findById(600)).thenReturn(Optional.of(storedComment(600, null, "farewell")));
-        when(commentRepository.delete(600)).thenReturn(true);
+        when(commentRepository.findById(CommentEntityType.KB, 600))
+                .thenReturn(Optional.of(storedComment(600, null, "farewell")));
+        when(commentRepository.delete(CommentEntityType.KB, 600)).thenReturn(true);
 
         assertTrue(service.deleteComment(station.id(), 600));
 
@@ -340,9 +358,10 @@ class KbCommentServiceTest extends RepositoryTestBase {
      */
     @Test
     void deletingAMissingCommentAnnouncesNothing() {
-        when(commentRepository.findById(601)).thenReturn(Optional.empty());
-        when(commentRepository.findById(602)).thenReturn(Optional.of(storedComment(602, null, "stubborn")));
-        when(commentRepository.delete(602)).thenReturn(false);
+        when(commentRepository.findById(CommentEntityType.KB, 601)).thenReturn(Optional.empty());
+        when(commentRepository.findById(CommentEntityType.KB, 602))
+                .thenReturn(Optional.of(storedComment(602, null, "stubborn")));
+        when(commentRepository.delete(CommentEntityType.KB, 602)).thenReturn(false);
 
         assertFalse(service.deleteComment(station.id(), 601));
         assertFalse(service.deleteComment(station.id(), 602));

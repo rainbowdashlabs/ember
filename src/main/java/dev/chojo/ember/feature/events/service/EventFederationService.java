@@ -10,7 +10,8 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.comment.entity.Comment;
-import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.comment.service.CommentService;
@@ -77,7 +78,7 @@ public class EventFederationService implements FederationServer {
     private final StationRepository stationRepository;
     private final EventCrudService crudService;
     private final CommentService commentService;
-    private final EventCommentRepository commentRepository;
+    private final CommentRepository commentRepository;
     private final MemberNameResolver memberNameResolver;
     private final FederationFanout fanout;
     private final FederationEntityResolver entityResolver;
@@ -96,7 +97,7 @@ public class EventFederationService implements FederationServer {
             StationRepository stationRepository,
             EventCrudService crudService,
             CommentService commentService,
-            EventCommentRepository commentRepository,
+            CommentRepository commentRepository,
             MemberNameResolver memberNameResolver,
             FederationFanout fanout,
             FederationEntityResolver entityResolver,
@@ -861,7 +862,7 @@ public class EventFederationService implements FederationServer {
             String content,
             LocalDate eventDate) {
         var author = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
-        var comment = commentRepository.create(eventId, parentId, author, content, eventDate);
+        var comment = commentRepository.create(CommentEntityType.EVENT, eventId, eventDate, parentId, author, content);
         federationRepository.cacheName(partner.id(), remoteMemberUid, displayName);
         log.info("Comment {} created on event {} (partner {})", comment.id(), eventId, partner.id());
         return toCommentResponse(comment);
@@ -873,7 +874,7 @@ public class EventFederationService implements FederationServer {
     public CommentResponse updateRemoteComment(
             FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
         requireCommentAuthor(commentId, partner, remoteMemberUid, "edit");
-        commentRepository.update(commentId, content);
+        commentRepository.update(CommentEntityType.EVENT, commentId, content);
         log.info("Comment {} on an event edited (partner {})", commentId, partner.id());
         var updated = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         return toCommentResponse(updated);

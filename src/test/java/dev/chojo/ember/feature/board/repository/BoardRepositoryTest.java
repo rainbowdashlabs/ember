@@ -10,7 +10,6 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardActivityType;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
-import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
 import dev.chojo.ember.feature.board.entity.BoardFieldType;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
@@ -45,7 +44,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
     private static int ticketId1;
     private static int ticketId2;
     private static int checklistItemId;
-    private static int commentId;
 
     @BeforeAll
     static void setup() {
@@ -301,47 +299,6 @@ class BoardRepositoryTest extends RepositoryTestBase {
         assertTrue(boardTicketRepo.deleteChecklistItem(checklistItemId));
         var items = boardTicketRepo.findChecklistItems(ticketId1);
         assertEquals(1, items.size());
-    }
-
-    // -- Comments --
-
-    @Test
-    @Order(60)
-    void createComment() {
-        BoardComment comment = boardTicketRepo.createComment(
-                ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), "First comment");
-        assertNotNull(comment);
-        assertEquals("First comment", comment.content());
-        commentId = comment.id();
-    }
-
-    @Test
-    @Order(61)
-    void updateComment() {
-        assertTrue(boardTicketRepo.updateComment(commentId, "Updated comment"));
-        var comments = boardTicketRepo.findComments(ticketId1);
-        assertEquals("Updated comment", comments.getFirst().content());
-    }
-
-    @Test
-    @Order(62)
-    void createReply() {
-        BoardComment reply = boardTicketRepo.createComment(
-                ticketId1, commentId, memberIdentityFactory.local(station.id(), member.id()), "Reply");
-        assertNotNull(reply);
-        assertEquals(commentId, reply.parentId());
-    }
-
-    @Test
-    @Order(63)
-    void deleteComment() {
-        // Comment has a reply child (from test 62), so it should be soft-deleted
-        assertTrue(boardTicketRepo.deleteComment(commentId));
-        var comments = boardTicketRepo.findComments(ticketId1);
-        var deleted =
-                comments.stream().filter(c -> c.id() == commentId).findFirst().orElseThrow();
-        assertTrue(deleted.deleted());
-        assertEquals("", deleted.content());
     }
 
     // -- Access restrictions --

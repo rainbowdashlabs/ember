@@ -13,6 +13,9 @@ import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -34,6 +37,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
 
     private final BoardRepository boardRepo;
     private final BoardTicketRepository ticketRepo;
+    private final CommentRepository commentRepo;
     private final FederatedBoardService federatedBoardService;
     private final FederationService federationService;
     private final MemberIdentityFactory memberIdentityFactory;
@@ -44,6 +48,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
     public DemoBoardSeeder(
             BoardRepository boardRepo,
             BoardTicketRepository ticketRepo,
+            CommentRepository commentRepo,
             FederatedBoardService federatedBoardService,
             FederationService federationService,
             MemberIdentityFactory memberIdentityFactory,
@@ -51,9 +56,14 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         this.clock = clock;
         this.boardRepo = boardRepo;
         this.ticketRepo = ticketRepo;
+        this.commentRepo = commentRepo;
         this.federatedBoardService = federatedBoardService;
         this.federationService = federationService;
         this.memberIdentityFactory = memberIdentityFactory;
+    }
+
+    private Comment ticketComment(int ticketId, Integer parentId, MemberIdentity author, String content) {
+        return commentRepo.create(CommentEntityType.BOARD_TICKET, ticketId, null, parentId, author, content);
     }
 
     /**
@@ -216,12 +226,11 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         ticketRepo.logTransition(t7, lane1Open.id(), lane1Done.id(), localIdentity(admin.id()));
 
         // Comments
-        ticketRepo.createComment(t4, null, localIdentity(admin.id()), "Bitte bis Freitag erledigen.");
+        ticketComment(t4, null, localIdentity(admin.id()), "Bitte bis Freitag erledigen.");
         if (!teamMembers.isEmpty()) {
-            ticketRepo.createComment(
-                    t4, null, localIdentity(teamMembers.getFirst().id()), "Ich fange morgen damit an.");
+            ticketComment(t4, null, localIdentity(teamMembers.getFirst().id()), "Ich fange morgen damit an.");
         }
-        ticketRepo.createComment(t1, null, localIdentity(admin.id()), "Wer hat im Juni Urlaub? Bitte melden!");
+        ticketComment(t1, null, localIdentity(admin.id()), "Wer hat im Juni Urlaub? Bitte melden!");
 
         // ── Board 2: "Jugendarbeit" - FEEDBACK preset, TEAM edit, USER view ──
 
@@ -354,15 +363,12 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         ticketRepo.logTransition(j8, lane2Work.id(), lane2Done.id(), localIdentity(admin.id()));
 
         // Comments
-        ticketRepo.createComment(
-                j4, null, localIdentity(admin.id()), "Wettbewerb ist am 20. Juni - wir müssen Gas geben!");
+        ticketComment(j4, null, localIdentity(admin.id()), "Wettbewerb ist am 20. Juni - wir müssen Gas geben!");
         if (!teamMembers.isEmpty()) {
-            ticketRepo.createComment(
-                    j4, null, localIdentity(teamMembers.getFirst().id()), "Ich kümmere mich um den Staffellauf.");
-            ticketRepo.createComment(
-                    j6, null, localIdentity(teamMembers.getFirst().id()), "Sieht gut aus, nur Folie 3 anpassen.");
+            ticketComment(j4, null, localIdentity(teamMembers.getFirst().id()), "Ich kümmere mich um den Staffellauf.");
+            ticketComment(j6, null, localIdentity(teamMembers.getFirst().id()), "Sieht gut aus, nur Folie 3 anpassen.");
         }
-        ticketRepo.createComment(j1, null, localIdentity(admin.id()), "Vorschlag: 12. Juli als Termin.");
+        ticketComment(j1, null, localIdentity(admin.id()), "Vorschlag: 12. Juli als Termin.");
 
         // ── Additional tickets for Board 1 (Dienstplanung) ──
         seedExtraTicketsBoard1(
@@ -590,17 +596,14 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         boardRepo.addLabelToTicket(t5, labelUebung.id());
 
         // -- Comments from primary station --
-        ticketRepo.createComment(
-                t1, null, localIdentity(admin.id()), "Ich schlage den 20. Juli vor. Passt das bei euch?");
+        ticketComment(t1, null, localIdentity(admin.id()), "Ich schlage den 20. Juli vor. Passt das bei euch?");
         if (!teamMembers.isEmpty()) {
-            ticketRepo.createComment(
-                    t1, null, localIdentity(teamMembers.getFirst().id()), "Bei uns passt es, gute Idee!");
-            ticketRepo.createComment(
-                    t2, null, localIdentity(teamMembers.getFirst().id()), "Kanal 4 wäre frei, teste ich morgen.");
+            ticketComment(t1, null, localIdentity(teamMembers.getFirst().id()), "Bei uns passt es, gute Idee!");
+            ticketComment(t2, null, localIdentity(teamMembers.getFirst().id()), "Kanal 4 wäre frei, teste ich morgen.");
         }
-        ticketRepo.createComment(
+        ticketComment(
                 t4, null, localIdentity(admin.id()), "Wir können 5 Jugendliche stellen. Wie viele kommen von euch?");
-        ticketRepo.createComment(
+        ticketComment(
                 t5,
                 null,
                 localIdentity(admin.id()),
@@ -637,19 +640,19 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         var partnerIdentity1 = new MemberIdentity(partner.partnerStationId(), partnerMember1);
         var partnerIdentity2 = new MemberIdentity(partner.partnerStationId(), partnerMember2);
 
-        ticketRepo.createComment(t1, null, partnerIdentity1, "Bei uns passt der 20. Juli auch! Wir sind dabei.");
-        ticketRepo.createComment(t4, null, partnerIdentity1, "Wir können 4 Jugendliche und einen Betreuer schicken.");
-        ticketRepo.createComment(t5, null, partnerIdentity2, "Strahlrohre sind kein Problem, wir bringen 3 Stück mit.");
-        ticketRepo.createComment(t6, null, partnerIdentity1, "Wasser und Apfelsaft sind bestellt.");
+        ticketComment(t1, null, partnerIdentity1, "Bei uns passt der 20. Juli auch! Wir sind dabei.");
+        ticketComment(t4, null, partnerIdentity1, "Wir können 4 Jugendliche und einen Betreuer schicken.");
+        ticketComment(t5, null, partnerIdentity2, "Strahlrohre sind kein Problem, wir bringen 3 Stück mit.");
+        ticketComment(t6, null, partnerIdentity1, "Wasser und Apfelsaft sind bestellt.");
 
         // -- Comments from primary station members on federated tickets --
-        ticketRepo.createComment(
+        ticketComment(
                 t6,
                 null,
                 localIdentity(admin.id()),
                 "Könntet ihr auch vegetarische Optionen einplanen? Wir haben zwei Vegetarier.");
         if (!teamMembers.isEmpty()) {
-            ticketRepo.createComment(
+            ticketComment(
                     t7,
                     null,
                     localIdentity(teamMembers.getFirst().id()),
@@ -657,9 +660,9 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         }
 
         // Reply thread: local member posts, partner replies
-        var localComment = ticketRepo.createComment(
-                t1, null, localIdentity(admin.id()), "Termin steht: 20. Juli, passt das bei euch?");
-        ticketRepo.createComment(t1, localComment.id(), partnerIdentity1, "Passt perfekt! Wir blocken den Tag.");
+        var localComment =
+                ticketComment(t1, null, localIdentity(admin.id()), "Termin steht: 20. Juli, passt das bei euch?");
+        ticketComment(t1, localComment.id(), partnerIdentity1, "Passt perfekt! Wir blocken den Tag.");
 
         // Checklist on t1
         ticketRepo.createChecklistItem(t1, "Termin abstimmen", 0);
@@ -743,10 +746,10 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 ticketRepo.logTransition(tid, workLane, doneLane, localIdentity(admin.id()));
             }
             if (rng.nextInt(3) == 0) {
-                ticketRepo.createComment(tid, null, localIdentity(admin.id()), "Bitte zeitnah erledigen.");
+                ticketComment(tid, null, localIdentity(admin.id()), "Bitte zeitnah erledigen.");
             }
             if (rng.nextInt(4) == 0 && !team.isEmpty()) {
-                ticketRepo.createComment(
+                ticketComment(
                         tid,
                         null,
                         localIdentity(team.get(rng.nextInt(team.size())).id()),
@@ -820,10 +823,10 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 }
             }
             if (rng.nextInt(3) == 0) {
-                ticketRepo.createComment(tid, null, localIdentity(admin.id()), "Wer kann das übernehmen?");
+                ticketComment(tid, null, localIdentity(admin.id()), "Wer kann das übernehmen?");
             }
             if (rng.nextInt(3) == 0 && !team.isEmpty()) {
-                ticketRepo.createComment(
+                ticketComment(
                         tid,
                         null,
                         localIdentity(team.get(rng.nextInt(team.size())).id()),

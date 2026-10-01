@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.FederationTestContracts;
@@ -37,7 +38,6 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFavouriteTarget;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
-import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.repository.KbFavouriteRepository;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -86,7 +86,6 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     private static FederationService federationService;
     private static FederationHttpClient httpClient;
     private static FederationTestTransport transport;
-    private static KbCommentRepository commentRepo;
     private static Station station;
     private static Station stationB;
     private static Station stationC;
@@ -101,7 +100,6 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         httpClient = mock(FederationHttpClient.class);
         when(httpClient.canSign(anyInt())).thenReturn(true);
-        commentRepo = new KbCommentRepository();
         var storageConfig = new Storage();
         var fileStorage = mock(KbFileStorageService.class);
         var searchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
@@ -876,14 +874,19 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     void listCommentsMapsAuthors() {
         var file = createFile(station.id(), "CommentedFile");
         var comment = commentRepo.create(
-                file.id(), null, new MemberIdentity(stationB.uid(), UUID.randomUUID()), "Partner sagt hallo");
+                CommentEntityType.KB,
+                file.id(),
+                null,
+                null,
+                new MemberIdentity(stationB.uid(), UUID.randomUUID()),
+                "Partner sagt hallo");
 
         var responses = service.listComments(file.id());
         assertEquals(1, responses.size());
         assertEquals(comment.id(), responses.getFirst().id());
         assertEquals("Partner sagt hallo", responses.getFirst().content());
 
-        commentRepo.delete(comment.id());
+        commentRepo.delete(CommentEntityType.KB, comment.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -900,7 +903,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals(remoteMemberUid, comment.author().memberUid());
         assertEquals(stationB.uid(), comment.author().stationUid());
 
-        commentRepo.delete(comment.id());
+        commentRepo.delete(CommentEntityType.KB, comment.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -915,7 +918,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var updated = service.updateRemoteComment(requestingPartner, comment.id(), remoteMemberUid, "Zweite");
         assertEquals("Zweite", updated.content());
 
-        commentRepo.delete(comment.id());
+        commentRepo.delete(CommentEntityType.KB, comment.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -931,7 +934,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 ForbiddenResponse.class,
                 () -> service.updateRemoteComment(requestingPartner, comment.id(), stranger, "Fremd"));
 
-        commentRepo.delete(comment.id());
+        commentRepo.delete(CommentEntityType.KB, comment.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -955,7 +958,11 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals("Frage", created.content());
         assertEquals(
                 station.uid(),
-                commentRepo.findById(created.id()).orElseThrow().author().stationUid());
+                commentRepo
+                        .findById(CommentEntityType.KB, created.id())
+                        .orElseThrow()
+                        .author()
+                        .stationUid());
 
         var listed = service.listFederatedComments(station.id(), stationB.uid(), file.id());
         assertEquals(1, listed.size());
@@ -971,7 +978,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 null,
                 RemoteKnowledgeBaseRoutes.RemoteKbFile.class);
 
-        commentRepo.delete(created.id());
+        commentRepo.delete(CommentEntityType.KB, created.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -989,7 +996,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 NotFoundResponse.class,
                 () -> service.createFederatedComment(
                         station.id(), stationB.uid(), file.id(), UUID.randomUUID(), "Bob", null, "Nein"));
-        assertTrue(commentRepo.findByFile(file.id()).isEmpty());
+        assertTrue(commentRepo.findByTarget(CommentEntityType.KB, file.id()).isEmpty());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -1004,7 +1011,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var updated = service.updateFederatedComment(station.id(), stationB.uid(), created.id(), memberUid, "Zweite");
         assertEquals("Zweite", updated.content());
 
-        commentRepo.delete(created.id());
+        commentRepo.delete(CommentEntityType.KB, created.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -1020,7 +1027,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 ForbiddenResponse.class,
                 () -> service.updateFederatedComment(station.id(), stationB.uid(), created.id(), stranger, "Fremd"));
 
-        commentRepo.delete(created.id());
+        commentRepo.delete(CommentEntityType.KB, created.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -1033,7 +1040,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 station.id(), stationB.uid(), file.id(), memberUid, "Bob", null, "Weg damit");
 
         service.deleteFederatedComment(station.id(), stationB.uid(), created.id(), memberUid);
-        assertTrue(commentRepo.findById(created.id()).isEmpty());
+        assertTrue(commentRepo.findById(CommentEntityType.KB, created.id()).isEmpty());
 
         knowledgeBaseRepo.purgeFile(file.id());
     }

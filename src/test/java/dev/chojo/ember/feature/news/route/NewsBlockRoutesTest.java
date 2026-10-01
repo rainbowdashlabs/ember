@@ -57,6 +57,7 @@ class NewsBlockRoutesTest extends BlockReferenceTestBase {
 
         newsService = new NewsService(
                 newsRepo,
+                commentRepo,
                 contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,

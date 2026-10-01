@@ -5,14 +5,10 @@
  */
 package dev.chojo.ember.feature.news.entity;
 
-import de.chojo.sadu.mapper.rowmapper.RowMapping;
-import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.feature.comment.entity.Comment;
 
 import java.time.Instant;
-import java.util.UUID;
-
-import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
  * Represents a comment on a news article, supporting threaded replies.
@@ -34,24 +30,19 @@ public record NewsComment(
         boolean deleted,
         Instant createdAt) {
     /**
-     * Creates a row mapping for database result set conversion.
+     * The news view of a stored comment on a news entry.
+     *
+     * @param comment a comment whose target is a news entry
+     * @return the same comment as a news comment
      */
-    public static RowMapping<NewsComment> map() {
-        return row -> {
-            UUID authorStationUid = row.get("author_station_uid", StandardValueConverter.UUID_STRING);
-            UUID authorMemberUid = row.get("author_member_uid", StandardValueConverter.UUID_STRING);
-            MemberIdentity author = (authorStationUid != null && authorMemberUid != null)
-                    ? new MemberIdentity(authorStationUid, authorMemberUid)
-                    : null;
-
-            return new NewsComment(
-                    row.getInt("id"),
-                    row.getInt("news_id"),
-                    row.getObject("parent_id", Integer.class),
-                    author,
-                    row.getString("content"),
-                    row.getBoolean("deleted"),
-                    row.get("created_at", INSTANT_TIMESTAMP));
-        };
+    public static NewsComment of(Comment comment) {
+        return new NewsComment(
+                comment.id(),
+                comment.targetId(),
+                comment.parentId(),
+                comment.author(),
+                comment.content(),
+                comment.deleted(),
+                comment.createdAt());
     }
 }
