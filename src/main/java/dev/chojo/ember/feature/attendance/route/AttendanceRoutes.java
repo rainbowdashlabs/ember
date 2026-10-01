@@ -1296,11 +1296,12 @@ public class AttendanceRoutes implements Routes {
             tags = {"Attendance"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AbsenceResponse[].class)))
     private void listMyAbsences(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
+        var atStation = StationSession.optional(UserSession.from(ctx));
+        if (atStation.isEmpty()) {
             ctx.json(Collections.emptyList());
             return;
         }
+        StationSession session = atStation.get();
         var absences = new ArrayList<>(
                 attendanceService.findAbsencesByMember(session.member().id()));
         // Include managed members' absences

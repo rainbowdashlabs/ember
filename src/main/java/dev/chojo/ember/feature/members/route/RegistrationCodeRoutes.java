@@ -64,7 +64,7 @@ public class RegistrationCodeRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationCode[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(codeService.findByStation(session.stationId()));
+        ctx.json(codeService.findByStation(session.requireStationId()));
     }
 
     @OpenApi(
@@ -83,7 +83,8 @@ public class RegistrationCodeRoutes implements Routes {
         if (isBlank(request.code())) {
             throw Refusal.REGISTRATION_CODE_TEXT_MISSING.raise();
         }
-        ctx.status(HttpStatus.CREATED).json(codeService.create(session.stationId(), request.code(), request.maxUses()));
+        ctx.status(HttpStatus.CREATED)
+                .json(codeService.create(session.requireStationId(), request.code(), request.maxUses()));
     }
 
     @OpenApi(

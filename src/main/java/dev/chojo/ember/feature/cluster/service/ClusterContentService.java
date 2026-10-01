@@ -99,7 +99,7 @@ public class ClusterContentService {
      */
     public MemberIdentity authorIdentity(int clusterId, int accountId) {
         StationMember author = authorFor(clusterId, accountId);
-        return new MemberIdentity(stationRepository.resolveUid(author.stationId()), author.uid());
+        return new MemberIdentity(stationRepository.requireUid(author.stationId()), author.uid());
     }
 
     // -- Knowledge base --

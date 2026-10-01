@@ -6,6 +6,7 @@
 package dev.chojo.ember.api;
 
 import io.javalin.http.HttpStatus;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Every refusal that has been given a code, with the sentence a reader is shown for it.
@@ -5571,11 +5572,13 @@ public enum Refusal {
      * <p>The detail is the caller's own words back at them, a field name they sent or a value they
      * chose, never anything of Ember's.
      *
-     * @param detail what the refusal was about, in the reader's terms
+     * @param detail what the refusal was about, in the reader's terms, or {@code null} when there is
+     *               nothing to name
      * @return an exception carrying this refusal's status and code, and its sentence with the
      *         detail named
      */
-    public RefusalResponse raise(String detail) {
+    public RefusalResponse raise(@Nullable String detail) {
+        if (detail == null) return raise();
         return new RefusalResponse(this, message + ": " + detail);
     }
 

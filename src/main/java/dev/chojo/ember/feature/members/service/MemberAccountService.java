@@ -64,7 +64,7 @@ public class MemberAccountService {
      * @param accountId the account
      * @param stationId the caller's station, or null when none is chosen
      */
-    public void requireStationAccount(int accountId, Integer stationId) {
+    public void requireStationAccount(int accountId, @Nullable Integer stationId) {
         if (stationId == null
                 || memberRepository
                         .findByStationAndAccount(stationId, accountId)
@@ -139,7 +139,7 @@ public class MemberAccountService {
      * @return what became of the address
      */
     public UpdateAccountResponse update(
-            UserSession session, Integer stationId, int accountId, UpdateAccountRequest request) {
+            UserSession session, @Nullable Integer stationId, int accountId, UpdateAccountRequest request) {
         boolean actsForSomebodyElse = session.accountId() != accountId;
         if (actsForSomebodyElse && !session.hasInstancePermission(InstancePermission.ADMINISTRATOR)) {
             if (!session.hasPermission(StationPermission.MEMBER_EDIT)) {

@@ -42,8 +42,9 @@ public class GuardianPolicy {
      * @return their wards, none for a reader who is no member of the station
      */
     public List<StationMember> wards(UserSession session) {
-        if (session.member() == null) return List.of();
-        return memberRepository.findManaged(session.member().id());
+        StationMember member = session.member();
+        if (member == null) return List.of();
+        return memberRepository.findManaged(member.id());
     }
 
     /**
@@ -53,9 +54,10 @@ public class GuardianPolicy {
      * @return the member ids they act for, none for a reader who is no member of the station
      */
     public List<Integer> household(UserSession session) {
-        if (session.member() == null) return List.of();
+        StationMember member = session.member();
+        if (member == null) return List.of();
         var ids = new ArrayList<Integer>();
-        ids.add(session.member().id());
+        ids.add(member.id());
         wards(session).forEach(ward -> ids.add(ward.id()));
         return ids;
     }
@@ -68,8 +70,9 @@ public class GuardianPolicy {
      * @return whether they may
      */
     public boolean mayActFor(UserSession session, int memberId) {
-        if (session.member() == null) return false;
-        if (session.member().id() == memberId) return true;
+        StationMember member = session.member();
+        if (member == null) return false;
+        if (member.id() == memberId) return true;
         return wards(session).stream().anyMatch(ward -> ward.id() == memberId);
     }
 }

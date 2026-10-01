@@ -119,11 +119,12 @@ public class AvatarAccessService {
             return true;
         }
         if (governsStation(session, targetStationId)) return true;
-        if (session.stationId() == null) return false;
+        Integer stationId = session.stationId();
+        if (stationId == null) return false;
         UUID targetUid = stationRepository.resolveUid(targetStationId);
         if (targetUid == null) return false;
         return federationRepository
-                .findPartnerByStationAndRemoteUid(session.stationId(), targetUid)
+                .findPartnerByStationAndRemoteUid(stationId, targetUid)
                 .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
                 .isPresent();
     }
@@ -155,12 +156,13 @@ public class AvatarAccessService {
         for (var targetMembership : targetMemberships) {
             if (callerStationIds.contains(targetMembership.stationId())) return true;
         }
-        if (session.stationId() == null) return false;
+        Integer stationId = session.stationId();
+        if (stationId == null) return false;
         for (var targetMembership : targetMemberships) {
             UUID targetUid = stationRepository.resolveUid(targetMembership.stationId());
             if (targetUid == null) continue;
             var partner = federationRepository
-                    .findPartnerByStationAndRemoteUid(session.stationId(), targetUid)
+                    .findPartnerByStationAndRemoteUid(stationId, targetUid)
                     .orElse(null);
             if (partner != null && partner.status() == FederationPartner.FederationStatus.ACTIVE) {
                 return true;

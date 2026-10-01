@@ -11,6 +11,7 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizTest;
@@ -144,14 +145,14 @@ public class QuizTestRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizTestSummary[].class)))
     private void listTests(Context ctx) {
         var session = UserSession.from(ctx);
+        int stationId = session.requireStationId();
+        StationMember member = session.member();
         List<QuizTest> tests;
-        if (session.member() != null && !session.permissions().contains(StationPermission.TEST_CONFIGURE)) {
+        if (member != null && !session.permissions().contains(StationPermission.TEST_CONFIGURE)) {
             tests = testService.findTestsForMember(
-                    session.stationId(),
-                    session.member().id(),
-                    session.hasPermission(RestrictionType.QUIZ_TEST.managerPermission()));
+                    stationId, member.id(), session.hasPermission(RestrictionType.QUIZ_TEST.managerPermission()));
         } else {
-            tests = testService.findTests(session.stationId());
+            tests = testService.findTests(stationId);
         }
         var result = tests.stream()
                 .map(t -> new QuizTestSummary(t, testService.countAttempts(t.id())))
@@ -168,11 +169,12 @@ public class QuizTestRoutes implements Routes {
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizAvailableTest[].class)))
     private void listAvailableTests(Context ctx) {
-        var session = UserSession.from(ctx);
-        if (session.member() == null) {
+        var atStation = StationSession.optional(UserSession.from(ctx));
+        if (atStation.isEmpty()) {
             ctx.json(List.of());
             return;
         }
+        StationSession session = atStation.get();
         int memberId = session.member().id();
         boolean manager = session.hasPermission(RestrictionType.QUIZ_TEST.managerPermission());
         var tests = testService.findTestsForMember(session.stationId(), memberId, manager).stream()

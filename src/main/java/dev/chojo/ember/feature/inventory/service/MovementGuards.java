@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -106,7 +107,7 @@ public class MovementGuards {
      */
     public ItemMovementService.Actor actorOf(UserSession session, @Nullable ItemMovement movement) {
         return new ItemMovementService.Actor(
-                session.member() != null ? session.member().id() : 0,
+                session.memberOpt().map(StationMember::id).orElse(0),
                 session.hasPermission(StationPermission.INVENTORY_MOVEMENTS),
                 hasOwnerRights(session, movement));
     }

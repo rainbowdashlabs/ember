@@ -43,18 +43,18 @@ import java.util.UUID;
 public record UserSession(
         Account account,
         int sessionId,
-        Integer stationId,
-        UUID stationUid,
-        StationMember member,
+        @Nullable Integer stationId,
+        @Nullable UUID stationUid,
+        @Nullable StationMember member,
         Set<StationPermission> permissions,
         Set<InstancePermission> instancePermissions,
-        Instant twoFactorVerifiedAt,
-        StepUpProof twoFactorProof,
-        StepUpCategory twoFactorCategory,
+        @Nullable Instant twoFactorVerifiedAt,
+        @Nullable StepUpProof twoFactorProof,
+        @Nullable StepUpCategory twoFactorCategory,
         boolean vouchedFor,
-        Integer clusterId,
-        UUID clusterUid,
-        ClusterMember clusterMember,
+        @Nullable Integer clusterId,
+        @Nullable UUID clusterUid,
+        @Nullable ClusterMember clusterMember,
         Set<ClusterPermission> clusterPermissions) {
 
     /**
@@ -64,12 +64,12 @@ public record UserSession(
     public UserSession(
             Account account,
             int sessionId,
-            Integer stationId,
-            UUID stationUid,
-            StationMember member,
+            @Nullable Integer stationId,
+            @Nullable UUID stationUid,
+            @Nullable StationMember member,
             Set<StationPermission> permissions,
             Set<InstancePermission> instancePermissions,
-            Instant twoFactorVerifiedAt) {
+            @Nullable Instant twoFactorVerifiedAt) {
         this(
                 account,
                 sessionId,
@@ -88,13 +88,13 @@ public record UserSession(
     public UserSession(
             Account account,
             int sessionId,
-            Integer stationId,
-            UUID stationUid,
-            StationMember member,
+            @Nullable Integer stationId,
+            @Nullable UUID stationUid,
+            @Nullable StationMember member,
             Set<StationPermission> permissions,
             Set<InstancePermission> instancePermissions,
-            Instant twoFactorVerifiedAt,
-            StepUpProof twoFactorProof) {
+            @Nullable Instant twoFactorVerifiedAt,
+            @Nullable StepUpProof twoFactorProof) {
         this(
                 account,
                 sessionId,
@@ -121,14 +121,14 @@ public record UserSession(
     public UserSession(
             Account account,
             int sessionId,
-            Integer stationId,
-            UUID stationUid,
-            StationMember member,
+            @Nullable Integer stationId,
+            @Nullable UUID stationUid,
+            @Nullable StationMember member,
             Set<StationPermission> permissions,
             Set<InstancePermission> instancePermissions,
-            Instant twoFactorVerifiedAt,
-            StepUpProof twoFactorProof,
-            StepUpCategory twoFactorCategory,
+            @Nullable Instant twoFactorVerifiedAt,
+            @Nullable StepUpProof twoFactorProof,
+            @Nullable StepUpCategory twoFactorCategory,
             boolean vouchedFor) {
         this(
                 account,
@@ -163,16 +163,25 @@ public record UserSession(
         return session;
     }
 
+    /**
+     * The station the request named, for a route that needs a station but no membership there, such
+     * as one an instance administrator works in.
+     *
+     * @return the station id
+     * @throws RefusalResponse {@link Refusal#NO_STATION_CHOSEN} when the request names no station
+     */
+    public int requireStationId() {
+        Integer id = stationId;
+        if (id == null) throw Refusal.NO_STATION_CHOSEN.raise();
+        return id;
+    }
+
     public int accountId() {
         return account.id();
     }
 
     public Optional<StationMember> memberOpt() {
         return Optional.ofNullable(member);
-    }
-
-    public Optional<Integer> stationIdOpt() {
-        return Optional.ofNullable(stationId);
     }
 
     public boolean hasPermission(StationPermission p) {

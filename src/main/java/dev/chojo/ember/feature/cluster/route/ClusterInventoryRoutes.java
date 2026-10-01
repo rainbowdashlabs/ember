@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -406,7 +407,7 @@ public class ClusterInventoryRoutes implements Routes {
 
         // Acting for the owner: this is the cluster's own store the gear is leaving
         var actor = new ItemMovementService.Actor(
-                session.member() != null ? session.member().id() : 0, false, true);
+                session.memberOpt().map(StationMember::id).orElse(0), false, true);
         var movement = dispatchService.dispatch(
                 cluster.id(),
                 request.stationUid(),

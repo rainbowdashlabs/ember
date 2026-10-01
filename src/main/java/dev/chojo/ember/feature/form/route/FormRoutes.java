@@ -250,14 +250,16 @@ public class FormRoutes implements Routes {
             tags = {"Forms"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormListEntry[].class)))
     private void listAvailable(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
+        var atStation = StationSession.optional(UserSession.from(ctx));
+        if (atStation.isEmpty()) {
             ctx.json(Collections.emptyList());
             return;
         }
+        StationSession session = atStation.get();
         boolean manager = session.hasPermission(RestrictionType.FORM.managerPermission());
-        var wards =
-                guardianPolicy.wards(session).stream().map(StationMember::id).toList();
+        var wards = guardianPolicy.wards(session.user()).stream()
+                .map(StationMember::id)
+                .toList();
         ctx.json(directory.available(session.stationId(), session.member().id(), manager, wards));
     }
 
@@ -722,14 +724,15 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EligibleMembers.class)))
     private void getEligibleMembers(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
+        var atStation = StationSession.optional(UserSession.from(ctx));
+        if (atStation.isEmpty()) {
             ctx.json(new EligibleMembers(false, List.of()));
             return;
         }
-        requireOwnedForm(id, StationSession.of(session));
+        StationSession session = atStation.get();
+        requireOwnedForm(id, session);
         boolean selfEligible = formService.canMemberAccess(id, session.member().id());
-        var managed = guardianPolicy.wards(session);
+        var managed = guardianPolicy.wards(session.user());
         var eligibleManagedIds = managed.stream()
                 .map(StationMember::id)
                 .filter(ided -> formService.canMemberAccess(id, ided))

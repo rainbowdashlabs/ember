@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.cluster.service.ClusterStationMoveService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageBackendService;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
 import dev.chojo.ember.feature.storage.service.StorageBackendPayloads;
@@ -212,7 +213,7 @@ public class ClusterStorageBackendRoutes implements Routes {
     private Actor actor(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.account() == null) throw Refusal.NO_ACCOUNT_IN_SESSION_FOR_STORAGE_MOVE.raise();
-        Integer memberId = session.member() != null ? session.member().id() : null;
+        Integer memberId = session.memberOpt().map(StationMember::id).orElse(null);
         return Actor.human(session.account().id(), memberId);
     }
 

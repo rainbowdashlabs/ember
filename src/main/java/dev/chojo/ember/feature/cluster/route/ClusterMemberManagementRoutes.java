@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.util.SafeContentDisposition;
@@ -176,7 +177,7 @@ public class ClusterMemberManagementRoutes implements Routes {
                 file.contentType(),
                 data,
                 // The cluster member's own row on the cluster's station, which is the only one they have
-                session.member() != null ? session.member().id() : null);
+                session.memberOpt().map(StationMember::id).orElse(null));
         ctx.status(HttpStatus.CREATED)
                 .json(new MemberDocumentSummary(
                         filed.id(),
@@ -270,7 +271,7 @@ public class ClusterMemberManagementRoutes implements Routes {
                 pathInt(ctx, "memberId"),
                 entries,
                 session.accountId(),
-                session.member() != null ? session.member().id() : 0);
+                session.memberOpt().map(StationMember::id).orElse(0));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

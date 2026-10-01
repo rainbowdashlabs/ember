@@ -11,6 +11,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.service.ProblemReportService;
 import dev.chojo.ember.feature.system.service.ProblemReportService.ReportRequest;
@@ -64,9 +65,9 @@ public class ProblemReportRoutes implements Routes {
             })
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        Integer memberId = session.member() != null ? session.member().id() : null;
+        Integer memberId = session.memberOpt().map(StationMember::id).orElse(null);
         var report = reports.submit(
-                session.stationId(),
+                session.requireStationId(),
                 memberId,
                 NameParts.of(session.account()).called(),
                 ctx.bodyAsClass(ReportRequest.class));

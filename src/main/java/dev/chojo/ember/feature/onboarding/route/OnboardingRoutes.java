@@ -133,7 +133,7 @@ public class OnboardingRoutes implements Routes {
 
     private void mark(Context ctx, UserSession session, OnboardingLevel level) {
         var request = ctx.bodyAsClass(MarkRequest.class);
-        int memberId = session.member() == null ? 0 : session.member().id();
+        int memberId = session.memberOpt().map(StationMember::id).orElse(0);
         onboardingService.mark(level, ctx.pathParam("taskId"), request.state(), memberId, session.accountId());
     }
 

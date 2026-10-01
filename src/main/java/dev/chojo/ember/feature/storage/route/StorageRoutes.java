@@ -12,6 +12,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.storage.entity.StorageQuotaPreset;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceBackendRequest;
@@ -348,7 +349,7 @@ public class StorageRoutes implements Routes {
         if (session == null || session.account() == null) {
             throw Refusal.NO_ACCOUNT_BEHIND_INSTANCE_STORAGE_CHANGE.raise();
         }
-        Integer memberId = session.member() != null ? session.member().id() : null;
+        Integer memberId = session.memberOpt().map(StationMember::id).orElse(null);
         return StorageBackendAuditService.Actor.human(session.account().id(), memberId);
     }
 }

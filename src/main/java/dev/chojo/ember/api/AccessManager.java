@@ -193,7 +193,8 @@ public class AccessManager {
         Set<ClusterPermission> permissions = memberOpt
                 .map(this::resolveExpandedClusterPermissions)
                 .orElseGet(() -> EnumSet.noneOf(ClusterPermission.class));
-        boolean atOwnStation = session.stationId() != null && session.stationId() == cluster.homeStationId();
+        Integer stationId = session.stationId();
+        boolean atOwnStation = stationId != null && stationId == cluster.homeStationId();
         return new UserSession(
                 session.account(),
                 session.sessionId(),

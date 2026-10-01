@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import io.javalin.http.Context;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -49,6 +50,22 @@ public record StationSession(UserSession user, int stationId, UUID stationUid, S
         StationMember member = user.member();
         if (member == null) throw Refusal.NOT_A_MEMBER_OF_THIS_STATION.raise();
         return new StationSession(user, stationId, stationUid, member);
+    }
+
+    /**
+     * The station side of a session when it has one, for a route that answers somebody without a
+     * station or membership in a way of its own, such as an empty list.
+     *
+     * @param user the signed-in caller
+     * @return the session at its station, or empty when the request names no station or the caller
+     *         is no member of it
+     */
+    public static Optional<StationSession> optional(UserSession user) {
+        Integer stationId = user.stationId();
+        UUID stationUid = user.stationUid();
+        StationMember member = user.member();
+        if (stationId == null || stationUid == null || member == null) return Optional.empty();
+        return Optional.of(new StationSession(user, stationId, stationUid, member));
     }
 
     public int accountId() {

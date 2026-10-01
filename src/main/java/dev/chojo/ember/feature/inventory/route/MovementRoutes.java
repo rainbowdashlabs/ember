@@ -38,6 +38,7 @@ import dev.chojo.ember.feature.inventory.service.MovementExportService;
 import dev.chojo.ember.feature.inventory.service.MovementGuards;
 import dev.chojo.ember.feature.inventory.service.MovementTargeting;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -471,7 +472,7 @@ public class MovementRoutes implements Routes {
         movementService.rechain(
                 movement.id(),
                 request == null ? null : request.stepIndex(),
-                session.member() != null ? session.member().id() : null);
+                session.memberOpt().map(StationMember::id).orElse(null));
         ctx.json(toDetail(
                 movementService.findById(movement.id()).orElseThrow(Refusal.MOVEMENT_NOT_HERE_AFTER_RECHAIN::raise),
                 session));

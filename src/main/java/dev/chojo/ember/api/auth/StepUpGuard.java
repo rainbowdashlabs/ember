@@ -99,8 +99,10 @@ public class StepUpGuard {
             throw new ForbiddenResponse("A session another device vouched for cannot vouch for one");
         }
         if (demoConfig.enabled()) return;
-        if (!isLocalAndRecent(session)
-                || !twoFactorService.spendSessionProof(session.sessionId(), session.twoFactorVerifiedAt())) {
+        Instant verifiedAt = session.twoFactorVerifiedAt();
+        if (verifiedAt == null
+                || !isLocalAndRecent(session)
+                || !twoFactorService.spendSessionProof(session.sessionId(), verifiedAt)) {
             throw new StepUpRequiredException(category, localProofs(session.accountId()));
         }
     }

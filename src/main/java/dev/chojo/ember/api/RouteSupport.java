@@ -57,7 +57,8 @@ public final class RouteSupport {
      * {@link #requireOwnedOrNotFound} does not fit.
      */
     public static void requireSameStation(UserSession session, int entityStationId) {
-        if (session.stationId() == null || entityStationId != session.stationId()) {
+        Integer stationId = session.stationId();
+        if (stationId == null || entityStationId != stationId) {
             throw Refusal.NOT_YOURS_TO_OPEN.raise();
         }
     }
@@ -76,7 +77,8 @@ public final class RouteSupport {
     public static <T> T requireOwnedOrNotFound(
             Context ctx, int id, IntFunction<Optional<T>> finder, ToIntFunction<T> stationOf) {
         T entity = finder.apply(id).orElseThrow(Refusal.NOT_HERE_OR_NOT_YOURS::raise);
-        if (stationOf.applyAsInt(entity) != UserSession.from(ctx).stationId()) {
+        Integer stationId = UserSession.from(ctx).stationId();
+        if (stationId == null || stationOf.applyAsInt(entity) != stationId) {
             throw Refusal.NOT_HERE_OR_NOT_YOURS.raise();
         }
         return entity;

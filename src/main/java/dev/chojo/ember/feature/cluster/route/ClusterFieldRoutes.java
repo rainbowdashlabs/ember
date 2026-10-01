@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -275,7 +276,7 @@ public class ClusterFieldRoutes implements Routes {
         var request = ctx.bodyAsClass(FieldValuesRequest.class);
         // A cluster member is no station member, so the change is recorded against whoever the session is at
         // its station, or against the member themselves when the cluster manager has no station membership
-        int changedBy = session.member() != null ? session.member().id() : pathInt(ctx, "memberId");
+        int changedBy = session.memberOpt().map(StationMember::id).orElseGet(() -> pathInt(ctx, "memberId"));
         fieldService.setValues(
                 cluster.id(),
                 pathInt(ctx, "memberId"),

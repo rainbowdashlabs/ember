@@ -5,8 +5,10 @@
  */
 @NullMarked
 @DefaultAnnotationForMethods(NonNull.class)
+@DefaultAnnotationForParameters(NonNull.class)
 package dev.chojo.ember.api;
 
 import edu.umd.cs.findbugs.annotations.DefaultAnnotationForMethods;
+import edu.umd.cs.findbugs.annotations.DefaultAnnotationForParameters;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;

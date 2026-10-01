@@ -93,6 +93,8 @@ public class SessionInfoService {
      * @return the aggregated session information
      */
     public SessionInfo describe(UserSession session) {
+        StationMember member = session.member();
+        Integer stationId = session.stationId();
         List<StationMember> managed = List.of();
         List<MemberGroup> groups = List.of();
         List<UserTag> tags = List.of();
@@ -101,40 +103,37 @@ public class SessionInfoService {
         List<Integer> tagIds = List.of();
         MemberInfo memberInfo = null;
 
-        if (session.member() != null) {
-            managed = memberService.findManaged(session.member().id());
-            groups = groupService.findGroupsForMember(session.member().id());
-            tags = userTagRepository.findTagsForMember(session.member().id());
-            roleIds = stationMemberRepository.findPermissions(session.member().id()).stream()
+        if (member != null) {
+            managed = memberService.findManaged(member.id());
+            groups = groupService.findGroupsForMember(member.id());
+            tags = userTagRepository.findTagsForMember(member.id());
+            roleIds = stationMemberRepository.findPermissions(member.id()).stream()
                     .map(Permission::id)
                     .toList();
             groupIds = groups.stream().map(MemberGroup::id).toList();
             tagIds = tags.stream().map(UserTag::id).toList();
             memberInfo = new MemberInfo(
-                    session.member().id(),
+                    member.id(),
                     textOf(session.stationUid()),
                     session.account().id(),
-                    session.member().uid(),
-                    nameResolver.called(session.member().id()),
-                    session.member().nickname());
+                    member.uid(),
+                    nameResolver.called(member.id()),
+                    member.nickname());
         }
 
         var roleNames = session.permissions().stream().map(Enum::name).sorted().toList();
         boolean profileComplete = true;
-        if (session.member() != null && session.stationId() != null) {
-            profileComplete =
-                    profileFieldService.isProfileComplete(session.member().id());
+        if (member != null && stationId != null) {
+            profileComplete = profileFieldService.isProfileComplete(member.id());
         }
 
         var managedInfos = managed.stream().map(this::toManagedMemberInfo).toList();
 
-        var disabledModules = session.stationId() != null
-                ? stationService.findEffectiveDisabledModules(session.stationId())
-                : Set.<StationModule>of();
+        var disabledModules =
+                stationId != null ? stationService.findEffectiveDisabledModules(stationId) : Set.<StationModule>of();
 
-        Station currentStation = session.stationId() != null
-                ? stationService.findById(session.stationId()).orElse(null)
-                : null;
+        Station currentStation =
+                stationId != null ? stationService.findById(stationId).orElse(null) : null;
 
         return new SessionInfo(
                 new AccountInfo(
@@ -194,10 +193,11 @@ public class SessionInfoService {
      * when the session has no member or no resolvable station.
      */
     private ThemeInfo resolveTheme(UserSession session, @Nullable Station currentStation) {
+        StationMember member = session.member();
+        Integer stationId = session.stationId();
         var theming = config.theming();
-        if (session.member() != null && session.stationId() != null) {
-            var userSettings =
-                    userSettingsRepository.findOrCreate(session.member().id());
+        if (member != null && stationId != null) {
+            var userSettings = userSettingsRepository.findOrCreate(member.id());
             if (currentStation != null) {
                 return new ThemeInfo(
                         theming.defaultTheme(),

@@ -731,8 +731,8 @@ public class ApiServer {
             if (path.equals(API_PREFIX + "/station/transfer/abort")) return;
             if (path.equals(API_PREFIX + "/station/transfer/status")) return;
             UserSession session = ctx.attribute(ATTR_SESSION);
-            if (session == null || session.stationId() == null) return;
-            int stationId = session.stationId();
+            Integer stationId = session == null ? null : session.stationId();
+            if (stationId == null) return;
             if (stationRepository.isReadOnlyForTransfer(stationId)) {
                 throw new StationReadOnlyForTransferException(stationId);
             }
