@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.spotless)
     alias(libs.plugins.idea)
     alias(libs.plugins.spotbugs)
+    alias(libs.plugins.rewrite)
     jacoco
 }
 
@@ -28,6 +29,34 @@ version = "26.20.0"
 repositories {
     maven("https://eldonexus.de/repository/maven-proxies/")
     mavenCentral()
+}
+
+/**
+ * The OpenRewrite recipes that change this codebase, under `src/rewrite/java`, with their tests
+ * under `src/rewriteTest/java`.
+ *
+ * They are code like any other, so they are versioned and reviewed beside what they change, and a
+ * repeated change is a recipe run once per package rather than the same edit made by hand a few
+ * hundred times. `be-rewrite-dry` and `be-rewrite` run one of them.
+ */
+val rewriteRecipes: SourceSet = sourceSets.create("rewrite")
+val rewriteRecipeTests: SourceSet = sourceSets.create("rewriteTest") {
+    compileClasspath += rewriteRecipes.output
+    runtimeClasspath += rewriteRecipes.output
+}
+
+dependencies {
+    "rewriteImplementation"(platform("org.openrewrite:rewrite-bom:${libs.versions.openrewrite.get()}"))
+    "rewriteImplementation"(libs.rewrite.java)
+    "rewriteImplementation"(libs.jspecify)
+    "rewriteRuntimeOnly"(libs.rewrite.java25)
+    "rewriteTestImplementation"(platform("org.openrewrite:rewrite-bom:${libs.versions.openrewrite.get()}"))
+    "rewriteTestImplementation"(libs.rewrite.java)
+    "rewriteTestImplementation"(libs.rewrite.test)
+    "rewriteTestImplementation"(platform(libs.junit.bom))
+    "rewriteTestImplementation"(libs.bundles.junit)
+    "rewriteTestRuntimeOnly"(libs.rewrite.java25)
+    rewrite(rewriteRecipes.output)
 }
 
 dependencies {
@@ -323,10 +352,17 @@ tasks {
         }
     }
 
+    val testRewrite = register<Test>("testRewrite") {
+        group = "verification"
+        description = "Runs the tests of the OpenRewrite recipes"
+        testClassesDirs = rewriteRecipeTests.output.classesDirs
+        classpath = rewriteRecipeTests.runtimeClasspath
+    }
+
     register("testAll") {
         group = "verification"
         description = "Runs every test suite"
-        dependsOn(testSuiteNames)
+        dependsOn(testSuiteNames, testRewrite)
     }
 
     register<JavaExec>("generateFederationVersion") {
@@ -433,6 +469,71 @@ tasks.named<com.github.spotbugs.snom.SpotBugsTask>("spotbugsMain") {
 }
 
 tasks.named("spotbugsTest") { enabled = false }
+
+/**
+ * The one recipe a rewrite run applies, with its options, written where the OpenRewrite plugin reads
+ * its configuration.
+ *
+ * The plugin takes recipes by name and their options only from a configuration file, so the recipe
+ * and options named on the command line become a declarative recipe of their own: pass
+ * `-PrewriteRecipe=<class name in dev.chojo.ember.rewrite>` and, where the recipe takes options,
+ * `-PrewriteOptions=name=value;name=value`. The toolchain's `be-rewrite-dry` and `be-rewrite` do
+ * exactly that.
+ */
+val rewriteSelection = tasks.register("rewriteSelection") {
+    description = "Writes the recipe a rewrite run applies, from -PrewriteRecipe and -PrewriteOptions"
+    val recipe = providers.gradleProperty("rewriteRecipe")
+    val options = providers.gradleProperty("rewriteOptions").orElse("")
+    val output = layout.buildDirectory.file("rewrite/rewrite.yml")
+    inputs.property("recipe", recipe.orElse(""))
+    inputs.property("options", options)
+    outputs.file(output)
+    doLast {
+        val name = recipe.orNull ?: throw GradleException("Name the recipe to run with -PrewriteRecipe=<name>")
+        val pairs = options.get().split(';').filter { it.isNotBlank() }.map { pair ->
+            val separator = pair.indexOf('=')
+            if (separator < 1) throw GradleException("A recipe option is name=value, got '$pair'")
+            pair.substring(0, separator).trim() to pair.substring(separator + 1).trim()
+        }
+        val lines = mutableListOf(
+            "type: specs.openrewrite.org/v1beta/recipe",
+            "name: dev.chojo.ember.rewrite.Selected",
+            "displayName: The recipe named on the command line",
+            "recipeList:",
+        )
+        if (pairs.isEmpty()) {
+            lines += "  - dev.chojo.ember.rewrite.$name"
+        } else {
+            lines += "  - dev.chojo.ember.rewrite.$name:"
+            pairs.forEach { (key, value) -> lines += "      $key: \"${value.replace("\"", "\\\"")}\"" }
+        }
+        val file = output.get().asFile
+        file.parentFile.mkdirs()
+        file.writeText(lines.joinToString("\n", postfix = "\n"))
+    }
+}
+
+rewrite {
+    setRewriteVersion(libs.versions.openrewrite.get())
+    setConfigFile(layout.buildDirectory.file("rewrite/rewrite.yml").get().asFile)
+    activeRecipe("dev.chojo.ember.rewrite.Selected")
+    exclusion(
+        "frontend/**",
+        "docker/**",
+        "templates/**",
+        ".claude/**",
+        ".concept/**",
+        ".github/**",
+        "gradle/**",
+        "src/main/resources/**",
+        "src/test/resources/**",
+        "**/*.md",
+    )
+}
+
+tasks.matching { it.name == "rewriteRun" || it.name == "rewriteDryRun" }.configureEach {
+    dependsOn(rewriteSelection, rewriteRecipes.classesTaskName)
+}
 
 apply(from = "gradle/patch-coverage.gradle.kts")
 
