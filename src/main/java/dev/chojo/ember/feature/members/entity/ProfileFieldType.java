@@ -6,9 +6,6 @@
 package dev.chojo.ember.feature.members.entity;
 
 import dev.chojo.ember.feature.question.FieldType;
-import dev.chojo.ember.feature.question.QuestionKind;
-
-import java.util.Optional;
 
 /**
  * Supported data types for custom profile fields.
@@ -62,28 +59,7 @@ public enum ProfileFieldType {
         return this == AGE;
     }
 
-    /**
-     * The shared kind this type is, which is what the one check measures an answer against, or
-     * nothing for a type nobody answers.
-     *
-     * <p>A number reads as one that may carry a fraction, because nothing ever checked these and a
-     * station with a shoe size of 42.5 on file is not told today that it may not have one. An age has
-     * no kind: it is counted from a date and holds no value of its own.
-     *
-     * @return the kind, or nothing for the two that lay a form out and for an age
-     */
-    public Optional<QuestionKind> kind() {
-        return switch (this) {
-            case TEXT -> Optional.of(QuestionKind.TEXT);
-            case NUMBER -> Optional.of(QuestionKind.DECIMAL);
-            case DATE, BIRTH_DATE, EXPIRY_DATE -> Optional.of(QuestionKind.DATE);
-            case BOOLEAN -> Optional.of(QuestionKind.BOOLEAN);
-            case ENUM -> Optional.of(QuestionKind.CHOICE);
-            case AGE, SECTION, SPACER -> Optional.empty();
-        };
-    }
-
-    /** The shared name this type is stored under. */
+    /** The shared name this type is stored under, which is also what an answer to it is checked as. */
     public FieldType fieldType() {
         return this == ENUM ? FieldType.CHOICE : FieldType.valueOf(name());
     }

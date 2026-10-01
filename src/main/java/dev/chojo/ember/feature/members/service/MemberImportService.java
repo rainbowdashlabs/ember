@@ -18,18 +18,18 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.QuestionCheck;
+import dev.chojo.ember.feature.question.QuestionKind;
+import dev.chojo.ember.feature.question.QuestionValues;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.BooleanNode;
-import tools.jackson.databind.node.DecimalNode;
-import tools.jackson.databind.node.StringNode;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -132,6 +132,7 @@ public class MemberImportService {
                 warnings.add("Zeile " + (i + 2) + ": Kein Name, übersprungen");
                 continue;
             }
+            warnAboutRefusedCells(mapped, profileFields, i + 2, warnings);
             members.add(mapped.at(i, struckOut.contains(i)));
         }
 
@@ -218,15 +219,7 @@ public class MemberImportService {
                 groupsAssigned++;
             }
 
-            for (var entry : mapped.profileFields().entrySet()) {
-                var field = profileFields.stream()
-                        .filter(f -> String.valueOf(f.id()).equals(entry.getKey()))
-                        .findFirst();
-                if (field.isPresent() && !entry.getValue().isBlank()) {
-                    storeAnswer(member.id(), field.get(), entry.getValue());
-                    profileFieldsSet++;
-                }
-            }
+            profileFieldsSet += storeAnswers(member.id(), mapped, profileFields, i + 2, warnings);
 
             for (var contact : mapped.contacts()) {
                 if (contact.name().isBlank()) continue;
@@ -283,12 +276,13 @@ public class MemberImportService {
 
                         if (!contact.phone().isBlank()) {
                             int mgrId = manager.id();
+                            int line = i + 2;
                             // A question is written once now, so the guardians' mobile number is the
                             // station's mobile number: there is no second copy to tell it apart from.
                             profileFields.stream()
                                     .filter(f -> f.name().equals("Mobilnummer"))
                                     .findFirst()
-                                    .ifPresent(f -> storeAnswer(mgrId, f, contact.phone()));
+                                    .ifPresent(f -> storeAnswer(mgrId, f, contact.phone(), line, warnings));
                         }
                     }
                     managerCache.put(mgrKey, manager);
@@ -374,15 +368,7 @@ public class MemberImportService {
                 groupsAssigned++;
             }
 
-            for (var entry : mapped.profileFields().entrySet()) {
-                var field = profileFields.stream()
-                        .filter(f -> String.valueOf(f.id()).equals(entry.getKey()))
-                        .findFirst();
-                if (field.isPresent() && !entry.getValue().isBlank()) {
-                    storeAnswer(member.id(), field.get(), entry.getValue());
-                    profileFieldsSet++;
-                }
-            }
+            profileFieldsSet += storeAnswers(member.id(), mapped, profileFields, i + 2, warnings);
         }
 
         log.info(
@@ -577,6 +563,49 @@ public class MemberImportService {
     }
 
     /**
+     * The cells of a row that answer one of the station's questions, each with its question, leaving
+     * out empty cells and columns pointed at a question the station no longer has.
+     */
+    private static Map<ProfileField, String> answeredCells(MemberPreview mapped, List<ProfileField> fields) {
+        var cells = new LinkedHashMap<ProfileField, String>();
+        for (var entry : mapped.profileFields().entrySet()) {
+            if (entry.getValue().isBlank()) continue;
+            fields.stream()
+                    .filter(field -> String.valueOf(field.id()).equals(entry.getKey()))
+                    .findFirst()
+                    .ifPresent(field -> cells.put(field, entry.getValue()));
+        }
+        return cells;
+    }
+
+    /**
+     * Writes the answers of one row into a person's profile.
+     *
+     * @return how many answers were stored
+     */
+    private int storeAnswers(
+            int memberId, MemberPreview mapped, List<ProfileField> fields, int line, List<String> warnings) {
+        int stored = 0;
+        for (var cell : answeredCells(mapped, fields).entrySet()) {
+            if (storeAnswer(memberId, cell.getKey(), cell.getValue(), line, warnings)) stored++;
+        }
+        return stored;
+    }
+
+    /**
+     * Warns about every cell of a row its question will not take, so the preview says it before the
+     * import leaves it out.
+     */
+    private static void warnAboutRefusedCells(
+            MemberPreview mapped, List<ProfileField> fields, int line, List<String> warnings) {
+        for (var cell : answeredCells(mapped, fields).entrySet()) {
+            if (acceptedAnswer(cell.getKey(), cell.getValue()).isEmpty()) {
+                warnings.add(refusedCell(line, cell.getKey(), cell.getValue()));
+            }
+        }
+    }
+
+    /**
      * Writes one cell of the file into the answer a person gives to one of the station's questions.
      *
      * <p>The one way the import stores an answer, and it exists to be the only one. An answer is held
@@ -584,69 +613,86 @@ public class MemberImportService {
      * number with a leading zero, which JSON does not have, and the database refuses the entire
      * reading over the one cell. That went unnoticed twice because two places wrote answers.
      *
+     * <p>The cell is measured against the question as an answer typed on the profile would be, and
+     * kept in the same shape.
+     *
      * @param memberId the person the answer belongs to, who may be the member or a guardian of theirs
      * @param field    the question being answered
      * @param cell     the cell as it stands in the file
+     * @param line     the cell's line in the file, for the warning
+     * @param warnings where a cell the question does not take is reported
+     * @return whether an answer was stored
      */
-    private void storeAnswer(int memberId, ProfileField field, String cell) {
-        profileFieldRepository.setValue(memberId, field.id(), asAnswer(cell.trim(), field.fieldType()));
+    private boolean storeAnswer(int memberId, ProfileField field, String cell, int line, List<String> warnings) {
+        var answer = acceptedAnswer(field, cell);
+        if (answer.isEmpty()) {
+            warnings.add(refusedCell(line, field, cell));
+            return false;
+        }
+        JsonNode kept = QuestionValues.write(field.fieldType().fieldType(), answer.get());
+        if (kept == null) return false;
+        profileFieldRepository.setValue(memberId, field.id(), kept);
+        return true;
     }
 
     /**
-     * Turns a cell into the answer a profile holds.
+     * The answer a cell gives, where the question takes it.
      *
-     * <p>What a cell means follows the kind of question it answers. Anything the question does not
-     * ask a particular shape of becomes text, which is what a spreadsheet cell is to begin with.
+     * <p>A cell the question does not take is left out rather than kept as text under a question that
+     * cannot read it: a shirt size the station does not offer or a day that is not a day would sit
+     * on the profile looking answered, and the row's warning is the one place it gets noticed.
+     *
+     * @param field the question the cell answers
+     * @param cell  the cell as it stands in the file
+     * @return the answer as plain text, or nothing where the question refuses it
+     */
+    private static Optional<String> acceptedAnswer(ProfileField field, String cell) {
+        String answer = asAnswer(cell.trim(), field.fieldType());
+        boolean refused = field.question()
+                .flatMap(question -> QuestionCheck.answerIfGiven(question, answer))
+                .isPresent();
+        return refused ? Optional.empty() : Optional.of(answer);
+    }
+
+    /** What a row's warning says about a cell its question does not take. */
+    private static String refusedCell(int line, ProfileField field, String cell) {
+        return "Zeile " + line + ": \"" + cell.trim() + "\" passt nicht zum Feld " + field.name()
+                + ", nicht übernommen";
+    }
+
+    /**
+     * Turns a cell into the answer a question of its kind reads.
+     *
+     * <p>A spreadsheet writes a day the German way and yes and no in words; both are turned into
+     * what the question takes. Everything else already is the answer, and what still does not read
+     * as one is refused by the check rather than guessed at here.
      *
      * @param value     the cell, already trimmed
      * @param fieldType the kind of question it answers
-     * @return the answer
+     * @return the answer as plain text
      */
-    private JsonNode asAnswer(String value, ProfileFieldType fieldType) {
-        return switch (fieldType) {
-            case DATE, BIRTH_DATE, EXPIRY_DATE -> StringNode.valueOf(asIsoDate(value));
-            case NUMBER -> asNumber(value);
-            case BOOLEAN -> asBoolean(value);
-            default -> StringNode.valueOf(value);
-        };
+    private static String asAnswer(String value, ProfileFieldType fieldType) {
+        var kind = fieldType.fieldType().kind().orElse(null);
+        if (kind == QuestionKind.DATE) return asIsoDate(value);
+        if (kind == QuestionKind.BOOLEAN) return asBoolean(value);
+        return value;
     }
 
-    /**
-     * A German date as an ISO one, or the cell unchanged where it is neither.
-     *
-     * <p>Unchanged rather than refused: the answer is kept as it was written and can be corrected on
-     * the member, which is better than losing the row over a date somebody typed by hand.
-     */
-    private String asIsoDate(String value) {
+    /** A German date as an ISO one, or the cell unchanged where it is not one. */
+    private static String asIsoDate(String value) {
         try {
             return LocalDate.parse(value, DE_DATE).toString();
-        } catch (Exception notGerman) {
-            try {
-                LocalDate.parse(value);
-                return value;
-            } catch (Exception notIso) {
-                log.debug("A date cell matched neither the German nor the ISO format and was kept as written", notIso);
-                return value;
-            }
-        }
-    }
-
-    /** A number where the cell is one, and otherwise the cell as text, so nothing is thrown away. */
-    private JsonNode asNumber(String value) {
-        try {
-            return DecimalNode.valueOf(new BigDecimal(value.replace(',', '.')));
-        } catch (NumberFormatException notANumber) {
-            log.debug("A number cell did not read as a number and was kept as text", notANumber);
-            return StringNode.valueOf(value);
+        } catch (DateTimeParseException notGerman) {
+            return value;
         }
     }
 
     /** The words a spreadsheet says yes and no with, in both languages a station is likely to use. */
-    private JsonNode asBoolean(String value) {
+    private static String asBoolean(String value) {
         String said = value.toLowerCase();
-        if (Set.of("ja", "yes", "true", "wahr", "x", "1").contains(said)) return BooleanNode.TRUE;
-        if (Set.of("nein", "no", "false", "falsch", "0", "").contains(said)) return BooleanNode.FALSE;
-        return StringNode.valueOf(value);
+        if (Set.of("ja", "yes", "true", "wahr", "x", "1").contains(said)) return "true";
+        if (Set.of("nein", "no", "false", "falsch", "0").contains(said)) return "false";
+        return value;
     }
 
     /**

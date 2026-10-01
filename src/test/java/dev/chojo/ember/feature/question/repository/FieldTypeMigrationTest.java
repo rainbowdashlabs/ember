@@ -64,6 +64,7 @@ class FieldTypeMigrationTest extends RepositoryTestBase {
     private static int eventMember;
     private static int registrationMember;
     private static int defaultedEventField;
+    private static int associationBirthDate;
 
     @BeforeAll
     static void migrate() throws IOException, SQLException {
@@ -118,7 +119,21 @@ class FieldTypeMigrationTest extends RepositoryTestBase {
         assertEquals(Set.of("TEXT", "MEMBER_OF_TAG"), set("SELECT field_type FROM event_template_field"));
         assertEquals(Set.of("CHOICE"), set("SELECT field_type FROM event_template_registration_field"));
         assertEquals(Set.of("TEXT", "CHOICE", "BOOLEAN"), set("SELECT field_type FROM waiting_list_field"));
-        assertEquals(Set.of("CHOICE", "BOOLEAN", "SECTION"), set("SELECT field_type FROM cluster_profile_field"));
+        assertEquals(
+                Set.of("CHOICE", "BOOLEAN", "SECTION", "DATE"), set("SELECT field_type FROM cluster_profile_field"));
+    }
+
+    /**
+     * An association never declares a date of birth, each station does; one that slipped in anyway
+     * becomes a plain date, keeping its answers, and none can be written from now on.
+     */
+    @Test
+    void anAssociationDateOfBirthBecomesADate() throws SQLException {
+        assertEquals("DATE", single("SELECT field_type FROM cluster_profile_field WHERE id = " + associationBirthDate));
+        assertThrows(
+                SQLException.class,
+                () -> execute("UPDATE cluster_profile_field SET field_type = 'BIRTH_DATE' WHERE id = "
+                        + associationBirthDate));
     }
 
     /** A field that relied on the old lower case default reads as a line of text like every other. */
@@ -260,6 +275,7 @@ class FieldTypeMigrationTest extends RepositoryTestBase {
         field("cluster_profile_field", "cluster_id", cluster, "ENUM");
         int bool = field("cluster_profile_field", "cluster_id", cluster, "BOOLEAN");
         int section = field("cluster_profile_field", "cluster_id", cluster, "SECTION");
+        associationBirthDate = field("cluster_profile_field", "cluster_id", cluster, "BIRTH_DATE");
         execute("""
                 INSERT INTO cluster_profile_field_value (member_id, field_id, value) VALUES
                     (%1$d, %2$d, '"1"'),

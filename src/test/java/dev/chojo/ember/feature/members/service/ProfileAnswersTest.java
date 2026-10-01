@@ -23,9 +23,12 @@ import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.DecimalNode;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -94,13 +97,21 @@ class ProfileAnswersTest extends RepositoryTestBase {
 
     /** Answers one question for a new member and reads back what the profile keeps. */
     private static String stored(ProfileField field, String answer) {
+        return kept(field, answer).orElseThrow();
+    }
+
+    /** Answers one question for a new member and reads back what the profile keeps, if anything. */
+    private static Optional<String> kept(ProfileField field, String answer) {
         int member = freshMember();
         service.setValues(member, List.of(new FieldValueEntry(field.id(), answer)), member);
+        return keptFor(member, field);
+    }
+
+    private static Optional<String> keptFor(int member, ProfileField field) {
         return service.findValues(member).stream()
                 .filter(value -> value.fieldId() == field.id())
                 .findFirst()
-                .orElseThrow()
-                .value();
+                .map(ProfileFieldService.MergedValue::value);
     }
 
     private static void refused(ProfileField field, String answer) {
@@ -135,13 +146,28 @@ class ProfileAnswersTest extends RepositoryTestBase {
         assertEquals("\"42\"", stored(field, "\"42\""));
     }
 
+    /** A number is a whole one, as the box every screen draws for it, and is kept as a number. */
     @Test
-    void aNumberTakesAFractionAndKeepsWhatWasSent() {
+    void aNumberIsWholeAndKeptAsANumber() {
         var field = ask(ProfileFieldType.NUMBER, "{}");
 
-        assertEquals("42.5", stored(field, "42.5"));
-        assertEquals("\"42,5\"", stored(field, "\"42,5\""));
+        assertEquals("42", stored(field, "42"));
+        assertEquals("42", stored(field, "\"42\""));
+        refused(field, "42.5");
+        refused(field, "\"42,5\"");
         refused(field, "\"zweiundvierzig\"");
+    }
+
+    /** An answer stored before anything checked it is not measured again when the save leaves it alone. */
+    @Test
+    void anUntouchedOldAnswerIsNotMeasuredAgain() {
+        var field = ask(ProfileFieldType.NUMBER, "{}");
+        int member = freshMember();
+        profileFieldRepo.setValue(member, field.id(), DecimalNode.valueOf(new BigDecimal("42.5")));
+
+        service.setValues(member, List.of(new FieldValueEntry(field.id(), "\"42.5\"")), member);
+
+        assertEquals(Optional.of("42.5"), keptFor(member, field));
     }
 
     @Test
@@ -153,13 +179,13 @@ class ProfileAnswersTest extends RepositoryTestBase {
     }
 
     @Test
-    void aYesOrNoTakesFourSpellingsInEitherShape() {
+    void aYesOrNoTakesFourSpellingsInEitherShapeAndKeepsABoolean() {
         var field = ask(ProfileFieldType.BOOLEAN, "{}");
 
         assertEquals("true", stored(field, "true"));
-        assertEquals("\"true\"", stored(field, "\"true\""));
-        assertEquals("\"1\"", stored(field, "\"1\""));
-        assertEquals("\"0\"", stored(field, "\"0\""));
+        assertEquals("true", stored(field, "\"true\""));
+        assertEquals("true", stored(field, "\"1\""));
+        assertEquals("false", stored(field, "\"0\""));
         refused(field, "\"ja\"");
     }
 
@@ -171,11 +197,24 @@ class ProfileAnswersTest extends RepositoryTestBase {
         refused(field, "\"XL\"");
     }
 
+    /** Nothing said is nothing kept: the answer is left out rather than stored empty. */
     @Test
     void aRequiredQuestionMayStayEmpty() {
         var field = ask(ProfileFieldType.TEXT, "{}", true);
 
-        assertEquals("\"\"", stored(field, "\"\""));
+        assertEquals(Optional.empty(), kept(field, "\"\""));
+    }
+
+    /** Emptying an answer takes it off the profile. */
+    @Test
+    void anEmptiedAnswerIsRemoved() {
+        var field = ask(ProfileFieldType.TEXT, "{}");
+        int member = freshMember();
+        service.setValues(member, List.of(new FieldValueEntry(field.id(), "\"Florian\"")), member);
+
+        service.setValues(member, List.of(new FieldValueEntry(field.id(), "\"\"")), member);
+
+        assertEquals(Optional.empty(), keptFor(member, field));
     }
 
     /** An age counts itself from a date, so a value written under it is refused and nothing is kept. */
@@ -190,29 +229,30 @@ class ProfileAnswersTest extends RepositoryTestBase {
 
         assertEquals(Refusal.PROFILE_AGE_TAKES_NO_ANSWER, refusal.refusal());
         assertTrue(service.findValues(member).isEmpty());
-        assertEquals("\"\"", stored(field, "\"\""));
+        assertEquals(Optional.empty(), kept(field, "\"\""));
     }
 
     @Test
-    void aHeadingKeepsWhateverIsWrittenUnderIt() {
+    void aHeadingKeepsNothingWrittenUnderIt() {
         var field = ask(ProfileFieldType.SECTION, "{}");
 
-        assertEquals("\"Notiz\"", stored(field, "\"Notiz\""));
+        assertEquals(Optional.empty(), kept(field, "\"Notiz\""));
     }
 
+    /** Every spelling of yes is kept as one, so the member table prints each of them as yes. */
     @Test
-    void theMemberTablePrintsYesAsJaAndEveryOtherSpellingAsNein() {
+    void theMemberTablePrintsEverySpellingOfYesAsJa() {
         var field = ask(ProfileFieldType.BOOLEAN, "{}");
 
         assertEquals("Ja", printed(field, "true"));
         assertEquals("Ja", printed(field, "\"true\""));
-        assertEquals("Nein", printed(field, "\"1\""));
+        assertEquals("Ja", printed(field, "\"1\""));
         assertEquals("Nein", printed(field, "false"));
     }
 
     @Test
     void theMemberTablePrintsNumbersChoicesAndDatesAsTheyRead() {
-        assertEquals("42.5", printed(ask(ProfileFieldType.NUMBER, "{}"), "42.5"));
+        assertEquals("42", printed(ask(ProfileFieldType.NUMBER, "{}"), "42"));
         assertEquals("M", printed(ask(ProfileFieldType.ENUM, "{\"options\":[\"S\",\"M\"]}"), "\"M\""));
         assertEquals("01.09.2011", printed(ask(ProfileFieldType.DATE, "{}"), "\"2011-09-01\""));
         assertEquals("Florian", printed(ask(ProfileFieldType.TEXT, "{}"), "\"Florian\""));

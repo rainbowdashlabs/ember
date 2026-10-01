@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.members.entity;
 
+import dev.chojo.ember.feature.question.FieldType;
+
 /**
  * What a column of a drawn table holds, so a screen can sort and filter it by what it is.
  *
@@ -26,14 +28,13 @@ public enum MemberTableCellType {
     ENUM;
 
     /**
-     * The kind of cell one of the station's own questions draws.
+     * The kind of cell a question of this type draws, whichever feature asks it.
      *
      * <p>An age is a number, however it is worked out. A choice is text, because the table writes it
      * as it was answered and has no labels for it. An expiry date is a date: a drawn table is a
      * printout, and how close the day is changes after it has been printed.
      */
-    public static MemberTableCellType of(ProfileFieldType type) {
-        if (type == null) return TEXT;
+    public static MemberTableCellType of(FieldType type) {
         return switch (type) {
             case NUMBER, AGE -> NUMBER;
             case DATE, EXPIRY_DATE -> DATE;

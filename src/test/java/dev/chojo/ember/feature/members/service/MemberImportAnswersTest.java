@@ -24,14 +24,14 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
- * What the member import writes into a profile today, one cell under one kind of question.
+ * What the member import writes into a profile, one cell under one kind of question.
  *
- * <p>Nothing measures an imported cell against its question: what does not read as the kind it
- * answers is kept as the text it was. Written down before the field types are brought together, so
- * the change that starts checking them shows what it turned away.
+ * <p>A cell is measured against its question as an answer typed on the profile is. One the question
+ * does not take is left out and named in a warning on its row, in the preview and in the import.
  */
 class MemberImportAnswersTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();
@@ -70,11 +70,17 @@ class MemberImportAnswersTest extends RepositoryTestBase {
     }
 
     /**
-     * Imports one person with one cell under a new question of the given kind.
+     * What one import of one cell left behind.
      *
-     * @return what the profile holds for that question afterwards, empty where nothing was written
+     * @param stored   what the profile holds for the question afterwards, empty where nothing was
+     *                 written
+     * @param warnings what the import said about the row
+     * @param previewWarnings what the preview of the same file said about it
      */
-    private static Optional<String> imported(ProfileFieldType type, String config, String cell) {
+    private record Imported(Optional<String> stored, List<String> warnings, List<String> previewWarnings) {}
+
+    /** Imports one person with one cell under a new question of the given kind. */
+    private static Imported imported(ProfileFieldType type, String config, String cell) {
         removeEverybody();
         var field = profileFieldRepo.create(
                 station.id(),
@@ -85,45 +91,79 @@ class MemberImportAnswersTest extends RepositoryTestBase {
                 false,
                 null);
         profileFieldRepo.assignToRole(field.id(), ProfileFieldScope.MEMBER, 99, null, null, null);
-        service.importMembers(
-                station.id(),
-                "Vorname;Name;Wert\nMax;Muster;" + cell + "\n",
-                ";",
-                List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Wert", "field:" + field.id())),
-                List.of(),
-                SetupMail.SEND_NOW);
+        String csv = "Vorname;Name;Wert\nMax;Muster;" + cell + "\n";
+        var mappings =
+                List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Wert", "field:" + field.id()));
+        var preview = service.preview(station.id(), csv, ";", mappings, List.of());
+        var result = service.importMembers(station.id(), csv, ";", mappings, List.of(), SetupMail.SEND_NOW);
         int member = stationMemberRepo.findByStation(station.id()).getFirst().id();
-        return profileFieldRepo.findValues(member).stream()
+        var stored = profileFieldRepo.findValues(member).stream()
                 .filter(value -> value.fieldId() == field.id())
                 .map(value -> value.value())
                 .findFirst();
+        return new Imported(stored, result.warnings(), preview.warnings());
+    }
+
+    private static void leftOutAndNamed(Imported imported, String cell) {
+        assertEquals(Optional.empty(), imported.stored());
+        assertTrue(
+                imported.warnings().stream().anyMatch(warning -> warning.contains(cell)),
+                imported.warnings()::toString);
+        assertTrue(
+                imported.previewWarnings().stream().anyMatch(warning -> warning.contains(cell)),
+                imported.previewWarnings()::toString);
     }
 
     /** An age counts itself from a date, so a column mapped onto one is left out. */
     @Test
     void anAgeColumnIsSkipped() {
-        assertEquals(Optional.empty(), imported(ProfileFieldType.AGE, "{}", "15"));
+        assertEquals(
+                Optional.empty(), imported(ProfileFieldType.AGE, "{}", "15").stored());
     }
 
     @Test
-    void aNumberThatIsNoNumberIsKeptAsText() {
-        assertEquals(Optional.of("\"viele\""), imported(ProfileFieldType.NUMBER, "{}", "viele"));
+    void aWholeNumberIsKeptAsANumber() {
+        var imported = imported(ProfileFieldType.NUMBER, "{}", "42");
+
+        assertEquals(Optional.of("42"), imported.stored());
+        assertEquals(List.of(), imported.warnings());
     }
 
     @Test
-    void aDayThatIsNoDayIsKeptAsText() {
-        assertEquals(Optional.of("\"irgendwann\""), imported(ProfileFieldType.DATE, "{}", "irgendwann"));
+    void aNumberThatIsNoWholeNumberIsLeftOut() {
+        leftOutAndNamed(imported(ProfileFieldType.NUMBER, "{}", "viele"), "viele");
+        leftOutAndNamed(imported(ProfileFieldType.NUMBER, "{}", "2,5"), "2,5");
     }
 
     @Test
-    void aChoiceTheQuestionDoesNotOfferIsKept() {
-        assertEquals(Optional.of("\"XL\""), imported(ProfileFieldType.ENUM, "{\"options\":[\"S\",\"M\"]}", "XL"));
+    void aGermanDayIsKeptAsAnIsoDay() {
+        assertEquals(
+                Optional.of("\"2011-09-01\""),
+                imported(ProfileFieldType.DATE, "{}", "01.09.2011").stored());
     }
 
     @Test
-    void aYesOrNoReadsSixWordsEachWayAndKeepsAnyOtherAsText() {
-        assertEquals(Optional.of("true"), imported(ProfileFieldType.BOOLEAN, "{}", "x"));
-        assertEquals(Optional.of("false"), imported(ProfileFieldType.BOOLEAN, "{}", "Nein"));
-        assertEquals(Optional.of("\"vielleicht\""), imported(ProfileFieldType.BOOLEAN, "{}", "vielleicht"));
+    void aDayThatIsNoDayIsLeftOut() {
+        leftOutAndNamed(imported(ProfileFieldType.DATE, "{}", "irgendwann"), "irgendwann");
+    }
+
+    @Test
+    void aChoiceTheQuestionDoesNotOfferIsLeftOut() {
+        assertEquals(
+                Optional.of("\"M\""),
+                imported(ProfileFieldType.ENUM, "{\"options\":[\"S\",\"M\"]}", "M")
+                        .stored());
+        leftOutAndNamed(imported(ProfileFieldType.ENUM, "{\"options\":[\"S\",\"M\"]}", "XL"), "XL");
+    }
+
+    @Test
+    void aYesOrNoReadsItsWordsInBothLanguagesAndLeavesAnyOtherOut() {
+        assertEquals(
+                Optional.of("true"),
+                imported(ProfileFieldType.BOOLEAN, "{}", "x").stored());
+        assertEquals(
+                Optional.of("false"),
+                imported(ProfileFieldType.BOOLEAN, "{}", "Nein").stored());
+        leftOutAndNamed(imported(ProfileFieldType.BOOLEAN, "{}", "vielleicht"), "vielleicht");
     }
 }

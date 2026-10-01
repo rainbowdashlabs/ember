@@ -133,6 +133,8 @@
 - **"Open in browser" in a feed entry could lead nowhere.** In some cases a notification in the RSS or Atom feed carried an "Open in browser" button without a destination. It now opens the same page as the entry itself.
 - **Registration questions of an appointment template did not arrive.** An appointment created from an appointment template did not take the registration questions the template carries, and in some cases took those of another template instead. It now takes the questions of the template it was made from, and they show in the editor before saving.
 - **A repeated Sweego report could send a mail twice.** In some cases, when Sweego sent the same bounce report again, the mail concerned went out twice or moved on to the next provider too early. A report that arrives again is now recognised and counted once.
+- **Association profile answers were not checked.** An answer to an association's profile question was saved whatever it said, such as a choice the question does not offer or a date that is no date. It is now checked like an answer to the station's own questions.
+- **The member import kept answers a question does not take.** Importing members stored a cell such as an unknown choice, a day that is no day or "maybe" under a yes or no question as written. Such a cell is now left out, and the preview and the result name its row.
 
 ## v26.19.5
 

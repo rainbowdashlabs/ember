@@ -47,9 +47,12 @@ public record ProfileField(
     /**
      * This field as everything that checks a question reads it, or nothing where it is a heading or
      * an age and asks nobody anything.
+     *
+     * <p>A number is a whole one: the profile offers no step, and the box every screen draws for it
+     * takes whole numbers only.
      */
     public Optional<Question> question() {
-        return fieldType.kind().map(kind -> config.settings(required).asQuestion(name, kind));
+        return config.settings(required).asQuestion(name, fieldType.fieldType());
     }
 
     /**

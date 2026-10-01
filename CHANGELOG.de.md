@@ -133,6 +133,8 @@
 - **„Im Browser öffnen" in einem Feed-Eintrag konnte ins Leere führen.** In manchen Fällen trug eine Benachrichtigung im RSS- oder Atom-Feed einen Knopf „Im Browser öffnen" ohne Ziel. Er öffnet jetzt dieselbe Seite wie der Eintrag selbst.
 - **Fragen zur Anmeldung aus einer Terminvorlage kamen nicht an.** Ein Termin, der aus einer Terminvorlage erstellt wurde, übernahm die Fragen zur Anmeldung aus der Vorlage nicht und in manchen Fällen stattdessen die einer anderen Vorlage. Er übernimmt jetzt die Fragen der Vorlage, aus der er erstellt wurde, und sie stehen schon vor dem Speichern im Editor.
 - **Eine wiederholte Meldung von Sweego konnte eine Mail doppelt senden.** In manchen Fällen, wenn Sweego dieselbe Meldung über eine nicht zugestellte Mail erneut schickte, ging die Mail zweimal hinaus oder wechselte zu früh zum nächsten Anbieter. Eine erneut eintreffende Meldung wird jetzt erkannt und nur einmal gezählt.
+- **Antworten auf Profilfragen des Verbands wurden nicht geprüft.** Eine Antwort auf eine Profilfrage des Verbands wurde gespeichert, was immer sie enthielt, etwa eine Auswahl, die die Frage nicht anbietet, oder ein Datum, das keines ist. Sie wird jetzt geprüft wie eine Antwort auf die eigenen Fragen der Wache.
+- **Der Mitgliederimport übernahm Antworten, die eine Frage nicht annimmt.** Beim Import von Mitgliedern wurde eine Zelle wie eine unbekannte Auswahl, ein Tag, der keiner ist, oder "vielleicht" unter einer Ja/Nein-Frage so gespeichert, wie sie dastand. Eine solche Zelle wird jetzt ausgelassen, und Vorschau und Ergebnis nennen ihre Zeile.
 
 ## v26.19.5
 

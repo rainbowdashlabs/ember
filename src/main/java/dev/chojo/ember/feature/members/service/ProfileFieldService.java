@@ -37,14 +37,13 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.QuestionCheck;
-import dev.chojo.ember.feature.question.QuestionValues;
-import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -52,7 +51,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -532,19 +530,25 @@ public class ProfileFieldService {
 
         List<String> changedFieldNames = new ArrayList<>();
         for (var entry : entries) {
-            String newValue = entry.value() != null ? entry.value() : "null";
+            String said = ProfileAnswers.said(entry.value());
             if (entry.origin() == FieldOrigin.CLUSTER) {
-                writeClusterAnswer(memberId, entry, oldCluster, newValue, changedBy, changedFieldNames, asOwner);
+                writeClusterAnswer(memberId, entry.fieldId(), said, oldCluster, changedBy, changedFieldNames, asOwner);
                 continue;
             }
 
             String oldValue = oldStation.getOrDefault(entry.fieldId(), "null");
-            if (Objects.equals(oldValue, newValue)) continue;
+            if (ProfileAnswers.unchanged(oldValue, said)) continue;
+            var field = profileFieldRepository.findById(entry.fieldId()).orElse(null);
+            if (field == null) continue;
 
-            requireAnswerable(entry.fieldId(), entry.value());
-            profileFieldRepository.setValue(memberId, entry.fieldId(), Json.document(entry.value()));
-            recordChange(entry.fieldId(), memberId, oldValue, newValue, changedBy);
-            profileFieldRepository.findById(entry.fieldId()).ifPresent(f -> changedFieldNames.add(f.name()));
+            JsonNode kept = ProfileAnswers.kept(field.fieldType(), field.question(), said);
+            if (kept == null) {
+                profileFieldRepository.deleteValue(memberId, field.id());
+            } else {
+                profileFieldRepository.setValue(memberId, field.id(), kept);
+            }
+            recordChange(field.id(), memberId, oldValue, ProfileAnswers.recorded(kept), changedBy);
+            changedFieldNames.add(field.name());
         }
 
         if (!changedFieldNames.isEmpty()) {
@@ -586,33 +590,7 @@ public class ProfileFieldService {
     }
 
     /**
-     * Refuses an answer the field does not take.
-     *
-     * <p>Only what a save actually changes is measured. An answer stored before anything checked
-     * these is left where it is: a member correcting their address must not be turned away over a
-     * date somebody typed wrongly into another field years ago, and rewriting it for them would be
-     * inventing an answer nobody gave.
-     *
-     * <p>An age takes no answer at all. It is counted from a date, so a value written under it is one
-     * nobody ever sees.
-     *
-     * @throws BadRequestResponse naming the field and what is wrong with the answer
-     */
-    private void requireAnswerable(int fieldId, String value) {
-        var field = profileFieldRepository.findById(fieldId).orElse(null);
-        if (field == null) return;
-        if (field.fieldType().isCalculated() && !QuestionValues.said(value).isEmpty()) {
-            throw Refusal.PROFILE_AGE_TAKES_NO_ANSWER.raise();
-        }
-        field.question()
-                .flatMap(question -> QuestionCheck.answerIfGiven(question, value))
-                .ifPresent(problem -> {
-                    throw new BadRequestResponse(problem.message());
-                });
-    }
-
-    /**
-     * Saves one answer to a question the cluster asked.
+     * Saves one answer to a question the cluster asked, measured like an answer to the station's own.
      *
      * <p>A field the cluster keeps to itself is not written when the station is the one writing: the
      * station's screen shows it without a control, so an entry naming one is a stale form rather than
@@ -625,27 +603,32 @@ public class ProfileFieldService {
      */
     private void writeClusterAnswer(
             int memberId,
-            FieldValueEntry entry,
+            int fieldId,
+            String said,
             Map<Integer, String> oldValues,
-            String newValue,
             int changedBy,
             List<String> changedFieldNames,
             boolean asOwner) {
         var field = clusterFieldRepository
-                .findById(entry.fieldId())
+                .findById(fieldId)
                 .filter(candidate -> asOwner || !candidate.stationReadonly())
                 .orElse(null);
         if (field == null) return;
 
         String oldValue = oldValues.getOrDefault(field.id(), "null");
-        if (Objects.equals(oldValue, newValue)) return;
+        if (ProfileAnswers.unchanged(oldValue, said)) return;
 
-        clusterFieldRepository.setValue(memberId, field.id(), Json.document(entry.value()));
+        JsonNode kept = ProfileAnswers.kept(field.fieldType(), field.question(), said);
+        if (kept == null) {
+            clusterFieldRepository.deleteValue(memberId, field.id());
+        } else {
+            clusterFieldRepository.setValue(memberId, field.id(), kept);
+        }
         changeRepository.createForClusterField(
                 field.id(),
                 memberId,
                 oldValue,
-                newValue,
+                ProfileAnswers.recorded(kept),
                 changedBy,
                 field.config().notifyOnChange() && !acknowledgesTheirOwn(changedBy));
         changedFieldNames.add(field.name());

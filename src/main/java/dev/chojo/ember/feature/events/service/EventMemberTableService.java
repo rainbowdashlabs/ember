@@ -74,16 +74,11 @@ public class EventMemberTableService {
     /**
      * What an answer to a question of this kind holds in the table.
      *
-     * <p>A choice and a named member stay text: the table writes the answer as it was given.
+     * <p>The same as for a profile question of the same type: a choice and a named member stay text,
+     * because the table writes the answer as it was given.
      */
     static MemberTableCellType cellTypeOf(EventFieldType type) {
-        if (type == null) return MemberTableCellType.TEXT;
-        return switch (type) {
-            case NUMBER -> MemberTableCellType.NUMBER;
-            case DATE -> MemberTableCellType.DATE;
-            case BOOLEAN -> MemberTableCellType.BOOLEAN;
-            default -> MemberTableCellType.TEXT;
-        };
+        return type == null ? MemberTableCellType.TEXT : MemberTableCellType.of(type.fieldType());
     }
 
     /**

@@ -82,7 +82,7 @@ public class MemberTableService {
                     MemberTableColumnKind.PROFILE_FIELD,
                     null,
                     field.id(),
-                    MemberTableCellType.of(field.fieldType())));
+                    MemberTableCellType.of(field.fieldType().fieldType())));
         }
         return offered;
     }
@@ -157,7 +157,12 @@ public class MemberTableService {
             }
             case PROFILE_FIELD -> {
                 var field = readable.get(column.fieldId());
-                yield field == null ? null : headerOf(column, field.name(), MemberTableCellType.of(field.fieldType()));
+                yield field == null
+                        ? null
+                        : headerOf(
+                                column,
+                                field.name(),
+                                MemberTableCellType.of(field.fieldType().fieldType()));
             }
             case REGISTRATION_FIELD -> {
                 var question = questions.get(column.fieldId());

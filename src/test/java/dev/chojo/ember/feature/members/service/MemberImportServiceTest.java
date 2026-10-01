@@ -441,15 +441,16 @@ class MemberImportServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Whatever a question is for, the cell answering it reaches the database.
+     * Whatever a question is for, a cell answering it either reaches the database or is named in a
+     * warning, and never fails the import.
      *
      * <p>An answer is held as JSON and a cell is not JSON, so every kind of question has to be
      * converted before it is stored. This walks all of them with a cell that is awkward for each: a
-     * leading zero is not a JSON number, and it is neither a date nor a yes. An age is left out: it
-     * counts itself from a date and takes no cell at all.
+     * leading zero is not a JSON number, and it is neither a date nor a yes, so those two leave it
+     * out. An age is left out of the walk: it counts itself from a date and takes no cell at all.
      */
     @Test
-    void everyKindOfQuestionTakesAnAwkwardCell() {
+    void everyKindOfQuestionKeepsOrNamesAnAwkwardCell() {
         var types = Arrays.stream(ProfileFieldType.values())
                 .filter(type -> type.holdsValue() && !type.isCalculated())
                 .toList();
@@ -470,7 +471,12 @@ class MemberImportServiceTest extends RepositoryTestBase {
         assertEquals(1, result.membersCreated());
         int member = onlyMember();
         for (var entry : fieldsByType.entrySet()) {
-            assertNotNull(storedValue(member, entry.getValue()), "a " + entry.getKey() + " question kept its answer");
+            boolean kept =
+                    profileFieldRepo.findValues(member).stream().anyMatch(value -> value.fieldId() == entry.getValue());
+            boolean named = result.warnings().stream()
+                    .anyMatch(
+                            warning -> warning.contains("Feld " + entry.getKey().name() + " "));
+            assertNotEquals(kept, named, "a " + entry.getKey() + " question either kept its answer or named it");
         }
     }
 

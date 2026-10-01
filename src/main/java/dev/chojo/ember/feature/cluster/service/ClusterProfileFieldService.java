@@ -21,9 +21,11 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.ProfileAnswers;
+import dev.chojo.ember.feature.question.FieldTypes;
+import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
@@ -31,13 +33,13 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -234,6 +236,9 @@ public class ClusterProfileFieldService {
      * <p>Only questions that reach the member's station may be answered. Without that a manager could fill
      * in an answer to a question the station is never shown.
      *
+     * <p>Each answer that changes is measured against its question and kept in one shape per kind, as
+     * {@link ProfileAnswers} does for a station's own questions.
+     *
      * @param clusterId the cluster asking
      * @param memberId  the member answering
      * @param values    field id to answer
@@ -256,15 +261,20 @@ public class ClusterProfileFieldService {
                 throw new BadRequestResponse("That question is not asked of this member's station");
             }
             String oldValue = before.getOrDefault(field.id(), "null");
-            String newValue = entry.getValue() != null ? entry.getValue() : "null";
-            if (Objects.equals(oldValue, newValue)) continue;
+            String said = ProfileAnswers.said(entry.getValue());
+            if (ProfileAnswers.unchanged(oldValue, said)) continue;
 
-            fieldRepository.setValue(memberId, field.id(), Json.document(entry.getValue()));
+            JsonNode kept = ProfileAnswers.kept(field.fieldType(), field.question(), said);
+            if (kept == null) {
+                fieldRepository.deleteValue(memberId, field.id());
+            } else {
+                fieldRepository.setValue(memberId, field.id(), kept);
+            }
             changeRepository.createForClusterField(
                     field.id(),
                     memberId,
                     oldValue,
-                    newValue,
+                    ProfileAnswers.recorded(kept),
                     changedBy,
                     field.config().notifyOnChange());
             changed.add(field.name());
@@ -289,9 +299,6 @@ public class ClusterProfileFieldService {
         return cleared;
     }
 
-    /**
-     * Refuses the two kinds of field a cluster cannot meaningfully ask for.
-     */
     /**
      * A question may only be pointed at a group of the association's own.
      */
@@ -352,15 +359,29 @@ public class ClusterProfileFieldService {
         log.info("Cluster questions reordered: cluster={}, role={}, fields={}", clusterId, role, moved);
     }
 
+    /**
+     * Refuses a question an association cannot ask, or one set up to start from an answer it would
+     * then refuse.
+     *
+     * <p>Which types an association asks is {@link FieldTypes#ASSOCIATION}. The one a station offers
+     * and an association does not is the date of birth, which is why the refusal names it.
+     */
     private static void requireUsable(String name, ProfileFieldType fieldType, ProfileFieldConfig config) {
         if (name == null || name.isBlank()) throw new BadRequestResponse("A field needs a name");
-        if (fieldType == ProfileFieldType.BIRTH_DATE) {
+        if (!FieldTypes.ASSOCIATION.contains(fieldType.fieldType())) {
             throw new BadRequestResponse(
                     "A station declares its own date of birth field, and a second one would collide with it");
         }
         if (config != null && ExpirySettings.outOfRange(config)) {
             throw Refusal.CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE.raise();
         }
+        ProfileFieldConfig settings = config == null ? ProfileFieldConfig.empty() : config;
+        settings.settings(false)
+                .asQuestion(name, fieldType.fieldType())
+                .flatMap(QuestionCheck::defaultValue)
+                .ifPresent(problem -> {
+                    throw new BadRequestResponse(problem.message());
+                });
     }
 
     private Cluster requireCluster(int clusterId) {

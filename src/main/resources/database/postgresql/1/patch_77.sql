@@ -851,9 +851,13 @@ ALTER TABLE ember_schema.profile_field
     ADD CONSTRAINT profile_field_type_known CHECK (field_type IN (
         'TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'CHOICE', 'AGE', 'BIRTH_DATE', 'EXPIRY_DATE', 'SECTION', 'SPACER'));
 
+UPDATE ember_schema.cluster_profile_field
+SET field_type = 'DATE'
+WHERE field_type = 'BIRTH_DATE';
+
 ALTER TABLE ember_schema.cluster_profile_field
     ADD CONSTRAINT cluster_profile_field_type_known CHECK (field_type IN (
-        'TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'CHOICE', 'AGE', 'BIRTH_DATE', 'EXPIRY_DATE', 'SECTION', 'SPACER'));
+        'TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'CHOICE', 'AGE', 'EXPIRY_DATE', 'SECTION', 'SPACER'));
 
 ALTER TABLE ember_schema.inventory_field_definition
     ADD CONSTRAINT inventory_field_definition_type_known CHECK (field_type IN (
