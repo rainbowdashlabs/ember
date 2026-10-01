@@ -53,6 +53,7 @@
 - **Der Code, mit dem eine Authenticator-App eingerichtet wurde, ließ sich noch einmal verwenden.** Der Code, der eine neue Authenticator-App bestätigte, wurde innerhalb seiner kurzen Gültigkeit noch von der nächsten Anmeldung oder Bestätigung angenommen. Jetzt gilt er als verbraucht, sobald die App eingerichtet ist.
 - **Fragen aus der Terminvorlage einer anderen Wache ließen sich übernehmen.** Wer Termine anlegen durfte, konnte die Fragen zur Anmeldung aus der Terminvorlage einer anderen Wache in einen neuen Termin übernehmen, indem er ihre Nummer angab. Jetzt werden nur die eigenen Vorlagen der Wache verwendet, und mit einer fremden wird kein Termin angelegt.
 - **Schritte anderer Abläufe ließen sich ändern.** Wer an einem Ablauf arbeiten durfte, konnte einen Schritt jedes anderen Ablaufs, auch eines anderer Wachen, abhaken, bearbeiten, löschen oder mit einer Notiz versehen, indem er ihn unter dem eigenen Ablauf angab, und dasselbe galt für die Schritte von Ablaufvorlagen. Ein Schritt ist jetzt nur noch über den Ablauf oder die Vorlage erreichbar, zu der er gehört.
+- **Jedes Mitglied konnte Notizen an Schritte von Abläufen schreiben.** Ein Mitglied der Wache konnte die Notiz an einem Schritt jedes Ablaufs schreiben oder ersetzen, auch eines Ablaufs, der ihm nicht übertragen war, indem es sie direkt an den Server schickte. Notizen schreiben jetzt nur noch diejenigen, die Abläufe führen, so wie es die Seite des Ablaufs schon zeigte.
 
 ### Änderungen
 

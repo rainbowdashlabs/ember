@@ -552,6 +552,7 @@ export default {
     'R-026': CHANGE_SAVED_BUT_NOT_READ_BACK,
     'R-027': PROCEDURE_STEP_NOT_HERE_ON_WRITE,
     'R-028': PROCEDURE_STEP_NOT_HERE_ON_WRITE,
+    'R-029': 'Nur wer den Vorgang führt, kann eine Notiz an einen Schritt schreiben',
 
     'CL-001': CHECKLIST_NEEDS_A_NAME,
     'CL-002': 'Eine Checkliste braucht mindestens eine Spalte, es wurde nichts gespeichert',

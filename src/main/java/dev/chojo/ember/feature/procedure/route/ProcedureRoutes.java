@@ -462,9 +462,11 @@ public class ProcedureRoutes implements Routes {
         int rid = item.procedureId();
         int iid = item.id();
         var req = ctx.bodyAsClass(PatchItemRequest.class);
+        boolean hasEdit = session.hasPermission(StationPermission.PROCEDURE_EDIT);
+        String note = req.note();
+        if (note != null && !hasEdit) throw Refusal.PROCEDURE_STEP_NOTE_NOT_YOURS.raise();
 
         if (req.checked() != null) {
-            boolean hasEdit = session.hasPermission(StationPermission.PROCEDURE_EDIT);
             if (req.checked()) {
                 if (!hasEdit) {
                     if (!item.userAssigned()) {
@@ -485,7 +487,6 @@ public class ProcedureRoutes implements Routes {
                 procedureService.uncheckItem(iid);
             }
         }
-        String note = req.note();
         if (note != null) {
             procedureService.updateItemNote(iid, note);
         }

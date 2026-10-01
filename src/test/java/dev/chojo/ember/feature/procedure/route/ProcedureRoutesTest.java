@@ -39,7 +39,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * A step reached through a procedure or a template of the station has to be one of its own steps.
+ * Who may change which step of a procedure or a template, over HTTP.
  */
 class ProcedureRoutesTest {
     private static final int STATION = 3;
@@ -93,6 +93,27 @@ class ProcedureRoutesTest {
         assertEquals(Refusal.PROCEDURE_STEP_NOT_IN_PROCEDURE, refusalOf(answer));
         verify(repository, never()).checkItem(anyInt(), anyInt());
         verify(repository, never()).updateItemNote(anyInt(), anyString());
+    }
+
+    @Test
+    void onlyWhoeverRunsTheProcedureWritesANoteOnAStep() {
+        harness.run((server, client) -> {
+            String step = PREFIX + "/procedures/" + PROCEDURE + "/items/" + OWN_STEP;
+            var assignee = harness.as(TestSessions.member(STATION, StationPermission.USER));
+            var editor =
+                    harness.as(TestSessions.member(STATION, StationPermission.USER, StationPermission.PROCEDURE_EDIT));
+
+            assertEquals(
+                    Refusal.PROCEDURE_STEP_NOTE_NOT_YOURS,
+                    refusalOf(client.patch(step, body("{\"checked\": true, \"note\": \"erledigt\"}"), assignee)));
+            verify(repository, never()).checkItem(anyInt(), anyInt());
+            verify(repository, never()).updateItemNote(anyInt(), anyString());
+
+            assertEquals(
+                    200,
+                    client.patch(step, body("{\"note\": \"erledigt\"}"), editor).code());
+            verify(repository).updateItemNote(OWN_STEP, "erledigt");
+        });
     }
 
     @Test

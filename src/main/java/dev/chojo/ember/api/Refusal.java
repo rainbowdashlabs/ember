@@ -1271,6 +1271,10 @@ public enum Refusal {
     PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE(
             Area.PROCEDURES, 28, HttpStatus.NOT_FOUND, Sentences.PROCEDURE_STEP_NOT_HERE_ON_WRITE),
 
+    /** A note on a step written by somebody who does not run the procedure. */
+    PROCEDURE_STEP_NOTE_NOT_YOURS(
+            Area.PROCEDURES, 29, HttpStatus.FORBIDDEN, "Only whoever runs the procedure can write a note on a step"),
+
     /** A checklist written down without a name. */
     CHECKLIST_NEEDS_A_NAME(Area.CHECKLISTS, 1, HttpStatus.BAD_REQUEST, Sentences.CHECKLIST_NEEDS_A_NAME),
 
