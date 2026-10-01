@@ -1913,6 +1913,17 @@
         } ]
       }
     },
+    "/api/v1/attendance/report/export.csv" : {
+      "get" : {
+        "summary" : "Export an attendance report as CSV",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
     "/api/v1/attendance/report/presets" : {
       "post" : {
         "summary" : "Create a report preset",
@@ -2058,6 +2069,27 @@
             "type" : "string"
           }
         } ]
+      }
+    },
+    "/api/v1/attendance/sessions" : {
+      "get" : {
+        "summary" : "List the station's sessions with their counts",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SessionSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/attendance/sessions/{id}" : {
@@ -9528,7 +9560,17 @@
         "tags" : [ "Event Templates" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EventTemplateRegistrationField"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -9545,6 +9587,57 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/SetRegistrationFieldsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/event-templates/{id}/reminders" : {
+      "get" : {
+        "summary" : "List the days before an appointment its reminders go out, as the template sets them",
+        "tags" : [ "Event Templates" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "integer",
+                    "format" : "int32"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Replace the reminder days an event template hands over",
+        "tags" : [ "Event Templates" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "integer",
+                    "format" : "int32"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetRemindersRequest"
               }
             }
           }
@@ -9644,7 +9737,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/StationEvent"
+                    "$ref" : "#/components/schemas/EventSummary"
                   }
                 }
               }
@@ -9665,6 +9758,66 @@
             "type" : "boolean"
           }
         } ]
+      }
+    },
+    "/api/v1/events/batch" : {
+      "post" : {
+        "summary" : "Create a batch of events",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StationEvent"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BatchCreateRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/batch/generate-dates" : {
+      "post" : {
+        "summary" : "Work out the dates of a batch of events",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BatchRow"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GenerateDatesRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/events/breaks" : {
@@ -9874,13 +10027,50 @@
         }
       }
     },
+    "/api/v1/events/categories/reorder" : {
+      "put" : {
+        "summary" : "Reorder the event categories",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EventCategory"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReorderCategoriesRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/categories/{id}" : {
       "put" : {
         "summary" : "Update an event category",
         "tags" : [ "Events" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           },
           "404" : {
             "description" : "Not Found",
@@ -10093,9 +10283,57 @@
         }
       }
     },
+    "/api/v1/events/federation-registrations/{id}/status" : {
+      "put" : {
+        "summary" : "Accept or deny a partner station's registration",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StatusUpdateRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/field-names" : {
       "get" : {
         "summary" : "List distinct event field names used across all events",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/overview-fields" : {
+      "get" : {
+        "summary" : "The overview questions of every event, by event",
         "tags" : [ "Events" ],
         "responses" : {
           "200" : {
@@ -10277,7 +10515,17 @@
         "tags" : [ "Events" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RegistrationCount"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -10294,7 +10542,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/EventRegistration"
+                    "$ref" : "#/components/schemas/RegistrationResponse"
                   }
                 }
               }
@@ -10315,7 +10563,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/EventRegistration"
+                    "$ref" : "#/components/schemas/RegistrationResponse"
                   }
                 }
               }
@@ -10329,8 +10577,15 @@
         "summary" : "Withdraw a registration",
         "tags" : [ "Events" ],
         "responses" : {
-          "204" : {
-            "description" : "No Content"
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WithdrawalResponse"
+                }
+              }
+            }
           },
           "404" : {
             "description" : "Not Found",
@@ -10455,7 +10710,14 @@
         "tags" : [ "Events" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           },
           "404" : {
             "description" : "Not Found",
@@ -10488,6 +10750,17 @@
         }
       }
     },
+    "/api/v1/events/registrations/{id}/undo" : {
+      "post" : {
+        "summary" : "Take a withdrawal back",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/v1/events/restrictions" : {
       "get" : {
         "summary" : "List all event restrictions",
@@ -10495,6 +10768,27 @@
         "responses" : {
           "200" : {
             "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/events/search" : {
+      "get" : {
+        "summary" : "Search the events a content block may name",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PickerEvent"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -10511,7 +10805,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/StationEvent"
+                    "$ref" : "#/components/schemas/EventSummary"
                   }
                 }
               }
@@ -11149,7 +11443,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/EventRegistration"
+                  "$ref" : "#/components/schemas/RegistrationResponse"
                 }
               }
             }
@@ -11219,7 +11513,14 @@
         "tags" : [ "Events" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -11284,6 +11585,112 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/events/{eventId}/registration-table" : {
+      "post" : {
+        "summary" : "Draw the registration table of one date",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberTable"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegistrationTableRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/{eventId}/registration-table/columns" : {
+      "get" : {
+        "summary" : "List the columns a registration table may show",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TableColumnsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/{eventId}/registration-table/export.csv" : {
+      "post" : {
+        "summary" : "Export the registration table of one date as CSV",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegistrationTableRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/{eventId}/registration-table/export.pdf" : {
+      "post" : {
+        "summary" : "Export the registration table of one date as PDF",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegistrationTableRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/{eventId}/registrations" : {
+      "get" : {
+        "summary" : "List the registrations of an event, of one date where one is given",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RegistrationResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/events/{id}" : {
@@ -11401,7 +11808,17 @@
         "tags" : [ "Events" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AbsentMemberResponse"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -11889,6 +12306,79 @@
         } ]
       }
     },
+    "/api/v1/events/{id}/federation" : {
+      "get" : {
+        "summary" : "How an event is shared with partner stations",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationShareResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Share an event with partner stations",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationShareResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetFederationShareRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Stop sharing an event with partner stations",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/events/{id}/federation-registrations" : {
+      "get" : {
+        "summary" : "List the registrations partner stations sent for an event",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EnrichedFederationRegistration"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/{id}/field-defaults" : {
       "get" : {
         "summary" : "Get event field defaults",
@@ -12067,6 +12557,105 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/events/{id}/partner-places" : {
+      "get" : {
+        "summary" : "List what each partner station may do with an event",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EventPartnerPlaces"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/{id}/partner-places/{partnerId}" : {
+      "put" : {
+        "summary" : "Hand a partner station places at an event, or take them back",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetPartnerPlacesRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/{id}/reminders" : {
+      "get" : {
+        "summary" : "List the days before an event its reminders go out",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "integer",
+                    "format" : "int32"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Replace the days before an event its reminders go out",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "integer",
+                    "format" : "int32"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetRemindersRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/events/{id}/restrictions" : {
@@ -13315,6 +13904,27 @@
         } ]
       }
     },
+    "/api/v1/federated/events" : {
+      "get" : {
+        "summary" : "List the events partner stations share with this one",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FederatedEventItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/federated/inventory-tags/items" : {
       "get" : {
         "summary" : "The things carrying a word, here and at every partner that lends to this station",
@@ -13342,6 +13952,244 @@
             "type" : "string"
           }
         } ]
+      }
+    },
+    "/api/v1/federated/my-registrations" : {
+      "get" : {
+        "summary" : "List the reader's household's registrations at partner stations",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RemoteMemberRegistration"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/events/comments/{commentId}" : {
+      "put" : {
+        "summary" : "Change a comment on a partner station's event",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommentResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateCommentRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Delete a comment on a partner station's event",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/events/{eventId}/comments" : {
+      "post" : {
+        "summary" : "Comment on a partner station's event",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommentResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateCommentRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the comments on a partner station's event",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CommentResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/events/{id}" : {
+      "get" : {
+        "summary" : "A partner station's shared event",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RemoteEventDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/events/{id}/attachments" : {
+      "get" : {
+        "summary" : "List the files a partner station's event hands over",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RemoteAttachment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/events/{id}/attachments/{attachmentId}/file" : {
+      "get" : {
+        "summary" : "Download a file a partner station's event hands over",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/events/{id}/register" : {
+      "post" : {
+        "summary" : "Register a member for a partner station's event",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederatedRegistrationAnswer"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FederatedRegBody"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Withdraw a member's registration for a partner station's event",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FederatedRegBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/events/{id}/register/confirm" : {
+      "post" : {
+        "summary" : "Give one of this station's members a place at a partner station's event",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FederatedRegBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/events/{id}/register/undo" : {
+      "post" : {
+        "summary" : "Take back a withdrawal from a partner station's event",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FederatedRegBody"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/feed/token" : {
@@ -21390,7 +22238,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/MemberAbsence"
+                    "$ref" : "#/components/schemas/AbsenceResponse"
                   }
                 }
               }
@@ -21428,7 +22276,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/MemberAbsence"
+                    "$ref" : "#/components/schemas/AbsenceResponse"
                   }
                 }
               }
@@ -23386,6 +24234,24 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/SetGroupsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/requirements" : {
+      "get" : {
+        "summary" : "What the reader still owes",
+        "tags" : [ "Requirements" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RequirementsResponse"
+                }
               }
             }
           }
@@ -26480,9 +27346,74 @@
             "$ref" : "#/components/schemas/LocalDate"
           },
           "reason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
+      },
+      "AbsenceResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "absentFrom" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "absentUntil" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "createdByName" : {
+            "type" : [ "string", "null" ]
+          },
+          "memberIdentity" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "id", "memberId", "absentFrom", "absentUntil", "reason", "createdAt", "createdByName", "memberIdentity" ]
+      },
+      "AbsentMemberResponse" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberName" : {
+            "type" : "string"
+          },
+          "memberIdentity" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "absentFrom" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "absentUntil" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "memberId", "memberName", "memberIdentity", "absentFrom", "absentUntil", "reason" ]
       },
       "AccessData" : {
         "type" : "object",
@@ -27288,10 +28219,10 @@
             "format" : "int32"
           },
           "label" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "internal" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -27314,10 +28245,18 @@
             "$ref" : "#/components/schemas/AttendanceStatus"
           },
           "checkIn" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "checkOut" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "source" : {
             "$ref" : "#/components/schemas/EntrySource"
@@ -27332,21 +28271,21 @@
             "type" : "boolean"
           },
           "groupId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "autoAttend" : {
             "type" : "boolean"
           },
           "options" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "items" : {
               "type" : "string"
             }
           },
           "defaultValue" : { },
           "width" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "required", "groupId", "autoAttend", "options", "defaultValue", "width" ]
@@ -27449,20 +28388,28 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "eventId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "title" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "unlockedUntil" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "lockedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "countedMinutes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
@@ -27591,7 +28538,7 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "categoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "members" : {
@@ -27656,6 +28603,93 @@
           }
         }
       },
+      "BatchCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "templateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "categoryId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "inlineFields" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/BatchFieldEntryDto"
+            }
+          },
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BatchRowEntry"
+            }
+          },
+          "requiresRegistration" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "requiresConfirmation" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "registrationDeadline" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "restriction" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionSelection"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "viewRestriction" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionSelection"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
+      "BatchFieldEntryDto" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "fieldType" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EventFieldType"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "config" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EventFieldConfig"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "overview" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "attendanceFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
       "BatchGenerateRequest" : {
         "type" : "object",
         "properties" : {
@@ -27689,6 +28723,47 @@
           }
         },
         "required" : [ "generatedCount", "errors" ]
+      },
+      "BatchRow" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "startTime" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "endTime" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "fieldValues" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "name", "startTime", "endTime", "fieldValues" ]
+      },
+      "BatchRowEntry" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "startTime" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "endTime" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "fieldValues" : {
+            "type" : [ "object", "null" ],
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        }
       },
       "BindingRequest" : {
         "type" : "object",
@@ -28402,7 +29477,7 @@
         "type" : "object",
         "properties" : {
           "reason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -28414,16 +29489,24 @@
         "type" : "object",
         "properties" : {
           "date" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           },
           "cause" : {
             "$ref" : "#/components/schemas/CancellationCause"
           },
           "reason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "cancelledAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "date", "cause", "reason", "cancelledAt" ]
@@ -28452,14 +29535,14 @@
             "format" : "int32"
           },
           "maxShownEvents" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "isPublic" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -28690,13 +29773,13 @@
             "type" : "boolean"
           },
           "note" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "updatedAt" : {
             "$ref" : "#/components/schemas/Instant"
           },
           "updatedBy" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
@@ -28709,7 +29792,7 @@
             "type" : "boolean"
           },
           "note" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -28786,11 +29869,15 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "createdBy" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "lastRefreshedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "columns" : {
             "type" : "array",
@@ -28814,7 +29901,11 @@
             "$ref" : "#/components/schemas/RestrictionResponse"
           },
           "source" : {
-            "$ref" : "#/components/schemas/SourceOccurrenceResponse"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SourceOccurrenceResponse"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "id", "name", "description", "mode", "createdAt", "createdBy", "lastRefreshedAt", "columns", "entries", "cells", "restriction", "source" ]
@@ -28852,7 +29943,11 @@
             "format" : "int32"
           },
           "lastRefreshedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
@@ -29665,7 +30760,7 @@
             "format" : "int32"
           },
           "artId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "quantity" : {
@@ -29673,7 +30768,7 @@
             "format" : "int32"
           },
           "needId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
@@ -30611,13 +31706,25 @@
             "$ref" : "#/components/schemas/EventSummary"
           },
           "nextDate" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           },
           "previousDate" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           },
           "cancellation" : {
-            "$ref" : "#/components/schemas/CancellationNotice"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/CancellationNotice"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "event", "nextDate", "previousDate", "cancellation" ]
@@ -30943,7 +32050,7 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "startTime" : {
             "$ref" : "#/components/schemas/Instant"
@@ -30955,7 +32062,7 @@
             "type" : "boolean"
           },
           "categoryName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "name", "description", "startTime", "endTime", "cancelled", "categoryName" ]
@@ -31021,6 +32128,22 @@
         },
         "required" : [ "method", "path", "requestCount", "avgDurationMs", "minDurationMs", "maxDurationMs", "errorRate" ]
       },
+      "EnrichedFederationRegistration" : {
+        "type" : "object",
+        "properties" : {
+          "registration" : {
+            "$ref" : "#/components/schemas/EventFederationRegistration"
+          },
+          "memberIdentity" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "registration", "memberIdentity" ]
+      },
       "EntryAudience" : {
         "type" : "object",
         "properties" : {
@@ -31067,7 +32190,11 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "deletedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "inFilter" : {
             "type" : "boolean"
@@ -31144,11 +32271,15 @@
             "type" : "string"
           },
           "eventId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "eventDate" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           },
           "quantity" : {
             "type" : "integer",
@@ -31191,14 +32322,18 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "handedBy" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "handedAt" : {
             "$ref" : "#/components/schemas/Instant"
           },
           "returnedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "outstanding" : {
             "type" : "boolean"
@@ -31218,18 +32353,22 @@
             "format" : "int32"
           },
           "eventDate" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           },
           "itemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "artId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "inventoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "quantity" : {
@@ -31289,7 +32428,7 @@
             "format" : "int32"
           },
           "label" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "internal" : {
             "type" : "boolean"
@@ -31359,14 +32498,14 @@
             "format" : "int32"
           },
           "maxShownEvents" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "isPublic" : {
             "type" : "boolean"
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "stationId", "name", "position", "maxShownEvents", "isPublic", "color" ]
@@ -31394,6 +32533,40 @@
             "type" : "string"
           }
         }
+      },
+      "EventFederationRegistration" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "remoteMemberId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "eventDate" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/RegistrationStatus"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "standing" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "eventId", "partnerId", "remoteMemberId", "eventDate", "status", "createdAt", "standing" ]
       },
       "EventField" : {
         "type" : "object",
@@ -31426,7 +32599,7 @@
             "type" : "boolean"
           },
           "attendanceFieldId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "isPublic" : {
@@ -31465,7 +32638,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "options", "groupId", "userType", "tagId", "selfRegistration", "width", "perDate" ]
+        "required" : [ "selfRegistration", "perDate" ]
       },
       "EventFieldDefault" : {
         "type" : "object",
@@ -31482,7 +32655,7 @@
             "type" : "string"
           },
           "value" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "eventId", "fieldId", "source", "value" ]
@@ -31491,30 +32664,38 @@
         "type" : "object",
         "properties" : {
           "id" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "name" : {
             "type" : "string"
           },
           "fieldType" : {
-            "$ref" : "#/components/schemas/EventFieldType"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EventFieldType"
+            }, {
+              "type" : "null"
+            } ]
           },
           "config" : {
-            "$ref" : "#/components/schemas/EventFieldConfig"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EventFieldConfig"
+            }, {
+              "type" : "null"
+            } ]
           },
           "value" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "overview" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "attendanceFieldId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "isPublic" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -31539,6 +32720,27 @@
           }
         },
         "required" : [ "title", "date", "location", "url" ]
+      },
+      "EventPartnerPlaces" : {
+        "type" : "object",
+        "properties" : {
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "slotBudget" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "partnerConfirms" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "eventId", "partnerId", "slotBudget", "partnerConfirms" ]
       },
       "EventRegisterRequest" : {
         "type" : "object",
@@ -31583,14 +32785,18 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "createdBy" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "statusChangedAt" : {
             "$ref" : "#/components/schemas/Instant"
           },
           "previousStatus" : {
-            "$ref" : "#/components/schemas/RegistrationStatus"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RegistrationStatus"
+            }, {
+              "type" : "null"
+            } ]
           },
           "fromField" : {
             "type" : "boolean"
@@ -31636,7 +32842,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "required", "defaultValue", "options", "min", "max", "groupId", "userType", "tagId", "managersOnly" ]
+        "required" : [ "required", "managersOnly" ]
       },
       "EventRegistrationFieldValue" : {
         "type" : "object",
@@ -31696,13 +32902,13 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "eventType" : {
             "$ref" : "#/components/schemas/EventType"
           },
           "dayOfWeek" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "startTime" : {
@@ -31712,52 +32918,68 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "templateId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "requiresRegistration" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "registrationDeadline" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "requiresConfirmation" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "categoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "restriction" : {
-            "$ref" : "#/components/schemas/RestrictionSelection"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionSelection"
+            }, {
+              "type" : "null"
+            } ]
           },
           "viewRestriction" : {
-            "$ref" : "#/components/schemas/RestrictionSelection"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionSelection"
+            }, {
+              "type" : "null"
+            } ]
           },
           "isPublic" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "registrationLimit" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "minRegistrations" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "thresholdDays" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "registrationCloseDays" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "repeatUntil" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           },
           "repeatCount" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -31789,13 +33011,13 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "eventType" : {
             "$ref" : "#/components/schemas/EventType"
           },
           "dayOfWeek" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "startTime" : {
@@ -31808,14 +33030,18 @@
             "type" : "boolean"
           },
           "registrationDeadline" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "categoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "templateId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "restricted" : {
@@ -31823,9 +33049,13 @@
           },
           "seriesCancelled" : {
             "type" : "boolean"
+          },
+          "registrationLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "requiresRegistration", "registrationDeadline", "categoryId", "templateId", "restricted", "seriesCancelled" ]
+        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "requiresRegistration", "registrationDeadline", "categoryId", "templateId", "restricted", "seriesCancelled", "registrationLimit" ]
       },
       "EventTemplate" : {
         "type" : "object",
@@ -31842,39 +33072,47 @@
             "type" : "string"
           },
           "title" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "categoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "eventType" : {
-            "$ref" : "#/components/schemas/EventType"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EventType"
+            }, {
+              "type" : "null"
+            } ]
           },
           "requiresRegistration" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "registrationDeadlineOffset" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "requiresConfirmation" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "restrictionMode" : {
-            "$ref" : "#/components/schemas/RestrictionMode"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionMode"
+            }, {
+              "type" : "null"
+            } ]
           },
           "viewRestrictionMode" : {
             "$ref" : "#/components/schemas/RestrictionMode"
           },
           "attendanceTemplateId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "registrationLimit" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
@@ -31911,11 +33149,11 @@
             "type" : "boolean"
           },
           "attendanceFieldId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "defaultValue" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "templateId", "name", "fieldType", "config", "position", "overview", "isPublic", "attendanceFieldId", "defaultValue" ]
@@ -31930,7 +33168,11 @@
             "$ref" : "#/components/schemas/EventFieldType"
           },
           "config" : {
-            "$ref" : "#/components/schemas/EventFieldConfig"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EventFieldConfig"
+            }, {
+              "type" : "null"
+            } ]
           },
           "position" : {
             "type" : "integer",
@@ -31943,11 +33185,11 @@
             "type" : "boolean"
           },
           "attendanceFieldId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "defaultValue" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -32105,6 +33347,46 @@
         },
         "required" : [ "title", "date", "location", "description", "ctaText", "ctaUrl", "eventUid", "descriptionOverride" ]
       },
+      "FederatedEventItem" : {
+        "type" : "object",
+        "properties" : {
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerStationName" : {
+            "type" : "string"
+          },
+          "partnerStationUid" : {
+            "type" : "string"
+          },
+          "event" : {
+            "$ref" : "#/components/schemas/SharedEvent"
+          }
+        },
+        "required" : [ "partnerId", "partnerStationName", "partnerStationUid", "event" ]
+      },
+      "FederatedRegBody" : {
+        "type" : "object",
+        "properties" : {
+          "eventDate" : {
+            "type" : "string"
+          },
+          "memberId" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          }
+        }
+      },
+      "FederatedRegistrationAnswer" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "$ref" : "#/components/schemas/RegistrationStatus"
+          }
+        },
+        "required" : [ "status" ]
+      },
       "FederationConfigRequest" : {
         "type" : "object",
         "properties" : {
@@ -32139,6 +33421,29 @@
           }
         },
         "required" : [ "targets", "editUserTypes" ]
+      },
+      "FederationShareResponse" : {
+        "type" : "object",
+        "properties" : {
+          "shared" : {
+            "type" : "boolean"
+          },
+          "scope" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ShareScope"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "partnerIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "shared", "scope", "partnerIds" ]
       },
       "FederationTargetRequest" : {
         "type" : "object",
@@ -32362,7 +33667,7 @@
             "type" : "string"
           },
           "value" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -33271,6 +34576,33 @@
         },
         "required" : [ "imageHash", "altText", "subtext" ]
       },
+      "GenerateDatesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "intervalType" : {
+            "$ref" : "#/components/schemas/IntervalType"
+          },
+          "dayOfWeek" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "startDate" : {
+            "type" : "string"
+          },
+          "endDate" : {
+            "type" : "string"
+          },
+          "startTime" : {
+            "type" : [ "string", "null" ]
+          },
+          "endTime" : {
+            "type" : [ "string", "null" ]
+          },
+          "ignoreBreaks" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
+      },
       "GenerateEntry" : {
         "type" : "object",
         "properties" : {
@@ -33808,6 +35140,10 @@
             }
           }
         }
+      },
+      "IntervalType" : {
+        "type" : "string",
+        "enum" : [ "RECURRING", "MONTHLY_FIRST", "QUARTERLY", "YEARLY" ]
       },
       "Inventory" : {
         "type" : "object",
@@ -35862,13 +37198,13 @@
             "$ref" : "#/components/schemas/LocalDate"
           },
           "reason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
           },
           "createdBy" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
@@ -36226,7 +37562,7 @@
             }
           },
           "birthdayDaysAgo" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
@@ -36509,6 +37845,85 @@
           }
         },
         "required" : [ "memberId", "name", "totalHours", "sessionCount", "presentCount" ]
+      },
+      "MemberTable" : {
+        "type" : "object",
+        "properties" : {
+          "columns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MemberTableHeader"
+            }
+          },
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MemberTableRow"
+            }
+          }
+        },
+        "required" : [ "columns", "rows" ]
+      },
+      "MemberTableCellType" : {
+        "type" : "string",
+        "enum" : [ "TEXT", "NUMBER", "DATE", "BIRTH_DATE", "BOOLEAN", "ENUM" ]
+      },
+      "MemberTableColumn" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "$ref" : "#/components/schemas/MemberTableColumnKind"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "fieldId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "MemberTableColumnKind" : {
+        "type" : "string",
+        "enum" : [ "BUILTIN", "PROFILE_FIELD", "REGISTRATION_FIELD" ]
+      },
+      "MemberTableHeader" : {
+        "type" : "object",
+        "properties" : {
+          "label" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/MemberTableColumnKind"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "fieldId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "type" : {
+            "$ref" : "#/components/schemas/MemberTableCellType"
+          }
+        },
+        "required" : [ "label", "kind", "key", "fieldId", "type" ]
+      },
+      "MemberTableRow" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "values" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "memberId", "values" ]
       },
       "MemberWithName" : {
         "type" : "object",
@@ -36939,10 +38354,10 @@
             "$ref" : "#/components/schemas/LocalDate"
           },
           "reason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "memberIds" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "items" : {
               "type" : "integer",
               "format" : "int32"
@@ -37087,31 +38502,35 @@
         "type" : "object",
         "properties" : {
           "itemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "artId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "inventoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "quantity" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "leadMinutes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "trailMinutes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "eventDate" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -37534,7 +38953,11 @@
         "type" : "object",
         "properties" : {
           "date" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "date" ]
@@ -37569,17 +38992,17 @@
             "format" : "int32"
           },
           "oldNote" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "newNote" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "changedBy" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "changedByName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "changedAt" : {
             "$ref" : "#/components/schemas/Instant"
@@ -38030,6 +39453,25 @@
           }
         },
         "required" : [ "name", "children" ]
+      },
+      "PickerEvent" : {
+        "type" : "object",
+        "properties" : {
+          "eventUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "startTime" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "categoryName" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "eventUid", "name", "startTime", "categoryName" ]
       },
       "Piece" : {
         "type" : "object",
@@ -38752,13 +40194,13 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "eventType" : {
             "$ref" : "#/components/schemas/EventType"
           },
           "dayOfWeek" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "startTime" : {
@@ -38768,7 +40210,11 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "category" : {
-            "$ref" : "#/components/schemas/EventCategory"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EventCategory"
+            }, {
+              "type" : "null"
+            } ]
           },
           "publicFields" : {
             "type" : "array",
@@ -38803,13 +40249,13 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "eventType" : {
             "$ref" : "#/components/schemas/EventType"
           },
           "dayOfWeek" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "startTime" : {
@@ -38819,11 +40265,11 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "categoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "categoryName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "publicFields" : {
             "type" : "array",
@@ -39072,6 +40518,22 @@
         "additionalProperties" : {
           "$ref" : "#/components/schemas/PageTarget"
         }
+      },
+      "QuestionColumn" : {
+        "type" : "object",
+        "properties" : {
+          "fieldId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "type" : {
+            "$ref" : "#/components/schemas/MemberTableCellType"
+          }
+        },
+        "required" : [ "fieldId", "label", "type" ]
       },
       "QuestionInfoDto" : {
         "type" : "object",
@@ -39461,7 +40923,7 @@
             "type" : "string"
           },
           "artId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "artName" : {
@@ -39591,6 +41053,26 @@
         },
         "required" : [ "id", "stationId", "code", "maxUses", "uses" ]
       },
+      "RegistrationCount" : {
+        "type" : "object",
+        "properties" : {
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "eventDate" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/RegistrationStatus"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "eventId", "eventDate", "status", "count" ]
+      },
       "RegistrationFieldDefinition" : {
         "type" : "object",
         "properties" : {
@@ -39675,7 +41157,11 @@
             "type" : "string"
           },
           "memberIdentity" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
           },
           "eventDate" : {
             "$ref" : "#/components/schemas/LocalDate"
@@ -39687,7 +41173,7 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "createdByName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "fields" : {
             "type" : "array",
@@ -39696,7 +41182,7 @@
             }
           },
           "eventName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "answersMissing" : {
             "type" : "boolean"
@@ -39705,7 +41191,7 @@
             "type" : "boolean"
           },
           "fieldName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName" ]
@@ -39740,7 +41226,7 @@
             "type" : "number"
           },
           "lastDenied" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "priority" : {
             "type" : "string"
@@ -39755,6 +41241,128 @@
         "type" : "string",
         "enum" : [ "PENDING", "ACCEPTED", "DENIED", "DECLINED", "WITHDRAWN" ]
       },
+      "RegistrationTableRequest" : {
+        "type" : "object",
+        "properties" : {
+          "date" : {
+            "type" : "string"
+          },
+          "columns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MemberTableColumn"
+            }
+          }
+        }
+      },
+      "RegistrationUpdateItem" : {
+        "type" : "object",
+        "properties" : {
+          "registrationId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "eventName" : {
+            "type" : "string"
+          },
+          "eventDate" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberName" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "registrationId", "eventId", "eventName", "eventDate", "memberId", "memberName" ]
+      },
+      "RemoteAttachment" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "mimeType" : {
+            "type" : "string"
+          },
+          "fileSize" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "id", "name", "fileName", "mimeType", "fileSize" ]
+      },
+      "RemoteEventDetail" : {
+        "type" : "object",
+        "properties" : {
+          "event" : {
+            "$ref" : "#/components/schemas/SharedEvent"
+          },
+          "publicFields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EventField"
+            }
+          },
+          "places" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RemotePlaces"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "event", "publicFields", "places" ]
+      },
+      "RemoteMemberRegistration" : {
+        "type" : "object",
+        "properties" : {
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "remoteMemberId" : {
+            "type" : "string"
+          },
+          "eventDate" : {
+            "type" : "string"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/RegistrationStatus"
+          },
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "eventId", "remoteMemberId", "eventDate", "status", "partnerId" ]
+      },
+      "RemotePlaces" : {
+        "type" : "object",
+        "properties" : {
+          "slotBudget" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "decidesItself" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "slotBudget", "decidesItself" ]
+      },
       "Renamed" : {
         "type" : "object",
         "properties" : {
@@ -39766,6 +41374,18 @@
           }
         },
         "required" : [ "from", "to" ]
+      },
+      "ReorderCategoriesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "orderedIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
       },
       "ReorderChecklistRequest" : {
         "type" : "object",
@@ -39918,6 +41538,19 @@
         },
         "required" : [ "inventoryId", "inventoryName", "inventoryType", "hasSizes", "homogeneous", "sizes", "requiredQuantity", "assignedQuantity", "inExchangeQuantity" ]
       },
+      "RequirementItem" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "title" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "title" ]
+      },
       "RequirementRequest" : {
         "type" : "object",
         "properties" : {
@@ -39980,6 +41613,39 @@
           }
         },
         "required" : [ "id", "inventoryId", "inventoryName", "userType", "groupId", "stationGroupId", "quantity", "position", "clusterName" ]
+      },
+      "RequirementsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "forcedForms" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RequirementItem"
+            }
+          },
+          "forcedQuizzes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RequirementItem"
+            }
+          },
+          "profileIncomplete" : {
+            "type" : "boolean"
+          },
+          "selfChecks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SelfCheckItem"
+            }
+          },
+          "registrationUpdates" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RegistrationUpdateItem"
+            }
+          }
+        },
+        "required" : [ "forcedForms", "forcedQuizzes", "profileIncomplete", "selfChecks", "registrationUpdates" ]
       },
       "ResetPasswordRequest" : {
         "type" : "object",
@@ -40604,6 +42270,27 @@
         },
         "required" : [ "finding", "typed", "pieces", "containers" ]
       },
+      "SelfCheckItem" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "dueOn" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "id", "memberId", "dueOn" ]
+      },
       "SelfCheckRaised" : {
         "type" : "object",
         "properties" : {
@@ -41015,7 +42702,7 @@
             "format" : "int32"
           },
           "countedHours" : {
-            "type" : "number"
+            "type" : [ "number", "null" ]
           },
           "entries" : {
             "type" : "array",
@@ -41199,23 +42886,77 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "eventId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "title" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "countedMinutes" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "audience" : {
-            "$ref" : "#/components/schemas/SessionAudience"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SessionAudience"
+            }, {
+              "type" : "null"
+            } ]
           },
           "eventDate" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
+      },
+      "SessionSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "startTime" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "endTime" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "eventId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "title" : {
+            "type" : [ "string", "null" ]
+          },
+          "presentCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "absentCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "declinedCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "unconfirmedCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "templateId", "startTime", "endTime", "createdAt", "eventId", "title", "presentCount", "absentCount", "declinedCount", "unconfirmedCount" ]
       },
       "SetAddressRequest" : {
         "type" : "object",
@@ -41243,6 +42984,21 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/EventFieldEntry"
+            }
+          }
+        }
+      },
+      "SetFederationShareRequest" : {
+        "type" : "object",
+        "properties" : {
+          "scope" : {
+            "$ref" : "#/components/schemas/ShareScope"
+          },
+          "partnerIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
             }
           }
         }
@@ -41333,6 +43089,18 @@
           }
         }
       },
+      "SetPartnerPlacesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "slotBudget" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "partnerConfirms" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "SetPasswordRequest" : {
         "type" : "object",
         "properties" : {
@@ -41363,6 +43131,18 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/RegistrationFieldDefinition"
+            }
+          }
+        }
+      },
+      "SetRemindersRequest" : {
+        "type" : "object",
+        "properties" : {
+          "daysBefore" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
             }
           }
         }
@@ -41649,6 +43429,52 @@
         },
         "required" : [ "stationUid", "publicSlug", "name", "hasLogo", "defaultTheme", "defaultFeel", "customThemeColors", "timezone" ]
       },
+      "SharedEvent" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "eventType" : {
+            "$ref" : "#/components/schemas/EventType"
+          },
+          "dayOfWeek" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "startTime" : {
+            "type" : "string"
+          },
+          "endTime" : {
+            "type" : "string"
+          },
+          "requiresRegistration" : {
+            "type" : "boolean"
+          },
+          "requiresConfirmation" : {
+            "type" : "boolean"
+          },
+          "repeatUntil" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "repeatCount" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "requiresRegistration", "requiresConfirmation", "repeatUntil", "repeatCount" ]
+      },
       "SharedPage" : {
         "type" : "object",
         "properties" : {
@@ -41917,7 +43743,7 @@
             "$ref" : "#/components/schemas/LocalDate"
           },
           "eventName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "eventId", "eventDate", "eventName" ]
@@ -42132,13 +43958,13 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "eventType" : {
             "$ref" : "#/components/schemas/EventType"
           },
           "dayOfWeek" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "startTime" : {
@@ -42148,20 +43974,24 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "templateId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "requiresRegistration" : {
             "type" : "boolean"
           },
           "registrationDeadline" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "requiresConfirmation" : {
             "type" : "boolean"
           },
           "categoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "restrictionMode" : {
@@ -42174,38 +44004,46 @@
             "type" : "boolean"
           },
           "isPublic" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "registrationLimit" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "cancelled" : {
             "type" : "boolean"
           },
           "cancelledAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "cancelReason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "minRegistrations" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "thresholdDays" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "registrationCloseDays" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "repeatUntil" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           },
           "repeatCount" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "recurring" : {
@@ -42843,20 +44681,24 @@
             "$ref" : "#/components/schemas/MovementPurpose"
           },
           "stepId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "stepLabel" : {
             "type" : "string"
           },
           "stepActor" : {
-            "$ref" : "#/components/schemas/StepActor"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StepActor"
+            }, {
+              "type" : "null"
+            } ]
           },
           "handOverNext" : {
             "type" : "boolean"
           },
           "replacementItemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "inventoryName" : {
@@ -42866,7 +44708,7 @@
             "type" : "string"
           },
           "itemSize" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "movementId", "purpose", "stepId", "stepLabel", "stepActor", "handOverNext", "replacementItemId", "inventoryName", "itemName", "itemSize" ]
@@ -43023,6 +44865,24 @@
           }
         },
         "required" : [ "title", "body" ]
+      },
+      "TableColumnsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "member" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MemberTableHeader"
+            }
+          },
+          "questions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/QuestionColumn"
+            }
+          }
+        },
+        "required" : [ "member", "questions" ]
       },
       "TabsConfig" : {
         "type" : "object",
@@ -43706,7 +45566,11 @@
             "$ref" : "#/components/schemas/LocalDate"
           },
           "cancellation" : {
-            "$ref" : "#/components/schemas/CancellationNotice"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/CancellationNotice"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "event", "date", "cancellation" ]
@@ -43919,36 +45783,44 @@
             "type" : "string"
           },
           "title" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "categoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "eventType" : {
-            "$ref" : "#/components/schemas/EventType"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EventType"
+            }, {
+              "type" : "null"
+            } ]
           },
           "requiresRegistration" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "registrationDeadlineOffset" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "requiresConfirmation" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "restrictionMode" : {
-            "$ref" : "#/components/schemas/RestrictionMode"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionMode"
+            }, {
+              "type" : "null"
+            } ]
           },
           "attendanceTemplateId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "registrationLimit" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -44182,6 +46054,15 @@
             }
           }
         }
+      },
+      "WithdrawalResponse" : {
+        "type" : "object",
+        "properties" : {
+          "undoUntil" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "undoUntil" ]
       }
     }
   }

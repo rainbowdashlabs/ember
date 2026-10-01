@@ -6,16 +6,8 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {attendance, events} from '@/api'
-import type {AttendanceTemplate} from '@/api/attendance'
-import {
-    EventKinds,
-    type DatedEvent,
-    type EventBreak,
-    type EventCategory,
-    type EventField,
-    type EventKindName,
-    type EventPageParams,
-} from '@/api/events'
+import {EventKinds, type EventKindName, type EventPageParams} from '@/api/events'
+import type {AttendanceTemplate, DatedEvent, EventBreak, EventCategory, EventField} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {usePagedList, PAGE_SIZE} from '@/composables/usePagedList'

@@ -5,42 +5,17 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-import type {MemberIdentity} from '@/api/types'
-
-export interface MemberAbsence {
-    id: number
-    memberId: number
-    absentFrom?: string
-    absentUntil?: string
-    reason?: string
-    createdAt?: string
-    createdByName?: string | null
-    memberIdentity?: MemberIdentity | null
-}
-
-interface OwnAbsenceRequest {
-    absentFrom: string
-    absentUntil: string
-    reason?: string
-    memberIds?: number[]
-}
-
-interface MemberAbsenceRequest {
-    memberId: number
-    absentFrom: string
-    absentUntil: string
-    reason?: string
-}
+import type {AbsenceRequest, AbsenceResponse, MemberAbsence, MyAbsenceRequest} from './generated/schema'
 
 const ownAbsences = createCrudResource<
-    MemberAbsence,
-    OwnAbsenceRequest,
-    OwnAbsenceRequest,
-    MemberAbsence,
-    MemberAbsence[]
+    AbsenceResponse,
+    MyAbsenceRequest,
+    MyAbsenceRequest,
+    AbsenceResponse,
+    AbsenceResponse[]
 >('/profile/absences')
 
-const memberAbsences = createCrudResource<MemberAbsence, MemberAbsenceRequest>('/attendance/absences')
+const memberAbsences = createCrudResource<MemberAbsence, AbsenceRequest>('/attendance/absences')
 
 export const listMyAbsences = ownAbsences.list
 export const createAbsence = ownAbsences.create

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -46,29 +47,29 @@ public record StationEvent(
         int id,
         int stationId,
         String name,
-        String description,
+        @Nullable String description,
         EventType eventType,
-        Integer dayOfWeek,
+        @Nullable Integer dayOfWeek,
         Instant startTime,
         Instant endTime,
-        Integer templateId,
+        @Nullable Integer templateId,
         boolean requiresRegistration,
-        Instant registrationDeadline,
+        @Nullable Instant registrationDeadline,
         boolean requiresConfirmation,
-        Integer categoryId,
+        @Nullable Integer categoryId,
         RestrictionMode restrictionMode,
         RestrictionMode viewRestrictionMode,
         boolean restricted,
-        Boolean isPublic,
-        Integer registrationLimit,
+        @Nullable Boolean isPublic,
+        @Nullable Integer registrationLimit,
         boolean cancelled,
-        Instant cancelledAt,
-        String cancelReason,
-        Integer minRegistrations,
-        Integer thresholdDays,
-        Integer registrationCloseDays,
-        LocalDate repeatUntil,
-        Integer repeatCount) {
+        @Nullable Instant cancelledAt,
+        @Nullable String cancelReason,
+        @Nullable Integer minRegistrations,
+        @Nullable Integer thresholdDays,
+        @Nullable Integer registrationCloseDays,
+        @Nullable LocalDate repeatUntil,
+        @Nullable Integer repeatCount) {
 
     /**
      * Creates a row mapping for database result set conversion.

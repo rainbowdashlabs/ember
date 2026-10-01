@@ -8,22 +8,23 @@ package dev.chojo.ember.feature.events.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.events.entity.StationEvent.EventType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import org.jspecify.annotations.Nullable;
 
 public record EventTemplate(
         int id,
         int stationId,
         String name,
-        String title,
-        String description,
-        Integer categoryId,
-        EventType eventType,
-        Boolean requiresRegistration,
-        String registrationDeadlineOffset,
-        Boolean requiresConfirmation,
-        RestrictionMode restrictionMode,
+        @Nullable String title,
+        @Nullable String description,
+        @Nullable Integer categoryId,
+        @Nullable EventType eventType,
+        @Nullable Boolean requiresRegistration,
+        @Nullable String registrationDeadlineOffset,
+        @Nullable Boolean requiresConfirmation,
+        @Nullable RestrictionMode restrictionMode,
         RestrictionMode viewRestrictionMode,
-        Integer attendanceTemplateId,
-        Integer registrationLimit) {
+        @Nullable Integer attendanceTemplateId,
+        @Nullable Integer registrationLimit) {
 
     public static RowMapping<EventTemplate> map() {
         return row -> new EventTemplate(

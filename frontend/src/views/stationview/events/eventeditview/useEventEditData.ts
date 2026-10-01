@@ -5,8 +5,7 @@
  */
 import {computed, ref} from 'vue'
 import {attendance, events, memberGroups} from '@/api'
-import type {AttendanceTemplateField} from '@/api/attendance'
-import type {EventTemplate} from '@/api/events'
+import type {AttendanceTemplateField, EventTemplate} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 

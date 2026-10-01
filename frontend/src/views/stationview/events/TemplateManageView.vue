@@ -19,12 +19,11 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {EventTemplate} from '@/api/events'
+import type {EventTemplate} from '@/api/generated/schema'
 import {events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
-import {configOf} from '@/components/profilefields/fieldLayout'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -86,12 +85,12 @@ async function duplicateTemplate(id: number) {
         fields: fields.map((field, position) => ({
           name: field.name,
           fieldType: field.fieldType,
-          config: configOf(field.config),
+          config: field.config,
           position,
           overview: field.overview,
           isPublic: field.isPublic,
-          attendanceFieldId: field.attendanceFieldId ?? null,
-          defaultValue: field.defaultValue ?? null,
+          attendanceFieldId: field.attendanceFieldId,
+          defaultValue: field.defaultValue,
         })),
       })
     }

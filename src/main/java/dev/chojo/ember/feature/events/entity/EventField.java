@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 public record EventField(
         int id,
@@ -16,7 +17,7 @@ public record EventField(
         String value,
         int position,
         boolean overview,
-        Integer attendanceFieldId,
+        @Nullable Integer attendanceFieldId,
         boolean isPublic) {
 
     public static RowMapping<EventField> map() {

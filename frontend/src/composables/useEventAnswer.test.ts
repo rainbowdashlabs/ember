@@ -7,7 +7,7 @@
 import {mount} from '@vue/test-utils'
 import {defineComponent, ref, type Ref} from 'vue'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
-import type {StationEvent} from '@/api/events'
+import type {EventSummary} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 import {useEventAnswer} from './useEventAnswer'
 
@@ -30,7 +30,23 @@ vi.mock('@/composables/useSidebarCounts', () => ({
 }))
 
 const date = '2026-09-04'
-const appointment = {id: 4, stationId: '1', name: 'Übungsabend'} as StationEvent
+const appointment: EventSummary = {
+    id: 4,
+    stationId: '1',
+    name: 'Übungsabend',
+    description: null,
+    eventType: 'ONE_TIME',
+    dayOfWeek: null,
+    startTime: '2026-09-04T17:00:00Z',
+    endTime: '2026-09-04T19:00:00Z',
+    requiresRegistration: true,
+    registrationDeadline: null,
+    categoryId: null,
+    templateId: null,
+    restricted: false,
+    seriesCancelled: false,
+    registrationLimit: null,
+}
 
 const child = {key: 11, name: 'Mira'}
 const sibling = {key: 12, name: 'Jonas'}

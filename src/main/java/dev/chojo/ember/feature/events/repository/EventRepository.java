@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.repository;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
+import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -648,11 +649,6 @@ public class EventRepository {
                 "SELECT 1 FROM station_event WHERE station_id = :station_id LIMIT 1;",
                 call().bind("station_id", stationId));
     }
-
-    /**
-     * Lightweight picker result row. Exposes only the public UUID - never the internal id.
-     */
-    public record PickerEvent(UUID eventUid, String name, Instant startTime, String categoryName) {}
 
     /**
      * A one-time event whose registration deadline has passed with pending registrations left.

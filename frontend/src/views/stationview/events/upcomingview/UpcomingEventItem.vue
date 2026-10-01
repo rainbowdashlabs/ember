@@ -18,12 +18,18 @@ import ColorBadge from '@/components/badge/ColorBadge.vue'
 import EventHeadline from '../eventshared/EventHeadline.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
 import EventRegistrationActions from '../eventshared/EventRegistrationActions.vue'
-import type {CancellationNotice, EventCategory, EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
+import type {
+  CancellationNotice,
+  EventCategory,
+  EventField,
+  EventSummary,
+  RegistrationResponse,
+} from '@/api/generated/schema'
 import {renderMarkdown} from '@/util/markdown'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 
 const props = defineProps<{
-  event: StationEvent
+  event: EventSummary
   date: string
   endDate: string | null
   /** What kind of appointment this is, absent where it was put in no category. */
@@ -34,7 +40,7 @@ const props = defineProps<{
   eligibleMembers: AnswerablePerson[]
   /** Why seeing this appointment does not mean being able to answer it, absent where it does. */
   restrictionNote?: string | null
-  registrations: EventRegistrationEntry[]
+  registrations: RegistrationResponse[]
   hasManagedMembers: boolean
   registering: boolean
   /**

@@ -9,7 +9,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ReportSummaryTable from './ReportSummaryTable.vue'
 import ReportMonthBlock from './ReportMonthBlock.vue'
 import ReportSessionCard from './ReportSessionCard.vue'
-import type {ReportData} from '@/api/attendance'
+import type {ReportData} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

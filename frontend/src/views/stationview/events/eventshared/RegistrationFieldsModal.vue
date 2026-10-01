@@ -16,12 +16,13 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import {useAnswerMembers} from './useAnswerMembers'
-import {EventFieldTypes, type EventRegistrationField, type RegistrationFieldValue} from '@/api/events'
+import {EventFieldTypes} from '@/api/events'
+import type {EventRegistrationFieldValue, RegistrationFieldResponse} from '@/api/generated/schema'
 
 const props = defineProps<{
-  fields: EventRegistrationField[]
+  fields: RegistrationFieldResponse[]
   /** The answers already on file, where an existing registration is being corrected. */
-  values?: RegistrationFieldValue[]
+  values?: EventRegistrationFieldValue[]
   title?: string
   /** What the confirming button says, for a dialog that changes an answer rather than gives one. */
   confirmLabel?: string
@@ -34,7 +35,7 @@ const props = defineProps<{
 const show = defineModel<boolean>({required: true})
 
 const emit = defineEmits<{
-  confirm: [values: RegistrationFieldValue[]]
+  confirm: [values: EventRegistrationFieldValue[]]
 }>()
 
 const {t} = useI18n()

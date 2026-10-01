@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -29,7 +30,7 @@ public record EventAttachment(
         int id,
         int eventId,
         int fileId,
-        String label,
+        @Nullable String label,
         boolean internal,
         int sortOrder,
         Instant createdAt,

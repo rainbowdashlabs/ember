@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 import java.util.Map;
 
-public record BatchRow(String name, Instant startTime, Instant endTime, Map<String, String> fieldValues) {}
+public record BatchRow(@Nullable String name, Instant startTime, Instant endTime, Map<String, String> fieldValues) {}

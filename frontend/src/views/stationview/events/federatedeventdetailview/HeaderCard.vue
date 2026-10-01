@@ -12,12 +12,12 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {FederatedEventDetail} from '@/api/events'
+import type {EventField, SharedEvent} from '@/api/generated/schema'
 import {formatDate, formatTime} from '@/util/format'
 
 const props = defineProps<{
-  event: NonNullable<FederatedEventDetail['event']>
-  publicFields: FederatedEventDetail['publicFields']
+  event: SharedEvent
+  publicFields: EventField[]
 }>()
 
 const {t} = useI18n()
@@ -44,8 +44,8 @@ const repeatEnd = computed(() => {
       <SubHeader>{{ props.event.name }}</SubHeader>
       <div class="flex items-center gap-2 mt-1 flex-wrap">
         <StationBadge :station-name="t('federatedEventDetail.partnerEvent')"/>
-        <SecondaryBadge v-if="eventTypeBadge(props.event.eventType as string)">
-          {{ eventTypeBadge(props.event.eventType as string) }}
+        <SecondaryBadge v-if="eventTypeBadge(props.event.eventType)">
+          {{ eventTypeBadge(props.event.eventType) }}
         </SecondaryBadge>
         <InfoBadge v-if="props.event.requiresRegistration">
           {{ t('eventsUpcoming.registrationRequired') }}
@@ -61,8 +61,8 @@ const repeatEnd = computed(() => {
       </span>
       <span v-if="props.event.startTime">
         <font-awesome-icon :icon="['fas', 'clock']" class="mr-1 text-(--text-muted)"/>
-        {{ formatTime(props.event.startTime as string) }}
-        <template v-if="props.event.endTime"> &ndash; {{ formatTime(props.event.endTime as string) }}</template>
+        {{ formatTime(props.event.startTime) }}
+        <template v-if="props.event.endTime"> &ndash; {{ formatTime(props.event.endTime) }}</template>
       </span>
     </div>
 

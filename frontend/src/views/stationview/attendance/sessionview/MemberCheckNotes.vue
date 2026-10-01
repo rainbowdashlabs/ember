@@ -12,7 +12,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {hasAnything, hasBirthday} from './memberNotes'
-import type {MemberNotes, SwapNote} from '@/api/attendance'
+import type {MemberNotes, SwapNote} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

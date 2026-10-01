@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
+import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.service.AttendanceExportService;
 import dev.chojo.ember.feature.attendance.service.AttendanceReportService;
@@ -46,6 +47,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -565,17 +567,23 @@ public class AttendanceRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/attendance/sessions",
+            methods = HttpMethod.GET,
+            summary = "List the station's sessions with their counts",
+            tags = {"Attendance"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SessionSummary[].class)))
+    private void listSessionSummaries(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(attendanceService.findSessionSummaries(session.stationId()));
+    }
+
+    @OpenApi(
             path = "/api/v1/attendance/templates/{templateId}/sessions",
             methods = HttpMethod.GET,
             summary = "List sessions of a template",
             tags = {"Attendance"},
             pathParams = @OpenApiParam(name = "templateId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceSession[].class)))
-    private void listSessionSummaries(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        ctx.json(attendanceService.findSessionSummaries(session.stationId()));
-    }
-
     private void listSessions(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int templateId = pathInt(ctx, "templateId");
@@ -607,16 +615,6 @@ public class AttendanceRoutes implements Routes {
                         request.eventDate()));
     }
 
-    @OpenApi(
-            path = "/api/v1/attendance/sessions/{id}",
-            methods = HttpMethod.GET,
-            summary = "Get an attendance session with its fields and entries",
-            tags = {"Attendance"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = SessionDetail.class)),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
-            })
     /**
      * The sheet an appointment has on one of its days, so a page showing that day can offer to open
      * it rather than to take it again. A day nobody has taken yet answers with no content.
@@ -652,6 +650,16 @@ public class AttendanceRoutes implements Routes {
         ctx.json(found.get());
     }
 
+    @OpenApi(
+            path = "/api/v1/attendance/sessions/{id}",
+            methods = HttpMethod.GET,
+            summary = "Get an attendance session with its fields and entries",
+            tags = {"Attendance"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = SessionDetail.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void getSession(Context ctx) {
         UserSession userSession = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -1073,23 +1081,11 @@ public class AttendanceRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/attendance/report/export",
+            path = "/api/v1/attendance/report/export.csv",
             methods = HttpMethod.GET,
-            summary = "Export an attendance report as PDF",
+            summary = "Export an attendance report as CSV",
             tags = {"Attendance"},
-            queryParams = {
-                @OpenApiParam(name = "userTypes"),
-                @OpenApiParam(name = "groupIds"),
-                @OpenApiParam(name = "from", required = true),
-                @OpenApiParam(name = "to", required = true),
-                @OpenApiParam(name = "rounding"),
-                @OpenApiParam(name = "period")
-            },
-            responses = {
-                @OpenApiResponse(status = "200"),
-                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
-            })
+            responses = @OpenApiResponse(status = "200"))
     private void reportExportCsv(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var query = parseReportQuery(ctx);
@@ -1111,6 +1107,24 @@ public class AttendanceRoutes implements Routes {
         ctx.result(csv.get().bytes());
     }
 
+    @OpenApi(
+            path = "/api/v1/attendance/report/export",
+            methods = HttpMethod.GET,
+            summary = "Export an attendance report as PDF",
+            tags = {"Attendance"},
+            queryParams = {
+                @OpenApiParam(name = "userTypes"),
+                @OpenApiParam(name = "groupIds"),
+                @OpenApiParam(name = "from", required = true),
+                @OpenApiParam(name = "to", required = true),
+                @OpenApiParam(name = "rounding"),
+                @OpenApiParam(name = "period")
+            },
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void reportExport(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var query = parseReportQuery(ctx);
@@ -1280,7 +1294,7 @@ public class AttendanceRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List own and managed members' absences",
             tags = {"Attendance"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberAbsence[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AbsenceResponse[].class)))
     private void listMyAbsences(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {
@@ -1306,7 +1320,7 @@ public class AttendanceRoutes implements Routes {
             tags = {"Attendance"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MyAbsenceRequest.class)),
             responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberAbsence[].class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = AbsenceResponse[].class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createMyAbsence(Context ctx) {
@@ -1438,11 +1452,11 @@ public class AttendanceRoutes implements Routes {
     public record SessionRequest(
             Instant startTime,
             Instant endTime,
-            Integer eventId,
-            String title,
-            Integer countedMinutes,
-            SessionAudience audience,
-            LocalDate eventDate) {}
+            @Nullable Integer eventId,
+            @Nullable String title,
+            @Nullable Integer countedMinutes,
+            @Nullable SessionAudience audience,
+            @Nullable LocalDate eventDate) {}
 
     /**
      * Detailed session response including fields and attendance entries.
@@ -1504,14 +1518,21 @@ public class AttendanceRoutes implements Routes {
     /**
      * Request body for creating an absence by a manager.
      */
-    public record AbsenceRequest(Integer memberId, LocalDate absentFrom, LocalDate absentUntil, String reason) {}
+    public record AbsenceRequest(
+            Integer memberId,
+            LocalDate absentFrom,
+            LocalDate absentUntil,
+            @Nullable String reason) {}
 
     /**
      * Request body for self-service absence creation, optionally targeting managed members.
      */
     @OpenApiName("MyAbsenceRequest")
     public record MyAbsenceRequest(
-            LocalDate absentFrom, LocalDate absentUntil, String reason, List<Integer> memberIds) {}
+            LocalDate absentFrom,
+            LocalDate absentUntil,
+            @Nullable String reason,
+            @Nullable List<Integer> memberIds) {}
 
     /**
      * Request body for creating a report preset. An unknown user type is refused as a bad request.
@@ -1527,8 +1548,8 @@ public class AttendanceRoutes implements Routes {
             int memberId,
             LocalDate absentFrom,
             LocalDate absentUntil,
-            String reason,
+            @Nullable String reason,
             Instant createdAt,
-            String createdByName,
-            MemberIdentity memberIdentity) {}
+            @Nullable String createdByName,
+            @Nullable MemberIdentity memberIdentity) {}
 }

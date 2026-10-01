@@ -15,11 +15,12 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ChecklistMembershipEditor from './checklistmodals/ChecklistMembershipEditor.vue'
 import {toRestriction, type RestrictionSelection} from '@/components/input/restriction'
+import type {EventOccurrenceRef} from '@/api/events'
 import type {
-  ChecklistRestrictionDto,
-  ChecklistSourceOccurrence,
-  ChecklistSourceRequest,
-} from '@/api/checklists'
+  RestrictionResponse as ChecklistRestriction,
+  SourceOccurrenceResponse as ChecklistSourceOccurrence,
+  UpdateRequest as ChecklistUpdateRequest,
+} from '@/api/generated/schema'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 import {formatDate} from '@/util/format'
 import type {Failure} from '@/util/failure'
@@ -35,7 +36,7 @@ import type {Failure} from '@/util/failure'
 const visible = defineModel<boolean>({required: true})
 
 const props = defineProps<{
-  initialRestriction: ChecklistRestrictionDto
+  initialRestriction: ChecklistRestriction
   initialSource?: ChecklistSourceOccurrence | null
   groups: MemberGroup[]
   tags: UserTag[]
@@ -46,14 +47,19 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'submit', payload: {restriction?: ChecklistRestrictionDto; source?: ChecklistSourceRequest}): void
+  (e: 'submit', payload: Pick<ChecklistUpdateRequest, 'restriction' | 'source'>): void
 }>()
 
 const {t} = useI18n()
 
 const follows = ref<'FILTER' | 'EVENT'>('FILTER')
-const restriction = ref<RestrictionSelection>(toRestriction(props.initialRestriction))
-const occurrence = ref<ChecklistSourceRequest | null>(null)
+const restriction = ref<RestrictionSelection>(editorRestriction(props.initialRestriction))
+const occurrence = ref<EventOccurrenceRef | null>(null)
+
+/** The list's filter as the editor binds it; the wire names the combination mode as plain text. */
+function editorRestriction(filter: ChecklistRestriction): RestrictionSelection {
+  return toRestriction({...filter, mode: filter.mode === 'OR' ? 'OR' : 'AND'})
+}
 
 const initialLabel = computed(() => {
   const source = props.initialSource
@@ -64,7 +70,7 @@ const initialLabel = computed(() => {
 
 watch(visible, opened => {
   if (!opened) return
-  restriction.value = toRestriction(props.initialRestriction)
+  restriction.value = editorRestriction(props.initialRestriction)
   occurrence.value = props.initialSource
       ? {eventId: props.initialSource.eventId, date: props.initialSource.eventDate}
       : null

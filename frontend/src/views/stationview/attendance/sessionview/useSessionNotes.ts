@@ -6,6 +6,7 @@
 import {ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {attendance, lostAndFound, movements} from '@/api'
+import type {MemberNotes} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -22,7 +23,7 @@ import {describeFailure, type Failure} from '@/util/failure'
 export function useSessionNotes(sessionId: Ref<number>, failure: Ref<Failure | null>) {
     const {t} = useI18n()
 
-    const memberNotes = ref<Map<number, attendance.MemberNotes>>(new Map())
+    const memberNotes = ref<Map<number, MemberNotes>>(new Map())
 
     async function refreshNotes() {
         const notes = await attendance.getMemberNotes(sessionId.value)

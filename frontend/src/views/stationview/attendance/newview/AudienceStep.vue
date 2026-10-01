@@ -17,7 +17,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {MemberGroup, StationUserTypeName} from '@/api/types'
-import type {SessionAudience, TemplateDetail} from '@/api/attendance'
+import type {SessionAudience, TemplateDetail} from '@/api/generated/schema'
 import {templateAudience} from './templateAudience'
 
 /**

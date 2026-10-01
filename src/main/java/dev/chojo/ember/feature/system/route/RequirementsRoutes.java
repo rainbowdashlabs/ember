@@ -10,6 +10,10 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.system.service.RequirementsService;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -30,6 +34,15 @@ public class RequirementsRoutes implements Routes {
         routes.get(prefix + "/requirements", this::getRequirements, StationPermission.LOGIN);
     }
 
+    @OpenApi(
+            path = "/api/v1/requirements",
+            methods = HttpMethod.GET,
+            summary = "What the reader still owes",
+            tags = {"Requirements"},
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = RequirementsService.RequirementsResponse.class)))
     private void getRequirements(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null || session.stationId() == null) {

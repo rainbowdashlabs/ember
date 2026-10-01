@@ -11,11 +11,11 @@ import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
-import type {EventField, StationEvent} from '@/api/events'
+import type {EventField, EventSummary} from '@/api/generated/schema'
 import {renderMarkdown} from '@/util/markdown'
 
 defineProps<{
-  event: StationEvent
+  event: EventSummary
   detailRoute: RouteLocationRaw
   overviewFields: EventField[]
   formatTime: (iso?: string) => string
@@ -23,7 +23,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  attendance: [event: StationEvent]
+  attendance: [event: EventSummary]
 }>()
 
 const {t} = useI18n()

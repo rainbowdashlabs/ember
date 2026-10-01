@@ -17,13 +17,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import {
-  isRecurringEvent,
-  RegistrationStatus,
-  type EventCategory,
-  type EventRegistrationEntry,
-  type StationEvent,
-} from '@/api/events'
+import {isRecurringEvent, RegistrationStatus} from '@/api/events'
+import type {EventCategory, EventSummary, RegistrationResponse} from '@/api/generated/schema'
 import {events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {formatDate} from '@/util/format'
@@ -31,8 +26,8 @@ import {formatDate} from '@/util/format'
 const {t} = useI18n()
 const {isGuardian, sessionInfo} = useSession()
 
-const registrations = ref<EventRegistrationEntry[]>([])
-const allEvents = ref<StationEvent[]>([])
+const registrations = ref<RegistrationResponse[]>([])
+const allEvents = ref<EventSummary[]>([])
 const categories = ref<EventCategory[]>([])
 
 /** The category the registration's event was put in, absent where it was put in none. */
@@ -55,7 +50,7 @@ function eventName(eventId: number): string {
  * Date-aware deep link: recurring events must carry the occurrence date so the detail page
  * lands on the right instance, not always the first one.
  */
-function registrationRoute(reg: EventRegistrationEntry): RouteLocationRaw {
+function registrationRoute(reg: RegistrationResponse): RouteLocationRaw {
   const event = allEvents.value.find(e => e.id === reg.eventId)
   if (event && isRecurringEvent(event.eventType) && reg.eventDate) {
     return {name: 'event-detail-date', params: {id: reg.eventId, date: reg.eventDate}}

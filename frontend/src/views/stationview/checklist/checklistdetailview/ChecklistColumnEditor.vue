@@ -18,12 +18,12 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {checklists} from '@/api'
-import type {ChecklistColumnDto} from '@/api/checklists'
+import type {ColumnResponse as ChecklistColumn} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   checklistId: number
-  column?: ChecklistColumnDto
+  column?: ChecklistColumn
   totalColumns: number
 }>()
 

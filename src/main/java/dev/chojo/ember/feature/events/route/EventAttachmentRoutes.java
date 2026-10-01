@@ -28,6 +28,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -285,7 +286,10 @@ public class EventAttachmentRoutes implements Routes {
      * @param internal whether the file is kept back from the room, false where nothing is said
      */
     @OpenApiName("EventAttachmentRequest")
-    public record AttachmentRequest(Integer fileId, String label, Boolean internal) {}
+    public record AttachmentRequest(
+            Integer fileId,
+            @Nullable String label,
+            @Nullable Boolean internal) {}
 
     @OpenApiName("EventAttachmentOrderRequest")
     public record AttachmentOrderRequest(List<Integer> attachmentIds) {}

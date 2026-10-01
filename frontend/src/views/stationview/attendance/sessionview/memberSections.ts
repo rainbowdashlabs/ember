@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AttendanceEntry, SessionAudience} from '@/api/attendance'
+import type {AttendanceEntry, SessionAudience} from '@/api/generated/schema'
 import {StationUserType, StationUserTypeLabels, type MemberGroup, type StationMember} from '@/api/types'
 
 /** One block of names on a sheet, headed by a group or a user type, or by nothing for the rest. */

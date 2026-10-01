@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.equipment.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -38,9 +39,9 @@ public record EquipmentHandover(
         int itemId,
         Instant claimFrom,
         Instant claimTo,
-        Integer handedBy,
+        @Nullable Integer handedBy,
         Instant handedAt,
-        Instant returnedAt) {
+        @Nullable Instant returnedAt) {
 
     /**
      * Whether the piece is still out.

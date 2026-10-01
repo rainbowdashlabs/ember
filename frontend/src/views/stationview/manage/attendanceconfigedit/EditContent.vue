@@ -13,7 +13,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import GroupsEditor from './GroupsEditor.vue'
 import UserTypesEditor from './UserTypesEditor.vue'
 import FieldsList from './FieldsList.vue'
-import type {AttendanceTemplateField, TemplateGroupEntry} from '@/api/attendance'
+import type {AttendanceTemplateField, TemplateGroupEntry} from '@/api/generated/schema'
 import type {MemberGroup, StationUserTypeName} from '@/api/types'
 
 const props = defineProps<{

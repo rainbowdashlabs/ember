@@ -16,7 +16,10 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {checklists} from '@/api'
-import type {ChecklistCellDto, ChecklistNoteHistoryEntry} from '@/api/checklists'
+import type {
+    CellResponse as ChecklistCell,
+    NoteHistoryEntryResponse as ChecklistNoteHistoryEntry,
+} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -30,7 +33,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'changed', cell: ChecklistCellDto): void
+  (e: 'changed', cell: ChecklistCell): void
 }>()
 
 const {t} = useI18n()

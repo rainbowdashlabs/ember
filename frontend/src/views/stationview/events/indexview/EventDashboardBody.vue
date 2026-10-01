@@ -13,8 +13,14 @@ import EventDashboardActions from './EventDashboardActions.vue'
 import EventExportPanel from './EventExportPanel.vue'
 import EventListSection from './EventListSection.vue'
 import type {PagedListView} from '@/composables/usePagedList'
-import type {AttendanceTemplate} from '@/api/attendance'
-import type {DatedEvent, EventBreak, EventCategory, EventField, StationEvent} from '@/api/events'
+import type {
+  AttendanceTemplate,
+  DatedEvent,
+  EventBreak,
+  EventCategory,
+  EventField,
+  EventSummary,
+} from '@/api/generated/schema'
 
 /**
  * The dashboard under its tabs: what is coming, or what has been.
@@ -36,8 +42,8 @@ const props = defineProps<{
 
 defineEmits<{
   addEvent: []
-  editEvent: [event: StationEvent]
-  deleteEvent: [event: StationEvent]
+  editEvent: [event: EventSummary]
+  deleteEvent: [event: EventSummary]
   addBreak: []
   editBreak: [entry: EventBreak]
   deleteBreak: [entry: EventBreak]

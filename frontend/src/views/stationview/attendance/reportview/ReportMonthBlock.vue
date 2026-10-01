@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ReportMonthlySummaryTable from './ReportMonthlySummaryTable.vue'
 import ReportSessionCard from './ReportSessionCard.vue'
-import type {MonthSummary} from '@/api/attendance'
+import type {MonthSummary} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

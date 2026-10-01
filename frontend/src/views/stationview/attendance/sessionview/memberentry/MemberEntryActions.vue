@@ -6,7 +6,8 @@
 <script lang="ts" setup>
 import MemberEntryStatusButtons from './MemberEntryStatusButtons.vue'
 import MemberEntryTimeRange from './MemberEntryTimeRange.vue'
-import type {AttendanceEntry, AttendanceStatus} from '@/api/attendance'
+import type {AttendanceStatus} from '@/api/attendance'
+import type {AttendanceEntry} from '@/api/generated/schema'
 
 defineProps<{
   entry: AttendanceEntry
@@ -28,8 +29,8 @@ const emit = defineEmits<{
     <MemberEntryStatusButtons :status="entry.status" @set-status="emit('setStatus', $event)"/>
     <MemberEntryTimeRange
         v-if="entry.status === 'PRESENT'"
-        :check-in="entry.checkIn"
-        :check-out="entry.checkOut"
+        :check-in="entry.checkIn ?? undefined"
+        :check-out="entry.checkOut ?? undefined"
         :session-end="sessionEnd"
         :session-start="sessionStart"
         :spans-days="spansDays"

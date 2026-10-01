@@ -30,6 +30,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -321,13 +322,13 @@ public class EquipmentNeedRoutes implements Routes {
      * @param eventDate the one date the line speaks for, or {@code null} for the whole series
      */
     public record NeedRequest(
-            Integer itemId,
-            Integer artId,
-            Integer inventoryId,
-            Integer quantity,
-            Integer leadMinutes,
-            Integer trailMinutes,
-            LocalDate eventDate) {}
+            @Nullable Integer itemId,
+            @Nullable Integer artId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer quantity,
+            @Nullable Integer leadMinutes,
+            @Nullable Integer trailMinutes,
+            @Nullable LocalDate eventDate) {}
 
     public record NeedUpdate(Integer quantity, Integer leadMinutes, Integer trailMinutes) {}
 

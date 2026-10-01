@@ -37,6 +37,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -156,7 +157,7 @@ public class EventStructureRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CategoryRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateCategory(Context ctx) {
@@ -176,15 +177,12 @@ public class EventStructureRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/events/categories/{id}",
-            methods = HttpMethod.DELETE,
-            summary = "Delete an event category",
+            path = "/api/v1/events/categories/reorder",
+            methods = HttpMethod.PUT,
+            summary = "Reorder the event categories",
             tags = {"Events"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = {
-                @OpenApiResponse(status = "204"),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
-            })
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReorderCategoriesRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventCategory[].class)))
     private void reorderCategories(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(ReorderCategoriesRequest.class);
@@ -195,6 +193,16 @@ public class EventStructureRoutes implements Routes {
         ctx.json(categoryService.findByStation(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/events/categories/{id}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete an event category",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void deleteCategory(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, categoryService::findById, EventCategory::stationId);
@@ -421,7 +429,15 @@ public class EventStructureRoutes implements Routes {
     /**
      * The questions marked for the overview, each answered for the occurrence its appointment is
      * drawn on, which for every list of appointments is the next one.
+     *
+     * <p>The answer maps each appointment's id to its questions, which an annotation cannot name.
      */
+    @OpenApi(
+            path = "/api/v1/events/overview-fields",
+            methods = HttpMethod.GET,
+            summary = "The overview questions of every event, by event",
+            tags = {"Events"},
+            responses = @OpenApiResponse(status = "200"))
     private void getOverviewFields(Context ctx) {
         var session = UserSession.from(ctx);
         var events = crudService.findByStation(session.stationId());
@@ -435,19 +451,25 @@ public class EventStructureRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List distinct event field names used across all events",
             tags = {"Events"},
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = String[].class)))
     private void listFieldNames(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(eventFieldService.findDistinctFieldNames(session.stationId()));
     }
 
-    public record CategoryRequest(String name, int position, Integer maxShownEvents, Boolean isPublic, String color) {}
+    public record CategoryRequest(
+            String name,
+            int position,
+            @Nullable Integer maxShownEvents,
+            @Nullable Boolean isPublic,
+            @Nullable String color) {}
 
     public record ReorderCategoriesRequest(List<Integer> orderedIds) {}
 
     public record BreakRequest(String name, LocalDate startDate, LocalDate endDate) {}
 
-    public record FieldDefaultEntry(int fieldId, String source, String value) {}
+    public record FieldDefaultEntry(
+            int fieldId, String source, @Nullable String value) {}
 
     @OpenApiName("SetEventFieldsRequest")
     public record SetEventFieldsRequest(List<EventFieldEntry> fields) {}
@@ -457,12 +479,12 @@ public class EventStructureRoutes implements Routes {
 
     @OpenApiName("EventFieldEntry")
     public record EventFieldEntry(
-            Integer id,
+            @Nullable Integer id,
             String name,
-            EventFieldType fieldType,
-            EventFieldConfig config,
-            String value,
-            Boolean overview,
-            Integer attendanceFieldId,
-            Boolean isPublic) {}
+            @Nullable EventFieldType fieldType,
+            @Nullable EventFieldConfig config,
+            @Nullable String value,
+            @Nullable Boolean overview,
+            @Nullable Integer attendanceFieldId,
+            @Nullable Boolean isPublic) {}
 }

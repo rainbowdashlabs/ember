@@ -10,8 +10,7 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import type {SessionAudience, TemplateDetail} from '@/api/attendance'
-import type {StationEvent} from '@/api/events'
+import type {EventSummary, SessionAudience, TemplateDetail} from '@/api/generated/schema'
 import type {MemberGroup} from '@/api/types'
 import {attendance, events, memberGroups} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -33,7 +32,7 @@ const route = useRoute()
 const {loaded} = useSession()
 
 const templates = ref<TemplateDetail[]>([])
-const todayEvents = ref<StationEvent[]>([])
+const todayEvents = ref<EventSummary[]>([])
 const groups = ref<MemberGroup[]>([])
 
 const chosenTemplate = ref<TemplateDetail | null>(null)
@@ -156,7 +155,7 @@ function createWithTimes(times: {title: string; startTime: string; endTime: stri
   runCreate(chosenTemplate.value.id, null, null, times)
 }
 
-function createFromEvent(ev: StationEvent) {
+function createFromEvent(ev: EventSummary) {
   if (ev.templateId) {
     chosenAudience.value = null
     createSession(ev.templateId, ev.id)

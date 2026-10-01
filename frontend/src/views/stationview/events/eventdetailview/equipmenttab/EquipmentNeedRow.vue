@@ -10,7 +10,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type {NeedCoverage} from '@/api/equipment'
+import type {NeedCoverage} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{

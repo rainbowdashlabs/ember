@@ -322,7 +322,7 @@ async function save() {
 
     if (canFederateNews()) {
       if (federationShared.value) {
-        const pIds = federationScope.value === 'SPECIFIC_PARTNERS' ? federationPartnerIds.value : undefined
+        const pIds = federationScope.value === 'SPECIFIC' ? federationPartnerIds.value : undefined
         await news.setFederationShare(savedId, federationScope.value, federationVisibilityRole.value, pIds)
       } else {
         await news.removeFederationShare(savedId).catch(() => {})

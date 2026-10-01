@@ -63,7 +63,6 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -725,11 +724,13 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(34)
     void federatedEventItemRecord() {
+        var event =
+                new SharedEvent(1, "Training", "", StationEvent.EventType.ONE_TIME, 0, "", "", false, true, null, null);
         var item = new EventFederationService.FederatedEventItem(
-                42, "TestStation", "00000000-0000-0000-0000-000000000042", Map.of("id", 1));
+                42, "TestStation", "00000000-0000-0000-0000-000000000042", event);
         assertEquals(42, item.partnerId());
         assertEquals("TestStation", item.partnerStationName());
-        assertEquals(Map.of("id", 1), item.event());
+        assertEquals(event, item.event());
     }
 
     // -- Remote HTTP federation tests --

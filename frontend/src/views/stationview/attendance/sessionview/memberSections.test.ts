@@ -6,7 +6,7 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {buildMemberSections, type MemberSectionSources} from './memberSections'
-import type {AttendanceEntry} from '@/api/attendance'
+import type {AttendanceEntry} from '@/api/generated/schema'
 import type {MemberGroup, StationMember} from '@/api/types'
 
 /**
@@ -18,7 +18,7 @@ function member(id: number, name: string, userType: string, formerAt: string | n
 }
 
 function entry(memberId: number): AttendanceEntry {
-    return {id: memberId, sessionId: 1, memberId, status: 'UNCONFIRMED', source: 'EXPECTED'}
+    return {id: memberId, sessionId: 1, memberId, status: 'UNCONFIRMED', source: 'EXPECTED', checkIn: null, checkOut: null}
 }
 
 const YOUTH: MemberGroup = {id: 1, stationId: 's', name: 'Jugend', position: 0}

@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldDefaultRow from '../eventshared/FieldDefaultRow.vue'
-import type {AttendanceTemplateField} from '@/api/attendance'
+import type {AttendanceTemplateField} from '@/api/generated/schema'
 
 interface FieldDefaultEntry {
   source: string

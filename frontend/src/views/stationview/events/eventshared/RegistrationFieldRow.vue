@@ -15,10 +15,11 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import {EventFieldTypes, type EventFieldTypeName, type EventRegistrationFieldDefinition} from '@/api/events'
+import {EventFieldTypes, type EventFieldTypeName} from '@/api/events'
+import type {EventRegistrationFieldConfig, RegistrationFieldDefinition} from '@/api/generated/schema'
 import {QuestionKinds, questionKindOf} from '@/util/questions'
 
-const field = defineModel<EventRegistrationFieldDefinition>({required: true})
+const field = defineModel<RegistrationFieldDefinition>({required: true})
 
 defineProps<{
   types: { value: EventFieldTypeName; label: string }[]
@@ -37,16 +38,19 @@ const {t} = useI18n()
  */
 const kind = computed(() => questionKindOf(field.value.fieldType, true) ?? QuestionKinds.TEXT)
 
-function update(patch: Partial<EventRegistrationFieldDefinition>) {
+function update(patch: Partial<RegistrationFieldDefinition>) {
   field.value = {...field.value, ...patch}
 }
 
-function updateConfig(patch: Record<string, unknown>) {
-  field.value = {...field.value, config: {...field.value.config, ...patch}}
+/** The question's settings, the plain ones where it carries none yet. */
+const config = computed<EventRegistrationFieldConfig>(() => field.value.config ?? {required: false, managersOnly: false})
+
+function updateConfig(patch: Partial<EventRegistrationFieldConfig>) {
+  field.value = {...field.value, config: {...config.value, ...patch}}
 }
 
-function numberOrNull(value: unknown): number | null {
-  return value === undefined || value === '' || value === null ? null : Number(value)
+function numberOrUnset(value: unknown): number | undefined {
+  return value === undefined || value === '' || value === null ? undefined : Number(value)
 }
 </script>
 
@@ -77,7 +81,7 @@ function numberOrNull(value: unknown): number | null {
       <div>
         <FieldLabel class="mb-1">{{ t('events.registrationFields.required') }}</FieldLabel>
         <ToggleInput
-            :model-value="field.config.required ?? false"
+            :model-value="config.required"
             @update:model-value="v => updateConfig({required: v})"
         />
       </div>
@@ -90,7 +94,7 @@ function numberOrNull(value: unknown): number | null {
           {{ t('events.registrationFields.managersOnly') }}
         </FieldLabel>
         <ToggleInput
-            :model-value="field.config.managersOnly ?? false"
+            :model-value="config.managersOnly"
             @update:model-value="v => updateConfig({managersOnly: v})"
         />
       </div>
@@ -98,8 +102,8 @@ function numberOrNull(value: unknown): number | null {
         <FieldLabel class="mb-1">{{ t('events.registrationFields.defaultValue') }}</FieldLabel>
         <QuestionValueInput
             :kind="kind"
-            :model-value="field.config.defaultValue ?? ''"
-            :options="field.config.options ?? []"
+            :model-value="config.defaultValue ?? ''"
+            :options="config.options ?? []"
             @update:model-value="value => updateConfig({defaultValue: value})"
         />
         <FieldHint>{{ t('events.registrationFields.defaultValueHint') }}</FieldHint>
@@ -110,15 +114,15 @@ function numberOrNull(value: unknown): number | null {
       <div class="w-32">
         <FieldLabel class="mb-1">{{ t('events.registrationFields.min') }}</FieldLabel>
         <NumberInput
-            :model-value="field.config.min ?? undefined"
-            @update:model-value="v => updateConfig({min: numberOrNull(v)})"
+            :model-value="config.min"
+            @update:model-value="v => updateConfig({min: numberOrUnset(v)})"
         />
       </div>
       <div class="w-32">
         <FieldLabel class="mb-1">{{ t('events.registrationFields.max') }}</FieldLabel>
         <NumberInput
-            :model-value="field.config.max ?? undefined"
-            @update:model-value="v => updateConfig({max: numberOrNull(v)})"
+            :model-value="config.max"
+            @update:model-value="v => updateConfig({max: numberOrUnset(v)})"
         />
       </div>
     </div>
@@ -126,7 +130,7 @@ function numberOrNull(value: unknown): number | null {
     <QuestionOptionsEditor
         v-if="field.fieldType === EventFieldTypes.ENUM"
         :label="t('events.registrationFields.options')"
-        :model-value="field.config.options ?? []"
+        :model-value="config.options ?? []"
         @update:model-value="options => updateConfig({options})"
     />
   </div>

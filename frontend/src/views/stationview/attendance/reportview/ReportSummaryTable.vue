@@ -11,7 +11,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import TRow from '@/components/table/TRow.vue'
 import Td from '@/components/table/Td.vue'
 import Th from '@/components/table/Th.vue'
-import type {MemberSummary} from '@/api/attendance'
+import type {MemberSummary} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

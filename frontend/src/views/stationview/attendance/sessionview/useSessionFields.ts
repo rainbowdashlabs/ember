@@ -6,7 +6,7 @@
 import {type Ref, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {attendance} from '@/api'
-import type {AttendanceEntry, AttendanceTemplateField} from '@/api/attendance'
+import type {AttendanceEntry, AttendanceTemplateField} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 export function useSessionFields(

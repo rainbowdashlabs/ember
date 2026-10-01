@@ -17,7 +17,7 @@ import FilePreviewModal from '@/components/documents/FilePreviewModal.vue'
 import {formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {events} from '@/api'
-import type {EventAttachment} from '@/api/events'
+import type {EventAttachment} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**

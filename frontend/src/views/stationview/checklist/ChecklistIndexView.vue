@@ -15,7 +15,10 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {checklists, memberGroups, stationMembers, userTags} from '@/api'
-import type {ChecklistCreateRequest, ChecklistSummary} from '@/api/checklists'
+import type {
+    ChecklistSummaryResponse as ChecklistSummary,
+    CreateRequest as ChecklistCreateRequest,
+} from '@/api/generated/schema'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 import ChecklistTile from './checklistindexview/ChecklistTile.vue'
 import ChecklistCreateModal from './ChecklistCreateModal.vue'

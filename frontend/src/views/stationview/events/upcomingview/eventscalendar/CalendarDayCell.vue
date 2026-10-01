@@ -7,19 +7,19 @@
 import type {RouteLocationRaw} from 'vue-router'
 import EventChipLink from '@/components/navigation/EventChipLink.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import type {StationEvent} from '@/api/events'
+import type {EventSummary} from '@/api/generated/schema'
 import type {DayCell} from '@/composables/useEventCalendarGrid'
 
 const props = defineProps<{
   cell: DayCell
   dayIdx: number
   laneCount: number
-  chipStyle: (ev: StationEvent) => {backgroundColor: string; color: string} | undefined
+  chipStyle: (ev: EventSummary) => {backgroundColor: string; color: string} | undefined
   /** Where an appointment's chip leads on the day it falls on, or nothing where it may not be opened. */
-  detailRoute: (ev: StationEvent, date: string) => RouteLocationRaw | null
+  detailRoute: (ev: EventSummary, date: string) => RouteLocationRaw | null
   formatTime: (iso?: string) => string
   /** Whether an appointment is off on a date, which strikes its chip through. */
-  isCancelled: (ev: StationEvent, date: string) => boolean
+  isCancelled: (ev: EventSummary, date: string) => boolean
 }>()
 
 void props

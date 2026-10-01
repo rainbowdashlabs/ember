@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import DataTable from '@/components/table/DataTable.vue'
-import type {SessionMemberEntry} from '@/api/attendance'
+import type {SessionMemberEntry} from '@/api/generated/schema'
 import {formatDayMonth, formatTime} from '@/util/format'
 
 const {t} = useI18n()

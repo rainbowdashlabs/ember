@@ -7,7 +7,7 @@
 import {mount} from '@vue/test-utils'
 import {describe, expect, it} from 'vitest'
 import MemberEntry from './MemberEntry.vue'
-import type {MemberNotes, SwapNote} from '@/api/attendance'
+import type {MemberNotes, SwapNote} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 
 /**

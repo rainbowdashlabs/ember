@@ -17,9 +17,9 @@ import EventFieldValueInput from './EventFieldValueInput.vue'
 import EventFieldTypeConfig from './EventFieldTypeConfig.vue'
 import {usableOptions} from '@/util/choiceOptions'
 import {fieldConstraint, isMemberFieldType} from './eventFieldConfig'
-import type {AttendanceTemplateField} from '@/api/attendance'
-import {EventFieldTypes, type EventFieldEntry} from '@/api/events'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import {EventFieldTypes, type EventFieldTypeName} from '@/api/events'
+import type {AttendanceTemplateField, EventFieldConfig, EventFieldEntry} from '@/api/generated/schema'
+import {StationUserType, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
 
 const modelValue = defineModel<EventFieldEntry>({required: true})
 
@@ -102,20 +102,25 @@ function seed(entry: EventFieldEntry) {
   isPublic.value = entry.isPublic ?? false
   attendanceFieldId.value = entry.attendanceFieldId ?? null
 
-  const cfg = entry.config ?? {}
-  setEnumOptions(Array.isArray(cfg.options) ? (cfg.options as string[]) : [])
-  width.value = cfg.width ? String(cfg.width) : FieldWidths.FULL
-  groupId.value = cfg.groupId ? String(cfg.groupId) : ''
-  userType.value = cfg.userType ? String(cfg.userType) : ''
-  tagId.value = cfg.tagId ? String(cfg.tagId) : ''
-  selfRegistration.value = Boolean(cfg.selfRegistration)
-  perDate.value = Boolean(cfg.perDate)
+  const cfg = entry.config
+  setEnumOptions(cfg?.options ?? [])
+  width.value = cfg?.width ?? FieldWidths.FULL
+  groupId.value = cfg?.groupId ? String(cfg.groupId) : ''
+  userType.value = cfg?.userType ?? ''
+  tagId.value = cfg?.tagId ? String(cfg.tagId) : ''
+  selfRegistration.value = cfg?.selfRegistration ?? false
+  perDate.value = cfg?.perDate ?? false
 }
 
 seed(modelValue.value)
 
-function buildConfig(): Record<string, unknown> {
-  const c: Record<string, unknown> = {}
+/** The type picked, read back from the offered ones so a stray value falls back to text. */
+function pickedFieldType(): EventFieldTypeName {
+  return fieldTypeOptions.find(option => option.value === fieldType.value)?.value ?? EventFieldTypes.STRING
+}
+
+function buildConfig(): EventFieldConfig {
+  const c: EventFieldConfig = {selfRegistration: false, perDate: false}
   if (width.value && width.value !== FieldWidths.FULL) c.width = width.value
   const constraint = fieldConstraint(fieldType.value)
   const options = usableOptions(enumOptions.value)
@@ -125,8 +130,9 @@ function buildConfig(): Record<string, unknown> {
   if (constraint === 'group' && groupId.value) {
     c.groupId = Number(groupId.value)
   }
-  if (constraint === 'userType' && userType.value) {
-    c.userType = userType.value
+  const pickedUserType = Object.values(StationUserType).find(type => type === userType.value)
+  if (constraint === 'userType' && pickedUserType) {
+    c.userType = pickedUserType
   }
   if (constraint === 'tag' && tagId.value) {
     c.tagId = Number(tagId.value)
@@ -160,7 +166,7 @@ const matchingAttendanceFields = computed(() =>
 const entry = computed<EventFieldEntry>(() => ({
   id: fieldId.value,
   name: name.value,
-  fieldType: fieldType.value,
+  fieldType: pickedFieldType(),
   config: configString.value,
   value: fieldValue.value,
   overview: overview.value,

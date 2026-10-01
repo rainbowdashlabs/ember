@@ -6,7 +6,7 @@
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
 import {buildAnnouncementDraft, type AnnouncedEvent} from './announcementPrefill'
-import type {EventField, StationEvent} from '@/api/events'
+import type {EventField, StationEvent} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/components/input/restriction'
 
 const WORDS = {
@@ -17,17 +17,28 @@ const WORDS = {
 }
 
 const EVENT: StationEvent = {
-    id: 7,
-    stationId: 'abc',
-    name: 'Übungsdienst',
-    eventType: 'RECURRING',
-    description: 'Wir üben Knoten.',
-    startTime: '2026-09-01T19:00:00',
-    endTime: '2026-09-01T21:00:00',
+    id: 7, stationId: 'abc', name: 'Übungsdienst', description: 'Wir üben Knoten.', eventType: 'RECURRING',
+    recurring: true, startTime: '2026-09-01T19:00:00', endTime: '2026-09-01T21:00:00', dayOfWeek: 2,
+    templateId: null, categoryId: null, isPublic: null, restricted: false, restrictionMode: 'AND',
+    viewRestrictionMode: 'AND', requiresRegistration: false, requiresConfirmation: false,
+    registrationDeadline: null, registrationLimit: null, registrationCloseDays: null, minRegistrations: null,
+    thresholdDays: null, repeatUntil: null, repeatCount: null, cancelled: false, cancelledAt: null, cancelReason: null,
 }
 
 function field(over: Partial<EventField>): EventField {
-    return {id: 1, eventId: 7, position: 0, overview: true, ...over}
+    return {
+        id: 1,
+        eventId: 7,
+        name: '',
+        fieldType: 'STRING',
+        value: '',
+        config: {perDate: false, selfRegistration: false},
+        position: 0,
+        overview: true,
+        isPublic: false,
+        attendanceFieldId: null,
+        ...over,
+    }
 }
 
 function audience(over: Partial<RestrictionSelection> = {}): RestrictionSelection {
@@ -107,7 +118,7 @@ describe('buildAnnouncementDraft', () => {
 
     it('leaves out the blocks it has nothing for', () => {
         const draft = buildAnnouncementDraft(
-            announced({event: {id: 7, stationId: 'abc', name: 'Übungsdienst'}, eventUid: null, date: null}),
+            announced({event: {...EVENT, description: null}, eventUid: null, date: null}),
             audience(),
             new Map(),
             WORDS,

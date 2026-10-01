@@ -8,14 +8,14 @@ import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ChecklistFormModal from './checklistmodals/ChecklistFormModal.vue'
 import ChecklistColumnOrderEditor from './checklistmodals/ChecklistColumnOrderEditor.vue'
-import type {ChecklistColumnDto} from '@/api/checklists'
+import type {ColumnResponse as ChecklistColumn} from '@/api/generated/schema'
 
 const visible = defineModel<boolean>({required: true})
 
 const props = defineProps<{
   initialName: string
   initialDescription: string
-  initialColumns: ChecklistColumnDto[]
+  initialColumns: ChecklistColumn[]
   saving: boolean
 }>()
 
@@ -27,7 +27,7 @@ const {t} = useI18n()
 
 const name = ref(props.initialName)
 const description = ref(props.initialDescription)
-const orderedColumns = ref<ChecklistColumnDto[]>([...props.initialColumns])
+const orderedColumns = ref<ChecklistColumn[]>([...props.initialColumns])
 
 watch(visible, (value) => {
   if (value) {

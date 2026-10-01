@@ -14,15 +14,8 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import DashboardEventTile from './upcomingeventspanel/DashboardEventTile.vue'
 import EventAnswerDialog from '@/views/stationview/events/eventshared/EventAnswerDialog.vue'
 import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
-import {
-  EventTypes,
-  isQuarterMonthOf,
-  isRecurringEvent,
-  type EventBreak,
-  type EventCategory,
-  type EventRegistrationEntry,
-  type StationEvent,
-} from '@/api/events'
+import {EventTypes, isQuarterMonthOf, isRecurringEvent} from '@/api/events'
+import type {EventBreak, EventCategory, EventSummary, RegistrationResponse} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -36,12 +29,12 @@ const {t} = useI18n()
 const router = useRouter()
 const {sessionInfo, isGuardian} = useSession()
 
-const allEvents = ref<StationEvent[]>([])
+const allEvents = ref<EventSummary[]>([])
 const categories = ref<EventCategory[]>([])
 const eventBreaks = ref<EventBreak[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
 const feedStatus = ref<FeedStatusResponse | null>(null)
-const myRegistrations = ref<EventRegistrationEntry[]>([])
+const myRegistrations = ref<RegistrationResponse[]>([])
 const managed = ref<StationMember[]>([])
 const declining = ref<UpcomingEvent | null>(null)
 const decliningBusy = ref(false)
@@ -61,13 +54,13 @@ const feedCtaMessage = computed(() => {
 /** The category an event was put in, absent where it was put in none. */
 const categoriesById = computed(() => new Map(categories.value.map(cat => [cat.id, cat])))
 
-function categoryOf(ev: StationEvent): EventCategory | undefined {
+function categoryOf(ev: EventSummary): EventCategory | undefined {
   return ev.categoryId != null ? categoriesById.value.get(ev.categoryId) : undefined
 }
 
 
 interface UpcomingEvent {
-  event: StationEvent
+  event: EventSummary
   date: string
   dayLabel: string
 }

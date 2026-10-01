@@ -91,6 +91,10 @@
 - **Links zu Wachen auf der Netzwerkkarte führten ins Leere.** Auf der Karte des Discovery-Netzes öffnete der Link zu einer Wache einer anderen Instanz eine Seite, die es nicht gab. Sobald beide Instanzen diese Version nutzen, öffnet er die öffentliche Seite der Wache.
 - **Die Discovery-Seite war auf Telefonen nicht über die Fußzeile erreichbar.** Auf schmalen Bildschirmen fehlte in der Fußzeile der Link zum Wachen-Verzeichnis. Jetzt steht er bei jeder Bildschirmbreite da.
 - **Gruppen auf der Seite eines Mitglieds zu ändern konnte scheitern oder andere Änderungen zurücknehmen.** Die Auswahl von Gruppen auf der Bearbeitungsseite eines Mitglieds scheiterte für Personen, die Mitglieder bearbeiten, aber keine Gruppen verwalten durften, und zwei Personen, die gleichzeitig eine Gruppe änderten, konnten gegenseitig ihre Änderungen zurücknehmen. Die Seite speichert jetzt die Gruppen dieses einen Mitglieds.
+- **Teilen mit ausgewählten Partnerwachen schlug fehl.** Ein Termin oder eine Neuigkeit, die nur mit einigen Partnerwachen geteilt war, ließ sich nicht speichern. Sie werden jetzt mit den gewählten Partnern gespeichert.
+- **Das Bearbeiten eines Termins nahm seine Fragen aus dem öffentlichen Kalender.** Beim Speichern eines Termins wurde bei jeder seiner Fragen die Einstellung „öffentlich“ ausgeschaltet, sodass sie im öffentlichen Kalender nicht mehr erschienen. Fragen behalten jetzt ihre Einstellung.
+- **Anwesenheitsfelder ohne Vorgabe bekamen eine.** Ein Anwesenheitsfeld ohne Vorgabewert erschien im Vorlagen-Editor so, als hätte es einen, und beim Speichern wurde ein leerer Text, eine Null oder ein Nein hinterlegt. Der Editor zeigt solche Felder jetzt ohne Vorgabe.
+- **Im Anmeldeüberblick fehlte die Teilnehmergrenze.** Der Überblick über die Anmeldungen zeigte nicht, wie viele Plätze ein Termin hat. Die Grenze steht jetzt neben dem Termin.
 
 ## v26.19.5
 

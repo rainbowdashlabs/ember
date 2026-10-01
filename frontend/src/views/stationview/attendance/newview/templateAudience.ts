@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {SessionAudience, TemplateDetail} from '@/api/attendance'
+import type {SessionAudience, TemplateDetail} from '@/api/generated/schema'
 
 /**
  * Whom a template expects on its sheets: its user types and its groups, the groups in the template's
@@ -11,8 +11,8 @@ import type {SessionAudience, TemplateDetail} from '@/api/attendance'
  */
 export function templateAudience(template: TemplateDetail): SessionAudience {
     return {
-        userTypes: [...(template.userTypes ?? [])],
-        groupIds: [...(template.groups ?? [])]
+        userTypes: [...template.userTypes],
+        groupIds: [...template.groups]
             .sort((a, b) => a.position - b.position)
             .map(group => group.groupId),
     }

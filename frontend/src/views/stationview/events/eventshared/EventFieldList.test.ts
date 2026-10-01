@@ -6,17 +6,19 @@
 import {describe, expect, it} from 'vitest'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import EventFieldList from './EventFieldList.vue'
-import type {EventFieldEntry} from '@/api/events'
+import type {EventFieldEntry} from '@/api/generated/schema'
 
 /**
  * The order of the questions is the order they are asked in, and moving one used to mean deleting
  * everything below it and typing it in again.
  */
 describe('EventFieldList', () => {
+    const plain = {selfRegistration: false, perDate: false}
+
     function twoFields(): EventFieldEntry[] {
         return [
-            {name: 'Ort', fieldType: 'STRING', config: {}, value: '', overview: true, attendanceFieldId: null},
-            {name: 'Treffpunkt', fieldType: 'STRING', config: {}, value: '', overview: true, attendanceFieldId: null},
+            {name: 'Ort', fieldType: 'STRING', config: plain, value: '', overview: true, attendanceFieldId: null},
+            {name: 'Treffpunkt', fieldType: 'STRING', config: plain, value: '', overview: true, attendanceFieldId: null},
         ]
     }
 
@@ -45,7 +47,7 @@ describe('EventFieldList', () => {
 
     it('asks for no value where the answer would be a member nobody handed over', async () => {
         const fields: EventFieldEntry[] = [
-            {name: 'Ausbilder', fieldType: 'MEMBER', config: {}, value: '', overview: false, attendanceFieldId: null},
+            {name: 'Ausbilder', fieldType: 'MEMBER', config: plain, value: '', overview: false, attendanceFieldId: null},
         ]
 
         const list = await mountSuspended(EventFieldList, {props: {fields, showValue: true}})

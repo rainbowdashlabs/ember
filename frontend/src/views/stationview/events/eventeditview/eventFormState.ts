@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {EventTypes, type EventFieldEntry} from '@/api/events'
+import {EventTypes, type EventTypeName} from '@/api/events'
+import type {EventFieldEntry} from '@/api/generated/schema'
 import {emptyRestriction} from '@/components/input/restriction'
 
 /**
@@ -35,6 +36,14 @@ export function createEventFormState() {
     fields: [] as EventFieldEntry[],
     reminders: [] as number[],
   }
+}
+
+/**
+ * The kind of appointment a form names, read back from the known kinds, or nothing where the form
+ * holds a value that is none of them.
+ */
+export function eventTypeNamed(value: string | null | undefined): EventTypeName | undefined {
+  return Object.values(EventTypes).find(type => type === value)
 }
 
 /**

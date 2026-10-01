@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {formatDateTime} from '@/util/format'
-import type {ChecklistRefreshResult} from '@/api/checklists'
+import type {RefreshResponse as ChecklistRefreshResult} from '@/api/generated/schema'
 
 const props = defineProps<{
   lastRefreshedAt?: string | null

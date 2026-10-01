@@ -32,7 +32,7 @@ const places = defineModel<Record<number, {decides: boolean; budget: number | nu
 
 const sharedWith = computed(() => {
   if (!shared.value) return []
-  if (scope.value === 'SPECIFIC_PARTNERS') {
+  if (scope.value === 'SPECIFIC') {
     return props.partners.filter(entry => partnerIds.value.includes(entry.partner.id))
   }
   return props.partners

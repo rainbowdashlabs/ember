@@ -8,7 +8,8 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useEventRoutes} from '@/composables/useEventRoutes'
 import {events} from '@/api'
-import {isRecurringEvent, type EventBreak, type EventCategory, type StationEvent} from '@/api/events'
+import {isRecurringEvent} from '@/api/events'
+import type {EventBreak, EventCategory, EventSummary} from '@/api/generated/schema'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CalendarDayCell from '@/views/stationview/events/upcomingview/eventscalendar/CalendarDayCell.vue'
@@ -23,7 +24,7 @@ import {formatTime} from '@/util/format'
  * {@link useEventCalendarGrid}; this component renders it and colours the chips by category.
  */
 const props = defineProps<{
-  allEvents: StationEvent[]
+  allEvents: EventSummary[]
   eventBreaks: EventBreak[]
   selectedCategoryId: string
   searchQuery: string
@@ -81,11 +82,11 @@ onMounted(async () => {
 })
 
 /** Whether an appointment is off on this date, on its own or with its whole series. */
-function isCancelled(ev: StationEvent, date: string): boolean {
-  return !!ev.cancelled || cancelledKeys.value.has(`${ev.id}|${date}`)
+function isCancelled(ev: EventSummary, date: string): boolean {
+  return ev.seriesCancelled || cancelledKeys.value.has(`${ev.id}|${date}`)
 }
 
-function chipStyle(ev: StationEvent): {backgroundColor: string; color: string} | undefined {
+function chipStyle(ev: EventSummary): {backgroundColor: string; color: string} | undefined {
   if (ev.categoryId == null) return undefined
   const s = categoryStyle.value[ev.categoryId]
   if (!s) return undefined
@@ -96,7 +97,7 @@ function chipStyle(ev: StationEvent): {backgroundColor: string; color: string} |
  * The page a chip opens: a repeating appointment carries the day it was pressed on, so the reader
  * lands on the occurrence they were looking at rather than on the first of the series.
  */
-function detailRoute(ev: StationEvent, date: string) {
+function detailRoute(ev: EventSummary, date: string) {
   if (isRecurringEvent(ev.eventType)) {
     return {name: eventRoutes.detailOnDate, params: {id: ev.id, date}}
   }

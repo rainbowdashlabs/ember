@@ -6,7 +6,13 @@
 import {computed, reactive, ref, type Ref} from 'vue'
 import {events, federation} from '@/api'
 import type {PartnerResponse} from '@/api/federation'
+import type {ShareScope} from '@/api/generated/schema'
 import {modelBindings} from './modelBindings'
+
+/** The scope the share picker's choice names, everybody unless it names a choice of partners. */
+function shareScopeOf(pickerScope: string): ShareScope {
+  return pickerScope === 'SPECIFIC' ? 'SPECIFIC' : 'ALL_PARTNERS'
+}
 
 /**
  * Whether and with which partner stations the edited event is shared.
@@ -71,8 +77,9 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
   async function save(eventId: number) {
     if (!canFederate.value) return
     if (state.federationShared) {
-      const partnerIds = state.federationScope === 'SPECIFIC_PARTNERS' ? state.federationPartnerIds : undefined
-      await events.setFederationShare(eventId, state.federationScope, partnerIds)
+      const scope = shareScopeOf(state.federationScope)
+      const partnerIds = scope === 'SPECIFIC' ? state.federationPartnerIds : undefined
+      await events.setFederationShare(eventId, scope, partnerIds)
     } else {
       await events.removeFederationShare(eventId)
     }

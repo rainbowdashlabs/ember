@@ -16,7 +16,8 @@ import {StationPermission} from '@/api/types'
 import type {Comment} from '@/api/comments'
 import type {MemberCompletion} from '@/api/stationMembers'
 import {comments as commentsApi, events, stationMembers} from '@/api'
-import {UNDO_WINDOW_MS, type FederatedEventDetail, type FederatedRegistration} from '@/api/events'
+import {UNDO_WINDOW_MS} from '@/api/events'
+import type {RemoteEventDetail, RemoteMemberRegistration} from '@/api/generated/schema'
 import {showToast} from '@/util/toast'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -34,8 +35,8 @@ const {sessionInfo, hasPermission} = useSession()
 const stationUid = ref(route.params.stationUid as string)
 const eventId = ref(Number(route.params.eventId))
 
-const detail = ref<FederatedEventDetail | null>(null)
-const myRegistrations = ref<FederatedRegistration[]>([])
+const detail = ref<RemoteEventDetail | null>(null)
+const myRegistrations = ref<RemoteMemberRegistration[]>([])
 const selectedMemberUid = ref('')
 
 const currentMemberUid = computed(() => sessionInfo.value?.member?.uid ?? '')
@@ -111,7 +112,7 @@ async function refreshMyRegistrations() {
 }
 
 function getEventDate(): string {
-  if (eventData.value?.startTime) return new Date(eventData.value.startTime as string).toISOString().slice(0, 10)
+  if (eventData.value?.startTime) return new Date(eventData.value.startTime).toISOString().slice(0, 10)
   return new Date().toISOString().slice(0, 10)
 }
 

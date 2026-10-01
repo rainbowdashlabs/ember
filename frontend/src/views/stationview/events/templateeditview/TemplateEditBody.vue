@@ -14,8 +14,13 @@ import EventReminderEditor from '../eventshared/EventReminderEditor.vue'
 import EventDefaultsSection from './EventDefaultsSection.vue'
 import TemplateAudienceSection from './TemplateAudienceSection.vue'
 import type {RestrictionSelection} from '@/components/input/restriction'
-import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
-import {isRecurringEvent, type EventCategory, type EventFieldEntry} from '@/api/events'
+import {isRecurringEvent} from '@/api/events'
+import type {
+    AttendanceTemplate,
+    AttendanceTemplateField,
+    EventCategory,
+    EventFieldEntry,
+} from '@/api/generated/schema'
 import type {MemberGroup, UserTag} from '@/api/types'
 
 /**

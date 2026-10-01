@@ -21,7 +21,16 @@ import EventRegistrationActions from '../eventshared/EventRegistrationActions.vu
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import {isRecurringEvent, type AbsentMember, type CancellationNotice, type EventField, type EventRegistrationEntry, type EventRegistrationField, type RegistrationFieldValue, type StationEvent} from '@/api/events'
+import {isRecurringEvent} from '@/api/events'
+import type {
+  AbsentMemberResponse,
+  CancellationNotice,
+  EventField,
+  EventRegistrationFieldValue,
+  RegistrationFieldResponse,
+  RegistrationResponse,
+  StationEvent,
+} from '@/api/generated/schema'
 import {attendance, events} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {StationModules, StationPermission, type StationMember} from '@/api/types'
@@ -35,7 +44,7 @@ const props = defineProps<{
   fields: EventField[]
   allMembers: StationMember[]
   reminders: number[]
-  absentMembers: AbsentMember[]
+  absentMembers: AbsentMemberResponse[]
   focusedDate: string | null
   effectiveDate: string | null
   /** Why the date on screen is off, null while it takes place. */
@@ -53,7 +62,7 @@ const props = defineProps<{
   canManageAttendance: boolean
   hasPermission: (perm: string) => boolean
   /** The reader's own answers to this date, and those of anybody they answer for. */
-  myRegistrations: EventRegistrationEntry[]
+  myRegistrations: RegistrationResponse[]
   registering: boolean
 }>()
 
@@ -125,7 +134,7 @@ function toAttendance() {
  * opening again. Read here rather than in the sign-up list, because this block offers to correct an
  * answer long after it was given.
  */
-const registrationFields = ref<EventRegistrationField[]>([])
+const registrationFields = ref<RegistrationFieldResponse[]>([])
 
 onMounted(async () => {
   if (!props.event.requiresRegistration) return
@@ -159,7 +168,7 @@ const showAnswerBlock = computed(() => {
   return stillTakingAnswers.value
 })
 
-const updatingRegistration = ref<EventRegistrationEntry | null>(null)
+const updatingRegistration = ref<RegistrationResponse | null>(null)
 const showUpdateAnswers = ref(false)
 
 /** Opens the answers of one registration, prefilled with what was given. */
@@ -171,7 +180,7 @@ function updateAnswers(registrationId: number) {
 }
 
 const {running: savingAnswers, failure: answersFailure, run: saveAnswers} = useAsyncAction(
-    async (values: RegistrationFieldValue[]) => {
+    async (values: EventRegistrationFieldValue[]) => {
       const registration = updatingRegistration.value
       if (!registration) return
       await events.updateRegistrationFieldValues(registration.id, values)

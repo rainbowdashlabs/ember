@@ -20,6 +20,7 @@ import io.javalin.openapi.OpenApiName;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -165,7 +166,10 @@ public class RemoteEventRoutes implements Routes {
      * @param places what this partner may do here, or {@code null} where the host decides as it always
      *         did. A peer that has never heard of this field ignores it and behaves as before
      */
-    public record RemoteEventDetail(SharedEvent event, List<EventField> publicFields, RemotePlaces places) {}
+    public record RemoteEventDetail(
+            SharedEvent event,
+            List<EventField> publicFields,
+            @Nullable RemotePlaces places) {}
 
     /**
      * What a partner station has been given on one appointment, in its own terms.
@@ -173,7 +177,7 @@ public class RemoteEventRoutes implements Routes {
      * @param slotBudget how many places it may fill on a date, or {@code null} for no cap
      * @param decidesItself whether it confirms its own members rather than the host doing it
      */
-    public record RemotePlaces(Integer slotBudget, boolean decidesItself) {}
+    public record RemotePlaces(@Nullable Integer slotBudget, boolean decidesItself) {}
 
     /**
      * A file a shared event hands over, without its bytes: enough to list it and to ask for it.

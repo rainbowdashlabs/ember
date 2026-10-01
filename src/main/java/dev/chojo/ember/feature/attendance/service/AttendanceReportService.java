@@ -29,6 +29,7 @@ import dev.chojo.ember.util.TypstCompiler;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -569,7 +570,7 @@ public class AttendanceReportService {
             LocalTime endTime,
             int expectedCount,
             int presentCount,
-            Double countedHours,
+            @Nullable Double countedHours,
             List<SessionMemberEntry> entries) {}
 
     /**

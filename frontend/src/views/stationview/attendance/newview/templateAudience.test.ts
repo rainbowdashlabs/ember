@@ -6,7 +6,7 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {sameAudience, templateAudience} from './templateAudience'
-import type {TemplateDetail} from '@/api/attendance'
+import type {TemplateDetail} from '@/api/generated/schema'
 
 /**
  * Whom a template enters, and whether a sheet was told exactly that. A sheet told exactly its
@@ -15,6 +15,8 @@ import type {TemplateDetail} from '@/api/attendance'
 const template: TemplateDetail = {
     id: 3,
     stationId: 's',
+    name: 'Dienstabend',
+    fields: [],
     groups: [{groupId: 8, position: 1}, {groupId: 5, position: 0}],
     userTypes: ['TEAM', 'MANAGER'],
 }
@@ -25,7 +27,8 @@ describe('templateAudience', () => {
     })
 
     it('reads a template that names nothing as naming nobody', () => {
-        expect(templateAudience({id: 1, stationId: 's'})).toEqual({userTypes: [], groupIds: []})
+        expect(templateAudience({id: 1, stationId: 's', name: 'Leer', fields: [], groups: [], userTypes: []}))
+            .toEqual({userTypes: [], groupIds: []})
     })
 })
 

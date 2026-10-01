@@ -6,11 +6,12 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {EventFieldTypes, type EventRegistrationField, type RegistrationFieldValue} from '@/api/events'
+import {EventFieldTypes} from '@/api/events'
+import type {EventRegistrationFieldValue, RegistrationFieldResponse} from '@/api/generated/schema'
 
 const props = defineProps<{
-  fields: EventRegistrationField[]
-  values?: RegistrationFieldValue[]
+  fields: RegistrationFieldResponse[]
+  values?: EventRegistrationFieldValue[]
   /** Resolves member ids for member-typed answers; ids are shown as-is without it. */
   memberNames?: Map<number, string>
   /** Only the questions marked for the list, which is what a row shows. */
@@ -26,7 +27,7 @@ interface Answer {
   missing: boolean
 }
 
-function displayValue(field: EventRegistrationField, raw: string): string {
+function displayValue(field: RegistrationFieldResponse, raw: string): string {
   if (field.fieldType === EventFieldTypes.BOOLEAN) {
     return raw === 'true' ? t('common.yes') : t('common.no')
   }
@@ -52,7 +53,7 @@ const answers = computed<Answer[]>(() => {
           id: field.id,
           label: field.name,
           value: raw === '' ? '' : displayValue(field, raw),
-          missing: raw === '' && (field.config?.required ?? false),
+          missing: raw === '' && field.config.required,
         }
       })
       .filter(answer => answer.value !== '' || answer.missing)

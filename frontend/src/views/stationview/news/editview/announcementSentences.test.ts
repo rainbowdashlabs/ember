@@ -5,12 +5,19 @@
  */
 import {describe, expect, it} from 'vitest'
 import {announcementSentences, type AnnouncementSentence} from './announcementSentences'
-import type {StationEvent} from '@/api/events'
+import type {StationEvent} from '@/api/generated/schema'
 
 const say = (sentence: AnnouncementSentence, values?: Record<string, string | number>) =>
     values ? `${sentence} ${JSON.stringify(values)}` : sentence
 
-const EVENT: StationEvent = {id: 7, stationId: 'abc', name: 'Zeltlager', requiresRegistration: true}
+const EVENT: StationEvent = {
+    id: 7, stationId: 'abc', name: 'Zeltlager', description: null, eventType: 'ONE_TIME', recurring: false,
+    startTime: '2026-07-24T08:00:00Z', endTime: '2026-07-26T16:00:00Z', dayOfWeek: null, templateId: null,
+    categoryId: null, isPublic: null, restricted: false, restrictionMode: 'AND', viewRestrictionMode: 'AND',
+    requiresRegistration: true, requiresConfirmation: false, registrationDeadline: null, registrationLimit: null,
+    registrationCloseDays: null, minRegistrations: null, thresholdDays: null, repeatUntil: null, repeatCount: null,
+    cancelled: false, cancelledAt: null, cancelReason: null,
+}
 
 describe('announcementSentences', () => {
     it('says nothing about signing up for an event without registration', () => {

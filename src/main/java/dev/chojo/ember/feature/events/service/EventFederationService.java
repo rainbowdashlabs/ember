@@ -1070,5 +1070,5 @@ public class EventFederationService implements FederationServer {
     }
 
     public record FederatedEventItem(
-            int partnerId, String partnerStationName, String partnerStationUid, Object event) {}
+            int partnerId, String partnerStationName, String partnerStationUid, SharedEvent event) {}
 }

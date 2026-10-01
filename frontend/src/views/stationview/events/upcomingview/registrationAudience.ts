@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AllEventRestrictions, RestrictionAudience} from '@/api/events'
+import type {AllEventRestrictions} from '@/api/events'
+import type {RestrictionAudience} from '@/api/generated/schema'
 import type {MemberGroup, StationUserTypeName, UserTag} from '@/api/types'
 import {StationUserTypeLabels} from '@/api/types'
 
@@ -66,8 +67,7 @@ export function registrationAudienceNote(
     const tagNames = register.tagIds.map(id => tags.find(tag => tag.id === id)?.name ?? `#${id}`)
     if (tagNames.length > 0) parts.push(tagNames.join(or))
 
-    const mode = entry.register.mode ?? 'AND'
-    let audience = parts.join(mode === 'OR' ? or : t('eventsUpcoming.audienceAnd'))
+    let audience = parts.join(entry.register.mode === 'OR' ? or : t('eventsUpcoming.audienceAnd'))
     if (register.memberIds.length > 0) {
         const members = register.memberIds.length === 1
             ? t('eventsUpcoming.audienceMemberOne')

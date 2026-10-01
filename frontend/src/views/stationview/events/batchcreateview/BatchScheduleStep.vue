@@ -15,7 +15,7 @@ import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {BatchRow, EventFieldEntry} from '@/api/events'
+import type {BatchRow, EventFieldEntry} from '@/api/generated/schema'
 import {events} from '@/api'
 import {readCsvText} from '@/util/csvText'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -69,12 +69,17 @@ const intervalOptions = [
   {value: 'MONTHLY_FIRST', label: 'Monatlich (erster)'},
   {value: 'QUARTERLY', label: 'Vierteljährlich'},
   {value: 'YEARLY', label: 'Jährlich'},
-]
+] as const
+
+/** The interval picked, read back from the offered ones so a stray value falls back to weekly. */
+function pickedInterval() {
+  return intervalOptions.find(option => option.value === intervalType.value)?.value ?? 'RECURRING'
+}
 
 async function generateScheduleDates() {
   try {
     const generated = await events.generateDates({
-      intervalType: intervalType.value,
+      intervalType: pickedInterval(),
       dayOfWeek: dayOfWeek.value,
       startDate: startDate.value,
       endDate: endDate.value,
@@ -102,7 +107,7 @@ function parseCsv(text: string) {
   csvRows.value = rows.map(l => l.split(separator).map(c => c.trim().replace(/^"|"$/g, '')))
 
   const mapping: Record<string, string> = {}
-  const fieldNames = props.fieldDefs.map(f => f.name.toLowerCase())
+  const fieldNames = props.fieldDefs.map(f => (f.name ?? '').toLowerCase())
   for (const col of csvColumns.value) {
     const lower = col.toLowerCase()
     if (['datum', 'date', 'tag'].includes(lower)) mapping[col] = '__date__'
@@ -111,7 +116,7 @@ function parseCsv(text: string) {
     else if (['name', 'terminname', 'event_name', 'titel', 'title', 'bezeichnung'].includes(lower)) mapping[col] = '__name__'
     else {
       const match = props.fieldDefs[fieldNames.indexOf(lower)]
-      if (match) mapping[col] = match.name
+      if (match?.name) mapping[col] = match.name
     }
   }
   columnMapping.value = mapping
@@ -160,7 +165,7 @@ function applyCsvToRows() {
     const isoDate = rawDate ? parseDateStr(rawDate) : ''
     const st = idx(stCol) >= 0 ? csvRow[idx(stCol)]?.trim() : csvFallbackStartTime.value
     const et = idx(etCol) >= 0 ? csvRow[idx(etCol)]?.trim() : csvFallbackEndTime.value
-    const n = idx(nameCol) >= 0 ? csvRow[idx(nameCol)] : undefined
+    const n = idx(nameCol) >= 0 ? csvRow[idx(nameCol)] ?? null : null
     return {
       name: n,
       startTime: isoDate ? `${isoDate}T${st || '00:00'}:00Z` : new Date().toISOString(),

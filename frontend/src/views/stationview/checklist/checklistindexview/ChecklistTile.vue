@@ -11,7 +11,7 @@ import RowLink from '@/components/navigation/RowLink.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {ChecklistSummary} from '@/api/checklists'
+import type {ChecklistSummaryResponse as ChecklistSummary} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()

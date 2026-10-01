@@ -91,6 +91,10 @@
 - **Station links on the network map led to a missing page.** On the map of the discovery network, the link to a station of another instance opened a page that did not exist. Once both instances run this version, it opens the station's public page.
 - **The discovery page could not be reached from the footer on phones.** On narrow screens the footer left out its link to the station directory. It now shows at every screen width.
 - **Changing groups on a member's page could fail or undo other changes.** Choosing groups on a member's edit page failed for people allowed to edit members but not to manage groups, and two people changing one group at the same time could undo each other's changes. The page now saves the groups of that one member.
+- **Sharing with chosen partner stations failed.** Saving an appointment or a news entry shared with only some partner stations was refused. It is now saved with the partners chosen.
+- **Editing an appointment hid its questions from the public calendar.** Saving an appointment switched off the public setting of each of its questions, so they no longer showed on the public calendar. Questions now keep their setting.
+- **Attendance fields without a default were given one.** Opening an attendance field without a default value in the template editor showed it as having one, and saving it stored an empty text, a zero or a no. The editor now shows such a field without a default.
+- **The registration limit was missing from the registrations overview.** The overview of registrations did not show how many places an appointment has. It now shows the limit beside the appointment.
 
 ## v26.19.5
 

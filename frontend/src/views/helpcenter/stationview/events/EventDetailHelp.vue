@@ -25,7 +25,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
 import EventCancellationBanner from '@/views/stationview/events/eventdetailview/EventCancellationBanner.vue'
 import {StationPermission} from '@/api/types'
-import {CancellationCauses, type CancellationNotice} from '@/api/events'
+import {CancellationCauses} from '@/api/events'
+import type {CancellationNotice} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

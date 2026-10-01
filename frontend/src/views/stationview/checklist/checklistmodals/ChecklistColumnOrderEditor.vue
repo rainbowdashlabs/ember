@@ -8,10 +8,10 @@ import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import DragList from '@/components/input/DragList.vue'
-import type {ChecklistColumnDto} from '@/api/checklists'
+import type {ColumnResponse as ChecklistColumn} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
 
-const columns = defineModel<ChecklistColumnDto[]>({required: true})
+const columns = defineModel<ChecklistColumn[]>({required: true})
 
 const {t} = useI18n()
 

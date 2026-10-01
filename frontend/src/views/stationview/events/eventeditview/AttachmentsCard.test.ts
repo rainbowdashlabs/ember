@@ -9,7 +9,7 @@ import {mount} from '@vue/test-utils'
 import AttachmentsCard from './AttachmentsCard.vue'
 import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {EventAttachment} from '@/api/events'
+import type {EventAttachment} from '@/api/generated/schema'
 import type {StationFile} from '@/api/media'
 
 function attachment(id: number, overrides: Partial<EventAttachment> = {}): EventAttachment {

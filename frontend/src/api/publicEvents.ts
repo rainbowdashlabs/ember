@@ -4,43 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {EventCategory, PublicEventResponse} from './generated/schema'
 
-export interface PublicEvent {
-    id: number
-    /** Stable opaque public identifier - referenced by event cells. */
-    publicUid: string
-    name: string
-    description?: string
-    eventType?: string
-    dayOfWeek?: number | null
-    startTime?: string
-    endTime?: string
-    categoryId?: number | null
-    categoryName?: string
-    publicFields?: { name: string; value: string; fieldType: string }[]
-    /** Whether the appointment is off as a whole: a series cancelled, or a one-time appointment whose date was. */
-    cancelled?: boolean
-    /** The dates of a series from today on that are cancelled one by one. */
-    cancelledDates?: string[]
-}
-
-export interface PublicEventCategory {
-    id: number
-    name: string
-}
-
-export async function listPublicEvents(stationUid: string): Promise<PublicEvent[]> {
-    const res = await client.get<PublicEvent[]>(`/public/events/${stationUid}`)
+export async function listPublicEvents(stationUid: string): Promise<PublicEventResponse[]> {
+    const res = await client.get<PublicEventResponse[]>(`/public/events/${stationUid}`)
     return res.data
 }
 
-export async function listPublicCategories(stationUid: string): Promise<PublicEventCategory[]> {
-    const res = await client.get<PublicEventCategory[]>(`/public/events/${stationUid}/categories`)
-    return res.data
-}
-
-export async function getPublicEvent(stationUid: string, eventId: number): Promise<PublicEvent> {
-    const res = await client.get<PublicEvent>(`/public/events/${stationUid}/${eventId}`)
+export async function listPublicCategories(stationUid: string): Promise<EventCategory[]> {
+    const res = await client.get<EventCategory[]>(`/public/events/${stationUid}/categories`)
     return res.data
 }
 

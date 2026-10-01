@@ -8,15 +8,14 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
+import type {AttendanceStatus, SheetOptions} from '@/api/attendance'
 import type {
   AttendanceEntry,
   AttendanceSession,
   AttendanceSessionField,
-  AttendanceStatus,
   AttendanceTemplateField,
   SessionAudience,
-  SheetOptions
-} from '@/api/attendance'
+} from '@/api/generated/schema'
 import {StationPermission, type MemberGroup, type StationMember} from '@/api/types'
 import {attendance, events, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'

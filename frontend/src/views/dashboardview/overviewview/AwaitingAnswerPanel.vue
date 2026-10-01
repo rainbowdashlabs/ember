@@ -13,7 +13,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import {events} from '@/api'
-import type {AwaitingAnswer, EventCategory} from '@/api/events'
+import type {AwaitingAnswer, EventCategory} from '@/api/generated/schema'
 
 /**
  * The events whose registration is running out and which nobody in the household has answered.

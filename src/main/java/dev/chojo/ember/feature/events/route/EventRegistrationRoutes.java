@@ -56,6 +56,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -303,12 +304,6 @@ public class EventRegistrationRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/events/registrations/mine",
-            methods = HttpMethod.GET,
-            summary = "List my registrations",
-            tags = {"Events"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRegistration[].class)))
-    @OpenApi(
             path = "/api/v1/events/registrations/awaiting",
             methods = HttpMethod.GET,
             summary = "Events still waiting on an answer from the reader or anyone they answer for",
@@ -351,12 +346,19 @@ public class EventRegistrationRoutes implements Routes {
             String name,
             Instant startTime,
             Instant registrationDeadline,
-            Integer categoryId,
+            @Nullable Integer categoryId,
             List<AwaitingMember> members) {}
 
     /** Somebody who still owes an answer, named so a guardian can tell their children apart. */
     public record AwaitingMember(int memberId, String name) {}
 
+    @OpenApi(
+            path = "/api/v1/events/registrations/mine",
+            methods = HttpMethod.GET,
+            summary = "List my registrations",
+            tags = {"Events"},
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationResponse[].class)))
     private void listMyRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {
@@ -375,7 +377,8 @@ public class EventRegistrationRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List pending registrations",
             tags = {"Events"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRegistration[].class)))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationResponse[].class)))
     private void listPendingRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var regs = registrationService.findPendingByStation(session.stationId());
@@ -467,7 +470,7 @@ public class EventRegistrationRoutes implements Routes {
             pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
             requestBody =
                     @OpenApiRequestBody(content = @OpenApiContent(from = RegistrationFieldDefinitionsRequest.class)),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void setRegistrationFields(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
@@ -528,6 +531,12 @@ public class EventRegistrationRoutes implements Routes {
      * The columns somebody may put on this appointment's table: the station's own questions, and the
      * appointment's.
      */
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/registration-table/columns",
+            methods = HttpMethod.GET,
+            summary = "List the columns a registration table may show",
+            tags = {"Events"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TableColumnsResponse.class)))
     private void tableColumns(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
@@ -543,10 +552,24 @@ public class EventRegistrationRoutes implements Routes {
                         .toList()));
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/registration-table",
+            methods = HttpMethod.POST,
+            summary = "Draw the registration table of one date",
+            tags = {"Events"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RegistrationTableRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberTable.class)))
     private void drawTable(Context ctx) {
         ctx.json(tableOf(ctx));
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/registration-table/export.csv",
+            methods = HttpMethod.POST,
+            summary = "Export the registration table of one date as CSV",
+            tags = {"Events"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RegistrationTableRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void exportTableCsv(Context ctx) {
         var session = UserSession.from(ctx);
         var event = requireOwnedEvent(crudService, pathInt(ctx, "eventId"), session);
@@ -570,6 +593,13 @@ public class EventRegistrationRoutes implements Routes {
         return SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, filename);
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/registration-table/export.pdf",
+            methods = HttpMethod.POST,
+            summary = "Export the registration table of one date as PDF",
+            tags = {"Events"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RegistrationTableRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
     private void exportTablePdf(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
@@ -625,6 +655,13 @@ public class EventRegistrationRoutes implements Routes {
         return session.hasPermission(StationPermission.EVENT_EDIT);
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/registrations",
+            methods = HttpMethod.GET,
+            summary = "List the registrations of an event, of one date where one is given",
+            tags = {"Events"},
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationResponse[].class)))
     private void listRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
@@ -644,7 +681,7 @@ public class EventRegistrationRoutes implements Routes {
             pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventRegisterRequest.class)),
             responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = EventRegistration.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = RegistrationResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void register(Context ctx) {
@@ -727,7 +764,7 @@ public class EventRegistrationRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List registration counts per event",
             tags = {"Events"},
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationCount[].class)))
     private void listRegistrationCounts(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(visibility.keepVisible(
@@ -742,7 +779,7 @@ public class EventRegistrationRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = StatusUpdateRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateRegistrationStatus(Context ctx) {
@@ -761,16 +798,6 @@ public class EventRegistrationRoutes implements Routes {
         ctx.json(new MessageResponse("Status updated"));
     }
 
-    @OpenApi(
-            path = "/api/v1/events/registrations/{id}",
-            methods = HttpMethod.DELETE,
-            summary = "Withdraw a registration",
-            tags = {"Events"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = {
-                @OpenApiResponse(status = "204"),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
-            })
     @OpenApi(
             path = "/api/v1/events/registrations/{id}/answer",
             methods = HttpMethod.PUT,
@@ -826,6 +853,16 @@ public class EventRegistrationRoutes implements Routes {
     /** Whether somebody is coming. */
     public record AnswerRequest(boolean attending) {}
 
+    @OpenApi(
+            path = "/api/v1/events/registrations/{id}",
+            methods = HttpMethod.DELETE,
+            summary = "Withdraw a registration",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = WithdrawalResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void withdrawRegistration(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -847,6 +884,12 @@ public class EventRegistrationRoutes implements Routes {
      * door. Past the window this is a plain refusal: there is nothing here to put back, and the
      * member registers again the ordinary way if the appointment still takes answers.
      */
+    @OpenApi(
+            path = "/api/v1/events/registrations/{id}/undo",
+            methods = HttpMethod.POST,
+            summary = "Take a withdrawal back",
+            tags = {"Events"},
+            responses = @OpenApiResponse(status = "204"))
     private void undoWithdrawal(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -885,7 +928,8 @@ public class EventRegistrationRoutes implements Routes {
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             queryParams = @OpenApiParam(name = "date"),
-            responses = @OpenApiResponse(status = "200"))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = AbsentMemberResponse[].class)))
     private void listAbsencesForDate(Context ctx) {
         UserSession session = UserSession.from(ctx);
         String dateStr = ctx.queryParam("date");
@@ -917,11 +961,11 @@ public class EventRegistrationRoutes implements Routes {
             int eventId,
             int memberId,
             String memberName,
-            MemberIdentity memberIdentity,
+            @Nullable MemberIdentity memberIdentity,
             LocalDate eventDate,
             RegistrationStatus status,
             Instant createdAt,
-            String createdByName,
+            @Nullable String createdByName,
             List<EventRegistrationFieldValue> fields,
             /**
              * What the appointment is called. Carried on the registration because the reader cannot always
@@ -929,7 +973,7 @@ public class EventRegistrationRoutes implements Routes {
              * association's own station, so a station-side list matching the id against its own events
              * finds nothing and shows somebody a registration for something it cannot name.
              */
-            String eventName,
+            @Nullable String eventName,
             /**
              * Whether the appointment asks something this registration has not answered, which is
              * what a question added after somebody registered leaves behind.
@@ -941,7 +985,7 @@ public class EventRegistrationRoutes implements Routes {
              */
             boolean fromField,
             /** The question that names them, where one does. */
-            String fieldName) {}
+            @Nullable String fieldName) {}
 
     public record EventRegisterRequest(String eventDate, Integer memberId, List<EventRegistrationFieldValue> fields) {}
 
@@ -971,17 +1015,17 @@ public class EventRegistrationRoutes implements Routes {
             int denied,
             int declined,
             double acceptRate,
-            String lastDenied,
+            @Nullable String lastDenied,
             String priority,
             double fairnessScore) {}
 
     public record AbsentMemberResponse(
             int memberId,
             String memberName,
-            MemberIdentity memberIdentity,
+            @Nullable MemberIdentity memberIdentity,
             LocalDate absentFrom,
             LocalDate absentUntil,
-            String reason) {}
+            @Nullable String reason) {}
 
     /**
      * What may go on this appointment's table.

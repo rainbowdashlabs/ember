@@ -10,7 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import type {LineCheck} from '@/api/equipment'
+import type {LineCheck} from '@/api/generated/schema'
 
 /** One line as the screen holds it, before anything has been asked of anybody. */
 export interface CollectedEntry {

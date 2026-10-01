@@ -12,10 +12,10 @@ import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import type {ChecklistColumnDto} from '@/api/checklists'
+import type {ColumnResponse as ChecklistColumn} from '@/api/generated/schema'
 
 const props = defineProps<{
-  column: ChecklistColumnDto
+  column: ChecklistColumn
   filter: 'any' | 'checked' | 'unchecked'
   visibleCount: number
   readOnly?: boolean

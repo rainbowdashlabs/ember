@@ -16,10 +16,10 @@ import type {PagedListView} from '@/composables/usePagedList'
 import type {
   EventCategory,
   EventField,
-  EventRegistrationEntry,
-  StationEvent,
+  EventSummary,
+  RegistrationResponse,
   UpcomingEventOccurrence,
-} from '@/api/events'
+} from '@/api/generated/schema'
 
 /**
  * A run of dates, in the order the server put them, with the button that asks for the next page.
@@ -34,21 +34,21 @@ defineProps<{
   answerable: boolean
   categories: EventCategory[]
   overviewFields: Record<number, EventField[]>
-  myRegistrations: EventRegistrationEntry[]
+  myRegistrations: RegistrationResponse[]
   managedMembersCount: number
   registering: boolean
-  multiDayEndDate: (event: StationEvent, startDate: string) => string | null
+  multiDayEndDate: (event: EventSummary, startDate: string) => string | null
   getRegistrationSummary: (eventId: number, date: string) => { accepted: number; pending: number; declined: number; total: number }
   getEligibleMembers: (eventId: number) => AnswerablePerson[]
   getRestrictionNote: (eventId: number) => string | null
-  detailRoute: (event: StationEvent, date: string) => RouteLocationRaw
+  detailRoute: (event: EventSummary, date: string) => RouteLocationRaw
   formatTime: (iso?: string) => string
   formatDeadline: (iso: string) => string
 }>()
 
 const emit = defineEmits<{
-  register: [event: StationEvent, date: string, people: AnswerablePerson[]]
-  decline: [event: StationEvent, date: string, people: AnswerablePerson[]]
+  register: [event: EventSummary, date: string, people: AnswerablePerson[]]
+  decline: [event: EventSummary, date: string, people: AnswerablePerson[]]
   withdraw: [registrationId: number]
   loadMore: []
 }>()

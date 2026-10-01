@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
 import EventMetaGrid from './EventMetaGrid.vue'
-import type {EventField, StationEvent} from '@/api/events'
+import type {EventField, StationEvent} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 import ProseContent from '@/components/display/ProseContent.vue'
 

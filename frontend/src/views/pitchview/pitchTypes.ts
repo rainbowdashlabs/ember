@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AttendanceEntry} from '@/api/attendance'
+import type {AttendanceEntry} from '@/api/generated/schema'
 import type {InventoryItem, InventorySize, RequiredInventoryItem} from '@/api/inventory'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 import type {CheckResult} from '@/api/inventoryCheck'

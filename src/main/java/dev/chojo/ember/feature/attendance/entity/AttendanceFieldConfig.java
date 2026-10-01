@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.attendance.entity;
 
 import dev.chojo.ember.feature.question.QuestionConfigs;
 import dev.chojo.ember.feature.question.QuestionSettings;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,11 +25,11 @@ import java.util.List;
  */
 public record AttendanceFieldConfig(
         boolean required,
-        Integer groupId,
+        @Nullable Integer groupId,
         boolean autoAttend,
-        List<String> options,
-        Object defaultValue,
-        String width) {
+        @Nullable List<String> options,
+        @Nullable Object defaultValue,
+        @Nullable String width) {
     private static final AttendanceFieldConfig EMPTY = new AttendanceFieldConfig(false, null, false, null, null, null);
 
     /**

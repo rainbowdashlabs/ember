@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.LocalDate;
 
 /**
@@ -19,4 +21,5 @@ import java.time.LocalDate;
  * @param date         the date it falls on
  * @param cancellation why that date is off, null while it takes place
  */
-public record UpcomingEventOccurrence(EventSummary event, LocalDate date, CancellationNotice cancellation) {}
+public record UpcomingEventOccurrence(
+        EventSummary event, LocalDate date, @Nullable CancellationNotice cancellation) {}

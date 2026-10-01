@@ -4,132 +4,69 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import {createCrudResource, type NoContent} from './crud'
+import {createCrudResource} from './crud'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import {toIsoDate} from '@/util/format'
-import type {MemberIdentity, RestrictionSelection} from './types'
 import type {BlockAudience} from './pageManage'
+import {StationUserType, type RestrictionSelection, type StationUserTypeName} from './types'
+import type {
+    AbsentMemberResponse,
+    AwaitingAnswer,
+    BatchCreateRequest,
+    BatchRow,
+    BreakRequest,
+    CancellationNotice,
+    CancelledEventDate,
+    CategoryRequest,
+    components,
+    CreateTemplateRequest,
+    DatedEvent,
+    EmbeddedEvent,
+    EmbedReference,
+    EnrichedFederationRegistration,
+    EventAttachment,
+    EventBreak,
+    EventCategory,
+    EventField,
+    EventFieldDefault,
+    EventPartnerPlaces,
+    EventRegistration,
+    EventRegistrationFieldValue,
+    EventRegistrationOpening,
+    EventRequest,
+    EventRestrictions,
+    EventSummary,
+    EventTemplate,
+    EventTemplateFieldData,
+    EventTemplateRegistrationField,
+    FederatedEventItem,
+    FederatedRegistrationAnswer,
+    FederationShareResponse,
+    FieldDefaultEntry,
+    GenerateDatesRequest,
+    MessageResponse,
+    NextDate,
+    PickerEvent,
+    RegistrationCount,
+    RegistrationFieldDefinition,
+    RegistrationFieldResponse,
+    RegistrationResponse,
+    RegistrationStatsResponse,
+    RemoteAttachment,
+    RemoteEventDetail,
+    RemoteMemberRegistration,
+    RestrictionAudience,
+    SetEventFieldsRequest,
+    ShareScope,
+    StationEvent,
+    TemplateDetailResponse,
+    TemplateRestrictions,
+    UpcomingEventOccurrence,
+    UpdateTemplateRequest,
+    WithdrawalResponse,
+} from './generated/schema'
 
-export interface EventCategory {
-    id: number
-    stationId: string
-    name?: string
-    position: number
-    maxShownEvents?: number | null
-    isPublic?: boolean
-    registrationLimit?: number | null
-    color?: string | null
-}
-
-export interface CategoryRequest {
-    name?: string
-    position: number
-    maxShownEvents?: number | null
-    isPublic?: boolean
-    registrationLimit?: number | null
-    color?: string | null
-}
-
-export interface StationEvent {
-    id: number
-    stationId: string
-    name?: string
-    description?: string
-    eventType?: string
-    dayOfWeek?: number | null
-    startTime?: string
-    endTime?: string
-    templateId?: number | null
-    requiresRegistration?: boolean
-    registrationDeadline?: string | null
-    requiresConfirmation?: boolean
-    categoryId?: number | null
-    restrictionMode?: string
-    restricted?: boolean
-    isPublic?: boolean
-    registrationLimit?: number | null
-    /** Whether the whole series is cancelled. A single date, and a one-time appointment, is cancelled by date. */
-    cancelled?: boolean
-    cancelledAt?: string | null
-    cancelReason?: string | null
-    /** The same as `cancelled`, under the name the lists send it by. */
-    seriesCancelled?: boolean
-    minRegistrations?: number | null
-    /** How many days before each date the minimum must be reached, or the date is cancelled automatically. */
-    thresholdDays?: number | null
-    registrationCloseDays?: number | null
-    /** The last day a repeating appointment falls on, or null where it repeats without an end. */
-    repeatUntil?: string | null
-    /** How many times a repeating appointment takes place in total, or null where it has no end. */
-    repeatCount?: number | null
-}
-
-export interface EventRequest {
-    name?: string
-    description?: string
-    eventType?: string
-    dayOfWeek?: number | null
-    startTime?: string
-    endTime?: string
-    templateId?: number | null
-    requiresRegistration?: boolean
-    registrationDeadline?: string | null
-    requiresConfirmation?: boolean
-    categoryId?: number | null
-    /** Who the appointment is for. Everybody else sees it and cannot answer it. */
-    restriction?: RestrictionSelection
-    /** Who may know the appointment exists. Everybody else never meets it anywhere. */
-    viewRestriction?: RestrictionSelection
-    isPublic?: boolean
-    registrationLimit?: number | null
-    minRegistrations?: number | null
-    thresholdDays?: number | null
-    registrationCloseDays?: number | null
-    /** The last day the repetition may reach, as a plain date. Never sent together with a count. */
-    repeatUntil?: string | null
-    /** How many times the appointment takes place in total. Never sent together with a last day. */
-    repeatCount?: number | null
-}
-
-/** One named audience, as the shared audience editor reads and writes it. */
-export interface RestrictionAudience {
-    userTypes: string[]
-    groupIds: number[]
-    tagIds: number[]
-    memberIds: number[]
-    /** How the named kinds combine. Absent where nothing was ever said, which reads as AND. */
-    mode?: 'AND' | 'OR'
-}
-
-/**
- * Both audiences of an appointment.
- *
- * <p>`register` says who it is for, and everybody else still sees it in the calendar and simply
- * cannot answer it. `view` says who may know it exists, and for everybody else it is absent from
- * every list, feed and notification. Seeing contains registering, which the server enforces.
- */
-export interface EventRestrictions {
-    register: RestrictionAudience
-    view: RestrictionAudience
-}
-
-export interface AllEventRestrictions {
-    [eventId: number]: EventRestrictions
-}
-
-export interface EventBreak {
-    id: number
-    stationId: string
-    name?: string
-    startDate?: string
-    endDate?: string
-}
-
-export interface BreakRequest {
-    name?: string
-    startDate?: string
-    endDate?: string
-}
+export type EventFieldTypeName = components['schemas']['EventFieldType']
 
 export const EventFieldTypes = {
     STRING: 'STRING',
@@ -149,101 +86,9 @@ export const EventFieldTypes = {
     MEMBER_LIST_OF_TYPE: 'MEMBER_LIST_OF_TYPE',
     MEMBER_OF_TAG: 'MEMBER_OF_TAG',
     MEMBER_LIST_OF_TAG: 'MEMBER_LIST_OF_TAG',
-} as const
+} as const satisfies Record<EventFieldTypeName, EventFieldTypeName>
 
-export type EventFieldTypeName = (typeof EventFieldTypes)[keyof typeof EventFieldTypes]
-
-export interface EventField {
-    id: number
-    eventId: number
-    name?: string
-    fieldType?: string
-    config?: Record<string, unknown>
-    value?: string
-    position: number
-    overview?: boolean
-    attendanceFieldId?: number | null
-    isPublic?: boolean
-    registrationLimit?: number | null
-}
-
-export interface EventFieldEntry {
-    /** The row this question already has, so saving keeps the answers it carries per date. */
-    id?: number | null
-    name: string
-    fieldType?: string
-    config?: Record<string, unknown>
-    value?: string
-    overview?: boolean
-    attendanceFieldId?: number | null
-    isPublic?: boolean
-    registrationLimit?: number | null
-}
-
-export interface SetEventFieldsRequest {
-    fields: EventFieldEntry[]
-}
-
-export interface BatchFieldEntry {
-    name: string
-    fieldType?: string
-    config?: Record<string, unknown>
-    overview?: boolean
-    attendanceFieldId?: number | null
-}
-
-export interface EventTemplate {
-    id: number
-    stationId: string
-    name: string
-    title?: string | null
-    description?: string | null
-    categoryId?: number | null
-    eventType?: string | null
-    requiresRegistration?: boolean | null
-    registrationDeadlineOffset?: string | null
-    requiresConfirmation?: boolean | null
-    restrictionMode?: string | null
-    viewRestrictionMode?: string | null
-    attendanceTemplateId?: number | null
-    registrationLimit?: number | null
-}
-
-export interface EventTemplateField {
-    id: number
-    templateId: number
-    name: string
-    fieldType: string
-    /** The field's settings as the server sends them, which is an object rather than the text it is stored as. */
-    config: Record<string, unknown>
-    position: number
-    overview: boolean
-    isPublic: boolean
-    attendanceFieldId?: number | null
-    /** What an appointment made from this template starts this question off with. */
-    defaultValue?: string | null
-}
-
-export interface EventTemplateDetail {
-    template: EventTemplate
-    fields: EventTemplateField[]
-    /** Both audiences the appointments written from this template start with, handed over when it is applied. */
-    restriction: EventRestrictions
-    reminderDays: number[]
-}
-
-export interface EventTemplateFieldEntry {
-    name: string
-    fieldType?: string
-    config?: Record<string, unknown>
-    position: number
-    overview?: boolean
-    isPublic?: boolean
-    registrationLimit?: number | null
-    attendanceFieldId?: number | null
-    /** What an appointment made from this template starts this question off with. */
-    defaultValue?: string | null
-}
+export type RegistrationStatusName = components['schemas']['RegistrationStatus']
 
 export const RegistrationStatus = {
     PENDING: 'PENDING',
@@ -251,9 +96,9 @@ export const RegistrationStatus = {
     DENIED: 'DENIED',
     DECLINED: 'DECLINED',
     WITHDRAWN: 'WITHDRAWN',
-} as const
+} as const satisfies Record<RegistrationStatusName, RegistrationStatusName>
 
-export type RegistrationStatusName = (typeof RegistrationStatus)[keyof typeof RegistrationStatus]
+export type EventTypeName = components['schemas']['EventType']
 
 export const EventTypes = {
     ONE_TIME: 'ONE_TIME',
@@ -261,11 +106,32 @@ export const EventTypes = {
     MONTHLY_FIRST: 'MONTHLY_FIRST',
     QUARTERLY: 'QUARTERLY',
     YEARLY: 'YEARLY',
-} as const
+} as const satisfies Record<EventTypeName, EventTypeName>
 
-export type EventTypeName = (typeof EventTypes)[keyof typeof EventTypes]
+/** An appointment as either the appointment itself or a list of appointments sends it. */
+export type AnyEvent = StationEvent | EventSummary
 
-export function isRecurringEvent(eventType?: string): boolean {
+/**
+ * Whom the reader may see restricted, by appointment id: only the appointments that restrict
+ * anybody are in it.
+ */
+export type AllEventRestrictions = Record<number, EventRestrictions>
+
+/**
+ * An audience the shared restriction editor holds, in the shape an appointment and a template
+ * carry it.
+ *
+ * TODO: drop once the editor's selection names its user types by the generated union rather than as text.
+ */
+export function audienceOf(selection: RestrictionSelection): RestrictionAudience {
+    return {...selection, userTypes: selection.userTypes.filter(isStationUserType)}
+}
+
+function isStationUserType(value: string): value is StationUserTypeName {
+    return Object.hasOwn(StationUserType, value)
+}
+
+export function isRecurringEvent(eventType?: string | null): boolean {
     return eventType != null && eventType !== EventTypes.ONE_TIME
 }
 
@@ -275,8 +141,7 @@ export function isRecurringEvent(eventType?: string): boolean {
  *
  * @param month zero-based, as `Date` counts months
  */
-export function isQuarterMonthOf(event: StationEvent, year: number, month: number): boolean {
-    if (!event.startTime) return false
+export function isQuarterMonthOf(event: AnyEvent, year: number, month: number): boolean {
     const start = new Date(event.startTime)
     const monthsSinceStart = (year - start.getFullYear()) * 12 + (month - start.getMonth())
     return ((monthsSinceStart % 3) + 3) % 3 === 0
@@ -286,17 +151,15 @@ export function isQuarterMonthOf(event: StationEvent, year: number, month: numbe
  * The last day of a one-off appointment that runs past the day it starts on, or `null` where it
  * ends on that day. A series never spans days: each of its occurrences is an entry of its own.
  */
-export function multiDayEndDate(event: StationEvent, startDay: string): string | null {
-    if (isRecurringEvent(event.eventType) || !event.endTime) return null
+export function multiDayEndDate(event: AnyEvent, startDay: string): string | null {
+    if (isRecurringEvent(event.eventType)) return null
     const endDay = toIsoDate(new Date(event.endTime))
     return endDay > startDay ? endDay : null
 }
 
-export function needsDayOfWeek(eventType?: string): boolean {
+export function needsDayOfWeek(eventType?: string | null): boolean {
     return eventType === EventTypes.RECURRING || eventType === EventTypes.MONTHLY_FIRST || eventType === EventTypes.QUARTERLY
 }
-
-// -- Events --
 
 export interface EventListParams {
     categoryId?: number
@@ -320,31 +183,13 @@ export interface OccurrenceParams {
     offset?: number
 }
 
+export type CancellationCauseName = components['schemas']['CancellationCause']
+
 /** Who called a date off: a manager, or the check that too few had registered in time. */
 export const CancellationCauses = {
     MANUAL: 'MANUAL',
     THRESHOLD: 'THRESHOLD',
-} as const
-
-export type CancellationCauseName = (typeof CancellationCauses)[keyof typeof CancellationCauses]
-
-/**
- * Why a date is off. `reason` is what a manager wrote, and empty for the check, whose reason is
- * worded from the cause.
- */
-export interface CancellationNotice {
-    date: string | null
-    cause: CancellationCauseName
-    reason?: string | null
-    cancelledAt?: string | null
-}
-
-export interface UpcomingEventOccurrence {
-    event: StationEvent
-    date: string
-    /** Why this date is off, null while it takes place. */
-    cancellation?: CancellationNotice | null
-}
+} as const satisfies Record<CancellationCauseName, CancellationCauseName>
 
 /** Whether a page of appointments wants the ones that still come round or the ones that do not. */
 export const EventStates = {
@@ -375,27 +220,6 @@ export interface EventPageParams extends OccurrenceParams {
 }
 
 /**
- * An appointment as a page of appointments lists it, with the date it next falls on and the date it
- * last fell on.
- *
- * This is the appointment and not one of its occurrences: a series that comes round every week is
- * one entry here and many on a list of occurrences. `nextDate` is null exactly when the appointment
- * has nothing left to come, which is what puts it on the past tab, and `previousDate` is null where
- * it has yet to run at all.
- *
- * Both dates are on every row whichever tab it came from. Which one the page is ordered by does
- * follow the tab: the current ones read by `nextDate` ascending, the past ones by `previousDate`
- * descending.
- */
-export interface DatedEvent {
-    event: StationEvent
-    nextDate: string | null
-    previousDate: string | null
-    /** Why the date the row is ordered by is off, null while it takes place. */
-    cancellation?: CancellationNotice | null
-}
-
-/**
  * One occurrence of an appointment, which is the appointment and the date together.
  *
  * An occurrence carries no id of its own: a recurring appointment named without a date would mean
@@ -406,25 +230,7 @@ export interface EventOccurrenceRef {
     date: string
 }
 
-interface TemplateCreateRequest {
-    name: string
-}
-
-interface TemplateUpdateRequest {
-    name?: string
-    title?: string | null
-    description?: string | null
-    categoryId?: number | null
-    eventType?: string | null
-    requiresRegistration?: boolean | null
-    registrationDeadlineOffset?: string | null
-    requiresConfirmation?: boolean | null
-    restrictionMode?: string | null
-    attendanceTemplateId?: number | null
-    registrationLimit?: number | null
-}
-
-const events = createCrudResource<StationEvent, EventRequest>('/events')
+const events = createCrudResource<EventSummary, EventRequest, EventRequest, StationEvent, StationEvent>('/events')
 
 const categories = createCrudResource<
     EventCategory,
@@ -432,18 +238,18 @@ const categories = createCrudResource<
     CategoryRequest,
     EventCategory,
     EventCategory,
-    unknown
+    MessageResponse
 >('/events/categories')
 
 const breaks = createCrudResource<EventBreak, BreakRequest>('/events/breaks')
 
 const templates = createCrudResource<
     EventTemplate,
-    TemplateCreateRequest,
-    TemplateUpdateRequest,
-    EventTemplateDetail,
+    CreateTemplateRequest,
+    UpdateTemplateRequest,
+    TemplateDetailResponse,
     EventTemplate,
-    NoContent
+    EventTemplate
 >('/event-templates')
 
 /** The occurrences from today on, earliest first, a page at a time. */
@@ -467,12 +273,12 @@ export async function listPagedEvents(params?: EventPageParams): Promise<DatedEv
     return res.data
 }
 
-export async function listEvents(params?: EventListParams): Promise<StationEvent[]> {
+export async function listEvents(params?: EventListParams): Promise<EventSummary[]> {
     return events.list(params ? {...params} : undefined)
 }
 
-export async function listTodayEvents(): Promise<StationEvent[]> {
-    const res = await client.get<StationEvent[]>('/events/today')
+export async function listTodayEvents(): Promise<EventSummary[]> {
+    const res = await client.get<EventSummary[]>('/events/today')
     return res.data
 }
 
@@ -485,7 +291,7 @@ export const getEvent = events.get
  * repeats by, the weeks the station is off and the date the series runs to.
  */
 export async function getNextDate(eventId: number): Promise<string | null> {
-    const res = await client.get<{date: string | null}>(`/events/${eventId}/next-date`)
+    const res = await client.get<NextDate>(`/events/${eventId}/next-date`)
     return res.data.date
 }
 
@@ -508,12 +314,6 @@ export async function restoreEventDate(eventId: number, date: string): Promise<v
     await client.post(`/events/${eventId}/dates/${date}/restore`)
 }
 
-/** One date of one appointment that is off, as a calendar of many appointments reads it. */
-export interface CancelledEventDate {
-    eventId: number
-    cancellation: CancellationNotice
-}
-
 /**
  * The dates cancelled one by one of every appointment the reader sees. A whole series cancelled says
  * so on the appointment itself.
@@ -529,8 +329,6 @@ export async function listCancelledDates(eventId: number): Promise<CancellationN
     return res.data
 }
 
-// -- Categories --
-
 export const listCategories = categories.list
 export const createCategory = categories.create
 export const updateCategory = categories.update
@@ -541,127 +339,55 @@ export async function reorderCategories(orderedIds: number[]): Promise<EventCate
     return res.data
 }
 
-// -- Registrations --
-
-export interface EventRegistrationEntry {
-    id: number
-    eventId: number
-    memberId: number
-    memberName: string
-    eventDate: string
-    status: string  // RegistrationStatusName
-    createdAt: string
-    createdByName?: string | null
-    memberIdentity?: MemberIdentity | null
-    fields?: RegistrationFieldValue[]
-    /** Whether the appointment asks something this registration has not answered. */
-    answersMissing?: boolean
-    /** Whether a question of the appointment names this member, which is a place nobody gives back here. */
-    fromField?: boolean
-    /** The question that names them, where one does. */
-    fieldName?: string | null
-}
-
-/**
- * Configuration of a registration question. The names match the other custom field configs, so the
- * shared config parser reads them without a special case.
- */
-export interface EventRegistrationFieldConfig {
-    required?: boolean
-    defaultValue?: string | null
-    options?: string[]
-    min?: number | null
-    max?: number | null
-    groupId?: number | null
-    userType?: string | null
-    tagId?: number | null
-    /** Belongs to whoever runs the event: never asked of a member, never sent to one. */
-    managersOnly?: boolean
-}
-
-/**
- * A question an event asks of everyone registering for it.
- */
-export interface EventRegistrationField {
-    id: number
-    name: string
-    fieldType: EventFieldTypeName
-    config: EventRegistrationFieldConfig
-    overview: boolean
-}
-
-/**
- * A question as the editor submits it, before it has an id of its own.
- */
-export interface EventRegistrationFieldDefinition {
-    name: string
-    fieldType: EventFieldTypeName
-    config: EventRegistrationFieldConfig
-    overview: boolean
-}
-
-/**
- * One member's answer to one registration question.
- */
-export interface RegistrationFieldValue {
-    fieldId: number
-    value: string
-}
-
-export async function listRegistrationFields(eventId: number): Promise<EventRegistrationField[]> {
-    const res = await client.get<EventRegistrationField[]>(`/events/${eventId}/registration-fields`)
+export async function listRegistrationFields(eventId: number): Promise<RegistrationFieldResponse[]> {
+    const res = await client.get<RegistrationFieldResponse[]>(`/events/${eventId}/registration-fields`)
     return res.data
 }
 
 export async function setRegistrationFields(
     eventId: number,
-    fields: EventRegistrationFieldDefinition[],
+    fields: RegistrationFieldDefinition[],
 ): Promise<void> {
     await client.put(`/events/${eventId}/registration-fields`, {fields})
 }
 
 export async function updateRegistrationFieldValues(
     registrationId: number,
-    fields: RegistrationFieldValue[],
-): Promise<EventRegistrationEntry> {
-    const res = await client.put<EventRegistrationEntry>(`/events/registrations/${registrationId}/fields`, {fields})
+    fields: EventRegistrationFieldValue[],
+): Promise<RegistrationResponse> {
+    const res = await client.put<RegistrationResponse>(`/events/registrations/${registrationId}/fields`, {fields})
     return res.data
 }
 
 export async function setTemplateRegistrationFields(
     templateId: number,
-    fields: EventRegistrationFieldDefinition[],
-): Promise<void> {
-    await client.put(`/event-templates/${templateId}/registration-fields`, {fields})
-}
-
-export async function listMyRegistrations(): Promise<EventRegistrationEntry[]> {
-    const res = await client.get<EventRegistrationEntry[]>('/events/registrations/mine')
+    fields: RegistrationFieldDefinition[],
+): Promise<EventTemplateRegistrationField[]> {
+    const res = await client.put<EventTemplateRegistrationField[]>(
+        `/event-templates/${templateId}/registration-fields`,
+        {fields},
+    )
     return res.data
 }
 
-export async function listPendingRegistrations(): Promise<EventRegistrationEntry[]> {
-    const res = await client.get<EventRegistrationEntry[]>('/events/registrations/pending')
+export async function listMyRegistrations(): Promise<RegistrationResponse[]> {
+    const res = await client.get<RegistrationResponse[]>('/events/registrations/mine')
     return res.data
 }
 
-export async function listEventRegistrations(eventId: number, date?: string): Promise<EventRegistrationEntry[]> {
+export async function listPendingRegistrations(): Promise<RegistrationResponse[]> {
+    const res = await client.get<RegistrationResponse[]>('/events/registrations/pending')
+    return res.data
+}
+
+export async function listEventRegistrations(eventId: number, date?: string): Promise<RegistrationResponse[]> {
     const params = date ? { date } : undefined
-    const res = await client.get<EventRegistrationEntry[]>(`/events/${eventId}/registrations`, { params })
+    const res = await client.get<RegistrationResponse[]>(`/events/${eventId}/registrations`, { params })
     return res.data
 }
 
-export interface AbsentMember {
-    memberId: number
-    memberName: string
-    absentFrom: string
-    absentUntil: string
-    reason?: string | null
-    memberIdentity?: MemberIdentity | null
-}
-
-export async function listAbsencesForDate(eventId: number, date: string): Promise<AbsentMember[]> {
-    const res = await client.get<AbsentMember[]>(`/events/${eventId}/absences`, { params: { date } })
+export async function listAbsencesForDate(eventId: number, date: string): Promise<AbsentMemberResponse[]> {
+    const res = await client.get<AbsentMemberResponse[]>(`/events/${eventId}/absences`, { params: { date } })
     return res.data
 }
 
@@ -680,13 +406,6 @@ export async function listAllRestrictions(): Promise<AllEventRestrictions> {
     return res.data
 }
 
-/** Whom the reader may sign up for one appointment, themselves and whoever they answer for. */
-export interface EventRegistrationOpening {
-    eventId: number
-    /** Empty where the appointment is open to none of them. */
-    memberIds: number[]
-}
-
 /**
  * Whom the reader may sign up for each appointment they can see, by appointment.
  *
@@ -701,32 +420,20 @@ export async function listEligibleMembers(): Promise<Record<number, number[]>> {
 export async function registerForEvent(eventId: number, data: {
     eventDate?: string;
     memberId?: number;
-    fields?: RegistrationFieldValue[]
-}): Promise<unknown> {
-    const res = await client.post(`/events/${eventId}/register`, data)
+    fields?: EventRegistrationFieldValue[]
+}): Promise<RegistrationResponse> {
+    const res = await client.post<RegistrationResponse>(`/events/${eventId}/register`, data)
     return res.data
 }
 
-export async function declineEvent(eventId: number, data: { eventDate?: string; memberId?: number }): Promise<unknown> {
-    const res = await client.post(`/events/${eventId}/decline`, data)
+export async function declineEvent(eventId: number, data: { eventDate?: string; memberId?: number }): Promise<EventRegistration> {
+    const res = await client.post<EventRegistration>(`/events/${eventId}/decline`, data)
     return res.data
-}
-
-export interface RegistrationCount {
-    eventId: number
-    eventDate: string
-    status: string
-    count: number
 }
 
 export async function listRegistrationCounts(): Promise<RegistrationCount[]> {
     const res = await client.get<RegistrationCount[]>('/events/registrations/counts')
     return res.data
-}
-
-/** What a withdrawal leaves behind: the moment it stops being something that can be taken back. */
-export interface Withdrawal {
-    undoUntil: string
 }
 
 /**
@@ -739,8 +446,8 @@ export interface Withdrawal {
  */
 export const UNDO_WINDOW_MS = 5 * 60 * 1000
 
-export async function withdrawRegistration(id: number): Promise<Withdrawal> {
-    const res = await client.delete<Withdrawal>(`/events/registrations/${id}`)
+export async function withdrawRegistration(id: number): Promise<WithdrawalResponse> {
+    const res = await client.delete<WithdrawalResponse>(`/events/registrations/${id}`)
     return res.data
 }
 
@@ -752,22 +459,6 @@ export async function withdrawRegistration(id: number): Promise<Withdrawal> {
  */
 export async function undoWithdrawal(id: number): Promise<void> {
     await client.post(`/events/registrations/${id}/undo`)
-}
-
-/** Somebody in the household who still owes an answer. */
-export interface AwaitingMember {
-    memberId: number
-    name: string
-}
-
-/** An event still waiting on an answer, and everyone who owes one. */
-export interface AwaitingAnswer {
-    eventId: number
-    name: string
-    startTime: string
-    registrationDeadline: string
-    categoryId?: number | null
-    members: AwaitingMember[]
 }
 
 /** Events whose registration closes soon and which the household has not answered. */
@@ -787,26 +478,9 @@ export async function changeRegistrationAnswer(id: number, attending: boolean): 
     await client.put(`/events/registrations/${id}/answer`, {attending})
 }
 
-export async function updateRegistrationStatus(id: number, status: string): Promise<unknown> {
-    const res = await client.put(`/events/registrations/${id}/status`, {status})
+export async function updateRegistrationStatus(id: number, status: RegistrationStatusName): Promise<MessageResponse> {
+    const res = await client.put<MessageResponse>(`/events/registrations/${id}/status`, {status})
     return res.data
-}
-
-// -- Breaks --
-
-// -- Field Defaults --
-
-export interface EventFieldDefault {
-    eventId: number
-    fieldId: number
-    source: string
-    value?: string
-}
-
-export interface FieldDefaultEntry {
-    fieldId: number
-    source: string
-    value?: string
 }
 
 export async function getFieldDefaults(eventId: number): Promise<EventFieldDefault[]> {
@@ -819,8 +493,6 @@ export async function setFieldDefaults(eventId: number, data: FieldDefaultEntry[
     return res.data
 }
 
-// -- Breaks --
-
 export const listBreaks = breaks.list
 export const createBreak = breaks.create
 export const updateBreak = breaks.update
@@ -831,8 +503,6 @@ export async function listFieldNames(): Promise<string[]> {
     return res.data
 }
 
-// -- Export --
-
 export async function exportEventList(data: {
     categoryIds?: number[]
     columns?: { type: string; key?: string; fieldName?: string; label: string }[]
@@ -842,8 +512,6 @@ export async function exportEventList(data: {
     const res = await client.post('/events/export', data, {responseType: 'blob'})
     return documentFrom(res, 'Termine.pdf')
 }
-
-// -- Event Fields (per-event) --
 
 /**
  * The questions of an appointment. With a date, as they stand on that occurrence; without one, as
@@ -883,14 +551,10 @@ export async function toggleFieldSelfRegistration(
     return res.data
 }
 
-// -- Overview Fields --
-
 export async function getOverviewFields(): Promise<Record<number, EventField[]>> {
     const res = await client.get<Record<number, EventField[]>>('/events/overview-fields')
     return res.data
 }
-
-// -- Templates --
 
 export const listTemplates = templates.list
 export const createTemplate = templates.create
@@ -898,16 +562,14 @@ export const getTemplate = templates.get
 export const updateTemplate = templates.update
 export const deleteTemplate = templates.remove
 
-export async function setTemplateFields(id: number, data: { fields: EventTemplateFieldEntry[] }): Promise<void> {
+export async function setTemplateFields(id: number, data: { fields: EventTemplateFieldData[] }): Promise<void> {
     await client.put(`/event-templates/${id}/fields`, data)
 }
 
-export async function setTemplateRestrictions(id: number, data: EventRestrictions): Promise<EventRestrictions> {
-    const res = await client.put<EventRestrictions>(`/event-templates/${id}/restrictions`, data)
+export async function setTemplateRestrictions(id: number, data: TemplateRestrictions): Promise<TemplateRestrictions> {
+    const res = await client.put<TemplateRestrictions>(`/event-templates/${id}/restrictions`, data)
     return res.data
 }
-
-// -- Reminders --
 
 export async function getEventReminders(eventId: number): Promise<number[]> {
     const res = await client.get<number[]>(`/events/${eventId}/reminders`)
@@ -922,39 +584,6 @@ export async function setTemplateReminders(templateId: number, daysBefore: numbe
     await client.put(`/event-templates/${templateId}/reminders`, { daysBefore })
 }
 
-// -- Batch Creation --
-
-export interface BatchRow {
-    name?: string
-    startTime: string
-    endTime: string
-    fieldValues?: Record<string, string>
-}
-
-export interface BatchCreateRequest {
-    name?: string
-    description?: string
-    templateId?: number | null
-    categoryId?: number | null
-    inlineFields?: BatchFieldEntry[]
-    rows: BatchRow[]
-    requiresRegistration?: boolean
-    requiresConfirmation?: boolean
-    registrationDeadline?: string | null
-    restriction?: RestrictionSelection
-    viewRestriction?: RestrictionSelection
-}
-
-export interface GenerateDatesRequest {
-    intervalType: string
-    dayOfWeek?: number
-    startDate: string
-    endDate: string
-    startTime?: string
-    endTime?: string
-    ignoreBreaks?: boolean
-}
-
 export async function generateDates(data: GenerateDatesRequest): Promise<BatchRow[]> {
     const res = await client.post<BatchRow[]>('/events/batch/generate-dates', data)
     return res.data
@@ -965,73 +594,17 @@ export async function createBatchEvents(data: BatchCreateRequest): Promise<Stati
     return res.data
 }
 
-// -- Registration Stats --
-
-export interface MemberRegistrationStats {
-    memberId: number
-    memberName: string
-    registered: number
-    accepted: number
-    denied: number
-    declined: number
-    acceptRate: number
-    lastDenied?: string | null
-    priority: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'
-    fairnessScore: number
-}
-
-export async function getRegistrationStats(eventId: number, categoryId?: number, months?: number): Promise<MemberRegistrationStats[]> {
+export async function getRegistrationStats(eventId: number, categoryId?: number, months?: number): Promise<RegistrationStatsResponse[]> {
     const params: Record<string, string> = {}
     if (categoryId != null) params.categoryId = String(categoryId)
     if (months != null) params.months = String(months)
-    const res = await client.get<MemberRegistrationStats[]>(`/events/${eventId}/registration-stats`, {params})
+    const res = await client.get<RegistrationStatsResponse[]>(`/events/${eventId}/registration-stats`, {params})
     return res.data
 }
 
-// -- Federated Events --
-
-export interface FederatedEvent {
-    partnerId: number
-    partnerStationName: string
-    partnerStationUid: string
-    event: SharedEvent
-}
-
-/** An appointment as a partner station shows it, which is less than its own station sees. */
-export interface SharedEvent {
-    id: number
-    name: string
-    description: string
-    eventType: string
-    dayOfWeek: number
-    startTime: string
-    endTime: string
-    requiresRegistration: boolean
-    requiresConfirmation: boolean
-    /** The last day the repetition reaches, or null where the series has no end. */
-    repeatUntil?: string | null
-    /** How many times it takes place in total, or null where the series has no end. */
-    repeatCount?: number | null
-}
-
-export async function listFederatedEvents(): Promise<FederatedEvent[]> {
-    const res = await client.get<FederatedEvent[]>('/federated/events')
+export async function listFederatedEvents(): Promise<FederatedEventItem[]> {
+    const res = await client.get<FederatedEventItem[]>('/federated/events')
     return res.data
-}
-
-/** What the station holding an appointment has given this one, where it has given anything. */
-export interface RemotePlaces {
-    /** How many places this station may fill on a date, or null for no cap. */
-    slotBudget: number | null
-    /** Whether this station confirms its own members rather than the holder doing it. */
-    decidesItself: boolean
-}
-
-export interface FederatedEventDetail {
-    event: SharedEvent
-    publicFields: { id: number; name: string; value: string; fieldType: string; isPublic: boolean }[]
-    /** Null where the station holding the appointment decides, which is the ordinary arrangement. */
-    places: RemotePlaces | null
 }
 
 /**
@@ -1044,21 +617,13 @@ export async function confirmOwnFederatedMember(stationUid: string, eventId: num
     await client.post(`/federated/${stationUid}/events/${eventId}/register/confirm`, {eventDate, memberId})
 }
 
-export async function getFederatedEvent(stationUid: string, eventId: number): Promise<FederatedEventDetail> {
-    const res = await client.get<FederatedEventDetail>(`/federated/${stationUid}/events/${eventId}`)
+export async function getFederatedEvent(stationUid: string, eventId: number): Promise<RemoteEventDetail> {
+    const res = await client.get<RemoteEventDetail>(`/federated/${stationUid}/events/${eventId}`)
     return res.data
 }
 
-export interface FederatedRegistration {
-    eventId: number
-    remoteMemberId: string
-    eventDate: string
-    status: string
-    partnerId: number
-}
-
-export async function listMyFederatedRegistrations(): Promise<FederatedRegistration[]> {
-    const res = await client.get<FederatedRegistration[]>('/federated/my-registrations')
+export async function listMyFederatedRegistrations(): Promise<RemoteMemberRegistration[]> {
+    const res = await client.get<RemoteMemberRegistration[]>('/federated/my-registrations')
     return res.data
 }
 
@@ -1068,8 +633,8 @@ export async function listMyFederatedRegistrations(): Promise<FederatedRegistrat
  * <p>The status is theirs to decide: an appointment that asks for no confirmation accepts at once,
  * and showing a pending badge regardless would tell the member something nobody said.
  */
-export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<string> {
-    const res = await client.post<{status: string}>(`/federated/${stationUid}/events/${eventId}/register`, { eventDate, memberId: memberId ?? null })
+export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<RegistrationStatusName> {
+    const res = await client.post<FederatedRegistrationAnswer>(`/federated/${stationUid}/events/${eventId}/register`, { eventDate, memberId: memberId ?? null })
     return res.data.status
 }
 
@@ -1087,41 +652,22 @@ export async function undoFederatedWithdrawal(stationUid: string, eventId: numbe
     await client.post(`/federated/${stationUid}/events/${eventId}/register/undo`, { eventDate, memberId: memberId ?? null })
 }
 
-export interface FederatedEventRegistration {
-    registration: {
-        id: number
-        eventId: number
-        partnerId: number
-        remoteMemberId: string
-        eventDate: string
-        status: string
-        createdAt: string
-    }
-    memberIdentity: MemberIdentity | null
-}
-
-export async function listFederationRegistrations(eventId: number, date?: string): Promise<FederatedEventRegistration[]> {
+export async function listFederationRegistrations(eventId: number, date?: string): Promise<EnrichedFederationRegistration[]> {
     const params = date ? { date } : {}
-    const res = await client.get<FederatedEventRegistration[]>(`/events/${eventId}/federation-registrations`, { params })
+    const res = await client.get<EnrichedFederationRegistration[]>(`/events/${eventId}/federation-registrations`, { params })
     return res.data
 }
 
-export async function updateFederationRegistrationStatus(registrationId: number, status: string): Promise<void> {
+export async function updateFederationRegistrationStatus(registrationId: number, status: RegistrationStatusName): Promise<void> {
     await client.put(`/events/federation-registrations/${registrationId}/status`, { status })
 }
 
-export interface EventFederationShareInfo {
-    shared: boolean
-    scope?: string
-    partnerIds?: number[]
-}
-
-export async function getFederationShare(eventId: number): Promise<EventFederationShareInfo> {
-    const res = await client.get<EventFederationShareInfo>(`/events/${eventId}/federation`)
+export async function getFederationShare(eventId: number): Promise<FederationShareResponse> {
+    const res = await client.get<FederationShareResponse>(`/events/${eventId}/federation`)
     return res.data
 }
 
-export async function setFederationShare(eventId: number, scope: string, partnerIds?: number[]): Promise<void> {
+export async function setFederationShare(eventId: number, scope: ShareScope, partnerIds?: number[]): Promise<void> {
     await client.put(`/events/${eventId}/federation`, {scope, partnerIds: partnerIds ?? []})
 }
 
@@ -1130,20 +676,11 @@ export async function removeFederationShare(eventId: number): Promise<void> {
 }
 
 /**
- * What one partner station may do with a shared appointment.
+ * What each partner station may do with a shared appointment.
  *
  * <p>Absent from the list means the arrangement nobody configured: this station decides, member by
  * member, with no cap. That is how every shared appointment worked before any of this.
  */
-export interface EventPartnerPlaces {
-    eventId: number
-    partnerId: number
-    /** How many places that partner may fill on one date, or null for no cap. */
-    slotBudget: number | null
-    /** Whether the partner decides who fills them rather than this station. */
-    partnerConfirms: boolean
-}
-
 export async function getPartnerPlaces(eventId: number): Promise<EventPartnerPlaces[]> {
     const res = await client.get<EventPartnerPlaces[]>(`/events/${eventId}/partner-places`)
     return res.data
@@ -1159,14 +696,8 @@ export async function setPartnerPlaces(eventId: number, partnerId: number, slotB
     await client.put(`/events/${eventId}/partner-places/${partnerId}`, {slotBudget, partnerConfirms})
 }
 
+/** Which appointments the picker offers, read as a query parameter. */
 export type EventPickerMode = 'FUTURE' | 'PAST' | 'ALL'
-
-export interface EventSearchResult {
-    eventUid: string
-    name: string
-    startTime: string | null
-    categoryName: string | null
-}
 
 /**
  * Searches the appointments a block may name for its readers: on a page (`PUBLIC`) those on the
@@ -1177,22 +708,11 @@ export async function searchEvents(
     mode: EventPickerMode = 'FUTURE',
     limit = 10,
     scope: BlockAudience = 'PUBLIC',
-): Promise<EventSearchResult[]> {
+): Promise<PickerEvent[]> {
     const params: Record<string, string | number> = {mode, limit, scope}
     if (query) params.q = query
-    const res = await client.get<EventSearchResult[]>('/events/search', {params})
+    const res = await client.get<PickerEvent[]>('/events/search', {params})
     return res.data
-}
-
-/** An event of the reader's own station, as an event block shows it. */
-export interface EmbeddedEvent {
-    id: number
-    name: string
-    description: string | null
-    startTime: string | null
-    endTime: string | null
-    cancelled: boolean
-    categoryName: string | null
 }
 
 /**
@@ -1206,39 +726,8 @@ export async function getEmbeddedEvent(eventUid: string): Promise<EmbeddedEvent>
 
 /** The public id an event block names this event by. NEWS_EDIT or PAGE_EDIT gated. */
 export async function getEmbedReference(eventId: number): Promise<string> {
-    const res = await client.get<{eventUid: string}>(`/events/${eventId}/embed-reference`)
+    const res = await client.get<EmbedReference>(`/events/${eventId}/embed-reference`)
     return res.data.eventUid
-}
-
-/**
- * A file an event hands over.
- *
- * <p>It points at a file in the station's media library rather than holding bytes of its own, which
- * is why it carries the library's name, type and size along with it.
- */
-export interface EventAttachment {
-    id: number
-    eventId: number
-    fileId: number
-    label: string | null
-    /** Whether the file is kept back from the room, readable only with the right to internal data. */
-    internal: boolean
-    sortOrder: number
-    createdAt: string
-    fileName: string
-    mimeType: string
-    fileSize: number
-    contentHash: string
-}
-
-/** A file a partner station's event hands over, without its bytes. */
-export interface FederatedEventAttachment {
-    id: number
-    /** What the partner station shows it as, which is its label where somebody wrote one. */
-    name: string
-    fileName: string
-    mimeType: string
-    fileSize: number
 }
 
 /** The files of an event, as far as the caller may have them. */
@@ -1292,8 +781,8 @@ export function eventAttachmentPictureUrl(eventId: number, attachmentId: number,
 export async function listFederatedEventAttachments(
     stationUid: string,
     eventId: number,
-): Promise<FederatedEventAttachment[]> {
-    const res = await client.get<FederatedEventAttachment[]>(`/federated/${stationUid}/events/${eventId}/attachments`)
+): Promise<RemoteAttachment[]> {
+    const res = await client.get<RemoteAttachment[]>(`/federated/${stationUid}/events/${eventId}/attachments`)
     return res.data
 }
 

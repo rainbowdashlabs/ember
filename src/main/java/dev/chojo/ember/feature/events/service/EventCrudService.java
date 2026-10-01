@@ -11,6 +11,7 @@ import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
+import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -74,7 +75,7 @@ public class EventCrudService {
      * page the public ones, in a news or wiki article every event kept to nobody in particular. Who
      * is picking does not widen it, so a block never names what part of its readers cannot see.
      */
-    public List<EventRepository.PickerEvent> searchEventPicker(
+    public List<PickerEvent> searchEventPicker(
             int stationId, BlockAudience audience, String search, PickerMode mode, int limit) {
         return eventRepository.searchForPicker(stationId, audience, search, mode, limit);
     }

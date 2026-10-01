@@ -8,13 +8,8 @@ import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {
-  AttendanceEntry,
-  AttendanceSession,
-  AttendanceStatus,
-  AttendanceTemplateField,
-  MemberNotes,
-} from '@/api/attendance'
+import type {AttendanceStatus} from '@/api/attendance'
+import type {AttendanceEntry, AttendanceSession, AttendanceTemplateField, MemberNotes} from '@/api/generated/schema'
 import type {MemberIdentity, StationMember} from '@/api/types'
 import type {CheckRow} from './useCheckMode'
 import SessionToolbar from './SessionToolbar.vue'

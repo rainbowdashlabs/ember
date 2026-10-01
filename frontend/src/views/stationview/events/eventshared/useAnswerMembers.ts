@@ -5,7 +5,7 @@
  */
 import {computed, ref, type Ref} from 'vue'
 import {stationMembers as stationMembersApi} from '@/api'
-import type {EventRegistrationField} from '@/api/events'
+import type {RegistrationFieldResponse} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 
 /**
@@ -21,7 +21,7 @@ import type {StationMember} from '@/api/types'
  *
  * @param fields the questions the dialog is showing
  */
-export function useAnswerMembers(fields: Ref<EventRegistrationField[]>) {
+export function useAnswerMembers(fields: Ref<RegistrationFieldResponse[]>) {
     const allMembers = ref<StationMember[]>([])
 
     /** Whether any question asks for a member, which is the only reason to fetch them. */

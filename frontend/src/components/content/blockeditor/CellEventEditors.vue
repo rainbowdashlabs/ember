@@ -16,7 +16,7 @@ import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import * as events from '@/api/events'
 import {findEmbeddedEvent} from './embeddedEventLookup'
-import type {EventCategory} from '@/api/events'
+import type {EventCategory} from '@/api/generated/schema'
 import {useConfigPatch} from '@/composables/useConfigPatch'
 import {useBlockAudience} from '@/composables/useBlockAudience'
 

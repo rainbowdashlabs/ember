@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {EventCategory} from '@/api/events'
+import type {EventCategory} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

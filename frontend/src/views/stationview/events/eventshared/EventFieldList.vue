@@ -16,8 +16,8 @@ import DragList from '@/components/input/DragList.vue'
 import FieldLayoutPreview from '@/components/profilefields/FieldLayoutPreview.vue'
 import {configOf} from '@/components/profilefields/fieldLayout'
 import {moveWithin} from '@/util/reorder'
-import type {AttendanceTemplateField} from '@/api/attendance'
-import type {EventFieldEntry} from '@/api/events'
+import {EventFieldTypes} from '@/api/events'
+import type {AttendanceTemplateField, EventFieldConfig, EventFieldEntry} from '@/api/generated/schema'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
@@ -38,21 +38,34 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const quickFields = [
-  {name: 'Ort', fieldType: 'STRING', overview: true, isPublic: true},
-  {name: 'Treffpunkt', fieldType: 'STRING', overview: true, isPublic: true},
-  {name: 'Thema', fieldType: 'STRING', overview: true, isPublic: false},
+  {name: 'Ort', overview: true, isPublic: true},
+  {name: 'Treffpunkt', overview: true, isPublic: true},
+  {name: 'Thema', overview: true, isPublic: false},
 ]
 
-const existingNames = computed(() => new Set(fields.value.map(f => f.name.toLowerCase())))
+const existingNames = computed(() => new Set(fields.value.map(f => (f.name ?? '').toLowerCase())))
+
+/** The settings a new question starts with: none of its own. */
+function plainConfig(): EventFieldConfig {
+  return {selfRegistration: false, perDate: false}
+}
 
 function addQuickField(qf: typeof quickFields[number]) {
   fields.value = [...fields.value, {
-    name: qf.name, fieldType: qf.fieldType, config: {}, value: '', overview: qf.overview, attendanceFieldId: null, isPublic: qf.isPublic,
+    name: qf.name,
+    fieldType: EventFieldTypes.STRING,
+    config: plainConfig(),
+    value: '',
+    overview: qf.overview,
+    attendanceFieldId: null,
+    isPublic: qf.isPublic,
   }]
 }
 
 function addField() {
-  fields.value = [...fields.value, {name: '', fieldType: 'STRING', config: {}, value: '', overview: false, attendanceFieldId: null}]
+  fields.value = [...fields.value, {
+    name: '', fieldType: EventFieldTypes.STRING, config: plainConfig(), value: '', overview: false, attendanceFieldId: null,
+  }]
 }
 
 /** The sheet fields the questions already fill in, so none of them is offered a second time. */
@@ -68,9 +81,14 @@ const takenAttendanceIds = computed(() =>
  */
 function takeAttendanceField(field: AttendanceTemplateField) {
   fields.value = [...fields.value, {
-    name: field.name ?? '',
-    fieldType: field.fieldType ?? 'STRING',
-    config: {...(field.config ?? {})},
+    name: field.name,
+    fieldType: field.fieldType,
+    config: {
+      ...plainConfig(),
+      options: field.config.options ?? undefined,
+      groupId: field.config.groupId ?? undefined,
+      width: field.config.width ?? undefined,
+    },
     value: '',
     overview: false,
     attendanceFieldId: field.id,

@@ -6,153 +6,37 @@
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
-import type {MovementPurposeName, StepActorName} from './movements'
-import type {StationUserTypeName} from './types'
+import type {
+    AttendanceEntry,
+    AttendanceReportPreset,
+    AttendanceSession,
+    AttendanceSessionField,
+    AttendanceTemplate,
+    AttendanceTemplateField,
+    components,
+    CreateEntryRequest,
+    CreatePresetRequest,
+    MemberNotes,
+    ReportData,
+    SessionDetail,
+    SessionRequest,
+    SessionSummary,
+    SetSessionFieldsRequest,
+    SetTemplateGroupsRequest,
+    SetTemplateUserTypesRequest,
+    StationUserType,
+    StatusResponse,
+    TemplateDetail,
+    TemplateFieldRequest,
+    TemplateGroupEntry,
+    TemplateRequest,
+    TimestampRequest,
+    TimestampResponse,
+} from './generated/schema'
 
-export interface AttendanceTemplate {
-    id: number
-    stationId: string
-    name?: string
-}
+export type AttendanceStatus = components['schemas']['AttendanceStatus']
 
-export interface TemplateRequest {
-    name?: string
-}
-
-export interface AttendanceTemplateField {
-    id: number
-    templateId: number
-    name?: string
-    fieldType?: string
-    config?: Record<string, unknown>
-    position: number
-}
-
-export interface TemplateFieldRequest {
-    name?: string
-    fieldType?: string
-    config?: Record<string, unknown>
-    position: number
-}
-
-export interface TemplateDetail {
-    id: number
-    stationId: string
-    name?: string
-    fields?: AttendanceTemplateField[]
-    groups?: TemplateGroupEntry[]
-    /** The user types whose members the template's sheets expect besides the members of its groups. */
-    userTypes?: StationUserTypeName[]
-}
-
-export interface SetTemplateUserTypesRequest {
-    userTypes: StationUserTypeName[]
-}
-
-export interface TemplateGroupEntry {
-    groupId: number
-    position: number
-}
-
-export interface SetTemplateGroupsRequest {
-    groups?: TemplateGroupEntry[]
-}
-
-export interface AttendanceSession {
-    id: number
-    templateId: number
-    startTime?: string
-    endTime?: string
-    createdAt?: string
-    eventId?: number | null
-    title?: string
-    /** When a manager's reopening runs out, null where the sheet's age alone decides. */
-    unlockedUntil?: string | null
-    /** When somebody closed the sheet by hand, null where nobody did. */
-    lockedAt?: string | null
-    /** What a whole presence counts as when hours are added up, null where the times decide. */
-    countedMinutes?: number | null
-}
-
-export interface SessionRequest {
-    startTime?: string
-    endTime?: string
-    eventId?: number | null
-    title?: string
-    countedMinutes?: number | null
-    /** Whom to enter on this one sheet, left out where the template's own user types and groups decide. */
-    audience?: SessionAudience
-    /**
-     * Which day of a repeating appointment the sheet is for, as an ISO date.
-     *
-     * <p>Left out, the server takes the day it was asked on. A series is one appointment that comes
-     * round again and again, so a sheet taken for another of its days has to say which.
-     */
-    eventDate?: string
-}
-
-/**
- * Who stands on one sheet: everybody of the user types and everybody in the groups. The two add up,
- * and the groups keep the order they were chosen in, which the sheet is then written in. A template
- * carries one as the default for its sheets.
- */
-export interface SessionAudience {
-    userTypes: StationUserTypeName[]
-    groupIds: number[]
-}
-
-export interface AttendanceSessionField {
-    sessionId: number
-    fieldId: number
-    value?: string
-}
-
-export interface AttendanceFieldValueEntry {
-    fieldId: number
-    value?: string
-}
-
-export interface SetSessionFieldsRequest {
-    fields?: AttendanceFieldValueEntry[]
-}
-
-export interface SessionDetail {
-    session?: AttendanceSession
-    fields?: AttendanceSessionField[]
-    entries?: AttendanceEntry[]
-    /** Whether the sheet refuses writes; decided by the backend, which owns the span. */
-    locked?: boolean
-    /** Whom the sheet expects: what it was started with, or its template's user types and groups. */
-    audience?: SessionAudience
-}
-
-export type AttendanceStatus = 'UNCONFIRMED' | 'PRESENT' | 'ABSENT' | 'DECLINED'
-
-export type EntrySource = 'EXPECTED' | 'EXTRA'
-
-export interface AttendanceEntry {
-    id: number
-    sessionId: number
-    memberId: number
-    status: AttendanceStatus
-    checkIn?: string
-    checkOut?: string
-    source: EntrySource
-}
-
-export interface CreateEntryRequest {
-    memberId?: number
-    source?: EntrySource
-}
-
-export interface TimestampRequest {
-    time?: string
-}
-
-export interface TimestampResponse {
-    entryId: number
-    time?: string
-}
+export type EntrySource = components['schemas']['EntrySource']
 
 const templates = createCrudResource<
     AttendanceTemplate,
@@ -169,8 +53,6 @@ const templateFields = createScopedCrudResource<
     AttendanceTemplateField[]
 >((templateId: number) => `/attendance/templates/${templateId}/fields`)
 
-// -- Templates --
-
 export const listTemplates = templates.list
 export const getTemplate = templates.get
 
@@ -184,8 +66,6 @@ export const createTemplate = templates.create
 export const updateTemplate = templates.update
 export const deleteTemplate = templates.remove
 
-// -- Template Fields --
-
 export const listTemplateFields = templateFields.list
 export const createTemplateField = templateFields.create
 export const updateTemplateField = templateFields.update
@@ -195,8 +75,6 @@ export async function deleteTemplateField(templateId: number, fieldId: number): 
     return res.data
 }
 
-// -- Template Groups --
-
 export async function setTemplateGroups(templateId: number, data: SetTemplateGroupsRequest): Promise<TemplateGroupEntry[]> {
     const res = await client.put<TemplateGroupEntry[]>(`/attendance/templates/${templateId}/groups`, data)
     return res.data
@@ -205,25 +83,9 @@ export async function setTemplateGroups(templateId: number, data: SetTemplateGro
 export async function setTemplateUserTypes(
     templateId: number,
     data: SetTemplateUserTypesRequest,
-): Promise<StationUserTypeName[]> {
-    const res = await client.put<StationUserTypeName[]>(`/attendance/templates/${templateId}/user-types`, data)
+): Promise<StationUserType[]> {
+    const res = await client.put<StationUserType[]>(`/attendance/templates/${templateId}/user-types`, data)
     return res.data
-}
-
-// -- Sessions --
-
-export interface SessionSummary {
-    id: number
-    templateId: number
-    startTime?: string
-    endTime?: string
-    createdAt?: string
-    eventId?: number | null
-    title?: string
-    presentCount: number
-    absentCount: number
-    declinedCount: number
-    unconfirmedCount: number
 }
 
 const sessions = createCrudResource<
@@ -259,8 +121,6 @@ export async function getSessionForEvent(eventId: number, date?: string | null):
     return res.status === 204 || !res.data ? null : res.data
 }
 
-// -- Session Fields --
-
 export async function getSessionFields(sessionId: number): Promise<AttendanceSessionField[]> {
     const res = await client.get<AttendanceSessionField[]>(`/attendance/sessions/${sessionId}/fields`)
     return res.data
@@ -270,8 +130,6 @@ export async function setSessionFields(sessionId: number, data: SetSessionFields
     const res = await client.put<AttendanceSessionField[]>(`/attendance/sessions/${sessionId}/fields`, data)
     return res.data
 }
-
-// -- Entries --
 
 const sessionEntries = createScopedCrudResource<
     AttendanceEntry,
@@ -301,54 +159,14 @@ export async function resetTimes(entryId: number): Promise<void> {
     await client.post(`/attendance/entries/${entryId}/reset-times`)
 }
 
-export async function updateEntryStatus(entryId: number, status: string): Promise<{ entryId: number; status: string }> {
-    const res = await client.put<{ entryId: number; status: string }>(`/attendance/entries/${entryId}/status`, {status})
+export async function updateEntryStatus(entryId: number, status: AttendanceStatus): Promise<StatusResponse> {
+    const res = await client.put<StatusResponse>(`/attendance/entries/${entryId}/status`, {status})
     return res.data
 }
 
 export async function syncFromEvent(sessionId: number): Promise<AttendanceEntry[]> {
     const res = await client.post<AttendanceEntry[]>(`/attendance/sessions/${sessionId}/sync-event`)
     return res.data
-}
-
-/** A swap of the member's that has not finished. */
-export interface SwapNote {
-    movementId: number
-    /** What it is for, which is what says whether a piece is coming or going. */
-    purpose: MovementPurposeName
-    /** The step it stands on, which is what acknowledging it names. */
-    stepId: number | null
-    /** The words that step carries, in the chain's own wording. */
-    stepLabel: string
-    /** Whose turn it is. */
-    stepActor: StepActorName | null
-    /** Whether acknowledging it puts a piece into the member's hands. */
-    handOverNext: boolean
-    /** The piece set aside for the member, which the step that hands it over has to be told about. */
-    replacementItemId: number | null
-    inventoryName: string
-    /** The piece this step is about: the one arriving where it brings one, the one held otherwise. */
-    itemName: string
-    /** The size written on that piece, absent where its inventory keeps no sizes. */
-    itemSize: string | null
-}
-
-/** A found item the member claimed and has not collected. */
-export interface FoundNote {
-    itemId: number
-    description: string
-}
-
-/**
- * What is outstanding for one member. Absent entirely where they have nothing, and carrying only
- * what the reader is allowed to see: the server leaves the rest out rather than sending it.
- */
-export interface MemberNotes {
-    memberId: number
-    swaps: SwapNote[]
-    foundItems: FoundNote[]
-    /** How many days ago their birthday fell, zero for today, null where there is none to show. */
-    birthdayDaysAgo: number | null
 }
 
 export async function getMemberNotes(sessionId: number): Promise<MemberNotes[]> {
@@ -393,64 +211,6 @@ export async function exportPdf(sessionId: number, options: SheetOptions = {}): 
     return documentFrom(res, 'Anwesenheitsliste.pdf')
 }
 
-// -- Report --
-
-export interface MemberSummary {
-    memberId: number
-    name: string
-    totalHours: number
-    sessionCount: number
-    presentCount: number
-}
-
-export interface SessionMemberEntry {
-    memberId: number
-    name: string
-    status: string
-    /** When the member arrived, with its day, since a sheet may run over several. */
-    checkIn: string
-    checkOut: string
-    hours: number
-}
-
-export interface SessionData {
-    sessionId: number
-    title: string
-    date: string
-    /** The day the sheet ends on, which is the day it starts on for all but a camp. */
-    endDate?: string | null
-    startTime: string
-    endTime: string
-    expectedCount: number
-    presentCount: number
-    /** What a whole presence was worth, null where the sheet's times decided. */
-    countedHours?: number | null
-    entries: SessionMemberEntry[]
-}
-
-export interface MonthSummary {
-    month: string
-    members: MemberSummary[]
-    sessions: SessionData[]
-}
-
-export interface ReportData {
-    filterLabel: string
-    members: MemberSummary[]
-    sessions: SessionData[]
-    monthlySummaries: MonthSummary[]
-}
-
-export interface ReportPreset {
-    id: number
-    stationId: string
-    name: string
-    userTypes: StationUserTypeName[]
-    groupIds: number[]
-    period: string
-    rounding: string
-}
-
 export async function reportPreview(params: URLSearchParams): Promise<ReportData> {
     const res = await client.get<ReportData>('/attendance/report/preview', {params})
     return res.data
@@ -467,15 +227,7 @@ export async function reportExportCsv(params: URLSearchParams): Promise<Document
     return documentFrom(res, 'Anwesenheit.csv')
 }
 
-interface PresetRequest {
-    name: string
-    userTypes: string[]
-    groupIds: number[]
-    period: string
-    rounding: string
-}
-
-const presets = createCrudResource<ReportPreset, PresetRequest>('/attendance/report/presets')
+const presets = createCrudResource<AttendanceReportPreset, CreatePresetRequest>('/attendance/report/presets')
 
 export const listPresets = presets.list
 export const createPreset = presets.create

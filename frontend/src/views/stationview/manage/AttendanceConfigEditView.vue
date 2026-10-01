@@ -14,7 +14,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import AttendanceFieldModal from './attendanceconfigedit/FieldModal.vue'
 import EditContent from './attendanceconfigedit/EditContent.vue'
-import type {AttendanceTemplateField, TemplateGroupEntry} from '@/api/attendance'
+import type {AttendanceTemplateField, TemplateFieldRequest, TemplateGroupEntry} from '@/api/generated/schema'
 import type {MemberGroup, StationUserTypeName} from '@/api/types'
 import {attendance, memberGroups} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -129,7 +129,7 @@ function openEditField(field: AttendanceTemplateField) {
 }
 
 const {running: fieldSaving, failure: fieldSaveFailure, run: saveField} = useAsyncAction(
-    async (data: { name: string; fieldType: string; config: Record<string, unknown>; position: number }) => {
+    async (data: TemplateFieldRequest) => {
       if (!templateId.value) return
       if (editingField.value) {
         fields.value = await attendance.updateTemplateField(templateId.value, editingField.value.id, data)
@@ -147,9 +147,9 @@ async function reorderFields(fromIndex: number, toIndex: number) {
   try {
     for (const f of fields.value) {
       await attendance.updateTemplateField(templateId.value!, f.id, {
-        name: f.name ?? '',
-        fieldType: f.fieldType ?? '',
-        config: f.config ?? {},
+        name: f.name,
+        fieldType: f.fieldType,
+        config: f.config,
         position: f.position,
       })
     }

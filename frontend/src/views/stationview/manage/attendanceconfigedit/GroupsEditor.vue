@@ -13,7 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {TemplateGroupEntry} from '@/api/attendance'
+import type {TemplateGroupEntry} from '@/api/generated/schema'
 import type {MemberGroup} from '@/api/types'
 
 const props = defineProps<{

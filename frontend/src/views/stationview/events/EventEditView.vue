@@ -15,7 +15,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure, type Failure} from '@/util/failure'
 import {events} from '@/api'
-import type {EventRegistrationFieldDefinition} from '@/api/events'
+import type {RegistrationFieldDefinition} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import EventEditBody from './eventeditview/EventEditBody.vue'
 import {useEventForm} from './eventeditview/useEventForm'
@@ -57,7 +57,7 @@ const failure = ref<Failure | null>(null)
  * start is the reader's own typing, so it is said plainly and never offered as a bug to report.
  */
 const refused = ref('')
-const registrationFields = ref<EventRegistrationFieldDefinition[]>([])
+const registrationFields = ref<RegistrationFieldDefinition[]>([])
 const {message: templateAppliedMessage, flash: flashTemplateApplied} = useFlashMessage(3000)
 
 /**
@@ -96,7 +96,7 @@ async function loadRegistrationFields(id: number) {
   registrationFields.value = loadedFields.map(f => ({
     name: f.name,
     fieldType: f.fieldType,
-    config: f.config ?? {},
+    config: f.config,
     overview: f.overview,
   }))
 }
@@ -137,7 +137,7 @@ async function writeEvent() {
   await fieldDefaults.save(savedEventId, isEdit.value)
   await events.setEventReminders(savedEventId, form.state.reminders)
   await events.setEventFields(savedEventId, {fields: form.namedFields()})
-  await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name.trim() !== ''))
+  await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name?.trim()))
   await federationShare.save(savedEventId)
 }
 

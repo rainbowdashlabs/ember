@@ -8,7 +8,12 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import type {ChecklistCellDto, ChecklistColumnDto, ChecklistDetail, ChecklistEntryDto} from '@/api/checklists'
+import type {
+    CellResponse as ChecklistCell,
+    ChecklistDetailResponse as ChecklistDetail,
+    ColumnResponse as ChecklistColumn,
+    EntryResponse as ChecklistEntry,
+} from '@/api/generated/schema'
 import ChecklistColumnHeader from './ChecklistColumnHeader.vue'
 import ChecklistMatrixRow from './ChecklistMatrixRow.vue'
 import ChecklistColumnEditor from './ChecklistColumnEditor.vue'
@@ -16,14 +21,14 @@ import ChecklistCards from './ChecklistCards.vue'
 
 const props = defineProps<{
   detail: ChecklistDetail
-  visibleEntries: ChecklistEntryDto[]
+  visibleEntries: ChecklistEntry[]
   readOnly?: boolean
 }>()
 
 const columnFilters = defineModel<Record<number, 'any' | 'checked' | 'unchecked'>>('columnFilters', {required: true})
 
 const emit = defineEmits<{
-  (e: 'cell-change', cell: ChecklistCellDto): void
+  (e: 'cell-change', cell: ChecklistCell): void
   (e: 'delete-entry', entryId: number): void
   (e: 'bulk-set', columnId: number, entryIds: number[], checked: boolean): void
   (e: 'columns-changed'): void
@@ -31,7 +36,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const editingColumn = ref<ChecklistColumnDto | null>(null)
+const editingColumn = ref<ChecklistColumn | null>(null)
 const showAddColumn = ref(false)
 
 function setFilter(columnId: number, value: 'any' | 'checked' | 'unchecked') {

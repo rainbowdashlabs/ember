@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AttendanceEntry} from '@/api/attendance'
+import type {AttendanceEntry} from '@/api/generated/schema'
 import type {MemberGroup, StationMember} from '@/api/types'
 import type {PitchAttendance, PitchCheckMode} from './pitchTypes'
 import type {MemberSection} from '@/views/stationview/attendance/sessionview/memberSections'
@@ -42,7 +42,7 @@ function at(time: string): string {
 
 function entry(id: number, memberId: number, status: AttendanceEntry['status'],
                times?: {checkIn: string; checkOut: string}): AttendanceEntry {
-    return {id, sessionId: 1, memberId, status, source: 'EXPECTED', ...times}
+    return {id, sessionId: 1, memberId, status, source: 'EXPECTED', checkIn: times?.checkIn ?? null, checkOut: times?.checkOut ?? null}
 }
 
 const ENTRIES: AttendanceEntry[] = [

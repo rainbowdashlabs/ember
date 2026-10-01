@@ -10,8 +10,16 @@ import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import type {AttendanceTemplate} from '@/api/attendance'
-import {CancellationCauses, isRecurringEvent, type AbsentMember, type CancellationNotice, type EventCategory, type EventField, type EventRegistrationEntry, type StationEvent} from '@/api/events'
+import {CancellationCauses, isRecurringEvent} from '@/api/events'
+import type {
+  AbsentMemberResponse,
+  AttendanceTemplate,
+  CancellationNotice,
+  EventCategory,
+  EventField,
+  RegistrationResponse,
+  StationEvent,
+} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 import {attendance, events, managedMembers as managedMembersApi, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -47,16 +55,16 @@ const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
 const fields = ref<EventField[]>([])
 const reminders = ref<number[]>([])
-const absentMembers = ref<AbsentMember[]>([])
+const absentMembers = ref<AbsentMemberResponse[]>([])
 const managedMembers = ref<StationMember[]>([])
 const allMembers = ref<StationMember[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
-const allMyRegistrations = ref<EventRegistrationEntry[]>([])
+const allMyRegistrations = ref<RegistrationResponse[]>([])
 const cancelledDates = ref<CancellationNotice[]>([])
 
 /** The answers given for this appointment on the date being looked at, and no other. */
 const myRegistrations = computed(() => allMyRegistrations.value.filter(
-    (registration: EventRegistrationEntry) =>
+    (registration: RegistrationResponse) =>
         registration.eventId === eventId.value && registration.eventDate === effectiveDate.value))
 
 async function reloadMyRegistrations() {

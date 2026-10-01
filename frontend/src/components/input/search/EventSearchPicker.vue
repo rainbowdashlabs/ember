@@ -8,7 +8,8 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
-import {searchEvents, type EventPickerMode, type EventSearchResult} from '@/api/events'
+import {searchEvents, type EventPickerMode} from '@/api/events'
+import type {PickerEvent} from '@/api/generated/schema'
 import {findEmbeddedEvent} from '@/components/content/blockeditor/embeddedEventLookup'
 import {useBlockAudience} from '@/composables/useBlockAudience'
 import {formatDateTime} from '@/util/format'
@@ -39,7 +40,7 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-    pick: [item: EventSearchResult]
+    pick: [item: PickerEvent]
 }>()
 
 const {t} = useI18n()
@@ -48,15 +49,15 @@ const audience = useBlockAudience()
 const searchFn = (q: string) => searchEvents(q, props.mode, 10, audience)
 const hint = computed(() =>
     t(audience === 'MEMBERS' ? 'stationPages.editor.eventPickerHintMembers' : 'stationPages.editor.eventPickerHintPublic'))
-const displayFn = (item: EventSearchResult) => item.name
-const subtitleFn = (item: EventSearchResult) => {
+const displayFn = (item: PickerEvent) => item.name
+const subtitleFn = (item: PickerEvent) => {
     const parts = [
         formatDateTime(item.startTime),
         item.categoryName ?? '',
     ].filter(Boolean)
     return parts.join(' · ')
 }
-const keyFn = (item: EventSearchResult) => item.eventUid
+const keyFn = (item: PickerEvent) => item.eventUid
 const iconFn = (): string[] => ['fas', 'calendar-days']
 
 const resolvedTitle = ref<string | null>(null)
@@ -80,7 +81,7 @@ watch(() => [props.stationUid, model.value], resolve)
             :selected-display="resolvedTitle ?? selectedDisplay"
             :placeholder="placeholder ?? t('stationPages.editor.eventSearchPlaceholder')"
             :disabled="disabled"
-            @pick="(it: EventSearchResult) => emit('pick', it)"
+            @pick="(it: PickerEvent) => emit('pick', it)"
         />
         <FieldHint class="mt-1" data-testid="event-picker-hint">{{ hint }}</FieldHint>
     </div>

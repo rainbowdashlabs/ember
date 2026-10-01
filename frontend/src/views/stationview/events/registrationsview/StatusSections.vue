@@ -7,14 +7,13 @@
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StatusSection from './StatusSection.vue'
-import type {EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
-
-type StatusKey = 'PENDING' | 'ACCEPTED' | 'DENIED' | 'DECLINED' | 'WITHDRAWN'
+import type {RegistrationStatusName} from '@/api/events'
+import type {RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
 
 defineProps<{
   loading: boolean
-  byStatus: Record<StatusKey, EventRegistrationEntry[]>
-  stats: MemberRegistrationStats[]
+  byStatus: Record<RegistrationStatusName, RegistrationResponse[]>
+  stats: RegistrationStatsResponse[]
 }>()
 
 const emit = defineEmits<{

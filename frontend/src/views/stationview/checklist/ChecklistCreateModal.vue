@@ -10,7 +10,9 @@ import {type RestrictionSelection, emptyRestriction} from '@/components/input/re
 import ChecklistFormModal from './checklistmodals/ChecklistFormModal.vue'
 import ChecklistColumnsEditor from './checklistmodals/ChecklistColumnsEditor.vue'
 import ChecklistMembershipEditor from './checklistmodals/ChecklistMembershipEditor.vue'
-import type {ChecklistColumnDraft, ChecklistCreateRequest, ChecklistSourceRequest} from '@/api/checklists'
+import type {ChecklistColumnDraft} from '@/api/checklists'
+import type {EventOccurrenceRef} from '@/api/events'
+import type {CreateRequest as ChecklistCreateRequest} from '@/api/generated/schema'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 
 const visible = defineModel<boolean>({required: true})
@@ -33,7 +35,7 @@ const description = ref('')
 const columns = ref<ChecklistColumnDraft[]>([{label: '', description: ''}])
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 const follows = ref<'FILTER' | 'EVENT'>('FILTER')
-const occurrence = ref<ChecklistSourceRequest | null>(null)
+const occurrence = ref<EventOccurrenceRef | null>(null)
 
 /**
  * A list that is meant to follow an appointment but names none would be created following nothing, so

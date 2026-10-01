@@ -18,7 +18,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import {useAnswerMembers} from './useAnswerMembers'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import type {EventRegistrationField} from '@/api/events'
+import type {RegistrationFieldResponse} from '@/api/generated/schema'
 import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
 
 /**
@@ -34,7 +34,7 @@ import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
 const props = defineProps<{
     people: AnswerablePerson<K>[]
     /** The questions the event asks. Empty when it asks none, and ignored when declining. */
-    fields: EventRegistrationField[]
+    fields: RegistrationFieldResponse[]
     /** Whether this dialog is saying yes. Saying no needs no answers. */
     attending: boolean
     busy?: boolean

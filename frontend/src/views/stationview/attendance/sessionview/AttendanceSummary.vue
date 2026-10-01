@@ -10,7 +10,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import type {AttendanceEntry} from '@/api/attendance'
+import type {AttendanceEntry} from '@/api/generated/schema'
 import type {MemberSection} from './memberSections'
 
 const {t} = useI18n()

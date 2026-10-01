@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.equipment.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * One piece that goes with another.
  *
@@ -16,6 +18,6 @@ public record Recommendation(
         String internalId,
         int inventoryId,
         String inventoryName,
-        Integer artId,
+        @Nullable Integer artId,
         String artName,
         boolean byWord) {}

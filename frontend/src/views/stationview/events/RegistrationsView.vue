@@ -12,7 +12,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import EventGroupCard from './registrationsview/EventGroupCard.vue'
 import {events} from '@/api'
-import {RegistrationStatus, type EventRegistrationEntry, type MemberRegistrationStats, type RegistrationStatusName, type StationEvent} from '@/api/events'
+import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
+import type {EventSummary, RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 import {formatDateTime} from '@/util/format'
@@ -21,26 +22,18 @@ import {describeFailure} from '@/util/failure'
 const {t} = useI18n()
 
 const {registrationCounts, reload: reloadDeps} = useEventEditDeps({withMembers: true, withCounts: true, autoLoad: false})
-const pendingRegistrations = ref<EventRegistrationEntry[]>([])
-const allEvents = ref<StationEvent[]>([])
+const pendingRegistrations = ref<RegistrationResponse[]>([])
+const allEvents = ref<EventSummary[]>([])
 const expandedEventId = ref<number | null>(null)
-const registrationStats = ref<MemberRegistrationStats[]>([])
-const expandedRegistrations = ref<EventRegistrationEntry[]>([])
+const registrationStats = ref<RegistrationStatsResponse[]>([])
+const expandedRegistrations = ref<RegistrationResponse[]>([])
 const expandedLoading = ref(false)
 
-type StatusKey = 'PENDING' | 'ACCEPTED' | 'DENIED' | 'DECLINED' | 'WITHDRAWN'
-
-interface StatusCounts {
-  PENDING: number
-  ACCEPTED: number
-  DENIED: number
-  DECLINED: number
-  WITHDRAWN: number
-}
+type StatusCounts = Record<RegistrationStatusName, number>
 
 interface EventGroup {
-  event: StationEvent
-  pending: EventRegistrationEntry[]
+  event: EventSummary
+  pending: RegistrationResponse[]
   counts: StatusCounts
   deadlineExpired: boolean
 }
@@ -50,7 +43,7 @@ function emptyCounts(): StatusCounts {
 }
 
 const eventGroups = computed((): EventGroup[] => {
-  const pendingByEvent = new Map<number, EventRegistrationEntry[]>()
+  const pendingByEvent = new Map<number, RegistrationResponse[]>()
   for (const reg of pendingRegistrations.value) {
     const list = pendingByEvent.get(reg.eventId) ?? []
     list.push(reg)
@@ -61,10 +54,7 @@ const eventGroups = computed((): EventGroup[] => {
   const countsByEvent = new Map<number, StatusCounts>()
   for (const rc of registrationCounts.value) {
     const cur = countsByEvent.get(rc.eventId) ?? emptyCounts()
-    const key = rc.status as StatusKey
-    if (key in cur) {
-      cur[key] += rc.count
-    }
+    cur[rc.status] += rc.count
     countsByEvent.set(rc.eventId, cur)
   }
 
@@ -91,7 +81,7 @@ const eventGroups = computed((): EventGroup[] => {
 })
 
 const expandedByStatus = computed(() => {
-  const groups: Record<StatusKey, EventRegistrationEntry[]> = {
+  const groups: Record<RegistrationStatusName, RegistrationResponse[]> = {
     PENDING: [],
     ACCEPTED: [],
     DENIED: [],
@@ -99,10 +89,7 @@ const expandedByStatus = computed(() => {
     WITHDRAWN: [],
   }
   for (const reg of expandedRegistrations.value) {
-    const key = reg.status as StatusKey
-    if (key in groups) {
-      groups[key].push(reg)
-    }
+    groups[reg.status].push(reg)
   }
   return groups
 })

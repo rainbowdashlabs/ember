@@ -10,7 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import HeaderCard from '@/views/stationview/events/federatedeventdetailview/HeaderCard.vue'
-import type {SharedEvent} from '@/api/events'
+import type {EventField, SharedEvent} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -24,10 +24,23 @@ const EVENT: SharedEvent = {
   startTime: '09:00:00',
   endTime: '12:00:00',
   description: 'Treffpunkt ist der Hof der Wache. Bringt eure Einsatzkleidung mit.',
+  repeatUntil: null,
+  repeatCount: null,
 }
 
-const PUBLIC_FIELDS = [
-  {id: 1, name: 'Treffpunkt', value: 'Hof der Wache', fieldType: 'STRING', isPublic: true},
+const PUBLIC_FIELDS: EventField[] = [
+  {
+    id: 1,
+    eventId: 1,
+    name: 'Treffpunkt',
+    value: 'Hof der Wache',
+    fieldType: 'STRING',
+    config: {perDate: false, selfRegistration: false},
+    position: 0,
+    overview: false,
+    isPublic: true,
+    attendanceFieldId: null,
+  },
 ]
 </script>
 

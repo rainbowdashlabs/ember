@@ -25,13 +25,12 @@ import {showToast} from '@/util/toast'
 import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
 import {checklists, memberGroups, stationMembers, userTags} from '@/api'
 import type {
-  ChecklistAddMembersResult,
-  ChecklistCellDto,
-  ChecklistDetail,
-  ChecklistRefreshResult,
-  ChecklistRestrictionDto,
-  ChecklistSourceRequest,
-} from '@/api/checklists'
+  AddMembersResponse as ChecklistAddMembersResult,
+  CellResponse as ChecklistCell,
+  ChecklistDetailResponse as ChecklistDetail,
+  RefreshResponse as ChecklistRefreshResult,
+  UpdateRequest as ChecklistUpdateRequest,
+} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 import {compareText} from '@/util/locale'
 import EditButton from '@/components/button/EditButton.vue'
@@ -153,7 +152,7 @@ const followsLabel = computed(() => {
 const aliveMemberIds = computed(() => new Set(aliveEntries.value.map(e => e.memberId)))
 const removedEntries = computed(() => sortedEntries.value.filter(e => e.deletedAt != null))
 
-function applyCell(cell: ChecklistCellDto) {
+function applyCell(cell: ChecklistCell) {
   if (!detail.value) return
   const idx = detail.value.cells.findIndex(c => c.entryId === cell.entryId && c.columnId === cell.columnId)
   if (idx >= 0) detail.value.cells.splice(idx, 1, cell)
@@ -260,7 +259,7 @@ function onSaveMeta(payload: {name: string; description: string; orderedColumnId
  * the next refresh brings in, and rows already here stay where they are either way.
  */
 const {running: savingMembership, failure: membershipFailure, run: runSaveMembership} = useAsyncAction(
-    async (payload: {restriction?: ChecklistRestrictionDto; source?: ChecklistSourceRequest}) => {
+    async (payload: Pick<ChecklistUpdateRequest, 'restriction' | 'source'>) => {
       if (!detail.value) return
       await checklists.updateChecklist(detail.value.id, payload)
       showMembership.value = false
@@ -269,7 +268,7 @@ const {running: savingMembership, failure: membershipFailure, run: runSaveMember
     },
 )
 
-function onSaveMembership(payload: {restriction?: ChecklistRestrictionDto; source?: ChecklistSourceRequest}) {
+function onSaveMembership(payload: Pick<ChecklistUpdateRequest, 'restriction' | 'source'>) {
   return runSaveMembership(payload)
 }
 

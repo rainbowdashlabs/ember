@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -19,4 +21,8 @@ import java.time.LocalDate;
  * @param reason      the reason a manager gave, null for the check and where none was given
  * @param cancelledAt when it was called off
  */
-public record CancellationNotice(LocalDate date, CancellationCause cause, String reason, Instant cancelledAt) {}
+public record CancellationNotice(
+        @Nullable LocalDate date,
+        CancellationCause cause,
+        @Nullable String reason,
+        @Nullable Instant cancelledAt) {}

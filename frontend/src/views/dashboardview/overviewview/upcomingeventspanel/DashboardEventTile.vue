@@ -13,17 +13,17 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
-import type {EventCategory, EventRegistrationEntry, StationEvent} from '@/api/events'
+import type {EventCategory, EventSummary, RegistrationResponse} from '@/api/generated/schema'
 import {formatDate, formatTime} from '@/util/format'
 
 defineProps<{
-  event: StationEvent
+  event: EventSummary
   date: string
   dayLabel: string
   /** What kind of appointment this is, absent where it was put in no category. */
   category?: EventCategory | null
   /** What the household has answered for this date, one entry per person. */
-  answers: {registration: EventRegistrationEntry; name: string}[]
+  answers: {registration: RegistrationResponse; name: string}[]
   /**
    * How many people the reader answers for have not said anything yet, counting only those the
    * appointment is open to, so none where it is open to nobody here.

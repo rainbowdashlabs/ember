@@ -8,7 +8,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {mount} from '@vue/test-utils'
 import EventAttachmentsPanel from './EventAttachmentsPanel.vue'
 import FilePreviewModal from '@/components/documents/FilePreviewModal.vue'
-import type {EventAttachment} from '@/api/events'
+import type {EventAttachment} from '@/api/generated/schema'
 
 const listEventAttachments = vi.fn()
 const downloadAuthed = vi.fn()

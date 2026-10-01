@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.question.QuestionConfigs;
 import dev.chojo.ember.feature.question.QuestionSettings;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -33,13 +34,13 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record EventRegistrationFieldConfig(
         boolean required,
-        String defaultValue,
-        List<String> options,
-        Integer min,
-        Integer max,
-        Integer groupId,
-        StationUserType userType,
-        Integer tagId,
+        @Nullable String defaultValue,
+        @Nullable List<String> options,
+        @Nullable Integer min,
+        @Nullable Integer max,
+        @Nullable Integer groupId,
+        @Nullable StationUserType userType,
+        @Nullable Integer tagId,
         boolean managersOnly) {
     private static final EventRegistrationFieldConfig EMPTY =
             new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, false);

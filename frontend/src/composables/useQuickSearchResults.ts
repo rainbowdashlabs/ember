@@ -10,7 +10,8 @@ import { PALETTE_ROUTES, type PaletteRouteEntry } from '@/data/paletteRoutes'
 import { StationModules, StationPermission, type MemberIdentity } from '@/api/types'
 import { listCompletions, type MemberCompletion } from '@/api/stationMembers'
 import { search as searchKb, type SearchResult as KbSearchResult } from '@/api/knowledgeBase'
-import { listUpcomingOccurrences, type UpcomingEventOccurrence } from '@/api/events'
+import { listUpcomingOccurrences } from '@/api/events'
+import type { UpcomingEventOccurrence } from '@/api/generated/schema'
 import { listInventories, type Inventory } from '@/api/inventory'
 import { matchesWords } from '@/util/listSearch'
 
@@ -141,7 +142,7 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
     if (!inStation.value) return []
     return eventResults.value.slice(0, MAX_PER_SECTION).map(({event, date}) => ({
       kind: 'event' as const,
-      label: event.name ?? `#${event.id}`,
+      label: event.name,
       sublabel: date,
       icon: 'calendar-days',
       to: {name: 'event-detail', params: {id: event.id}},

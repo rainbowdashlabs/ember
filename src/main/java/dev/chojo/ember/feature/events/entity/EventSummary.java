@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 
 /**
@@ -18,17 +20,18 @@ public record EventSummary(
         int id,
         int stationId,
         String name,
-        String description,
+        @Nullable String description,
         StationEvent.EventType eventType,
-        Integer dayOfWeek,
+        @Nullable Integer dayOfWeek,
         Instant startTime,
         Instant endTime,
         boolean requiresRegistration,
-        Instant registrationDeadline,
-        Integer categoryId,
-        Integer templateId,
+        @Nullable Instant registrationDeadline,
+        @Nullable Integer categoryId,
+        @Nullable Integer templateId,
         boolean restricted,
-        boolean seriesCancelled) {
+        boolean seriesCancelled,
+        @Nullable Integer registrationLimit) {
 
     public static EventSummary of(StationEvent event) {
         return new EventSummary(
@@ -45,6 +48,7 @@ public record EventSummary(
                 event.categoryId(),
                 event.templateId(),
                 event.restricted(),
-                event.cancelled());
+                event.cancelled(),
+                event.registrationLimit());
     }
 }

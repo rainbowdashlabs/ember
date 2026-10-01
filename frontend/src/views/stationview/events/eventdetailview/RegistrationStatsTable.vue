@@ -13,7 +13,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
-import type {EventRegistrationEntry, EventRegistrationField, MemberRegistrationStats} from '@/api/events'
+import type {RegistrationFieldResponse, RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
 import {useDataTable} from '@/composables/useDataTable'
 import RegistrationStatsMember from './registrationstatstable/RegistrationStatsMember.vue'
 import {registrationStatsColumns, SCORE_KEY, type RankedRegistration} from './registrationstatstable/registrationStatsColumns'
@@ -23,9 +23,9 @@ import {registrationStatsColumns, SCORE_KEY, type RankedRegistration} from './re
  * which a reader may resort or filter by any column.
  */
 const props = defineProps<{
-  fields?: EventRegistrationField[]
-  registrations: EventRegistrationEntry[]
-  stats: MemberRegistrationStats[]
+  fields?: RegistrationFieldResponse[]
+  registrations: RegistrationResponse[]
+  stats: RegistrationStatsResponse[]
   showActions?: boolean
   /** Whether the reader may put an answer right, which is whoever runs the appointment. */
   canEditAnswers?: boolean

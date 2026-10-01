@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -32,9 +33,9 @@ public record EventRegistration(
         LocalDate eventDate,
         RegistrationStatus status,
         Instant createdAt,
-        Integer createdBy,
+        @Nullable Integer createdBy,
         Instant statusChangedAt,
-        RegistrationStatus previousStatus,
+        @Nullable RegistrationStatus previousStatus,
         boolean fromField) {
 
     /**

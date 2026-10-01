@@ -40,6 +40,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -659,7 +660,7 @@ public class ChecklistRoutes implements Routes {
             String description,
             int memberCount,
             int columnCount,
-            Instant lastRefreshedAt,
+            @Nullable Instant lastRefreshedAt,
             Instant createdAt) {}
 
     /**
@@ -671,13 +672,13 @@ public class ChecklistRoutes implements Routes {
             String description,
             String mode,
             Instant createdAt,
-            Integer createdBy,
-            Instant lastRefreshedAt,
+            @Nullable Integer createdBy,
+            @Nullable Instant lastRefreshedAt,
             List<ColumnResponse> columns,
             List<EntryResponse> entries,
             List<CellResponse> cells,
             RestrictionResponse restriction,
-            SourceOccurrenceResponse source) {}
+            @Nullable SourceOccurrenceResponse source) {}
 
     /**
      * The appointment occurrence a list follows, or {@code null} when it follows its filter or has
@@ -687,18 +688,35 @@ public class ChecklistRoutes implements Routes {
      * @param eventDate the one date whose sign-ups it follows
      * @param eventName the appointment's name, so the header can say it without a second request
      */
-    public record SourceOccurrenceResponse(Integer eventId, LocalDate eventDate, String eventName) {}
+    public record SourceOccurrenceResponse(
+            Integer eventId, LocalDate eventDate, @Nullable String eventName) {}
 
     public record ColumnResponse(int id, int position, String label, String description) {}
 
     public record EntryResponse(
-            int id, int memberId, String memberName, Instant addedAt, Instant deletedAt, boolean inFilter) {}
+            int id,
+            int memberId,
+            String memberName,
+            Instant addedAt,
+            @Nullable Instant deletedAt,
+            boolean inFilter) {}
 
     public record CellResponse(
-            int id, int entryId, int columnId, boolean checked, String note, Instant updatedAt, Integer updatedBy) {}
+            int id,
+            int entryId,
+            int columnId,
+            boolean checked,
+            @Nullable String note,
+            Instant updatedAt,
+            @Nullable Integer updatedBy) {}
 
     public record NoteHistoryEntryResponse(
-            int id, String oldNote, String newNote, Integer changedBy, String changedByName, Instant changedAt) {}
+            int id,
+            @Nullable String oldNote,
+            @Nullable String newNote,
+            @Nullable Integer changedBy,
+            @Nullable String changedByName,
+            Instant changedAt) {}
 
     public record RestrictionResponse(
             List<String> userTypes,
@@ -744,7 +762,8 @@ public class ChecklistRoutes implements Routes {
 
     public record RefreshResponse(int added, int alreadyPresent) {}
 
-    public record CellWriteRequest(boolean checked, String note) {}
+    public record CellWriteRequest(
+            boolean checked, @Nullable String note) {}
 
     public record BulkSetRequest(List<Integer> entryIds, boolean checked) {}
 

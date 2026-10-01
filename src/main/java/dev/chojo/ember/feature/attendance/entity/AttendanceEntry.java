@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.attendance.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -27,8 +28,8 @@ public record AttendanceEntry(
         int sessionId,
         int memberId,
         AttendanceStatus status,
-        Instant checkIn,
-        Instant checkOut,
+        @Nullable Instant checkIn,
+        @Nullable Instant checkOut,
         EntrySource source) {
     /**
      * Creates a row mapping for database result set conversion.

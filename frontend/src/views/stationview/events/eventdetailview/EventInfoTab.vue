@@ -13,7 +13,8 @@ import CommentSection from '@/components/comment/CommentSection.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import EventGeneralInfoPanel from './EventGeneralInfoPanel.vue'
 import EventAttachmentsPanel from './EventAttachmentsPanel.vue'
-import {isRecurringEvent, type AbsentMember, type EventField, type StationEvent} from '@/api/events'
+import {isRecurringEvent} from '@/api/events'
+import type {AbsentMemberResponse, EventField, StationEvent} from '@/api/generated/schema'
 import {StationPermission, type StationMember} from '@/api/types'
 
 const props = defineProps<{
@@ -22,7 +23,7 @@ const props = defineProps<{
   fields: EventField[]
   allMembers: StationMember[]
   currentMemberId: number
-  absentMembers: AbsentMember[]
+  absentMembers: AbsentMemberResponse[]
   focusedDate: string | null
   /** The occurrence on screen, which is the one a question answered per date is answered for. */
   effectiveDate: string | null

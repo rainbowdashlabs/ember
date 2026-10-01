@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, type ComputedRef} from 'vue'
-import {RegistrationStatus, type EventRegistrationEntry, type FederatedEventRegistration, type StationEvent} from '@/api/events'
+import {RegistrationStatus, type AnyEvent} from '@/api/events'
+import type {EnrichedFederationRegistration, RegistrationResponse} from '@/api/generated/schema'
 
 /**
  * The people holding a place on one date, ready to be handed to anything that works from a list
@@ -34,13 +35,13 @@ const EMPTY: SignupMemberSet = {memberIds: [], count: 0, guestCount: 0, formerCo
  */
 export interface SignupMemberSetSources {
     /** The appointment being looked at, or null while it is still loading. */
-    event: () => StationEvent | null
+    event: () => Pick<AnyEvent, 'requiresRegistration'> | null
     /** The one date the screen is focused on. Without it there is no occurrence to read. */
     effectiveDate: () => string | null
     /** Every sign-up of the appointment, across all of its occurrences. */
-    registrations: () => EventRegistrationEntry[]
+    registrations: () => Pick<RegistrationResponse, 'status' | 'eventDate' | 'memberId'>[]
     /** Every sign-up made from a partner station, across all of its occurrences. */
-    federatedRegistrations: () => FederatedEventRegistration[]
+    federatedRegistrations: () => EnrichedFederationRegistration[]
     /** The members this station has today, which is who a list can be materialised for. */
     currentMemberIds: () => number[]
 }

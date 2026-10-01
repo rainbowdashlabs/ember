@@ -7,7 +7,7 @@
 import {mount} from '@vue/test-utils'
 import {describe, expect, it} from 'vitest'
 import MemberCheckNotes from './MemberCheckNotes.vue'
-import type {MemberNotes, SwapNote} from '@/api/attendance'
+import type {MemberNotes, SwapNote} from '@/api/generated/schema'
 
 /** The real translations are in play, so the stories read the German a person would see. */
 const i18n = {global: {stubs: {'font-awesome-icon': true}}}

@@ -27,6 +27,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -187,5 +188,5 @@ public class EventCancellationRoutes implements Routes {
      *
      * @param reason what the members are told, or null to tell them nothing more
      */
-    public record CancelRequest(String reason) {}
+    public record CancelRequest(@Nullable String reason) {}
 }

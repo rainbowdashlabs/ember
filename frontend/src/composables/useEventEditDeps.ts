@@ -5,8 +5,7 @@
  */
 import {ref, type Ref} from 'vue'
 import {attendance, events, memberGroups as memberGroupsApi, stationMembers, userTags as userTagsApi} from '@/api'
-import type { AttendanceTemplate } from '@/api/attendance'
-import type {EventCategory, RegistrationCount} from '@/api/events'
+import type {AttendanceTemplate, EventCategory, RegistrationCount} from '@/api/generated/schema'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import {useAsyncLoader} from './useAsyncLoader'
 

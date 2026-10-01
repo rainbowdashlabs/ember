@@ -10,11 +10,12 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {StationEvent} from '@/api/events'
+import type {RegistrationStatusName} from '@/api/events'
+import type {EventSummary} from '@/api/generated/schema'
 
 defineProps<{
-  event: StationEvent
-  counts: { PENDING: number; ACCEPTED: number; DENIED: number; DECLINED: number; WITHDRAWN: number }
+  event: EventSummary
+  counts: Record<RegistrationStatusName, number>
   deadlineExpired: boolean
   formatDeadline: (iso?: string | null) => string
 }>()

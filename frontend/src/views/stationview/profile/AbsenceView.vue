@@ -13,7 +13,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {StationMember} from '@/api/types'
 import {absences, managedMembers as managedMembersApi} from '@/api'
-import type {MemberAbsence} from '@/api/absences'
+import type {AbsenceResponse} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -23,7 +23,7 @@ import AbsenceListItem from './absenceview/AbsenceListItem.vue'
 const {t} = useI18n()
 const {sessionInfo, loaded, isGuardian} = useSession()
 
-const myAbsences = ref<MemberAbsence[]>([])
+const myAbsences = ref<AbsenceResponse[]>([])
 const managedMembers = ref<StationMember[]>([])
 const success = ref('')
 

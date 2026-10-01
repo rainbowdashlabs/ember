@@ -7,7 +7,8 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
-import {CancellationCauses, type CancellationNotice} from '@/api/events'
+import {CancellationCauses} from '@/api/events'
+import type {CancellationNotice} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 /**

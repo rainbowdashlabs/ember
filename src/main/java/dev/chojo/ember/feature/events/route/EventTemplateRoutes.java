@@ -32,6 +32,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -149,7 +150,10 @@ public class EventTemplateRoutes implements Routes {
             tags = {"Event Templates"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetRegistrationFieldsRequest.class)),
-            responses = @OpenApiResponse(status = "200"))
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = EventTemplateRegistrationField[].class)))
     private void setRegistrationFields(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
@@ -263,16 +267,29 @@ public class EventTemplateRoutes implements Routes {
         ctx.json(restrictionsOf(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/event-templates/{id}/reminders",
+            methods = HttpMethod.GET,
+            summary = "List the days before an appointment its reminders go out, as the template sets them",
+            tags = {"Event Templates"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void getReminders(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         ctx.json(eventTemplateService.findReminderDays(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/event-templates/{id}/reminders",
+            methods = HttpMethod.PUT,
+            summary = "Replace the reminder days an event template hands over",
+            tags = {"Event Templates"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventRoutes.SetRemindersRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void setReminders(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
-        var req = ctx.bodyAsClass(SetRemindersRequest.class);
+        var req = ctx.bodyAsClass(EventRoutes.SetRemindersRequest.class);
         eventTemplateService.setReminders(id, req.daysBefore() != null ? req.daysBefore() : List.of());
         ctx.json(eventTemplateService.findReminderDays(id));
     }
@@ -281,16 +298,16 @@ public class EventTemplateRoutes implements Routes {
 
     public record UpdateTemplateRequest(
             String name,
-            String title,
-            String description,
-            Integer categoryId,
-            StationEvent.EventType eventType,
-            Boolean requiresRegistration,
-            String registrationDeadlineOffset,
-            Boolean requiresConfirmation,
-            RestrictionMode restrictionMode,
-            Integer attendanceTemplateId,
-            Integer registrationLimit) {}
+            @Nullable String title,
+            @Nullable String description,
+            @Nullable Integer categoryId,
+            StationEvent.@Nullable EventType eventType,
+            @Nullable Boolean requiresRegistration,
+            @Nullable String registrationDeadlineOffset,
+            @Nullable Boolean requiresConfirmation,
+            @Nullable RestrictionMode restrictionMode,
+            @Nullable Integer attendanceTemplateId,
+            @Nullable Integer registrationLimit) {}
 
     public record TemplateDetailResponse(
             EventTemplate template,
@@ -313,6 +330,4 @@ public class EventTemplateRoutes implements Routes {
     public record SetFieldsRequest(List<EventTemplateFieldData> fields) {}
 
     public record SetRegistrationFieldsRequest(List<RegistrationFieldDefinition> fields) {}
-
-    public record SetRemindersRequest(List<Integer> daysBefore) {}
 }

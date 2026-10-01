@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {EventField, StationEvent} from '@/api/events'
+import type {EventField, StationEvent} from '@/api/generated/schema'
 import {CellContentType, type CellContentTypeName} from '@/api/pageManage'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import type {RestrictionSelection} from '@/components/input/restriction'
@@ -90,9 +90,9 @@ export function buildAnnouncementDraft(
     const carried: CarriedField[] = announced.fields
         .filter(field => field.overview && field.name)
         .map(field => ({
-            name: field.name ?? '',
+            name: field.name,
             text: eventFieldText(field, names, {yes: words.yes, no: words.no}),
-            isPublic: field.isPublic ?? false,
+            isPublic: field.isPublic,
         }))
         .filter(field => field.text !== '')
 
@@ -108,7 +108,7 @@ export function buildAnnouncementDraft(
     ].filter(cell => cell !== null)
 
     return {
-        title: event.name ?? '',
+        title: event.name,
         rows: blocks.map((cell, index) => ({id: 0, sortOrder: index, cells: [cell]})),
         audience,
         restricted,
@@ -124,7 +124,7 @@ export function buildAnnouncementDraft(
  * with its own start.
  */
 function repeats(event: StationEvent): boolean {
-    return !!event.eventType && event.eventType !== 'ONE_TIME'
+    return event.eventType !== 'ONE_TIME'
 }
 
 function block(contentType: CellContentTypeName, content: string, config: Record<string, unknown> = {}) {

@@ -17,7 +17,7 @@ import RecordTable from '@/components/table/RecordTable.vue'
 import type {ColumnOption, TableColumn} from '@/components/table/tableColumn'
 import {memberTable as api} from '@/api'
 import {RegistrationStatus} from '@/api/events'
-import type {EventRegistrationEntry} from '@/api/events'
+import type {RegistrationResponse} from '@/api/generated/schema'
 import type {MemberTable, MemberTableColumn, MemberTableHeader} from '@/api/memberTable'
 import {StationPermission} from '@/api/types'
 import {userTypeOptions} from '@/views/stationview/members/listview/memberColumns'
@@ -38,7 +38,7 @@ const props = defineProps<{
   /** The date these sign-ups belong to, because a registration belongs to one. */
   effectiveDate: string | null
   /** Every sign-up for that date, which is where a row's status and its accept button come from. */
-  entries: EventRegistrationEntry[]
+  entries: RegistrationResponse[]
 }>()
 
 /**
@@ -53,7 +53,7 @@ const emit = defineEmits<{
   accept: [registrationId: number]
 }>()
 
-type Row = DrawnRow<EventRegistrationEntry | null>
+type Row = DrawnRow<RegistrationResponse | null>
 
 /**
  * Whether this reader handles the registrations, which guards the whole table.
@@ -90,7 +90,7 @@ const exporting = ref(false)
  * columns to tick: a list of people with the names left off is not a thing anybody wants.
  */
 const columns = computed<TableColumn<Row>[]>(() => offered.value.map(header => {
-  const column = tableColumnOf<EventRegistrationEntry | null>(header, OPTIONS_BY_KEY.value[keyOf(header)])
+  const column = tableColumnOf<RegistrationResponse | null>(header, OPTIONS_BY_KEY.value[keyOf(header)])
   const fixed = column.key === NAME_KEY || column.key === STATUS_KEY
   return fixed ? {...column, pinned: true} : column
 }))

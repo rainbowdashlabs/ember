@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.LocalDate;
 
 /**
@@ -29,4 +31,7 @@ import java.time.LocalDate;
  *                     date takes place
  */
 public record DatedEvent(
-        EventSummary event, LocalDate nextDate, LocalDate previousDate, CancellationNotice cancellation) {}
+        EventSummary event,
+        @Nullable LocalDate nextDate,
+        @Nullable LocalDate previousDate,
+        @Nullable CancellationNotice cancellation) {}

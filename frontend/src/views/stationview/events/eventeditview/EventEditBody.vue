@@ -9,8 +9,14 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
-import type {EventCategory, EventFieldEntry, EventTemplate, EventRegistrationFieldDefinition} from '@/api/events'
+import type {
+    AttendanceTemplate,
+    AttendanceTemplateField,
+    EventCategory,
+    EventFieldEntry,
+    EventTemplate,
+    RegistrationFieldDefinition,
+} from '@/api/generated/schema'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 import type {PartnerResponse} from '@/api/federation'
 import type {RestrictionSelection} from '@/components/input/restriction'
@@ -61,7 +67,7 @@ const endTime = defineModel<string>('endTime', {required: true})
 const repeatUntil = defineModel<string>('repeatUntil', {required: true})
 const repeatCount = defineModel<number | undefined>('repeatCount')
 const requiresRegistration = defineModel<boolean>('requiresRegistration', {required: true})
-const registrationFields = defineModel<EventRegistrationFieldDefinition[]>('registrationFields', {required: true})
+const registrationFields = defineModel<RegistrationFieldDefinition[]>('registrationFields', {required: true})
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {required: true})
 const hasDeadline = defineModel<boolean>('hasDeadline', {required: true})
 const registrationDeadline = defineModel<string>('registrationDeadline', {required: true})

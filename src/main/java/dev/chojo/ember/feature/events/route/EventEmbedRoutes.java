@@ -24,6 +24,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -142,11 +143,11 @@ public class EventEmbedRoutes implements Routes {
     public record EmbeddedEvent(
             int id,
             String name,
-            String description,
+            @Nullable String description,
             Instant startTime,
             Instant endTime,
             boolean cancelled,
-            String categoryName) {
+            @Nullable String categoryName) {
 
         static EmbeddedEvent of(StationEvent event, String categoryName) {
             return new EmbeddedEvent(

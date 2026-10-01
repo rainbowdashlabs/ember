@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
-import type {AttendanceTemplateField} from '@/api/attendance'
+import type {AttendanceTemplateField} from '@/api/generated/schema'
 import {DEFAULT_SOURCES} from './fieldDefaults'
 import {QuestionKinds, questionKindOf} from '@/util/questions'
 

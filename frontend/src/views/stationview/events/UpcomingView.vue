@@ -14,7 +14,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import UpcomingBody from './upcomingview/UpcomingBody.vue'
 import {registrationAudienceNote} from './upcomingview/registrationAudience'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
-import {isRecurringEvent, RegistrationStatus, type StationEvent} from '@/api/events'
+import {isRecurringEvent, RegistrationStatus} from '@/api/events'
+import type {EventSummary} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useUpcomingEvents} from '@/composables/useUpcomingEvents'
 import {formatDateTime, formatTime, todayIsoDate} from '@/util/format'
@@ -56,7 +57,7 @@ watch(viewMode, (mode) => {
  * Today's events are filtered in the browser - unlike the upcoming list, they are a short fixed
  * set the server already returned in full.
  */
-function matchesTextSearch(ev: StationEvent): boolean {
+function matchesTextSearch(ev: EventSummary): boolean {
   if (!searchInput.value) return true
   const q = searchInput.value.toLowerCase()
   return !!(ev.name?.toLowerCase().includes(q) || ev.description?.toLowerCase().includes(q)
@@ -92,14 +93,14 @@ function getRegistrationSummary(eventId: number, date: string) {
  * detail view lands on the correct instance (a weekly drill on the 12th vs the 19th). One-time
  * events skip the date - they only have a single occurrence.
  */
-function eventDetailRoute(ev: StationEvent, date: string): RouteLocationRaw {
+function eventDetailRoute(ev: EventSummary, date: string): RouteLocationRaw {
   if (isRecurringEvent(ev.eventType)) {
     return {name: eventRoutes.detailOnDate, params: {id: ev.id, date}}
   }
   return {name: eventRoutes.detail, params: {id: ev.id}}
 }
 
-function todayDetailRoute(ev: StationEvent): RouteLocationRaw {
+function todayDetailRoute(ev: EventSummary): RouteLocationRaw {
   return eventDetailRoute(ev, todayIsoDate())
 }
 
@@ -107,7 +108,7 @@ function openCreateEvent() {
   router.push({name: eventRoutes.create})
 }
 
-function goToAttendance(ev: StationEvent) {
+function goToAttendance(ev: EventSummary) {
   if (ev.templateId) {
     router.push({name: 'attendance-new', query: {templateId: String(ev.templateId), eventId: String(ev.id)}})
   }

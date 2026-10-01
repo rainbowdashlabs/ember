@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * One question an event template asks.
@@ -23,8 +24,8 @@ public record EventTemplateField(
         int position,
         boolean overview,
         boolean isPublic,
-        Integer attendanceFieldId,
-        String defaultValue) {
+        @Nullable Integer attendanceFieldId,
+        @Nullable String defaultValue) {
 
     public static RowMapping<EventTemplateField> map() {
         return row -> new EventTemplateField(

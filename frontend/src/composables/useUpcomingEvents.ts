@@ -5,17 +5,16 @@
  */
 import { ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  multiDayEndDate,
-  type AllEventRestrictions,
-  type EventBreak,
-  type EventCategory,
-  type EventField,
-  type EventRegistrationEntry,
-  type RegistrationCount,
-  type StationEvent,
-  type UpcomingEventOccurrence,
-} from '@/api/events'
+import { multiDayEndDate, type AllEventRestrictions } from '@/api/events'
+import type {
+  EventBreak,
+  EventCategory,
+  EventField,
+  EventSummary,
+  RegistrationCount,
+  RegistrationResponse,
+  UpcomingEventOccurrence,
+} from '@/api/generated/schema'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { events, managedMembers as managedMembersApi, memberGroups, userTags } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -43,10 +42,10 @@ import { describeFailure, saying } from '@/util/failure'
 export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () => boolean) {
   const { t } = useI18n()
 
-  const allEvents = ref<StationEvent[]>([])
+  const allEvents = ref<EventSummary[]>([])
   const eventBreaks = ref<EventBreak[]>([])
-  const todayEvents = ref<StationEvent[]>([])
-  const myRegistrations = ref<EventRegistrationEntry[]>([])
+  const todayEvents = ref<EventSummary[]>([])
+  const myRegistrations = ref<RegistrationResponse[]>([])
   const eligibleMembers = ref<Record<number, number[]>>({})
   const managedMembers = ref<StationMember[]>([])
   const registrationCounts = ref<RegistrationCount[]>([])

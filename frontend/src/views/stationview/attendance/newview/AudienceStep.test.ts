@@ -7,7 +7,7 @@
 import {mount} from '@vue/test-utils'
 import {describe, expect, it} from 'vitest'
 import AudienceStep from './AudienceStep.vue'
-import type {TemplateDetail} from '@/api/attendance'
+import type {TemplateDetail} from '@/api/generated/schema'
 import type {MemberGroup} from '@/api/types'
 
 /**
@@ -19,8 +19,8 @@ import type {MemberGroup} from '@/api/types'
 const harness = {global: {stubs: {'font-awesome-icon': true}}}
 
 const templates: TemplateDetail[] = [
-    {id: 4, stationId: 's', name: 'Dienstabend', fields: [], groups: []},
-    {id: 9, stationId: 's', name: 'Übung', fields: [], groups: []},
+    {id: 4, stationId: 's', name: 'Dienstabend', fields: [], groups: [], userTypes: []},
+    {id: 9, stationId: 's', name: 'Übung', fields: [], groups: [], userTypes: []},
 ]
 
 const groups: MemberGroup[] = [

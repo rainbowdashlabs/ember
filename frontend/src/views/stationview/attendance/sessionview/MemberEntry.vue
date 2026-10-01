@@ -14,7 +14,8 @@ import MemberEntryStatusButtons from './memberentry/MemberEntryStatusButtons.vue
 import MemberEntryReadonlyTimes from './memberentry/MemberEntryReadonlyTimes.vue'
 import MemberCheckNotes from './MemberCheckNotes.vue'
 import {actionCount, hasAnything, hasBirthday} from './memberNotes'
-import type {AttendanceEntry, AttendanceStatus, MemberNotes} from '@/api/attendance'
+import type {AttendanceStatus} from '@/api/attendance'
+import type {AttendanceEntry, MemberNotes} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 
 const {t} = useI18n()

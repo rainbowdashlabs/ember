@@ -12,9 +12,10 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DragList from '@/components/input/DragList.vue'
 import {moveWithin} from '@/util/reorder'
 import RegistrationFieldRow from './RegistrationFieldRow.vue'
-import {EventFieldTypes, type EventRegistrationFieldDefinition} from '@/api/events'
+import {EventFieldTypes} from '@/api/events'
+import type {RegistrationFieldDefinition} from '@/api/generated/schema'
 
-const fields = defineModel<EventRegistrationFieldDefinition[]>({required: true})
+const fields = defineModel<RegistrationFieldDefinition[]>({required: true})
 
 const {t} = useI18n()
 
@@ -33,7 +34,7 @@ function addField() {
   fields.value = [...fields.value, {
     name: '',
     fieldType: EventFieldTypes.STRING,
-    config: {required: false},
+    config: {required: false, managersOnly: false},
     overview: true,
   }]
 }
@@ -46,7 +47,7 @@ function move(fromIndex: number, toIndex: number) {
   fields.value = moveWithin(fields.value, fromIndex, toIndex)
 }
 
-function replace(index: number, field: EventRegistrationFieldDefinition) {
+function replace(index: number, field: RegistrationFieldDefinition) {
   fields.value = fields.value.map((existing, i) => (i === index ? field : existing))
 }
 </script>

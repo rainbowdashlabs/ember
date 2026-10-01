@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
 import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.IntervalType;
+import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
@@ -48,6 +49,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -161,7 +163,7 @@ public class EventRoutes implements Routes {
                         type = Boolean.class,
                         description = "Filter by registration requirement")
             },
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventSummary[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var filter = parseCategoryFilter(ctx);
@@ -192,6 +194,12 @@ public class EventRoutes implements Routes {
      * kept to nobody in particular, internal ones included. Nothing here reaches beyond what every
      * member sees, so the scope needs no right of its own.
      */
+    @OpenApi(
+            path = "/api/v1/events/search",
+            methods = HttpMethod.GET,
+            summary = "Search the events a content block may name",
+            tags = {"Events"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PickerEvent[].class)))
     private void searchPicker(Context ctx) {
         UserSession session = UserSession.from(ctx);
         String q = ctx.queryParam("q");
@@ -220,7 +228,7 @@ public class EventRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List today's events",
             tags = {"Events"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventSummary[].class)))
     private void listToday(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(occurrenceService.findTodayEvents(session.stationId()).stream()
@@ -655,6 +663,12 @@ public class EventRoutes implements Routes {
         ctx.json(restrictionsMap);
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{id}/reminders",
+            methods = HttpMethod.GET,
+            summary = "List the days before an event its reminders go out",
+            tags = {"Events"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void getReminders(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -662,6 +676,13 @@ public class EventRoutes implements Routes {
         ctx.json(reminderService.findDays(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{id}/reminders",
+            methods = HttpMethod.PUT,
+            summary = "Replace the days before an event its reminders go out",
+            tags = {"Events"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetRemindersRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void setReminders(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -671,6 +692,13 @@ public class EventRoutes implements Routes {
         ctx.json(reminderService.findDays(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/events/batch/generate-dates",
+            methods = HttpMethod.POST,
+            summary = "Work out the dates of a batch of events",
+            tags = {"Events"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = GenerateDatesRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BatchRow[].class)))
     private void generateDates(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(GenerateDatesRequest.class);
@@ -686,6 +714,13 @@ public class EventRoutes implements Routes {
         ctx.json(rows);
     }
 
+    @OpenApi(
+            path = "/api/v1/events/batch",
+            methods = HttpMethod.POST,
+            summary = "Create a batch of events",
+            tags = {"Events"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BatchCreateRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
     private void batchCreate(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(BatchCreateRequest.class);
@@ -756,32 +791,32 @@ public class EventRoutes implements Routes {
 
     public record EventRequest(
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            Integer templateId,
-            Boolean requiresRegistration,
-            Instant registrationDeadline,
-            Boolean requiresConfirmation,
-            Integer categoryId,
-            RestrictionSelection restriction,
-            RestrictionSelection viewRestriction,
-            Boolean isPublic,
-            Integer registrationLimit,
-            Integer minRegistrations,
-            Integer thresholdDays,
-            Integer registrationCloseDays,
-            LocalDate repeatUntil,
-            Integer repeatCount) {}
+            @Nullable Integer templateId,
+            @Nullable Boolean requiresRegistration,
+            @Nullable Instant registrationDeadline,
+            @Nullable Boolean requiresConfirmation,
+            @Nullable Integer categoryId,
+            @Nullable RestrictionSelection restriction,
+            @Nullable RestrictionSelection viewRestriction,
+            @Nullable Boolean isPublic,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays,
+            @Nullable LocalDate repeatUntil,
+            @Nullable Integer repeatCount) {}
 
     /**
      * The next day an appointment falls on, or nothing for one that has no date at all.
      *
      * @param date the day, named the way the station's own clock names it
      */
-    public record NextDate(LocalDate date) {}
+    public record NextDate(@Nullable LocalDate date) {}
 
     /**
      * Both audiences of an event, as the editor reads and writes them in one go.
@@ -800,34 +835,38 @@ public class EventRoutes implements Routes {
 
     public record GenerateDatesRequest(
             IntervalType intervalType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             String startDate,
             String endDate,
-            String startTime,
-            String endTime,
-            Boolean ignoreBreaks) {}
+            @Nullable String startTime,
+            @Nullable String endTime,
+            @Nullable Boolean ignoreBreaks) {}
 
     public record BatchCreateRequest(
-            String name,
-            String description,
-            Integer templateId,
-            Integer categoryId,
-            List<BatchFieldEntryDto> inlineFields,
+            @Nullable String name,
+            @Nullable String description,
+            @Nullable Integer templateId,
+            @Nullable Integer categoryId,
+            @Nullable List<BatchFieldEntryDto> inlineFields,
             List<BatchRowEntry> rows,
-            Boolean requiresRegistration,
-            Boolean requiresConfirmation,
-            Instant registrationDeadline,
-            RestrictionSelection restriction,
-            RestrictionSelection viewRestriction) {}
+            @Nullable Boolean requiresRegistration,
+            @Nullable Boolean requiresConfirmation,
+            @Nullable Instant registrationDeadline,
+            @Nullable RestrictionSelection restriction,
+            @Nullable RestrictionSelection viewRestriction) {}
 
     public record BatchFieldEntryDto(
             String name,
-            EventFieldType fieldType,
-            EventFieldConfig config,
-            Boolean overview,
-            Integer attendanceFieldId) {}
+            @Nullable EventFieldType fieldType,
+            @Nullable EventFieldConfig config,
+            @Nullable Boolean overview,
+            @Nullable Integer attendanceFieldId) {}
 
-    public record BatchRowEntry(String name, Instant startTime, Instant endTime, Map<String, String> fieldValues) {}
+    public record BatchRowEntry(
+            @Nullable String name,
+            Instant startTime,
+            Instant endTime,
+            @Nullable Map<String, String> fieldValues) {}
 
     /**
      * The optional category and registration-requirement filters shared by the event listings.

@@ -15,10 +15,17 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import TemplateEditBody from './templateeditview/TemplateEditBody.vue'
 import {emptyRestriction, toRestriction, type RestrictionSelection} from '@/components/input/restriction'
-import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
-import type {EventCategory, EventFieldEntry, EventTemplateDetail} from '@/api/events'
+import type {
+    AttendanceTemplate,
+    AttendanceTemplateField,
+    EventCategory,
+    EventFieldEntry,
+    TemplateDetailResponse,
+} from '@/api/generated/schema'
 import type {MemberGroup, UserTag} from '@/api/types'
 import {attendance, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
+import {audienceOf, EventFieldTypes} from '@/api/events'
+import {eventTypeNamed} from './eventeditview/eventFormState'
 import {useSession} from '@/composables/useSession'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -76,7 +83,7 @@ const pageTitle = computed(() => (openedName.value
 onMounted(() => { if (loaded.value) loadData() })
 watch(loaded, (v) => { if (v && loading.value) loadData() })
 
-function seedForm(detail: EventTemplateDetail) {
+function seedForm(detail: TemplateDetailResponse) {
   const tpl = detail.template
   name.value = tpl.name
   openedName.value = tpl.name
@@ -94,10 +101,10 @@ function seedForm(detail: EventTemplateDetail) {
   fields.value = detail.fields.map(f => ({
     name: f.name,
     fieldType: f.fieldType,
-    config: typeof f.config === 'string' ? (f.config ? JSON.parse(f.config) : {}) : (f.config ?? {}),
+    config: f.config,
     value: f.defaultValue ?? '',
     overview: f.overview,
-    attendanceFieldId: f.attendanceFieldId ?? null,
+    attendanceFieldId: f.attendanceFieldId,
     isPublic: f.isPublic,
   }))
 }
@@ -138,7 +145,7 @@ async function save() {
       title: title.value || null,
       description: description.value || null,
       categoryId: categoryId.value ? Number(categoryId.value) : null,
-      eventType: eventType.value || null,
+      eventType: eventTypeNamed(eventType.value) ?? null,
       requiresRegistration: requiresRegistration.value || null,
       requiresConfirmation: requiresConfirmation.value || null,
       registrationLimit: registrationLimit.value ?? null,
@@ -146,17 +153,17 @@ async function save() {
     })
     await events.setTemplateReminders(templateId.value, reminderDays.value)
     await events.setTemplateRestrictions(templateId.value, {
-      register: restriction.value,
-      view: viewRestriction.value,
+      register: audienceOf(restriction.value),
+      view: audienceOf(viewRestriction.value),
     })
     await events.setTemplateFields(templateId.value, {
       fields: fields.value.map((f, i) => ({
         name: f.name,
-        fieldType: f.fieldType ?? 'STRING',
-        config: typeof f.config === 'string' ? JSON.parse(f.config || '{}') : (f.config ?? {}),
+        fieldType: f.fieldType ?? EventFieldTypes.STRING,
+        config: f.config,
         position: i,
-        overview: f.overview,
-        isPublic: f.isPublic,
+        overview: f.overview ?? false,
+        isPublic: f.isPublic ?? false,
         attendanceFieldId: f.attendanceFieldId,
         defaultValue: f.value?.trim() ? f.value : null,
       })),

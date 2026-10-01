@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * One question of an event template, as it arrives to be stored.
  *
@@ -14,9 +16,9 @@ package dev.chojo.ember.feature.events.entity;
 public record EventTemplateFieldData(
         String name,
         EventFieldType fieldType,
-        EventFieldConfig config,
+        @Nullable EventFieldConfig config,
         int position,
         boolean overview,
         boolean isPublic,
-        Integer attendanceFieldId,
-        String defaultValue) {}
+        @Nullable Integer attendanceFieldId,
+        @Nullable String defaultValue) {}

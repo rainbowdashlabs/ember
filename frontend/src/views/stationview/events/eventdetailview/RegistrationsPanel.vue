@@ -24,23 +24,29 @@ import RegistrationFieldAnswers from './RegistrationFieldAnswers.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {userTypesOf, type MemberOption} from '@/components/input/select/memberOption'
 import {useMemberPick} from '@/composables/useMemberPick'
-import {RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField, type MemberRegistrationStats, type StationEvent} from '@/api/events'
+import {RegistrationStatus} from '@/api/events'
+import type {
+  RegistrationFieldResponse,
+  RegistrationResponse,
+  RegistrationStatsResponse,
+  StationEvent,
+} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {formatDateTime} from '@/util/format'
 import {answerTotals} from '@/util/eventAnswers'
 import ConfirmedRegistrationsTable from './ConfirmedRegistrationsTable.vue'
 
-interface StatusGroup { status: string; entries: EventRegistrationEntry[] }
+interface StatusGroup { status: string; entries: RegistrationResponse[] }
 
 const props = defineProps<{
   event: StationEvent
-  registrations: EventRegistrationEntry[]
-  pendingRegistrations: EventRegistrationEntry[]
+  registrations: RegistrationResponse[]
+  pendingRegistrations: RegistrationResponse[]
   nonPendingRegistrations: StatusGroup[]
-  registrationStats: MemberRegistrationStats[]
+  registrationStats: RegistrationStatsResponse[]
   unregisteredMembers: MemberOption[]
-  registrationFields?: EventRegistrationField[]
+  registrationFields?: RegistrationFieldResponse[]
   /** The date in view, which is the one a table of who is coming is drawn for. */
   effectiveDate?: string | null
 }>()
@@ -84,7 +90,7 @@ const canRegisterOthers = computed(
  * to refuse them asked the station to rule on a question nobody put. Only an entry that wants a
  * place is decided.
  */
-function decidable(registration: EventRegistrationEntry): boolean {
+function decidable(registration: RegistrationResponse): boolean {
   return hasPermission(StationPermission.EVENT_REGISTRATION)
       && !registration.fromField
       && registration.status !== RegistrationStatus.DECLINED
@@ -92,7 +98,7 @@ function decidable(registration: EventRegistrationEntry): boolean {
 }
 
 /** What to say instead, where a question of the appointment is what puts somebody on the list. */
-function heldByFieldNote(registration: EventRegistrationEntry): string {
+function heldByFieldNote(registration: RegistrationResponse): string {
   return registration.fieldName
       ? t('eventsUpcoming.heldByNamedField', {field: registration.fieldName})
       : t('eventsUpcoming.heldByField')

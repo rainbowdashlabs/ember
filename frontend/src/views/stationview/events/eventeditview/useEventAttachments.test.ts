@@ -6,7 +6,7 @@
 // @vitest-environment happy-dom
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {useEventAttachments} from './useEventAttachments'
-import type {EventAttachment} from '@/api/events'
+import type {EventAttachment} from '@/api/generated/schema'
 import type {StationFile} from '@/api/media'
 
 const listEventAttachments = vi.fn()

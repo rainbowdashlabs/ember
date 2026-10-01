@@ -6,7 +6,8 @@
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
 import {registrationAudienceNote} from './registrationAudience'
-import type {AllEventRestrictions, RestrictionAudience} from '@/api/events'
+import type {AllEventRestrictions} from '@/api/events'
+import type {RestrictionAudience} from '@/api/generated/schema'
 import type {MemberGroup, UserTag} from '@/api/types'
 
 const t = (key: string, arg?: number | Record<string, unknown>) => {
@@ -30,7 +31,7 @@ const groups: MemberGroup[] = [{id: 1, stationId: 's', name: 'Jugend'}, {id: 2, 
 const tags: UserTag[] = [{id: 5, stationId: 's', name: 'Bootsführer'}]
 
 function audience(partial: Partial<RestrictionAudience>): RestrictionAudience {
-    return {userTypes: [], groupIds: [], tagIds: [], memberIds: [], ...partial}
+    return {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND', ...partial}
 }
 
 function restrictions(register: Partial<RestrictionAudience>, view: Partial<RestrictionAudience> = {}): AllEventRestrictions {

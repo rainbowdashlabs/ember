@@ -20,8 +20,13 @@ import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import type {RestrictionSelection} from '@/components/input/restriction'
 import EventFieldList from './EventFieldList.vue'
 import RepeatEndField from './RepeatEndField.vue'
-import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
-import {EventTypes, isRecurringEvent, needsDayOfWeek, type EventCategory, type EventFieldEntry} from '@/api/events'
+import {EventTypes, isRecurringEvent, needsDayOfWeek} from '@/api/events'
+import type {
+    AttendanceTemplate,
+    AttendanceTemplateField,
+    EventCategory,
+    EventFieldEntry,
+} from '@/api/generated/schema'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 import {weekdayName} from '@/util/format'
 

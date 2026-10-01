@@ -11,7 +11,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
-import type {AttendanceTemplateField} from '@/api/attendance'
+import type {AttendanceTemplateField} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 import {QuestionKinds, memberIdsOf, questionKindOf, type QuestionKindName} from '@/util/questions'
 

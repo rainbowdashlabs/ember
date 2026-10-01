@@ -13,7 +13,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type {EventBreak} from '@/api/events'
+import type {EventBreak} from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
 import {formatDate} from '@/util/format'
 

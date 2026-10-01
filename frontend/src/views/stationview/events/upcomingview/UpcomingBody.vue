@@ -17,7 +17,15 @@ import TodayEventsSection from './TodayEventsSection.vue'
 import UpcomingEventsSection from './UpcomingEventsSection.vue'
 import type {AnswerablePerson} from '@/util/eventAnswers'
 import type {PagedListView} from '@/composables/usePagedList'
-import {EventStates, type EventBreak, type EventCategory, type EventField, type EventRegistrationEntry, type StationEvent, type UpcomingEventOccurrence} from '@/api/events'
+import {EventStates} from '@/api/events'
+import type {
+  EventBreak,
+  EventCategory,
+  EventField,
+  EventSummary,
+  RegistrationResponse,
+  UpcomingEventOccurrence,
+} from '@/api/generated/schema'
 
 type ViewMode = 'list' | 'calendar'
 
@@ -33,20 +41,20 @@ const props = defineProps<{
   canCreate: boolean
   canManageAttendance: boolean
   categories: EventCategory[]
-  allEvents: StationEvent[]
+  allEvents: EventSummary[]
   eventBreaks: EventBreak[]
-  filteredTodayEvents: StationEvent[]
+  filteredTodayEvents: EventSummary[]
   occurrences: PagedListView<UpcomingEventOccurrence>
   overviewFields: Record<number, EventField[]>
-  myRegistrations: EventRegistrationEntry[]
+  myRegistrations: RegistrationResponse[]
   managedMembersCount: number
   registering: boolean
-  multiDayEndDate: (event: StationEvent, date: string) => string | null
+  multiDayEndDate: (event: EventSummary, date: string) => string | null
   getRegistrationSummary: (eventId: number, date: string) => {accepted: number; pending: number; declined: number; total: number}
   getEligibleMembers: (eventId: number) => AnswerablePerson[]
   getRestrictionNote: (eventId: number) => string | null
-  todayDetailRoute: (event: StationEvent) => RouteLocationRaw
-  eventDetailRoute: (event: StationEvent, date: string) => RouteLocationRaw
+  todayDetailRoute: (event: EventSummary) => RouteLocationRaw
+  eventDetailRoute: (event: EventSummary, date: string) => RouteLocationRaw
   formatTime: (iso: string | null | undefined) => string
   formatDeadline: (iso: string) => string
 }>()
@@ -54,9 +62,9 @@ const props = defineProps<{
 defineEmits<{
   'update:view-mode': [value: ViewMode]
   create: []
-  attendance: [event: StationEvent]
-  register: [event: StationEvent, date: string, people: AnswerablePerson[]]
-  decline: [event: StationEvent, date: string, people: AnswerablePerson[]]
+  attendance: [event: EventSummary]
+  register: [event: EventSummary, date: string, people: AnswerablePerson[]]
+  decline: [event: EventSummary, date: string, people: AnswerablePerson[]]
   withdraw: [regId: number]
   'load-more': []
 }>()

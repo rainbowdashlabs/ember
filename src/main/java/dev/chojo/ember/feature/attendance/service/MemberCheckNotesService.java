@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -257,7 +258,10 @@ public class MemberCheckNotesService {
      * @param birthdayDaysAgo how many days ago their birthday fell, zero for today, null for none
      */
     public record MemberNotes(
-            int memberId, List<SwapNote> swaps, List<FoundNote> foundItems, Integer birthdayDaysAgo) {}
+            int memberId,
+            List<SwapNote> swaps,
+            List<FoundNote> foundItems,
+            @Nullable Integer birthdayDaysAgo) {}
 
     /**
      * One movement of this member's, as somebody standing in front of them needs it.
@@ -283,14 +287,14 @@ public class MemberCheckNotesService {
     public record SwapNote(
             int movementId,
             MovementPurpose purpose,
-            Integer stepId,
+            @Nullable Integer stepId,
             String stepLabel,
-            StepActor stepActor,
+            @Nullable StepActor stepActor,
             boolean handOverNext,
-            Integer replacementItemId,
+            @Nullable Integer replacementItemId,
             String inventoryName,
             String itemName,
-            String itemSize) {}
+            @Nullable String itemSize) {}
 
     /**
      * @param itemId      the found item

@@ -39,6 +39,7 @@ import net.fortuna.ical4j.model.property.XProperty;
 import net.fortuna.ical4j.model.property.immutable.ImmutableCalScale;
 import net.fortuna.ical4j.model.property.immutable.ImmutableStatus;
 import net.fortuna.ical4j.model.property.immutable.ImmutableVersion;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -338,13 +339,13 @@ public class PublicEventRoutes implements Routes {
             int id,
             UUID publicUid,
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            Integer categoryId,
-            String categoryName,
+            @Nullable Integer categoryId,
+            @Nullable String categoryName,
             List<EventField> publicFields,
             boolean cancelled,
             List<LocalDate> cancelledDates) {}
@@ -359,12 +360,12 @@ public class PublicEventRoutes implements Routes {
     public record PublicEventDetail(
             int id,
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            EventCategory category,
+            @Nullable EventCategory category,
             List<EventField> publicFields,
             boolean cancelled,
             List<LocalDate> cancelledDates) {}

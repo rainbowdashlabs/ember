@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {StationEvent} from '@/api/events'
+import type {StationEvent} from '@/api/generated/schema'
 import {formatDateTime, formatWeekdayDate} from '@/util/format'
 
 /** The sentences an announcement can say about an event, each filled from one of its settings. */

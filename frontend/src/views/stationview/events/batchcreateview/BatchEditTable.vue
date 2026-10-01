@@ -12,7 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldValueInput from '../eventshared/EventFieldValueInput.vue'
-import type {BatchRow, EventFieldEntry} from '@/api/events'
+import type {BatchRow, EventFieldEntry} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 const {t} = useI18n()
@@ -23,7 +23,8 @@ const props = defineProps<{
   fieldDefs: EventFieldEntry[]
 }>()
 
-const activeFields = () => props.fieldDefs.filter(f => f.name.trim())
+/** The questions that have a name, which is what each row's answer is keyed by. */
+const activeFields = () => props.fieldDefs.flatMap(f => (f.name?.trim() ? [{...f, name: f.name}] : []))
 
 function removeRow(index: number) {
   const updated = [...rows.value]
@@ -67,7 +68,7 @@ function setAllName(value: string) {
           <FieldLabel>{{ fd.name }} - {{ t('batchCreate.setAll') }}</FieldLabel>
           <EventFieldValueInput
               :field-type="fd.fieldType ?? 'STRING'"
-              :config="fd.config"
+              :config="fd.config ?? undefined"
               model-value=""
               @update:model-value="setAllColumn(fd.name, $event)"
           />
@@ -89,12 +90,12 @@ function setAllName(value: string) {
             <td class="p-2 whitespace-nowrap">{{ formatDate(row.startTime) }}</td>
             <td class="p-2">
               <TextInput :model-value="row.name ?? ''" class="w-40"
-                         @update:model-value="updateRow(index, {...row, name: $event})"/>
+                         @update:model-value="updateRow(index, {...row, name: $event ?? null})"/>
             </td>
             <td v-for="fd in activeFields()" :key="fd.name" class="p-2">
               <EventFieldValueInput
                   :field-type="fd.fieldType ?? 'STRING'"
-                  :config="fd.config"
+                  :config="fd.config ?? undefined"
                   :model-value="row.fieldValues?.[fd.name] ?? ''"
                   @update:model-value="updateRow(index, {...row, fieldValues: {...(row.fieldValues ?? {}), [fd.name]: $event}})"
               />

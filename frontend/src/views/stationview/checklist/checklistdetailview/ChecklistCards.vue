@@ -11,26 +11,30 @@ import IconButton from '@/components/button/IconButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import type {ChecklistCellDto, ChecklistColumnDto, ChecklistEntryDto} from '@/api/checklists'
+import type {
+    CellResponse as ChecklistCell,
+    ColumnResponse as ChecklistColumn,
+    EntryResponse as ChecklistEntry,
+} from '@/api/generated/schema'
 import ChecklistCellToggle from './ChecklistCellToggle.vue'
 
 defineProps<{
   checklistId: number
-  entries: ChecklistEntryDto[]
-  columns: ChecklistColumnDto[]
+  entries: ChecklistEntry[]
+  columns: ChecklistColumn[]
   isCheckedFn: (entryId: number, columnId: number) => boolean
   noteFn: (entryId: number, columnId: number) => string | null
   readOnly: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'cell-change', cell: ChecklistCellDto): void
+  (e: 'cell-change', cell: ChecklistCell): void
   (e: 'delete-entry', entryId: number): void
 }>()
 
 const {t} = useI18n()
 
-const {show: showDelete, target: pendingDelete, requestDelete, confirm: confirmDelete} = useConfirmDelete<ChecklistEntryDto>({
+const {show: showDelete, target: pendingDelete, requestDelete, confirm: confirmDelete} = useConfirmDelete<ChecklistEntry>({
   onDelete: async entry => { emit('delete-entry', entry.id) },
 })
 </script>

@@ -17,7 +17,12 @@ import PositionField from './fieldmodal/PositionField.vue'
 import WidthField from '@/components/profilefields/WidthField.vue'
 import {FieldWidths} from '@/components/profilefields/fieldLayout'
 import ModalActions from './fieldmodal/ModalActions.vue'
-import type {AttendanceTemplateField} from '@/api/attendance'
+import type {
+  AttendanceFieldConfig,
+  AttendanceFieldType,
+  AttendanceTemplateField,
+  TemplateFieldRequest,
+} from '@/api/generated/schema'
 import type {MemberGroup} from '@/api/types'
 
 const props = defineProps<{
@@ -28,9 +33,28 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  save: [data: { name: string; fieldType: string; config: Record<string, unknown>; position: number }]
+  save: [data: TemplateFieldRequest]
   close: []
 }>()
+
+const ATTENDANCE_FIELD_TYPES = {
+  STRING: 'STRING',
+  NUMBER: 'NUMBER',
+  DATE: 'DATE',
+  TIME: 'TIME',
+  BOOLEAN: 'BOOLEAN',
+  ENUM: 'ENUM',
+  URL: 'URL',
+  TEXTAREA: 'TEXTAREA',
+  MEMBER: 'MEMBER',
+  MEMBER_LIST: 'MEMBER_LIST',
+  MEMBER_OF_GROUP: 'MEMBER_OF_GROUP',
+  MEMBER_LIST_OF_GROUP: 'MEMBER_LIST_OF_GROUP',
+} as const satisfies Record<AttendanceFieldType, AttendanceFieldType>
+
+function isAttendanceFieldType(value: string): value is AttendanceFieldType {
+  return Object.hasOwn(ATTENDANCE_FIELD_TYPES, value)
+}
 
 const {t} = useI18n()
 
@@ -64,49 +88,39 @@ function fieldTypeCanHaveDefault(type: string): boolean {
   return ['STRING', 'NUMBER', 'TIME', 'DATE', 'BOOLEAN', 'ENUM'].includes(type)
 }
 
-function parseConfig(config?: Record<string, unknown>): Record<string, unknown> {
-  return config ?? {}
+function buildDefaultValue(): unknown {
+  if (!fieldHasDefault.value || !fieldTypeCanHaveDefault(fieldType.value)) return null
+  if (fieldType.value === 'BOOLEAN') return fieldDefaultBool.value
+  if (fieldType.value === 'DATE') return fieldDefaultToday.value ? '__TODAY__' : ''
+  if (fieldType.value === 'NUMBER') return fieldDefaultNumber.value
+  return fieldDefaultValue.value.trim()
 }
 
-function buildConfig(): Record<string, unknown> {
-  const cfg: Record<string, unknown> = {}
-  if (fieldConfigRequired.value) cfg.required = true
-  if (fieldWidth.value && fieldWidth.value !== FieldWidths.FULL) cfg.width = fieldWidth.value
-  if (fieldTypeNeedsGroup(fieldType.value) && fieldConfigGroupId.value) {
-    cfg.groupId = Number(fieldConfigGroupId.value)
+function buildConfig(): AttendanceFieldConfig {
+  return {
+    required: fieldConfigRequired.value,
+    width: fieldWidth.value && fieldWidth.value !== FieldWidths.FULL ? fieldWidth.value : null,
+    groupId: fieldTypeNeedsGroup(fieldType.value) && fieldConfigGroupId.value
+        ? Number(fieldConfigGroupId.value)
+        : null,
+    autoAttend: fieldTypeCanAutoAttend(fieldType.value) && fieldConfigAutoAttend.value,
+    options: fieldType.value === 'ENUM' && fieldEnumOptions.value.length > 0 ? [...fieldEnumOptions.value] : null,
+    defaultValue: buildDefaultValue(),
   }
-  if (fieldTypeCanAutoAttend(fieldType.value) && fieldConfigAutoAttend.value) {
-    cfg.autoAttend = true
-  }
-  if (fieldType.value === 'ENUM' && fieldEnumOptions.value.length > 0) {
-    cfg.options = [...fieldEnumOptions.value]
-  }
-  if (fieldHasDefault.value && fieldTypeCanHaveDefault(fieldType.value)) {
-    if (fieldType.value === 'BOOLEAN') {
-      cfg.defaultValue = fieldDefaultBool.value
-    } else if (fieldType.value === 'DATE') {
-      cfg.defaultValue = fieldDefaultToday.value ? '__TODAY__' : ''
-    } else if (fieldType.value === 'NUMBER') {
-      cfg.defaultValue = fieldDefaultNumber.value
-    } else {
-      cfg.defaultValue = fieldDefaultValue.value.trim()
-    }
-  }
-  return cfg
 }
 
 watch([open, () => props.field], () => {
   if (!open.value) return
   if (props.field) {
-    fieldName.value = props.field.name ?? ''
-    fieldType.value = props.field.fieldType ?? 'STRING'
-    const cfg = parseConfig(props.field.config)
-    fieldConfigGroupId.value = cfg.groupId ? String(cfg.groupId) : ''
-    fieldWidth.value = cfg.width ? String(cfg.width) : FieldWidths.FULL
-    fieldConfigRequired.value = !!cfg.required
-    fieldConfigAutoAttend.value = !!cfg.autoAttend
-    fieldEnumOptions.value = [...((cfg.options as string[]) ?? [])]
-    fieldHasDefault.value = cfg.defaultValue !== undefined
+    fieldName.value = props.field.name
+    fieldType.value = props.field.fieldType
+    const cfg = props.field.config
+    fieldConfigGroupId.value = cfg.groupId != null ? String(cfg.groupId) : ''
+    fieldWidth.value = cfg.width ?? FieldWidths.FULL
+    fieldConfigRequired.value = cfg.required
+    fieldConfigAutoAttend.value = cfg.autoAttend
+    fieldEnumOptions.value = [...(cfg.options ?? [])]
+    fieldHasDefault.value = cfg.defaultValue != null
     if (props.field.fieldType === 'BOOLEAN') {
       fieldDefaultBool.value = cfg.defaultValue === true
     } else if (props.field.fieldType === 'DATE') {
@@ -134,6 +148,7 @@ watch([open, () => props.field], () => {
 })
 
 function handleSave() {
+  if (!isAttendanceFieldType(fieldType.value)) return
   emit('save', {
     name: fieldName.value,
     fieldType: fieldType.value,

@@ -2711,6 +2711,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attendance/report/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export an attendance report as CSV */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attendance/report/presets": {
         parameters: {
             query?: never;
@@ -2864,6 +2898,42 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the station's sessions with their counts */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SessionSummary"][];
                     };
                 };
             };
@@ -11891,7 +11961,69 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["EventTemplateRegistrationField"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/event-templates/{id}/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the days before an appointment its reminders go out, as the template sets them */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number[];
+                    };
+                };
+            };
+        };
+        /** Replace the reminder days an event template hands over */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetRemindersRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number[];
+                    };
                 };
             };
         };
@@ -11979,7 +12111,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["StationEvent"][];
+                        "application/json": components["schemas"]["EventSummary"][];
                     };
                 };
             };
@@ -12620,7 +12752,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EventRegistration"];
+                        "application/json": components["schemas"]["RegistrationResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -12691,7 +12823,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
                 };
             };
         };
@@ -12731,6 +12865,194 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["RegistrationStatsResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{eventId}/registration-table": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw the registration table of one date */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RegistrationTableRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberTable"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{eventId}/registration-table/columns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the columns a registration table may show */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TableColumnsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{eventId}/registration-table/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export the registration table of one date as CSV */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RegistrationTableRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{eventId}/registration-table/export.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export the registration table of one date as PDF */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RegistrationTableRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{eventId}/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the registrations of an event, of one date where one is given */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RegistrationResponse"][];
                     };
                 };
             };
@@ -12880,7 +13202,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["AbsentMemberResponse"][];
+                    };
                 };
             };
         };
@@ -13418,6 +13742,120 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/federation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How an event is shared with partner stations */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationShareResponse"];
+                    };
+                };
+            };
+        };
+        /** Share an event with partner stations */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetFederationShareRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationShareResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Stop sharing an event with partner stations */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/federation-registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the registrations partner stations sent for an event */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EnrichedFederationRegistration"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/field-defaults": {
         parameters: {
             query?: never;
@@ -13595,6 +14033,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/partner-places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List what each partner station may do with an event */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventPartnerPlaces"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/partner-places/{partnerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Hand a partner station places at an event, or take them back */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetPartnerPlacesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the days before an event its reminders go out */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number[];
+                    };
+                };
+            };
+        };
+        /** Replace the days before an event its reminders go out */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetRemindersRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number[];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/restrictions": {
         parameters: {
             query?: never;
@@ -13653,6 +14227,86 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a batch of events */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BatchCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationEvent"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/batch/generate-dates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Work out the dates of a batch of events */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["GenerateDatesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BatchRow"][];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -13942,7 +14596,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -13986,6 +14642,46 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/categories/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder the event categories */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ReorderCategoriesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventCategory"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -14192,6 +14888,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/federation-registrations/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Accept or deny a partner station's registration */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["StatusUpdateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/field-names": {
         parameters: {
             query?: never;
@@ -14200,6 +14936,42 @@ export interface paths {
             cookie?: never;
         };
         /** List distinct event field names used across all events */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": string[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/overview-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The overview questions of every event, by event */
         get: {
             parameters: {
                 query?: never;
@@ -14338,12 +15110,14 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description No Content */
-                204: {
+                /** @description OK */
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["WithdrawalResponse"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -14499,7 +15273,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -14513,6 +15289,40 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/registrations/{id}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a withdrawal back */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -14577,7 +15387,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["RegistrationCount"][];
+                    };
                 };
             };
         };
@@ -14612,7 +15424,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EventRegistration"][];
+                        "application/json": components["schemas"]["RegistrationResponse"][];
                     };
                 };
             };
@@ -14648,7 +15460,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EventRegistration"][];
+                        "application/json": components["schemas"]["RegistrationResponse"][];
                     };
                 };
             };
@@ -14695,6 +15507,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search the events a content block may name */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PickerEvent"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/today": {
         parameters: {
             query?: never;
@@ -14718,7 +15566,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["StationEvent"][];
+                        "application/json": components["schemas"]["EventSummary"][];
                     };
                 };
             };
@@ -14770,6 +15618,368 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/{eventId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the comments on a partner station's event */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Comment on a partner station's event */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A partner station's shared event */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RemoteEventDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/{id}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the files a partner station's event hands over */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RemoteAttachment"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/{id}/attachments/{attachmentId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a file a partner station's event hands over */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/{id}/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register a member for a partner station's event */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FederatedRegBody"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederatedRegistrationAnswer"];
+                    };
+                };
+            };
+        };
+        /** Withdraw a member's registration for a partner station's event */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FederatedRegBody"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/{id}/register/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give one of this station's members a place at a partner station's event */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FederatedRegBody"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/{id}/register/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take back a withdrawal from a partner station's event */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FederatedRegBody"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/comments/{commentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a comment on a partner station's event */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["UpdateCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete a comment on a partner station's event */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -16025,6 +17235,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federated/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the events partner stations share with this one */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederatedEventItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federated/inventory-tags/items": {
         parameters: {
             query?: never;
@@ -16051,6 +17297,42 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["TaggedItemSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/my-registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the reader's household's registrations at partner stations */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RemoteMemberRegistration"][];
                     };
                 };
             };
@@ -25664,7 +26946,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MemberAbsence"][];
+                        "application/json": components["schemas"]["AbsenceResponse"][];
                     };
                 };
             };
@@ -25690,7 +26972,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MemberAbsence"][];
+                        "application/json": components["schemas"]["AbsenceResponse"][];
                     };
                 };
                 /** @description Bad Request */
@@ -28313,6 +29595,42 @@ export interface paths {
                 };
             };
         };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the reader still owes */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RequirementsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -32508,7 +33826,28 @@ export interface components {
             absentUntil?: components["schemas"]["LocalDate"];
             /** Format: int32 */
             memberId?: number;
-            reason?: string;
+            reason?: string | null;
+        };
+        AbsenceResponse: {
+            absentFrom: components["schemas"]["LocalDate"];
+            absentUntil: components["schemas"]["LocalDate"];
+            createdAt: components["schemas"]["Instant"];
+            createdByName: string | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            memberId: number;
+            memberIdentity: components["schemas"]["MemberIdentity"] | null;
+            reason: string | null;
+        };
+        AbsentMemberResponse: {
+            absentFrom: components["schemas"]["LocalDate"];
+            absentUntil: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            memberId: number;
+            memberIdentity: components["schemas"]["MemberIdentity"] | null;
+            memberName: string;
+            reason: string | null;
         };
         AccessData: {
             groupIds: number[];
@@ -32798,12 +34137,12 @@ export interface components {
         AttachmentRequest: {
             /** Format: int32 */
             fileId?: number;
-            internal?: boolean;
-            label?: string;
+            internal?: boolean | null;
+            label?: string | null;
         };
         AttendanceEntry: {
-            checkIn: components["schemas"]["Instant"];
-            checkOut: components["schemas"]["Instant"];
+            checkIn: components["schemas"]["Instant"] | null;
+            checkOut: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
@@ -32817,10 +34156,10 @@ export interface components {
             autoAttend: boolean;
             defaultValue: unknown;
             /** Format: int32 */
-            groupId: number;
-            options: string[];
+            groupId: number | null;
+            options: string[] | null;
             required: boolean;
-            width: string;
+            width: string | null;
         };
         /** @enum {string} */
         AttendanceFieldType: "STRING" | "NUMBER" | "DATE" | "TIME" | "BOOLEAN" | "ENUM" | "URL" | "TEXTAREA" | "MEMBER" | "MEMBER_LIST" | "MEMBER_OF_GROUP" | "MEMBER_LIST_OF_GROUP";
@@ -32853,19 +34192,19 @@ export interface components {
         };
         AttendanceSession: {
             /** Format: int32 */
-            countedMinutes: number;
+            countedMinutes: number | null;
             createdAt: components["schemas"]["Instant"];
             endTime: components["schemas"]["Instant"];
             /** Format: int32 */
-            eventId: number;
+            eventId: number | null;
             /** Format: int32 */
             id: number;
-            lockedAt: components["schemas"]["Instant"];
+            lockedAt: components["schemas"]["Instant"] | null;
             startTime: components["schemas"]["Instant"];
             /** Format: int32 */
             templateId: number;
-            title: string;
-            unlockedUntil: components["schemas"]["Instant"];
+            title: string | null;
+            unlockedUntil: components["schemas"]["Instant"] | null;
         };
         AttendanceSessionField: {
             /** Format: int32 */
@@ -32911,7 +34250,7 @@ export interface components {
         };
         AwaitingAnswer: {
             /** Format: int32 */
-            categoryId: number;
+            categoryId: number | null;
             /** Format: int32 */
             eventId: number;
             members: components["schemas"]["AwaitingMember"][];
@@ -32926,6 +34265,29 @@ export interface components {
         };
         BackendOverrideRequest: components["schemas"]["ClusterStorageRequest"] | components["schemas"]["LocalRequest"] | components["schemas"]["S3Request"] | components["schemas"]["SftpRequest"] | components["schemas"]["SmbRequest"];
         BackendOverrideSummary: components["schemas"]["S3Summary"] | components["schemas"]["SftpSummary"] | components["schemas"]["SmbSummary"];
+        BatchCreateRequest: {
+            /** Format: int32 */
+            categoryId?: number | null;
+            description?: string | null;
+            inlineFields?: components["schemas"]["BatchFieldEntryDto"][] | null;
+            name?: string | null;
+            registrationDeadline?: components["schemas"]["Instant"] | null;
+            requiresConfirmation?: boolean | null;
+            requiresRegistration?: boolean | null;
+            restriction?: components["schemas"]["RestrictionSelection"] | null;
+            rows?: components["schemas"]["BatchRowEntry"][];
+            /** Format: int32 */
+            templateId?: number | null;
+            viewRestriction?: components["schemas"]["RestrictionSelection"] | null;
+        };
+        BatchFieldEntryDto: {
+            /** Format: int32 */
+            attendanceFieldId?: number | null;
+            config?: components["schemas"]["EventFieldConfig"] | null;
+            fieldType?: components["schemas"]["EventFieldType"] | null;
+            name?: string;
+            overview?: boolean | null;
+        };
         BatchGenerateRequest: {
             apiKey?: string;
             model?: string;
@@ -32937,6 +34299,22 @@ export interface components {
             errors: string[];
             /** Format: int32 */
             generatedCount: number;
+        };
+        BatchRow: {
+            endTime: components["schemas"]["Instant"];
+            fieldValues: {
+                [key: string]: string;
+            };
+            name: string | null;
+            startTime: components["schemas"]["Instant"];
+        };
+        BatchRowEntry: {
+            endTime?: components["schemas"]["Instant"];
+            fieldValues?: {
+                [key: string]: string;
+            } | null;
+            name?: string | null;
+            startTime?: components["schemas"]["Instant"];
         };
         BindingRequest: {
             /** Format: int32 */
@@ -33215,10 +34593,10 @@ export interface components {
         /** @enum {string} */
         CancellationCause: "MANUAL" | "THRESHOLD";
         CancellationNotice: {
-            cancelledAt: components["schemas"]["Instant"];
+            cancelledAt: components["schemas"]["Instant"] | null;
             cause: components["schemas"]["CancellationCause"];
-            date: components["schemas"]["LocalDate"];
-            reason: string;
+            date: components["schemas"]["LocalDate"] | null;
+            reason: string | null;
         };
         CancelledEventDate: {
             cancellation: components["schemas"]["CancellationNotice"];
@@ -33226,13 +34604,13 @@ export interface components {
             eventId: number;
         };
         CancelRequest: {
-            reason?: string;
+            reason?: string | null;
         };
         CategoryRequest: {
-            color?: string;
-            isPublic?: boolean;
+            color?: string | null;
+            isPublic?: boolean | null;
             /** Format: int32 */
-            maxShownEvents?: number;
+            maxShownEvents?: number | null;
             name?: string;
             /** Format: int32 */
             position?: number;
@@ -33293,14 +34671,14 @@ export interface components {
             entryId: number;
             /** Format: int32 */
             id: number;
-            note: string;
+            note: string | null;
             updatedAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            updatedBy: number;
+            updatedBy: number | null;
         };
         CellWriteRequest: {
             checked?: boolean;
-            note?: string;
+            note?: string | null;
         };
         CeremonyResponse: {
             challengeToken: string;
@@ -33325,16 +34703,16 @@ export interface components {
             columns: components["schemas"]["ColumnResponse"][];
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            createdBy: number;
+            createdBy: number | null;
             description: string;
             entries: components["schemas"]["EntryResponse"][];
             /** Format: int32 */
             id: number;
-            lastRefreshedAt: components["schemas"]["Instant"];
+            lastRefreshedAt: components["schemas"]["Instant"] | null;
             mode: string;
             name: string;
             restriction: components["schemas"]["RestrictionResponse"];
-            source: components["schemas"]["SourceOccurrenceResponse"];
+            source: components["schemas"]["SourceOccurrenceResponse"] | null;
         };
         ChecklistItemRequest: {
             checked?: boolean;
@@ -33347,7 +34725,7 @@ export interface components {
             description: string;
             /** Format: int32 */
             id: number;
-            lastRefreshedAt: components["schemas"]["Instant"];
+            lastRefreshedAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             memberCount: number;
             name: string;
@@ -33649,11 +35027,11 @@ export interface components {
         };
         CollectedLine: {
             /** Format: int32 */
-            artId: number;
+            artId: number | null;
             /** Format: int32 */
             inventoryId: number;
             /** Format: int32 */
-            needId: number;
+            needId: number | null;
             /** Format: uuid */
             owningStationId: string;
             /** Format: int32 */
@@ -34000,10 +35378,10 @@ export interface components {
             kind: "DATE";
         };
         DatedEvent: {
-            cancellation: components["schemas"]["CancellationNotice"];
+            cancellation: components["schemas"]["CancellationNotice"] | null;
             event: components["schemas"]["EventSummary"];
-            nextDate: components["schemas"]["LocalDate"];
-            previousDate: components["schemas"]["LocalDate"];
+            nextDate: components["schemas"]["LocalDate"] | null;
+            previousDate: components["schemas"]["LocalDate"] | null;
         };
         DateValue: {
             value: string;
@@ -34123,8 +35501,8 @@ export interface components {
         };
         EmbeddedEvent: {
             cancelled: boolean;
-            categoryName: string;
-            description: string;
+            categoryName: string | null;
+            description: string | null;
             endTime: components["schemas"]["Instant"];
             /** Format: int32 */
             id: number;
@@ -34156,6 +35534,10 @@ export interface components {
             /** Format: int64 */
             requestCount: number;
         };
+        EnrichedFederationRegistration: {
+            memberIdentity: components["schemas"]["MemberIdentity"] | null;
+            registration: components["schemas"]["EventFederationRegistration"];
+        };
         EntryAudience: {
             /** Format: int32 */
             fileId: number;
@@ -34168,7 +35550,7 @@ export interface components {
         };
         EntryResponse: {
             addedAt: components["schemas"]["Instant"];
-            deletedAt: components["schemas"]["Instant"];
+            deletedAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             id: number;
             inFilter: boolean;
@@ -34198,9 +35580,9 @@ export interface components {
             value: string;
         };
         EquipmentClaim: {
-            eventDate: components["schemas"]["LocalDate"];
+            eventDate: components["schemas"]["LocalDate"] | null;
             /** Format: int32 */
-            eventId: number;
+            eventId: number | null;
             firm: boolean;
             from: components["schemas"]["Instant"];
             label: string;
@@ -34216,7 +35598,7 @@ export interface components {
             eventDate: components["schemas"]["LocalDate"];
             handedAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            handedBy: number;
+            handedBy: number | null;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
@@ -34224,20 +35606,20 @@ export interface components {
             /** Format: int32 */
             needId: number;
             outstanding: boolean;
-            returnedAt: components["schemas"]["Instant"];
+            returnedAt: components["schemas"]["Instant"] | null;
         };
         EquipmentNeed: {
             /** Format: int32 */
-            artId: number;
-            eventDate: components["schemas"]["LocalDate"];
+            artId: number | null;
+            eventDate: components["schemas"]["LocalDate"] | null;
             /** Format: int32 */
             eventId: number;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
-            inventoryId: number;
+            inventoryId: number | null;
             /** Format: int32 */
-            itemId: number;
+            itemId: number | null;
             /** Format: int32 */
             leadMinutes: number;
             /** Format: int32 */
@@ -34268,7 +35650,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             internal: boolean;
-            label: string;
+            label: string | null;
             mimeType: string;
             /** Format: int32 */
             sortOrder: number;
@@ -34283,12 +35665,12 @@ export interface components {
             stationId: string;
         };
         EventCategory: {
-            color: string;
+            color: string | null;
             /** Format: int32 */
             id: number;
             isPublic: boolean;
             /** Format: int32 */
-            maxShownEvents: number;
+            maxShownEvents: number | null;
             name: string;
             /** Format: int32 */
             position: number;
@@ -34301,9 +35683,23 @@ export interface components {
             from?: string;
             to?: string;
         };
+        EventFederationRegistration: {
+            createdAt: components["schemas"]["Instant"];
+            eventDate: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            eventId: number;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            partnerId: number;
+            /** Format: uuid */
+            remoteMemberId: string;
+            standing: boolean;
+            status: components["schemas"]["RegistrationStatus"];
+        };
         EventField: {
             /** Format: int32 */
-            attendanceFieldId: number;
+            attendanceFieldId: number | null;
             config: components["schemas"]["EventFieldConfig"];
             /** Format: int32 */
             eventId: number;
@@ -34319,14 +35715,14 @@ export interface components {
         };
         EventFieldConfig: {
             /** Format: int32 */
-            groupId: number;
-            options: string[];
+            groupId?: number;
+            options?: string[];
             perDate: boolean;
             selfRegistration: boolean;
             /** Format: int32 */
-            tagId: number;
-            userType: components["schemas"]["StationUserType"];
-            width: string;
+            tagId?: number;
+            userType?: components["schemas"]["StationUserType"];
+            width?: string;
         };
         EventFieldDefault: {
             /** Format: int32 */
@@ -34334,19 +35730,19 @@ export interface components {
             /** Format: int32 */
             fieldId: number;
             source: string;
-            value: string;
+            value: string | null;
         };
         EventFieldEntry: {
             /** Format: int32 */
-            attendanceFieldId?: number;
-            config?: components["schemas"]["EventFieldConfig"];
-            fieldType?: components["schemas"]["EventFieldType"];
+            attendanceFieldId?: number | null;
+            config?: components["schemas"]["EventFieldConfig"] | null;
+            fieldType?: components["schemas"]["EventFieldType"] | null;
             /** Format: int32 */
-            id?: number;
-            isPublic?: boolean;
+            id?: number | null;
+            isPublic?: boolean | null;
             name?: string;
-            overview?: boolean;
-            value?: string;
+            overview?: boolean | null;
+            value?: string | null;
         };
         /** @enum {string} */
         EventFieldType: "STRING" | "NUMBER" | "DATE" | "TIME" | "BOOLEAN" | "ENUM" | "URL" | "TEXTAREA" | "LOCATION" | "MEMBER" | "MEMBER_LIST" | "MEMBER_OF_GROUP" | "MEMBER_LIST_OF_GROUP" | "MEMBER_OF_TYPE" | "MEMBER_LIST_OF_TYPE" | "MEMBER_OF_TAG" | "MEMBER_LIST_OF_TAG";
@@ -34355,6 +35751,15 @@ export interface components {
             location: string;
             title: string;
             url: string;
+        };
+        EventPartnerPlaces: {
+            /** Format: int32 */
+            eventId: number;
+            partnerConfirms: boolean;
+            /** Format: int32 */
+            partnerId: number;
+            /** Format: int32 */
+            slotBudget: number | null;
         };
         EventRegisterRequest: {
             eventDate?: string;
@@ -34365,7 +35770,7 @@ export interface components {
         EventRegistration: {
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            createdBy: number;
+            createdBy: number | null;
             eventDate: components["schemas"]["LocalDate"];
             /** Format: int32 */
             eventId: number;
@@ -34374,24 +35779,24 @@ export interface components {
             id: number;
             /** Format: int32 */
             memberId: number;
-            previousStatus: components["schemas"]["RegistrationStatus"];
+            previousStatus: components["schemas"]["RegistrationStatus"] | null;
             status: components["schemas"]["RegistrationStatus"];
             statusChangedAt: components["schemas"]["Instant"];
         };
         EventRegistrationFieldConfig: {
-            defaultValue: string;
+            defaultValue?: string;
             /** Format: int32 */
-            groupId: number;
+            groupId?: number;
             managersOnly: boolean;
             /** Format: int32 */
-            max: number;
+            max?: number;
             /** Format: int32 */
-            min: number;
-            options: string[];
+            min?: number;
+            options?: string[];
             required: boolean;
             /** Format: int32 */
-            tagId: number;
-            userType: components["schemas"]["StationUserType"];
+            tagId?: number;
+            userType?: components["schemas"]["StationUserType"];
         };
         EventRegistrationFieldValue: {
             /** Format: int32 */
@@ -34414,33 +35819,33 @@ export interface components {
         };
         EventRequest: {
             /** Format: int32 */
-            categoryId?: number;
+            categoryId?: number | null;
             /** Format: int32 */
-            dayOfWeek?: number;
-            description?: string;
+            dayOfWeek?: number | null;
+            description?: string | null;
             endTime?: components["schemas"]["Instant"];
             eventType?: components["schemas"]["EventType"];
-            isPublic?: boolean;
+            isPublic?: boolean | null;
             /** Format: int32 */
-            minRegistrations?: number;
+            minRegistrations?: number | null;
             name?: string;
             /** Format: int32 */
-            registrationCloseDays?: number;
-            registrationDeadline?: components["schemas"]["Instant"];
+            registrationCloseDays?: number | null;
+            registrationDeadline?: components["schemas"]["Instant"] | null;
             /** Format: int32 */
-            registrationLimit?: number;
+            registrationLimit?: number | null;
             /** Format: int32 */
-            repeatCount?: number;
-            repeatUntil?: components["schemas"]["LocalDate"];
-            requiresConfirmation?: boolean;
-            requiresRegistration?: boolean;
-            restriction?: components["schemas"]["RestrictionSelection"];
+            repeatCount?: number | null;
+            repeatUntil?: components["schemas"]["LocalDate"] | null;
+            requiresConfirmation?: boolean | null;
+            requiresRegistration?: boolean | null;
+            restriction?: components["schemas"]["RestrictionSelection"] | null;
             startTime?: components["schemas"]["Instant"];
             /** Format: int32 */
-            templateId?: number;
+            templateId?: number | null;
             /** Format: int32 */
-            thresholdDays?: number;
-            viewRestriction?: components["schemas"]["RestrictionSelection"];
+            thresholdDays?: number | null;
+            viewRestriction?: components["schemas"]["RestrictionSelection"] | null;
         };
         EventRestrictions: {
             register: components["schemas"]["RestrictionAudience"];
@@ -34448,16 +35853,18 @@ export interface components {
         };
         EventSummary: {
             /** Format: int32 */
-            categoryId: number;
+            categoryId: number | null;
             /** Format: int32 */
-            dayOfWeek: number;
-            description: string;
+            dayOfWeek: number | null;
+            description: string | null;
             endTime: components["schemas"]["Instant"];
             eventType: components["schemas"]["EventType"];
             /** Format: int32 */
             id: number;
             name: string;
-            registrationDeadline: components["schemas"]["Instant"];
+            registrationDeadline: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            registrationLimit: number | null;
             requiresRegistration: boolean;
             restricted: boolean;
             seriesCancelled: boolean;
@@ -34465,34 +35872,34 @@ export interface components {
             /** Format: uuid */
             stationId: string;
             /** Format: int32 */
-            templateId: number;
+            templateId: number | null;
         };
         EventTemplate: {
             /** Format: int32 */
-            attendanceTemplateId: number;
+            attendanceTemplateId: number | null;
             /** Format: int32 */
-            categoryId: number;
-            description: string;
-            eventType: components["schemas"]["EventType"];
+            categoryId: number | null;
+            description: string | null;
+            eventType: components["schemas"]["EventType"] | null;
             /** Format: int32 */
             id: number;
             name: string;
-            registrationDeadlineOffset: string;
+            registrationDeadlineOffset: string | null;
             /** Format: int32 */
-            registrationLimit: number;
-            requiresConfirmation: boolean;
-            requiresRegistration: boolean;
-            restrictionMode: components["schemas"]["RestrictionMode"];
+            registrationLimit: number | null;
+            requiresConfirmation: boolean | null;
+            requiresRegistration: boolean | null;
+            restrictionMode: components["schemas"]["RestrictionMode"] | null;
             /** Format: uuid */
             stationId: string;
-            title: string;
+            title: string | null;
             viewRestrictionMode: components["schemas"]["RestrictionMode"];
         };
         EventTemplateField: {
             /** Format: int32 */
-            attendanceFieldId: number;
+            attendanceFieldId: number | null;
             config: components["schemas"]["EventFieldConfig"];
-            defaultValue: string;
+            defaultValue: string | null;
             fieldType: components["schemas"]["EventFieldType"];
             /** Format: int32 */
             id: number;
@@ -34506,9 +35913,9 @@ export interface components {
         };
         EventTemplateFieldData: {
             /** Format: int32 */
-            attendanceFieldId?: number;
-            config?: components["schemas"]["EventFieldConfig"];
-            defaultValue?: string;
+            attendanceFieldId?: number | null;
+            config?: components["schemas"]["EventFieldConfig"] | null;
+            defaultValue?: string | null;
             fieldType?: components["schemas"]["EventFieldType"];
             isPublic?: boolean;
             name?: string;
@@ -34570,6 +35977,21 @@ export interface components {
             location: string;
             title: string;
         };
+        FederatedEventItem: {
+            event: components["schemas"]["SharedEvent"];
+            /** Format: int32 */
+            partnerId: number;
+            partnerStationName: string;
+            partnerStationUid: string;
+        };
+        FederatedRegBody: {
+            eventDate?: string;
+            /** Format: uuid */
+            memberId?: string | null;
+        };
+        FederatedRegistrationAnswer: {
+            status: components["schemas"]["RegistrationStatus"];
+        };
         FederationConfigRequest: {
             editUserTypes?: components["schemas"]["StationUserType"][];
             targets?: components["schemas"]["FederationTargetRequest"][];
@@ -34577,6 +35999,11 @@ export interface components {
         FederationConfigResponse: {
             editUserTypes: components["schemas"]["StationUserType"][];
             targets: components["schemas"]["FederationTargetResponse"][];
+        };
+        FederationShareResponse: {
+            partnerIds: number[] | null;
+            scope: components["schemas"]["ShareScope"] | null;
+            shared: boolean;
         };
         FederationTargetRequest: {
             /** Format: int32 */
@@ -34655,7 +36082,7 @@ export interface components {
             /** Format: int32 */
             fieldId?: number;
             source?: string;
-            value?: string;
+            value?: string | null;
         };
         FieldDefinitionRequest: {
             /** Format: int32 */
@@ -34955,6 +36382,16 @@ export interface components {
             imageHash: string;
             subtext: string;
         };
+        GenerateDatesRequest: {
+            /** Format: int32 */
+            dayOfWeek?: number | null;
+            endDate?: string;
+            endTime?: string | null;
+            ignoreBreaks?: boolean | null;
+            intervalType?: components["schemas"]["IntervalType"];
+            startDate?: string;
+            startTime?: string | null;
+        };
         GeneratedQuestionWithMeta: {
             /** Format: int32 */
             categoryId: number;
@@ -35146,6 +36583,8 @@ export interface components {
         IntakeRequest: {
             rows?: components["schemas"]["InventoryIntakeRow"][];
         };
+        /** @enum {string} */
+        IntervalType: "RECURRING" | "MONTHLY_FIRST" | "QUARTERLY" | "YEARLY";
         Inventory: {
             borrowed: boolean;
             color: string;
@@ -35946,12 +37385,12 @@ export interface components {
             absentUntil: components["schemas"]["LocalDate"];
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            createdBy: number;
+            createdBy: number | null;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
             memberId: number;
-            reason: string;
+            reason: string | null;
         };
         MemberChangeSummary: {
             latestChange: components["schemas"]["Instant"];
@@ -36072,7 +37511,7 @@ export interface components {
         MemberListSortBy: "ORDER" | "NAME" | "ROLE" | "JOIN_DATE";
         MemberNotes: {
             /** Format: int32 */
-            birthdayDaysAgo: number;
+            birthdayDaysAgo: number | null;
             foundItems: components["schemas"]["FoundNote"][];
             /** Format: int32 */
             memberId: number;
@@ -36172,6 +37611,33 @@ export interface components {
             /** Format: int32 */
             sessionCount: number;
             totalHours: number;
+        };
+        MemberTable: {
+            columns: components["schemas"]["MemberTableHeader"][];
+            rows: components["schemas"]["MemberTableRow"][];
+        };
+        /** @enum {string} */
+        MemberTableCellType: "TEXT" | "NUMBER" | "DATE" | "BIRTH_DATE" | "BOOLEAN" | "ENUM";
+        MemberTableColumn: {
+            /** Format: int32 */
+            fieldId?: number;
+            key?: string;
+            kind?: components["schemas"]["MemberTableColumnKind"];
+        };
+        /** @enum {string} */
+        MemberTableColumnKind: "BUILTIN" | "PROFILE_FIELD" | "REGISTRATION_FIELD";
+        MemberTableHeader: {
+            /** Format: int32 */
+            fieldId: number;
+            key: string;
+            kind: components["schemas"]["MemberTableColumnKind"];
+            label: string;
+            type: components["schemas"]["MemberTableCellType"];
+        };
+        MemberTableRow: {
+            /** Format: int32 */
+            memberId: number;
+            values: string[];
         };
         MemberWithName: {
             /** Format: int32 */
@@ -36331,8 +37797,8 @@ export interface components {
         MyAbsenceRequest: {
             absentFrom?: components["schemas"]["LocalDate"];
             absentUntil?: components["schemas"]["LocalDate"];
-            memberIds?: number[];
-            reason?: string;
+            memberIds?: number[] | null;
+            reason?: string | null;
         };
         MyInventoryItem: {
             color: string;
@@ -36388,18 +37854,18 @@ export interface components {
         };
         NeedRequest: {
             /** Format: int32 */
-            artId?: number;
-            eventDate?: components["schemas"]["LocalDate"];
+            artId?: number | null;
+            eventDate?: components["schemas"]["LocalDate"] | null;
             /** Format: int32 */
-            inventoryId?: number;
+            inventoryId?: number | null;
             /** Format: int32 */
-            itemId?: number;
+            itemId?: number | null;
             /** Format: int32 */
-            leadMinutes?: number;
+            leadMinutes?: number | null;
             /** Format: int32 */
-            quantity?: number;
+            quantity?: number | null;
             /** Format: int32 */
-            trailMinutes?: number;
+            trailMinutes?: number | null;
         };
         NeedUpdate: {
             /** Format: int32 */
@@ -36540,7 +38006,7 @@ export interface components {
             unseen: components["schemas"]["NewsViewerEntry"][];
         };
         NextDate: {
-            date: components["schemas"]["LocalDate"];
+            date: components["schemas"]["LocalDate"] | null;
         };
         NextMemberResponse: {
             /** Format: int32 */
@@ -36554,12 +38020,12 @@ export interface components {
         NoteHistoryEntryResponse: {
             changedAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            changedBy: number;
-            changedByName: string;
+            changedBy: number | null;
+            changedByName: string | null;
             /** Format: int32 */
             id: number;
-            newNote: string;
-            oldNote: string;
+            newNote: string | null;
+            oldNote: string | null;
         };
         NoteResponse: {
             content: string;
@@ -36720,6 +38186,13 @@ export interface components {
         PermissionNode: {
             children: string[];
             name: string;
+        };
+        PickerEvent: {
+            categoryName: string | null;
+            /** Format: uuid */
+            eventUid: string;
+            name: string;
+            startTime: components["schemas"]["Instant"];
         };
         Piece: {
             /** Format: int32 */
@@ -36985,10 +38458,10 @@ export interface components {
         PublicEventDetail: {
             cancelled: boolean;
             cancelledDates: components["schemas"]["LocalDate"][];
-            category: components["schemas"]["EventCategory"];
+            category: components["schemas"]["EventCategory"] | null;
             /** Format: int32 */
-            dayOfWeek: number;
-            description: string;
+            dayOfWeek: number | null;
+            description: string | null;
             endTime: components["schemas"]["Instant"];
             eventType: components["schemas"]["EventType"];
             /** Format: int32 */
@@ -37001,11 +38474,11 @@ export interface components {
             cancelled: boolean;
             cancelledDates: components["schemas"]["LocalDate"][];
             /** Format: int32 */
-            categoryId: number;
-            categoryName: string;
+            categoryId: number | null;
+            categoryName: string | null;
             /** Format: int32 */
-            dayOfWeek: number;
-            description: string;
+            dayOfWeek: number | null;
+            description: string | null;
             endTime: components["schemas"]["Instant"];
             eventType: components["schemas"]["EventType"];
             /** Format: int32 */
@@ -37097,6 +38570,12 @@ export interface components {
         };
         QuestionBranch: {
             [key: string]: components["schemas"]["PageTarget"];
+        };
+        QuestionColumn: {
+            /** Format: int32 */
+            fieldId: number;
+            label: string;
+            type: components["schemas"]["MemberTableCellType"];
         };
         QuestionInfoDto: {
             config: components["schemas"]["FormQuestionConfig"];
@@ -37245,7 +38724,7 @@ export interface components {
         };
         Recommendation: {
             /** Format: int32 */
-            artId: number;
+            artId: number | null;
             artName: string;
             byWord: boolean;
             internalId: string;
@@ -37301,6 +38780,14 @@ export interface components {
             /** Format: int32 */
             uses: number;
         };
+        RegistrationCount: {
+            /** Format: int32 */
+            count: number;
+            eventDate: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            eventId: number;
+            status: components["schemas"]["RegistrationStatus"];
+        };
         RegistrationFieldDefinition: {
             config?: components["schemas"]["EventRegistrationFieldConfig"] | null;
             fieldType?: components["schemas"]["EventFieldType"];
@@ -37324,19 +38811,19 @@ export interface components {
         RegistrationResponse: {
             answersMissing: boolean;
             createdAt: components["schemas"]["Instant"];
-            createdByName: string;
+            createdByName: string | null;
             eventDate: components["schemas"]["LocalDate"];
             /** Format: int32 */
             eventId: number;
-            eventName: string;
-            fieldName: string;
+            eventName: string | null;
+            fieldName: string | null;
             fields: components["schemas"]["EventRegistrationFieldValue"][];
             fromField: boolean;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
             memberId: number;
-            memberIdentity: components["schemas"]["MemberIdentity"];
+            memberIdentity: components["schemas"]["MemberIdentity"] | null;
             memberName: string;
             status: components["schemas"]["RegistrationStatus"];
         };
@@ -37349,7 +38836,7 @@ export interface components {
             /** Format: int32 */
             denied: number;
             fairnessScore: number;
-            lastDenied: string;
+            lastDenied: string | null;
             /** Format: int32 */
             memberId: number;
             memberName: string;
@@ -37359,9 +38846,55 @@ export interface components {
         };
         /** @enum {string} */
         RegistrationStatus: "PENDING" | "ACCEPTED" | "DENIED" | "DECLINED" | "WITHDRAWN";
+        RegistrationTableRequest: {
+            columns?: components["schemas"]["MemberTableColumn"][];
+            date?: string;
+        };
+        RegistrationUpdateItem: {
+            eventDate: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            eventId: number;
+            eventName: string;
+            /** Format: int32 */
+            memberId: number;
+            memberName: string | null;
+            /** Format: int32 */
+            registrationId: number;
+        };
+        RemoteAttachment: {
+            fileName: string;
+            /** Format: int64 */
+            fileSize: number;
+            /** Format: int32 */
+            id: number;
+            mimeType: string;
+            name: string;
+        };
+        RemoteEventDetail: {
+            event: components["schemas"]["SharedEvent"];
+            places: components["schemas"]["RemotePlaces"] | null;
+            publicFields: components["schemas"]["EventField"][];
+        };
+        RemoteMemberRegistration: {
+            eventDate: string;
+            /** Format: int32 */
+            eventId: number;
+            /** Format: int32 */
+            partnerId: number;
+            remoteMemberId: string;
+            status: components["schemas"]["RegistrationStatus"];
+        };
+        RemotePlaces: {
+            decidesItself: boolean;
+            /** Format: int32 */
+            slotBudget: number | null;
+        };
         Renamed: {
             from: string;
             to: string;
+        };
+        ReorderCategoriesRequest: {
+            orderedIds?: number[];
         };
         ReorderChecklistRequest: {
             orderedIds?: number[];
@@ -37411,6 +38944,11 @@ export interface components {
             requiredQuantity: number;
             sizes: components["schemas"]["InventorySize"][];
         };
+        RequirementItem: {
+            /** Format: int32 */
+            id: number;
+            title: string;
+        };
         RequirementRequest: {
             /** Format: int32 */
             groupId?: number;
@@ -37438,6 +38976,13 @@ export interface components {
             /** Format: int32 */
             stationGroupId: number;
             userType: components["schemas"]["StationUserType"];
+        };
+        RequirementsResponse: {
+            forcedForms: components["schemas"]["RequirementItem"][];
+            forcedQuizzes: components["schemas"]["RequirementItem"][];
+            profileIncomplete: boolean;
+            registrationUpdates: components["schemas"]["RegistrationUpdateItem"][];
+            selfChecks: components["schemas"]["SelfCheckItem"][];
         };
         ResetPasswordRequest: {
             /** Format: int32 */
@@ -37645,6 +39190,13 @@ export interface components {
             pieces: components["schemas"]["Piece"][];
             typed: string;
         };
+        SelfCheckItem: {
+            dueOn: components["schemas"]["LocalDate"] | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            memberId: number;
+        };
         SelfCheckRaised: {
             /** Format: int32 */
             id: number;
@@ -37781,7 +39333,7 @@ export interface components {
             userTypes: components["schemas"]["StationUserType"][];
         };
         SessionData: {
-            countedHours: number;
+            countedHours: number | null;
             date: components["schemas"]["LocalDate"];
             endDate: components["schemas"]["LocalDate"];
             endTime: components["schemas"]["LocalTime"];
@@ -37838,15 +39390,35 @@ export interface components {
             status: components["schemas"]["AttendanceStatus"];
         };
         SessionRequest: {
-            audience?: components["schemas"]["SessionAudience"];
+            audience?: components["schemas"]["SessionAudience"] | null;
             /** Format: int32 */
-            countedMinutes?: number;
+            countedMinutes?: number | null;
             endTime?: components["schemas"]["Instant"];
-            eventDate?: components["schemas"]["LocalDate"];
+            eventDate?: components["schemas"]["LocalDate"] | null;
             /** Format: int32 */
-            eventId?: number;
+            eventId?: number | null;
             startTime?: components["schemas"]["Instant"];
-            title?: string;
+            title?: string | null;
+        };
+        SessionSummary: {
+            /** Format: int32 */
+            absentCount: number;
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            declinedCount: number;
+            endTime: components["schemas"]["Instant"];
+            /** Format: int32 */
+            eventId: number | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            presentCount: number;
+            startTime: components["schemas"]["Instant"];
+            /** Format: int32 */
+            templateId: number;
+            title: string | null;
+            /** Format: int32 */
+            unconfirmedCount: number;
         };
         SetAddressRequest: {
             email?: string;
@@ -37857,6 +39429,10 @@ export interface components {
         };
         SetEventFieldsRequest: {
             fields?: components["schemas"]["EventFieldEntry"][];
+        };
+        SetFederationShareRequest: {
+            partnerIds?: number[];
+            scope?: components["schemas"]["ShareScope"];
         };
         SetFieldsRequest: {
             fields?: components["schemas"]["EventTemplateFieldData"][];
@@ -37883,6 +39459,11 @@ export interface components {
             memberIds?: number[];
             move?: boolean;
         };
+        SetPartnerPlacesRequest: {
+            partnerConfirms?: boolean;
+            /** Format: int32 */
+            slotBudget?: number | null;
+        };
         SetPasswordRequest: {
             password?: string;
             token?: string;
@@ -37892,6 +39473,9 @@ export interface components {
         };
         SetRegistrationFieldsRequest: {
             fields?: components["schemas"]["RegistrationFieldDefinition"][];
+        };
+        SetRemindersRequest: {
+            daysBefore?: number[];
         };
         SetSessionFieldsRequest: {
             fields?: components["schemas"]["AttendanceFieldValueEntry"][];
@@ -37992,6 +39576,22 @@ export interface components {
             publicSlug: string;
             stationUid: string;
             timezone: string;
+        };
+        SharedEvent: {
+            /** Format: int32 */
+            dayOfWeek: number;
+            description: string;
+            endTime: string;
+            eventType: components["schemas"]["EventType"];
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            repeatCount: number | null;
+            repeatUntil: components["schemas"]["LocalDate"] | null;
+            requiresConfirmation: boolean;
+            requiresRegistration: boolean;
+            startTime: string;
         };
         SharedPage: {
             ownAddressLive: boolean;
@@ -38108,7 +39708,7 @@ export interface components {
             eventDate: components["schemas"]["LocalDate"];
             /** Format: int32 */
             eventId: number;
-            eventName: string;
+            eventName: string | null;
         };
         SpacerConfig: {
             /** Format: int32 */
@@ -38177,30 +39777,30 @@ export interface components {
         };
         StationEvent: {
             cancelled: boolean;
-            cancelledAt: components["schemas"]["Instant"];
-            cancelReason: string;
+            cancelledAt: components["schemas"]["Instant"] | null;
+            cancelReason: string | null;
             /** Format: int32 */
-            categoryId: number;
+            categoryId: number | null;
             /** Format: int32 */
-            dayOfWeek: number;
-            description: string;
+            dayOfWeek: number | null;
+            description: string | null;
             endTime: components["schemas"]["Instant"];
             eventType: components["schemas"]["EventType"];
             /** Format: int32 */
             id: number;
-            isPublic: boolean;
+            isPublic: boolean | null;
             /** Format: int32 */
-            minRegistrations: number;
+            minRegistrations: number | null;
             name: string;
             recurring: boolean;
             /** Format: int32 */
-            registrationCloseDays: number;
-            registrationDeadline: components["schemas"]["Instant"];
+            registrationCloseDays: number | null;
+            registrationDeadline: components["schemas"]["Instant"] | null;
             /** Format: int32 */
-            registrationLimit: number;
+            registrationLimit: number | null;
             /** Format: int32 */
-            repeatCount: number;
-            repeatUntil: components["schemas"]["LocalDate"];
+            repeatCount: number | null;
+            repeatUntil: components["schemas"]["LocalDate"] | null;
             requiresConfirmation: boolean;
             requiresRegistration: boolean;
             restricted: boolean;
@@ -38209,9 +39809,9 @@ export interface components {
             /** Format: uuid */
             stationId: string;
             /** Format: int32 */
-            templateId: number;
+            templateId: number | null;
             /** Format: int32 */
-            thresholdDays: number;
+            thresholdDays: number | null;
             viewRestrictionMode: components["schemas"]["RestrictionMode"];
         };
         StationGroupRequest: {
@@ -38450,15 +40050,15 @@ export interface components {
             handOverNext: boolean;
             inventoryName: string;
             itemName: string;
-            itemSize: string;
+            itemSize: string | null;
             /** Format: int32 */
             movementId: number;
             purpose: components["schemas"]["MovementPurpose"];
             /** Format: int32 */
-            replacementItemId: number;
-            stepActor: components["schemas"]["StepActor"];
+            replacementItemId: number | null;
+            stepActor: components["schemas"]["StepActor"] | null;
             /** Format: int32 */
-            stepId: number;
+            stepId: number | null;
             stepLabel: string;
         };
         SwitchBlocker: {
@@ -38512,6 +40112,10 @@ export interface components {
         TabItem: {
             body: string;
             title: string;
+        };
+        TableColumnsResponse: {
+            member: components["schemas"]["MemberTableHeader"][];
+            questions: components["schemas"]["QuestionColumn"][];
         };
         TabsConfig: {
             items: components["schemas"]["TabItem"][];
@@ -38774,7 +40378,7 @@ export interface components {
             itemId?: number;
         };
         UpcomingEventOccurrence: {
-            cancellation: components["schemas"]["CancellationNotice"];
+            cancellation: components["schemas"]["CancellationNotice"] | null;
             date: components["schemas"]["LocalDate"];
             event: components["schemas"]["EventSummary"];
         };
@@ -38850,19 +40454,19 @@ export interface components {
         };
         UpdateTemplateRequest: {
             /** Format: int32 */
-            attendanceTemplateId?: number;
+            attendanceTemplateId?: number | null;
             /** Format: int32 */
-            categoryId?: number;
-            description?: string;
-            eventType?: components["schemas"]["EventType"];
+            categoryId?: number | null;
+            description?: string | null;
+            eventType?: components["schemas"]["EventType"] | null;
             name?: string;
-            registrationDeadlineOffset?: string;
+            registrationDeadlineOffset?: string | null;
             /** Format: int32 */
-            registrationLimit?: number;
-            requiresConfirmation?: boolean;
-            requiresRegistration?: boolean;
-            restrictionMode?: components["schemas"]["RestrictionMode"];
-            title?: string;
+            registrationLimit?: number | null;
+            requiresConfirmation?: boolean | null;
+            requiresRegistration?: boolean | null;
+            restrictionMode?: components["schemas"]["RestrictionMode"] | null;
+            title?: string | null;
         };
         UpdateTicketRequest: {
             /** Format: int32 */
@@ -38946,6 +40550,9 @@ export interface components {
             folderId?: number;
             partnerIds?: number[];
         };
+        WithdrawalResponse: {
+            undoUntil: components["schemas"]["Instant"];
+        };
     };
     responses: never;
     parameters: never;
@@ -38954,6 +40561,8 @@ export interface components {
     pathItems: never;
 }
 export type AbsenceRequest = components['schemas']['AbsenceRequest'];
+export type AbsenceResponse = components['schemas']['AbsenceResponse'];
+export type AbsentMemberResponse = components['schemas']['AbsentMemberResponse'];
 export type AccessData = components['schemas']['AccessData'];
 export type AccessRequest = components['schemas']['AccessRequest'];
 export type AccordionConfig = components['schemas']['AccordionConfig'];
@@ -39010,8 +40619,12 @@ export type AwaitingAnswer = components['schemas']['AwaitingAnswer'];
 export type AwaitingMember = components['schemas']['AwaitingMember'];
 export type BackendOverrideRequest = components['schemas']['BackendOverrideRequest'];
 export type BackendOverrideSummary = components['schemas']['BackendOverrideSummary'];
+export type BatchCreateRequest = components['schemas']['BatchCreateRequest'];
+export type BatchFieldEntryDto = components['schemas']['BatchFieldEntryDto'];
 export type BatchGenerateRequest = components['schemas']['BatchGenerateRequest'];
 export type BatchResult = components['schemas']['BatchResult'];
+export type BatchRow = components['schemas']['BatchRow'];
+export type BatchRowEntry = components['schemas']['BatchRowEntry'];
 export type BindingRequest = components['schemas']['BindingRequest'];
 export type BindingResponse = components['schemas']['BindingResponse'];
 export type BlockAudience = components['schemas']['BlockAudience'];
@@ -39191,6 +40804,7 @@ export type EmbeddedEvent = components['schemas']['EmbeddedEvent'];
 export type EmbedReference = components['schemas']['EmbedReference'];
 export type EndpointDetail = components['schemas']['EndpointDetail'];
 export type EndpointStats = components['schemas']['EndpointStats'];
+export type EnrichedFederationRegistration = components['schemas']['EnrichedFederationRegistration'];
 export type EntryAudience = components['schemas']['EntryAudience'];
 export type EntryResponse = components['schemas']['EntryResponse'];
 export type EntrySource = components['schemas']['EntrySource'];
@@ -39206,12 +40820,14 @@ export type EventAttachment = components['schemas']['EventAttachment'];
 export type EventBreak = components['schemas']['EventBreak'];
 export type EventCategory = components['schemas']['EventCategory'];
 export type EventExportRequest = components['schemas']['EventExportRequest'];
+export type EventFederationRegistration = components['schemas']['EventFederationRegistration'];
 export type EventField = components['schemas']['EventField'];
 export type EventFieldConfig = components['schemas']['EventFieldConfig'];
 export type EventFieldDefault = components['schemas']['EventFieldDefault'];
 export type EventFieldEntry = components['schemas']['EventFieldEntry'];
 export type EventFieldType = components['schemas']['EventFieldType'];
 export type EventItem = components['schemas']['EventItem'];
+export type EventPartnerPlaces = components['schemas']['EventPartnerPlaces'];
 export type EventRegisterRequest = components['schemas']['EventRegisterRequest'];
 export type EventRegistration = components['schemas']['EventRegistration'];
 export type EventRegistrationFieldConfig = components['schemas']['EventRegistrationFieldConfig'];
@@ -39234,8 +40850,12 @@ export type ExternalLinkImageDisplay = components['schemas']['ExternalLinkImageD
 export type Facet = components['schemas']['Facet'];
 export type FailedInviteResponse = components['schemas']['FailedInviteResponse'];
 export type FeaturedEventConfig = components['schemas']['FeaturedEventConfig'];
+export type FederatedEventItem = components['schemas']['FederatedEventItem'];
+export type FederatedRegBody = components['schemas']['FederatedRegBody'];
+export type FederatedRegistrationAnswer = components['schemas']['FederatedRegistrationAnswer'];
 export type FederationConfigRequest = components['schemas']['FederationConfigRequest'];
 export type FederationConfigResponse = components['schemas']['FederationConfigResponse'];
+export type FederationShareResponse = components['schemas']['FederationShareResponse'];
 export type FederationTargetRequest = components['schemas']['FederationTargetRequest'];
 export type FederationTargetResponse = components['schemas']['FederationTargetResponse'];
 export type FeedMetricDaily = components['schemas']['FeedMetricDaily'];
@@ -39288,6 +40908,7 @@ export type FormVisibility = components['schemas']['FormVisibility'];
 export type FoundNote = components['schemas']['FoundNote'];
 export type GalleryAspectMode = components['schemas']['GalleryAspectMode'];
 export type GalleryItem = components['schemas']['GalleryItem'];
+export type GenerateDatesRequest = components['schemas']['GenerateDatesRequest'];
 export type GeneratedQuestionWithMeta = components['schemas']['GeneratedQuestionWithMeta'];
 export type GenerateEntry = components['schemas']['GenerateEntry'];
 export type GenerateQuestionsRequest = components['schemas']['GenerateQuestionsRequest'];
@@ -39317,6 +40938,7 @@ export type ImportStartResponse = components['schemas']['ImportStartResponse'];
 export type InstanceUserType = components['schemas']['InstanceUserType'];
 export type Instant = components['schemas']['Instant'];
 export type IntakeRequest = components['schemas']['IntakeRequest'];
+export type IntervalType = components['schemas']['IntervalType'];
 export type Inventory = components['schemas']['Inventory'];
 export type InventoryArt = components['schemas']['InventoryArt'];
 export type InventoryContainer = components['schemas']['InventoryContainer'];
@@ -39444,6 +41066,12 @@ export type MemberRequirements = components['schemas']['MemberRequirements'];
 export type MemberSearchResult = components['schemas']['MemberSearchResult'];
 export type MemberSpotlightConfig = components['schemas']['MemberSpotlightConfig'];
 export type MemberSummary = components['schemas']['MemberSummary'];
+export type MemberTable = components['schemas']['MemberTable'];
+export type MemberTableCellType = components['schemas']['MemberTableCellType'];
+export type MemberTableColumn = components['schemas']['MemberTableColumn'];
+export type MemberTableColumnKind = components['schemas']['MemberTableColumnKind'];
+export type MemberTableHeader = components['schemas']['MemberTableHeader'];
+export type MemberTableRow = components['schemas']['MemberTableRow'];
 export type MemberWithName = components['schemas']['MemberWithName'];
 export type MessageResponse = components['schemas']['MessageResponse'];
 export type MigrationResponse = components['schemas']['MigrationResponse'];
@@ -39516,6 +41144,7 @@ export type PastEventRecapConfig = components['schemas']['PastEventRecapConfig']
 export type PdfConfig = components['schemas']['PdfConfig'];
 export type Permission = components['schemas']['Permission'];
 export type PermissionNode = components['schemas']['PermissionNode'];
+export type PickerEvent = components['schemas']['PickerEvent'];
 export type Piece = components['schemas']['Piece'];
 export type PlacementResponse = components['schemas']['PlacementResponse'];
 export type PlannedLanding = components['schemas']['PlannedLanding'];
@@ -39560,6 +41189,7 @@ export type PublicSubmitRequest = components['schemas']['PublicSubmitRequest'];
 export type PublicSubmitResponse = components['schemas']['PublicSubmitResponse'];
 export type QuestionAnswerCount = components['schemas']['QuestionAnswerCount'];
 export type QuestionBranch = components['schemas']['QuestionBranch'];
+export type QuestionColumn = components['schemas']['QuestionColumn'];
 export type QuestionInfoDto = components['schemas']['QuestionInfoDto'];
 export type QuestionRequest = components['schemas']['QuestionRequest'];
 export type QuestionTally = components['schemas']['QuestionTally'];
@@ -39587,6 +41217,7 @@ export type RefuseRowRequest = components['schemas']['RefuseRowRequest'];
 export type RegisterRequest = components['schemas']['RegisterRequest'];
 export type RegisterResponse = components['schemas']['RegisterResponse'];
 export type RegistrationCode = components['schemas']['RegistrationCode'];
+export type RegistrationCount = components['schemas']['RegistrationCount'];
 export type RegistrationFieldDefinition = components['schemas']['RegistrationFieldDefinition'];
 export type RegistrationFieldDefinitionsRequest = components['schemas']['RegistrationFieldDefinitionsRequest'];
 export type RegistrationFieldResponse = components['schemas']['RegistrationFieldResponse'];
@@ -39594,7 +41225,14 @@ export type RegistrationFieldsRequest = components['schemas']['RegistrationField
 export type RegistrationResponse = components['schemas']['RegistrationResponse'];
 export type RegistrationStatsResponse = components['schemas']['RegistrationStatsResponse'];
 export type RegistrationStatus = components['schemas']['RegistrationStatus'];
+export type RegistrationTableRequest = components['schemas']['RegistrationTableRequest'];
+export type RegistrationUpdateItem = components['schemas']['RegistrationUpdateItem'];
+export type RemoteAttachment = components['schemas']['RemoteAttachment'];
+export type RemoteEventDetail = components['schemas']['RemoteEventDetail'];
+export type RemoteMemberRegistration = components['schemas']['RemoteMemberRegistration'];
+export type RemotePlaces = components['schemas']['RemotePlaces'];
 export type Renamed = components['schemas']['Renamed'];
+export type ReorderCategoriesRequest = components['schemas']['ReorderCategoriesRequest'];
 export type ReorderChecklistRequest = components['schemas']['ReorderChecklistRequest'];
 export type ReorderColumnsRequest = components['schemas']['ReorderColumnsRequest'];
 export type ReorderRequest = components['schemas']['ReorderRequest'];
@@ -39603,8 +41241,10 @@ export type ReportData = components['schemas']['ReportData'];
 export type ReportRequest = components['schemas']['ReportRequest'];
 export type RequeuedMails = components['schemas']['RequeuedMails'];
 export type RequiredInventoryItem = components['schemas']['RequiredInventoryItem'];
+export type RequirementItem = components['schemas']['RequirementItem'];
 export type RequirementRequest = components['schemas']['RequirementRequest'];
 export type RequirementResponse = components['schemas']['RequirementResponse'];
+export type RequirementsResponse = components['schemas']['RequirementsResponse'];
 export type ResetPasswordRequest = components['schemas']['ResetPasswordRequest'];
 export type ResolvedMember = components['schemas']['ResolvedMember'];
 export type ResolvedResponse = components['schemas']['ResolvedResponse'];
@@ -39631,6 +41271,7 @@ export type SelfCheckAnswer = components['schemas']['SelfCheckAnswer'];
 export type SelfCheckAnswerRequest = components['schemas']['SelfCheckAnswerRequest'];
 export type SelfCheckIdentifierFinding = components['schemas']['SelfCheckIdentifierFinding'];
 export type SelfCheckIdentifierMatch = components['schemas']['SelfCheckIdentifierMatch'];
+export type SelfCheckItem = components['schemas']['SelfCheckItem'];
 export type SelfCheckRaised = components['schemas']['SelfCheckRaised'];
 export type SelfCheckRaisedKind = components['schemas']['SelfCheckRaisedKind'];
 export type SelfCheckRaisedState = components['schemas']['SelfCheckRaisedState'];
@@ -39652,9 +41293,11 @@ export type SessionDetail = components['schemas']['SessionDetail'];
 export type SessionInfo = components['schemas']['SessionInfo'];
 export type SessionMemberEntry = components['schemas']['SessionMemberEntry'];
 export type SessionRequest = components['schemas']['SessionRequest'];
+export type SessionSummary = components['schemas']['SessionSummary'];
 export type SetAddressRequest = components['schemas']['SetAddressRequest'];
 export type SetEmailRequest = components['schemas']['SetEmailRequest'];
 export type SetEventFieldsRequest = components['schemas']['SetEventFieldsRequest'];
+export type SetFederationShareRequest = components['schemas']['SetFederationShareRequest'];
 export type SetFieldsRequest = components['schemas']['SetFieldsRequest'];
 export type SetGroupPermissionsRequest = components['schemas']['SetGroupPermissionsRequest'];
 export type SetGroupsRequest = components['schemas']['SetGroupsRequest'];
@@ -39663,9 +41306,11 @@ export type SetLoginRequest = components['schemas']['SetLoginRequest'];
 export type SetManagedPasswordRequest = components['schemas']['SetManagedPasswordRequest'];
 export type SetManagersRequest = components['schemas']['SetManagersRequest'];
 export type SetMembersRequest = components['schemas']['SetMembersRequest'];
+export type SetPartnerPlacesRequest = components['schemas']['SetPartnerPlacesRequest'];
 export type SetPasswordRequest = components['schemas']['SetPasswordRequest'];
 export type SetPermissionsRequest = components['schemas']['SetPermissionsRequest'];
 export type SetRegistrationFieldsRequest = components['schemas']['SetRegistrationFieldsRequest'];
+export type SetRemindersRequest = components['schemas']['SetRemindersRequest'];
 export type SetSessionFieldsRequest = components['schemas']['SetSessionFieldsRequest'];
 export type SetTemplateGroupsRequest = components['schemas']['SetTemplateGroupsRequest'];
 export type SetTemplateUserTypesRequest = components['schemas']['SetTemplateUserTypesRequest'];
@@ -39680,6 +41325,7 @@ export type Sftp = components['schemas']['Sftp'];
 export type SftpRequest = components['schemas']['SftpRequest'];
 export type SftpSummary = components['schemas']['SftpSummary'];
 export type SharedBrand = components['schemas']['SharedBrand'];
+export type SharedEvent = components['schemas']['SharedEvent'];
 export type SharedPage = components['schemas']['SharedPage'];
 export type ShareLinkResponse = components['schemas']['ShareLinkResponse'];
 export type ShareScope = components['schemas']['ShareScope'];
@@ -39744,6 +41390,7 @@ export type SystemCommentResponse = components['schemas']['SystemCommentResponse
 export type SystemNewsRequest = components['schemas']['SystemNewsRequest'];
 export type SystemNewsResponse = components['schemas']['SystemNewsResponse'];
 export type TabItem = components['schemas']['TabItem'];
+export type TableColumnsResponse = components['schemas']['TableColumnsResponse'];
 export type TabsConfig = components['schemas']['TabsConfig'];
 export type TagEntry = components['schemas']['TagEntry'];
 export type TaggedItemSummary = components['schemas']['TaggedItemSummary'];
@@ -39810,5 +41457,6 @@ export type WaitingListRegisterRequest = components['schemas']['WaitingListRegis
 export type WebhookUrl = components['schemas']['WebhookUrl'];
 export type WeblinkRequest = components['schemas']['WeblinkRequest'];
 export type WikiAudienceRequest = components['schemas']['WikiAudienceRequest'];
+export type WithdrawalResponse = components['schemas']['WithdrawalResponse'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;

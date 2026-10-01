@@ -5,9 +5,16 @@
  */
 import {computed, reactive, watch} from 'vue'
 import {events} from '@/api'
-import {EventTypes, needsDayOfWeek, type EventField, type EventFieldEntry, type EventTemplateDetail, type StationEvent} from '@/api/events'
+import {audienceOf, EventTypes, needsDayOfWeek} from '@/api/events'
+import type {
+    EventField,
+    EventFieldEntry,
+    EventRequest,
+    StationEvent,
+    TemplateDetailResponse,
+} from '@/api/generated/schema'
 import {toRestriction} from '@/components/input/restriction'
-import {createEventFormState} from './eventFormState'
+import {createEventFormState, eventTypeNamed} from './eventFormState'
 import {modelBindings} from './modelBindings'
 import {instantToLocalInput} from '@/util/format'
 
@@ -43,7 +50,7 @@ export function useEventForm() {
    * taken on and then leaves the appointment without one makes whoever applied it set the same thing
    * again by hand, which is the one thing a template is for.
    */
-  function applyTemplate(detail: EventTemplateDetail) {
+  function applyTemplate(detail: TemplateDetailResponse) {
     const tpl = detail.template
     if (tpl.title) state.name = tpl.title
     if (tpl.description) state.description = tpl.description
@@ -59,12 +66,12 @@ export function useEventForm() {
     if (detail.fields.length > 0) {
       const newFields: EventFieldEntry[] = detail.fields.map(f => ({
         name: f.name,
-        fieldType: f.fieldType ?? 'STRING',
-        config: typeof f.config === 'string' ? (f.config ? JSON.parse(f.config) : {}) : (f.config ?? {}),
+        fieldType: f.fieldType,
+        config: f.config,
         value: f.defaultValue ?? '',
-        overview: f.overview ?? false,
-        attendanceFieldId: f.attendanceFieldId ?? null,
-        isPublic: f.isPublic ?? false,
+        overview: f.overview,
+        attendanceFieldId: f.attendanceFieldId,
+        isPublic: f.isPublic,
       }))
       state.fields = [...state.fields, ...newFields]
     }
@@ -76,12 +83,13 @@ export function useEventForm() {
   function applyEventFields(fields: EventField[]) {
     state.fields = fields.map(f => ({
       id: f.id,
-      name: f.name ?? '',
-      fieldType: f.fieldType ?? 'STRING',
-      config: f.config ?? {},
-      value: f.value ?? '',
-      overview: f.overview ?? false,
-      attendanceFieldId: f.attendanceFieldId ?? null,
+      name: f.name,
+      fieldType: f.fieldType,
+      config: f.config,
+      value: f.value,
+      overview: f.overview,
+      attendanceFieldId: f.attendanceFieldId,
+      isPublic: f.isPublic,
     }))
   }
 
@@ -124,11 +132,11 @@ export function useEventForm() {
     } catch { state.reminders = [] }
   }
 
-  function buildPayload() {
+  function buildPayload(): EventRequest {
     return {
       name: state.name,
       description: state.description || undefined,
-      eventType: state.eventType,
+      eventType: eventTypeNamed(state.eventType) ?? EventTypes.ONE_TIME,
       dayOfWeek: needsDayOfWeek(state.eventType) ? Number(state.dayOfWeek) : null,
       startTime: state.startTime ? new Date(state.startTime).toISOString() : undefined,
       endTime: state.endTime ? new Date(state.endTime).toISOString() : undefined,
@@ -141,8 +149,8 @@ export function useEventForm() {
       registrationLimit: state.registrationLimit ?? undefined,
       minRegistrations: state.minRegistrations ?? undefined,
       thresholdDays: state.minRegistrations ? state.thresholdDays ?? null : null,
-      restriction: state.restriction,
-      viewRestriction: state.viewRestriction,
+      restriction: audienceOf(state.restriction),
+      viewRestriction: audienceOf(state.viewRestriction),
       registrationCloseDays: state.registrationCloseDays ?? undefined,
       repeatUntil: repeats() && state.repeatUntil ? state.repeatUntil : null,
       repeatCount: repeats() && !state.repeatUntil ? state.repeatCount ?? null : null,
@@ -155,7 +163,7 @@ export function useEventForm() {
   }
 
   function namedFields(): EventFieldEntry[] {
-    return state.fields.filter(f => f.name.trim())
+    return state.fields.filter(f => f.name?.trim())
   }
 
   return {state, props, handlers, applyTemplate, loadEvent, buildPayload, namedFields, endsBeforeItStarts}

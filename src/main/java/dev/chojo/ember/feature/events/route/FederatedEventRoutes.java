@@ -9,7 +9,9 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -19,9 +21,15 @@ import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,6 +114,15 @@ public class FederatedEventRoutes implements Routes {
                 StationPermission.LOGIN);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/events",
+            methods = HttpMethod.GET,
+            summary = "List the events partner stations share with this one",
+            tags = {"Federation"},
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = EventFederationService.FederatedEventItem[].class)))
     private void federatedListEvents(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(eventFederationService.browseFederatedEvents(session.stationId()));
@@ -118,6 +135,15 @@ public class FederatedEventRoutes implements Routes {
      * own tables, which are not where a remote partner's live, and never asking about the places at
      * all. The station holding the appointment is the one that knows all three, so it says all three.
      */
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/{id}",
+            methods = HttpMethod.GET,
+            summary = "A partner station's shared event",
+            tags = {"Federation"},
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = RemoteEventRoutes.RemoteEventDetail.class)))
     private void federatedGetEvent(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
@@ -126,6 +152,15 @@ public class FederatedEventRoutes implements Routes {
     }
 
     /** The files a partner's event hands over, as that partner is willing to hand them over. */
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/{id}/attachments",
+            methods = HttpMethod.GET,
+            summary = "List the files a partner station's event hands over",
+            tags = {"Federation"},
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = RemoteEventRoutes.RemoteAttachment[].class)))
     private void federatedListAttachments(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(eventFederationService.listFederatedAttachments(
@@ -138,6 +173,12 @@ public class FederatedEventRoutes implements Routes {
      * <p>The bytes travel encoded between the two instances, because that is what the contract
      * between them speaks, and are decoded here so a browser is handed an ordinary download.
      */
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/{id}/attachments/{attachmentId}/file",
+            methods = HttpMethod.GET,
+            summary = "Download a file a partner station's event hands over",
+            tags = {"Federation"},
+            responses = @OpenApiResponse(status = "200"))
     private void federatedDownloadAttachment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var content = eventFederationService.getFederatedAttachment(
@@ -169,13 +210,30 @@ public class FederatedEventRoutes implements Routes {
      * whatever happened, so a member accepted at once by an appointment that asks for no confirmation
      * was told they were waiting on one that nobody would ever give.
      */
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/{id}/register",
+            methods = HttpMethod.POST,
+            summary = "Register a member for a partner station's event",
+            tags = {"Federation"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FederatedRegBody.class)),
+            responses =
+                    @OpenApiResponse(
+                            status = "201",
+                            content = @OpenApiContent(from = FederatedRegistrationAnswer.class)))
     private void federatedRegister(Context ctx) {
         var fed = resolveFederatedRegContext(ctx);
         var status = eventFederationService.registerForFederatedEvent(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
-        ctx.status(HttpStatus.CREATED).json(new StatusResponse(status.name()));
+        ctx.status(HttpStatus.CREATED).json(new FederatedRegistrationAnswer(status));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/{id}/register",
+            methods = HttpMethod.DELETE,
+            summary = "Withdraw a member's registration for a partner station's event",
+            tags = {"Federation"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FederatedRegBody.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedWithdraw(Context ctx) {
         var fed = resolveFederatedRegContext(ctx);
         eventFederationService.withdrawFederatedRegistration(
@@ -190,6 +248,13 @@ public class FederatedEventRoutes implements Routes {
      * that measures the few minutes. A refusal is not a failure here: it means the time has passed,
      * and the member is told so rather than left wondering whether the press landed.
      */
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/{id}/register/undo",
+            methods = HttpMethod.POST,
+            summary = "Take back a withdrawal from a partner station's event",
+            tags = {"Federation"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FederatedRegBody.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedUndoWithdrawal(Context ctx) {
         var fed = resolveFederatedRegContext(ctx);
         eventFederationService.undoFederatedWithdrawal(
@@ -206,6 +271,13 @@ public class FederatedEventRoutes implements Routes {
      * counting, so a refusal here means either that they never handed it over or that the places are
      * full: both are answers, not failures.
      */
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/{id}/register/confirm",
+            methods = HttpMethod.POST,
+            summary = "Give one of this station's members a place at a partner station's event",
+            tags = {"Federation"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FederatedRegBody.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void federatedConfirmOwn(Context ctx) {
         var fed = resolveFederatedRegContext(ctx);
         eventFederationService.confirmOwnFederatedMember(
@@ -243,6 +315,15 @@ public class FederatedEventRoutes implements Routes {
                 .orElseThrow(Refusal.PARTNER_NOT_HERE::raise);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/my-registrations",
+            methods = HttpMethod.GET,
+            summary = "List the reader's household's registrations at partner stations",
+            tags = {"Federation"},
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = RemoteEventRoutes.RemoteMemberRegistration[].class)))
     private void federatedMyRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {
@@ -258,6 +339,12 @@ public class FederatedEventRoutes implements Routes {
         ctx.json(eventFederationService.findMyRegistrations(session.stationId(), memberUids));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/{eventId}/comments",
+            methods = HttpMethod.GET,
+            summary = "List the comments on a partner station's event",
+            tags = {"Federation"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void federatedListComments(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var partnerUid = pathUuid(ctx, "stationuid");
@@ -265,6 +352,15 @@ public class FederatedEventRoutes implements Routes {
         ctx.json(eventFederationService.listFederatedComments(session.stationId(), partnerUid, eventId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/{eventId}/comments",
+            methods = HttpMethod.POST,
+            summary = "Comment on a partner station's event",
+            tags = {"Federation"},
+            requestBody =
+                    @OpenApiRequestBody(
+                            content = @OpenApiContent(from = EventCommentRoutes.CreateCommentRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void federatedCreateComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var partnerUid = pathUuid(ctx, "stationuid");
@@ -285,6 +381,15 @@ public class FederatedEventRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(created);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/comments/{commentId}",
+            methods = HttpMethod.PUT,
+            summary = "Change a comment on a partner station's event",
+            tags = {"Federation"},
+            requestBody =
+                    @OpenApiRequestBody(
+                            content = @OpenApiContent(from = EventCommentRoutes.UpdateCommentRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse.class)))
     private void federatedUpdateComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var partnerUid = pathUuid(ctx, "stationuid");
@@ -297,6 +402,12 @@ public class FederatedEventRoutes implements Routes {
                 session.stationId(), partnerUid, commentId, session.member().uid(), req.content()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/comments/{commentId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a comment on a partner station's event",
+            tags = {"Federation"},
+            responses = @OpenApiResponse(status = "204"))
     private void federatedDeleteComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var partnerUid = pathUuid(ctx, "stationuid");
@@ -306,9 +417,13 @@ public class FederatedEventRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    public record FederatedRegBody(String eventDate, UUID memberId) {}
+    public record FederatedRegBody(
+            String eventDate, @Nullable UUID memberId) {}
 
     public record StatusResponse(String status) {}
+
+    /** What the station holding the appointment recorded for a registration sent to it. */
+    public record FederatedRegistrationAnswer(RegistrationStatus status) {}
 
     /**
      * Shared inputs for a federated register or withdraw request.

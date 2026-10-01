@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.equipment.repository.EquipmentRecommendationRepos
 import dev.chojo.ember.feature.federation.service.LendingService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -110,7 +111,12 @@ public class EquipmentBrowseService {
      * @param quantity        how many pieces
      * @param needId          the line of an appointment's needs this would fill, or {@code null}
      */
-    public record CollectedLine(UUID owningStationId, int inventoryId, Integer artId, int quantity, Integer needId) {}
+    public record CollectedLine(
+            UUID owningStationId,
+            int inventoryId,
+            @Nullable Integer artId,
+            int quantity,
+            @Nullable Integer needId) {}
 
     /**
      * What one collected line would still find.
