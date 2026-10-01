@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -92,6 +93,14 @@ public class DemoClusterSeeder implements DemoSeeder {
     private static final long MIB = 1024L * 1024L;
 
     private static final long GIB = 1024L * MIB;
+
+    /** The municipality's gear at the demo station, by code. */
+    private static final Map<String, String> FOREIGN_GEAR = Map.of(
+            "GM-0002", "Anhänger der Gemeinde",
+            "GM-0102", "Stromerzeuger der Gemeinde",
+            "GM-0103", "Lichtmast der Gemeinde",
+            "GM-0104", "Tauchpumpe der Gemeinde",
+            "GM-0105", "Absperrgitter der Gemeinde");
 
     private final AccountRepository accountRepository;
     private final PasswordHasher passwordHasher;
@@ -442,7 +451,7 @@ public class DemoClusterSeeder implements DemoSeeder {
 
     /**
      * A pool of the cluster's own gear spread across the custody states, so each of them is visible rather
-     * than described, plus one piece whose owner is not on this instance at all.
+     * than described, plus a few pieces whose owner is not on this instance at all.
      *
      * <p>The requirement hangs off the cluster's own inventory, so there is one definition rather than one per
      * station kept matching by hand. The foreign piece is written down after the station joined: what the
@@ -492,8 +501,16 @@ public class DemoClusterSeeder implements DemoSeeder {
         inventoryRepository.findByStation(member.stationId()).stream()
                 .filter(inventory -> "Gemeindematerial".equals(inventory.name()))
                 .findFirst()
-                .ifPresent(municipal -> inventoryRepository.createItem(
-                        municipal.id(), "GM-0002", "Anhänger der Gemeinde", null, null, ItemOwner.CLUSTER, null));
+                .ifPresent(this::seedForeignGear);
+    }
+
+    /**
+     * Pieces owned by a body that is not on this instance, several of them so that more than one walk of
+     * standing in for that owner can run at the same time without reaching for the same piece.
+     */
+    private void seedForeignGear(Inventory municipal) {
+        FOREIGN_GEAR.forEach((code, name) ->
+                inventoryRepository.createItem(municipal.id(), code, name, null, null, ItemOwner.CLUSTER, null));
     }
 
     /**

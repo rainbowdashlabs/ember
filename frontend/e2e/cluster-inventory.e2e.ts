@@ -293,6 +293,10 @@ test.describe('Cluster inventory', () => {
      *
      * The presets carry no owner leg, being what a station falls back to, so the story adds a chain that
      * records it and has the station walk the owner's steps itself.
+     *
+     * A station cannot write down such a piece itself, since a station inside a cluster names that cluster as
+     * the owner, so the story borrows one the demo keeps and corrects it back onto the shelf afterwards. A
+     * retry, and every other copy of the story, then finds the shelf as it was.
      */
     test('a station stands in for an owner that does not run here', async ({browser, request}) => {
         const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
@@ -302,9 +306,10 @@ test.describe('Cluster inventory', () => {
             .get('/api/v1/inventories/all-items', {headers})
             .then(r => r.json())
         const offSystem = (Array.isArray(items) ? items : items.items ?? [])
-            .find((i: {ownerKind: string; ownerClusterId: number | null; custody: string}) =>
+            .filter((i: {ownerKind: string; ownerClusterId: number | null; custody: string}) =>
                 i.ownerKind === 'CLUSTER' && !i.ownerClusterId && i.custody === 'AT_STATION')
-        expect(offSystem, 'the demo keeps a piece owned by a body that is not on this instance').toBeTruthy()
+        expect(offSystem.length, 'the demo keeps pieces owned by a body that is not on this instance')
+            .toBeGreaterThan(0)
 
         const flow = await station.request.post('/api/v1/movement-flows',
             {headers, data: {name: `Rückgabe mit Trägerbein ${Date.now()}`, purpose: 'RETURN'}})
@@ -322,41 +327,55 @@ test.describe('Cluster inventory', () => {
             expect(added.ok()).toBeTruthy()
         }
 
+        const inventoryId = offSystem[0].inventoryId
         const bound = await station.request.put('/api/v1/movement-flow-bindings', {
             headers,
-            data: {inventoryId: offSystem.inventoryId, ownerKind: 'CLUSTER', purpose: 'RETURN', flowId},
+            data: {inventoryId, ownerKind: 'CLUSTER', purpose: 'RETURN', flowId},
         })
         expect(bound.ok()).toBeTruthy()
 
-        const started = await station.request.post('/api/v1/movements', {
-            headers,
-            data: {purpose: 'RETURN', outgoingItemId: offSystem.id, inventoryId: offSystem.inventoryId,
-                reason: 'Zurück an den Träger'},
-        })
-        expect(started.ok()).toBeTruthy()
-        const detail = await started.json()
-
-        let current = detail.steps.find((s: {current: boolean}) => s.current)
-        for (let guard = 6; guard > 0 && current; guard -= 1) {
-            expect(current.actionable, 'the station may answer where the owner cannot').toBeTruthy()
-            const next = await station.request.post(`/api/v1/movements/${detail.movement.id}/acknowledge`,
-                {headers, data: {stepId: current.id, note: ''}})
-            expect(next.ok()).toBeTruthy()
-            const seen = await movement(station, detail.movement.id, headers)
-            if (seen.movement.state !== 'OPEN') {
-                const owner = seen.steps.filter((s: {actor: string}) => s.actor === 'OWNER')
-                expect(owner.length, 'the chain had a step for the owner').toBeGreaterThan(0)
-                expect(owner.every((s: {ackKind: string}) => s.ackKind === 'ASSERTED'),
-                    'and the station standing in is recorded as asserted, not confirmed').toBeTruthy()
-                const own = seen.steps.filter((s: {actor: string}) => s.actor === 'STATION')
-                expect(own.every((s: {ackKind: string}) => s.ackKind === 'CONFIRMED'),
-                    'while its own steps read as confirmed').toBeTruthy()
+        let detail: {movement: {id: number}; steps: {current: boolean; actionable: boolean; id: number}[]} | undefined
+        for (const piece of offSystem) {
+            const started = await station.request.post('/api/v1/movements', {
+                headers,
+                data: {purpose: 'RETURN', outgoingItemId: piece.id, inventoryId, reason: 'Zurück an den Träger'},
+            })
+            if (started.ok()) {
+                detail = await started.json()
                 break
             }
-            current = seen.steps.find((s: {current: boolean}) => s.current)
         }
+        const walking = must(detail, 'one of the pieces was free to send back')
 
-        await station.context().close()
+        try {
+            let current = walking.steps.find(s => s.current)
+            for (let guard = 6; guard > 0 && current; guard -= 1) {
+                expect(current.actionable, 'the station may answer where the owner cannot').toBeTruthy()
+                const next = await station.request.post(`/api/v1/movements/${walking.movement.id}/acknowledge`,
+                    {headers, data: {stepId: current.id, note: ''}})
+                expect(next.ok()).toBeTruthy()
+                const seen = await movement(station, walking.movement.id, headers)
+                if (seen.movement.state !== 'OPEN') {
+                    const owner = seen.steps.filter((s: {actor: string}) => s.actor === 'OWNER')
+                    expect(owner.length, 'the chain had a step for the owner').toBeGreaterThan(0)
+                    expect(owner.every((s: {ackKind: string}) => s.ackKind === 'ASSERTED'),
+                        'and the station standing in is recorded as asserted, not confirmed').toBeTruthy()
+                    const own = seen.steps.filter((s: {actor: string}) => s.actor === 'STATION')
+                    expect(own.every((s: {ackKind: string}) => s.ackKind === 'CONFIRMED'),
+                        'while its own steps read as confirmed').toBeTruthy()
+                    break
+                }
+                current = seen.steps.find((s: {current: boolean}) => s.current)
+            }
+        } finally {
+            const restored = await station.request.post(`/api/v1/movements/${walking.movement.id}/correct`, {
+                headers,
+                data: {outgoing: 'AT_STATION', incoming: null, detachArrival: false, closeAs: 'CANCELLED',
+                    reason: 'Zurück ins Regal für die nächste Geschichte'},
+            })
+            expect(restored.ok(), 'the piece is put back where the next story looks for it').toBeTruthy()
+            await station.context().close()
+        }
     })
 
     /**

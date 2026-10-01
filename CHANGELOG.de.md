@@ -154,6 +154,7 @@
 - **Ein Zahlenfeld am Board konnte keine Null halten.** Eine 0 in einem Zahlenfeld eines Tickets leerte das Feld. Die Null bleibt jetzt stehen.
 - **Antworten auf Anmeldefragen hielten sich nicht an die Grenzen der Frage.** In manchen Fällen nahm das Feld für eine Zahlenfrage Zahlen außerhalb ihres Bereichs, und eine auf eine Gruppe oder ein Tag beschränkte Mitgliederfrage bot alle Mitglieder an, sodass das Speichern dann scheiterte. Das Feld hält sich jetzt an den Bereich und bietet nur die Mitglieder an, die die Frage annimmt.
 - **Ausrüstung aus dem Lager des Verbands ließ sich an der Wache nicht öffnen.** Ein Stück, das der Verband in seinem eigenen Lager führt und einer Wache geschickt hat, stand in den Listen der Wache und fand sich beim Scannen, aber beim Öffnen hieß es, es sei nicht vorhanden. Die Wache öffnet es jetzt, gibt es aus und meldet es wie jedes andere Stück, das sie hat.
+- **Die Wahl eines Ablaufs konnte scheitern, wenn sie zweimal gleichzeitig gespeichert wurde.** In manchen Fällen, wenn der Ablauf für ein Inventar an zwei Stellen im selben Moment gewählt wurde, wurde eine davon mit dem Hinweis abgelehnt, der Eintrag sei schon vorhanden. Beide Speichervorgänge gehen jetzt durch, und der letzte ist der Ablauf, der gilt.
 
 ## v26.19.5
 

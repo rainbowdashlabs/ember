@@ -366,30 +366,26 @@ public class MovementFlowRepository {
 
     /**
      * Points a binding at a flow, replacing whatever it pointed at before.
+     *
+     * <p>One statement rather than a removal followed by a write: two saves of the same binding arriving
+     * together both removed nothing and then both wrote, and the second ran into the first and was refused
+     * as a duplicate. The conflict target names the partial index the binding falls under, which is the
+     * station-wide one without an inventory and the per-inventory one with.
      */
     public void bind(
             int stationId,
-            Integer inventoryId,
+            @Nullable Integer inventoryId,
             ItemOwner ownerKind,
             MovementPurpose purpose,
             MovementParty party,
             int flowId) {
-        query("""
-                DELETE FROM movement_flow_binding
-                WHERE station_id = :station_id
-                  AND owner_kind = :owner_kind
-                  AND purpose = :purpose
-                  AND party = :party
-                  AND inventory_id IS NOT DISTINCT FROM :inventory_id;""")
-                .single(call().bind("station_id", stationId)
-                        .bind("inventory_id", inventoryId)
-                        .bind("owner_kind", ownerKind)
-                        .bind("purpose", purpose)
-                        .bind("party", party))
-                .delete();
+        String target = inventoryId == null
+                ? "(station_id, owner_kind, purpose, party) WHERE inventory_id IS NULL"
+                : "(inventory_id, owner_kind, purpose, party) WHERE inventory_id IS NOT NULL";
         query("""
                 INSERT INTO movement_flow_binding(station_id, inventory_id, owner_kind, purpose, party, flow_id)
-                VALUES (:station_id, :inventory_id, :owner_kind, :purpose, :party, :flow_id);""")
+                VALUES (:station_id, :inventory_id, :owner_kind, :purpose, :party, :flow_id)
+                ON CONFLICT %s DO UPDATE SET flow_id = excluded.flow_id, station_id = excluded.station_id;""", target)
                 .single(call().bind("station_id", stationId)
                         .bind("inventory_id", inventoryId)
                         .bind("owner_kind", ownerKind)
