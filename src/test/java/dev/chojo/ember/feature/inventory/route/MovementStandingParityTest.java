@@ -45,6 +45,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -59,20 +60,22 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * A member's gear on their page and the movement in the movement list tell the same story about the
- * same piece, at every step of the chain and however the movement ends.
+ * A member's gear on their page, the same piece on a checker's walk and the movement in the movement
+ * list tell the same story, at every step of the chain and however the movement ends.
  *
- * <p>Both answers are read over HTTP from the routes the two screens call. The gear used to wear the
- * label of the step being waited on, which has not happened yet, while the list said which step had
- * happened and whose turn it was; and a replacement handed over while the chain still waited for the
- * member to confirm it showed no movement at all.
+ * <p>All three answers are read over HTTP from the routes the screens call. The gear and the walk used
+ * to wear the label of the step being waited on, which has not happened yet, while the list said which
+ * step had happened and whose turn it was; and a replacement handed over while the chain still waited
+ * for the member to confirm it showed no movement at all.
  */
 class MovementStandingParityTest extends RepositoryTestBase {
     private static final AtomicInteger CODES = new AtomicInteger();
 
     private static Station station;
     private static Account account;
+    private static Account checkerAccount;
     private static StationMember member;
+    private static StationMember checker;
     private static int inventoryId;
     private static ItemMovementService.Actor team;
     private static RouteHarness harness;
@@ -82,6 +85,8 @@ class MovementStandingParityTest extends RepositoryTestBase {
         station = stationRepo.create("Standing Parity");
         account = accountRepo.create("standing-parity@test.com", "Stan", "Ding");
         member = stationMemberRepo.create(station.id(), account.id());
+        checkerAccount = accountRepo.create("standing-checker@test.com", "Che", "Cker");
+        checker = stationMemberRepo.create(station.id(), checkerAccount.id());
         inventoryId = inventoryRepo
                 .create(station.id(), "Jacken", InventoryType.MIXED, false)
                 .id();
@@ -117,13 +122,20 @@ class MovementStandingParityTest extends RepositoryTestBase {
                         mock(InventoryIntakeService.class),
                         mock(BorrowedGearService.class),
                         mock(SelfCheckService.class),
-                        gear));
+                        gear),
+                new InventoryCheckRoutes(
+                        inventoryCheckService,
+                        inventoryService,
+                        mock(InventoryContainerService.class),
+                        mock(StationMemberService.class),
+                        memberIdentityFactory));
     }
 
     @AfterAll
     static void cleanup() {
         stationRepo.delete(station.id());
         accountRepo.delete(account.id());
+        accountRepo.delete(checkerAccount.id());
     }
 
     private static int pieceWithMember() {
@@ -187,6 +199,20 @@ class MovementStandingParityTest extends RepositoryTestBase {
                 .findFirst();
     }
 
+    /** The part of a checker's walk that says what is running on the member's pieces. */
+    private record WalkState(Map<Integer, MovementStanding> onTheMove) {}
+
+    /** What a checker walking the member is told runs on the piece, empty when nothing does. */
+    private static Optional<MovementStanding> onTheWalk(HttpClient client, int itemId) {
+        var walk = read(
+                client.post(
+                        PREFIX + "/inventory-checks/" + member.id() + "/start",
+                        "",
+                        harness.as(signedIn(checker, StationPermission.INVENTORY_CHECK))),
+                WalkState.class);
+        return Optional.ofNullable(walk.onTheMove().get(itemId));
+    }
+
     private static MovementStanding standingOf(MovementResponse row) {
         return new MovementStanding(
                 row.id(),
@@ -197,11 +223,15 @@ class MovementStandingParityTest extends RepositoryTestBase {
                 row.ownerName());
     }
 
-    /** The piece is on the member's list and says exactly what the movement's own row says. */
+    /**
+     * The piece is on the member's list and on the checker's walk, and both say exactly what the
+     * movement's own row says.
+     */
     private static MovementStanding sameStory(HttpClient client, int itemId, int movementId) {
         var onThePage = piece(client, itemId).orElseThrow(() -> new AssertionError("the piece is on the member"));
         MovementStanding inTheList = standingOf(row(client, movementId));
         assertEquals(inTheList, onThePage.movement(), "the member's page and the movement list agree");
+        assertEquals(Optional.of(inTheList), onTheWalk(client, itemId), "the check walk and the movement list agree");
         return inTheList;
     }
 
@@ -243,6 +273,7 @@ class MovementStandingParityTest extends RepositoryTestBase {
             movement = walk(movement, null);
             assertEquals(MovementState.DONE, row(client, movement.id()).state());
             assertNull(piece(client, replacement).orElseThrow().movement(), "nothing runs on it any more");
+            assertTrue(onTheWalk(client, replacement).isEmpty(), "and the walk offers its swap again");
         });
     }
 
@@ -260,6 +291,7 @@ class MovementStandingParityTest extends RepositoryTestBase {
             var after = piece(client, old).orElseThrow(() -> new AssertionError("the jacket stays on the member"));
             assertEquals(ItemCustody.WITH_MEMBER, after.custody());
             assertNull(after.movement());
+            assertTrue(onTheWalk(client, old).isEmpty());
         });
     }
 
@@ -274,6 +306,7 @@ class MovementStandingParityTest extends RepositoryTestBase {
 
             assertEquals(MovementState.CANCELLED, row(client, movement.id()).state());
             assertNull(piece(client, old).orElseThrow().movement());
+            assertTrue(onTheWalk(client, old).isEmpty());
         });
     }
 

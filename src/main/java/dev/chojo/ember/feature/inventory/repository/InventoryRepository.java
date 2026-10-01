@@ -831,33 +831,34 @@ public class InventoryRepository {
     }
 
     /**
-     * The pieces a member holds that already have a movement running on them, each with the words of
-     * the step it is standing on.
+     * The pieces a member holds that already have a movement running on them, each with the movement
+     * that runs on it.
      *
      * <p>A piece can only be on one movement at a time, so a screen that offers to raise a second one
      * for it is offering something the station will refuse. What is running is read here so the offer
      * can be left out and the reason put in its place.
      *
      * <p>Unlike a member's own list this asks about the piece rather than about the member: a movement
-     * somebody else started on it blocks a second one just as much.
+     * somebody else started on it blocks a second one just as much. Like that list it matches both ends
+     * of a movement: the piece asked to be swapped, still on the member until the station takes it, and
+     * the one handed over while the chain still waits for the member to confirm it.
      *
      * @param memberId the member being walked
-     * @return the step of the open movement, by piece
+     * @return the open movement, by piece
      */
-    public Map<Integer, String> findMovingItemsOfMember(int memberId) {
+    public Map<Integer, Integer> findMovingItemsOfMember(int memberId) {
         return query("""
                 SELECT DISTINCT ON (ii.id)
                     ii.id AS item_id,
-                    COALESCE(s.label, '') AS movement_step
+                    m.id AS movement_id
                 FROM inventory_item ii
                 JOIN item_movement m
                   ON m.state = 'OPEN'
-                 AND m.outgoing_item_id = ii.id
-                LEFT JOIN movement_flow_step s ON s.id = m.current_step_id
+                 AND (m.outgoing_item_id = ii.id OR m.incoming_item_id = ii.id)
                 WHERE ii.assigned_to = :member_id
                 ORDER BY ii.id, m.id;""")
                 .single(call().bind("member_id", memberId))
-                .map(row -> Map.entry(row.getInt("item_id"), row.getString("movement_step")))
+                .map(row -> Map.entry(row.getInt("item_id"), row.getInt("movement_id")))
                 .all()
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

@@ -55861,7 +55861,7 @@
           "onTheMove" : {
             "type" : "object",
             "additionalProperties" : {
-              "type" : "string"
+              "$ref" : "#/components/schemas/MovementStanding"
             }
           },
           "overtookSelfChecks" : {

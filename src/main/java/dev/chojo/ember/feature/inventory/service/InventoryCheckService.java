@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberCheckSummary;
+import dev.chojo.ember.feature.inventory.entity.MovementStanding;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.entity.SelfCheck;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
@@ -74,6 +75,7 @@ public class InventoryCheckService {
     private final ItemCustodyService custodyService;
     private final InventoryService inventoryService;
     private final SelfCheckRepository selfCheckRepository;
+    private final ItemMovementService movementService;
 
     @Inject
     public InventoryCheckService(
@@ -86,8 +88,10 @@ public class InventoryCheckService {
             InventoryContainerService containerService,
             ItemCustodyService custodyService,
             InventoryService inventoryService,
-            SelfCheckRepository selfCheckRepository) {
+            SelfCheckRepository selfCheckRepository,
+            ItemMovementService movementService) {
         this.selfCheckRepository = selfCheckRepository;
+        this.movementService = movementService;
         this.checkRepository = checkRepository;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -226,8 +230,21 @@ public class InventoryCheckService {
                 gear.assigned(),
                 gear.lastCheck(),
                 unassigned,
-                inventoryRepository.findMovingItemsOfMember(memberId),
+                onTheMove(memberId),
                 overtaken);
+    }
+
+    /**
+     * Where the movement on each of the member's moving pieces stands, read from the movement itself
+     * the way its own row in the movement list words it, so the walk never names the step still being
+     * waited on as though it had happened.
+     */
+    private Map<Integer, MovementStanding> onTheMove(int memberId) {
+        Map<Integer, MovementStanding> standings = new HashMap<>();
+        inventoryRepository.findMovingItemsOfMember(memberId).forEach((itemId, movementId) -> movementService
+                .standingOf(movementId)
+                .ifPresent(standing -> standings.put(itemId, standing)));
+        return standings;
     }
 
     /**
@@ -657,8 +674,9 @@ public class InventoryCheckService {
      * @param assigned   the items currently assigned to the member
      * @param lastCheck  the member's most recent check, or {@code null} if never checked
      * @param unassigned available unassigned items per inventory, keyed by inventory ID
-     * @param onTheMove  the step each piece is standing on that already has a movement running, keyed
-     *                   by piece, so the walk leaves out a swap the station would only refuse
+     * @param onTheMove  where the movement already running on a piece stands, keyed by piece, worded as
+     *                   the movement list words it, so the walk leaves out a swap the station would only
+     *                   refuse and says why
      * @param overtookSelfChecks the tasks this walk closed, so the walker is told a member had been
      *                           asked to answer for themselves and that their answers are not applied
      */
@@ -669,7 +687,7 @@ public class InventoryCheckService {
             List<InventoryItem> assigned,
             @Nullable InventoryCheck lastCheck,
             Map<Integer, List<InventoryItem>> unassigned,
-            Map<Integer, String> onTheMove,
+            Map<Integer, MovementStanding> onTheMove,
             List<SelfCheck> overtookSelfChecks) {}
 
     /**

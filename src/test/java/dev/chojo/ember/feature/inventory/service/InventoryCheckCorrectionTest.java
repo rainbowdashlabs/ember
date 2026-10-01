@@ -53,7 +53,8 @@ class InventoryCheckCorrectionTest extends RepositoryTestBase {
                 containerService,
                 itemCustodyService,
                 inventoryService,
-                selfCheckRepo);
+                selfCheckRepo,
+                itemMovementService);
         station = stationRepo.create("CorrectionStation");
         account = accountRepo.create("correction@test.com", "Kora", "Rektur");
         member = stationMemberRepo.create(station.id(), account.id());

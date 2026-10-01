@@ -81,7 +81,7 @@ export const INVENTORY_RAPID: PitchRapidCheck = {
     sizeLabel,
     itemLabel,
     itemNotes: LOST_JACKET_NOTE,
-    movementStep: () => null,
+    movementOf: () => null,
 }
 
 export const INVENTORY_STATS: PitchStats = {

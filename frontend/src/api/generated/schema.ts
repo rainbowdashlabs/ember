@@ -59335,7 +59335,7 @@ export interface components {
             memberIdentity: components["schemas"]["MemberIdentity"];
             memberName: string;
             onTheMove: {
-                [key: string]: string;
+                [key: string]: components["schemas"]["MovementStanding"];
             };
             overtookSelfChecks: components["schemas"]["SelfCheck"][];
             required: components["schemas"]["RequiredInventoryItem"][];

@@ -5,6 +5,7 @@
  */
 import type {InventoryItem, MemberCheckState, RequiredInventoryItem} from '@/api/generated/schema'
 import {InventoryTypes, ItemCustody, ItemOwner} from '@/api/inventory'
+import {MovementState, StepActor} from '@/api/movements'
 
 /** An inventory a member is required to hold one of, in a single size. */
 function required(inventoryId: number, inventoryName: string, sizeLabel: string, assignedQuantity: number): RequiredInventoryItem {
@@ -25,7 +26,11 @@ function held(id: number, inventoryId: number, name: string, internalId: string)
     }
 }
 
-/** A helmet the checker has confirmed, a jacket marked lost and boots the member still lacks. */
+/**
+ * A helmet the checker has confirmed, a jacket marked lost and boots the member still lacks. The
+ * helmet has an exchange running that the station has yet to take in, worded as the movement list
+ * words it, so no second swap is offered for it.
+ */
 export const state: MemberCheckState = {
     memberName: 'Max Mustermann',
     memberIdentity: {memberUid: '', stationUid: '', name: 'Max Mustermann', nameColor: null, displayTag: null, stationName: null},
@@ -39,7 +44,12 @@ export const state: MemberCheckState = {
         held(2, 2, 'Jacke', 'INV-0015'),
     ],
     unassigned: {},
-    onTheMove: {},
+    onTheMove: {
+        1: {
+            id: 1, state: MovementState.OPEN, reachedStepLabel: 'Tausch angefordert', currentStepActor: StepActor.STATION,
+            ownerKind: ItemOwner.STATION, ownerName: null,
+        },
+    },
     overtookSelfChecks: [],
     lastCheck: null,
 }

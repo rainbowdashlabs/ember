@@ -54,7 +54,7 @@ for (const {itemId, result} of results) check.setResult(itemId, result)
             :empty-slot-count="check.emptySlotCount"
             :size-label="check.sizeLabel"
             :item-label="check.itemLabel"
-            :movement-step="check.movementStep"
+            :movement-of="check.movementOf"
         />
       </div>
     </HelpSection>

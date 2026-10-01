@@ -6,7 +6,7 @@
 import type {
     ActiveSession, AttendanceEntry, BoardLabel, BoardLane, CheckResult, CommentResponse, ContentRow, EvaluationResponse, Form,
     FormAnswerValue, FormQuestion, FormQuestionInfo, FormResultGroup, InventoryContainer, InventoryContainerKind,
-    InventoryItem, InventorySize, MemberCompletion, MemberGroup, MemberIdentity, MemberWithName, PartnerResponse,
+    InventoryItem, InventorySize, MemberCompletion, MemberGroup, MemberIdentity, MemberWithName, MovementStanding, PartnerResponse,
     ProcedureItem,
     ProcedureTemplateItem, QuizCatalog, RequiredInventoryItem, SettingsResponse, StationPage, TestProtocolItem,
     TestProtocolSection, TicketSummary, UserTag, WaitingList, WaitingListEntryWithScore, WaitingListField, WaitingListWithCount,
@@ -145,7 +145,7 @@ export interface PitchRapidCheck {
     sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
     itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
     itemNotes: ReadonlyMap<number, string>
-    movementStep: (itemId: number) => string | null
+    movementOf: (itemId: number) => MovementStanding | null
 }
 
 /** What the account shows about itself: its sessions, and its data export. */

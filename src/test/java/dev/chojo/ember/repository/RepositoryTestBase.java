@@ -686,7 +686,8 @@ public abstract class RepositoryTestBase {
                 new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService),
                 itemCustodyService,
                 inventoryService,
-                selfCheckRepo);
+                selfCheckRepo,
+                itemMovementService);
         selfCheckNotifications = mock(Notifier.class);
         selfCheckService = new SelfCheckService(
                 selfCheckRepo,
