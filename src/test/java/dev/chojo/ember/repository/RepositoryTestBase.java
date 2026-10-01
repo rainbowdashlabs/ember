@@ -14,6 +14,7 @@ import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.TestContainers;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpGuard;
@@ -914,6 +915,15 @@ public abstract class RepositoryTestBase {
                 Set.of(permissions),
                 Set.of(),
                 null);
+    }
+
+    /**
+     * The session of the given member acting at their station, holding the given permissions, for a
+     * service that works at a station.
+     */
+    protected static StationSession stationSession(StationMember member, StationPermission... permissions) {
+        return new StationSession(
+                signedIn(member, permissions), member.stationId(), stationRepo.requireUid(member.stationId()), member);
     }
 
     /**

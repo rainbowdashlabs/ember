@@ -205,7 +205,7 @@ const UPLOAD_TOO_LARGE = 'Diese Datei ist größer, als diese Instanz annimmt'
 const BOARD_NOT_HERE = 'Dieses Board gibt es nicht mehr'
 const BOARD_TICKET_NOT_HERE = 'Dieses Ticket gibt es nicht mehr'
 const BOARD_LABEL_NOT_HERE = 'Dieses Label gibt es nicht mehr'
-const NOT_A_MEMBER_FOR_BOARDS = 'Du bist kein Mitglied dieser Wache'
+const NOT_A_MEMBER_HERE = 'Du bist kein Mitglied dieser Wache'
 const FEDERATED_BOARD_NOT_HERE = 'Dieses geteilte Board gibt es nicht mehr'
 const FEDERATION_PARTNER_NOT_HERE_FOR_BOARDS = 'Diese Wache kennt diese Partnerinstanz nicht'
 const ATTEMPT_NOT_HERE = 'Diesen Versuch gibt es nicht mehr'
@@ -448,9 +448,9 @@ export default {
 
     'BO-001': 'Dieses Board gibt es nicht, oder du darfst es nicht öffnen',
     'BO-002': BOARD_TICKET_NOT_HERE,
-    'BO-003': NOT_A_MEMBER_FOR_BOARDS,
+    'BO-003': NOT_A_MEMBER_HERE,
     'BO-004': 'Dieses Board darfst du nicht ändern',
-    'BO-005': NOT_A_MEMBER_FOR_BOARDS,
+    'BO-005': NOT_A_MEMBER_HERE,
     'BO-006': 'Ein Board braucht einen Namen, es wurde nichts gespeichert',
     'BO-007': 'Ein Board braucht einen eigenen kurzen Schlüssel, es wurde nichts gespeichert',
     'BO-008': 'Dieses Board darfst du nicht öffnen',
@@ -959,6 +959,8 @@ export default {
         + 'Eine PNG-, JPEG-, GIF- oder WebP-Datei klappt',
     'G-014': 'Dieses Bild ist größer, als es hier sein darf, es wurde nichts gespeichert. '
         + 'Eine kleinere Datei klappt',
+    'G-015': CHOOSE_A_STATION,
+    'G-016': NOT_A_MEMBER_HERE,
 
     'CU-001': 'Eine Reihenfolge gehört zu genau einer Zielgruppe, es wurde nichts gespeichert',
     'CU-002': CHOOSE_A_CLUSTER,
