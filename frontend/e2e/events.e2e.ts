@@ -124,17 +124,18 @@ test.describe('Events', () => {
             await page.keyboard.type(first)
             await page.getByRole('button', {name: 'Absenden'}).click()
 
-            const comment = page.locator('[id^="comment-"]').filter({hasText: first})
-            await expect(comment).toHaveCount(1)
+            const written = page.locator('[id^="comment-"]').filter({hasText: first})
+            await expect(written).toHaveCount(1)
+            const comment = page.locator(`#${await written.getAttribute('id')}`)
             await comment.getByRole('button', {name: 'Bearbeiten', exact: true}).click()
             await comment.locator('[contenteditable="true"]').click()
             await page.keyboard.press('ControlOrMeta+A')
             await page.keyboard.type(second)
             await comment.getByRole('button', {name: 'Speichern', exact: true}).click()
 
-            const changed = page.locator('[id^="comment-"]').filter({hasText: second})
-            await expect(changed).toContainText('bearbeitet')
-            await changed.getByRole('button', {name: 'Löschen', exact: true}).click()
+            await expect(comment).toContainText(second)
+            await expect(comment).toContainText('bearbeitet')
+            await comment.getByRole('button', {name: 'Löschen', exact: true}).click()
             await expect(page.getByText(second)).toHaveCount(0)
         } finally {
             await appointment.remove()
