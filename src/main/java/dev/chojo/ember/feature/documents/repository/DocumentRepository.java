@@ -385,6 +385,29 @@ public class DocumentRepository {
     }
 
     /**
+     * How many documents kept for the record name this member and nobody else, which are the ones that
+     * would be left naming nobody once the member is gone.
+     *
+     * @param memberId the member
+     * @return how many there are
+     */
+    public int countKeptForOnly(int memberId) {
+        return query("""
+                SELECT count(*) AS kept
+                FROM member_document_member m
+                JOIN member_document d ON d.id = m.document_id
+                WHERE m.member_id = :member_id
+                  AND d.keep_on_archive
+                  AND NOT EXISTS (SELECT 1 FROM member_document_member other
+                                  WHERE other.document_id = m.document_id
+                                    AND other.member_id <> m.member_id);""")
+                .single(call().bind("member_id", memberId))
+                .map(row -> row.getInt("kept"))
+                .first()
+                .orElse(0);
+    }
+
+    /**
      * Whether nobody is bound to the document any more. Asked only of documents a member was just
      * taken off: one that never had a member is the station's own and belongs to nobody by design.
      */

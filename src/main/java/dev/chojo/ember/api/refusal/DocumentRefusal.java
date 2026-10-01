@@ -51,7 +51,21 @@ public enum DocumentRefusal implements Refusal {
     DOCUMENT_UPLOAD_MISSING_FILE(13, HttpStatus.BAD_REQUEST, Sentences.UPLOAD_MISSING_FILE),
 
     /** A document heavier than the store takes. */
-    DOCUMENT_UPLOAD_TOO_LARGE(14, HttpStatus.BAD_REQUEST, Sentences.UPLOAD_TOO_LARGE);
+    DOCUMENT_UPLOAD_TOO_LARGE(14, HttpStatus.BAD_REQUEST, Sentences.UPLOAD_TOO_LARGE),
+
+    /** A member deleted while documents kept for the record name them and nobody else, naming how many. */
+    KEPT_DOCUMENTS_HOLD_THE_MEMBER(
+            15,
+            HttpStatus.CONFLICT,
+            "Documents about this member are kept for the record and name nobody else, so the member was not "
+                    + "deleted. Archive the member instead, or remove the documents first. Documents kept"),
+
+    /** An account deleted while documents kept for the record name one of its memberships and nobody else. */
+    KEPT_DOCUMENTS_HOLD_THE_ACCOUNT(
+            16,
+            HttpStatus.CONFLICT,
+            "A station keeps documents about this account for the record, so the account was not deleted. "
+                    + "The station has to archive the membership or remove the documents first. Documents kept");
 
     private final Definition definition;
 

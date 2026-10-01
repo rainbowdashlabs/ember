@@ -6,10 +6,12 @@
 package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -25,6 +27,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import tools.jackson.databind.node.StringNode;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -38,7 +42,12 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         var backend = localStorage();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         var avatars = new AvatarService(new ImageVariants(storage));
-        service = new GdprDeletionService(accountRepo, stationMemberRepo, memberLookupService, avatars);
+        service = new GdprDeletionService(
+                accountRepo,
+                stationMemberRepo,
+                memberLookupService,
+                avatars,
+                new DocumentService(memberDocumentRepo, storage, new ImageVariants(storage), stationRepo));
         station = stationRepo.create("GdprStation");
         Account account = accountRepo.create("gdpr-del@test.com", "Delete", "Me");
         accountRepo.createCredential(account.id(), "hash");
@@ -125,5 +134,55 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         service.deleteOwnAccount(own.id());
 
         assertTrue(accountRepo.findById(own.id()).isEmpty());
+    }
+
+    private static StationMember memberWithDocuments(String address, boolean keptForTheRecord) {
+        var account = accountRepo.create(address, "Akte", "Mitglied");
+        var filed = stationMemberRepo.create(station.id(), account.id());
+        memberDocumentRepo.create(
+                station.id(),
+                "Attest",
+                "attest.pdf",
+                "application/pdf",
+                1,
+                false,
+                keptForTheRecord,
+                null,
+                List.of(filed.id()));
+        return filed;
+    }
+
+    /** A document nobody is named on is the station's paperwork, so the member's own go with them. */
+    @Test
+    @Order(40)
+    void aDeletedMembersDocumentsGoWithThem() {
+        var filed = memberWithDocuments("gdpr-docs@test.com", false);
+        int document = memberDocumentRepo
+                .findByMember(station.id(), filed.id(), true)
+                .getFirst()
+                .id();
+
+        service.anonymizeMember(filed.id());
+
+        assertTrue(memberDocumentRepo.findById(document).isEmpty());
+    }
+
+    /** What is kept for the record outlasts the membership, so it can neither go nor lose its name. */
+    @Test
+    @Order(41)
+    void aMemberWithDocumentsKeptForTheRecordIsNotDeleted() {
+        var filed = memberWithDocuments("gdpr-kept@test.com", true);
+        int document = memberDocumentRepo
+                .findByMember(station.id(), filed.id(), true)
+                .getFirst()
+                .id();
+
+        var refused = assertThrows(RefusalResponse.class, () -> service.anonymizeMember(filed.id()));
+        var refusedAccount = assertThrows(RefusalResponse.class, () -> service.deleteAccount(filed.accountId()));
+
+        assertEquals(DocumentRefusal.KEPT_DOCUMENTS_HOLD_THE_MEMBER, refused.refusal());
+        assertEquals(DocumentRefusal.KEPT_DOCUMENTS_HOLD_THE_ACCOUNT, refusedAccount.refusal());
+        assertTrue(stationMemberRepo.findById(filed.id()).isPresent());
+        assertEquals(List.of(filed.id()), memberDocumentRepo.membersOf(document));
     }
 }

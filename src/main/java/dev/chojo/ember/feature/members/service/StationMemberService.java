@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -131,11 +132,15 @@ public class StationMemberService {
      * than the one it was filed for. That is the one outcome this area must not produce.
      *
      * <p>So deletion follows the same rule as marking somebody former. Documents bound only to the
-     * departing member go, unless they are marked to be kept for the record. Documents that never had
-     * a member are untouched, because they were never about anybody.
+     * departing member go. One marked to be kept for the record cannot stay with a member who is gone,
+     * so while one names only this member the deletion is refused. Documents that never had a member
+     * are untouched, because they were never about anybody.
+     *
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse {@link DocumentRefusal#KEPT_DOCUMENTS_HOLD_THE_MEMBER}
+     *         while documents kept for the record name this member and nobody else
      */
     public boolean delete(int id) {
-        documentService.releaseMember(id);
+        documentService.releaseForDeletion(id, DocumentRefusal.KEPT_DOCUMENTS_HOLD_THE_MEMBER);
         log.info("Member deleted: member={}", id);
         return memberRepository.delete(id);
     }

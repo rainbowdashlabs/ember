@@ -27,4 +27,6 @@ export default {
     'D-012': DOCUMENT_NOT_YOURS_TO_ADD,
     'D-013': UPLOAD_WITHOUT_FILE,
     'D-014': 'Diese Datei ist größer, als diese Instanz annimmt',
+    'D-015': 'Dokumente über dieses Mitglied werden aufbewahrt und nennen niemanden sonst, das Mitglied wurde nicht gelöscht. Archiviere es stattdessen oder entferne zuerst die Dokumente',
+    'D-016': 'Eine Wache bewahrt Dokumente über dieses Konto auf, das Konto wurde nicht gelöscht. Die Wache muss die Mitgliedschaft zuerst archivieren oder die Dokumente entfernen',
 }

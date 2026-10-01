@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.documents.service;
 
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.media.entity.MediaContent;
@@ -201,6 +202,40 @@ public class DocumentService {
      * goes with it.
      */
     public void releaseMember(int memberId) {
+        unbindReleased(memberId);
+    }
+
+    /**
+     * Takes a member off their documents before the member is deleted outright.
+     *
+     * <p>The same rule as marking somebody former, with one difference the deletion forces. A document
+     * kept for the record stays with its member when they are archived, but a deleted member is not
+     * there to stay with: the document would name nobody, and a document that names nobody is the
+     * station's own paperwork, readable far more widely than what was filed about one person. So while
+     * such a document names this member and nobody else, the member is not deleted, and the station
+     * archives them or removes the document first.
+     *
+     * @param memberId the member about to be deleted
+     * @param refusal  what to refuse with, naming how many kept documents are in the way
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse the given refusal while kept documents name only this member
+     */
+    public void releaseForDeletion(int memberId, Refusal refusal) {
+        requireNothingKeptForOnly(memberId, refusal);
+        unbindReleased(memberId);
+    }
+
+    /**
+     * Refuses while documents kept for the record name this member and nobody else.
+     *
+     * @param memberId the member
+     * @param refusal  what to refuse with, naming how many kept documents are in the way
+     */
+    public void requireNothingKeptForOnly(int memberId, Refusal refusal) {
+        int kept = repository.countKeptForOnly(memberId);
+        if (kept > 0) throw refusal.raise(String.valueOf(kept));
+    }
+
+    private void unbindReleased(int memberId) {
         for (int orphaned : repository.unbindMember(memberId, true)) {
             repository.findById(orphaned).ifPresent(this::delete);
         }
