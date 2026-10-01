@@ -40,7 +40,11 @@ public record QuestionProblem(
         /** The answer is not a web address. */
         NOT_A_URL,
         /** The answer does not name a member. */
-        NOT_A_MEMBER
+        NOT_A_MEMBER,
+        /** The answer names a member outside the group, user type or tag the field is narrowed to. */
+        NOT_ELIGIBLE,
+        /** The field is narrowed to a group, user type or tag it no longer names. */
+        MISSING_REFERENCE
     }
 
     /** What to say to whoever gave the answer. */
@@ -55,6 +59,8 @@ public record QuestionProblem(
             case NOT_A_BOOLEAN -> "Field '" + question + "' expects yes or no";
             case NOT_A_URL -> "Field '" + question + "' expects a web address";
             case NOT_A_MEMBER -> "Field '" + question + "' expects a member";
+            case NOT_ELIGIBLE -> "Field '" + question + "' only takes members " + detail;
+            case MISSING_REFERENCE -> "Field '" + question + "' is missing its " + detail + " reference";
         };
     }
 }

@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.IntPredicate;
 
 /**
  * The one place an answer is measured against the question it answers.
@@ -64,6 +65,34 @@ public final class QuestionCheck {
     public static Optional<QuestionProblem> answerIfGiven(Question question, @Nullable String answer) {
         String value = QuestionValues.said(answer);
         return value.isEmpty() ? Optional.empty() : value(question, value);
+    }
+
+    /**
+     * Whether this answer is one the question takes, including whether every member it names passes
+     * the group, user type or tag the question is narrowed to.
+     *
+     * @param question    what is being answered
+     * @param answer      what was given, which may be nothing
+     * @param eligibility who passes which narrowing
+     * @return what is wrong with it, or empty where nothing is
+     */
+    public static Optional<QuestionProblem> answer(
+            Question question, @Nullable String answer, MemberEligibility eligibility) {
+        return answer(question, answer).or(() -> eligible(question, answerOrDefault(question, answer), eligibility));
+    }
+
+    /**
+     * Whether what was answered is one the question takes, including the narrowing of a member
+     * field, without asking whether it had to be answered at all.
+     *
+     * @param question    what is being answered
+     * @param answer      what was given, which may be nothing
+     * @param eligibility who passes which narrowing
+     * @return what is wrong with it, or empty where nothing is or nothing was given
+     */
+    public static Optional<QuestionProblem> answerIfGiven(
+            Question question, @Nullable String answer, MemberEligibility eligibility) {
+        return answerIfGiven(question, answer).or(() -> eligible(question, QuestionValues.said(answer), eligibility));
     }
 
     /**
@@ -155,6 +184,46 @@ public final class QuestionCheck {
             return problem(QuestionProblem.Code.NOT_A_MEMBER, question, value);
         }
         return Optional.empty();
+    }
+
+    private static String answerOrDefault(Question question, @Nullable String answer) {
+        String value = QuestionValues.said(answer);
+        return value.isEmpty() ? QuestionValues.said(question.defaultValue()) : value;
+    }
+
+    /**
+     * Whether every member an answer names passes the narrowing of the field, where it has one.
+     *
+     * <p>A field that lost the group, user type or tag it was narrowed to refuses everybody rather
+     * than taking anybody, so a deleted group does not quietly open the field to the whole station.
+     */
+    private static Optional<QuestionProblem> eligible(Question question, String value, MemberEligibility eligibility) {
+        if (value.isEmpty()) return Optional.empty();
+        if (!(question.rules() instanceof QuestionRules.Members(var constraint, var id, var userType))) {
+            return Optional.empty();
+        }
+        return switch (constraint) {
+            case NONE -> Optional.empty();
+            case GROUP ->
+                id == null
+                        ? problem(QuestionProblem.Code.MISSING_REFERENCE, question, "group")
+                        : everyMember(question, value, member -> eligibility.inGroup(member, id), "of its group");
+            case USER_TYPE ->
+                userType == null
+                        ? problem(QuestionProblem.Code.MISSING_REFERENCE, question, "user type")
+                        : everyMember(
+                                question, value, member -> eligibility.ofType(member, userType), "of its user type");
+            case TAG ->
+                id == null
+                        ? problem(QuestionProblem.Code.MISSING_REFERENCE, question, "tag")
+                        : everyMember(question, value, member -> eligibility.hasTag(member, id), "with its tag");
+        };
+    }
+
+    private static Optional<QuestionProblem> everyMember(
+            Question question, String value, IntPredicate passes, String whom) {
+        boolean all = QuestionValues.memberIds(value).stream().allMatch(passes::test);
+        return all ? Optional.empty() : problem(QuestionProblem.Code.NOT_ELIGIBLE, question, whom);
     }
 
     private static Optional<QuestionProblem> parses(

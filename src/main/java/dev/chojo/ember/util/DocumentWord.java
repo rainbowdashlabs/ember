@@ -43,7 +43,9 @@ public enum DocumentWord {
     MANAGER("Manager", "Manager"),
     MEMBER_TYPE("Mitgliedsart", "Member type"),
     GROUPS("Gruppen", "Groups"),
-    AGE("Alter", "Age");
+    AGE("Alter", "Age"),
+    YES("Ja", "Yes"),
+    NO("Nein", "No");
 
     /**
      * What a kind of member is called, for a name built around one.

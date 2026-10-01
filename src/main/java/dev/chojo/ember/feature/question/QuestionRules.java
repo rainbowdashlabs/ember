@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.question;
 
+import dev.chojo.ember.api.auth.StationUserType;
+import org.jspecify.annotations.Nullable;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -43,6 +46,22 @@ public sealed interface QuestionRules {
      * @param max the largest allowed answer, or null where there is none
      */
     record Bounds(BigDecimal min, BigDecimal max) implements QuestionRules {}
+
+    /**
+     * Which members a field that names members may name.
+     *
+     * <p>A group and a tag are referred to by id, a user type by itself, so the one that applies is
+     * set and the other stays null. Where the constraint names neither, the field lost its reference
+     * and refuses everybody, as it always has.
+     *
+     * @param constraint which kind of narrowing applies
+     * @param id         the group or tag, or null
+     * @param userType   the user type, or null
+     */
+    record Members(
+            MemberConstraint constraint,
+            @Nullable Integer id,
+            @Nullable StationUserType userType) implements QuestionRules {}
 
     /** The rules of a kind that has none. */
     static QuestionRules none() {
