@@ -47,7 +47,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -1385,12 +1384,6 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 Map.of(),
                 "notes",
                 TEST_CONSENT);
-
-        var token = waitingListRepo.findPublicByStation(station.id()).stream()
-                .flatMap(l -> {
-                    return Stream.empty();
-                })
-                .findFirst();
 
         var tokens = Query.query("SELECT token FROM waitlist_verification_token WHERE list_id = :list_id")
                 .single(Call.of().bind("list_id", publicList.id()))

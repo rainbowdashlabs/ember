@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.storage.repository;
 
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.storage.entity.StationStorageQuota;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -96,7 +95,6 @@ class StorageQuotaPresetRepositoryTest extends RepositoryTestBase {
     @Order(5)
     void applyToStation() {
         storagePresetRepo.applyToStation(presetId, station.id());
-        var quota = StationStorageQuota.map();
         var stationObj = stationRepo.findById(station.id());
         assertTrue(stationObj.isPresent());
     }
