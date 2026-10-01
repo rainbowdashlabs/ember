@@ -67,6 +67,9 @@ public class InstanceStorageMigrationService {
     /**
      * Takes the instance lock and the read-only flag, probes the target, copies and sample-checks every
      * key. Both stay held until the caller calls exactly one of {@link #commit} or {@link #abort}.
+     *
+     * <p>A target at the destination the instance already stands on, as when only its credentials change,
+     * copies nothing and leaves nothing for the commit to delete: its keys are the instance's own files.
      */
     public PreparedMigration prepare(StorageBackendSettings targetSettings) {
         if (!locks.tryAcquireInstance()) {
@@ -85,12 +88,8 @@ public class InstanceStorageMigrationService {
                         "Target probe failed: " + probe.error().orElse("unknown error"));
             }
             StorageBackend source = factory.instanceDefault();
-            if (source == target) {
-                target.close();
-                throw new MigrationException("Target backend resolves to the current instance default");
-            }
             try {
-                CopyOutcome outcome = run(source, target);
+                CopyOutcome outcome = source.sharesDestinationWith(target) ? CopyOutcome.NOTHING : run(source, target);
                 return new PreparedMigration(source, target, outcome);
             } catch (RuntimeException e) {
                 target.close();
@@ -207,5 +206,7 @@ public class InstanceStorageMigrationService {
     public record MigrationResult(int totalKeys, int copied, int skipped, int deleted, long copiedBytes) {}
 
     /** What the copy produced, with every key it covered. */
-    record CopyOutcome(BackendCopy.Stats stats, List<String> keys) {}
+    record CopyOutcome(BackendCopy.Stats stats, List<String> keys) {
+        static final CopyOutcome NOTHING = new CopyOutcome(BackendCopy.Stats.NONE, List.of());
+    }
 }

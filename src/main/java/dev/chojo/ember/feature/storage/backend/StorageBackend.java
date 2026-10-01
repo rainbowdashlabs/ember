@@ -19,6 +19,29 @@ public interface StorageBackend extends AutoCloseable {
     StorageBackendType type();
 
     /**
+     * Where this backend keeps its bytes, with nothing about how it signs in.
+     *
+     * <p>Two backends with the same destination read and write the same objects, however separately they
+     * were built, so a move between them has nothing to carry and nothing to delete. Only what decides the
+     * place belongs in it: the kind of backend, the host or endpoint, the bucket or share and the path
+     * underneath. User names, domains, regions and addressing styles stay out, because a destination taken
+     * for another place when it is the same one would have a move delete the very files it kept.
+     *
+     * @return the destination, as a comparable string
+     */
+    String destination();
+
+    /**
+     * Whether this backend keeps its bytes where {@code other} does.
+     *
+     * @param other the backend to compare with
+     * @return true when both name the same place
+     */
+    default boolean sharesDestinationWith(StorageBackend other) {
+        return destination().equals(other.destination());
+    }
+
+    /**
      * Stores a body with its metadata, atomically: a reader sees the old object or the new one.
      *
      * @param body          drained and closed by the backend

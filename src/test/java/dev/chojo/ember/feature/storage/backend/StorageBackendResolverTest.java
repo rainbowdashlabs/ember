@@ -199,6 +199,11 @@ class StorageBackendResolverTest {
         }
 
         @Override
+        public String destination() {
+            return "recording@" + System.identityHashCode(this);
+        }
+
+        @Override
         public void store(String fullKey, InputStream body, long contentLength, ObjectMetadata metadata) {
             throw new UnsupportedOperationException();
         }

@@ -70,6 +70,10 @@ public class StorageMigrationService {
      * records where the station now stands, checks a sample, and deletes the source. A target built for
      * the move is closed afterwards; the instance default is shared and stays open.
      *
+     * <p>A category whose files already lie at the target's destination is neither copied nor deleted: the
+     * target is always built fresh, so only the destination tells that the "source" keys are the very files
+     * the station keeps, as when only a password changes.
+     *
      * @throws MigrationException on any failure, after the lock was released, so the caller may retry
      */
     public MigrationResult moveStation(int stationId, Destination destination) {
@@ -149,7 +153,7 @@ public class StorageMigrationService {
             if (category.scopeKind() != StorageScope.Kind.STATION) continue;
 
             StorageBackend source = resolver.forScope(scope, category);
-            if (source == target) continue;
+            if (source.sharesDestinationWith(target)) continue;
 
             String prefix = scope.prefix() + "/" + category.prefix();
             List<String> keys = source.listByPrefix(prefix);

@@ -49,14 +49,19 @@ public class FileTreeBackend implements StorageBackend {
 
     private final StorageBackendType type;
     private final TreeSource<? extends FileTree> trees;
+    private final String tree;
     private final String basePath;
 
     /**
+     * @param tree     the tree the backend works in, without the base path: a host, port and share, or a
+     *                 directory on disk; part of the {@link #destination()}
      * @param basePath the directory inside the tree every key lives below; empty or {@code null} for the root
      */
-    protected FileTreeBackend(StorageBackendType type, TreeSource<? extends FileTree> trees, String basePath) {
+    protected FileTreeBackend(
+            StorageBackendType type, TreeSource<? extends FileTree> trees, String tree, String basePath) {
         this.type = type;
         this.trees = trees;
+        this.tree = tree;
         this.basePath = normalize(basePath);
     }
 
@@ -71,6 +76,11 @@ public class FileTreeBackend implements StorageBackend {
     @Override
     public StorageBackendType type() {
         return type;
+    }
+
+    @Override
+    public String destination() {
+        return String.join("|", type.name(), tree, basePath);
     }
 
     @Override

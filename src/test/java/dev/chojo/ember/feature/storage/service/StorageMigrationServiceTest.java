@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepositor
 import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,6 +84,10 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
     }
 
     private static StationStorageBackendConfig targetConfig() {
+        return targetConfig("sk");
+    }
+
+    private static StationStorageBackendConfig targetConfig(String secretKey) {
         return new StationStorageBackendConfig.S3Variant(
                 "https://s3.example.invalid",
                 "eu-central-1",
@@ -90,7 +95,12 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
                 true,
                 Optional.empty(),
                 "/",
-                cipher.encrypt("{\"accessKey\":\"ak\",\"secretKey\":\"sk\"}"));
+                cipher.encrypt("{\"accessKey\":\"ak\",\"secretKey\":\"" + secretKey + "\"}"));
+    }
+
+    private static String secretOf(StationStorageBackendConfig config) {
+        var s3 = assertInstanceOf(StationStorageBackendConfig.S3Variant.class, config);
+        return cipher.decryptToString(s3.credentials());
     }
 
     private static void setField(Class<?> clazz, Object target, String fieldName, Object value) throws Exception {
@@ -117,8 +127,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         Storage storage = new Storage();
         setField(Storage.class, storage, "backend", new StorageBackendSettings());
 
-        factory = new SwappableFactory(storage, sourceBackend, cipher);
-        factory.stationTarget = targetBackend;
+        factory = new SwappableFactory(storage, sourceBackend, cipher, targetRoot);
         factory.instanceBackend = sourceBackend;
         resolver = new StorageBackendResolver(factory, storageConfigRepo, new ClusterStationStorageRepository());
         storageService = new StorageService(resolver, sourceBackend);
@@ -238,6 +247,59 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
                         scope.prefix() + "/" + StorageCategory.MEDIA_FILES.prefix() + "/a.txt",
                         scope.prefix() + "/" + StorageCategory.KB_FILES.prefix() + "/b.txt",
                         scope.prefix() + "/" + StorageCategory.BOARD_ATTACHMENTS.prefix() + "/c.txt")));
+    }
+
+    /**
+     * Applying the storage a station already stands on, with nothing changed but its password, names the
+     * same place through a freshly built backend. Nothing is copied and nothing is deleted, since the
+     * "source" keys are the very files the station keeps, and the new credentials are saved.
+     */
+    @Test
+    void reapplyingTheSameDestinationKeepsTheFilesAndSavesTheNewCredentials() {
+        Station station = newStation("Station Migration Same Place");
+        byte[] payload = "stays-where-it-is".getBytes(StandardCharsets.UTF_8);
+        String fullKey = storeOnSource(station, "doc.txt", payload);
+        migrationService.migrate(station.id(), targetConfig());
+
+        var result = migrationService.migrate(station.id(), targetConfig("rotated"));
+
+        assertTrue(targetBackend.exists(fullKey), "the station's file survives");
+        assertArrayEquals(payload, read(targetBackend, fullKey));
+        assertEquals(0, result.totalKeys(), "the same place carries nothing");
+        assertEquals(0, result.deleted(), "and deletes nothing");
+        assertTrue(
+                secretOf(storageConfigRepo.findOne(station.id()).orElseThrow().config())
+                        .contains("rotated"),
+                "the new credentials are saved");
+        assertFalse(locks.isLocked(station.id()));
+    }
+
+    /**
+     * A station on its own storage choosing its association's storage that names the same place moves
+     * onto the association's version without losing a file.
+     */
+    @Test
+    void movingOntoTheAssociationsStorageAtTheSamePlaceKeepsTheFiles() {
+        Station station = newStation("Station Migration Same Place Cluster");
+        var cluster = clusterService.create("Kreisverband Gleicher Ort " + station.id(), null);
+        var version = clusterConfigRepo.insertCurrent(cluster.id(), targetConfig("association"));
+        byte[] payload = "same-bucket".getBytes(StandardCharsets.UTF_8);
+        String fullKey = storeOnSource(station, "doc.txt", payload);
+        migrationService.migrate(station.id(), targetConfig());
+
+        var result = migrationService.moveStation(
+                station.id(),
+                new StorageMigrationService.Destination.Cluster(
+                        cluster.id(), version.id(), targetConfig("association")));
+
+        assertTrue(targetBackend.exists(fullKey), "the station's file survives");
+        assertArrayEquals(payload, read(targetBackend, fullKey));
+        assertEquals(0, result.deleted());
+        assertEquals(
+                version.id(),
+                placements.findByStation(station.id()).orElseThrow().configId());
+
+        clusterService.delete(cluster.id());
     }
 
     /**
@@ -571,18 +633,25 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
      * Factory stand-in that lets a test point the station-override backend and the instance
      * default at arbitrary local roots (or at deliberately misbehaving wrappers) without needing
      * a real S3 / SMB / SFTP endpoint behind the encrypted config row.
+     *
+     * <p>Like the real factory, every station build is a fresh backend on the station root, unless a test
+     * pins one instance through {@code stationTarget}.
      */
     private static final class SwappableFactory extends StorageBackendFactory {
-        private StorageBackend stationTarget;
+        private final Path stationRoot;
+        private @Nullable StorageBackend stationTarget;
         private StorageBackend instanceBackend;
 
-        private SwappableFactory(Storage storage, LocalStorageBackend local, CredentialCipher cipher) {
+        private SwappableFactory(
+                Storage storage, LocalStorageBackend local, CredentialCipher cipher, Path stationRoot) {
             super(storage, local, cipher);
+            this.stationRoot = stationRoot;
+            this.instanceBackend = local;
         }
 
         @Override
         public StorageBackend buildForStation(StationStorageBackendConfig config) {
-            return stationTarget;
+            return stationTarget != null ? stationTarget : new LocalStorageBackend(stationRoot);
         }
 
         @Override

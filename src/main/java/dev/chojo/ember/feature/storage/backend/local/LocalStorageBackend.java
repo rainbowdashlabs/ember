@@ -50,7 +50,11 @@ public class LocalStorageBackend extends FileTreeBackend {
     }
 
     private LocalStorageBackend(LocalFileTree tree) {
-        super(StorageBackendType.LOCAL, TreeSource.shared(tree), "");
+        super(
+                StorageBackendType.LOCAL,
+                TreeSource.shared(tree),
+                tree.resolve("").toString(),
+                "");
         this.tree = tree;
         this.root = tree.resolve("");
     }

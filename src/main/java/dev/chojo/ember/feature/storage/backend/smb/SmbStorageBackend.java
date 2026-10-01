@@ -33,6 +33,7 @@ public final class SmbStorageBackend extends FileTreeBackend {
         super(
                 StorageBackendType.SMB,
                 new LeasePool<>("SMB storage at " + config.host(), () -> open(client, config), drainer),
+                String.join("|", config.host(), String.valueOf(config.port()), config.share()),
                 config.basePath());
     }
 

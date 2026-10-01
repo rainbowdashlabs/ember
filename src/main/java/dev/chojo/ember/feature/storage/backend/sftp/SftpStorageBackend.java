@@ -32,6 +32,7 @@ public final class SftpStorageBackend extends FileTreeBackend {
         super(
                 StorageBackendType.SFTP,
                 new LeasePool<>("SFTP storage at " + config.host(), sessions::open, drainer),
+                config.host() + "|" + config.port(),
                 config.basePath());
         this.sessions = sessions;
     }

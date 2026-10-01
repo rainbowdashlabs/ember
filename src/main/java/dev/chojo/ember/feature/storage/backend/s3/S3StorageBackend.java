@@ -125,6 +125,11 @@ public class S3StorageBackend implements StorageBackend {
     }
 
     @Override
+    public String destination() {
+        return String.join("|", StorageBackendType.S3.name(), config.endpoint(), config.bucket(), basePath);
+    }
+
+    @Override
     public void store(String fullKey, InputStream body, long contentLength, ObjectMetadata metadata) {
         String objectKey = key(fullKey);
         Map<String, String> userMeta = encodeMetadata(metadata);
