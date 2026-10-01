@@ -210,7 +210,7 @@ public class StationMemberInviteService {
     public record FailedInvite(String email, String reason) {}
 
     /**
-     * Outcome of {@link #createBatch(int, List, SetupMail)}.
+     * Outcome of {@link #createBatch(int, List, SetupMail, UserSession)}.
      */
     public record BatchResult(List<ProvisionedMember> provisioned, List<FailedInvite> failed) {}
 
