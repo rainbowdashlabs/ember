@@ -17,4 +17,8 @@ import java.util.UUID;
  * @param slug       the partner's public address, where it has one
  * @param distanceKm how far away the partner is, where both stations have a location
  */
-public record PublicPartnerSummary(UUID uid, String name, @Nullable String slug, @Nullable Double distanceKm) {}
+public record PublicPartnerSummary(
+        UUID uid,
+        String name,
+        @Nullable String slug,
+        @Nullable Double distanceKm) {}

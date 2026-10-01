@@ -325,7 +325,10 @@ public class KnowledgeBaseRoutes implements Routes {
     /**
      * Puts a folder in the trash, with everything inside it.
      */
-    @OpenApi(path = "/api/v1/kb/folders/{id}", methods = HttpMethod.DELETE, responses = @OpenApiResponse(status = "204"))
+    @OpenApi(
+            path = "/api/v1/kb/folders/{id}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteFolder(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -1349,7 +1352,8 @@ public class KnowledgeBaseRoutes implements Routes {
      * The answer to a single move: whether the entry sits somewhere else now, and, when it does
      * not, which of the reasons a move can be turned down for it was.
      */
-    public record MoveResponse(boolean moved, @Nullable String name, @Nullable KbRefusalReason reason) {
+    public record MoveResponse(
+            boolean moved, @Nullable String name, @Nullable KbRefusalReason reason) {
         static MoveResponse of(KbMoveService.MoveResult result) {
             return new MoveResponse(result.moved(), result.name(), result.reason());
         }
@@ -1383,7 +1387,10 @@ public class KnowledgeBaseRoutes implements Routes {
      * the page can say why an action is missing instead of just not showing it.
      */
     public record FileResponse(
-            KbFile file, String lastEditedByName, KbAccessLevel accessLevel, @Nullable String accessLevelSource) {}
+            KbFile file,
+            String lastEditedByName,
+            KbAccessLevel accessLevel,
+            @Nullable String accessLevelSource) {}
 
     public record KbVersionResponse(
             int id, int version, boolean isFull, int createdBy, String createdByName, Instant createdAt) {}

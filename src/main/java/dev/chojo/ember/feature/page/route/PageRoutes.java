@@ -139,10 +139,7 @@ public class PageRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/pages/search",
             methods = HttpMethod.GET,
-            responses =
-                    @OpenApiResponse(
-                            status = "200",
-                            content = @OpenApiContent(from = PickerPage[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PickerPage[].class)))
     private void searchPicker(Context ctx) {
         var session = UserSession.from(ctx);
         String q = ctx.queryParam("q");
@@ -451,7 +448,8 @@ public class PageRoutes implements Routes {
     }
 
     // Response records
-    record PagesListResponse(List<StationPage> pages, @Nullable Integer landingPageId) {}
+    record PagesListResponse(
+            List<StationPage> pages, @Nullable Integer landingPageId) {}
 
     // Request records
     record CreatePageRequest(String title, Integer parentId) {}

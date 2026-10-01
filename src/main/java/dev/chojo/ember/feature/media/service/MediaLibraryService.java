@@ -484,5 +484,9 @@ public class MediaLibraryService {
      * @param uploadedBy the member who first brought the file in, or {@code null} for a file that
      *                   predates uploader tracking
      */
-    public record FileListing(StationFile file, boolean inUse, Set<Integer> tagIds, @Nullable Integer uploadedBy) {}
+    public record FileListing(
+            StationFile file,
+            boolean inUse,
+            Set<Integer> tagIds,
+            @Nullable Integer uploadedBy) {}
 }

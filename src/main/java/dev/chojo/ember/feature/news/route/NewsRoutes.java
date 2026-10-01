@@ -1063,7 +1063,8 @@ public class NewsRoutes implements Routes {
      * One viewer entry in the seen/unseen lists. {@code seenAt} is {@code null} for the
      * unseen branch, otherwise the moment of the first view.
      */
-    public record NewsViewerEntry(MemberIdentity member, @Nullable Instant seenAt) {}
+    public record NewsViewerEntry(
+            MemberIdentity member, @Nullable Instant seenAt) {}
 
     /**
      * Lightweight response for {@code GET /api/v1/news/{id}/view-count} (editors only).

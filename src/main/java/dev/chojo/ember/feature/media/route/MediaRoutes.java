@@ -393,7 +393,10 @@ public class MediaRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    @OpenApi(path = "/api/v1/media/tags/{tagId}", methods = HttpMethod.DELETE, responses = @OpenApiResponse(status = "204"))
+    @OpenApi(
+            path = "/api/v1/media/tags/{tagId}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteTag(Context ctx) {
         var session = UserSession.from(ctx);
         if (!media.deleteTag(session.stationId(), pathInt(ctx, "tagId"))) {
