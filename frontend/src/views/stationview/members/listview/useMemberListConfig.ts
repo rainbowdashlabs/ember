@@ -13,7 +13,7 @@ import {
 import {useSavedFilters} from './useSavedFilters'
 import {useMemberListTabs} from './useMemberListTabs'
 import {useAddressFilter} from './useAddressFilter'
-import {memberColumns, roleOf} from './memberColumns'
+import {holdsAnswer, memberColumns, roleOf} from './memberColumns'
 import {toCellValue} from '@/components/table/tableColumn'
 import {useExport, type ExportColumn, type ExportFormatName} from '@/composables/useExport'
 import {useDataTable} from '@/composables/useDataTable'
@@ -134,7 +134,7 @@ export function useMemberListConfig(port: MemberListPort) {
         {key: 'lastName', label: t('membersList.export.colLastName'), value: getMemberLastName},
         {key: 'email', label: t('membersList.export.colEmail'), value: m => m.email ?? ''},
         {key: 'groups', label: t('membersList.export.colGroups'), value: m => getMemberGroups(m.id).join(', ')},
-        ...tabScopedFields.value.map(f => ({
+        ...tabScopedFields.value.filter(holdsAnswer).map(f => ({
             key: `field:${f.id}`,
             label: f.name ?? '',
             value: (m: RosterMember) => getFieldValueAsString(m.id, f.id),

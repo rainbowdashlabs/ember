@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {parseFieldConfig} from '@/api/profileFields'
+import {FieldTypes, parseFieldConfig} from '@/api/profileFields'
 import type {ProfileField, StationUserType as StationUserTypeName} from '@/api/generated/schema'
 import {StationUserType, StationUserTypeLabels} from '@/api/types'
 import {
@@ -66,9 +66,14 @@ function fieldColumn(field: ProfileField, sources: MemberColumnSources): TableCo
     }
 }
 
+/** Whether a question is answered at all, which a heading or a spacer in the form never is. */
+export function holdsAnswer(field: Pick<ProfileField, 'fieldType'>): boolean {
+    return field.fieldType !== FieldTypes.SECTION && field.fieldType !== FieldTypes.SPACER
+}
+
 /**
  * The columns of the member list: the name, the kind of member, the address, on a station's own
- * list its groups and tags, and one per question the tab's people are asked.
+ * list its groups and tags, and one per question the tab's people are asked and can answer.
  */
 export function memberColumns(fields: readonly ProfileField[], sources: MemberColumnSources): TableColumn<RosterMember>[] {
     const {t} = sources
@@ -80,6 +85,6 @@ export function memberColumns(fields: readonly ProfileField[], sources: MemberCo
             {key: 'groups', label: t('membersList.colGroups'), type: ColumnTypes.TEXT, value: (member: RosterMember) => sources.groupsOf(member.id)},
             {key: 'tags', label: t('membersList.colTags'), type: ColumnTypes.TEXT, value: (member: RosterMember) => sources.tagsOf(member.id)},
         ] : []),
-        ...fields.map(field => fieldColumn(field, sources)),
+        ...fields.filter(holdsAnswer).map(field => fieldColumn(field, sources)),
     ]
 }

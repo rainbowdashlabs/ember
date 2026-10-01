@@ -65,6 +65,7 @@
 - **Member fields take only the members they are limited to.** A member field on an attendance sheet or an appointment that is limited to a group, a member type or a tag now refuses anybody outside it when the sheet, the appointment or a template is saved and when a registration question is answered, where before only members putting themselves in were checked. Members it already names stay when it is saved again.
 ### Fixes
 
+- **The member list showed columns for headings.** Headings and spacers of the profile form appeared as empty columns in the member list and its export. They are now left out.
 - **Own comments on a partner's board could not be changed.** Changing or removing your own comment on a board a partner station shares with you did nothing. It now works, and boards shared between two instances pause until both run this version.
 - **Comment delete buttons followed the wrong rights.** News and wiki managers were not shown the button to remove other people's comments, while appointment managers saw it on boards and on partner stations' appointments, where removing then failed. The button now shows for the author and for whoever manages that kind of content.
 - **Addresses in group and tag lists sat out of line.** In the member lists of groups and tags, the address of somebody with a profile picture stood beside the picture instead of under the name. It now lines up under the name for everybody.
