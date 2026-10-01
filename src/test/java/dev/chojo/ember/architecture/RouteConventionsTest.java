@@ -56,12 +56,13 @@ class RouteConventionsTest {
 
     /**
      * The members a handler touches that say which station a row belongs to: the session's station,
-     * one of the ownership helpers, a station resolved from the address, the partner whose station
-     * scopes a {@code /remote} lookup, the account and member the row is scoped to, the cluster a
-     * cluster route answers for, or the transfer token that names the station it was issued for.
+     * one of the ownership helpers, the read check a comment's target makes for the comment service,
+     * a station resolved from the address, the partner whose station scopes a {@code /remote}
+     * lookup, the account and member the row is scoped to, the cluster a cluster route answers for,
+     * or the transfer token that names the station it was issued for.
      */
     private static final Pattern STATION_EVIDENCE = Pattern.compile(
-            "stationId|requireOwned|requireVisibleEvent|requireSameStation|requireShared|requirePartner"
+            "stationId|requireOwned|requireVisibleEvent|requireReadable|requireSameStation|requireShared|requirePartner"
                     + "|ForPartner|isShared|resolve\\w*Station|openBlog|accountId|requireManaged|clusterId|validateToken");
 
     /** A path parameter that names a station, which makes the station itself the row addressed. */

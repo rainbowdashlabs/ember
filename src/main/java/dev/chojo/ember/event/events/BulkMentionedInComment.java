@@ -6,9 +6,9 @@
 package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
-import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
+import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 
 /**
  * Published when a group or special target is @mentioned in a comment.
@@ -18,14 +18,11 @@ import dev.chojo.ember.feature.comment.entity.MentionType;
  * @param authorMemberId  the member ID of the comment author
  * @param authorName      the display name of the comment author
  * @param entityType      the type of entity the comment is on
- * @param entityId        the ID of the entity
  * @param entityTitle     the title/name of the entity
  * @param mentionType     the type of mention
  * @param mentionTargetId the ID of the target (group ID or event ID)
- * @param ticketAddress   where the ticket's page is, when the comment hangs under one, and
- *                        {@code null} for everything else: a ticket is the one thing here that its
- *                        id alone does not open
- * @param commentId       the comment carrying the mention, so the notification opens on it
+ * @param link            where the notification opens: the entity's page, landing on the comment
+ * @param commentId       the comment carrying the mention
  * @param preview         short snippet of the comment text so the feed entry surfaces context
  */
 public record BulkMentionedInComment(
@@ -33,11 +30,10 @@ public record BulkMentionedInComment(
         Integer authorMemberId,
         String authorName,
         CommentEntityType entityType,
-        int entityId,
         String entityTitle,
         MentionType mentionType,
         int mentionTargetId,
-        BoardTicketAddress ticketAddress,
+        NotificationLink link,
         int commentId,
         String preview)
         implements DomainEvent {}

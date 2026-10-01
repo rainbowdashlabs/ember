@@ -26,7 +26,6 @@ import dev.chojo.ember.feature.checklist.service.ChecklistService;
 import dev.chojo.ember.feature.cluster.service.ClusterApplicationService;
 import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
 import dev.chojo.ember.feature.cluster.service.ClusterContentService;
-import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
@@ -222,7 +221,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var feedTokenService = new FeedTokenService(feedTokenRepo);
 
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
-        var commentService = new CommentService(commentRepo, noOpBus, memberSvc, stationRepo, silentCommentMentions());
+        var commentService = newCommentService(noOpBus);
         var kbStorageConfig = new Storage();
         var kbBackend = new LocalStorageBackend();
         var kbResolver = new StorageBackendResolver(kbBackend);
@@ -315,7 +314,6 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationRepo,
                 eventServices.crud(),
                 commentService,
-                commentRepo,
                 memberNameResolver,
                 federationFanout,
                 federationEntityResolver,

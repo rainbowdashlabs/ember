@@ -833,6 +833,7 @@ export default {
     'CM-010': 'Du darfst Notizen dieser Art weder lesen noch schreiben',
     'CM-011': 'Eine Notiz braucht einen Text',
     'CM-012': 'Hier ist noch nichts notiert',
+    'CM-013': COMMENT_NOT_HERE,
 
     'F-001': FORM_NOT_HERE,
     'F-002': FORM_NOT_HERE,

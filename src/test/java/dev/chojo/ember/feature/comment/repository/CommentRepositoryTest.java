@@ -324,16 +324,4 @@ class CommentRepositoryTest extends RepositoryTestBase {
                 SQLException.class,
                 () -> execute("INSERT INTO comment (event_id, content) VALUES (%d, 'ohne Wache');".formatted(event)));
     }
-
-    @Test
-    void anAppointmentCommentNamesItsAppointment() {
-        int event = event();
-        var comment = write(CommentEntityType.EVENT, event, "Wo?");
-
-        var commented = commentRepo.findCommentedEvent(comment.id()).orElseThrow();
-
-        assertEquals(event, commented.id());
-        assertEquals("Termin", commented.name());
-        assertTrue(commentRepo.findCommentedEvent(-1).isEmpty());
-    }
 }

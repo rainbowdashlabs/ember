@@ -11,6 +11,9 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -141,6 +144,15 @@ public class DemoFederationSeeder implements DemoSeeder {
                 .findById(accountId)
                 .map(a -> NameParts.of(a).called())
                 .orElse("Admin");
+    }
+
+    /**
+     * Writes a demo comment on an appointment, telling whoever a comment written there tells.
+     */
+    private void seedEventComment(int eventId, CommentWriter writer, NewComment comment) {
+        commentService
+                .target(CommentEntityType.EVENT, eventId)
+                .ifPresent(target -> commentService.createOn(target, writer, comment));
     }
 
     /**
@@ -576,15 +588,13 @@ public class DemoFederationSeeder implements DemoSeeder {
                     // demo comment to the next upcoming occurrence so the date shows the
                     // feature in the UI.
                     LocalDate nextOccurrence = nextOccurrenceOf(evUebung);
-                    commentService.create(
-                            primaryStationId,
+                    seedEventComment(
                             evUebung.id(),
-                            null,
-                            memberIdentityFactory.local(primaryStationId, createdBy),
-                            "Admin",
-                            "Nächste Woche üben wir den Löschangriff - bitte Sportkleidung mitbringen!",
-                            evUebung.name(),
-                            nextOccurrence);
+                            CommentWriter.local(memberIdentityFactory.local(primaryStationId, createdBy), "Admin"),
+                            new NewComment(
+                                    null,
+                                    nextOccurrence,
+                                    "Nächste Woche üben wir den Löschangriff - bitte Sportkleidung mitbringen!"));
                 });
 
         // Federated comments on the shared event "Gemeinsame Großübung" (event lives on partner station)
@@ -607,15 +617,14 @@ public class DemoFederationSeeder implements DemoSeeder {
                     "Wir kommen mit 6 Leuten! Brauchen wir eigene Schläuche?",
                     null);
             // Local reply from partner station member
-            commentService.create(
-                    partnerStation.id(),
+            seedEventComment(
                     fedEvent.id(),
-                    fc1.id(),
-                    memberIdentityFactory.local(partnerStation.id(), partnerMember.id()),
-                    "Partner Manager",
-                    "Nein, wir haben genug Material da. Einfach nur Schutzkleidung mitbringen.",
-                    fedEvent.name(),
-                    null);
+                    CommentWriter.local(
+                            memberIdentityFactory.local(partnerStation.id(), partnerMember.id()), "Partner Manager"),
+                    new NewComment(
+                            fc1.id(),
+                            null,
+                            "Nein, wir haben genug Material da. Einfach nur Schutzkleidung mitbringen."));
             eventFederationService.createRemoteComment(
                     reversePartnerForEvents,
                     fedEvent.id(),

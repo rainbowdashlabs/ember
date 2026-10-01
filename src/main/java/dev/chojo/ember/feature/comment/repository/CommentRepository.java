@@ -231,30 +231,4 @@ public class CommentRepository {
     public boolean hasChildren(int id) {
         return SqlSupport.exists("SELECT 1 FROM comment WHERE parent_id = :id LIMIT 1;", call().bind("id", id));
     }
-
-    /**
-     * The appointment a comment hangs under, by id and name.
-     *
-     * @param id   the appointment
-     * @param name what it is called
-     */
-    public record CommentedEvent(int id, String name) {}
-
-    /**
-     * Finds the appointment an appointment comment was written under.
-     *
-     * @param commentId the comment
-     * @return the appointment, empty when there is no such appointment comment
-     */
-    public Optional<CommentedEvent> findCommentedEvent(int commentId) {
-        return query("""
-                SELECT e.id, e.name
-                FROM
-                    comment c
-                    JOIN station_event e ON e.id = c.event_id
-                WHERE c.id = :id;""")
-                .single(call().bind("id", commentId))
-                .map(row -> new CommentedEvent(row.getInt("id"), row.getString("name")))
-                .first();
-    }
 }

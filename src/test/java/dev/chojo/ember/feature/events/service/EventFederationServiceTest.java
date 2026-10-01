@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
-import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
@@ -109,12 +108,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var eventBus = new DomainEventBus(Set.of());
         crudService = newEventServices(eventBus).crud();
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
-        commentService = new CommentService(
-                commentRepo,
-                COMMENT_BUS,
-                memberSvc,
-                stationRepo,
-                new CommentMentions(memberLookupService, COMMENT_BUS));
+        commentService = newCommentService(COMMENT_BUS);
         when(httpClient.canSign(anyInt())).thenReturn(true);
         transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
         service = new EventFederationService(
@@ -125,7 +119,6 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 stationRepo,
                 crudService,
                 commentService,
-                commentRepo,
                 new MemberNameResolver(
                         memberSvc,
                         accountRepo,
@@ -1015,7 +1008,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(60)
     void toCommentResponseDeletedComment() {
         var comment = localComment("Will be deleted");
-        commentService.delete(comment.id());
+        commentService.delete(comment);
         var deletedComment = new Comment(
                 comment.id(),
                 comment.type(),
@@ -1054,7 +1047,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
     void toCommentResponseFederatedAuthor() {
         var created = service.createRemoteComment(
                 localPartner, eventId, REMOTE_MEMBER_2, "Bob Federated", null, "Federated comment", null);
-        var comment = commentService.findById(created.id()).orElseThrow();
+        var comment =
+                commentService.findById(CommentEntityType.EVENT, created.id()).orElseThrow();
         var response = service.toCommentResponse(comment);
         assertFalse(response.deleted());
         assertEquals("Federated comment", response.content());
@@ -1305,7 +1299,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
         int commentId = createResult.id();
 
         service.deleteFederatedComment(stationB.id(), stationA.uid(), commentId, REMOTE_MEMBER_3);
-        assertTrue(commentService.findById(commentId).map(Comment::deleted).orElse(true));
+        assertTrue(commentService
+                .findById(CommentEntityType.EVENT, commentId)
+                .map(Comment::deleted)
+                .orElse(true));
     }
 
     @Test

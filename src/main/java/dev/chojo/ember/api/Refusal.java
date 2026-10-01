@@ -2289,6 +2289,13 @@ public enum Refusal {
     /** A comment that went between being read and being deleted. */
     COMMENT_NOT_DELETED(Area.COMMENTS, 9, HttpStatus.NOT_FOUND, Sentences.COMMENT_NOT_HERE),
 
+    /**
+     * An answer to a comment that is not on the same appointment, entry, file or ticket, or not
+     * there at all. Answered as a comment that is not here, which from where the answer was written
+     * it is not.
+     */
+    COMMENT_PARENT_ELSEWHERE(Area.COMMENTS, 13, HttpStatus.NOT_FOUND, Sentences.COMMENT_NOT_HERE),
+
     /** Notes of a kind this reader may neither read nor write. */
     NOTES_NOT_YOURS(Area.COMMENTS, 10, HttpStatus.FORBIDDEN, "You may not read or write notes of this kind"),
 

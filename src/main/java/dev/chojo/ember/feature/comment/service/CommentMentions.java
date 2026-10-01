@@ -8,12 +8,13 @@ package dev.chojo.ember.feature.comment.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.MentionedInComment;
-import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
+import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashSet;
 import java.util.Optional;
@@ -56,20 +57,18 @@ public class CommentMentions {
      * @param authorMemberId the author as a member of that station, {@code null} when they are not one
      * @param authorName     the name the notification shows as the author
      * @param entityType     what the comment hangs under
-     * @param entityId       the thing it hangs under
      * @param entityTitle    that thing's title
-     * @param ticketAddress  where a ticket's page is, {@code null} for everything but a ticket
+     * @param link           where a notification about the comment opens
      * @param commentId      the comment
      * @param preview        the excerpt of the comment the notification shows
      */
     public record Origin(
             int stationId,
-            Integer authorMemberId,
+            @Nullable Integer authorMemberId,
             String authorName,
             CommentEntityType entityType,
-            int entityId,
             String entityTitle,
-            BoardTicketAddress ticketAddress,
+            NotificationLink link,
             int commentId,
             String preview) {}
 
@@ -148,9 +147,8 @@ public class CommentMentions {
                 origin.authorMemberId(),
                 origin.authorName(),
                 origin.entityType(),
-                origin.entityId(),
                 origin.entityTitle(),
-                origin.ticketAddress(),
+                origin.link(),
                 origin.commentId(),
                 origin.preview()));
     }
@@ -161,11 +159,10 @@ public class CommentMentions {
                 origin.authorMemberId(),
                 origin.authorName(),
                 origin.entityType(),
-                origin.entityId(),
                 origin.entityTitle(),
                 audience.type(),
                 audience.targetId(),
-                origin.ticketAddress(),
+                origin.link(),
                 origin.commentId(),
                 origin.preview()));
     }

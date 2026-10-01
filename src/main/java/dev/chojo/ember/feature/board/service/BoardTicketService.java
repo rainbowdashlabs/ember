@@ -35,6 +35,8 @@ import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -471,7 +473,6 @@ public class BoardTicketService {
         var board = boardRepository.findById(ticket.boardId()).orElse(null);
         var ticketKey = board != null ? board.shortKey() + "-" + ticket.ticketNumber() : "?";
         int stationId = board != null ? board.stationId() : 0;
-        var address = board != null ? new BoardTicketAddress(board.shortKey(), ticket.ticketNumber()) : null;
         Integer authorMemberId = author != null
                 ? stationMemberService.resolveId(stationId, author.memberUid()).orElse(null)
                 : null;
@@ -481,11 +482,15 @@ public class BoardTicketService {
                 authorMemberId,
                 ticketKey,
                 CommentEntityType.BOARD_TICKET,
-                ticket.id(),
                 ticketKey,
-                address,
+                commentLink(ticket, board, commentId),
                 commentId,
                 preview);
+    }
+
+    private static NotificationLink commentLink(BoardTicket ticket, Board board, int commentId) {
+        var address = new BoardTicketAddress(board != null ? board.shortKey() : "?", ticket.ticketNumber());
+        return NotificationLinks.comment(NotificationLinks.ticket(address, ticket.id()), commentId);
     }
 
     /**
@@ -497,22 +502,22 @@ public class BoardTicketService {
      * @return {@code true} when a comment was removed
      */
     public boolean deleteComment(int ticketId, int id) {
+        var ticket = ticketRepository.findById(ticketId);
+        var board = ticket.flatMap(found -> boardRepository.findById(found.boardId()));
         boolean deleted = comments.delete(CommentEntityType.BOARD_TICKET, id);
+        if (deleted && ticket.isPresent()) {
+            eventBus.publish(new CommentDeleted(
+                    board.map(Board::stationId).orElse(0),
+                    CommentEntityType.BOARD_TICKET,
+                    commentLink(ticket.get(), board.orElse(null), id),
+                    id));
+        }
         if (deleted) {
-            eventBus.publish(new CommentDeleted(stationOf(ticketId), CommentEntityType.BOARD_TICKET, id));
             log.info("Deleted comment {}", id);
         } else {
             log.warn("Delete for comment {} affected zero rows", id);
         }
         return deleted;
-    }
-
-    private int stationOf(int ticketId) {
-        return ticketRepository
-                .findById(ticketId)
-                .flatMap(ticket -> boardRepository.findById(ticket.boardId()))
-                .map(Board::stationId)
-                .orElse(0);
     }
 
     public List<BoardWeblink> findWeblinks(int ticketId) {

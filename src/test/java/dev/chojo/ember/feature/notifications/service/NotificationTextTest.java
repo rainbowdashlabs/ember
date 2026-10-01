@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.notifications.service;
 
 import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
-import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.notifications.entity.ExpiryReminderKind;
@@ -170,7 +169,7 @@ class NotificationTextTest {
     void resolveNotificationUrlCarriesTheCommentAndTheStation() {
         var data = NotificationData.of(
                 new NotificationParams.NewsComment("Sturm", "Bea", "Danke"),
-                NotificationLinks.comment(CommentEntityType.NEWS, 7, null, 42));
+                NotificationLinks.comment(NotificationLinks.news(7), 42));
         var stationUid = UUID.fromString("00000000-0000-0000-0000-000000000042");
 
         assertEquals(
@@ -183,7 +182,7 @@ class NotificationTextTest {
     void resolveNotificationUrlFillsEveryPlaceholderOfATicketComment() {
         var data = NotificationData.of(
                 new NotificationParams.CommentMention("DEV-42", "Bea", "@With"),
-                NotificationLinks.comment(CommentEntityType.BOARD_TICKET, 7, new BoardTicketAddress("DEV", 42), 601));
+                NotificationLinks.comment(NotificationLinks.ticket(new BoardTicketAddress("DEV", 42), 7), 601));
 
         String url = text.resolveNotificationUrl(BASE, null, data);
 

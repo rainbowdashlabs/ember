@@ -16,12 +16,8 @@ import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.service.CommentMentions;
-import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.route.EventVisibility;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -89,16 +85,8 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
                         hiddenEventId,
                         new RestrictionSelection(List.of(), List.of(), List.of(), List.of(other.id()), null));
 
-        var comments = new CommentService(
-                commentRepo,
-                BUS,
-                newStationMemberService(null, null),
-                stationRepo,
-                new CommentMentions(memberLookupService, BUS));
-        var visibility =
-                new EventVisibility(services.crud(), services.restriction(), new GuardianPolicy(stationMemberRepo));
         harness = RouteHarness.serving(
-                        new EventCommentRoutes(comments, visibility, memberIdentityFactory, memberNameResolver))
+                        new EventCommentRoutes(newCommentService(BUS), memberIdentityFactory, memberNameResolver))
                 .withStations(stationRepo);
     }
 
@@ -264,12 +252,12 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
     }
 
     @Test
-    void aReplyMayNameAParentOnAnotherAppointment() {
+    void aReplyToACommentOnAnotherAppointmentIsRefused() {
         int parent = write(author, secondEventId, "anderswo");
 
-        var reply = json(post(other, eventId, "{\"content\": \"quer\", \"parentId\": %d}".formatted(parent)));
+        var answer = post(other, eventId, "{\"content\": \"quer\", \"parentId\": %d}".formatted(parent));
 
-        assertEquals(parent, reply.path("parentId").asInt());
+        assertEquals(Refusal.COMMENT_PARENT_ELSEWHERE, refusalOf(answer));
     }
 
     @Test

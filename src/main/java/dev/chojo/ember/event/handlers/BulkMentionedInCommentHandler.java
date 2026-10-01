@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
@@ -75,11 +74,9 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
                 ? StationAudience.members(memberIds)
                 : StationAudience.household(memberIds);
 
-        var link = NotificationLinks.comment(
-                event.entityType(), event.entityId(), event.ticketAddress(), event.commentId());
-
         var data = NotificationData.of(
-                new NotificationParams.CommentMention(event.entityTitle(), event.authorName(), event.preview()), link);
+                new NotificationParams.CommentMention(event.entityTitle(), event.authorName(), event.preview()),
+                event.link());
 
         notifier.notify(
                 audience.except(event.authorMemberId()),

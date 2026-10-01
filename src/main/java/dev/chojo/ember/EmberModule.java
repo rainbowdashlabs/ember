@@ -8,6 +8,7 @@ package dev.chojo.ember;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
+import com.google.inject.multibindings.MapBinder;
 import com.google.inject.multibindings.Multibinder;
 import de.chojo.sadu.core.updater.SqlVersion;
 import de.chojo.sadu.datasource.DataSourceCreator;
@@ -117,9 +118,11 @@ import dev.chojo.ember.feature.board.service.FederatedTicketDetailProxy;
 import dev.chojo.ember.feature.board.service.FederatedTicketProxy;
 import dev.chojo.ember.feature.checklist.route.ChecklistRoutes;
 import dev.chojo.ember.feature.cluster.ClusterModule;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.comment.route.NoteRoutes;
 import dev.chojo.ember.feature.comment.service.CommentFeedDetails;
+import dev.chojo.ember.feature.comment.service.CommentTarget;
 import dev.chojo.ember.feature.content.service.BlockReferences;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.discovery.route.AdminDiscoveryRoutes;
@@ -143,6 +146,7 @@ import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.PublicEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.events.service.EventBlockReferences;
+import dev.chojo.ember.feature.events.service.EventCommentTarget;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFeedDetails;
 import dev.chojo.ember.feature.events.service.EventReminderChecker;
@@ -589,6 +593,10 @@ public class EmberModule extends AbstractModule {
         demoSeederBinder.addBinding().to(DemoFreshStationSeeder.class);
         demoSeederBinder.addBinding().to(DemoTwoFactorSeeder.class);
         demoSeederBinder.addBinding().to(DemoVideoSeeder.class);
+
+        MapBinder<CommentEntityType, CommentTarget> commentTargets =
+                MapBinder.newMapBinder(binder(), CommentEntityType.class, CommentTarget.class);
+        commentTargets.addBinding(CommentEntityType.EVENT).to(EventCommentTarget.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});

@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -102,15 +104,15 @@ public class KbCommentService {
         eventBus.publish(new CommentCreated(
                 stationId,
                 CommentEntityType.KB,
-                fileId,
                 fileTitle,
-                null,
+                commentLink(fileId, comment.id()),
                 comment.id(),
                 parentId,
                 parentAuthorId(parentId),
                 authorId,
                 authorName,
-                preview(content)));
+                preview(content),
+                null));
 
         mentions.announce(
                 mentionOrigin(stationId, fileId, fileTitle, comment.id(), authorId, authorName, content), content);
@@ -153,11 +155,14 @@ public class KbCommentService {
                 authorId,
                 authorName,
                 CommentEntityType.KB,
-                fileId,
                 fileTitle,
-                null,
+                commentLink(fileId, commentId),
                 commentId,
                 preview(content));
+    }
+
+    private static NotificationLink commentLink(int fileId, int commentId) {
+        return NotificationLinks.comment(NotificationLinks.kbFile(fileId), commentId);
     }
 
     /**
@@ -174,7 +179,8 @@ public class KbCommentService {
             log.warn("Delete for knowledge comment {} skipped: not found", commentId);
             return false;
         }
-        eventBus.publish(new CommentDeleted(stationId, CommentEntityType.KB, commentId));
+        eventBus.publish(new CommentDeleted(
+                stationId, CommentEntityType.KB, commentLink(comment.fileId(), commentId), commentId));
         log.info("Deleted knowledge comment {} on station {}", commentId, stationId);
         return true;
     }

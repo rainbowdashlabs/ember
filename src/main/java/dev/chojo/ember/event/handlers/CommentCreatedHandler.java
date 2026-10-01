@@ -5,13 +5,10 @@
  */
 package dev.chojo.ember.event.handlers;
 
-import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.CommentCreated;
-import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
@@ -21,6 +18,11 @@ import jakarta.inject.Singleton;
 
 import java.util.Objects;
 
+/**
+ * Tells the author of the answered comment about a reply, and whoever the comment's target names
+ * besides about every comment. Who that is the target decided when the comment was written; the
+ * author is never told about their own comment.
+ */
 @Singleton
 public class CommentCreatedHandler implements DomainEventHandler<CommentCreated> {
     private final Notifier notifier;
@@ -37,23 +39,23 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
 
     @Override
     public void handle(CommentCreated event) {
-        var link = NotificationLinks.comment(
-                event.entityType(), event.entityId(), event.ticketAddress(), event.commentId());
         var data = NotificationData.of(
-                new NotificationParams.NewsComment(event.entityTitle(), event.authorName(), event.preview()), link);
+                new NotificationParams.NewsComment(event.entityTitle(), event.authorName(), event.preview()),
+                event.link());
 
-        if (event.parentAuthorId() != null && !Objects.equals(event.parentAuthorId(), event.authorMemberId())) {
+        Integer parentAuthorId = event.parentAuthorId();
+        if (parentAuthorId != null && !Objects.equals(parentAuthorId, event.authorMemberId())) {
             notifier.notify(
-                    StationAudience.member(event.parentAuthorId()),
+                    StationAudience.member(parentAuthorId),
                     NotificationType.NEWS_COMMENT,
                     data,
                     Delivery.ONCE_WHILE_UNREAD);
         }
 
-        if (CommentEntityType.NEWS.equals(event.entityType())) {
+        var alsoTold = event.alsoTold();
+        if (alsoTold != null) {
             notifier.notify(
-                    StationAudience.holders(event.stationId(), StationPermission.NEWS_MANAGER)
-                            .except(event.authorMemberId()),
+                    alsoTold.except(event.authorMemberId()),
                     NotificationType.NEWS_COMMENT,
                     data,
                     Delivery.ONCE_WHILE_UNREAD);

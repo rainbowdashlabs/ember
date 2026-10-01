@@ -45,9 +45,12 @@ import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.cluster.service.ClusterStationGroupService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageBackendService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
+import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.comment.service.CommentTarget;
 import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
@@ -72,10 +75,12 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepositor
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.route.EventVisibility;
 import dev.chojo.ember.feature.events.service.EventBlockReferences;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCancellationService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
+import dev.chojo.ember.feature.events.service.EventCommentTarget;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
@@ -145,6 +150,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.GroupMembershipService;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
@@ -197,6 +203,7 @@ import org.junit.jupiter.api.Tag;
 import org.mockito.Mockito;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -723,6 +730,28 @@ public abstract class RepositoryTestBase {
     protected static ContentBlockService contentBlocks() {
         return new ContentBlockService(
                 contentContainerRepo, Set.of(new NewsBlockReferences(newsRepo), new EventBlockReferences(eventRepo)));
+    }
+
+    /**
+     * The comment service over the shared repositories, with a target bound for every kind that
+     * goes through it, publishing to the given bus.
+     *
+     * @param eventBus where the comment and mention events go
+     * @return the service
+     */
+    protected static CommentService newCommentService(DomainEventBus eventBus) {
+        var events = newEventServices(new DomainEventBus(Set.of()));
+        var visibility =
+                new EventVisibility(events.crud(), events.restriction(), new GuardianPolicy(stationMemberRepo));
+        Map<CommentEntityType, CommentTarget> targets =
+                Map.of(CommentEntityType.EVENT, new EventCommentTarget(events.crud(), visibility));
+        return new CommentService(
+                commentRepo,
+                targets,
+                eventBus,
+                newStationMemberService(null, null),
+                stationRepo,
+                new CommentMentions(memberLookupService, eventBus));
     }
 
     /**

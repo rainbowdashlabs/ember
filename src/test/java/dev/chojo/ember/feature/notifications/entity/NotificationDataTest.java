@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.notifications.entity;
 
-import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
@@ -73,7 +72,7 @@ class NotificationDataTest {
     @Test
     void serializeWithQuery() {
         var params = new NotificationParams.NewsComment("Article", "Author", "Preview");
-        var data = NotificationData.of(params, NotificationLinks.comment(CommentEntityType.NEWS, 7, null, 42));
+        var data = NotificationData.of(params, NotificationLinks.comment(NotificationLinks.news(7), 42));
 
         var restored = NotificationData.fromJson(data.toJson(), NotificationType.NEWS_COMMENT);
 

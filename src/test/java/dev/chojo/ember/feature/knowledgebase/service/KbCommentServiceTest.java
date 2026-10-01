@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -151,7 +152,9 @@ class KbCommentServiceTest extends RepositoryTestBase {
                 .toList();
         assertEquals(1, created.size());
         assertEquals(500, created.getFirst().commentId());
-        assertEquals(fileId, created.getFirst().entityId());
+        assertEquals(
+                NotificationLinks.comment(NotificationLinks.kbFile(fileId), 500),
+                created.getFirst().link());
         assertEquals("Commented File", created.getFirst().entityTitle());
         assertNull(created.getFirst().parentAuthorId());
 

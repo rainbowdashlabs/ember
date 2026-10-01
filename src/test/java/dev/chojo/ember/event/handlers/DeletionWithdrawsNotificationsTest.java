@@ -136,16 +136,16 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
         int aboutIt = create(
                 NotificationType.NEWS_COMMENT,
                 new NotificationParams.NewsComment("Sturm", "Bea", "Unfreundlich"),
-                NotificationLinks.comment(CommentEntityType.NEWS, 41, null, 501));
+                newsComment(41, 501));
         int mentionInIt = create(
                 NotificationType.COMMENT_MENTION,
                 new NotificationParams.CommentMention("Sturm", "Bea", "@With"),
-                NotificationLinks.comment(CommentEntityType.NEWS, 41, null, 501));
+                newsComment(41, 501));
         notificationRepo.acknowledge(mentionInIt, member.id());
         int aboutItsNeighbour = create(
                 NotificationType.NEWS_COMMENT,
                 new NotificationParams.NewsComment("Sturm", "Cem", "Danke"),
-                NotificationLinks.comment(CommentEntityType.NEWS, 41, null, 502));
+                newsComment(41, 502));
         int aboutTheArticle = create(
                 NotificationType.NEW_NEWS,
                 new NotificationParams.NewNews("Sturm", "Anna", "Es zog"),
@@ -153,9 +153,10 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
         int sameNumberElsewhere = create(
                 NotificationType.NEWS_COMMENT,
                 new NotificationParams.NewsComment("Handbuch", "Bea", "Unfreundlich"),
-                NotificationLinks.comment(CommentEntityType.KB, 41, null, 501));
+                NotificationLinks.comment(NotificationLinks.kbFile(41), 501));
 
-        new CommentDeletedHandler(notifications).handle(new CommentDeleted(station.id(), CommentEntityType.NEWS, 501));
+        new CommentDeletedHandler(notifications)
+                .handle(new CommentDeleted(station.id(), CommentEntityType.NEWS, newsComment(41, 501), 501));
 
         assertGone(aboutIt, mentionInIt);
         assertStanding(aboutItsNeighbour, aboutTheArticle, sameNumberElsewhere);
@@ -173,7 +174,8 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
                 new NotificationParams.NewsComment("Sturm", "Bea", "Unfreundlich"),
                 NotificationLinks.news(42));
 
-        new CommentDeletedHandler(notifications).handle(new CommentDeleted(station.id(), CommentEntityType.NEWS, 503));
+        new CommentDeletedHandler(notifications)
+                .handle(new CommentDeleted(station.id(), CommentEntityType.NEWS, newsComment(42, 503), 503));
 
         assertStanding(withoutAnAddress);
     }
@@ -187,7 +189,7 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
         int aboutAComment = create(
                 NotificationType.NEWS_COMMENT,
                 new NotificationParams.NewsComment("Sturm", "Bea", "Danke"),
-                NotificationLinks.comment(CommentEntityType.NEWS, 43, null, 504));
+                newsComment(43, 504));
 
         new NewsDeletedHandler(notifications).handle(new NewsDeleted(station.id(), 43, "Sturm"));
 
@@ -205,17 +207,25 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
         int aboutIt = create(
                 NotificationType.COMMENT_MENTION,
                 new NotificationParams.CommentMention("DEV-42", "Bea", "@With"),
-                NotificationLinks.comment(CommentEntityType.BOARD_TICKET, 7, new BoardTicketAddress("DEV", 42), 601));
+                ticketComment(601));
         int aboutItsNeighbour = create(
                 NotificationType.COMMENT_MENTION,
                 new NotificationParams.CommentMention("DEV-42", "Cem", "@With"),
-                NotificationLinks.comment(CommentEntityType.BOARD_TICKET, 7, new BoardTicketAddress("DEV", 42), 602));
+                ticketComment(602));
 
         new CommentDeletedHandler(notifications)
-                .handle(new CommentDeleted(station.id(), CommentEntityType.BOARD_TICKET, 601));
+                .handle(new CommentDeleted(station.id(), CommentEntityType.BOARD_TICKET, ticketComment(601), 601));
 
         assertGone(aboutIt);
         assertStanding(aboutItsNeighbour);
+    }
+
+    private static NotificationLink newsComment(int newsId, int commentId) {
+        return NotificationLinks.comment(NotificationLinks.news(newsId), commentId);
+    }
+
+    private static NotificationLink ticketComment(int commentId) {
+        return NotificationLinks.comment(NotificationLinks.ticket(new BoardTicketAddress("DEV", 42), 7), commentId);
     }
 
     private static int create(NotificationType type, NotificationParams params, NotificationLink link) {

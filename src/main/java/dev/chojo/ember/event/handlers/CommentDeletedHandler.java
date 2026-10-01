@@ -41,6 +41,6 @@ public class CommentDeletedHandler implements DomainEventHandler<CommentDeleted>
      */
     @Override
     public void handle(CommentDeleted event) {
-        notifier.withdrawAll(NotificationLinks.commentAlone(event.entityType(), event.commentId()));
+        notifier.withdrawAll(NotificationLinks.commentAlone(event.link()));
     }
 }

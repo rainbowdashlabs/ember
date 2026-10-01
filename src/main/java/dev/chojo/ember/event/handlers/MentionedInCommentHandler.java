@@ -9,7 +9,6 @@ import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
@@ -36,10 +35,9 @@ public class MentionedInCommentHandler implements DomainEventHandler<MentionedIn
 
     @Override
     public void handle(MentionedInComment event) {
-        var link = NotificationLinks.comment(
-                event.entityType(), event.entityId(), event.ticketAddress(), event.commentId());
         var data = NotificationData.of(
-                new NotificationParams.CommentMention(event.entityTitle(), event.authorName(), event.preview()), link);
+                new NotificationParams.CommentMention(event.entityTitle(), event.authorName(), event.preview()),
+                event.link());
         notifier.notify(
                 StationAudience.member(event.mentionedMemberId()),
                 NotificationType.COMMENT_MENTION,

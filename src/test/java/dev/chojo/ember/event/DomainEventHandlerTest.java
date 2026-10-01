@@ -83,6 +83,7 @@ import dev.chojo.ember.feature.notifications.entity.Audience;
 import dev.chojo.ember.feature.notifications.entity.ClusterAudience;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
@@ -119,6 +120,9 @@ class DomainEventHandlerTest {
 
     private static final int STATION_ID = 1;
     private static final int MEMBER_ID = 10;
+    private static final NotificationLink NEWS_COMMENT_LINK = NotificationLinks.comment(NotificationLinks.news(5), 100);
+    private static final StationAudience NEWS_MANAGERS =
+            StationAudience.holders(STATION_ID, StationPermission.NEWS_MANAGER);
 
     @BeforeEach
     void setUp() {
@@ -497,22 +501,21 @@ class DomainEventHandlerTest {
         handler.handle(new CommentCreated(
                 STATION_ID,
                 CommentEntityType.NEWS,
-                5,
                 "News Title",
-                null,
+                NEWS_COMMENT_LINK,
                 100,
                 99,
                 20,
                 MEMBER_ID,
                 "Author",
-                "preview"));
+                "preview",
+                NEWS_MANAGERS));
 
         verify(notifier)
                 .notify(
                         eq(StationAudience.member(20)),
                         eq(NotificationType.NEWS_COMMENT),
-                        argThat(data -> NotificationLinks.comment(CommentEntityType.NEWS, 5, null, 100)
-                                .equals(data.link())),
+                        argThat(data -> NEWS_COMMENT_LINK.equals(data.link())),
                         eq(Delivery.ONCE_WHILE_UNREAD));
         verifyTold(
                 StationAudience.holders(STATION_ID, StationPermission.NEWS_MANAGER)
@@ -528,35 +531,35 @@ class DomainEventHandlerTest {
         handler.handle(new CommentCreated(
                 STATION_ID,
                 CommentEntityType.NEWS,
-                5,
                 "News Title",
-                null,
+                NEWS_COMMENT_LINK,
                 100,
                 99,
                 MEMBER_ID,
                 MEMBER_ID,
                 "Author",
-                "preview"));
+                "preview",
+                NEWS_MANAGERS));
 
         verify(notifier, never()).notify(eq(StationAudience.member(MEMBER_ID)), any(), any(), any());
     }
 
     @Test
-    void commentCreatedSkipsManagerNotifyForEventComments() {
+    void commentCreatedTellsNobodyElseWhenTheTargetNamesNobody() {
         var handler = new CommentCreatedHandler(notifier);
 
         handler.handle(new CommentCreated(
                 STATION_ID,
                 CommentEntityType.EVENT,
-                5,
                 "Event Title",
-                null,
+                NotificationLinks.comment(NotificationLinks.event(5), 100),
                 100,
                 null,
                 null,
                 MEMBER_ID,
                 "Author",
-                "preview"));
+                "preview",
+                null));
 
         verify(notifier, never()).notify(any(), any(), any(), any());
     }
@@ -568,15 +571,15 @@ class DomainEventHandlerTest {
         handler.handle(new CommentCreated(
                 STATION_ID,
                 CommentEntityType.NEWS,
-                5,
                 "News Title",
-                null,
+                NEWS_COMMENT_LINK,
                 100,
                 null,
                 null,
                 MEMBER_ID,
                 "Author",
-                "preview"));
+                "preview",
+                NEWS_MANAGERS));
 
         verify(notifier).notify(any(), any(), any(), any());
         verifyTold(
@@ -593,9 +596,9 @@ class DomainEventHandlerTest {
         var handler = new CommentDeletedHandler(notifier);
         assertEquals(CommentDeleted.class, handler.eventType());
 
-        handler.handle(new CommentDeleted(STATION_ID, CommentEntityType.NEWS, 100));
+        handler.handle(new CommentDeleted(STATION_ID, CommentEntityType.NEWS, NEWS_COMMENT_LINK, 100));
 
-        verify(notifier).withdrawAll(NotificationLinks.commentAlone(CommentEntityType.NEWS, 100));
+        verify(notifier).withdrawAll(new NotificationLink("news-detail", Map.of(), Map.of("comment", 100)));
     }
 
     // -- MentionedInCommentHandler --
@@ -606,24 +609,32 @@ class DomainEventHandlerTest {
         assertEquals(MentionedInComment.class, handler.eventType());
 
         handler.handle(new MentionedInComment(
-                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.NEWS, 5, "Test Title", null, 70, "hi there"));
+                STATION_ID,
+                25,
+                MEMBER_ID,
+                "Author",
+                CommentEntityType.NEWS,
+                "Test Title",
+                NEWS_COMMENT_LINK,
+                70,
+                "hi there"));
 
         verifyTold(StationAudience.member(25), NotificationType.COMMENT_MENTION, Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
-    void mentionedInCommentUsesEventLinkForEventComments() {
+    void mentionedInCommentOpensTheLinkItCarries() {
         var handler = new MentionedInCommentHandler(notifier);
+        var link = NotificationLinks.comment(NotificationLinks.event(5), 70);
 
         handler.handle(new MentionedInComment(
-                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.EVENT, 5, "Test Title", null, 70, "hi there"));
+                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.EVENT, "Test Title", link, 70, "hi there"));
 
         verify(notifier)
                 .notify(
                         eq(StationAudience.member(25)),
                         eq(NotificationType.COMMENT_MENTION),
-                        argThat(data -> NotificationLinks.comment(CommentEntityType.EVENT, 5, null, 70)
-                                .equals(data.link())),
+                        argThat(data -> link.equals(data.link())),
                         eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
@@ -642,9 +653,8 @@ class DomainEventHandlerTest {
                 MEMBER_ID,
                 "DEV-42",
                 CommentEntityType.BOARD_TICKET,
-                7,
                 "DEV-42",
-                new BoardTicketAddress("DEV", 42),
+                NotificationLinks.comment(NotificationLinks.ticket(new BoardTicketAddress("DEV", 42), 7), 70),
                 70,
                 "hi there"));
 
@@ -689,11 +699,10 @@ class DomainEventHandlerTest {
                         MEMBER_ID,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.GROUP,
                         5,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
@@ -714,11 +723,10 @@ class DomainEventHandlerTest {
                         MEMBER_ID,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.GROUP,
                         5,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
@@ -749,11 +757,10 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.EVENT,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
@@ -781,11 +788,10 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.EVENT,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
@@ -813,11 +819,10 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.EVENT,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
@@ -841,11 +846,10 @@ class DomainEventHandlerTest {
                         MEMBER_ID,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.GROUP,
                         5,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
@@ -869,11 +873,10 @@ class DomainEventHandlerTest {
                         MEMBER_ID,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.REGISTERED,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
@@ -901,11 +904,10 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.REGISTERED,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
@@ -930,11 +932,10 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.DECLINED,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
@@ -957,11 +958,10 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.REGISTERED,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
@@ -981,11 +981,10 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.EVENT,
-                        1,
                         "Title",
                         MentionType.GROUP,
                         5,
-                        null,
+                        NotificationLinks.comment(NotificationLinks.event(1), 70),
                         70,
                         "preview snippet"));
 

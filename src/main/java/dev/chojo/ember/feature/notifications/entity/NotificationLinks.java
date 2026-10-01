@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.notifications.entity;
 
 import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
-import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 
 import java.time.LocalDate;
@@ -145,56 +144,39 @@ public final class NotificationLinks {
     }
 
     /**
-     * The link to one comment: the page it hangs under, plus the comment itself, so that opening
-     * the notification lands on the comment instead of the top of a long list.
+     * The link to one knowledge base file.
      *
-     * @param entityType what the comment hangs under
-     * @param entityId   the article, file, appointment or ticket
-     * @param address    where the ticket's page is, for a comment on a ticket, and {@code null} for
-     *                   everything else, which is reached by its id alone
-     * @param commentId  the comment
+     * @param fileId the file
      * @return the link its notifications carry
      */
-    public static NotificationLink comment(
-            CommentEntityType entityType, int entityId, BoardTicketAddress address, int commentId) {
-        var page = commentPage(entityType, entityId, address);
-        return new NotificationLink(page.route(), page.routeParams(), commentQuery(commentId));
+    public static NotificationLink kbFile(int fileId) {
+        return new NotificationLink(KB_FILE, Map.of("id", fileId));
     }
 
     /**
-     * The same link with the page left out, which every notification about that comment carries in
-     * full. A comment id is unique among the comments of its kind, so naming only the comment is
-     * both enough to find them and narrow enough to leave the other comments of the same page
-     * alone. This one is for matching and not for navigating.
+     * The link to one comment: the page it hangs under, plus the comment itself, so that opening
+     * the notification lands on the comment instead of the top of a long list. Which page that is
+     * the comment's target decides.
      *
-     * @param entityType what the comment hangs under
-     * @param commentId  the comment
+     * @param page      the page of the article, file, appointment or ticket the comment hangs under
+     * @param commentId the comment
+     * @return the link its notifications carry
+     */
+    public static NotificationLink comment(NotificationLink page, int commentId) {
+        return new NotificationLink(page.route(), page.routeParams(), Map.of("comment", commentId));
+    }
+
+    /**
+     * The same link with the page's parameters left out, which every notification about that
+     * comment carries in full. A comment id is unique among all comments, so naming only the
+     * comment is both enough to find them and narrow enough to leave the other comments of the same
+     * page alone, also after the page's own address changed. This one is for matching and not for
+     * navigating.
+     *
+     * @param link the link to the comment
      * @return the part of the link every notification about it shares
      */
-    public static NotificationLink commentAlone(CommentEntityType entityType, int commentId) {
-        return new NotificationLink(commentRoute(entityType), Map.of(), commentQuery(commentId));
-    }
-
-    private static NotificationLink commentPage(
-            CommentEntityType entityType, int entityId, BoardTicketAddress address) {
-        return switch (entityType) {
-            case NEWS -> news(entityId);
-            case EVENT -> event(entityId);
-            case KB -> new NotificationLink(KB_FILE, Map.of("id", entityId));
-            case BOARD_TICKET -> ticket(address, entityId);
-        };
-    }
-
-    private static Map<String, Object> commentQuery(int commentId) {
-        return Map.of("comment", commentId);
-    }
-
-    private static String commentRoute(CommentEntityType entityType) {
-        return switch (entityType) {
-            case NEWS -> NEWS_DETAIL;
-            case EVENT -> EVENT_DETAIL;
-            case KB -> KB_FILE;
-            case BOARD_TICKET -> TICKET_DETAIL;
-        };
+    public static NotificationLink commentAlone(NotificationLink link) {
+        return new NotificationLink(link.route(), Map.of(), link.query());
     }
 }

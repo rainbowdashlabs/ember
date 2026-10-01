@@ -6,476 +6,441 @@
 package dev.chojo.ember.feature.comment.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
+import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentFilter;
+import dev.chojo.ember.feature.comment.entity.CommentOrigin;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.CreatedAudience;
+import dev.chojo.ember.feature.comment.entity.Moderation;
+import dev.chojo.ember.feature.comment.entity.NewComment;
+import dev.chojo.ember.feature.comment.entity.TargetInfo;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+/**
+ * The comment service on appointment comments, which is the kind bound to it today, and on a target
+ * of its own for what no appointment does.
+ */
 class CommentServiceTest extends RepositoryTestBase {
+    private static final DomainEventBus BUS = mock(DomainEventBus.class);
+
     private static CommentService service;
     private static Station station;
-    private static Account account1;
-    private static Account account2;
-    private static StationMember member1;
-    private static StationMember member2;
-    private static MemberIdentity identity1;
-    private static MemberIdentity identity2;
+    private static Station elsewhere;
+    private static Account aliceAccount;
+    private static Account bobAccount;
+    private static Account carolAccount;
+    private static StationMember alice;
+    private static StationMember bob;
+    private static StationMember carol;
     private static int eventId;
-    private static int commentId;
-    private static int replyId;
-    private static DomainEventBus eventBus;
+    private static int otherEventId;
 
     @BeforeAll
     static void setup() {
-        eventBus = mock(DomainEventBus.class);
-        service = new CommentService(
-                commentRepo,
-                eventBus,
-                newStationMemberService(null, null),
-                stationRepo,
-                new CommentMentions(memberLookupService, eventBus));
-
+        service = newCommentService(BUS);
         station = stationRepo.create("CommentStation");
-        account1 = accountRepo.create("comment1@test.com", "Alice", "Author");
-        account2 = accountRepo.create("comment2@test.com", "Bob", "Mentioned");
-        member1 = stationMemberRepo.create(station.id(), account1.id());
-        member2 = stationMemberRepo.create(station.id(), account2.id());
-        identity1 = memberIdentityFactory.local(station.id(), member1.id());
-        identity2 = memberIdentityFactory.local(station.id(), member2.id());
-
-        // Create a test event
-        var event = eventRepo.create(
-                station.id(),
-                "Test Event",
-                null,
-                StationEvent.EventType.ONE_TIME,
-                null,
-                Instant.now(),
-                Instant.now().plusSeconds(3600),
-                null,
-                false,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null);
-        eventId = event.id();
+        elsewhere = stationRepo.create("CommentElsewhere");
+        aliceAccount = accountRepo.create("comment1@test.com", "Alice", "Author");
+        bobAccount = accountRepo.create("comment2@test.com", "Bob", "Mentioned");
+        carolAccount = accountRepo.create("comment3@test.com", "Carol", "Elsewhere");
+        alice = stationMemberRepo.create(station.id(), aliceAccount.id());
+        bob = stationMemberRepo.create(station.id(), bobAccount.id());
+        carol = stationMemberRepo.create(elsewhere.id(), carolAccount.id());
+        eventId = event("Test Event");
+        otherEventId = event("Other Event");
     }
 
     @AfterAll
     static void cleanup() {
         stationRepo.delete(station.id());
-        accountRepo.delete(account1.id());
-        accountRepo.delete(account2.id());
+        stationRepo.delete(elsewhere.id());
+        accountRepo.delete(aliceAccount.id());
+        accountRepo.delete(bobAccount.id());
+        accountRepo.delete(carolAccount.id());
     }
 
-    @Test
-    @Order(1)
-    void createComment() {
-        var comment =
-                service.create(station.id(), eventId, null, identity1, "Alice", "Hello world", "Test Event", null);
-        assertNotNull(comment);
-        assertEquals("Hello world", comment.content());
-        assertNotNull(comment.author());
-        assertEquals(identity1.memberUid(), comment.author().memberUid());
-        assertNull(comment.parentId());
-        commentId = comment.id();
+    @BeforeEach
+    void forgetEvents() {
+        reset(BUS);
     }
 
-    @Test
-    @Order(2)
-    void findByEvent() {
-        var comments = service.findByEvent(eventId);
-        assertEquals(1, comments.size());
-        assertEquals(commentId, comments.getFirst().id());
+    private static int event(String name) {
+        return eventRepo
+                .create(
+                        station.id(),
+                        name,
+                        null,
+                        StationEvent.EventType.ONE_TIME,
+                        null,
+                        Instant.now(),
+                        Instant.now().plusSeconds(3600),
+                        null,
+                        false,
+                        null,
+                        false,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null)
+                .id();
     }
 
-    @Test
-    @Order(3)
-    void findById() {
-        var comment = service.findById(commentId);
-        assertTrue(comment.isPresent());
-        assertEquals("Hello world", comment.get().content());
+    private static MemberIdentity identity(StationMember member) {
+        return memberIdentityFactory.local(member.stationId(), member.id());
     }
 
-    @Test
-    @Order(4)
-    void createReplyNotifiesParentAuthor() {
-        reset(eventBus);
-        var reply =
-                service.create(station.id(), eventId, commentId, identity2, "Bob", "Nice comment!", "Test Event", null);
-        assertNotNull(reply);
-        assertEquals(commentId, reply.parentId());
-        replyId = reply.id();
-
-        // Verify a CommentCreated event was published to notify the parent comment author (member1)
-        verify(eventBus).publish(argThat(event -> {
-            if (!(event instanceof CommentCreated c)) return false;
-            return c.stationId() == station.id()
-                    && c.entityType() == CommentEntityType.EVENT
-                    && c.entityId() == eventId
-                    && c.parentAuthorId() == member1.id()
-                    && c.authorMemberId() == member2.id()
-                    && "Bob".equals(c.authorName());
-        }));
+    private static CommentWriter writer(StationMember member, String name) {
+        return CommentWriter.local(identity(member), name);
     }
 
-    @Test
-    @Order(5)
-    void createReplyToOwnCommentDoesNotNotify() {
-        reset(eventBus);
-        // Reply to own comment - should NOT publish CommentCreated
-        var selfReply = service.create(
-                station.id(), eventId, commentId, identity1, "Alice", "Replying to myself", "Test Event", null);
-        assertNotNull(selfReply);
-        verify(eventBus, never()).publish(argThat(event -> event instanceof CommentCreated));
-        service.delete(selfReply.id());
+    private static UserSession session(StationMember member, StationPermission... permissions) {
+        return signedIn(member, permissions);
     }
 
-    @Test
-    @Order(6)
-    void findByEventIncludesReply() {
-        var comments = service.findByEvent(eventId);
-        assertEquals(2, comments.size());
+    private static Comment write(StationMember member, String name, Integer parentId, String content) {
+        return service.create(
+                session(member),
+                CommentEntityType.EVENT,
+                eventId,
+                writer(member, name),
+                new NewComment(parentId, null, content));
     }
 
-    @Test
-    @Order(6)
-    void createWithMentionPublishesEvent() {
-        reset(eventBus);
-        String content = "Hey " + mention(station, member2, "Bob") + " check this out!";
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event", null);
-        assertNotNull(comment);
-        assertEquals(content, comment.content());
-
-        // Verify that a MentionedInComment event was published for member2
-        verify(eventBus).publish(argThat(event -> {
-            if (!(event
-                    instanceof
-                    MentionedInComment(
-                            int stationId,
-                            int mentionedMemberId,
-                            Integer authorMemberId,
-                            String authorName,
-                            CommentEntityType entityType,
-                            int entityId,
-                            String entityTitle,
-                            BoardTicketAddress ticketAddress,
-                            int commentId,
-                            String preview))) return false;
-            return stationId == station.id()
-                    && mentionedMemberId == member2.id()
-                    && authorMemberId == member1.id()
-                    && "Alice".equals(authorName)
-                    && entityType == CommentEntityType.EVENT
-                    && entityId == eventId
-                    && commentId == comment.id();
-        }));
-    }
-
-    @Test
-    @Order(7)
-    void createWithSelfMentionDoesNotPublish() {
-        reset(eventBus);
-        String content = "Talking about " + mention(station, member1, "Alice") + " myself";
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event", null);
-        assertNotNull(comment);
-        assertEquals(content, comment.content());
-
-        // Self-mention should NOT trigger a notification
-        verify(eventBus, never()).publish(any());
-    }
-
-    @Test
-    @Order(8)
-    void update() {
-        assertTrue(service.update(station.id(), commentId, "Alice", "Updated content"));
-        var comment = service.findById(commentId);
-        assertTrue(comment.isPresent());
-        assertEquals("Updated content", comment.get().content());
-    }
-
-    @Test
-    @Order(9)
-    void deleteReply() {
-        assertTrue(service.delete(replyId));
-        assertTrue(service.findById(replyId).isEmpty());
-    }
-
-    @Test
-    @Order(10)
-    void deleteNonExistent() {
-        assertFalse(service.delete(-999));
-    }
-
-    @Test
-    @Order(11)
-    void deleteOriginal() {
-        assertTrue(service.delete(commentId));
-        assertTrue(service.findById(commentId).isEmpty());
-    }
-
-    @Test
-    @Order(12)
-    void findByIdNonExistent() {
-        assertTrue(service.findById(999999).isEmpty());
-    }
-
-    @Test
-    @Order(13)
-    void updateNonExistent() {
-        assertFalse(service.update(station.id(), 999999, "Alice", "new content"));
-    }
-
-    /** The markup an editor writes for a mention: the member named with its station. */
     private static String mention(Station memberStation, StationMember member, String name) {
         return "@[" + memberStation.uid() + "/" + member.uid() + ":" + name + "]";
     }
 
+    private static List<DomainEvent> published() {
+        var captor = ArgumentCaptor.forClass(DomainEvent.class);
+        verify(BUS, atLeast(0)).publish(captor.capture());
+        return captor.getAllValues();
+    }
+
+    @Test
+    void aTargetIsFoundWithItsStationAndTitle() {
+        var target = service.target(CommentEntityType.EVENT, eventId).orElseThrow();
+
+        assertEquals(station.id(), target.stationId());
+        assertEquals("Test Event", target.title());
+        assertTrue(service.target(CommentEntityType.EVENT, -1).isEmpty());
+    }
+
+    @Test
+    void aMissingTargetIsRefusedTheWayItsKindNamesIt() {
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.requireReadable(session(alice), CommentEntityType.EVENT, -1));
+
+        assertEquals(Refusal.EVENT_NOT_HERE, refused.refusal());
+        assertEquals(
+                eventId,
+                service.requireReadable(session(alice), CommentEntityType.EVENT, eventId)
+                        .id());
+    }
+
+    @Test
+    void aReplyTellsTheParentsAuthorAndCutsThePreview() {
+        var parent = write(alice, "Alice", null, "Frage");
+        reset(BUS);
+
+        var reply = write(bob, "Bob", parent.id(), "b".repeat(120));
+
+        var created = published().stream()
+                .filter(CommentCreated.class::isInstance)
+                .map(CommentCreated.class::cast)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(alice.id(), created.parentAuthorId());
+        assertEquals(bob.id(), created.authorMemberId());
+        assertEquals("Bob", created.authorName());
+        assertEquals("Test Event", created.entityTitle());
+        assertEquals("b".repeat(100) + "…", created.preview());
+        assertNull(created.alsoTold());
+        assertEquals(NotificationLinks.comment(NotificationLinks.event(eventId), reply.id()), created.link());
+    }
+
+    @Test
+    void aReplyToOneselfAndATopLevelCommentTellNobody() {
+        var parent = write(alice, "Alice", null, "Ich");
+        write(alice, "Alice", parent.id(), "Ich nochmal");
+
+        assertTrue(published().stream().noneMatch(CommentCreated.class::isInstance));
+    }
+
+    @Test
+    void anAnswerToACommentOnAnotherTargetIsRefused() {
+        var elsewhereComment = service.create(
+                session(alice),
+                CommentEntityType.EVENT,
+                otherEventId,
+                writer(alice, "Alice"),
+                new NewComment(null, null, "anderswo"));
+        var onNews = commentRepo.create(
+                CommentEntityType.NEWS,
+                newsRepo.create(station.id(), "Neu", "x", "x", null).id(),
+                null,
+                null,
+                identity(alice),
+                "Neuigkeit");
+
+        for (int parentId : List.of(elsewhereComment.id(), onNews.id(), -1)) {
+            var refused = assertThrows(RefusalResponse.class, () -> write(bob, "Bob", parentId, "quer"));
+            assertEquals(Refusal.COMMENT_PARENT_ELSEWHERE, refused.refusal());
+        }
+    }
+
+    @Test
+    void aMentionTellsTheMentionedMemberOnceAndNeverTheAuthor() {
+        String content = "Hey " + mention(station, bob, "Bob") + " und " + mention(station, bob, "Bob") + " und "
+                + mention(station, alice, "Alice") + " und " + mention(elsewhere, carol, "Carol");
+
+        var comment = write(alice, "Alice", null, content);
+
+        var mentioned = published().stream()
+                .filter(MentionedInComment.class::isInstance)
+                .map(MentionedInComment.class::cast)
+                .toList();
+        assertEquals(1, mentioned.size());
+        assertEquals(bob.id(), mentioned.getFirst().mentionedMemberId());
+        assertEquals(alice.id(), mentioned.getFirst().authorMemberId());
+        assertEquals(comment.id(), mentioned.getFirst().commentId());
+        assertEquals(CommentEntityType.EVENT, mentioned.getFirst().entityType());
+    }
+
+    @Test
+    void aCommentFromAPartnerTellsNobody() {
+        var parent = write(alice, "Alice", null, "Frage");
+        reset(BUS);
+        var target = service.target(CommentEntityType.EVENT, eventId).orElseThrow();
+
+        var comment = service.createOn(
+                target,
+                CommentWriter.partner(new MemberIdentity(UUID.randomUUID(), UUID.randomUUID()), "Partner"),
+                new NewComment(parent.id(), null, "Antwort " + mention(station, bob, "Bob")));
+
+        assertEquals(parent.id(), comment.parentId());
+        assertTrue(published().isEmpty());
+    }
+
+    @Test
+    void theListingFollowsTheFilter() {
+        int event = event("Liste");
+        var whole = service.create(
+                session(alice),
+                CommentEntityType.EVENT,
+                event,
+                writer(alice, "Alice"),
+                new NewComment(null, null, "ganz"));
+        var dated = service.create(
+                session(alice),
+                CommentEntityType.EVENT,
+                event,
+                writer(alice, "Alice"),
+                new NewComment(null, LocalDate.of(2027, 6, 1), "am Tag"));
+
+        assertEquals(
+                2,
+                service.list(CommentEntityType.EVENT, event, CommentFilter.ALL).size());
+        assertEquals(2, service.count(CommentEntityType.EVENT, event));
+        assertEquals(
+                List.of(whole.id()),
+                service.list(CommentEntityType.EVENT, event, new CommentFilter.Occurrence(null)).stream()
+                        .map(Comment::id)
+                        .toList());
+        assertEquals(
+                List.of(dated.id()),
+                service
+                        .list(CommentEntityType.EVENT, event, new CommentFilter.Occurrence(LocalDate.of(2027, 6, 1)))
+                        .stream()
+                        .map(Comment::id)
+                        .toList());
+        assertEquals(
+                2,
+                service.list(CommentEntityType.EVENT, event, new CommentFilter.FromStation(station.uid()))
+                        .size());
+    }
+
+    @Test
+    void onlyTheAuthorOrAModeratorMayModify() {
+        var comment = write(alice, "Alice", null, "meins");
+
+        assertTrue(service.mayModify(session(alice), identity(alice), comment, Moderation.EDIT));
+        assertFalse(service.mayModify(session(bob), identity(bob), comment, Moderation.EDIT));
+        assertFalse(service.mayModify(session(bob), identity(bob), comment, Moderation.DELETE));
+        assertTrue(service.mayModify(
+                session(bob, StationPermission.EVENT_MANAGER), identity(bob), comment, Moderation.DELETE));
+        assertFalse(service.mayModify(
+                session(bob, StationPermission.EVENT_MANAGER), identity(bob), comment, Moderation.EDIT));
+    }
+
+    @Test
+    void anotherStationIsRefusedTheComment() {
+        var comment = write(alice, "Alice", null, "intern");
+
+        service.requireSameStation(session(bob), comment);
+        var refused = assertThrows(RefusalResponse.class, () -> service.requireSameStation(session(carol), comment));
+        assertEquals(Refusal.NOT_YOURS_TO_OPEN, refused.refusal());
+    }
+
+    @Test
+    void anEditAnnouncesOnlyTheMentionsItAdds() {
+        String kept = "Hallo " + mention(station, bob, "Bob");
+        var comment = write(alice, "Alice", null, "Hallo");
+        reset(BUS);
+
+        var edited = service.update(comment, writer(alice, "Alice"), kept).orElseThrow();
+        assertEquals(kept, edited.content());
+        assertEquals(1, published().size());
+        reset(BUS);
+
+        service.update(edited, writer(alice, "Alice"), kept + ", Tippfehler");
+        assertTrue(published().isEmpty());
+    }
+
+    @Test
+    void anEditFromAPartnerAnnouncesNothing() {
+        var comment = write(alice, "Alice", null, "Hallo");
+        reset(BUS);
+
+        service.update(
+                comment, CommentWriter.partner(identity(alice), "Partner"), "Hallo " + mention(station, bob, "Bob"));
+
+        assertTrue(published().isEmpty());
+    }
+
+    @Test
+    void anEditOfAGoneCommentReportsNothing() {
+        var comment = write(alice, "Alice", null, "weg");
+        service.delete(comment);
+
+        assertTrue(service.update(comment, writer(alice, "Alice"), "neu").isEmpty());
+        assertFalse(service.delete(comment));
+    }
+
+    @Test
+    void aRemovalLeavesAPlaceholderUnderRepliesAndIsAnnounced() {
+        var parent = write(alice, "Alice", null, "Eltern");
+        var reply = write(bob, "Bob", parent.id(), "Antwort");
+        reset(BUS);
+
+        assertTrue(service.delete(parent));
+
+        var placeholder = service.findById(CommentEntityType.EVENT, parent.id()).orElseThrow();
+        assertTrue(placeholder.deleted());
+        assertTrue(service.findById(CommentEntityType.EVENT, reply.id()).isPresent());
+        var deleted = (CommentDeleted) published().getFirst();
+        assertEquals(parent.id(), deleted.commentId());
+        assertEquals(station.id(), deleted.stationId());
+        assertEquals(NotificationLinks.comment(NotificationLinks.event(eventId), parent.id()), deleted.link());
+        assertTrue(service.findById(CommentEntityType.NEWS, parent.id()).isEmpty());
+    }
+
     /**
-     * A member of another station is not notified, however the mention is written. The numeric form
-     * an older editor produced carried no station at all, so it reached anyone on the instance.
+     * A target may name people besides the thread to tell about every comment, and a target owned
+     * by no station still takes comments.
      */
     @Test
-    @Order(14)
-    void aMentionOfAnotherStationsMemberNotifiesNobody() {
-        reset(eventBus);
-        var otherStation = stationRepo.create("CommentOtherStation");
-        var otherAccount = accountRepo.create("comment-other@test.com", "Carol", "Elsewhere");
-        var otherMember = stationMemberRepo.create(otherStation.id(), otherAccount.id());
+    void aTargetCanTellOthersAboutEveryComment() {
+        int news = newsRepo.createSystem("An alle", "x", "x", true).id();
+        var others = StationAudience.member(bob.id());
+        var target = new TargetInfo(CommentEntityType.NEWS, news, null, "An alle", null, true);
+        var link = new NotificationLink("somewhere");
+        var told = new CommentService(
+                commentRepo,
+                Map.of(
+                        CommentEntityType.NEWS,
+                        new FixedTarget(target, new CreatedAudience(false, false, others), link)),
+                BUS,
+                newStationMemberService(null, null),
+                stationRepo,
+                new CommentMentions(memberLookupService, BUS));
 
-        var byUid = service.create(
-                station.id(),
-                eventId,
-                null,
-                identity1,
-                "Alice",
-                "Hello " + mention(otherStation, otherMember, "Carol"),
-                "Test Event",
-                null);
-        var byId = service.create(
-                station.id(),
-                eventId,
-                null,
-                identity1,
-                "Alice",
-                "Hello @[" + otherMember.id() + ":Carol]",
-                "Test Event",
-                null);
+        var comment = told.createOn(target, writer(alice, "Alice"), new NewComment(null, null, "Hallo"));
 
-        verify(eventBus, never()).publish(any());
-
-        service.delete(byId.id());
-        service.delete(byUid.id());
-        stationRepo.delete(otherStation.id());
-        accountRepo.delete(otherAccount.id());
+        var created = (CommentCreated) published().getFirst();
+        assertEquals(others, created.alsoTold());
+        assertEquals(0, created.stationId());
+        assertNull(created.authorMemberId());
+        assertNull(comment.stationId());
+        newsRepo.delete(news);
     }
 
-    /** A member mentioned twice in one comment is told once. */
-    @Test
-    @Order(14)
-    void aMemberMentionedTwiceIsToldOnce() {
-        reset(eventBus);
-        String content =
-                "Hey " + mention(station, member2, "Bob") + " and " + mention(station, member2, "Bob") + " again";
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event", null);
-        assertNotNull(comment);
-        verify(eventBus, times(1))
-                .publish(argThat(
-                        event -> event instanceof MentionedInComment m && m.mentionedMemberId() == member2.id()));
+    /** A target that answers the same for every member, for what no appointment does. */
+    private record FixedTarget(TargetInfo target, CreatedAudience audience, NotificationLink page)
+            implements CommentTarget {
+        @Override
+        public CommentEntityType type() {
+            return target.type();
+        }
 
-        service.delete(comment.id());
-    }
+        @Override
+        public Optional<TargetInfo> find(int targetId) {
+            return Optional.of(target);
+        }
 
-    /**
-     * A mention added by editing a comment tells the member it names, with the event's title and
-     * the comment it was added to, just as if the comment had been written with it.
-     */
-    @Test
-    @Order(14)
-    void aMentionAddedByAnEditNotifiesTheMentionedMember() {
-        var comment =
-                service.create(station.id(), eventId, null, identity1, "Alice", "See you there", "Test Event", null);
-        reset(eventBus);
+        @Override
+        public Refusal missing() {
+            return Refusal.NEWS_NOT_HERE_OR_NOT_YOURS;
+        }
 
-        service.update(station.id(), comment.id(), "Alice", "See you there " + mention(station, member2, "Bob"));
+        @Override
+        public void requireReadable(UserSession session, TargetInfo target) {}
 
-        verify(eventBus)
-                .publish(argThat(event -> event instanceof MentionedInComment m
-                        && m.mentionedMemberId() == member2.id()
-                        && m.authorMemberId() == member1.id()
-                        && m.entityId() == eventId
-                        && "Test Event".equals(m.entityTitle())
-                        && m.commentId() == comment.id()));
-        service.delete(comment.id());
-    }
+        @Override
+        public void requireWritable(UserSession session, TargetInfo target) {}
 
-    /** An edit that leaves a mention standing does not tell the member a second time. */
-    @Test
-    @Order(14)
-    void anEditKeepingAMentionTellsNobodyAgain() {
-        String content = "Hey " + mention(station, member2, "Bob");
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event", null);
-        reset(eventBus);
+        @Override
+        public boolean mayModerate(UserSession session, TargetInfo target, Moderation action) {
+            return false;
+        }
 
-        service.update(station.id(), comment.id(), "Alice", content + ", typo fixed");
+        @Override
+        public CreatedAudience audienceFor(TargetInfo target, CommentOrigin origin) {
+            return audience;
+        }
 
-        verify(eventBus, never()).publish(any());
-        service.delete(comment.id());
-    }
-
-    @Test
-    @Order(15)
-    void createWithNoMentions() {
-        reset(eventBus);
-        var comment =
-                service.create(station.id(), eventId, null, identity1, "Alice", "No mentions here", "Test Event", null);
-        assertNotNull(comment);
-        // No mentions - eventBus should not be called
-        verify(eventBus, never()).publish(any());
-        service.delete(comment.id());
-    }
-
-    @Test
-    @Order(16)
-    void updateExistingComment() {
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", "Original", "Test Event", null);
-        assertTrue(service.update(station.id(), comment.id(), "Alice", "Modified"));
-        var found = service.findById(comment.id()).orElseThrow();
-        assertEquals("Modified", found.content());
-        service.delete(comment.id());
-    }
-
-    @Test
-    @Order(17)
-    void deleteCommentWithChildrenSoftDeletes() {
-        // Create parent and child comments
-        var parent =
-                service.create(station.id(), eventId, null, identity1, "Alice", "Parent comment", "Test Event", null);
-        var child = service.create(
-                station.id(), eventId, parent.id(), identity2, "Bob", "Child comment", "Test Event", null);
-
-        // Delete parent - should soft-delete since it has children
-        assertTrue(service.delete(parent.id()));
-        var deleted = service.findById(parent.id());
-        assertTrue(deleted.isPresent());
-        assertTrue(deleted.get().deleted());
-        assertEquals("", deleted.get().content());
-
-        // Child should still exist
-        assertTrue(service.findById(child.id()).isPresent());
-
-        // Clean up
-        service.delete(child.id());
-        service.delete(parent.id());
-    }
-
-    @Test
-    @Order(18)
-    void deleteCommentWithoutChildrenHardDeletes() {
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", "Standalone", "Test Event", null);
-        assertTrue(service.delete(comment.id()));
-        assertTrue(service.findById(comment.id()).isEmpty());
-    }
-
-    @Test
-    @Order(19)
-    void createWithNewFormatMention() {
-        reset(eventBus);
-        // New format: @[stationUid/memberUid:Name]
-        String content = "Hey @[" + station.uid() + "/" + member2.uid() + ":Bob] look!";
-        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event", null);
-        assertNotNull(comment);
-        verify(eventBus)
-                .publish(argThat(
-                        event -> event instanceof MentionedInComment m && m.mentionedMemberId() == member2.id()));
-        service.delete(comment.id());
-    }
-
-    @Test
-    @Order(20)
-    void createWithNullAuthorSkipsNotifications() {
-        reset(eventBus);
-        // Federated comments with null author skip mention parsing and reply notifications
-        var comment = service.create(
-                station.id(),
-                eventId,
-                null,
-                null,
-                null,
-                "Federated comment @[" + member2.id() + ":Bob]",
-                "Test Event",
-                null);
-        assertNotNull(comment);
-        assertNull(comment.author());
-        verify(eventBus, never()).publish(any());
-        service.delete(comment.id());
-    }
-
-    @Test
-    @Order(21)
-    void findByEventReturnsEmpty() {
-        // Create a separate event with no comments
-        var event2 = eventRepo.create(
-                station.id(),
-                "Empty Event",
-                null,
-                StationEvent.EventType.ONE_TIME,
-                null,
-                Instant.now(),
-                Instant.now().plusSeconds(3600),
-                null,
-                false,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null);
-        var comments = service.findByEvent(event2.id());
-        assertTrue(comments.isEmpty());
-        eventRepo.delete(event2.id());
-    }
-
-    @Test
-    @Order(22)
-    void findByEventAndDateScopesToOccurrence() {
-        var date = LocalDate.of(2027, 6, 1);
-        // Whole-event comment + same-event occurrence comment.
-        service.create(station.id(), eventId, null, identity1, "Alice", "Whole event", "Test Event", null);
-        service.create(station.id(), eventId, null, identity1, "Alice", "On June 1", "Test Event", date);
-
-        // Whole-event filter only returns the eventDate=null comment.
-        var whole = service.findByEventAndDate(eventId, null);
-        assertTrue(whole.stream().anyMatch(c -> "Whole event".equals(c.content())));
-        assertTrue(whole.stream().noneMatch(c -> "On June 1".equals(c.content())));
-
-        // Date filter only returns the occurrence comment.
-        var june = service.findByEventAndDate(eventId, date);
-        assertEquals(1, june.size());
-        assertEquals("On June 1", june.getFirst().content());
-        assertEquals(date, june.getFirst().eventDate());
+        @Override
+        public NotificationLink link(TargetInfo target, int commentId) {
+            return NotificationLinks.comment(page, commentId);
+        }
     }
 }

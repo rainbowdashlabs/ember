@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
@@ -32,6 +33,9 @@ import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
+import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
@@ -526,15 +530,15 @@ public class NewsService {
             eventBus.publish(new CommentCreated(
                     stationId,
                     CommentEntityType.NEWS,
-                    newsId,
                     news.title(),
-                    null,
+                    commentLink(newsId, comment.id()),
                     comment.id(),
                     parentId,
                     parentAuthorMemberId,
                     authorMemberId,
                     authorName,
-                    preview));
+                    preview,
+                    StationAudience.holders(stationId, StationPermission.NEWS_MANAGER)));
 
             if (authorMemberId != null) {
                 mentions.announce(
@@ -557,11 +561,14 @@ public class NewsService {
                 authorMemberId,
                 authorName,
                 CommentEntityType.NEWS,
-                news.id(),
                 news.title(),
-                null,
+                commentLink(news.id(), commentId),
                 commentId,
                 commentPreview(content));
+    }
+
+    private static NotificationLink commentLink(int newsId, int commentId) {
+        return NotificationLinks.comment(NotificationLinks.news(newsId), commentId);
     }
 
     // -- Comments --
@@ -648,7 +655,8 @@ public class NewsService {
             return false;
         }
         if (comments.delete(CommentEntityType.NEWS, id)) {
-            eventBus.publish(new CommentDeleted(stationId, CommentEntityType.NEWS, id));
+            eventBus.publish(
+                    new CommentDeleted(stationId, CommentEntityType.NEWS, commentLink(comment.newsId(), id), id));
             log.info("Deleted news comment {} on station {}", id, stationId);
             return true;
         }

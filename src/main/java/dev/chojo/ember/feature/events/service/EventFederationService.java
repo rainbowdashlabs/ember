@@ -11,7 +11,9 @@ import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.repository.CommentRepository;
+import dev.chojo.ember.feature.comment.entity.CommentFilter;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.comment.service.CommentService;
@@ -78,7 +80,6 @@ public class EventFederationService implements FederationServer {
     private final StationRepository stationRepository;
     private final EventCrudService crudService;
     private final CommentService commentService;
-    private final CommentRepository commentRepository;
     private final MemberNameResolver memberNameResolver;
     private final FederationFanout fanout;
     private final FederationEntityResolver entityResolver;
@@ -97,7 +98,6 @@ public class EventFederationService implements FederationServer {
             StationRepository stationRepository,
             EventCrudService crudService,
             CommentService commentService,
-            CommentRepository commentRepository,
             MemberNameResolver memberNameResolver,
             FederationFanout fanout,
             FederationEntityResolver entityResolver,
@@ -113,7 +113,6 @@ public class EventFederationService implements FederationServer {
         this.stationRepository = stationRepository;
         this.crudService = crudService;
         this.commentService = commentService;
-        this.commentRepository = commentRepository;
         this.memberNameResolver = memberNameResolver;
         this.fanout = fanout;
         this.entityResolver = entityResolver;
@@ -845,13 +844,14 @@ public class EventFederationService implements FederationServer {
      * Lists comments for an event, enriched with federated author info.
      */
     public List<CommentResponse> listComments(int eventId) {
-        return commentService.findByEvent(eventId).stream()
+        return commentService.list(CommentEntityType.EVENT, eventId, CommentFilter.ALL).stream()
                 .map(this::toCommentResponse)
                 .toList();
     }
 
     /**
-     * Creates a comment from a remote federated partner.
+     * Creates a comment from a remote federated partner. A comment from a partner tells nobody here,
+     * which the appointment's comment target decides.
      */
     public CommentResponse createRemoteComment(
             FederationPartner partner,
@@ -861,8 +861,12 @@ public class EventFederationService implements FederationServer {
             Integer parentId,
             String content,
             LocalDate eventDate) {
+        var target = commentService
+                .target(CommentEntityType.EVENT, eventId)
+                .orElseThrow(Refusal.EVENT_NOT_SHARED_WITH_PARTNER::raise);
         var author = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
-        var comment = commentRepository.create(CommentEntityType.EVENT, eventId, eventDate, parentId, author, content);
+        var comment = commentService.createOn(
+                target, CommentWriter.partner(author, displayName), new NewComment(parentId, eventDate, content));
         federationRepository.cacheName(partner.id(), remoteMemberUid, displayName);
         log.info("Comment {} created on event {} (partner {})", comment.id(), eventId, partner.id());
         return toCommentResponse(comment);
@@ -873,10 +877,11 @@ public class EventFederationService implements FederationServer {
      */
     public CommentResponse updateRemoteComment(
             FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
-        requireCommentAuthor(commentId, partner, remoteMemberUid, "edit");
-        commentRepository.update(CommentEntityType.EVENT, commentId, content);
+        var comment = requireCommentAuthor(commentId, partner, remoteMemberUid, "edit");
+        var updated = commentService
+                .update(comment, CommentWriter.partner(comment.author(), ""), content)
+                .orElseThrow(NotFoundResponse::new);
         log.info("Comment {} on an event edited (partner {})", commentId, partner.id());
-        var updated = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         return toCommentResponse(updated);
     }
 
@@ -884,10 +889,9 @@ public class EventFederationService implements FederationServer {
      * Deletes a comment from a remote federated partner after verifying ownership.
      */
     public boolean deleteRemoteComment(FederationPartner partner, int commentId, UUID remoteMemberUid) {
-        requireCommentAuthor(commentId, partner, remoteMemberUid, "delete");
-        boolean deleted = commentService.delete(commentId);
+        var comment = requireCommentAuthor(commentId, partner, remoteMemberUid, "delete");
+        boolean deleted = commentService.delete(comment);
         if (deleted) log.info("Comment {} on an event deleted (partner {})", commentId, partner.id());
-        else log.warn("Delete for event comment {} affected zero rows", commentId);
         return deleted;
     }
 
@@ -952,12 +956,15 @@ public class EventFederationService implements FederationServer {
      * Verifies the comment exists and was authored by the given federated member, throwing
      * {@link NotFoundResponse} when absent and {@link ForbiddenResponse} on an author mismatch.
      */
-    private void requireCommentAuthor(int commentId, FederationPartner partner, UUID memberUid, String action) {
-        var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
+    private Comment requireCommentAuthor(int commentId, FederationPartner partner, UUID memberUid, String action) {
+        var comment =
+                commentService.findById(CommentEntityType.EVENT, commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), memberUid);
-        if (comment.author() == null || !comment.author().sameMember(expectedIdentity)) {
+        var author = comment.author();
+        if (author == null || !author.sameMember(expectedIdentity)) {
             throw new ForbiddenResponse("You can only " + action + " your own comments");
         }
+        return comment;
     }
 
     /**
