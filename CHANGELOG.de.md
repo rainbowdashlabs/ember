@@ -114,6 +114,7 @@
 - **Die öffentliche URL-Kennung einer Wache ließ sich nicht entfernen.** Wer in den Föderations-Einstellungen die URL-Kennung der öffentlichen Seite leerte, behielt die alte, und sie kam nach dem Neuladen zurück. Ein leeres Feld entfernt sie jetzt.
 - **Ein neues Lesezeichen auf einem föderierten Board erschien nicht.** Ein Lesezeichen auf der Seite der föderierten Boards blieb bis zum Neuladen unmarkiert, und ein zweiter Klick versuchte, das Board noch einmal zu merken. Das Lesezeichen erscheint jetzt sofort, und ein zweiter Klick entfernt es.
 - **Erziehungsberechtigte sahen die Ausrüstung ihrer betreuten Mitglieder ohne ihren Stand.** Unter „Mein Inventar“ zeigte diese Ausrüstung weder den Schritt eines Tauschs noch ihr Bild und bot für Gegenstände, die schon unterwegs waren, weiter Tausch und Verlustmeldung an. Sie erscheint jetzt genau so, wie das Mitglied sie selbst sieht.
+- **Eine Profilantwort konnte bei der falschen Frage landen.** In manchen Fällen, wenn eine Wache und ihr Verband je eine Frage unter derselben Nummer stellten, zeigte die eigene Profilseite eines Mitglieds für beide eine Antwort und speicherte sie nur bei der Frage der Wache. Jede Frage behält jetzt ihre eigene Antwort.
 
 ## v26.19.5
 

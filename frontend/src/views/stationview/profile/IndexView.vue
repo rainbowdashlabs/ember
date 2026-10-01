@@ -12,7 +12,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import { managedMembers as managedMembersApi, profileFields } from '@/api'
 import type { ManagedMember, MergedField } from '@/api/generated/schema'
-import {decodeProfileValues, getFieldValue, setFieldValue} from '@/util/profileFields'
+import {decodeMergedValues, profileKey} from '@/util/profileFields'
+import type {FieldOriginName} from '@/api/profileFields'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -29,7 +30,7 @@ const { sessionInfo } = useSession()
 const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const fields = ref<MergedField[]>([])
-const values = ref<Map<number, string>>(new Map())
+const values = ref<Map<string, string>>(new Map())
 
 const memberId = computed(() => sessionInfo.value?.member?.id ?? null)
 
@@ -72,17 +73,29 @@ const editableFields = computed(() => fields.value)
 const incompleteFields = computed(() => {
   return editableFields.value.filter(f => {
     if (!f.required || f.readonly) return false
-    const val = getValue(f.id)
+    const val = getValue(f)
     return !val || val === '""' || val === '' || val === 'null'
   })
 })
 
-function getValue(fieldId: number): string {
-  return getFieldValue(values, fieldId)
+/** A question is named by where it comes from as well as its number: station and association count apart. */
+interface FieldRef {
+  id: number
+  origin?: FieldOriginName | null
 }
 
-function setValue(fieldId: number, val: string) {
-  setFieldValue(values, fieldId, val)
+function keyOf(field: FieldRef): string {
+  return profileKey(field.id, field.origin ?? 'STATION')
+}
+
+function getValue(field: FieldRef): string {
+  return values.value.get(keyOf(field)) ?? ''
+}
+
+function setValue(field: FieldRef, val: string) {
+  const next = new Map(values.value)
+  next.set(keyOf(field), val)
+  values.value = next
 }
 
 const { loading, failure, reload } = useAsyncLoader(async () => {
@@ -92,7 +105,7 @@ const { loading, failure, reload } = useAsyncLoader(async () => {
     profileFields.getValues(memberId.value),
   ])
   fields.value = allFields
-  values.value = decodeProfileValues(profileValues)
+  values.value = decodeMergedValues(profileValues)
 })
 
 async function saveProfile() {
@@ -101,7 +114,7 @@ async function saveProfile() {
   try {
     const entries = valueFields(editableFields.value)
       .filter(f => !f.readonly)
-      .map(f => ({ fieldId: f.id, value: JSON.stringify(getValue(f.id)) }))
+      .map(f => ({ fieldId: f.id, value: JSON.stringify(getValue(f)), origin: f.origin }))
     await profileFields.setValues(memberId.value, { values: entries })
     refreshSidebarCounts()
   } catch (e) {

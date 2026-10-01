@@ -114,6 +114,7 @@
 - **A station's public web address could not be removed.** Emptying the web address of the station's public page in the federation settings kept the old one, and it came back after reloading. An empty field now removes it.
 - **A new bookmark on a federated board did not show.** Bookmarking a board on the federated boards page left it unmarked until the page was reloaded, and a second click tried to bookmark it again. The bookmark now shows at once, and a second click removes it.
 - **Guardians saw the gear of the members in their care without its state.** Under My inventory, that gear showed neither the step of an exchange nor its picture, and still offered an exchange or a loss report for pieces already on their way. It is now shown exactly as the member sees it.
+- **A profile answer could land on the wrong question.** In some cases, when a station and its association each asked a question under the same number, a member's own profile page showed one answer for both and saved it to the station's question only. Each question now keeps its own answer.
 
 ## v26.19.5
 
