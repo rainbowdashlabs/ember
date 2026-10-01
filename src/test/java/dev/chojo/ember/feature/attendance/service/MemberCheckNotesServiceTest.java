@@ -78,10 +78,6 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A birthday is answered from the station's own birth date field, and only where that field is
-     * one the reader may see. A station that keeps it to managers tells nobody else.
-     */
-    /**
      * Two days ago as the station reckons it, which is not the same as two days ago here.
      *
      * <p>A station keeps its own timezone and defaults to Europe/Berlin, so between 22:00 and
@@ -95,6 +91,10 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
                 .minusDays(2);
     }
 
+    /**
+     * A birthday is answered from the station's own birth date field, and only where that field is
+     * one the reader may see. A station that keeps it to managers tells nobody else.
+     */
     @Test
     void aBirthdayFollowsTheScopeOfTheFieldItLivesIn() {
         var field = profileFieldRepo.create(
