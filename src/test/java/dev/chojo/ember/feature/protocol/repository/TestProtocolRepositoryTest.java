@@ -44,8 +44,6 @@ class TestProtocolRepositoryTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
-    // -- Protocols --
-
     @Test
     @Order(1)
     void createProtocol() {
@@ -90,8 +88,6 @@ class TestProtocolRepositoryTest extends RepositoryTestBase {
         assertEquals(80, found.passThreshold());
     }
 
-    // -- Sections --
-
     @Test
     @Order(10)
     void createSection() {
@@ -123,8 +119,6 @@ class TestProtocolRepositoryTest extends RepositoryTestBase {
                         .name());
     }
 
-    // -- Items --
-
     @Test
     @Order(20)
     void createItem() {
@@ -155,8 +149,6 @@ class TestProtocolRepositoryTest extends RepositoryTestBase {
     void updateItem() {
         assertTrue(testProtocolRepo.updateItem(itemId, "Knows traffic signs (updated)", "Updated", 12.0, 1));
     }
-
-    // -- Runs --
 
     @Test
     @Order(30)
@@ -197,8 +189,6 @@ class TestProtocolRepositoryTest extends RepositoryTestBase {
         assertTrue(testProtocolRepo.closeRun(runId));
     }
 
-    // -- Run Members --
-
     @Test
     @Order(40)
     void addRunMember() {
@@ -211,7 +201,6 @@ class TestProtocolRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(41)
     void addRunMemberIdempotent() {
-        // Adding same member again should return existing
         var rm = testProtocolRepo.addRunMember(runId, member.id());
         assertEquals(runMemberId, rm.id());
     }
@@ -242,7 +231,6 @@ class TestProtocolRepositoryTest extends RepositoryTestBase {
     @Order(45)
     void updateScore() {
         testProtocolRepo.updateScore(runMemberId, 42.5);
-        // No exception = success; score stored
     }
 
     @Test
@@ -253,7 +241,6 @@ class TestProtocolRepositoryTest extends RepositoryTestBase {
         assertFalse(checks.isEmpty());
         assertTrue(checks.stream().anyMatch(c -> c.itemId() == itemId && c.checked()));
 
-        // Upsert again to update
         testProtocolRepo.upsertCheck(runMemberId, itemId, false, member.id());
         var updated = testProtocolRepo.findChecks(runMemberId);
         assertTrue(updated.stream().anyMatch(c -> c.itemId() == itemId && !c.checked()));
@@ -299,8 +286,6 @@ class TestProtocolRepositoryTest extends RepositoryTestBase {
         assertTrue(testProtocolRepo.findSectionStation(-1).isEmpty());
         assertTrue(testProtocolRepo.findItemStation(-1).isEmpty());
     }
-
-    // -- Cleanup --
 
     @Test
     @Order(90)

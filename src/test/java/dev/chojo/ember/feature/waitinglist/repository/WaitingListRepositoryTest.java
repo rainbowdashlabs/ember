@@ -177,7 +177,6 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         assertEquals(1, values.size());
         assertEquals(IntNode.valueOf(8), values.getFirst().value());
 
-        // Upsert overwrites
         waitingListRepo.upsertEntryValue(entry.id(), field.id(), IntNode.valueOf(9));
         values = waitingListRepo.findEntryValues(entry.id());
         assertEquals(1, values.size());
@@ -293,7 +292,6 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 waitingListRepo.create(stationId, "Link List", "", null, 180, null, null, 5, false, true, null, null);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
-        // Create a station member to link
         var account = accountRepo.create("wl-link@test.com", "WL", "Link");
         var member = stationMemberRepo.create(stationId, account.id());
         waitingListRepo.linkMember(entry.id(), member.id());
@@ -455,7 +453,6 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void findAll() {
-        // Should return at least the lists we've created
         var all = waitingListRepo.findAll();
         assertFalse(all.isEmpty());
     }

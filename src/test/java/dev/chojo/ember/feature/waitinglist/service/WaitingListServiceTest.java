@@ -202,11 +202,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertEquals("Müller", entry.lastname());
         assertEquals(WaitingListEntryStatus.WAITING, entry.status());
 
-        // Invite should be used up
         var usedInvite = service.findInviteByCode(invite.code()).orElseThrow();
         assertFalse(usedInvite.hasUsesLeft());
 
-        // Values should be stored
         var values = service.findEntryValues(entry.id());
         assertEquals(1, values.size());
         assertEquals(IntNode.valueOf(8), values.getFirst().value());
@@ -248,18 +246,17 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var entry = service.registerViaInvite(
                 invite.code(), "Max", "", guardians("", "test@test.com"), Map.of(), null, TEST_CONSENT);
 
-        // Find by token
         var found = service.findEntryByToken(entry.accessToken());
         assertTrue(found.isPresent());
 
-        // Confirm interest
         service.confirmInterest(entry.accessToken());
         var confirmed = service.findEntryByToken(entry.accessToken()).orElseThrow();
         assertNotNull(confirmed.confirmedAt());
 
-        // Remove: while waiting there is nothing but the entry, so it goes for good
         service.removeByToken(entry.accessToken());
-        assertTrue(service.findEntryByToken(entry.accessToken()).isEmpty());
+        assertTrue(
+                service.findEntryByToken(entry.accessToken()).isEmpty(),
+                "while waiting there is nothing but the entry, so it goes for good");
     }
 
     @Test
@@ -361,7 +358,6 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var newCreatedAt = Instant.parse("2020-01-01T00:00:00Z");
         service.updateCreatedAt(entry.id(), newCreatedAt);
         var found = service.findEntryById(entry.id()).orElseThrow();
-        // The timestamp should have been updated
         assertNotNull(found.createdAt());
     }
 
@@ -393,17 +389,14 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var entry = service.createEntry(
                 list.id(), "InviteeFirst", "InviteeLast", guardians("Parent", "invite@test.com"), Map.of(), "");
 
-        // Invite: WAITING -> INVITED. An invitation is a message, so nobody is on the station yet.
         var invited = invite(entry.id());
         assertEquals(WaitingListEntryStatus.INVITED, invited.status());
         assertNull(invited.memberId(), "an invitation must not put anybody on the station");
 
-        // Move to testing: INVITED -> TESTING, which is where the member appears
         var testing = service.moveToTesting(invited.id());
         assertEquals(WaitingListEntryStatus.TESTING, testing.status());
-        assertNotNull(testing.memberId());
+        assertNotNull(testing.memberId(), "moving to testing is where the member appears");
 
-        // Join: TESTING -> JOINED
         var joined = service.moveToJoined(testing.id());
         assertEquals(WaitingListEntryStatus.JOINED, joined.status());
     }
@@ -691,14 +684,12 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void moveToTestingWrongStatusThrows() {
         var entry = service.createEntry(listId, "Bad", "", guardians("", "bad@test.com"), Map.of(), "");
-        // Entry is WAITING, not INVITED
         assertThrows(IllegalStateException.class, () -> service.moveToTesting(entry.id()));
     }
 
     @Test
     void moveToJoinedWrongStatusThrows() {
         var entry = service.createEntry(listId, "Bad2", "", guardians("", "bad2@test.com"), Map.of(), "");
-        // Entry is WAITING, not TESTING
         assertThrows(IllegalStateException.class, () -> service.moveToJoined(entry.id()));
     }
 
@@ -720,7 +711,6 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void checkExpiredConfirmations() {
         var list = service.findById(listId).orElseThrow();
-        // Should not throw
         assertDoesNotThrow(() -> service.checkExpiredConfirmations(list));
     }
 
@@ -886,13 +876,13 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var entry = service.createEntry(
                 list.id(), "InviteeFirst2", "InviteeLast2", guardians("Parent", "inv2@test.com"), Map.of(), "");
 
-        // Invite: WAITING -> INVITED. No member, so the testing group stays empty.
         var invited = invite(entry.id());
         assertEquals(WaitingListEntryStatus.INVITED, invited.status());
         assertNull(invited.memberId());
-        assertTrue(memberGroupRepo.findMembers(testingGroup.id()).isEmpty());
+        assertTrue(
+                memberGroupRepo.findMembers(testingGroup.id()).isEmpty(),
+                "without a member the testing group stays empty");
 
-        // Move to testing: INVITED -> TESTING, which puts the new member in the testing group
         var testing = service.moveToTesting(invited.id());
         assertEquals(WaitingListEntryStatus.TESTING, testing.status());
         assertEquals(
@@ -1116,12 +1106,10 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 list.id(), "Invited", "Earlier", guardians("Parent", "legacy@test.com"), Map.of(), "");
         var invited = invite(entry.id());
 
-        // What the old invitation left behind: an account, a member and the group of the day
         var account = accountRepo.create(null, "Invited", "Earlier", station.id());
         var member = stationMemberRepo.create(station.id(), account.id());
         waitingListRepo.linkMember(invited.id(), member.id());
         memberGroupRepo.addMember(oldGroup.id(), member.id());
-        // ... and the list has been pointed at a different group since
         service.update(list.id(), list.name(), "", null, 180, currentGroup.id(), null, 5, false, true, null, null);
 
         var testing = service.moveToTesting(invited.id());
@@ -1137,7 +1125,6 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 memberGroupRepo.findMembers(oldGroup.id()).stream()
                         .map(StationMember::id)
                         .toList());
-        // And running it again over the group it now sits in does not try to write that row twice
         waitingListRepo.updateEntryStatus(testing.id(), WaitingListEntryStatus.INVITED);
         assertDoesNotThrow(() -> service.moveToTesting(testing.id()));
         assertEquals(1, memberGroupRepo.findMembers(currentGroup.id()).size());
@@ -1189,7 +1176,6 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 Map.of(),
                 "");
 
-        // Go through the full lifecycle: invite -> testing -> joined
         var invited = invite(entry.id());
         var testing = service.moveToTesting(invited.id());
         var joined = service.moveToJoined(testing.id());
@@ -1198,7 +1184,6 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void moveToJoinedWithExistingGuardianAccount() {
-        // Pre-create an account with the guardian's email
         var existingAccount = accountRepo.create("existing-guardian@test.com", "Existing", "Guardian");
         var existingMember = stationMemberRepo.create(station.id(), existingAccount.id());
 
@@ -1228,7 +1213,6 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var joined = service.moveToJoined(testing.id());
         assertEquals(WaitingListEntryStatus.JOINED, joined.status());
 
-        // Cleanup
         stationMemberRepo.delete(existingMember.id());
         accountRepo.delete(existingAccount.id());
     }
@@ -1334,34 +1318,28 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertEquals(2, service.findEntryValues(fine.id()).size());
     }
 
+    /** The entry is set to testing by hand rather than invited, so it never gained a member. */
     @Test
     void moveToJoinedWithNullMemberId() {
-        // Create an entry in TESTING status that has no linked member (null memberId)
         var list = service.create(
                 station.id(), "NullMember " + UUID.randomUUID(), "", null, 180, null, null, 5, false, true, null, null);
         var entry = service.createEntry(list.id(), "NoMem", "X", guardians("", "nomem@test.com"), Map.of(), "");
-        // Manually set to TESTING status
         service.updateEntryStatus(entry.id(), WaitingListEntryStatus.TESTING);
-        // entry.memberId() is null since we didn't go through inviteEntry
         var joined = service.moveToJoined(entry.id());
         assertEquals(WaitingListEntryStatus.JOINED, joined.status());
     }
 
-    // --- Public waitlist tests ---
-
     @Test
     void findPublicByStation() {
-        // listId is created with isPublic=false in @BeforeEach
         var publicList = service.create(
                 station.id(), "Public " + UUID.randomUUID(), "", null, 180, null, null, 5, true, true, null, null);
         var publicLists = service.findPublicByStation(station.id());
         assertTrue(publicLists.stream().anyMatch(l -> l.id() == publicList.id()));
-        assertTrue(publicLists.stream().noneMatch(l -> l.id() == listId));
+        assertTrue(publicLists.stream().noneMatch(l -> l.id() == listId), "the list from the setup is not public");
     }
 
     @Test
     void hasPublicWaitlists() {
-        // Use a fresh station so no prior public lists interfere
         var freshStation = stationRepo.create("HasPublicTest " + UUID.randomUUID());
         assertFalse(service.hasPublicWaitlists(freshStation.id()));
         service.create(
@@ -1408,15 +1386,12 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "notes",
                 TEST_CONSENT);
 
-        // Retrieve the token from the repository (via the verification table)
         var token = waitingListRepo.findPublicByStation(station.id()).stream()
                 .flatMap(l -> {
-                    // We know a token was created - find it
                     return Stream.empty();
                 })
                 .findFirst();
 
-        // Verify via the DB directly
         var tokens = Query.query("SELECT token FROM waitlist_verification_token WHERE list_id = :list_id")
                 .single(Call.of().bind("list_id", publicList.id()))
                 .map(row -> row.getString("token"))
@@ -1426,7 +1401,6 @@ class WaitingListServiceTest extends RepositoryTestBase {
         boolean verified = service.verifyPublicRegistration(tokens.getFirst());
         assertTrue(verified);
 
-        // Entry should exist with PENDING status
         var entries = service.findEntriesByStatus(publicList.id(), WaitingListEntryStatus.PENDING);
         assertEquals(1, entries.size());
         assertEquals("TestChild", entries.getFirst().firstname());
@@ -1436,7 +1410,6 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void approvePendingEntry() {
         var publicList = service.create(
                 station.id(), "Approve " + UUID.randomUUID(), "", null, 180, null, null, 5, true, true, null, null);
-        // Create a PENDING entry directly
         var entry = waitingListRepo.createEntryWithStatus(
                 publicList.id(),
                 "Pending",
@@ -1473,7 +1446,6 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void submitPublicRegistrationNonPublicListThrows() {
-        // listId is not public
         assertThrows(
                 IllegalStateException.class,
                 () -> service.submitPublicRegistration(
@@ -1632,8 +1604,6 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertNull(after.reminderSentAt());
     }
 
-    // --- A list that writes to nobody ---
-
     /** A public list nobody is written to, which is what a station behind its own network keeps. */
     private WaitingList silentList(String name) {
         return service.create(
@@ -1745,8 +1715,6 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertEquals(WaitingListEntryStatus.WAITING, entry.status());
         assertNothingWasWritten();
     }
-
-    // --- Age ---
 
     private int birthDateListWith(Integer minRegister, Integer minJoin) {
         return service.create(

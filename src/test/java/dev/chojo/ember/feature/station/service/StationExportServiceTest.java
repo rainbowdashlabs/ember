@@ -77,8 +77,9 @@ class StationExportServiceTest extends RepositoryTestBase {
 
         var members = (List<Map<String, Object>>) data.get("station_member");
         assertFalse(members.isEmpty());
-        // account_id is in ignoredColumns - the importer matches via account_email lookup instead.
-        assertNull(members.getFirst().get("account_id"));
+        assertNull(
+                members.getFirst().get("account_id"),
+                "the account id is an ignored column; the importer matches by account email instead");
         assertEquals("export-test@example.com", members.getFirst().get("account_email"));
     }
 
@@ -108,12 +109,10 @@ class StationExportServiceTest extends RepositoryTestBase {
     @Order(6)
     @SuppressWarnings("unchecked")
     void paginationWorks() {
-        // Export with limit 1 should return exactly 1 member
         var page1 = exportService.exportTable(stationId, "station_member", 0, 1);
         var members1 = (List<Map<String, Object>>) page1.get("station_member");
         assertEquals(1, members1.size());
 
-        // Page 2 with offset 1 should be empty (only 1 member)
         var page2 = exportService.exportTable(stationId, "station_member", 1, 1);
         var members2 = (List<Map<String, Object>>) page2.get("station_member");
         assertTrue(members2.isEmpty());

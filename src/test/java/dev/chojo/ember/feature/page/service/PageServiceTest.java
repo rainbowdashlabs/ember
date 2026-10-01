@@ -99,7 +99,6 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(2)
     void slugGeneration() {
-        // Test slug generation via create
         var page = service.create(station.id(), "Test Slug!", null, member.id());
         assertEquals("test-slug", page.slug());
         service.deletePage(page.id());
@@ -206,13 +205,15 @@ class PageServiceTest extends RepositoryTestBase {
         assertEquals("welcome-page", slug.orElseThrow());
     }
 
+    /**
+     * A missing page throws a raw {@link IllegalArgumentException}, which the route handler masks to a
+     * generic 400; an unpublished page throws a {@link BadRequestResponse} so its message reaches the user.
+     */
     @Test
     @Order(12)
     void landingPageValidation() {
-        // Page does not exist (raw IllegalArgumentException - masked to generic 400 by the route handler)
         assertThrows(IllegalArgumentException.class, () -> service.setLandingPage(station.id(), 99999));
 
-        // Page not published - user-facing BadRequestResponse so the message is preserved
         service.setVisibility(pageId, PageVisibility.DRAFT);
         assertThrows(BadRequestResponse.class, () -> service.setLandingPage(station.id(), pageId));
 
@@ -263,7 +264,6 @@ class PageServiceTest extends RepositoryTestBase {
         service.setVisibility(childPageId, PageVisibility.PUBLIC);
         var grandchild = service.create(station.id(), "Grandchild", childPageId, member.id());
 
-        // Depth 3 would be exceeded - user-facing BadRequestResponse
         assertThrows(
                 BadRequestResponse.class,
                 () -> service.create(station.id(), "GreatGrandchild", grandchild.id(), member.id()));

@@ -53,14 +53,12 @@ class TrustedDeviceServiceTest extends RepositoryTestBase {
     @Test
     void issueClampsDays() {
         int accountId = newAccount();
-        // Default cap is 30 - asking for 999 clamps to 30.
         var capped = service.issue(accountId, 999, "ua");
         var seconds = capped.device().trustedUntil().getEpochSecond() - System.currentTimeMillis() / 1000;
         assertTrue(seconds <= 31L * 86400L, "trusted_until is capped at maxDays (30)");
 
-        // Asking for 0 is clamped up to 1 (issue is always positive).
         var minimum = service.issue(accountId, 0, "ua");
-        assertNotNull(minimum.token());
+        assertNotNull(minimum.token(), "asking for zero days is clamped up to one");
     }
 
     @Test

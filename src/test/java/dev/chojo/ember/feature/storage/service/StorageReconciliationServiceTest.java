@@ -66,13 +66,11 @@ class StorageReconciliationServiceTest extends RepositoryTestBase {
         try {
             var scope = new StorageScope.Station(station.id(), station.uid());
 
-            // Live media row with hash "live-hash" - file under that hash must survive.
             String liveHash = "a".repeat(64);
             mediaFileRepo.create(null, station.id(), liveHash, "live.txt", "text/plain", 5);
             storageService.store(
                     scope, StorageCategory.MEDIA_FILES, liveHash + "/orig.txt", "alive".getBytes(), "text/plain");
 
-            // Orphan hash with no DB row - file under that hash must be deleted.
             String orphanHash = "b".repeat(64);
             storageService.store(
                     scope, StorageCategory.MEDIA_FILES, orphanHash + "/orig.txt", "dead".getBytes(), "text/plain");
@@ -96,7 +94,6 @@ class StorageReconciliationServiceTest extends RepositoryTestBase {
         try {
             var scope = new StorageScope.Station(station.id(), station.uid());
 
-            // KB inline images have no DB tracking; reconciliation must NOT delete them blindly.
             String inlineId = "file-1-1700000000000";
             storageService.store(
                     scope,

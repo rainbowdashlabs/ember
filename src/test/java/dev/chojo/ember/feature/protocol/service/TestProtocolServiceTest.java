@@ -78,13 +78,11 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         account = accountRepo.create("protocol-svc@test.com", "Protocol", "SvcTester");
         member = stationMemberRepo.create(station.id(), account.id());
 
-        // Create bidirectional federation partnership (capabilities enabled by default)
         var keyPair = federationService.generateKeyPair();
         var partner = federationService.acceptInvite(
                 station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
         int partnerIdAtoB = partner.id();
 
-        // Create remote federation partnership (stationC is a remote partner)
         var keyPairC = federationService.generateKeyPair();
         federationService.acceptInvite(
                 station.id(),
@@ -105,8 +103,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         stationRepo.delete(stationC.id());
         accountRepo.delete(account.id());
     }
-
-    // -- Protocols --
 
     @Test
     @Order(1)
@@ -147,8 +143,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertTrue(service.updateProtocol(protocolId, "Updated Test", "Updated", 80));
     }
 
-    // -- Sections --
-
     @Test
     @Order(10)
     void createSection() {
@@ -169,8 +163,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     void updateSection() {
         assertTrue(service.updateSection(sectionId, "Theory Updated", "Updated", 60, 40, 1));
     }
-
-    // -- Items --
 
     @Test
     @Order(20)
@@ -200,8 +192,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertTrue(service.updateItem(itemId, "Updated label", "Updated desc", 12.0, 1));
     }
 
-    // -- Runs --
-
     @Test
     @Order(30)
     void createRun() {
@@ -229,8 +219,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertTrue(service.updateRun(runId, "Updated Run", LocalDate.of(2026, 2, 1)));
     }
 
-    // -- Run Members --
-
     @Test
     @Order(40)
     void addRunMember() {
@@ -241,7 +229,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Test
     @Order(41)
     void addRunMembers() {
-        // Add same member again (idempotent)
         service.addRunMembers(runId, List.of(member.id()));
         var members = service.findRunMembers(runId);
         assertFalse(members.isEmpty());
@@ -267,19 +254,15 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertFalse(service.lockMember(runId, 99999, member.id()));
     }
 
-    // -- Checks and Score --
-
     @Test
     @Order(50)
     void saveChecks() {
         service.saveChecks(runId, member.id(), Map.of(itemId, true), member.id(), protocolId);
-        // No exception = success
     }
 
     @Test
     @Order(51)
     void saveChecksForNonexistentMember() {
-        // Should silently do nothing
         service.saveChecks(runId, 99999, Map.of(itemId, true), member.id(), protocolId);
     }
 
@@ -296,17 +279,13 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertTrue(service.findChecks(runId, 99999).isEmpty());
     }
 
-    // -- Section Done --
-
     @Test
     @Order(60)
     void toggleSectionDone() {
-        // Toggle on
         service.toggleSectionDone(runId, member.id(), sectionId, member.id());
         var done = service.findDoneSections(runId, member.id());
         assertTrue(done.contains(sectionId));
 
-        // Toggle off
         service.toggleSectionDone(runId, member.id(), sectionId, member.id());
         done = service.findDoneSections(runId, member.id());
         assertFalse(done.contains(sectionId));
@@ -315,7 +294,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void toggleSectionDoneNonexistentMember() {
-        // Should silently do nothing
         service.toggleSectionDone(runId, 99999, sectionId, member.id());
     }
 
@@ -332,12 +310,9 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertEquals(0, service.countDoneSections(rm.id()));
     }
 
-    // -- Complete Member --
-
     @Test
     @Order(70)
     void completeMember() {
-        // Re-save checks to have scored items
         service.saveChecks(runId, member.id(), Map.of(itemId, true), member.id(), protocolId);
         assertTrue(service.completeMember(runId, member.id(), protocolId));
     }
@@ -353,8 +328,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     void closeRun() {
         assertTrue(service.closeRun(runId));
     }
-
-    // -- Cleanup --
 
     @Test
     @Order(90)
@@ -379,8 +352,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     void deleteProtocol() {
         assertTrue(service.deleteProtocol(protocolId, station.id()));
     }
-
-    // -- Federation: browseSharedProtocols --
 
     @Test
     @Order(200)
@@ -469,29 +440,24 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         testProtocolRepo.deleteProtocol(foreign.id(), station.id());
     }
 
-    // -- Federation: getFederatedProtocol --
-
+    /**
+     * The partner may or may not exist due to cross-test interference; either way the call must reject
+     * access, for wrong ownership or an unknown partner.
+     */
     @Test
     @Order(211)
     void getFederatedProtocolWrongStation() {
-        // Create protocol on station (not stationB) - should fail when queried via stationB uid.
-        // Partner may or may not exist due to cross-test interference;
-        // either way the call must reject access (wrong ownership or unknown partner).
         var localProto = testProtocolRepo.createProtocol(station.id(), "LocalOnly", "local", 60);
 
         assertThrows(
                 Exception.class, () -> service.getFederatedProtocol(station.id(), stationB.uid(), localProto.id()));
 
-        // Cleanup
         testProtocolRepo.deleteProtocol(localProto.id(), station.id());
     }
-
-    // -- Federation: copyProtocol --
 
     @Test
     @Order(220)
     void copyProtocol() {
-        // Create protocol on stationB with sections (including nested) and items
         var srcProto = testProtocolRepo.createProtocol(stationB.id(), "CopySource", "copy desc", 75);
         var parentSec = testProtocolRepo.createSection(srcProto.id(), null, "ParentSection", "parent desc", 100, 50, 0);
         var childSec =
@@ -504,19 +470,15 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertEquals("CopySource", copied.name());
         assertEquals(station.id(), copied.stationId());
 
-        // Verify sections and items were copied
         var copiedSections = service.findSections(copied.id());
         assertEquals(2, copiedSections.size());
 
         var copiedItems = service.findAllItemsByProtocol(copied.id());
         assertEquals(2, copiedItems.size());
 
-        // Cleanup
         testProtocolRepo.deleteProtocol(srcProto.id(), stationB.id());
         testProtocolRepo.deleteProtocol(copied.id(), station.id());
     }
-
-    // -- Federation: SharedProtocolItem record --
 
     @Test
     @Order(230)
@@ -528,8 +490,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertEquals(42, item.sourceStationId());
         assertEquals(7, item.partnerId());
     }
-
-    // -- Remote HTTP federation tests --
 
     @Test
     @Order(240)

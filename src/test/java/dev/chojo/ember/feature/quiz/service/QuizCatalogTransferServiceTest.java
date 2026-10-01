@@ -105,8 +105,6 @@ class QuizCatalogTransferServiceTest {
         return captor.getAllValues();
     }
 
-    // -- Reading --
-
     @Test
     void readsTheCurrentShape() {
         var transfer = service.read(json("""
@@ -174,8 +172,6 @@ class QuizCatalogTransferServiceTest {
         assertThrows(BadRequestResponse.class, () -> service.read(json("{\"something\": 1}")));
         assertThrows(BadRequestResponse.class, () -> service.read(json("[]")));
     }
-
-    // -- Importing --
 
     @Test
     void createsTheCatalogWithItsQuestionsAndCategories() {
@@ -255,8 +251,6 @@ class QuizCatalogTransferServiceTest {
         verify(catalogService, never()).createCategory(anyInt(), eq("Unbenutzt"), anyString(), anyInt());
     }
 
-    // -- Appending --
-
     @Test
     void appendsBehindTheQuestionsTheCatalogAlreadyHas() {
         var target = catalog(5, STATION_ID, "Grundwissen", "Basis", CatalogMetadata.none());
@@ -308,8 +302,6 @@ class QuizCatalogTransferServiceTest {
         verify(questionService, never()).createQuestion(any());
     }
 
-    // -- Refusing --
-
     @Test
     void reportsEveryProblemAtOnceAndCreatesNothing() {
         var outcome = service.importInto(STATION_ID, service.read(json("""
@@ -360,8 +352,6 @@ class QuizCatalogTransferServiceTest {
         assertNull(outcome.catalog());
         assertEquals("categories[1]", outcome.problems().getFirst().location());
     }
-
-    // -- Exporting --
 
     @Test
     void exportsOnlyTheCategoriesItsOwnQuestionsUse() {

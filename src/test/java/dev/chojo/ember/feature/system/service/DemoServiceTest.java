@@ -155,6 +155,11 @@ class DemoServiceTest extends RepositoryTestBase {
 
     private static DemoService demoService;
 
+    /**
+     * Wires the demo service by hand. The two-factor seeder's TOTP service is told it runs on a demo
+     * instance, which is what lets it work without a configured encryption key and the same reason the
+     * seeder only ever runs on one.
+     */
     @BeforeAll
     static void setup() {
         var demoClock = new DemoClock(Clock.fixed(JUST_AFTER_MIDNIGHT, ZoneOffset.UTC));
@@ -164,14 +169,12 @@ class DemoServiceTest extends RepositoryTestBase {
         var apiConfig = new Api();
         var databaseConfig = new Database();
 
-        // -- Repositories not in RepositoryTestBase --
         var federationRepo = new FederationRepository();
         var eventFederationRepo = new EventFederationRepository();
         var eventTemplateRepo = new EventTemplateRepository();
         var newsFederationRepo = new NewsFederationRepository();
         var lendingRepo = new LendingRepository();
 
-        // -- Services --
         var federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), apiConfig);
         var contractRefreshRef = new AtomicReference<FederationContractRefreshService>();
         var federationHttpClient = new FederationHttpClient(
@@ -366,7 +369,6 @@ class DemoServiceTest extends RepositoryTestBase {
                 boardAttachmentSvc);
         var procedureService = new ProcedureService(procedureRepo, noOpBus);
 
-        // -- Seeders --
         var memberSeeder = new DemoMemberSeeder(
                 accountRepo,
                 stationMemberRepo,
@@ -521,8 +523,6 @@ class DemoServiceTest extends RepositoryTestBase {
         var settingsSeeder = new DemoSettingsSeeder(feedTokenService, stationRepo, applicationSettingRepo);
         var setupSeeder = new DemoSetupSeeder(stationRepo);
         var freshStationSeeder = new DemoFreshStationSeeder(stationRepo, accountRepo, stationMemberRepo);
-        // A demo instance is what lets the TOTP service run without a configured encryption key,
-        // which is the same reason the seeder only ever runs on one.
         var demoInstance = mock(Demo.class);
         when(demoInstance.dev()).thenReturn(true);
         var twoFactorSeeder = new DemoTwoFactorSeeder(
@@ -543,7 +543,6 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 demoClock);
 
-        // -- DemoService --
         demoService = new DemoService(
                 demoConfig,
                 databaseConfig,
@@ -702,23 +701,18 @@ class DemoServiceTest extends RepositoryTestBase {
         assertNull(musterstadt.clusterId(), "Musterstadt answers to nobody");
         assertNotNull(nordstadt.clusterId(), "Nordstadt answers to the association");
 
-        // The same people at both, at addresses of their own
         assertTrue(accountRepo.findByEmail("max@mustermann.local").isPresent(), "Max at the first station");
         assertTrue(accountRepo.findByEmail("max@mustermann.nord.local").isPresent(), "Max at the second");
 
-        // And the same amount of everything, because the second one is the first one again
         assertEquals(
                 stationMemberRepo.findByStation(musterstadt.id()).size(),
                 stationMemberRepo.findByStation(nordstadt.id()).size(),
                 "Both stations should carry the same members");
-        // Not equal here, and deliberately: the association keeps a store of its own at the station it
-        // governs, which is the association's doing rather than a difference in how the two were built
         assertTrue(
                 inventoryRepo.findByStation(nordstadt.id()).size()
                         >= inventoryRepo.findByStation(musterstadt.id()).size(),
                 "The twin should carry what the first carries, and the association's store on top");
 
-        // Both borrow from the same partner, so what federation does can be seen at either
         var federations = new FederationRepository();
         assertFalse(federations.findPartners(musterstadt.id()).isEmpty(), "Musterstadt has its partner");
         assertFalse(federations.findPartners(nordstadt.id()).isEmpty(), "Nordstadt has the same partner");
@@ -763,6 +757,10 @@ class DemoServiceTest extends RepositoryTestBase {
      * The cluster seeder skips a lot of itself when the pieces it builds on are missing, which is right at
      * run time and useless in a test: a silent skip and a working seeder look identical from outside. These
      * assertions name the things that only exist if it ran the whole way through.
+     *
+     * <p>The federation partner and the mirror stay outside the cluster. Its storage room is checked in
+     * all four places a station gets its numbers from, since a storage screen with none of them shows
+     * nothing.
      */
     @Test
     void verifyClusterSeeded() {
@@ -772,8 +770,6 @@ class DemoServiceTest extends RepositoryTestBase {
                 .orElseThrow(() -> new AssertionError("The demo cluster should exist"));
 
         assertTrue(cluster.usesInventory(), "The demo cluster should keep gear of its own");
-        // The station the demo is about, the neighbouring one, and the one the cluster made itself. The
-        // federation partner and the mirror are the two that stay outside.
         assertEquals(3, clusterRepo.findStationIds(cluster.id()).size(), "Three stations should be in the cluster");
         assertFalse(
                 clusterApplicationRepo.findByCluster(cluster.id()).isEmpty(),
@@ -783,8 +779,6 @@ class DemoServiceTest extends RepositoryTestBase {
                 clusterProfileFieldRepo.findByCluster(cluster.id()).size(),
                 "The cluster should ask two questions of its members");
 
-        // The room the cluster hands out, in all four places a station can get its numbers from: the pool,
-        // the defaults, the two tiers, and the grants. A storage screen with none of them shows nothing.
         var room = clusterStorageQuotaService.findOverview(cluster.id());
         assertEquals(100L * 1024 * 1024 * 1024, room.poolBytes(), "The instance should have granted a pool");
         assertNotNull(room.defaults().quotaBytes(), "The cluster should say what a station it granted nothing gets");

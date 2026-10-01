@@ -167,11 +167,9 @@ class OnboardingServiceTest {
         assertFalse(tasks.contains("member.calendar"));
     }
 
+    /** Uses the notification settings, because those really are answered by the data. */
     @Test
     void aTaskIsDoneBecauseTheThingItAsksForExists() {
-        // The notification settings, because those really are answered by the data. The profile stood
-        // here until looking over what is written about you became the task, and no row can answer
-        // that for anybody.
         when(notificationSettingsRepository.findByMember(eq(MEMBER)))
                 .thenReturn(
                         List.of(new NotificationSetting(MEMBER, NotificationType.EVENT_REMINDER, true, false, false)));
@@ -251,10 +249,12 @@ class OnboardingServiceTest {
         verify(markRepository, never()).markForMember(anyInt(), eq("member.notifications"), eq("CONFIRMED"));
     }
 
+    /**
+     * A complete profile is exactly the one worth looking over, so the data must not settle the task and
+     * hide it from the people it is for.
+     */
     @Test
     void lookingOverTheProfileIsSettledByWalkingIt() {
-        // A complete profile is exactly the one worth looking over, so the data must not settle the
-        // task and hide it from the people it is for.
         when(profileFieldService.isProfileComplete(eq(MEMBER))).thenReturn(true);
 
         assertEquals(

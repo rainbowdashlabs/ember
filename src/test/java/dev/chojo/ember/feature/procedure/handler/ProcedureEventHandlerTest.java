@@ -48,8 +48,6 @@ class ProcedureEventHandlerTest {
                 id, STATION_ID, UUID.randomUUID(), id, false, null, "Member " + id, StationUserType.MEMBER, null);
     }
 
-    // ── ProcedureAssignedHandler ──
-
     @Test
     void assignedHandlerEventType() {
         var handler = new ProcedureAssignedHandler(notificationService, memberRepository);
@@ -88,8 +86,6 @@ class ProcedureEventHandlerTest {
                         eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
-    // ── ProcedureResolvedHandler ──
-
     @Test
     void resolvedHandlerEventType() {
         var handler = new ProcedureResolvedHandler(notificationService);
@@ -113,8 +109,6 @@ class ProcedureEventHandlerTest {
                         eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
-    // ── ProcedureReopenedHandler ──
-
     @Test
     void reopenedHandlerEventType() {
         var handler = new ProcedureReopenedHandler(notificationService);
@@ -135,8 +129,6 @@ class ProcedureEventHandlerTest {
                         any(NotificationData.class),
                         eq(Delivery.ONCE_WHILE_UNREAD));
     }
-
-    // ── ProcedureItemCheckedHandler ──
 
     @Test
     void itemCheckedHandlerEventType() {

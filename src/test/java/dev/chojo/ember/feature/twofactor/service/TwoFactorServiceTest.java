@@ -82,18 +82,16 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertNotNull(enrollment.qrPng());
         assertEquals(10, enrollment.recoveryCodes().size());
 
-        // Wrong code rejected, factor not yet created
         assertFalse(service.confirmTotpEnrollment(
                 accountId, enrollment.secret(), "000000", enrollment.recoveryCodes(), "ua", "DE"));
         assertFalse(service.isEnrolled(accountId));
 
-        // Generate a real code via the service's own algorithm and confirm
         String code = generateCurrentTotp(enrollment.secret());
         assertTrue(service.confirmTotpEnrollment(
                 accountId, enrollment.secret(), code, enrollment.recoveryCodes(), "ua", "DE"));
         assertTrue(service.isEnrolled(accountId));
         assertEquals(10, service.countUnusedBackupCodes(accountId));
-        assertEquals(2, service.getActiveFactors(accountId).size()); // TOTP + BACKUP_CODES
+        assertEquals(2, service.getActiveFactors(accountId).size(), "TOTP and backup codes");
     }
 
     @Test
@@ -164,15 +162,11 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertTrue(service.confirmTotpEnrollment(
                 accountId, enrollment.secret(), firstCode, enrollment.recoveryCodes(), "ua", null));
 
-        // verifyTotp with a valid code succeeds
         assertTrue(service.verifyTotp(accountId, nextTotp(enrollment.secret())));
-        // wrong code fails
         assertFalse(service.verifyTotp(accountId, "000000"));
 
-        // verifyTotp on account without TOTP returns false
         assertFalse(service.verifyTotp(newAccount(), "123456"));
 
-        // Backup code verify: a valid code passes once, then fails
         String backup = enrollment.recoveryCodes().getFirst();
         var result = service.verifyBackupCode(accountId, backup, "203.0.113.1");
         assertTrue(result.valid());
@@ -180,12 +174,10 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         var second = service.verifyBackupCode(accountId, backup, "203.0.113.1");
         assertFalse(second.valid());
 
-        // Backup code verify on an account without any backup codes
         var none = service.verifyBackupCode(newAccount(), "ABCD-1234-EFGH", "203.0.113.1");
         assertFalse(none.valid());
         assertEquals(0, none.remainingCodes());
 
-        // regenerateBackupCodes wipes the old set and creates fresh ones
         var fresh = service.regenerateBackupCodes(accountId, "ua", "DE");
         assertEquals(10, fresh.size());
         assertEquals(10, service.countUnusedBackupCodes(accountId));
@@ -216,9 +208,8 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertFalse(service.renameFactor(accountId, totpFactorId, ""), "blank label rejected");
         assertFalse(service.renameFactor(accountId, 99_999, "X"), "missing factor rejected");
 
-        // removeFactor for TOTP also wipes backup codes (last primary factor)
         assertTrue(service.removeFactor(accountId, totpFactorId, "ua", null));
-        assertFalse(service.isEnrolled(accountId));
+        assertFalse(service.isEnrolled(accountId), "removing the last primary factor also wipes the backup codes");
         assertFalse(service.removeFactor(accountId, totpFactorId, "ua", null), "already removed");
     }
 
@@ -247,12 +238,11 @@ class TwoFactorServiceTest extends RepositoryTestBase {
     @Test
     void issueInitialBackupCodesIfMissing() {
         int accountId = newAccount();
-        // First call seeds a fresh set of 10 codes
         var initial = service.issueInitialBackupCodesIfMissing(accountId, "ua", null);
         assertEquals(10, initial.size());
-        // Second call is a no-op because the factor already exists
         assertTrue(
-                service.issueInitialBackupCodesIfMissing(accountId, "ua", null).isEmpty());
+                service.issueInitialBackupCodesIfMissing(accountId, "ua", null).isEmpty(),
+                "a second call is a no-op once the factor exists");
     }
 
     @Test
@@ -274,14 +264,11 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertFalse(service.isEnrolled(accountId));
         assertTrue(accountRepo.findSession("reset-bearer").isEmpty());
         assertEquals(0, twoFactorRepo.findActiveTrustedDevices(accountId).size());
-        // Audit row exists
         assertTrue(twoFactorRepo.findAuditLog(accountId, 5, 0).stream()
                 .anyMatch(e -> e.event() == TwoFactorEvent.ADMIN_RESET));
 
         assertFalse(service.resetAccount2FA(999_999, null, "ua", null), "unknown account is a no-op");
     }
-
-    // -- The three predicates: enrolled, mandate-satisfying, and the proofs set --
 
     private int createWebAuthnFactor(int accountId, boolean signIn, boolean secondFactor) {
         var factor = twoFactorRepo.createFactor(accountId, TwoFactorKind.WEBAUTHN, signIn ? "Passkey" : "Key");

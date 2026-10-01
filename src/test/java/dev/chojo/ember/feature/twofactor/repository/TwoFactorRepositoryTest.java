@@ -67,6 +67,7 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         assertEquals("SHA1", totp.algorithm());
     }
 
+    /** Marks a code used with an IPv4 address, since the address column takes a CIDR-shaped string. */
     @Test
     void backupCodes() {
         int accountId = newAccountId("bc");
@@ -78,13 +79,11 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         var unused = twoFactorRepo.findUnusedBackupCodes(factor.id());
         assertEquals(2, unused.size());
 
-        // Markback by id with IPv4 (CIDR column requires a CIDR-shaped string)
         assertTrue(twoFactorRepo.markBackupCodeUsed(unused.getFirst().id(), "203.0.113.7"));
         assertFalse(
                 twoFactorRepo.markBackupCodeUsed(unused.getFirst().id(), "203.0.113.7"), "second markUsed is a no-op");
         assertEquals(1, twoFactorRepo.countUnusedBackupCodes(factor.id()));
 
-        // markAll wipes the remaining row
         twoFactorRepo.markAllBackupCodesUsed(accountId);
         assertEquals(0, twoFactorRepo.countUnusedBackupCodes(factor.id()));
         assertEquals(0, twoFactorRepo.findUnusedBackupCodes(factor.id()).size());
@@ -181,7 +180,6 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         assertEquals(TwoFactorPolicy.PolicyScope.INSTANCE, instance.scope());
         assertTrue(instance.required());
 
-        // Upsert again - should keep the same row but flip required to false
         var updated = twoFactorRepo.upsertPolicy(
                 TwoFactorPolicy.PolicyScope.INSTANCE, null, StationUserType.MEMBER, false, (short) 3, null);
         assertEquals(instance.id(), updated.id());
@@ -190,7 +188,6 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         var instances = twoFactorRepo.findInstancePolicies();
         assertEquals(1, instances.size());
 
-        // Station-scoped policy
         var station = stationRepo.create("policy-station");
         var stationPolicy = twoFactorRepo.upsertPolicy(
                 TwoFactorPolicy.PolicyScope.STATION, station.id(), StationUserType.MANAGER, true, (short) 5, null);

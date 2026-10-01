@@ -253,22 +253,20 @@ class StationServiceTest extends RepositoryTestBase {
         stationMemberRepo.grantPermission(newOwner.id(), managerRole.id());
         stationRepo.setOwner(stationId, owner.id());
 
-        // Current owner transfers to new owner
         assertTrue(service.transferOwnership(stationId, owner.id(), newOwner.id()));
         assertTrue(service.isOwner(stationId, newOwner.id()));
         assertFalse(service.isOwner(stationId, owner.id()));
 
-        // Cleanup
         stationMemberRepo.delete(owner.id());
         stationMemberRepo.delete(newOwner.id());
         accountRepo.delete(ownerAcc.id());
         accountRepo.delete(newOwnerAcc.id());
     }
 
+    /** Runs after the previous test has cleared the station's owner. */
     @Test
     @Order(40)
     void transferOwnershipNotOwner() {
-        // stationId has no owner set (cleanup from previous test)
         assertFalse(service.transferOwnership(stationId, 99999, 1));
     }
 
@@ -285,7 +283,6 @@ class StationServiceTest extends RepositoryTestBase {
         stationMemberRepo.grantPermission(owner.id(), managerRole.id());
         stationRepo.setOwner(stationId, owner.id());
 
-        // Target doesn't have manager role
         assertFalse(service.transferOwnership(stationId, owner.id(), nonMgr.id()));
 
         stationMemberRepo.delete(owner.id());
@@ -310,7 +307,6 @@ class StationServiceTest extends RepositoryTestBase {
     @Test
     @Order(44)
     void managerInfoWithManagerWithCredential() {
-        // Create account with credential for full accountReady check
         Account account = accountRepo.create("svc-mgr-cred@test.com", "MgrCred", "User", true);
         accountRepo.createCredential(account.id(), "$2a$10$hash");
         var member = stationMemberRepo.create(stationId, account.id());
@@ -321,9 +317,9 @@ class StationServiceTest extends RepositoryTestBase {
 
         var info = service.findManagerInfo(stationId);
         assertTrue(info.isPresent());
-        // accountReady = hasPassword && !forcePasswordChange && emailVerified
-        // createCredential defaults forcePasswordChange to false, email is verified
-        assertTrue(info.get().accountReady());
+        assertTrue(
+                info.get().accountReady(),
+                "a password without a forced change and a verified email make the account ready");
 
         stationMemberRepo.delete(member.id());
         accountRepo.delete(account.id());
@@ -332,8 +328,7 @@ class StationServiceTest extends RepositoryTestBase {
     @Test
     @Order(45)
     void createWithManagerNewAccount() {
-        // createWithManager uses a mocked AuthService, so just verify no exception
-        // and the station is created
+        // TODO: call createWithManager; this only creates a station through the repository.
         var station = stationRepo.create("CreateWithMgr");
         assertNotNull(station);
         stationRepo.delete(station.id());
@@ -497,9 +492,8 @@ class StationServiceTest extends RepositoryTestBase {
                 member.id(), "aurora", false, "{\"light\":{\"primary\":\"#fff\"}}", ThemeFeel.CORNERS, false);
 
         var after = stationRepo.findById(member.id()).orElseThrow();
-        // Compared without the spacing the database writes back, which is not what the cluster locked
-        assertEquals(
-                "{\"light\":{}}", after.customThemeColors().replace(" ", ""), "the locked colours are the cluster's");
+        var colorsWithoutDatabaseSpacing = after.customThemeColors().replace(" ", "");
+        assertEquals("{\"light\":{}}", colorsWithoutDatabaseSpacing, "the locked colours are the cluster's");
         assertEquals("aurora", after.defaultTheme(), "what it did not lock is still the station's");
         assertEquals(ThemeFeel.CORNERS, after.defaultFeel());
 

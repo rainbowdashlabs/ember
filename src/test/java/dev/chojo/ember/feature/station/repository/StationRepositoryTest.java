@@ -79,8 +79,6 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertFalse(stationRepo.update(99999, "Nope"));
     }
 
-    // -- Logo --
-
     @Test
     @Order(10)
     void updateLogo() {
@@ -112,8 +110,6 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertTrue(stationRepo.deleteLogo(stationId));
         assertTrue(stationRepo.findLogo(stationId).isEmpty());
     }
-
-    // -- UUID --
 
     @Test
     @Order(14)
@@ -150,8 +146,6 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertTrue(stationRepo.findById(stationId).orElseThrow().nicknamesEnabled());
     }
 
-    // -- Discovery settings --
-
     @Test
     @Order(20)
     void updateDiscoverySettings() {
@@ -181,16 +175,12 @@ class StationRepositoryTest extends RepositoryTestBase {
         stationRepo.delete(other.id());
     }
 
-    // -- Public calendar --
-
     @Test
     @Order(23)
     void updatePublicCalendarEnabled() {
         assertTrue(stationRepo.updatePublicCalendarEnabled(stationId, true));
         assertTrue(stationRepo.updatePublicCalendarEnabled(stationId, false));
     }
-
-    // -- Public KB mode --
 
     @Test
     @Order(24)
@@ -199,16 +189,12 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertTrue(stationRepo.updatePublicKbMode(stationId, PublicKbMode.OFF));
     }
 
-    // -- Theme settings --
-
     @Test
     @Order(25)
     void updateThemeSettings() {
         assertDoesNotThrow(
                 () -> stationRepo.updateThemeSettings(stationId, "ember", true, "{}", ThemeFeel.ROUNDED, false));
     }
-
-    // -- Modules --
 
     @Test
     @Order(26)
@@ -218,8 +204,6 @@ class StationRepositoryTest extends RepositoryTestBase {
         stationRepo.setDisabledModules(stationId, Set.of());
         assertTrue(stationRepo.findDisabledModules(stationId).isEmpty());
     }
-
-    // -- Timezone / Locale --
 
     @Test
     @Order(28)
@@ -233,24 +217,18 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertTrue(stationRepo.updateLocale(stationId, "de-DE"));
     }
 
-    // -- Owner --
-
     @Test
     @Order(30)
     void setOwner() {
-        // Need an account+member for this station
         var account = accountRepo.create("owner-test@test.com", "Owner", "Test");
         var member = stationMemberRepo.create(stationId, account.id());
         assertTrue(stationRepo.setOwner(stationId, member.id()));
         var station = stationRepo.findById(stationId).orElseThrow();
         assertEquals(member.id(), station.ownerMemberId());
-        // Clear owner
         assertTrue(stationRepo.setOwner(stationId, null));
         assertNull(stationRepo.findById(stationId).orElseThrow().ownerMemberId());
         accountRepo.delete(account.id());
     }
-
-    // -- UID update --
 
     @Test
     @Order(31)

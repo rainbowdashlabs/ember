@@ -59,8 +59,6 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         accountRepo.delete(account2.id());
     }
 
-    // ── Templates ──
-
     @Test
     @Order(1)
     void createTemplate() {
@@ -113,18 +111,13 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(7)
     void archiveTemplate() {
-        // Create a second template to archive
         var t2 = procedureRepo.createTemplate(station.id(), "Temp", "Desc", member.id());
         assertTrue(procedureRepo.archiveTemplate(t2.id()));
-        // Archived template should not appear in non-archived list
         var nonArchived = procedureRepo.findTemplatesByStation(station.id(), false);
         assertTrue(nonArchived.stream().noneMatch(t -> t.id() == t2.id()));
-        // But should appear in include-archived list
         var all = procedureRepo.findTemplatesByStation(station.id(), true);
         assertTrue(all.stream().anyMatch(t -> t.id() == t2.id()));
     }
-
-    // ── Template Items ──
 
     @Test
     @Order(10)
@@ -157,12 +150,9 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         assertFalse(procedureRepo.updateTemplateItem(99999, "No", "No", false, false, 1));
     }
 
-    // ── Template Item Dependencies ──
-
     @Test
     @Order(15)
     void setAndFindTemplateItemDependencies() {
-        // Step 2 depends on Step 1
         procedureRepo.setTemplateItemDependencies(templateId, List.of(new int[] {templateItemId2, templateItemId1}));
         var deps = procedureRepo.findTemplateItemDependencies(templateId);
         assertEquals(1, deps.size());
@@ -170,16 +160,14 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         assertEquals(templateItemId1, deps.getFirst()[1]);
     }
 
+    /** Restores the dependency afterwards, since the snapshot test reads it. */
     @Test
     @Order(16)
     void clearTemplateItemDependencies() {
         procedureRepo.setTemplateItemDependencies(templateId, List.of());
         assertTrue(procedureRepo.findTemplateItemDependencies(templateId).isEmpty());
-        // Restore for snapshot test
         procedureRepo.setTemplateItemDependencies(templateId, List.of(new int[] {templateItemId2, templateItemId1}));
     }
-
-    // ── Procedures ──
 
     @Test
     @Order(20)
@@ -294,8 +282,6 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         assertFalse(procedureRepo.updateProcedure(99999, "No", "No", false, null));
     }
 
-    // ── Assignees ──
-
     @Test
     @Order(30)
     void addAndFindAssignees() {
@@ -310,7 +296,6 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void addAssigneeDuplicate() {
-        // ON CONFLICT DO NOTHING - should not throw
         procedureRepo.addAssignee(procedureId, member.id());
         assertEquals(2, procedureRepo.findAssigneeIds(procedureId).size());
     }
@@ -345,8 +330,6 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
                 procedureRepo.findProceduresByAssignee(station.id(), member.id(), ProcedureStatus.RESOLVED, false);
         assertTrue(resolved.isEmpty());
     }
-
-    // ── Procedure Items ──
 
     @Test
     @Order(40)
@@ -407,20 +390,15 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         assertFalse(procedureRepo.updateItemNote(99999, "No"));
     }
 
-    // ── Item Dependencies ──
-
     @Test
     @Order(50)
     void addAndFindItemDependencies() {
-        // Item 2 depends on Item 1
         procedureRepo.addItemDependency(itemId2, itemId1);
         var deps = procedureRepo.findItemDependencies(procedureId);
         assertEquals(1, deps.size());
         assertEquals(itemId2, deps.getFirst()[0]);
         assertEquals(itemId1, deps.getFirst()[1]);
     }
-
-    // ── Check / Uncheck ──
 
     @Test
     @Order(60)
@@ -435,7 +413,6 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void checkItemAlreadyChecked() {
-        // Already checked, should not change
         assertFalse(procedureRepo.checkItem(itemId1, member.id()));
     }
 
@@ -455,12 +432,10 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         assertFalse(procedureRepo.uncheckItem(itemId1));
     }
 
-    // ── Snapshot ──
-
+    /** Restores the template item first, since earlier tests edit it. */
     @Test
     @Order(70)
     void snapshotTemplateItem() {
-        // Restore template item to original state for snapshot
         procedureRepo.updateTemplateItem(templateItemId1, "Step 1", "First step", true, true, 1);
         var templateItem = procedureRepo.findTemplateItems(templateId).getFirst();
         var snapped = procedureRepo.snapshotTemplateItem(adHocProcedureId, templateItem);
@@ -470,8 +445,6 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         assertEquals(adHocProcedureId, snapped.procedureId());
         assertFalse(snapped.checked());
     }
-
-    // ── Resolve / Reopen ──
 
     @Test
     @Order(80)
@@ -503,8 +476,6 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         assertFalse(procedureRepo.reopenProcedure(procedureId));
     }
 
-    // ── Sidebar Counts ──
-
     @Test
     @Order(90)
     void countOpenByStation() {
@@ -512,11 +483,13 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         assertTrue(count >= 2);
     }
 
+    /**
+     * The member is assigned to the open procedure; its first item is restored to public and
+     * user-assigned first, since earlier tests edit it.
+     */
     @Test
     @Order(91)
     void countOpenByAssigneeWithAvailableItems() {
-        // member is assigned to procedureId which is OPEN and has public+user_assigned unchecked items
-        // First restore item1 to public + user_assigned
         procedureRepo.updateItem(itemId1, "Check exits", "Desc", true, true, 1);
         int count = procedureRepo.countOpenByAssigneeWithAvailableItems(station.id(), member.id());
         assertTrue(count >= 1);
@@ -525,12 +498,9 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(92)
     void countOpenByAssigneeNoAssignment() {
-        // member2 is not assigned to any procedure
         int count = procedureRepo.countOpenByAssigneeWithAvailableItems(station.id(), member2.id());
         assertEquals(0, count);
     }
-
-    // ── Delete ──
 
     @Test
     @Order(100)
@@ -548,7 +518,6 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(102)
     void deleteTemplateItem() {
-        // Create a temporary template item and delete it
         var temp = procedureRepo.createTemplateItem(templateId, "Temp", "Desc", true, true, 99);
         assertTrue(procedureRepo.deleteTemplateItem(temp.id()));
         assertFalse(procedureRepo.deleteTemplateItem(temp.id()));

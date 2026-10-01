@@ -29,8 +29,7 @@ class BackupCodeServiceTest {
         String hash = service.hashCode(code);
         assertNotEquals(code, hash);
         assertTrue(service.verifyCode(code, hash));
-        // Dashes and case are normalised
-        assertTrue(service.verifyCode("abcd1234efgh", hash));
+        assertTrue(service.verifyCode("abcd1234efgh", hash), "dashes and case are normalised");
         assertFalse(service.verifyCode("WRONG-CODE-HERE", hash));
     }
 }

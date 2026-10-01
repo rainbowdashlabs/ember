@@ -92,7 +92,7 @@ class TransferTimeoutWatchdogTest {
         when(exportService.expireStaleTransfers(5)).thenThrow(new RuntimeException("db down"));
 
         var watchdog = new TransferTimeoutWatchdog(exportService, stationRepository);
-        watchdog.sweepStaleTransfers(); // must not throw
+        watchdog.sweepStaleTransfers();
 
         verify(exportService).expireStaleTransfers(5);
     }

@@ -201,7 +201,6 @@ class SidebarCountServiceTest {
 
     @Test
     void getCountsInventoryOnlyNoLendingRequests() {
-        // Only INVENTORY_MANAGER without FEDERATION_MANAGER should NOT get lending requests
         var roles = Set.of(StationPermission.LOGIN, StationPermission.INVENTORY_MANAGER);
         var session = sessionWithPermissions(roles);
 
@@ -217,7 +216,6 @@ class SidebarCountServiceTest {
 
     @Test
     void getCountsFederationOnlyNoLendingRequests() {
-        // Only FEDERATION_MANAGER without INVENTORY_MANAGER should NOT get lending requests
         var roles = Set.of(StationPermission.LOGIN, StationPermission.STATION_FEDERATION);
         var session = sessionWithPermissions(roles);
 

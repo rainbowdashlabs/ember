@@ -74,7 +74,6 @@ class StationTransferTest extends RepositoryTestBase {
     private static int sourceStationId;
     private static Map<String, Object> exportedData;
 
-    // Track source IDs for verification
     private static int sourceManagerId;
     private static int sourceTrainerId;
     private static int sourceChildId;
@@ -93,8 +92,6 @@ class StationTransferTest extends RepositoryTestBase {
         }
         return bundle;
     }
-
-    // ==================== Setup with rich demo data ====================
 
     @BeforeAll
     static void setup() {
@@ -122,14 +119,12 @@ class StationTransferTest extends RepositoryTestBase {
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
                 new TaskScheduler());
 
-        // Create station with full settings
         var station = stationRepo.create("Jugendfeuerwehr Musterstadt");
         sourceStationId = station.id();
         stationRepo.updateTimezone(sourceStationId, "Europe/Berlin");
         stationRepo.updateLocale(sourceStationId, "de-DE");
         stationRepo.setDisabledModules(sourceStationId, Set.of(StationModule.LOST_AND_FOUND));
 
-        // --- Accounts & Members ---
         var managerAccount = accountRepo.create("manager@jf-musterstadt.de", "Thomas", "Müller", true);
         var manager = stationMemberRepo.create(sourceStationId, managerAccount.id());
         sourceManagerId = manager.id();
@@ -148,7 +143,6 @@ class StationTransferTest extends RepositoryTestBase {
         var formerAccount = accountRepo.create("ehemalig@jf-musterstadt.de", "Max", "Alt", true);
         var former = stationMemberRepo.create(sourceStationId, formerAccount.id());
 
-        // --- Permissions ---
         Permission managerPerm = stationMemberRepo
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow();
@@ -170,17 +164,14 @@ class StationTransferTest extends RepositoryTestBase {
         stationMemberRepo.grantPermission(child.id(), memberPerm.id());
         stationMemberRepo.grantPermission(former.id(), memberPerm.id());
 
-        // --- User Types ---
         stationMemberRepo.setUserType(manager.id(), StationUserType.MANAGER);
         stationMemberRepo.setUserType(trainer.id(), StationUserType.TEAM);
         stationMemberRepo.setUserType(guardian.id(), StationUserType.GUARDIAN);
         stationMemberRepo.setUserType(child.id(), StationUserType.MEMBER);
         stationMemberRepo.setUserType(former.id(), StationUserType.MEMBER);
 
-        // --- Guardian → child relationship ---
         stationMemberRepo.addManager(guardian.id(), child.id());
 
-        // --- Groups ---
         var anfaenger = memberGroupRepo.create(sourceStationId, "Anfänger");
         var fortgeschritten = memberGroupRepo.create(sourceStationId, "Fortgeschrittene");
         memberGroupRepo.addMember(anfaenger.id(), child.id());
@@ -191,14 +182,12 @@ class StationTransferTest extends RepositoryTestBase {
         memberGroupRepo.assignSet(fortgeschritten.id(), levels.id());
         memberGroupRepo.replaceUserTypes(fortgeschritten.id(), List.of(StationUserType.TEAM, StationUserType.MANAGER));
 
-        // --- Tags ---
         var tagSchwimmer = userTagRepo.create(sourceStationId, "Schwimmer");
         var tagErsteHilfe = userTagRepo.create(sourceStationId, "Erste Hilfe");
         userTagRepo.addMember(tagSchwimmer.id(), child.id());
         userTagRepo.addMember(tagSchwimmer.id(), trainer.id());
         userTagRepo.addMember(tagErsteHilfe.id(), manager.id());
 
-        // --- Profile fields ---
         var fieldTelefon = profileFieldRepo.create(
                 sourceStationId, "Telefon", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(fieldTelefon.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
@@ -213,7 +202,6 @@ class StationTransferTest extends RepositoryTestBase {
         profileFieldRepo.setValue(child.id(), fieldGeburtstag.id(), StringNode.valueOf("2012-05-15"));
         profileFieldRepo.setValue(trainer.id(), fieldNotizen.id(), StringNode.valueOf("Sehr zuverlässig"));
 
-        // --- Attendance templates ---
         var templateStandard = attendanceRepo.createTemplate(sourceStationId, "Standard-Übung");
         attendanceRepo.createTemplateField(
                 templateStandard.id(), "Leiter", FieldType.MEMBER, AttendanceFieldConfig.parse("{}"), 0);
@@ -223,11 +211,9 @@ class StationTransferTest extends RepositoryTestBase {
         attendanceRepo.createTemplateField(
                 templateSonder.id(), "Verantwortlich", FieldType.MEMBER, AttendanceFieldConfig.parse("{}"), 0);
 
-        // --- Event categories ---
         var catTraining = eventCategoryRepo.create(sourceStationId, "Training", 0, "#ff6421");
         var catSonder = eventCategoryRepo.create(sourceStationId, "Sondertermin", 1, null);
 
-        // --- Events ---
         var now = Instant.now();
         eventRepo.create(
                 sourceStationId,
@@ -281,7 +267,6 @@ class StationTransferTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // --- Inventories ---
         var invHelme = inventoryRepo.create(sourceStationId, "Helme", InventoryType.INTERNAL, true);
         inventoryRepo.createSize(invHelme.id(), "S", 0, "");
         inventoryRepo.createSize(invHelme.id(), "M", 1, "");
@@ -296,7 +281,6 @@ class StationTransferTest extends RepositoryTestBase {
         inventoryRepo.createItem(invStiefel.id(), "S-001", "Stiefel 1", null, null);
         inventoryRepo.createItem(invStiefel.id(), "S-002", "Stiefel 2", null, null);
 
-        // --- Forms ---
         var form = formRepo.create(
                 sourceStationId,
                 "Zufriedenheitsumfrage",
@@ -339,14 +323,11 @@ class StationTransferTest extends RepositoryTestBase {
                         {"key":"o2","label":"Erste Hilfe"},{"key":"o3","label":"Sport"}]}"""));
     }
 
-    // ==================== Export tests ====================
-
     @Test
     @Order(10)
     void exportContainsAllSections() {
         exportedData = exportAllTables(sourceStationId);
 
-        // Wire keys are real DB table names produced by GenericTableExporter
         assertNotNull(exportedData.get("station"));
         assertNotNull(exportedData.get("station_member"));
         assertNotNull(exportedData.get("member_group"));
@@ -366,8 +347,7 @@ class StationTransferTest extends RepositoryTestBase {
         assertNotNull(exportedData.get("form"));
         assertNotNull(exportedData.get("form_question"));
         assertNotNull(exportedData.get("station_disabled_module"));
-        // account is a TRACKED custom-scope table reachable through station_member
-        assertNotNull(exportedData.get("account"));
+        assertNotNull(exportedData.get("account"), "accounts are reached through the station members");
     }
 
     @SuppressWarnings("unchecked")
@@ -391,10 +371,10 @@ class StationTransferTest extends RepositoryTestBase {
         assertEquals(5, ((List<?>) exportedData.get("inventory_item")).size());
         assertEquals(1, ((List<?>) exportedData.get("form")).size());
         assertEquals(3, ((List<?>) exportedData.get("form_question")).size());
-        // station_disabled_module is a FLAT list of enum names
-        assertTrue(((List<?>) exportedData.get("station_disabled_module")).contains("LOST_AND_FOUND"));
-        // accounts: 5 members → 5 referenced accounts (customScope through station_member)
-        assertEquals(5, ((List<?>) exportedData.get("account")).size());
+        assertTrue(
+                ((List<?>) exportedData.get("station_disabled_module")).contains("LOST_AND_FOUND"),
+                "disabled modules are a flat list of names");
+        assertEquals(5, ((List<?>) exportedData.get("account")).size(), "each of the five members brings its account");
     }
 
     @SuppressWarnings("unchecked")
@@ -406,11 +386,9 @@ class StationTransferTest extends RepositoryTestBase {
                 .filter(m -> "manager@jf-musterstadt.de".equals(m.get("account_email")))
                 .findFirst();
         assertTrue(manager.isPresent());
-        // The exporter emits account_uid alongside account_email so the importer can match by the
-        // stable cross-instance identity; first_name / last_name lookups were removed because
-        // matching humans by name is never unique.
-        assertNotNull(manager.get().get("account_uid"));
-        // user_type comes inline on the station_member row now (the legacy memberUserTypes wire is gone)
+        assertNotNull(
+                manager.get().get("account_uid"),
+                "the importer matches by the stable account UID, since matching people by name is never unique");
         assertEquals("MANAGER", manager.get().get("user_type"));
     }
 
@@ -430,15 +408,15 @@ class StationTransferTest extends RepositoryTestBase {
         assertTrue(((List<?>) page4.get("station_member")).isEmpty());
     }
 
-    // ==================== Import into a new station ====================
-
+    /**
+     * Removes the source data after taking the bundle, so in the container database that source and
+     * target share the import is the sole creator.
+     */
     @Test
     @Order(20)
     void importCreatesNewStationWithAllData() {
-        // Snapshot the bundle, then remove source-side data so the import is the sole creator
-        // (the testcontainer DB is shared between source and target).
         var bundle = new HashMap<>(exportedData);
-        stationRepo.delete(sourceStationId); // cascades members, groups, etc.
+        stationRepo.delete(sourceStationId);
         for (String email : List.of(
                 "manager@jf-musterstadt.de",
                 "trainer@jf-musterstadt.de",
@@ -504,30 +482,27 @@ class StationTransferTest extends RepositoryTestBase {
 
         assertTrue(stationRepo.findDisabledModules(result.stationId()).contains(StationModule.LOST_AND_FOUND));
 
-        // Owner is assigned to the first imported MANAGER after all tables land.
         assertNotNull(imported.ownerMemberId(), "Station owner should be set after import");
 
-        // PKs were remapped - source member ids should not match any target member id.
         var importedMemberIds = importedMembers.stream().map(StationMember::id).toList();
-        assertTrue(importedMemberIds.stream().noneMatch(id -> id == sourceManagerId));
+        assertTrue(importedMemberIds.stream().noneMatch(id -> id == sourceManagerId), "member ids are remapped");
         assertTrue(importedMemberIds.stream().noneMatch(id -> id == sourceTrainerId));
         assertTrue(importedMemberIds.stream().noneMatch(id -> id == sourceChildId));
 
         stationRepo.delete(result.stationId());
     }
 
-    // ==================== Account linking ====================
-
+    /**
+     * A minimal bundle whose account carries the same email but a different name and hash; the import
+     * must not overwrite the existing account.
+     */
     @Test
     @Order(30)
     void importLinksExistingAccountsByEmail() {
-        // Pre-create an account on the target with a known name and credential
         String email = "linked-import@example.com";
         var existingAccount = accountRepo.create(email, "Existing", "User", true);
         accountRepo.createCredential(existingAccount.id(), "$bcrypt$target-original");
 
-        // Build a minimal synthetic bundle whose account entry uses the same email but a
-        // different name + hash - the import path must NOT overwrite the existing account.
         Map<String, Object> bundle = new LinkedHashMap<>();
         bundle.put("station", Map.of("name", "Link-Test Station"));
         bundle.put(
@@ -539,7 +514,6 @@ class StationTransferTest extends RepositoryTestBase {
         bundle.put(
                 "account_credential",
                 List.of(Map.of("account_email", email, "password_hash", "$bcrypt$source-override")));
-        // A member referencing the same email via account_email lookup
         bundle.put(
                 "station_member",
                 List.of(Map.of(
@@ -553,14 +527,12 @@ class StationTransferTest extends RepositoryTestBase {
 
         var result = importService.importStation(bundle);
 
-        // The pre-existing account is reused: name & credential remain unchanged
         var account = accountRepo.findById(existingAccount.id()).orElseThrow();
         assertEquals("Existing", account.firstName(), "account name must not be overwritten");
         assertEquals("User", account.lastName(), "account last name must not be overwritten");
         var cred = accountRepo.findCredential(existingAccount.id()).orElseThrow();
         assertEquals("$bcrypt$target-original", cred.passwordHash(), "existing credential must be preserved");
 
-        // The station_member row resolves the FK back to the existing account via account_email lookup
         var linkedMember = stationMemberRepo.findByStationAndAccount(result.stationId(), existingAccount.id());
         assertTrue(linkedMember.isPresent(), "member should be linked to existing account");
 
@@ -568,18 +540,15 @@ class StationTransferTest extends RepositoryTestBase {
         accountRepo.delete(existingAccount.id());
     }
 
-    // ==================== Import into an existing station ====================
-
+    /** Seeds a fresh source station, since the earlier round trip deleted the first one. */
     @Test
     @Order(35)
     void importIntoExistingStationAddsData() {
-        // Set up a target station with one local member
         var targetStation = stationRepo.create("Target Station");
         var targetAccount = accountRepo.create("target-owner@example.com", "Owner", "User", true);
         stationMemberRepo.create(targetStation.id(), targetAccount.id());
         assertEquals(1, stationMemberRepo.findByStation(targetStation.id()).size());
 
-        // Re-snapshot the source bundle (the earlier round-trip deleted the source station, so seed again)
         var freshSourceStation = stationRepo.create("Source Station 2");
         var newAccount = accountRepo.create("merge-source@example.com", "Merge", "Source", true);
         stationMemberRepo.create(freshSourceStation.id(), newAccount.id());
@@ -592,14 +561,11 @@ class StationTransferTest extends RepositoryTestBase {
                         .collect(Collectors.toMap(
                                 Map.Entry::getKey, e -> e.getValue().get(e.getKey())));
 
-        // Remove source-side artefacts so the import has to recreate everything on the target
         stationRepo.delete(freshSourceStation.id());
         accountRepo.findByEmail("merge-source@example.com").ifPresent(a -> accountRepo.delete(a.id()));
 
-        // Merge into the existing target station
         importService.importStationInto(targetStation.id(), bundle);
 
-        // Target now has the original owner + the imported member, and the two new groups
         var allMembers = stationMemberRepo.findByStation(targetStation.id());
         assertEquals(2, allMembers.size());
         var groupNames = memberGroupRepo.findByStation(targetStation.id()).stream()
@@ -612,8 +578,6 @@ class StationTransferTest extends RepositoryTestBase {
         accountRepo.delete(targetAccount.id());
         accountRepo.findByEmail("merge-source@example.com").ifPresent(a -> accountRepo.delete(a.id()));
     }
-
-    // ==================== Edge cases ====================
 
     @Test
     @Order(40)

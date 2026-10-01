@@ -54,22 +54,23 @@ class DataTrackingAdminServiceTest {
         assertNotNull(loaded.tables().get("station_member"));
     }
 
+    /**
+     * The fixture's station has two verified columns and is tracked for transfer, ignored for both GDPR
+     * dimensions; its station member has one of two columns verified and is unverified for transfer,
+     * tracked for export and ignored for deletion.
+     */
     @Test
     void summarizeCountsAcrossEveryDimension() throws IOException {
         var summary = service.summarize();
         assertEquals(2, summary.totalTables());
-        // station has 2 columns, both verified; station_member has 2 columns, only one verified.
         assertEquals(4, summary.totalColumns());
         assertEquals(3, summary.verifiedColumns());
-        // station=TRACKED, station_member=UNVERIFIED for transfer
         assertEquals(1, summary.stationTransfer().tracked());
         assertEquals(0, summary.stationTransfer().ignored());
         assertEquals(1, summary.stationTransfer().unverified());
-        // station=IGNORED, station_member=TRACKED for gdprExport
         assertEquals(1, summary.gdprExport().tracked());
         assertEquals(1, summary.gdprExport().ignored());
         assertEquals(0, summary.gdprExport().unverified());
-        // both IGNORED for gdprDeletion
         assertEquals(0, summary.gdprDeletion().tracked());
         assertEquals(2, summary.gdprDeletion().ignored());
         assertEquals(0, summary.gdprDeletion().unverified());
@@ -88,18 +89,18 @@ class DataTrackingAdminServiceTest {
         assertEquals(List.of("station_id"), result.stationTransfer().ignoredColumns());
         assertEquals("promoted from UNVERIFIED", result.stationTransfer().rationale());
 
-        // Re-load from disk and verify the change was persisted.
         var reloaded = service.load();
         assertEquals(
                 TrackingStatus.TRACKED,
                 reloaded.tables().get("station_member").stationTransfer().status());
     }
 
+    /** The display name is already verified and stays so; the former flag is flipped to verified. */
     @Test
     void updateTableHonoursColumnVerifiedOverrides() throws IOException {
         var overrides = new LinkedHashMap<String, Boolean>();
-        overrides.put("display_name", true); // was true → stays true
-        overrides.put("former", true); // was false → flipped to true
+        overrides.put("display_name", true);
+        overrides.put("former", true);
         var update = new TableUpdate(null, overrides, null, null, null);
         var result = service.updateTable("station_member", update);
         assertTrue(result.columns().stream().allMatch(ColumnEntry::verified));
@@ -117,7 +118,6 @@ class DataTrackingAdminServiceTest {
     void verifyAllColumnsFlipsEveryColumn() throws IOException {
         var result = service.verifyAllColumns("station_member");
         assertTrue(result.columns().stream().allMatch(ColumnEntry::verified));
-        // Persisted to disk too
         var reloaded = service.load();
         assertTrue(reloaded.tables().get("station_member").columns().stream().allMatch(ColumnEntry::verified));
     }

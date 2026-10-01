@@ -99,13 +99,11 @@ class PasskeyRepositoryTest extends RepositoryTestBase {
     void reportSeparatesTheResidue() {
         var before = repo.passwordlessReport();
 
-        // Holds a password and a tried passkey: keeps the password, but can move.
         int movable = newAccount("rep1-" + UUID.randomUUID() + "@test.com");
         accountRepo.createCredential(movable, "hash");
         createPasskey(movable, true);
         accountRepo.touchLastSignIn(movable);
 
-        // Holds a password, no passkey, and no reachable address: the QR code's population.
         int qrOnly = newAccount("rep2-" + UUID.randomUUID() + "@family.local");
         accountRepo.createCredential(qrOnly, "hash");
 

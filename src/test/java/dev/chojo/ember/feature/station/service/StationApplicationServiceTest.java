@@ -62,9 +62,9 @@ class StationApplicationServiceTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void findPending() {
-        // Not yet verified - not pending
         var pending = service.findPending();
-        assertTrue(pending.stream().noneMatch(a -> a.id() == applicationId));
+        assertTrue(
+                pending.stream().noneMatch(a -> a.id() == applicationId), "an unverified application is not pending");
     }
 
     @Test
@@ -99,11 +99,9 @@ class StationApplicationServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void denyNonPending() {
-        // Submit and verify a second application
         var app2 = service.submit("Anna", "Schmidt", "app-anna@test.com", "Anna Station", "Hi!");
         stationApplicationRepo.verify(app2.id());
 
-        // Deny it
         var denied = service.deny(app2.id(), "Not suitable");
         assertEquals(DENIED, denied.status());
         assertEquals("Not suitable", denied.denyReason());
@@ -112,7 +110,6 @@ class StationApplicationServiceTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void denyAlreadyPending() {
-        // applicationId is still pending - deny it here
         var denied = service.deny(applicationId, "Duplicate request");
         assertEquals(DENIED, denied.status());
     }
@@ -120,14 +117,12 @@ class StationApplicationServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void acceptCreatesStationAndAccount() {
-        // Create a fresh application and verify it
         var app = service.submit("Lena", "Muster", "app-lena@test.com", "Lena Station", "");
         stationApplicationRepo.verify(app.id());
 
         var accepted = service.accept(app.id());
         assertEquals(ACCEPTED, accepted.status());
 
-        // The station should now exist
         var stations = stationRepo.findAll();
         assertTrue(stations.stream().anyMatch(s -> "Lena Station".equals(s.name())));
         assertTrue(
@@ -136,7 +131,6 @@ class StationApplicationServiceTest extends RepositoryTestBase {
                         .allMatch(s -> s.discoveryVisibility() == DiscoveryVisibility.PUBLIC),
                 "a station founded from an application is listed publicly from the start");
 
-        // Cleanup created station
         stations.stream()
                 .filter(s -> "Lena Station".equals(s.name()))
                 .findFirst()

@@ -96,17 +96,15 @@ class StorageQuotaPresetRepositoryTest extends RepositoryTestBase {
     @Order(5)
     void applyToStation() {
         storagePresetRepo.applyToStation(presetId, station.id());
-        // Verify by reading the station quota columns
         var quota = StationStorageQuota.map();
-        // The station should now have the preset's values
         var stationObj = stationRepo.findById(station.id());
         assertTrue(stationObj.isPresent());
     }
 
+    /** Relies on the preset the previous test applied to the station. */
     @Test
     @Order(6)
     void findStationPresetAssignments() {
-        // applyToStation was called in order 5, so station should have a preset
         var assignments = storagePresetRepo.findStationPresetAssignments();
         var assignment = assignments.get(station.id());
         assertNotNull(assignment);
@@ -125,7 +123,6 @@ class StorageQuotaPresetRepositoryTest extends RepositoryTestBase {
     @Order(8)
     void resetStationQuotas() {
         storagePresetRepo.resetStationQuotas(station.id());
-        // Station quotas should be reset to NULL
         var stationObj = stationRepo.findById(station.id());
         assertTrue(stationObj.isPresent());
     }

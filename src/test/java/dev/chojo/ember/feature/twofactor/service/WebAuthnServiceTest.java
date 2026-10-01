@@ -92,9 +92,10 @@ class WebAuthnServiceTest extends RepositoryTestBase {
     void finishRegistrationRejectsWrongAccount() {
         int accountId = newAccount();
         var start = service.startRegistration(accountId, "wa@test.com", "WA");
-        // Different account → consume but reject
-        assertTrue(service.finishRegistration(newAccount(), start.challengeToken(), "{}", "Key", "ua", null)
-                .isEmpty());
+        assertTrue(
+                service.finishRegistration(newAccount(), start.challengeToken(), "{}", "Key", "ua", null)
+                        .isEmpty(),
+                "another account consumes the challenge but is rejected");
     }
 
     @Test
@@ -123,11 +124,9 @@ class WebAuthnServiceTest extends RepositoryTestBase {
     void challengeIsSingleUseAndExpiry() {
         int accountId = newAccount();
         var start = service.startAssertion(accountId);
-        // First failed finish consumes the token
         service.finishAssertion(accountId, start.challengeToken(), "{}");
         assertTrue(challengeRepo.consume(start.challengeToken()).isEmpty());
 
-        // Manually plant an expired challenge to exercise the expiry branch
         String expiredToken = "expired-" + UUID.randomUUID();
         challengeRepo.create(
                 expiredToken,
@@ -145,10 +144,13 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         assertTrue(first.optionsJson().contains("\"id\""));
     }
 
+    /**
+     * Spies the relying party, so the real start path still writes valid options while the finish path
+     * meets the verification failure. A real credential is hard to forge, so the one handed in is shaped
+     * just enough to parse.
+     */
     @Test
     void finishRegistrationRejectsWhenVerificationThrows() throws Exception {
-        // Build a service with a spied RelyingParty so the real start* path keeps writing
-        // valid options JSON, but the finish* call surfaces the verification failure branch.
         var settings = new WebAuthnSettings();
         var api = new Api();
         setField(api, "baseUrl", "https://ember.test");
@@ -165,9 +167,6 @@ class WebAuthnServiceTest extends RepositoryTestBase {
 
         int accountId = newAccount();
         var start = spiedService.startRegistration(accountId, "rf@test.com", "RF");
-        // A real (but throwaway) PublicKeyCredential JSON is hard to forge - we route the
-        // parse-then-verify path by handing the route a credential JSON shaped enough to
-        // parse but rigged to throw on verification.
         String credentialJson = "{\"id\":\"AA\",\"type\":\"public-key\",\"rawId\":\"AA\","
                 + "\"response\":{\"attestationObject\":\"AA\",\"clientDataJSON\":\"AA\"},"
                 + "\"clientExtensionResults\":{}}";
@@ -176,11 +175,12 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         assertTrue(result.isEmpty(), "verification failure must drop the registration and leave no factor row behind");
     }
 
+    /**
+     * For an account whose only credentials are passkeys the allow list is empty, and the library then
+     * accepts any credential the account owns; the flag on the verified result is the check that holds.
+     */
     @Test
     void finishAssertionRefusesACredentialThatIsNotASecondFactor() throws Exception {
-        // For an account whose only credentials are passkeys the allow list is empty, and the
-        // library then accepts any credential the account owns. The flag on the verified result
-        // is the check that holds.
         int accountId = newAccount();
         var factor = twoFactorRepo.createFactor(
                 accountId, dev.chojo.ember.feature.twofactor.entity.TwoFactorKind.WEBAUTHN, "Passkey");

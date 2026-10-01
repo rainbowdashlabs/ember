@@ -60,8 +60,6 @@ class QuizImportServiceTest {
         return configOf(draft.questions().getFirst());
     }
 
-    // -- Rows --
-
     @Test
     void draftsRowsAndSkipsBlankQuestions() {
         String csv = """
@@ -143,8 +141,6 @@ class QuizImportServiceTest {
         assertEquals("", question.description());
     }
 
-    // -- Types --
-
     @Test
     void fallsBackToTheDefaultTypeWhenNoTypeColumnIsMapped() {
         var draft = service.draft("Frage,Antwort\nA,wahr\n", mappings("Typ", QuizQuestionType.TRUE_FALSE));
@@ -216,8 +212,6 @@ class QuizImportServiceTest {
                 types);
     }
 
-    // -- Refusals --
-
     @Test
     void rejectsASheetWithoutTheQuestionColumn() {
         assertThrows(BadRequestResponse.class, () -> service.draft("Titel,Antwort\nA,x\n", mappings("Typ", null)));
@@ -241,8 +235,6 @@ class QuizImportServiceTest {
 
         assertEquals(1.0, draft.questions().getFirst().question().points());
     }
-
-    // -- Configs --
 
     @Test
     void marksTheFirstAnswerCorrectWhenNoColumnHoldsTheWrongOnes() {
@@ -395,8 +387,6 @@ class QuizImportServiceTest {
 
         assertEquals(2.5, config.pointsPerCorrect());
     }
-
-    // -- Separators --
 
     @Test
     void honoursCustomSeparators() {

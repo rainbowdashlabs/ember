@@ -101,7 +101,6 @@ class StationApplicationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void denyFlow() {
-        // Create a new application for the deny flow
         var app = stationApplicationRepo.create(
                 "Anna",
                 "Schmidt",
@@ -119,7 +118,6 @@ class StationApplicationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void denyAlreadyDenied() {
-        // Cannot deny a non-pending application
         assertFalse(stationApplicationRepo.deny(applicationId, "Too late"));
     }
 }

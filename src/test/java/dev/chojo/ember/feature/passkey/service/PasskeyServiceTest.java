@@ -41,13 +41,15 @@ class PasskeyServiceTest extends RepositoryTestBase {
     private static RelyingParties realParties;
     private static PasskeyService service;
 
-    // Shaped enough to parse; the verification itself is spied where a test needs to get past it.
+    /** Shaped enough to parse; the verification itself is spied where a test needs to get past it. */
     private static final String PARSEABLE_ASSERTION = parseableAssertion();
+
+    /** The rpIdHash (32), flags (1) and counter (4): the smallest authenticator data that parses. */
+    private static final int SMALLEST_AUTHENTICATOR_DATA_LENGTH = 32 + 1 + 4;
 
     private static String parseableAssertion() {
         var b64 = java.util.Base64.getUrlEncoder().withoutPadding();
-        // rpIdHash (32) + flags (1) + counter (4): the smallest authenticator data that parses.
-        String authData = b64.encodeToString(new byte[37]);
+        String authData = b64.encodeToString(new byte[SMALLEST_AUTHENTICATOR_DATA_LENGTH]);
         String clientData = b64.encodeToString(
                 "{\"type\":\"webauthn.get\",\"challenge\":\"AAAA\",\"origin\":\"https://ember.test\"}".getBytes());
         return "{\"id\":\"AA\",\"type\":\"public-key\",\"rawId\":\"AA\",\"response\":{\"authenticatorData\":\""
@@ -157,6 +159,10 @@ class PasskeyServiceTest extends RepositoryTestBase {
         assertEquals(accountId, resolved.orElseThrow(), "the user handle resolves the account");
     }
 
+    /**
+     * On a shared family device the picker shows a sibling's passkey too; picking it is one mistap and
+     * earns its own answer rather than a bare failure.
+     */
     @Test
     void theTrialProvesTheOwnPasskeyAndNamesAForeignOne() {
         int owner = newAccount();
@@ -176,8 +182,6 @@ class PasskeyServiceTest extends RepositoryTestBase {
                 PasskeyService.TrialOutcome.OK,
                 service.finishTrial(owner, trial.challengeToken(), authenticator.sign(trial.optionsJson())));
 
-        // On a shared family device the picker shows a sibling's passkey too; picking it is one
-        // mistap and earns its own answer rather than a bare failure.
         int sibling = newAccount();
         var siblingTrial = service.startTrial(sibling);
         assertEquals(
@@ -204,6 +208,10 @@ class PasskeyServiceTest extends RepositoryTestBase {
         assertTrue(service.finishStepUp(accountId, stepUp.challengeToken(), authenticator.sign(stepUp.optionsJson())));
     }
 
+    /**
+     * Answered against the second ceremony's challenge but spent at the first: the library's verification
+     * is what says no.
+     */
     @Test
     void creationRefusesACeremonyOverTheWrongChallenge() {
         int accountId = newAccount();
@@ -211,8 +219,6 @@ class PasskeyServiceTest extends RepositoryTestBase {
         var start = service.startCreation(accountId, "pk@test.com", "PK User");
         var stranger = service.startCreation(accountId, "pk@test.com", "PK User");
 
-        // Answered against the second ceremony's challenge but spent at the first: the library's
-        // verification is what says no.
         assertTrue(service.finishCreation(
                         accountId,
                         start.challengeToken(),
@@ -277,10 +283,12 @@ class PasskeyServiceTest extends RepositoryTestBase {
                 "an assertion without user verification must be refused rather than downgraded");
     }
 
+    /**
+     * A second-factor security key that happens to answer the discoverable ceremony: the verification
+     * succeeds, and the sign-in flag on the stored row is what refuses it.
+     */
     @Test
     void signInRefusesCredentialThatMayNotStartOne() throws Exception {
-        // A second-factor security key that happens to answer the discoverable ceremony: the
-        // verification succeeds, and the sign-in flag on the stored row is what refuses it.
         int accountId = newAccount();
         var factor = twoFactorRepo.createFactor(accountId, TwoFactorKind.WEBAUTHN, "Key");
         byte[] credentialId = ("sf-cred-" + factor.id()).getBytes();
@@ -471,10 +479,12 @@ class PasskeyServiceTest extends RepositoryTestBase {
                 .isEmpty());
     }
 
+    /**
+     * A discoverable security key answers the trial's ceremony; the flag on the stored row is what refuses
+     * it, because promising "the same way next time" would be a lie.
+     */
     @Test
     void aTrialOverASecondFactorKeyIsRefusedWithItsOwnReason() {
-        // A discoverable security key answers the trial's ceremony; the flag on the stored row
-        // is what refuses it, because "beim naechsten Mal genau so" would be a lie.
         int accountId = newAccount();
         var authenticator = new TestAuthenticator();
         var factor = twoFactorRepo.createFactor(accountId, TwoFactorKind.WEBAUTHN, "Key");

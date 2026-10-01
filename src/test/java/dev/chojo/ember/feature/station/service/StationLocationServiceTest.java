@@ -159,16 +159,13 @@ class StationLocationServiceTest extends RepositoryTestBase {
     @Test
     void updateAcceptsBlankCountryAsNull() {
         service.update(station.id(), new StationLocationService.LocationUpdate(null, null, null, "  ", null, null));
-        // No exception thrown means the blank value bypassed the regex check.
     }
 
     @Test
     void distanceKmStaticHelper() {
-        // Munich → Berlin reference distance: ~504 km. Allow ±5 km tolerance.
-        double d = StationLocationService.distanceKm(48.137154, 11.576124, 52.520008, 13.404954);
-        assertEquals(504, d, 5);
+        double munichToBerlin = StationLocationService.distanceKm(48.137154, 11.576124, 52.520008, 13.404954);
+        assertEquals(504, munichToBerlin, 5);
 
-        // Zero distance for identical points.
         assertEquals(0, StationLocationService.distanceKm(0, 0, 0, 0), 0.001);
     }
 

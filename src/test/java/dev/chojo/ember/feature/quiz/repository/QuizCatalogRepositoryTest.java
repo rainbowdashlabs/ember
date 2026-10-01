@@ -84,8 +84,6 @@ class QuizCatalogRepositoryTest extends RepositoryTestBase {
         assertFalse(found.trainingEnabled());
     }
 
-    // -- Categories --
-
     @Test
     @Order(10)
     void createCategory() {
@@ -119,8 +117,6 @@ class QuizCatalogRepositoryTest extends RepositoryTestBase {
                 "Fire & Safety",
                 quizCatalogRepo.findCategoryById(categoryId).orElseThrow().name());
     }
-
-    // -- Questions --
 
     @Test
     @Order(20)
@@ -183,8 +179,6 @@ class QuizCatalogRepositoryTest extends RepositoryTestBase {
         assertEquals("What is 3+3?", found.title());
         assertNull(found.categoryId());
     }
-
-    // -- Cleanup --
 
     @Test
     @Order(30)

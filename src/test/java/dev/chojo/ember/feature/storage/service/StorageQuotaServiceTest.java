@@ -97,7 +97,6 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
         var station = clusterService.createStation(clusterId, "Wache Verbandsregel " + NAMES.incrementAndGet());
 
-        // The instance says one thing about this station, and the cluster says nothing yet
         service.updateStationQuotas(station.id(), 7 * GIB, null, null, null, null, null, null);
 
         var underCluster = service.resolveQuotas(station.id());
@@ -107,10 +106,9 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
                 "the instance's lever on a cluster is the pool, not a number on one of its stations");
         assertEquals(QuotaOrigin.INSTANCE_DEFAULT, underCluster.total().origin());
 
-        // And it reaches the station again the moment it answers to nobody
         clusterService.releaseStation(clusterId, station.id());
         var released = service.resolveQuotas(station.id());
-        assertEquals(7 * GIB, released.total().bytes());
+        assertEquals(7 * GIB, released.total().bytes(), "the instance's number applies again once the station leaves");
         assertEquals(QuotaOrigin.INSTANCE_OVERRIDE, released.total().origin());
 
         stationRepo.delete(station.id());
