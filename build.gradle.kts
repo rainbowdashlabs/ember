@@ -11,6 +11,7 @@ plugins {
     application
     alias(libs.plugins.spotless)
     alias(libs.plugins.idea)
+    alias(libs.plugins.spotbugs)
     jacoco
 }
 
@@ -45,6 +46,7 @@ dependencies {
     implementation(libs.guice)
     implementation(libs.bcrypt)
     implementation(libs.jspecify)
+    compileOnly(libs.spotbugs.annotations)
     implementation(libs.caffeine)
     implementation(libs.java.otp)
     implementation(libs.commons.codec)
@@ -404,6 +406,33 @@ tasks {
         dependsOn("spotlessJavascriptApply", "spotlessVueApply", "spotlessFrontendLocalesApply")
     }
 }
+
+/**
+ * Null use is checked on the compiled main classes: every package is `@NullMarked`, and a value
+ * that can be null is marked jspecify `@Nullable`, which SpotBugs holds every use of to a check.
+ *
+ * SpotBugs does not take `@NullMarked` as a default, so a null passed or returned where nothing is
+ * marked goes unseen until a package also carries SpotBugs' own defaults for parameters and method
+ * returns in its `package-info.java`. Fields get none: SpotBugs cannot read jspecify on a record
+ * component's field, and every nullable component would read as a violation.
+ *
+ * Only the null-pointer detectors report, and the classes the configuration processor generates are
+ * left out.
+ */
+spotbugs {
+    ignoreFailures = false
+    effort = com.github.spotbugs.snom.Effort.MAX
+    reportLevel = com.github.spotbugs.snom.Confidence.LOW
+    includeFilter = layout.projectDirectory.file("gradle/spotbugs-null.xml")
+    excludeFilter = layout.projectDirectory.file("gradle/spotbugs-generated.xml")
+}
+
+tasks.named<com.github.spotbugs.snom.SpotBugsTask>("spotbugsMain") {
+    reports.create("html") { required = true }
+    reports.create("xml") { required = true }
+}
+
+tasks.named("spotbugsTest") { enabled = false }
 
 apply(from = "gradle/patch-coverage.gradle.kts")
 

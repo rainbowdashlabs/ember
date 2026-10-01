@@ -185,6 +185,9 @@ Backend
                         changed since origin/main at 80 %. Another base with -PcoverageBase=<ref>
   be-report             Run every test suite and write the merged JaCoCo report
   be-javadoc            Build the javadoc on its own; be-verify runs it too
+  be-spotbugs           Check null use in the main classes: a null where the type says non-null,
+                        or a @Nullable value used unchecked. The findings are in
+                        build/reports/spotbugs/main.html
   be-wrapper <version>  Move the Gradle wrapper to a version, e.g. be-wrapper 9.7.1
   be-federation-version Regenerate the federation contract version
   be-api-spec           Rewrite src/main/resources/api/openapi.json from the route annotations and the
@@ -489,6 +492,7 @@ case "$cmd" in
     be-coverage)   cd "$ROOT"; run ./gradlew jacocoFullReport jacocoCoverageCheck patchCoverageCheck "$@" ;;
     be-report)     cd "$ROOT"; run ./gradlew testAll jacocoFullReport "$@" ;;
     be-javadoc)    cd "$ROOT"; run ./gradlew javadoc "$@" ;;
+    be-spotbugs)   cd "$ROOT"; run ./gradlew spotbugsMain "$@" ;;
     be-wrapper)    cd "$ROOT"; run ./gradlew wrapper --gradle-version "$@" ;;
     be-federation-version) cd "$ROOT"; run ./gradlew generateFederationVersion "$@" ;;
     be-api-spec)           cd "$ROOT"; run ./gradlew generateApiSpec "$@" ;;

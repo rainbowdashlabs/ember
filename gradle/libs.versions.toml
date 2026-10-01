@@ -11,6 +11,7 @@ commonmark = "0.30.0"
 spotless = { id = "com.diffplug.spotless", version = "8.10.2" }
 idea = { id = "org.jetbrains.gradle.plugin.idea-ext", version = "1.4.1" }
 pitest = { id = "info.solidsoft.pitest", version = "1.19.0" }
+spotbugs = { id = "com.github.spotbugs", version = "6.5.12" }
 
 [libraries]
 # Database
@@ -69,6 +70,7 @@ webauthn-server = { group = "com.yubico", name = "webauthn-server-core", version
 
 # Annotations
 jspecify = { group = "org.jspecify", name = "jspecify", version = "1.0.1" }
+spotbugs-annotations = { group = "com.github.spotbugs", name = "spotbugs-annotations", version = "4.10.4" }
 caffeine = { group = "com.github.ben-manes.caffeine", name = "caffeine", version = "3.2.4" }
 
 # mailing
