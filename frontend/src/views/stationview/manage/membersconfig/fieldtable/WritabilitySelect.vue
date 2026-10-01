@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {ProfileField} from '@/api/profileFields'
+import type {EditableField} from '@/api/profileFields'
 import {
   Writability, useFieldsCapabilities, writabilityOf, type WritabilityName,
 } from '@/composables/useFieldsConfig'
@@ -28,11 +28,11 @@ import {
  * audiences: who may write an answer holds for everybody who is asked it.
  */
 const props = defineProps<{
-  field: ProfileField
+  field: EditableField
 }>()
 
 const emit = defineEmits<{
-  set: [field: ProfileField, level: WritabilityName]
+  set: [field: EditableField, level: WritabilityName]
 }>()
 
 const {t} = useI18n()

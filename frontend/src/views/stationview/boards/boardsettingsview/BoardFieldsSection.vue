@@ -12,31 +12,25 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type { BoardFieldConfig } from '@/api/boards'
+import { isBoardFieldType, type BoardFieldDraft, type BoardFieldTypeName } from '@/api/boards'
 import type { LaneDraft } from './BoardLanesSection.vue'
 
-export interface FieldDraft {
-    name: string
-    fieldType: string
-    config: BoardFieldConfig
-}
-
 export interface FieldTypeOption {
-    value: string
+    value: BoardFieldTypeName
     label: string
 }
 
 defineProps<{
-    fields: FieldDraft[]
+    fields: BoardFieldDraft[]
     lanes: LaneDraft[]
     newFieldName: string
-    newFieldType: string
+    newFieldType: BoardFieldTypeName
     fieldTypeOptions: FieldTypeOption[]
 }>()
 
 const emit = defineEmits<{
     'update:newFieldName': [value: string]
-    'update:newFieldType': [value: string]
+    'update:newFieldType': [value: BoardFieldTypeName]
     add: []
     remove: [index: number]
     move: [index: number, dir: -1 | 1]
@@ -53,7 +47,7 @@ const { t } = useI18n()
                 <div class="flex items-center gap-2">
                     <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-[var(--text-muted)] cursor-grab" />
                     <TextInput v-model="field.name" :placeholder="t('boards.fieldName')" class="flex-1" />
-                    <SelectInput v-model="field.fieldType">
+                    <SelectInput :model-value="field.fieldType" @update:model-value="v => { if (isBoardFieldType(v)) field.fieldType = v }">
                         <option v-for="ft in fieldTypeOptions" :key="ft.value" :value="ft.value">{{ t(ft.label) }}</option>
                     </SelectInput>
                     <IconButton :icon="['fas', 'chevron-up']" label="Move up" :disabled="index === 0" @click="emit('move', index, -1)" />
@@ -62,15 +56,15 @@ const { t } = useI18n()
                 </div>
                 <div v-if="field.fieldType === 'ENUM'" class="pl-6">
                     <TextInput
-                        :model-value="field.config.options?.join(', ') ?? ''"
+                        :model-value="field.options.join(', ')"
                         :placeholder="t('boards.fieldOptions')"
                         class="text-sm"
-                        @update:model-value="v => field.config = { ...field.config, options: (v as string).split(',').map(s => s.trim()).filter(Boolean) }"
+                        @update:model-value="v => field.options = String(v).split(',').map(s => s.trim()).filter(Boolean)"
                     />
                 </div>
                 <div v-if="field.fieldType === 'LANE_ASSIGNEE'" class="pl-6">
                     <FieldLabel class="text-xs mb-1">{{ t('boards.fieldLane') }}</FieldLabel>
-                    <SelectInput :model-value="String(field.config.laneId ?? '')" @update:model-value="v => field.config = { ...field.config, laneId: v ? Number(v) : null }">
+                    <SelectInput :model-value="String(field.laneId ?? '')" @update:model-value="v => field.laneId = v ? Number(v) : null">
                         <option value="">-</option>
                         <option v-for="lane in lanes" :key="lane.id" :value="String(lane.id)">{{ lane.name }}</option>
                     </SelectInput>
@@ -79,7 +73,7 @@ const { t } = useI18n()
         </div>
         <div class="flex gap-2 mt-3">
             <TextInput :model-value="newFieldName" :placeholder="t('boards.addField')" class="flex-1" @update:model-value="v => emit('update:newFieldName', String(v))" @keydown.enter="emit('add')" />
-            <SelectInput :model-value="newFieldType" @update:model-value="v => emit('update:newFieldType', String(v))">
+            <SelectInput :model-value="newFieldType" @update:model-value="v => { if (isBoardFieldType(v)) emit('update:newFieldType', v) }">
                 <option v-for="ft in fieldTypeOptions" :key="ft.value" :value="ft.value">{{ t(ft.label) }}</option>
             </SelectInput>
             <SecondaryButton @click="emit('add')">

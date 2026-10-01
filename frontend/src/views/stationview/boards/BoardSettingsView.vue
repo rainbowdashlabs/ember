@@ -15,14 +15,14 @@ import BoardSettingsHeader from './boardsettingsview/BoardSettingsHeader.vue'
 import BoardStructureSections from './boardsettingsview/BoardStructureSections.vue'
 import BoardAccessSections from './boardsettingsview/BoardAccessSections.vue'
 import type { LaneDraft } from './boardsettingsview/BoardLanesSection.vue'
-import type { FieldDraft } from './boardsettingsview/BoardFieldsSection.vue'
 import { boards, stationMembers, memberGroups, userTags, federation } from '@/api'
-import type { Board, FederationTarget } from '@/api/boards'
+import { BoardFieldType, fieldDraftOf, type BoardFieldDraft, type BoardFieldTypeName } from '@/api/boards'
+import type { Board, FederationConfigResponse, FederationTargetResponse, PartnerResponse } from '@/api/generated/schema'
+import { userTypesOf } from '@/util/stationUserTypes'
 import {StationPermission, StationUserType, StationUserTypeLabels, type MemberGroup, type PermissionGrant, type UserTag} from '@/api/types'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useFlashMessage } from '@/composables/useFlashMessage'
-import type { PartnerResponse } from '@/api/federation'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -42,9 +42,9 @@ const hasBacklog = ref(false)
 
 const lanes = ref<LaneDraft[]>([])
 const newLaneName = ref('')
-const fields = ref<FieldDraft[]>([])
+const fields = ref<BoardFieldDraft[]>([])
 const newFieldName = ref('')
-const newFieldType = ref('STRING')
+const newFieldType = ref<BoardFieldTypeName>(BoardFieldType.STRING)
 
 const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
@@ -57,7 +57,7 @@ const editGroupIds = ref<number[]>([])
 const editTagIds = ref<number[]>([])
 
 const allPartners = ref<PartnerResponse[]>([])
-const federationTargets = ref<FederationTarget[]>([])
+const federationTargets = ref<FederationTargetResponse[]>([])
 const federatedEditUserTypes = ref<string[]>([])
 const addPartnerId = ref<number | null>(null)
 
@@ -116,13 +116,13 @@ const {loading, failure: loadFailure} = useAsyncLoader(async () => {
         boards.getViewAccess(boardKey.value),
         boards.getEditAccess(boardKey.value),
     ])
-    let fedConfig = { targets: [] as FederationTarget[], editUserTypes: [] as string[] }
+    let fedConfig: FederationConfigResponse = { targets: [], editUserTypes: [] }
     let partners: PartnerResponse[] = []
     try {
         [fedConfig, partners] = await Promise.all([
             boards.getBoardFederationConfig(boardKey.value),
             federation.listPartners(),
-        ]) as [typeof fedConfig, PartnerResponse[]]
+        ])
     } catch (e) {
         federationFailure.value = {...describeFailure(e, t), message: t('boards.federationConfigUnknown')}
     }
@@ -132,18 +132,18 @@ const {loading, failure: loadFailure} = useAsyncLoader(async () => {
     hideDoneAfterDays.value = b.hideDoneAfterDays
     hasBacklog.value = b.backlogLaneId !== null
     lanes.value = l.filter(l => l.id !== b.backlogLaneId).map(l => ({ name: l.name, color: l.color, id: l.id }))
-    fields.value = f.map(f => ({ name: f.name, fieldType: f.fieldType, config: f.config }))
+    fields.value = f.map(fieldDraftOf)
     allRoles.value = r
     allGroups.value = g
     allTags.value = tg
-    viewUserTypes.value = va.userTypes ?? []
-    viewGroupIds.value = va.groupIds ?? []
-    viewTagIds.value = va.tagIds ?? []
-    editUserTypes.value = ea.userTypes ?? []
-    editGroupIds.value = ea.groupIds ?? []
-    editTagIds.value = ea.tagIds ?? []
-    federationTargets.value = fedConfig.targets ?? []
-    federatedEditUserTypes.value = fedConfig.editUserTypes ?? []
+    viewUserTypes.value = va.userTypes
+    viewGroupIds.value = va.groupIds
+    viewTagIds.value = va.tagIds
+    editUserTypes.value = ea.userTypes
+    editGroupIds.value = ea.groupIds
+    editTagIds.value = ea.tagIds
+    federationTargets.value = fedConfig.targets
+    federatedEditUserTypes.value = fedConfig.editUserTypes
     allPartners.value = partners
 })
 
@@ -160,7 +160,7 @@ async function saveNow() {
             description: description.value,
             hideDoneAfterDays: hideDoneAfterDays.value,
         })
-        await boards.setLanes(boardKey.value, lanes.value.map(l => ({ id: l.id, name: l.name, color: l.color })))
+        await boards.setLanes(boardKey.value, lanes.value.map(l => ({ id: l.id, name: l.name, color: l.color ?? undefined })))
         if (hasBacklog.value && !board.value?.backlogLaneId) {
             await boards.enableBacklog(boardKey.value)
         } else if (!hasBacklog.value && board.value?.backlogLaneId) {
@@ -168,15 +168,15 @@ async function saveNow() {
         }
         await boards.setFields(boardKey.value, fields.value)
         await boards.setViewAccess(boardKey.value, {
-            userTypes: viewUserTypes.value, groupIds: viewGroupIds.value, tagIds: viewTagIds.value,
+            userTypes: userTypesOf(viewUserTypes.value), groupIds: viewGroupIds.value, tagIds: viewTagIds.value,
         })
         await boards.setEditAccess(boardKey.value, {
-            userTypes: editUserTypes.value, groupIds: editGroupIds.value, tagIds: editTagIds.value,
+            userTypes: userTypesOf(editUserTypes.value), groupIds: editGroupIds.value, tagIds: editTagIds.value,
         })
         if (federationTargets.value.length > 0 || federatedEditUserTypes.value.length > 0) {
             await boards.setBoardFederationConfig(boardKey.value, {
                 targets: federationTargets.value,
-                editUserTypes: federatedEditUserTypes.value,
+                editUserTypes: userTypesOf(federatedEditUserTypes.value),
             })
         }
         flashSaved(t('common.saved'))
@@ -218,9 +218,9 @@ function moveLane(index: number, dir: -1 | 1) {
 
 function addField() {
     if (!newFieldName.value.trim()) return
-    fields.value.push({ name: newFieldName.value.trim(), fieldType: newFieldType.value, config: { required: false, options: [] } })
+    fields.value.push({ name: newFieldName.value.trim(), fieldType: newFieldType.value, required: false, options: [], laneId: null })
     newFieldName.value = ''
-    newFieldType.value = 'STRING'
+    newFieldType.value = BoardFieldType.STRING
 }
 
 function removeField(index: number) {
@@ -237,12 +237,12 @@ function moveField(index: number, dir: -1 | 1) {
 }
 
 const fieldTypeOptions = [
-    { value: 'STRING', label: 'boards.fieldTypeString' },
-    { value: 'NUMBER', label: 'boards.fieldTypeNumber' },
-    { value: 'BOOLEAN', label: 'boards.fieldTypeBoolean' },
-    { value: 'ENUM', label: 'boards.fieldTypeEnum' },
-    { value: 'DATE', label: 'boards.fieldTypeDate' },
-    { value: 'LANE_ASSIGNEE', label: 'boards.fieldTypeLaneAssignee' },
+    { value: BoardFieldType.STRING, label: 'boards.fieldTypeString' },
+    { value: BoardFieldType.NUMBER, label: 'boards.fieldTypeNumber' },
+    { value: BoardFieldType.BOOLEAN, label: 'boards.fieldTypeBoolean' },
+    { value: BoardFieldType.ENUM, label: 'boards.fieldTypeEnum' },
+    { value: BoardFieldType.DATE, label: 'boards.fieldTypeDate' },
+    { value: BoardFieldType.LANE_ASSIGNEE, label: 'boards.fieldTypeLaneAssignee' },
 ]
 
 function goBack() {

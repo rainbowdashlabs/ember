@@ -18,6 +18,7 @@ import PublicWaitlistPanel from './federationsettingsview/PublicWaitlistPanel.vu
 import PublicBlogPanel from './federationsettingsview/PublicBlogPanel.vue'
 import PublicSlugPanel from './federationsettingsview/PublicSlugPanel.vue'
 import {stationManage} from '@/api'
+import {DiscoveryVisibility, type DiscoveryVisibilityName} from '@/api/stationManage'
 import {useSession} from '@/composables/useSession'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -30,7 +31,7 @@ const saving = ref(false)
 const {message: savedMessage, flash: flashSaved} = useFlashMessage(2000)
 const initialized = ref(false)
 
-const discoveryVisibility = ref('NONE')
+const discoveryVisibility = ref<DiscoveryVisibilityName>(DiscoveryVisibility.NONE)
 const discoveryDescription = ref('')
 const publicKbMode = ref('OFF')
 const publicCalendarEnabled = ref(false)
@@ -58,14 +59,14 @@ const publicPagesUrl = computed(() => {
 const {loading, failure, reload: loadSettings} = useAsyncLoader(async () => {
   const info = await stationManage.getStationInfo()
   stationId.value = info.id
-  stationName.value = info.name ?? ''
-  discoveryVisibility.value = info.discoveryVisibility ?? 'NONE'
+  stationName.value = info.name
+  discoveryVisibility.value = info.discoveryVisibility
   discoveryDescription.value = info.discoveryDescription ?? ''
-  publicKbMode.value = info.publicKbMode ?? 'OFF'
-  publicCalendarEnabled.value = info.publicCalendarEnabled ?? false
-  publicPagesEnabled.value = info.publicPagesEnabled ?? false
-  publicWaitlistEnabled.value = info.publicWaitlistEnabled ?? false
-  publicBlogEnabled.value = info.publicBlogEnabled ?? false
+  publicKbMode.value = info.publicKbMode
+  publicCalendarEnabled.value = info.publicCalendarEnabled
+  publicPagesEnabled.value = info.publicPagesEnabled
+  publicWaitlistEnabled.value = info.publicWaitlistEnabled
+  publicBlogEnabled.value = info.publicBlogEnabled
   publicSlug.value = info.publicSlug ?? ''
   setTimeout(() => { initialized.value = true }, 50)
 }, {autoLoad: false})
@@ -80,13 +81,13 @@ async function save() {
     await stationManage.updateStationName({
       name: stationName.value,
       discoveryVisibility: discoveryVisibility.value,
-      discoveryDescription: discoveryDescription.value || null,
+      discoveryDescription: discoveryDescription.value || undefined,
       publicKbMode: publicKbMode.value,
       publicCalendarEnabled: publicCalendarEnabled.value,
       publicPagesEnabled: publicPagesEnabled.value,
       publicWaitlistEnabled: publicWaitlistEnabled.value,
       publicBlogEnabled: publicBlogEnabled.value,
-      publicSlug: publicSlug.value || null,
+      publicSlug: publicSlug.value,
     })
     flashSaved(t('common.saved'))
   } catch (e) {

@@ -17,8 +17,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
 import NicknameSection from '@/components/member/NicknameSection.vue'
 import {valueFields} from '@/components/profilefields/fieldLayout'
-import {profileKey, type MergedProfileField} from '@/util/profileFields'
-import type {StationMember} from '@/api/types'
+import {profileKey} from '@/util/profileFields'
+import type {MemberWithName, MergedField} from '@/api/generated/schema'
 import {profileFields, members, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -27,9 +27,9 @@ const {t} = useI18n()
 const {sessionInfo} = useSession()
 
 const props = defineProps<{
-  member: StationMember
+  member: MemberWithName
   memberId: number
-  fields: MergedProfileField[]
+  fields: MergedField[]
   initialValues: Map<string, string>
 }>()
 
@@ -109,11 +109,11 @@ async function save() {
 
   try {
     const entries = valueFields(props.fields)
-        .filter(f => !(f as MergedProfileField).readonlyAtStation)
+        .filter(f => !f.readonlyAtStation)
         .map(f => ({
           fieldId: f.id,
           value: JSON.stringify(getEditValue(f)),
-          origin: (f as MergedProfileField).origin,
+          origin: f.origin,
         }))
     await profileFields.setValues(props.memberId, {values: entries})
     await members.setNickname(props.memberId, editNickname.value.trim() || null)

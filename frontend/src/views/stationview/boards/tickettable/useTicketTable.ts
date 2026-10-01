@@ -5,8 +5,7 @@
  */
 import {computed, type MaybeRefOrGetter, toValue} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {BoardLabel, BoardTicket} from '@/api/boards'
-import type {MemberCompletion} from '@/api/stationMembers'
+import type {BoardLabel, MemberCompletion, TicketSummary} from '@/api/generated/schema'
 import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
 import {useDataTable} from '@/composables/useDataTable'
 import {priorityOptions} from '@/util/ticketPriority'
@@ -15,11 +14,11 @@ export interface TicketTableOptions {
   /** Names the table where its column choices are remembered. */
   id: string
   shortKey: MaybeRefOrGetter<string>
-  tickets: MaybeRefOrGetter<readonly BoardTicket[]>
+  tickets: MaybeRefOrGetter<readonly TicketSummary[]>
   /** The station's members, which is where an assignee's name is read from. */
   members: MaybeRefOrGetter<readonly MemberCompletion[]>
   /** The labels a ticket wears. Without it the table has no label column. */
-  labelsOf?: (ticket: BoardTicket) => BoardLabel[]
+  labelsOf?: (ticket: TicketSummary) => BoardLabel[]
 }
 
 /**
@@ -33,19 +32,19 @@ export function useTicketTable(options: TicketTableOptions) {
 
   const memberNames = computed(() => new Map(toValue(options.members).map(member => [member.memberUid, member.name])))
 
-  function assigneeName(ticket: BoardTicket): string {
+  function assigneeName(ticket: TicketSummary): string {
     const uid = ticket.assignee?.memberUid
     if (!uid) return ''
     return memberNames.value.get(uid) ?? ''
   }
 
-  function labelColumns(): TableColumn<BoardTicket>[] {
+  function labelColumns(): TableColumn<TicketSummary>[] {
     const labelsOf = options.labelsOf
     if (!labelsOf) return []
     return [{key: 'labels', label: t('boards.labels'), type: ColumnTypes.TEXT, value: ticket => labelsOf(ticket).map(label => label.name)}]
   }
 
-  const columns = computed<TableColumn<BoardTicket>[]>(() => [
+  const columns = computed<TableColumn<TicketSummary>[]>(() => [
     {
       key: 'key', label: t('boards.ticketKey'), type: ColumnTypes.TEXT,
       value: ticket => `${toValue(options.shortKey)}-${ticket.ticketNumber}`, sortValue: ticket => ticket.ticketNumber,
@@ -57,7 +56,7 @@ export function useTicketTable(options: TicketTableOptions) {
     {key: 'dueDate', label: t('boards.dueDate'), type: ColumnTypes.DATE, value: ticket => ticket.dueDate},
   ])
 
-  return useDataTable<BoardTicket>({
+  return useDataTable<TicketSummary>({
     id: options.id,
     rows: options.tickets,
     columns,

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.api.auth.StationUserType;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -27,9 +28,9 @@ public record MemberGroup(
         int id,
         int stationId,
         String name,
-        String color,
+        @Nullable String color,
         int position,
-        Integer groupSetId,
+        @Nullable Integer groupSetId,
         List<StationUserType> userTypes) {
 
     /**

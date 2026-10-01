@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import versions from '@/federation_versions.json'
-import type { FederationContract, FederationPartner } from '@/api/federation'
+import type { FederationContract, FederationPartner } from '@/api/generated/schema'
 
 const versionMap: Record<string, string> = Object.assign(
     {},

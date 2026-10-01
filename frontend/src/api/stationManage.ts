@@ -5,71 +5,40 @@
  */
 import client from './client'
 import {uploadFile} from './upload'
-import type {MessageResponse} from './types'
+import type {StationModuleName} from './types'
+import type {
+    components,
+    DeleteRequestResponse,
+    LocationUpdate,
+    LocationView,
+    MailTestResponse,
+    MessageResponse,
+    ModulesResponse,
+    StationImportProgress,
+    StationInfo,
+    UpdateStationRequest,
+} from './generated/schema'
 
-export interface StationManageInfo {
-    id: string
-    name?: string
-    timezone?: string
-    locale?: string
-    hasLogo: boolean
-    ownerMemberId?: number | null
-    isOwner: boolean
-    defaultTheme?: string
-    allowUserTheme?: boolean
-    customThemeColors?: string | null
-    defaultFeel?: string
-    allowUserFeel?: boolean
-    publicKbMode?: string
-    discoveryVisibility?: string
-    discoveryDescription?: string | null
-    discoveryShowKb?: boolean
-    publicCalendarEnabled?: boolean
-    publicPagesEnabled?: boolean
-    publicWaitlistEnabled?: boolean
-    publicBlogEnabled?: boolean
-    publicSlug?: string | null
-    /** Whether exported PDFs leave the address of this installation off the foot of the page. */
-    pdfHidesInstanceUrl?: boolean
-    /** Whether this station reads the names its members are called by. */
-    nicknamesEnabled?: boolean
-    /** What the cluster above the station has taken out of its hands, and who to name for it. */
-    themeLocked?: boolean
-    colorsLocked?: boolean
-    feelLocked?: boolean
-    logoLocked?: boolean
-    clusterName?: string | null
-}
+export type DiscoveryVisibilityName = components['schemas']['DiscoveryVisibility']
 
-export interface UpdateStationNameRequest {
-    name?: string
-    timezone?: string
-    locale?: string
-    defaultTheme?: string
-    allowUserTheme?: boolean
-    customThemeColors?: string | null
-    defaultFeel?: string
-    allowUserFeel?: boolean
-    publicKbMode?: string
-    discoveryVisibility?: string
-    discoveryDescription?: string | null
-    discoveryShowKb?: boolean
-    publicCalendarEnabled?: boolean
-    publicPagesEnabled?: boolean
-    publicWaitlistEnabled?: boolean
-    publicBlogEnabled?: boolean
-    publicSlug?: string | null
-    pdfHidesInstanceUrl?: boolean
-    nicknamesEnabled?: boolean
-}
+/** Where a station is listed for others to find: nowhere, on this instance only, or publicly. */
+export const DiscoveryVisibility = {
+    NONE: 'NONE',
+    INSTANCE: 'INSTANCE',
+    PUBLIC: 'PUBLIC',
+} as const satisfies Record<DiscoveryVisibilityName, DiscoveryVisibilityName>
 
-export async function getStationInfo(): Promise<StationManageInfo> {
-    const res = await client.get<StationManageInfo>('/station/manage')
+export async function getStationInfo(): Promise<StationInfo> {
+    const res = await client.get<StationInfo>('/station/manage')
     return res.data
 }
 
-export async function updateStationName(data: UpdateStationNameRequest): Promise<StationManageInfo> {
-    const res = await client.put<StationManageInfo>('/station/manage', data)
+/**
+ * Saves the station's settings. A setting left out is left alone, except for the custom colours, the
+ * discovery description and the public address, which a missing value clears.
+ */
+export async function updateStationName(data: UpdateStationRequest): Promise<StationInfo> {
+    const res = await client.put<StationInfo>('/station/manage', data)
     return res.data
 }
 
@@ -86,13 +55,6 @@ export function getLogoUrl(): string {
     return '/api/v1/station/manage/logo'
 }
 
-// -- Mail config --
-
-export interface MailTestResponse {
-    success: boolean
-    error?: string | null
-}
-
 export async function testMailConfig(): Promise<MailTestResponse> {
     const res = await client.post<MailTestResponse>('/station/manage/mail/test')
     return res.data
@@ -106,57 +68,28 @@ export async function sendTestMail(): Promise<void> {
     await client.post('/station/manage/mail/test-mail')
 }
 
-// -- Modules --
-
-export interface ModulesResponse {
-    disabledModules: string[]
-    /** Modules the station's cluster has switched off, which the station cannot turn back on. */
-    clusterDeniedModules?: string[]
-    /** The cluster doing the denying, so the screen can say who. */
-    clusterName?: string | null
-}
-
 export async function getDisabledModules(): Promise<ModulesResponse> {
     const res = await client.get<ModulesResponse>('/station/manage/modules')
     return res.data
 }
 
-export async function setDisabledModules(disabledModules: string[]): Promise<ModulesResponse> {
+export async function setDisabledModules(disabledModules: StationModuleName[]): Promise<ModulesResponse> {
     const res = await client.put<ModulesResponse>('/station/manage/modules', {disabledModules})
     return res.data
 }
 
-// -- Station deletion --
-
-export interface DeleteRequestResponse {
-    message: string
-    /**
-     * Whether the station is already gone. An instance with no way of sending has nobody to ask,
-     * so the confirmation counts as given and the deletion happens on the spot.
-     */
-    deleted: boolean
-}
-
+/**
+ * Asks for the station to be deleted. An instance with no way of sending has nobody to ask, so the
+ * confirmation counts as given and the answer says the station is already gone.
+ */
 export async function requestStationDeletion(): Promise<DeleteRequestResponse> {
     const res = await client.post<DeleteRequestResponse>('/station/manage/request-delete')
     return res.data
 }
 
-export async function importStation(token: string): Promise<{message: string}> {
-    const res = await client.post<{message: string}>('/station/manage/import', {token})
+export async function importStation(token: string): Promise<MessageResponse> {
+    const res = await client.post<MessageResponse>('/station/manage/import', {token})
     return res.data
-}
-
-export interface StationImportProgress {
-    stationId: string
-    stationName: string
-    status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
-    phases: string[]
-    completedPhases: number
-    currentPhase: string | null
-    subTotal: number
-    subCompleted: number
-    error: string | null
 }
 
 export async function getImportProgress(): Promise<StationImportProgress> {
@@ -164,29 +97,19 @@ export async function getImportProgress(): Promise<StationImportProgress> {
     return res.data
 }
 
-export async function transferOwnership(newOwnerMemberId: number): Promise<{message: string}> {
-    const res = await client.post<{message: string}>('/station/manage/transfer-ownership', {newOwnerMemberId})
+export async function transferOwnership(newOwnerMemberId: number): Promise<MessageResponse> {
+    const res = await client.post<MessageResponse>('/station/manage/transfer-ownership', {newOwnerMemberId})
     return res.data
 }
 
-// -- Geolocation --
-
-export interface StationLocation {
-    addressLine: string | null
-    postalCode: string | null
-    city: string | null
-    country: string | null
-    latitude: number | null
-    longitude: number | null
-}
-
-export async function getStationLocation(): Promise<StationLocation> {
-    const res = await client.get<StationLocation>('/station/location')
+export async function getStationLocation(): Promise<LocationView> {
+    const res = await client.get<LocationView>('/station/location')
     return res.data
 }
 
-export async function updateStationLocation(data: StationLocation): Promise<StationLocation> {
-    const res = await client.put<StationLocation>('/station/location', data)
+/** Saves the station's address and position; a part left out is cleared. */
+export async function updateStationLocation(data: LocationUpdate): Promise<LocationView> {
+    const res = await client.put<LocationView>('/station/location', data)
     return res.data
 }
 

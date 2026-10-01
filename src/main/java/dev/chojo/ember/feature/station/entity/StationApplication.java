@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -33,11 +34,11 @@ public record StationApplication(
         String email,
         String stationName,
         String introduction,
-        String verificationToken,
+        @Nullable String verificationToken,
         ApplicationStatus status,
-        String denyReason,
+        @Nullable String denyReason,
         Instant createdAt,
-        Instant resolvedAt) {
+        @Nullable Instant resolvedAt) {
     /**
      * Creates a row mapping for database result set conversion.
      *

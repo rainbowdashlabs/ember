@@ -13,14 +13,14 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import type {DiscoveryInfoProbe} from '@/api/discovery'
+import type {DiscoveryInfoResponse} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 defineProps<{
   probing: boolean
   /** Why the probe did not come back. A probe says something about the peer, never about Ember. */
   probeFailure: Failure | null
-  probeResult: DiscoveryInfoProbe | null
+  probeResult: DiscoveryInfoResponse | null
 }>()
 
 const baseUrl = defineModel<string>('baseUrl', {required: true})

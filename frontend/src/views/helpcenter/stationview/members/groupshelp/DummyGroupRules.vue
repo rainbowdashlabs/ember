@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import GroupRulesFields from '@/views/stationview/members/groupsview/GroupRulesFields.vue'
 import GroupSetPanel from '@/views/stationview/members/groupsview/GroupSetPanel.vue'
 import {StationUserType, type StationUserTypeName} from '@/api/types'
-import type {MemberGroupSet} from '@/api/groupSets'
+import type {MemberGroupSet} from '@/api/generated/schema'
 
 /** The sets of groups and a group's rules as the groups page shows them, filled with a sample. */
 defineProps<{

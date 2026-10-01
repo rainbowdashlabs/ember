@@ -34,6 +34,8 @@ import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.feature.station.service.StationLocationService;
+import dev.chojo.ember.feature.station.service.StationLocationService.LocationUpdate;
+import dev.chojo.ember.feature.station.service.StationLocationService.LocationView;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationNotificationTimesService;
 import dev.chojo.ember.feature.station.service.StationNotificationTimesService.NotificationSchedulePayload;
@@ -55,6 +57,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -181,18 +184,37 @@ public class StationManageRoutes implements Routes {
         routes.delete(prefix + "/station/location", this::clearLocation, StationPermission.STATION_GENERAL);
     }
 
+    @OpenApi(
+            path = "/api/v1/station/location",
+            methods = HttpMethod.GET,
+            summary = "Get where the station is",
+            tags = {"Station Manage"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LocationView.class)))
     private void getLocation(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(locationService.find(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/location",
+            methods = HttpMethod.PUT,
+            summary = "Set where the station is",
+            tags = {"Station Manage"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocationUpdate.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LocationView.class)))
     private void updateLocation(Context ctx) {
         var session = UserSession.from(ctx);
-        var body = ctx.bodyAsClass(StationLocationService.LocationUpdate.class);
+        var body = ctx.bodyAsClass(LocationUpdate.class);
         locationService.update(session.stationId(), body);
         ctx.json(locationService.find(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/location",
+            methods = HttpMethod.DELETE,
+            summary = "Clear where the station is",
+            tags = {"Station Manage"},
+            responses = @OpenApiResponse(status = "204"))
     private void clearLocation(Context ctx) {
         var session = UserSession.from(ctx);
         locationService.clear(session.stationId());
@@ -311,9 +333,10 @@ public class StationManageRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get station logo",
             tags = {"Station Manage"},
+            queryParams = @OpenApiParam(name = "size", type = Integer.class),
             responses = {
-                @OpenApiResponse(status = "200"),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/*")),
+                @OpenApiResponse(status = "204")
             })
     private void getLogo(Context ctx) {
         UserSession session = UserSession.from(ctx);
@@ -337,10 +360,24 @@ public class StationManageRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get a station's logo by ID",
             tags = {"Station Manage"},
-            pathParams = @OpenApiParam(name = "stationId", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "stationId", type = UUID.class, required = true),
+            queryParams = @OpenApiParam(name = "size", type = Integer.class),
             responses = {
-                @OpenApiResponse(status = "200"),
-                @OpenApiResponse(status = "204", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/*")),
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    @OpenApi(
+            path = "/api/v1/public/stations/{stationId}/logo",
+            methods = HttpMethod.GET,
+            summary = "Get a station's logo by ID, without signing in",
+            tags = {"Station Manage"},
+            pathParams = @OpenApiParam(name = "stationId", type = UUID.class, required = true),
+            queryParams = @OpenApiParam(name = "size", type = Integer.class),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/*")),
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getLogoByStation(Context ctx) {
         String uidParam = ctx.pathParam("stationId");
@@ -667,14 +704,17 @@ public class StationManageRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get import progress for the current station",
             tags = {"Station Manage"},
-            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationImportProgress.class)),
+                @OpenApiResponse(status = "404")
+            })
     private void importProgress(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var progress = importService.getProgress(session.stationId());
         if (progress == null) {
             throw Refusal.NO_IMPORT_RUNNING.raise();
         }
-        ctx.json(new ImportProgressResponse(
+        ctx.json(new StationImportProgress(
                 progress.stationId(),
                 progress.stationName(),
                 progress.status(),
@@ -692,7 +732,10 @@ public class StationManageRoutes implements Routes {
             summary = "Confirm and execute station deletion",
             tags = {"Station Manage"},
             queryParams = @OpenApiParam(name = "token", required = true),
-            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "400")})
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "400")
+            })
     private void confirmDelete(Context ctx) {
         String token = ctx.queryParam("token");
         if (token == null || token.isBlank()) {
@@ -731,20 +774,20 @@ public class StationManageRoutes implements Routes {
             String timezone,
             String locale,
             boolean hasLogo,
-            Integer ownerMemberId,
+            @Nullable Integer ownerMemberId,
             boolean isOwner,
             String defaultTheme,
             boolean allowUserTheme,
-            String customThemeColors,
+            @Nullable String customThemeColors,
             ThemeFeel defaultFeel,
             boolean allowUserFeel,
             PublicKbMode publicKbMode,
             DiscoveryVisibility discoveryVisibility,
-            String discoveryDescription,
+            @Nullable String discoveryDescription,
             boolean discoveryShowKb,
             boolean publicCalendarEnabled,
             boolean publicPagesEnabled,
-            String publicSlug,
+            @Nullable String publicSlug,
             boolean publicWaitlistEnabled,
             boolean publicBlogEnabled,
             boolean pdfHidesInstanceUrl,
@@ -753,25 +796,7 @@ public class StationManageRoutes implements Routes {
             boolean colorsLocked,
             boolean feelLocked,
             boolean logoLocked,
-            String clusterName) {}
-
-    /**
-     * Request body for updating the station's mail configuration.
-     */
-    public record MailConfigRequest(
-            String provider,
-            String smtpHost,
-            Integer smtpPort,
-            SmtpEncryption smtpEncryption,
-            String smtpUser,
-            String smtpPassword,
-            String senderAddress,
-            String senderName,
-            String apiKey,
-            String providerName,
-            String providerUrl,
-            Integer dailyLimit,
-            Integer monthlyLimit) {}
+            @Nullable String clusterName) {}
 
     // -- Station import into existing station --
 
@@ -837,7 +862,9 @@ public class StationManageRoutes implements Routes {
      * @param clusterName          the cluster doing the denying, or {@code null} when it answers to nobody
      */
     public record ModulesResponse(
-            Set<StationModule> disabledModules, Set<StationModule> clusterDeniedModules, String clusterName) {
+            Set<StationModule> disabledModules,
+            Set<StationModule> clusterDeniedModules,
+            @Nullable String clusterName) {
         /** The shape a caller sends: only its own list matters on the way in. */
         public ModulesResponse(Set<StationModule> disabledModules) {
             this(disabledModules, Set.of(), null);
@@ -871,14 +898,14 @@ public class StationManageRoutes implements Routes {
      * @param currentPhase    the phase id currently being processed, or {@code null} if completed
      * @param error           the error message if the import failed, or {@code null}
      */
-    public record ImportProgressResponse(
+    public record StationImportProgress(
             int stationId,
             String stationName,
             ImportProgress.Status status,
             List<String> phases,
             int completedPhases,
-            String currentPhase,
+            @Nullable String currentPhase,
             int subTotal,
             int subCompleted,
-            String error) {}
+            @Nullable String error) {}
 }

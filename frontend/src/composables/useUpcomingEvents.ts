@@ -11,11 +11,12 @@ import type {
   EventCategory,
   EventField,
   EventSummary,
+  ManagedMember,
   RegistrationCount,
   RegistrationResponse,
   UpcomingEventOccurrence,
 } from '@/api/generated/schema'
-import type { MemberGroup, StationMember, UserTag } from '@/api/types'
+import type { MemberGroup, UserTag } from '@/api/types'
 import { events, managedMembers as managedMembersApi, memberGroups, userTags } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useEventAnswer } from '@/composables/useEventAnswer'
@@ -47,7 +48,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   const todayEvents = ref<EventSummary[]>([])
   const myRegistrations = ref<RegistrationResponse[]>([])
   const eligibleMembers = ref<Record<number, number[]>>({})
-  const managedMembers = ref<StationMember[]>([])
+  const managedMembers = ref<ManagedMember[]>([])
   const registrationCounts = ref<RegistrationCount[]>([])
   const overviewFields = ref<Record<number, EventField[]>>({})
   const categories = ref<EventCategory[]>([])
@@ -115,13 +116,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     tags.value = tgs
 
     if (!isGuardian()) return
-    managedMembers.value = (await managedMembersApi.listManaged()).map(m => ({
-      id: m.id,
-      stationId: m.stationId,
-      accountId: m.accountId,
-      name: m.name,
-      email: m.email,
-    }))
+    managedMembers.value = await managedMembersApi.listManaged()
   }, {autoLoad: false})
 
   async function reloadRegistrations() {

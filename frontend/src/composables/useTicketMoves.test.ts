@@ -6,9 +6,9 @@
 import {describe, expect, it, vi} from 'vitest'
 import {ref} from 'vue'
 import {useTicketMoves} from './useTicketMoves'
-import type {BoardTicket} from '@/api/boards'
+import type {TicketSummary} from '@/api/generated/schema'
 
-function ticket(id: number, laneId: number, position: number): BoardTicket {
+function ticket(id: number, laneId: number, position: number): TicketSummary {
     return {
         id,
         boardId: 1,

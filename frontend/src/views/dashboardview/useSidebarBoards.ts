@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {readonly} from 'vue'
-import {listBoards, type Board} from '@/api/boards'
+import {listBoards} from '@/api/boards'
+import type {Board} from '@/api/generated/schema'
 
 /**
  * Boards shown as sub-links of the station sidebar's boards section.

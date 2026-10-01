@@ -8,8 +8,7 @@ import {computed, ref, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import KanbanLane from './KanbanLane.vue'
 import {boardLanes, isPastDoneLimit, laneTickets, positionInLane, type KanbanBoardSettings} from './kanbanLanes'
-import type {BoardLabel, BoardLane, BoardTicket} from '@/api/boards'
-import type {MemberCompletion} from '@/api/stationMembers'
+import type {BoardLabel, BoardLane, MemberCompletion, TicketSummary} from '@/api/generated/schema'
 
 /**
  * The kanban board: one column per lane, the backlog left out, and in the last lane only the tickets
@@ -25,10 +24,10 @@ import type {MemberCompletion} from '@/api/stationMembers'
 const props = withDefaults(defineProps<{
   board: KanbanBoardSettings
   lanes: BoardLane[]
-  tickets: BoardTicket[]
+  tickets: TicketSummary[]
   labelsForTicket: (ticketId: number) => BoardLabel[]
   /** Narrows the cards shown, as the local board's assignee and label filters do. */
-  filter?: (ticket: BoardTicket) => boolean
+  filter?: (ticket: TicketSummary) => boolean
   /** The station's members, which put names and avatars to the assignees. */
   members?: MemberCompletion[]
   readOnly?: boolean
@@ -42,8 +41,8 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-  move: [ticket: BoardTicket, laneId: number, position: number]
-  open: [ticket: BoardTicket]
+  move: [ticket: TicketSummary, laneId: number, position: number]
+  open: [ticket: TicketSummary]
   openArchive: []
 }>()
 
@@ -55,16 +54,16 @@ const announcement = ref('')
 const columns = computed(() => boardLanes(props.lanes, props.board.backlogLaneId))
 const lastLaneId = computed(() => columns.value[columns.value.length - 1]?.id ?? null)
 
-function isArchived(ticket: BoardTicket, laneId: number): boolean {
+function isArchived(ticket: TicketSummary, laneId: number): boolean {
   return laneId === lastLaneId.value && isPastDoneLimit(ticket, props.board.hideDoneAfterDays)
 }
 
-function filteredLane(laneId: number): BoardTicket[] {
+function filteredLane(laneId: number): TicketSummary[] {
   const lane = laneTickets(props.tickets, laneId)
   return props.filter ? lane.filter(props.filter) : lane
 }
 
-function cardsFor(laneId: number): BoardTicket[] {
+function cardsFor(laneId: number): TicketSummary[] {
   return filteredLane(laneId).filter(ticket => !isArchived(ticket, laneId))
 }
 

@@ -5,7 +5,7 @@
  */
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
-import {ageSourceOf, FieldTypes, type ProfileField} from './profileFields'
+import {ageSourceOf} from './profileFields'
 
 /**
  * Which question a calculated age reads.
@@ -14,8 +14,8 @@ import {ageSourceOf, FieldTypes, type ProfileField} from './profileFields'
  * the name is that a field configured before there were identifiers still finds its source.
  */
 describe('ageSourceOf', () => {
-    const birthDate: ProfileField = {id: 10, name: 'Geburtsdatum', fieldType: FieldTypes.BIRTH_DATE}
-    const joined: ProfileField = {id: 11, name: 'Beitrittsdatum', fieldType: FieldTypes.DATE}
+    const birthDate = {id: 10, name: 'Geburtsdatum'}
+    const joined = {id: 11, name: 'Beitrittsdatum'}
     const fields = [birthDate, joined]
 
     it('reads the question the identifier names', () => {

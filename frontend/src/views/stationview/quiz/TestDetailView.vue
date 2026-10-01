@@ -14,8 +14,8 @@ import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
-import type {FrozenQuestionDetail, QuizCatalog, QuizQuestion, QuizTestAttempt, QuizTestDetail} from '@/api/generated/schema'
+import {StationPermission, type MemberGroup, type UserTag} from '@/api/types'
+import type {FrozenQuestionDetail, MemberWithName, QuizCatalog, QuizQuestion, QuizTestAttempt, QuizTestDetail} from '@/api/generated/schema'
 import { quiz, stationMembers, memberGroups, userTags } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -44,7 +44,7 @@ const testId = computed(() => Number(route.params.id))
 const detail = ref<QuizTestDetail | null>(null)
 const attempts = ref<QuizTestAttempt[]>([])
 const catalogs = ref<QuizCatalog[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 
 const frozenQuestions = ref<FrozenQuestionDetail[]>([])
 const frozenLoading = ref(false)

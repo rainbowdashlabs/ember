@@ -13,7 +13,8 @@ import ChecklistMembershipEditor from './checklistmodals/ChecklistMembershipEdit
 import type {ChecklistColumnDraft} from '@/api/checklists'
 import type {EventOccurrenceRef} from '@/api/events'
 import type {CreateRequest as ChecklistCreateRequest} from '@/api/generated/schema'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 const visible = defineModel<boolean>({required: true})
 
@@ -21,7 +22,7 @@ defineProps<{
   creating: boolean
   groups: MemberGroup[]
   tags: UserTag[]
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const emit = defineEmits<{

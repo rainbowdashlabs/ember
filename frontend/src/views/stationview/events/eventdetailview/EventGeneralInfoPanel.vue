@@ -11,14 +11,14 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
 import EventMetaGrid from './EventMetaGrid.vue'
 import type {EventField, StationEvent} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import ProseContent from '@/components/display/ProseContent.vue'
 
 defineProps<{
   event: StationEvent
   eventId: number
   fields: EventField[]
-  allMembers: StationMember[]
+  allMembers: MemberLike[]
   currentMemberId: number
   startFormatted: string
   endFormatted: string

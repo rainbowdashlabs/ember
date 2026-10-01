@@ -5,8 +5,7 @@
  */
 import {computed, ref} from 'vue'
 import {attendance, events, memberGroups} from '@/api'
-import type {AttendanceTemplateField, EventTemplate} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {AttendanceTemplateField, EventTemplate, MemberWithName} from '@/api/generated/schema'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 
 /**
@@ -17,7 +16,7 @@ export function useEventEditData(selectedTemplateId: () => string, answeredField
   const {categories, templates, groups, tags, members: allMembers, reload: reloadDeps} = useEventEditDeps({withMembers: true, autoLoad: false})
   const eventTemplates = ref<EventTemplate[]>([])
   const allTemplateFields = ref<AttendanceTemplateField[]>([])
-  const groupMembersMap = ref(new Map<number, StationMember[]>())
+  const groupMembersMap = ref(new Map<number, MemberWithName[]>())
 
   /**
    * The fields of the attendance sheet this appointment is taken on, and of no other.
@@ -53,7 +52,7 @@ export function useEventEditData(selectedTemplateId: () => string, answeredField
     ])
     eventTemplates.value = evtTpls
 
-    const gMap = new Map<number, StationMember[]>()
+    const gMap = new Map<number, MemberWithName[]>()
     for (const g of groups.value) {
       const gMembers = await memberGroups.getGroupMembers(g.id)
       gMap.set(g.id, gMembers)

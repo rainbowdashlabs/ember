@@ -14,6 +14,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DiscoveryVisibilityChoice from '@/views/stationview/setup/steps/federationstep/DiscoveryVisibilityChoice.vue'
 import PublicListingContents from '@/views/stationview/setup/steps/federationstep/PublicListingContents.vue'
 import {stationManage} from '@/api'
+import {DiscoveryVisibility, type DiscoveryVisibilityName} from '@/api/stationManage'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
@@ -28,7 +29,7 @@ const router = useRouter()
 const {reload} = useSetupStatus()
 
 const stationName = ref('')
-const visibility = ref('PUBLIC')
+const visibility = ref<DiscoveryVisibilityName>(DiscoveryVisibility.PUBLIC)
 const description = ref('')
 const showKb = ref(true)
 const loading = ref(true)
@@ -36,10 +37,10 @@ const loading = ref(true)
 onMounted(async () => {
     try {
         const info = await stationManage.getStationInfo()
-        stationName.value = info.name ?? ''
+        stationName.value = info.name
         description.value = info.discoveryDescription ?? ''
-        showKb.value = info.discoveryShowKb ?? true
-        visibility.value = info.discoveryVisibility ?? 'PUBLIC'
+        showKb.value = info.discoveryShowKb
+        visibility.value = info.discoveryVisibility
     } catch { /* ignore */ }
     loading.value = false
 })

@@ -21,8 +21,9 @@ import type {
   InventorySize,
   ItemCheckHistoryEntry,
   ItemLocationResponse,
+  MemberWithName,
 } from '@/api/generated/schema'
-import {StationPermission, type StationMember} from '@/api/types'
+import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useActsForOwner} from '@/composables/useActsForOwner'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
@@ -44,7 +45,7 @@ const item = ref<InventoryItem | null>(null)
 const historyEntries = ref<HistoryResponse[]>([])
 const checkHistory = ref<ItemCheckHistoryEntry[]>([])
 const sizes = ref<InventorySize[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 const location = ref<ItemLocationResponse | null>(null)
 const {message: success, flash} = useFlashMessage(3000)
 

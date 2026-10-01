@@ -9,15 +9,14 @@ import BoardAccessSection from './BoardAccessSection.vue'
 import BoardFederationSection from './BoardFederationSection.vue'
 import type { RoleOption } from './BoardFederationSection.vue'
 import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
-import type { FederationTarget } from '@/api/boards'
-import type { PartnerResponse } from '@/api/federation'
+import type { FederationTargetResponse, PartnerResponse } from '@/api/generated/schema'
 
 defineProps<{
     allRoles: PermissionGrant[]
     allGroups: MemberGroup[]
     allTags: UserTag[]
     canFederate: boolean
-    federationTargets: FederationTarget[]
+    federationTargets: FederationTargetResponse[]
     availablePartners: PartnerResponse[]
     hasFullMode: boolean
     roleOptions: RoleOption[]

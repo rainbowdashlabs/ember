@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import EventFieldValueInput from '../eventshared/EventFieldValueInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import type {EventField} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import {events} from '@/api'
 import {showToast} from '@/util/toast'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -26,7 +26,7 @@ const props = defineProps<{
   eventId: number
   field: EventField
   date: string
-  allMembers: StationMember[]
+  allMembers: MemberLike[]
 }>()
 
 const emit = defineEmits<{

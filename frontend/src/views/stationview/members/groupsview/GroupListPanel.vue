@@ -16,7 +16,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {MemberGroup} from '@/api/types'
-import type {MemberGroupSet} from '@/api/groupSets'
+import type {MemberGroupSet} from '@/api/generated/schema'
 import {boundTypeNames} from '@/util/groupRules'
 
 const {t} = useI18n()

@@ -13,8 +13,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import ImageLightbox from '@/components/display/ImageLightbox.vue'
 import { boards } from '@/api'
-import {LinkType, type BoardLane, type BoardTicket, type BoardTicketAttachment, type BoardTicketLink, type BoardWeblink, type LinkTypeName} from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+import {LinkType, type LinkTypeName} from '@/api/boards'
+import type {BoardLane, BoardTicketAttachment, BoardTicketLink, BoardWeblink, MemberCompletion, TicketSummary} from '@/api/generated/schema'
 import { useBoardApi } from '@/composables/useBoardApi'
 import { useAttachmentPreview } from '@/views/stationview/boards/boardview/useAttachmentPreview'
 import { formatSize } from '@/util/format'
@@ -32,7 +32,7 @@ const props = defineProps<{
     links: BoardTicketLink[]
     weblinks: BoardWeblink[]
     attachments: BoardTicketAttachment[]
-    allTickets: BoardTicket[]
+    allTickets: TicketSummary[]
     lanes: BoardLane[]
     members: MemberCompletion[]
     priorityOptions: { value: string; label: string; icon: string[]; color?: string }[]
@@ -91,7 +91,7 @@ function onSearchKeydown(e: KeyboardEvent) {
 }
 
 const groupedLinks = computed(() => {
-    const groups: Record<string, { link: BoardTicketLink; linkedTicket: BoardTicket | undefined }[]> = {}
+    const groups: Record<string, { link: BoardTicketLink; linkedTicket: TicketSummary | undefined }[]> = {}
     for (const link of props.links) {
         const linkedId = link.linkedTicketId === props.ticketNumber ? link.ticketId : link.linkedTicketId
         const linkedTicket = props.allTickets.find(t => t.id === linkedId)

@@ -4,25 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {ProfileField, ProfileFieldValue} from './profileFields'
-import type {MyInventoryItem, MyRequirement} from './generated/schema'
-
-export interface ManagedMember {
-    id: number
-    stationId: string
-    accountId: number
-    name: string
-    email: string
-}
+import type {
+    ManagedAccess,
+    ManagedMember,
+    MemberProfile,
+    MemberRequirement,
+    MergedValue,
+    MyInventoryItem,
+    PasskeyCodeResponse,
+} from './generated/schema'
 
 export async function listManaged(): Promise<ManagedMember[]> {
     const res = await client.get<ManagedMember[]>('/managed-members')
     return res.data
-}
-
-export interface MemberProfile {
-    fields: ProfileField[]
-    values: ProfileFieldValue[]
 }
 
 export async function getProfile(memberId: number): Promise<MemberProfile> {
@@ -33,33 +27,23 @@ export async function getProfile(memberId: number): Promise<MemberProfile> {
 export async function setProfile(memberId: number, values: {
     fieldId: number;
     value: string
-}[]): Promise<ProfileFieldValue[]> {
-    const res = await client.put<ProfileFieldValue[]>(`/managed-members/${memberId}/profile`, {values})
+}[]): Promise<MergedValue[]> {
+    const res = await client.put<MergedValue[]>(`/managed-members/${memberId}/profile`, {values})
     return res.data
 }
 
+/** A member's gear as they read it themselves, with the movement each piece is on and its picture. */
 export async function getMemberInventory(memberId: number): Promise<MyInventoryItem[]> {
     const res = await client.get<MyInventoryItem[]>(`/managed-members/${memberId}/inventory-items`)
     return res.data
 }
 
-export async function getMemberRequirements(memberId: number): Promise<MyRequirement[]> {
-    const res = await client.get<MyRequirement[]>(`/managed-members/${memberId}/inventory-requirements`)
+export async function getMemberRequirements(memberId: number): Promise<MemberRequirement[]> {
+    const res = await client.get<MemberRequirement[]>(`/managed-members/${memberId}/inventory-requirements`)
     return res.data
 }
 
 /** The access a guardian manages for a member in their care. */
-export interface ManagedAccess {
-    /** The address the account is reached at, or null while it carries only a synthetic one. */
-    email: string | null
-    /** The name the member signs in with, or null while they have none. */
-    username: string | null
-    /** Whether the member may sign in. */
-    loginEnabled: boolean
-    /** Whether signing in can be switched on at all, which needs an address or a name. */
-    canSignIn: boolean
-}
-
 export async function getAccess(memberId: number): Promise<ManagedAccess> {
     const res = await client.get<ManagedAccess>(`/managed-members/${memberId}/access`)
     return res.data
@@ -84,16 +68,9 @@ export async function setPassword(memberId: number, password: string): Promise<M
     return res.data
 }
 
-export interface PasskeyCode {
-    code: string
-    /** Base64 PNG of the QR that carries the enrolment grant. */
-    qrPng: string
-    expiresAt: string
-}
-
 /** The QR code held up in the room: lets the member create a passkey on their own device. */
-export async function issuePasskeyCode(memberId: number): Promise<PasskeyCode> {
-    const res = await client.post<PasskeyCode>(`/managed-members/${memberId}/passkey-code`)
+export async function issuePasskeyCode(memberId: number): Promise<PasskeyCodeResponse> {
+    const res = await client.post<PasskeyCodeResponse>(`/managed-members/${memberId}/passkey-code`)
     return res.data
 }
 

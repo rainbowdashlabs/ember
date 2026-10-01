@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {MemberGroupSet} from '@/api/groupSets'
+import type {MemberGroupSet} from '@/api/generated/schema'
 import {StationUserTypeLabels, type MemberGroup, type StationUserTypeName} from '@/api/types'
 import {apiErrorBody, apiErrorCode, type ApiGroupConflict} from '@/util/apiError'
 

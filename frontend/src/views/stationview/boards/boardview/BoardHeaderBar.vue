@@ -9,7 +9,7 @@ import { useRouter } from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import BoardSearchBox from './BoardSearchBox.vue'
-import type { BoardLabel } from '@/api/boards'
+import type { BoardLabel } from '@/api/generated/schema'
 import { useSession } from '@/composables/useSession'
 
 const props = defineProps<{

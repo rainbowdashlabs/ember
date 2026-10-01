@@ -17,8 +17,8 @@ import RecordTable from '@/components/table/RecordTable.vue'
 import type {ColumnOption, TableColumn} from '@/components/table/tableColumn'
 import {memberTable as api} from '@/api'
 import {RegistrationStatus} from '@/api/events'
-import type {RegistrationResponse} from '@/api/generated/schema'
-import type {MemberTable, MemberTableColumn, MemberTableHeader} from '@/api/memberTable'
+import type {MemberTable, MemberTableHeader, RegistrationResponse} from '@/api/generated/schema'
+import type {ColumnChoice} from '@/api/memberTable'
 import {StationPermission} from '@/api/types'
 import {userTypeOptions} from '@/views/stationview/members/listview/memberColumns'
 import {emptyTableState, useDataTable} from '@/composables/useDataTable'
@@ -119,11 +119,11 @@ const table = useDataTable<Row>({
 const day = computed(() => props.effectiveDate ?? new Date().toISOString().slice(0, 10))
 
 /** The shown columns as the server names them, the name and the status first. */
-const drawnColumns = computed<MemberTableColumn[]>(() => [
+const drawnColumns = computed<ColumnChoice[]>(() => [
   NAME_KEY,
   STATUS_KEY,
   ...table.visibleColumns.map(column => column.key).filter(key => key !== NAME_KEY && key !== STATUS_KEY),
-].map(columnOf).filter((column): column is MemberTableColumn => column !== null))
+].map(columnOf).filter((column): column is ColumnChoice => column !== null))
 
 /** What may go on the table, asked for once, from the station holding the appointment. */
 async function loadOffered() {

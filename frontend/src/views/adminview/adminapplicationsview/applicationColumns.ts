@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {ApplicationStatus, type StationApplication} from '@/api/stationApplications'
+import {ApplicationStatus} from '@/api/stationApplications'
+import type {StationApplication} from '@/api/generated/schema'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 
 /** The words each state of an application reads as, in the order they sort in. */

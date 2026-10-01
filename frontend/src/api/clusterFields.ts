@@ -4,9 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {ClusterProfileFieldAssignment, FieldValuesRequest} from './generated/schema'
-import type {AssignmentRequest, AssignmentTarget, ProfileField, ProfileFieldRequest} from './profileFields'
-import type {ProfileFieldAssignment} from '@/util/profileFields'
+import type {AssignmentTarget, EditableField as ProfileField, EditableFieldRequest as ProfileFieldRequest} from './profileFields'
+import type {
+    AssignmentRequest,
+    ClusterProfileFieldAssignment,
+    FieldValuesRequest,
+    ProfileFieldAssignment,
+} from './generated/schema'
 
 /**
  * A question an association asks, which is a station's question kept in another table.
@@ -76,13 +80,13 @@ export async function reorderFields(role: string, fieldIds: number[]): Promise<v
 /**
  * Every assignment of this cluster's questions, which is what each audience's form is built from.
  *
- * <p>An association can only ever name a kind of member, so its rows carry no kind of target. The one
- * they would carry is filled in here, because everything that reads an assignment reads a station's
+ * <p>An association can only ever name a kind of member, so its rows carry no kind of target and no
+ * group. Both are filled in here, because everything that reads an assignment reads a station's
  * and an association's through the same code and has no business knowing which it got.
  */
 export async function listAssignments(): Promise<ProfileFieldAssignment[]> {
     const res = await client.get<ClusterProfileFieldAssignment[]>('/cluster/fields/assignments')
-    return res.data.map(assignment => ({...assignment, targetKind: 'ROLE'}))
+    return res.data.map(assignment => ({...assignment, targetKind: 'ROLE', groupId: null}))
 }
 
 /** Asks a kind of member this question, or changes how it is put to them. */

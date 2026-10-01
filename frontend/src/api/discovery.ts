@@ -4,52 +4,27 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {
+    BlocklistResponse,
+    ChangedCountResponse,
+    components,
+    DiscoveredStationResponse,
+    DiscoveryEntry,
+    DiscoveryInfoResponse,
+    DiscoverNowResponse,
+    DiscoverySettingsRequest,
+    DiscoverySettingsResponse,
+    IdentityResponse,
+    InviteCodeResponse,
+    PeerResponse,
+    PublicStationInfo,
+} from './generated/schema'
 
-export interface DiscoveryEntry {
-    stationUid: string
-    name: string
-    description: string | null
-    hasLogo: boolean
-    hasPublicKb: boolean
-    hasPublicCalendar: boolean
-    alreadyFederated: boolean
-    isOwnStation: boolean
-    publicSlug: string | null
-    city: string | null
-    country: string | null
-    latitude: number | null
-    longitude: number | null
-    /** The cluster this station answers to, or null when it answers to nobody. */
-    clusterUid?: string | null
-    clusterName?: string | null
-    /** The host name of the instance a station of another instance lives on; null for this instance's own. */
-    instanceHost?: string | null
-    /** The station's public page on its own instance; null for this instance's own. */
-    publicPageUrl?: string | null
-}
+type Schemas = components['schemas']
 
 /** Whether the entry is a station of another instance rather than one of this instance. */
 export function isRemoteEntry(entry: DiscoveryEntry): boolean {
     return !!entry.instanceHost
-}
-
-export interface PublicStationInfo {
-    stationUid: string
-    name: string
-    description: string | null
-    hasLogo: boolean
-    hasPublicKb: boolean
-    hasPublicCalendar: boolean
-    hasPublicPages: boolean
-    hasPublicWaitlist: boolean
-    hasPublicBlog: boolean
-    landingPageSlug: string | null
-    publicSlug: string | null
-    defaultTheme: string | null
-    defaultFeel: string | null
-    customThemeColors: string | null
-    /** The clock every date on the station's public pages is written on. */
-    timezone: string
 }
 
 export async function getPublicStationInfo(stationUid: string): Promise<PublicStationInfo> {
@@ -67,120 +42,41 @@ export async function requestFederation(stationUid: string): Promise<void> {
 }
 
 export async function generateInvite(stationUid: string): Promise<string> {
-    const res = await client.post<{ inviteCode: string }>('/public/discovery/invite', {stationUid})
+    const res = await client.post<InviteCodeResponse>('/public/discovery/invite', {stationUid})
     return res.data.inviteCode
 }
 
-// ---------------------------------------------------------------------------
-// Discovery chain - cross-instance gossip + public station catalog.
-// ---------------------------------------------------------------------------
+export type DiscoveryPeerSource = Schemas['PeerSource']
 
-export type DiscoveryPeerSource = 'BOOTSTRAP' | 'GOSSIP' | 'MANUAL'
+export type BlocklistKind = Schemas['BlocklistKind']
 
-export interface DiscoveryIdentity {
-    instanceId: string
-    publicKey: string
-    baseUrl: string
-}
-
-export interface DiscoverySettings {
-    enabled: boolean
-    maxDepth: number
-    pingIntervalMinutes: number
-    hardMaxDepth: number
-}
-
-export interface DiscoverySettingsUpdate {
-    enabled?: boolean
-    maxDepth?: number
-    pingIntervalMinutes?: number
-}
-
-export interface DiscoveryPeer {
-    publicKey: string
-    baseUrl: string
-    instanceId: string
-    firstSeenAt: string
-    lastSeenAt: string
-    lastPingedAt: string | null
-    lastReachedAt: string | null
-    reachable: boolean
-    source: DiscoveryPeerSource
-    introducedBy: string | null
-    reputation: number
-    blocked: boolean
-}
-
-export interface DiscoveryInfoProbe {
-    baseUrl: string
-    instanceId: string
-    publicKey: string
-    softwareVersion: string
-    discoveryEnabled: boolean
-}
-
-export interface DiscoveryNowResult {
-    pingsDispatched: number
-    stationsFetched: number
-}
-
-export type BlocklistKind = 'BASE_URL' | 'PUBLIC_KEY'
-
-export interface DiscoveryBlocklistEntry {
-    value: string
-    kind: BlocklistKind
-    note: string | null
-    createdAt: string
-}
-
-export interface DiscoveredStation {
-    stationUid: string
-    name: string
-    slogan: string | null
-    logoUrl: string | null
-    country: string | null
-    region: string | null
-    city: string | null
-    contactUrl: string | null
-    tags: string[]
-    memberCount: string
-    publishedAt: string | null
-    addressLine: string | null
-    latitude: number | null
-    longitude: number | null
-    instancePublicKey: string
-    fetchedAt: string
-}
-
-// -- Admin --
-
-export async function getDiscoveryIdentity(): Promise<DiscoveryIdentity> {
-    const res = await client.get<DiscoveryIdentity>('/admin/discovery/identity')
+export async function getDiscoveryIdentity(): Promise<IdentityResponse> {
+    const res = await client.get<IdentityResponse>('/admin/discovery/identity')
     return res.data
 }
 
-export async function getDiscoverySettings(): Promise<DiscoverySettings> {
-    const res = await client.get<DiscoverySettings>('/admin/discovery/settings')
+export async function getDiscoverySettings(): Promise<DiscoverySettingsResponse> {
+    const res = await client.get<DiscoverySettingsResponse>('/admin/discovery/settings')
     return res.data
 }
 
-export async function updateDiscoverySettings(update: DiscoverySettingsUpdate): Promise<DiscoverySettings> {
-    const res = await client.put<DiscoverySettings>('/admin/discovery/settings', update)
+export async function updateDiscoverySettings(update: DiscoverySettingsRequest): Promise<DiscoverySettingsResponse> {
+    const res = await client.put<DiscoverySettingsResponse>('/admin/discovery/settings', update)
     return res.data
 }
 
-export async function listDiscoveryPeers(): Promise<DiscoveryPeer[]> {
-    const res = await client.get<DiscoveryPeer[]>('/admin/discovery/peers')
+export async function listDiscoveryPeers(): Promise<PeerResponse[]> {
+    const res = await client.get<PeerResponse[]>('/admin/discovery/peers')
     return res.data
 }
 
-export async function probeDiscoveryPeer(baseUrl: string): Promise<DiscoveryInfoProbe> {
-    const res = await client.post<DiscoveryInfoProbe>('/admin/discovery/peers/probe', {baseUrl})
+export async function probeDiscoveryPeer(baseUrl: string): Promise<DiscoveryInfoResponse> {
+    const res = await client.post<DiscoveryInfoResponse>('/admin/discovery/peers/probe', {baseUrl})
     return res.data
 }
 
-export async function addDiscoveryPeer(baseUrl: string, expectedPublicKey?: string): Promise<DiscoveryPeer> {
-    const res = await client.post<DiscoveryPeer>('/admin/discovery/peers', {baseUrl, expectedPublicKey})
+export async function addDiscoveryPeer(baseUrl: string, expectedPublicKey?: string): Promise<PeerResponse> {
+    const res = await client.post<PeerResponse>('/admin/discovery/peers', {baseUrl, expectedPublicKey})
     return res.data
 }
 
@@ -188,23 +84,23 @@ export async function deleteDiscoveryPeer(publicKey: string): Promise<void> {
     await client.delete(`/admin/discovery/peers/${encodeURIComponent(publicKey)}`)
 }
 
-export async function upvoteDiscoveryPeer(publicKey: string): Promise<DiscoveryPeer> {
-    const res = await client.post<DiscoveryPeer>(`/admin/discovery/peers/${encodeURIComponent(publicKey)}/upvote`)
+export async function upvoteDiscoveryPeer(publicKey: string): Promise<PeerResponse> {
+    const res = await client.post<PeerResponse>(`/admin/discovery/peers/${encodeURIComponent(publicKey)}/upvote`)
     return res.data
 }
 
-export async function downvoteDiscoveryPeer(publicKey: string): Promise<DiscoveryPeer> {
-    const res = await client.post<DiscoveryPeer>(`/admin/discovery/peers/${encodeURIComponent(publicKey)}/downvote`)
+export async function downvoteDiscoveryPeer(publicKey: string): Promise<PeerResponse> {
+    const res = await client.post<PeerResponse>(`/admin/discovery/peers/${encodeURIComponent(publicKey)}/downvote`)
     return res.data
 }
 
-export async function blockDiscoveryPeer(publicKey: string): Promise<DiscoveryPeer> {
-    const res = await client.post<DiscoveryPeer>(`/admin/discovery/peers/${encodeURIComponent(publicKey)}/block`)
+export async function blockDiscoveryPeer(publicKey: string): Promise<PeerResponse> {
+    const res = await client.post<PeerResponse>(`/admin/discovery/peers/${encodeURIComponent(publicKey)}/block`)
     return res.data
 }
 
-export async function unblockDiscoveryPeer(publicKey: string): Promise<DiscoveryPeer> {
-    const res = await client.post<DiscoveryPeer>(`/admin/discovery/peers/${encodeURIComponent(publicKey)}/unblock`)
+export async function unblockDiscoveryPeer(publicKey: string): Promise<PeerResponse> {
+    const res = await client.post<PeerResponse>(`/admin/discovery/peers/${encodeURIComponent(publicKey)}/unblock`)
     return res.data
 }
 
@@ -212,18 +108,18 @@ export async function pingDiscoveryPeerNow(publicKey: string): Promise<void> {
     await client.post(`/admin/discovery/peers/${encodeURIComponent(publicKey)}/ping`)
 }
 
-export async function discoverNow(): Promise<DiscoveryNowResult> {
-    const res = await client.post<DiscoveryNowResult>('/admin/discovery/discover-now')
+export async function discoverNow(): Promise<DiscoverNowResponse> {
+    const res = await client.post<DiscoverNowResponse>('/admin/discovery/discover-now')
     return res.data
 }
 
 export async function seedFromFederation(): Promise<number> {
-    const res = await client.post<{changed: number}>('/admin/discovery/seed')
+    const res = await client.post<ChangedCountResponse>('/admin/discovery/seed')
     return res.data.changed
 }
 
-export async function listDiscoveryBlocklist(): Promise<DiscoveryBlocklistEntry[]> {
-    const res = await client.get<DiscoveryBlocklistEntry[]>('/admin/discovery/blocklist')
+export async function listDiscoveryBlocklist(): Promise<BlocklistResponse[]> {
+    const res = await client.get<BlocklistResponse[]>('/admin/discovery/blocklist')
     return res.data
 }
 
@@ -235,9 +131,7 @@ export async function removeFromBlocklist(value: string): Promise<void> {
     await client.delete(`/admin/discovery/blocklist/${encodeURIComponent(value)}`)
 }
 
-// -- Authenticated user-facing --
-
-export async function listDiscoveredStations(): Promise<DiscoveredStation[]> {
-    const res = await client.get<DiscoveredStation[]>('/discovery/stations')
+export async function listDiscoveredStations(): Promise<DiscoveredStationResponse[]> {
+    const res = await client.get<DiscoveredStationResponse[]>('/discovery/stations')
     return res.data
 }

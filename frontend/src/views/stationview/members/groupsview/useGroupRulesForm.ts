@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref} from 'vue'
-import type {GroupRules} from '@/api/memberGroups'
+import type {GroupRulesRequest} from '@/api/generated/schema'
 import type {MemberGroup, StationUserTypeName} from '@/api/types'
 import {groupConflictOf, type GroupConflict} from '@/util/groupRules'
 
@@ -29,8 +29,8 @@ export function useGroupRulesForm() {
         conflict.value = null
     }
 
-    function payload(): GroupRules {
-        return {groupSetId: groupSetId.value, userTypes: [...userTypes.value]}
+    function payload(): GroupRulesRequest {
+        return {groupSetId: groupSetId.value ?? undefined, userTypes: [...userTypes.value]}
     }
 
     /**

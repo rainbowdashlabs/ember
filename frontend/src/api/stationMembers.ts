@@ -5,42 +5,22 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-import type {MemberGroup, MemberIdentity, PermissionGrant, StationMember} from './types'
+import type {
+    CreateMemberRequest,
+    FormerCheckResponse,
+    MemberCompletion,
+    MemberGroup,
+    MemberWithName,
+    Permission,
+    PermissionsByMember,
+    RichMember,
+    SetManagersRequest,
+    UserTypeChangeResponse,
+} from './generated/schema'
 
-export interface CreateMemberRequest {
-    stationId?: number
-    accountId?: number
-}
-
-export interface SetRolesRequest {
-    roleIds?: number[]
-}
-
-export interface SetPermissionsRequest {
-    permissions?: string[]
-}
-
-export interface SetUserTypeRequest {
-    userType?: string
-}
-
-export interface SetManagersRequest {
-    managerIds?: number[]
-}
-
-export async function listAllPermissions(): Promise<PermissionGrant[]> {
-    const res = await client.get<PermissionGrant[]>('/permissions')
+export async function listAllPermissions(): Promise<Permission[]> {
+    const res = await client.get<Permission[]>('/permissions')
     return res.data
-}
-
-export interface MemberCompletion {
-    id: number
-    name: string
-    stationUid: string
-    memberUid: string
-    stationName?: string | null
-    nameColor?: string | null
-    displayTag?: { name: string; color: string } | null
 }
 
 export async function listCompletions(restriction?: { type: string; entityId: number }): Promise<MemberCompletion[]> {
@@ -51,33 +31,6 @@ export async function listCompletions(restriction?: { type: string; entityId: nu
     }
     const res = await client.get<MemberCompletion[]>('/station-members/completions', { params })
     return res.data
-}
-
-export interface RichMember {
-    id: number
-    stationId: number
-    accountId: number | null
-    name: string
-    /** The two halves of the name as they are stored, rather than guessed out of the whole. */
-    firstName: string
-    lastName: string
-    /** The name this station calls them by, absent where they have none. */
-    nickname?: string | null
-    email: string
-    accountSetupPending: boolean
-    setupMailExpiresAt: string | null
-    /**
-     * Who a letter about this member arrives at: their own address, a guardian's where they have
-     * none of their own, or nobody.
-     */
-    mailReaches: 'SELF' | 'GUARDIANS' | 'NOBODY'
-    former: boolean
-    userType: string
-    roles: string[]
-    groups: { id: number; name: string }[]
-    tags: { id: number; name: string }[]
-    profileValues: Record<string, unknown>
-    identity?: MemberIdentity | null
 }
 
 export async function listRichMembers(includeFormer = false): Promise<RichMember[]> {
@@ -91,9 +44,9 @@ export async function resendSetupMail(memberId: number): Promise<void> {
     await client.post(`/station-members/${memberId}/resend-setup-mail`)
 }
 
-const members = createCrudResource<StationMember, CreateMemberRequest>('/station-members')
+const members = createCrudResource<MemberWithName, CreateMemberRequest>('/station-members')
 
-export async function listMembers(includeFormer = false): Promise<StationMember[]> {
+export async function listMembers(includeFormer = false): Promise<MemberWithName[]> {
     return members.list({includeFormer: includeFormer || undefined})
 }
 
@@ -109,70 +62,67 @@ export const deleteMember = members.remove
  * list was loaded before the person existed cannot, and asking here costs a single row rather than
  * the whole list again.
  */
-export async function getMemberByUid(memberUid: string): Promise<StationMember | null> {
+export async function getMemberByUid(memberUid: string): Promise<MemberWithName | null> {
     try {
-        const res = await client.get<StationMember>(`/station-members/by-uid/${memberUid}`)
+        const res = await client.get<MemberWithName>(`/station-members/by-uid/${memberUid}`)
         return res.data
     } catch {
         return null
     }
 }
 
-export async function getPermissions(memberId: number): Promise<PermissionGrant[]> {
-    const res = await client.get<PermissionGrant[]>(`/station-members/${memberId}/permissions`)
+export async function getPermissions(memberId: number): Promise<Permission[]> {
+    const res = await client.get<Permission[]>(`/station-members/${memberId}/permissions`)
     return res.data
 }
 
-export async function getAllMemberRoles(): Promise<Record<number, PermissionGrant[]>> {
-    const res = await client.get<Record<number, PermissionGrant[]>>('/station-members/all-permissions')
+export async function getAllMemberRoles(): Promise<PermissionsByMember> {
+    const res = await client.get<PermissionsByMember>('/station-members/all-permissions')
     return res.data
 }
 
-export async function setPermissions(memberId: number, data: { permissionIds: number[] }): Promise<PermissionGrant[]> {
-    const res = await client.put<PermissionGrant[]>(`/station-members/${memberId}/permissions`, data)
+export async function setPermissions(memberId: number, data: { permissionIds: number[] }): Promise<Permission[]> {
+    const res = await client.put<Permission[]>(`/station-members/${memberId}/permissions`, data)
     return res.data
 }
 
-export async function getManaged(memberId: number): Promise<StationMember[]> {
-    const res = await client.get<StationMember[]>(`/station-members/${memberId}/managed`)
+export async function getManaged(memberId: number): Promise<MemberWithName[]> {
+    const res = await client.get<MemberWithName[]>(`/station-members/${memberId}/managed`)
     return res.data
 }
 
-export async function getManagers(memberId: number): Promise<StationMember[]> {
-    const res = await client.get<StationMember[]>(`/station-members/${memberId}/managers`)
+export async function getManagers(memberId: number): Promise<MemberWithName[]> {
+    const res = await client.get<MemberWithName[]>(`/station-members/${memberId}/managers`)
     return res.data
 }
 
-export async function setManagers(memberId: number, data: SetManagersRequest): Promise<StationMember[]> {
-    const res = await client.put<StationMember[]>(`/station-members/${memberId}/managers`, data)
+export async function setManagers(memberId: number, data: SetManagersRequest): Promise<MemberWithName[]> {
+    const res = await client.put<MemberWithName[]>(`/station-members/${memberId}/managers`, data)
     return res.data
 }
 
-export async function setManaged(memberId: number, managedIds: number[]): Promise<StationMember[]> {
-    const res = await client.put<StationMember[]>(`/station-members/${memberId}/managed`, { managedIds })
+export async function setManaged(memberId: number, managedIds: number[]): Promise<MemberWithName[]> {
+    const res = await client.put<MemberWithName[]>(`/station-members/${memberId}/managed`, { managedIds })
     return res.data
 }
 
-export async function listFormerMembers(): Promise<StationMember[]> {
-    const res = await client.get<StationMember[]>('/station-members/former')
+export async function listFormerMembers(): Promise<MemberWithName[]> {
+    const res = await client.get<MemberWithName[]>('/station-members/former')
     return res.data
 }
 
-export async function markFormer(memberId: number): Promise<void> {
-    await client.post(`/station-members/${memberId}/mark-former`)
+export async function markFormer(memberId: number): Promise<FormerCheckResponse> {
+    const res = await client.post<FormerCheckResponse>(`/station-members/${memberId}/mark-former`)
+    return res.data
 }
 
-export async function reactivateMember(memberId: number): Promise<void> {
-    await client.post(`/station-members/${memberId}/reactivate`)
+export async function reactivateMember(memberId: number): Promise<FormerCheckResponse> {
+    const res = await client.post<FormerCheckResponse>(`/station-members/${memberId}/reactivate`)
+    return res.data
 }
 
-/** What changing a member's type did beyond the type: the groups they left because those do not take it. */
-export interface UserTypeChange {
-    leftGroups: MemberGroup[]
-}
-
-export async function setUserType(memberId: number, userType: string): Promise<UserTypeChange> {
-    const res = await client.put<UserTypeChange>(`/station-members/${memberId}/user-type`, { userType })
+export async function setUserType(memberId: number, userType: string): Promise<UserTypeChangeResponse> {
+    const res = await client.put<UserTypeChangeResponse>(`/station-members/${memberId}/user-type`, { userType })
     return res.data
 }
 
@@ -186,8 +136,8 @@ export async function setJoinDate(memberId: number, joinDate: string): Promise<v
     await client.put(`/station-members/${memberId}/join-date`, { joinDate })
 }
 
-export async function getUserTypePermissions(userType: string): Promise<PermissionGrant[]> {
-    const res = await client.get<PermissionGrant[]>(`/user-type-permissions/${userType}`)
+export async function getUserTypePermissions(userType: string): Promise<Permission[]> {
+    const res = await client.get<Permission[]>(`/user-type-permissions/${userType}`)
     return res.data
 }
 
@@ -196,7 +146,7 @@ export async function getEffectiveUserTypePermissions(userType: string): Promise
     return res.data
 }
 
-export async function setUserTypePermissions(userType: string, permissionIds: number[]): Promise<PermissionGrant[]> {
-    const res = await client.put<PermissionGrant[]>(`/user-type-permissions/${userType}`, { permissionIds })
+export async function setUserTypePermissions(userType: string, permissionIds: number[]): Promise<Permission[]> {
+    const res = await client.put<Permission[]>(`/user-type-permissions/${userType}`, { permissionIds })
     return res.data
 }

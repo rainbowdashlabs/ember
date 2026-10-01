@@ -15,13 +15,13 @@ import MutedText from '@/components/typography/MutedText.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import type {EntryResponse as ChecklistEntry} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 const visible = defineModel<boolean>({required: true})
 
 const props = defineProps<{
   adding: boolean
-  members: StationMember[]
+  members: MemberLike[]
   aliveMemberIds: Set<number>
   removedEntries: ChecklistEntry[]
 }>()

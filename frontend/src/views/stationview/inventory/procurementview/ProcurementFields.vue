@@ -13,7 +13,7 @@ import InventorySearchPicker from '@/components/input/search/InventorySearchPick
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import type { Inventory, InventorySize } from '@/api/generated/schema'
-import type { StationMember } from '@/api/types'
+import type { MemberLike } from '@/components/input/select/memberOption'
 
 /**
  * What is being ordered, and for whom where there is a whom.
@@ -28,7 +28,7 @@ const notes = defineModel<string>('notes', {required: true})
 
 const props = defineProps<{
   inventories: Inventory[]
-  members: StationMember[]
+  members: MemberLike[]
   availableSizes: InventorySize[]
   /** Whether the order is placed for a person, which a station's is and an association's is not. */
   forSomebody: boolean

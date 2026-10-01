@@ -18,7 +18,7 @@ import DocumentUploadModal from './DocumentUploadModal.vue'
 import {documents as documentsApi} from '@/api'
 import type {DocumentUpload} from '@/api/documents'
 import type {MemberDocumentResponse} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -36,7 +36,7 @@ const props = defineProps<{
   canUpload?: boolean
   /** Whether the reader may bind, tag and remove, which follows from the right to edit members. */
   canEdit?: boolean
-  allMembers?: StationMember[]
+  allMembers?: MemberLike[]
 }>()
 
 const {t} = useI18n()

@@ -5,7 +5,7 @@
  */
 import {computed, readonly} from 'vue'
 import {setup} from '@/api'
-import type {SetupStatus, SetupStep} from '@/api/setup'
+import type {SetupStatus, StepState} from '@/api/generated/schema'
 
 /** How far the station's first setup has come, loaded once and shared by the wizard and the dashboard. */
 export function useSetupStatus() {
@@ -43,8 +43,8 @@ export function useSetupStatus() {
     }
 
     const completedAt = computed(() => status.value?.completedAt ?? null)
-    const requiredSteps = computed<SetupStep[]>(() => status.value?.requiredSteps ?? [])
-    const optionalSteps = computed<SetupStep[]>(() => status.value?.optionalSteps ?? [])
+    const requiredSteps = computed<StepState[]>(() => status.value?.requiredSteps ?? [])
+    const optionalSteps = computed<StepState[]>(() => status.value?.optionalSteps ?? [])
 
     const allRequiredDone = computed(
         () => requiredSteps.value.length > 0 && requiredSteps.value.every((s) => s.complete),

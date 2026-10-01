@@ -122,7 +122,7 @@ public class BoardTicketAttachmentRoutes implements Routes {
                 @OpenApiParam(name = "attachmentId", type = Integer.class, required = true)
             },
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = byte[].class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void downloadAttachment(Context ctx) {

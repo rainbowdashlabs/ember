@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {MemberCompletion} from '@/api/stationMembers'
+import type {MemberCompletion} from '@/api/generated/schema'
 
 function escapeAttribute(value: string): string {
   return value.replace(/"/g, '&quot;')

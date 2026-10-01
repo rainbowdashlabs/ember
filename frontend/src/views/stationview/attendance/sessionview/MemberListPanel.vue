@@ -12,8 +12,7 @@ import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import {useMemberPick} from '@/composables/useMemberPick'
 import type {AttendanceStatus} from '@/api/attendance'
-import type {AttendanceEntry, MemberNotes} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {AttendanceEntry, MemberNotes, MemberWithName} from '@/api/generated/schema'
 import type {MemberSection} from './memberSections'
 
 const {t} = useI18n()
@@ -22,7 +21,7 @@ const selectedMemberId = defineModel<string>('selectedMemberId', {required: true
 
 const props = defineProps<{
   entries: AttendanceEntry[]
-  allMembers: StationMember[]
+  allMembers: MemberWithName[]
   memberSections: MemberSection[]
   readonly?: boolean
   sessionStart?: string

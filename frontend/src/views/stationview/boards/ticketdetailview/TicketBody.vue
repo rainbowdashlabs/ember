@@ -7,36 +7,36 @@
 import TicketLeftColumn from './TicketLeftColumn.vue'
 import TicketRightColumn from './TicketRightColumn.vue'
 import type {
-    Board, BoardLane, BoardField, BoardLabel, BoardTicket, BoardChecklistItem,
-    BoardTicketLink, BoardTicketTransition, BoardTicketHistoryEntry, BoardComment,
-    BoardWeblink, BoardTicketAttachment, BoardTicketKbLink, TicketPriorityName,
-    BoardFieldTypeName,
+    AnyBoard, BoardFieldRaw, BoardFieldTypeName, BoardTicketComment, TicketPriorityName, TypedBoardField,
 } from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+import type {
+    BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment, BoardTicketHistoryResponse,
+    BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink, MemberCompletion, TicketSummary,
+} from '@/api/generated/schema'
 import type {PriorityOption, KbSearchResult} from './types'
 import type { Failure } from '@/util/failure'
 
 
 
 defineProps<{
-    board: Board
+    board: AnyBoard
     ticket: BoardTicket
-    allTickets: BoardTicket[]
+    allTickets: TicketSummary[]
     lanes: BoardLane[]
     members: MemberCompletion[]
     assignableMembers: MemberCompletion[]
     allLabels: BoardLabel[]
     ticketLabels: BoardLabel[]
-    boardFields: BoardField[]
+    boardFields: TypedBoardField[]
     priorityOptions: PriorityOption[]
     checklist: BoardChecklistItem[]
     checklistVisible: boolean
     links: BoardTicketLink[]
     weblinks: BoardWeblink[]
     attachments: BoardTicketAttachment[]
-    transitions: BoardTicketTransition[]
-    history: BoardTicketHistoryEntry[]
-    comments: BoardComment[]
+    transitions: BoardTicketTransitionResponse[]
+    history: BoardTicketHistoryResponse[]
+    comments: BoardTicketComment[]
     kbLinks: BoardTicketKbLink[]
     kbSearchResults: KbSearchResult[]
     canEdit: boolean
@@ -53,7 +53,7 @@ const kbSearchQuery = defineModel<string>('kbSearchQuery', { default: '' })
 const priority = defineModel<TicketPriorityName>('priority')
 const assignedMemberId = defineModel<string>('assignedMemberId', { default: '' })
 const dueDate = defineModel<string>('dueDate', { default: '' })
-const fieldValues = defineModel<Record<number, unknown>>('fieldValues', { default: () => ({}) })
+const fieldValues = defineModel<Record<number, BoardFieldRaw | null>>('fieldValues', { default: () => ({}) })
 const showAddLink = defineModel<boolean>('showAddLink', { required: true })
 const showAddWeblink = defineModel<boolean>('showAddWeblink', { required: true })
 const showKbSearch = defineModel<boolean>('showKbSearch', { required: true })
@@ -77,7 +77,7 @@ const emit = defineEmits<{
     moveTo: [laneId: number]
     toggleLabel: [id: number]
     createLabel: [name: string]
-    saveField: [fieldId: number, fieldType: BoardFieldTypeName, value: unknown]
+    saveField: [fieldId: number, fieldType: BoardFieldTypeName, value: BoardFieldRaw | null]
 }>()
 </script>
 

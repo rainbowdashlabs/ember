@@ -13,7 +13,7 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import type {CellValue} from '@/components/table/tableColumn'
-import type {ProfileField} from '@/api/profileFields'
+import type {MemberWithName, ProfileField} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 import {memberDisplayName} from './useMemberData'
 import {roleOf} from './memberColumns'
@@ -59,7 +59,7 @@ function overviewFieldsOf(memberId: number): ProfileField[] {
   return c.overviewFields.value.filter(field => c.isAskedOf(field.id, role))
 }
 
-function managerName(manager: StationMember): string {
+function managerName(manager: MemberWithName): string {
   const known = c.members.value.find(member => member.id === manager.id)
   return known ? memberDisplayName(known) : `#${manager.id}`
 }

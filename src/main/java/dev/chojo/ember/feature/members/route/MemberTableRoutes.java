@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.MemberTable;
+import dev.chojo.ember.feature.members.entity.MemberTable.MemberTableHeader;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.MemberTablePeople;
 import dev.chojo.ember.feature.members.entity.MemberTablePreset;
@@ -27,6 +28,12 @@ import dev.chojo.ember.util.DocumentWord;
 import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -76,21 +83,47 @@ public class MemberTableRoutes implements Routes {
         routes.post(prefix + "/member-table/export.pdf", this::exportPdf, StationPermission.MEMBER_EXPORT);
     }
 
+    @OpenApi(
+            path = "/api/v1/member-table/columns",
+            methods = HttpMethod.GET,
+            summary = "List the columns this reader may draw a member table with",
+            tags = {"Member Table"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberTableHeader[].class)))
     private void offerableColumns(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(tableService.offerableColumns(session.stationId(), session.permissions()));
     }
 
+    @OpenApi(
+            path = "/api/v1/member-table/presets",
+            methods = HttpMethod.GET,
+            summary = "List the saved column selections of the station",
+            tags = {"Member Table"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberTablePreset[].class)))
     private void listPresets(Context ctx) {
         ctx.json(presets.list(UserSession.from(ctx).stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/member-table/presets",
+            methods = HttpMethod.PUT,
+            summary = "Save a column selection under a name",
+            tags = {"Member Table"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SavePresetRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberTablePreset.class)))
     private void savePreset(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(SavePresetRequest.class);
         ctx.json(presets.save(session.stationId(), req.name(), req.columns()));
     }
 
+    @OpenApi(
+            path = "/api/v1/member-table/presets/{id}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a saved column selection",
+            tags = {"Member Table"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {@OpenApiResponse(status = "204"), @OpenApiResponse(status = "404")})
     private void deletePreset(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, presets::findById, MemberTablePreset::stationId);
@@ -98,10 +131,28 @@ public class MemberTableRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/member-table",
+            methods = HttpMethod.POST,
+            summary = "Draw a member table of chosen people and columns",
+            tags = {"Member Table"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MemberTableRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberTable.class)))
     private void draw(Context ctx) {
         ctx.json(tableOf(ctx));
     }
 
+    @OpenApi(
+            path = "/api/v1/member-table/export.csv",
+            methods = HttpMethod.POST,
+            summary = "Export a member table as CSV",
+            tags = {"Member Table"},
+            queryParams = @OpenApiParam(name = "separator"),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MemberTableRequest.class)),
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = String.class, mimeType = "text/csv")))
     private void exportCsv(Context ctx) {
         var station = stationOf(ctx);
         ctx.contentType("text/csv");
@@ -109,6 +160,16 @@ public class MemberTableRoutes implements Routes {
         ctx.result(renderer.toCsv(tableOf(ctx), station, CsvWriter.Separator.of(ctx.queryParam("separator"))));
     }
 
+    @OpenApi(
+            path = "/api/v1/member-table/export.pdf",
+            methods = HttpMethod.POST,
+            summary = "Export a member table as PDF",
+            tags = {"Member Table"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MemberTableRequest.class)),
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = byte[].class, mimeType = "application/pdf")))
     private void exportPdf(Context ctx) {
         var station = stationOf(ctx);
         var table = tableOf(ctx);

@@ -8,10 +8,15 @@ import { useI18n } from 'vue-i18n'
 import { useSession } from '@/composables/useSession'
 import { PALETTE_ROUTES, type PaletteRouteEntry } from '@/data/paletteRoutes'
 import { StationModules, StationPermission, type MemberIdentity } from '@/api/types'
-import { listCompletions, type MemberCompletion } from '@/api/stationMembers'
+import { listCompletions } from '@/api/stationMembers'
 import { search as searchKb } from '@/api/knowledgeBase'
 import { listUpcomingOccurrences } from '@/api/events'
-import type { Inventory, SearchResultResponse as KbSearchResult, UpcomingEventOccurrence } from '@/api/generated/schema'
+import type {
+  Inventory,
+  MemberCompletion,
+  SearchResultResponse as KbSearchResult,
+  UpcomingEventOccurrence,
+} from '@/api/generated/schema'
 import { listInventories } from '@/api/inventory'
 import { matchesWords } from '@/util/listSearch'
 

@@ -6,7 +6,7 @@
 import {ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {groupSets} from '@/api'
-import type {MemberGroupSet} from '@/api/groupSets'
+import type {MemberGroupSet} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**

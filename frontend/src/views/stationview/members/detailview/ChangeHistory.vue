@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
-import type {ProfileFieldChange} from '@/api/profileFieldChanges'
+import type {ChangeEntry} from '@/api/profileFieldChanges'
 import {useChangeAcknowledgement} from '@/composables/useChangeAcknowledgement'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -18,7 +18,7 @@ import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{
   memberId: number
-  changes: ProfileFieldChange[]
+  changes: ChangeEntry[]
   currentMemberId: number
 }>()
 

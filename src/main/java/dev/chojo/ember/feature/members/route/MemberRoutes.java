@@ -32,6 +32,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -65,25 +66,17 @@ public class MemberRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.post(prefix + "/members/invite", this::invite, StationPermission.MEMBER_EDIT);
-        // No route-level step-up category: everybody edits their own name here, and that is not
-        // sensitive. The one branch that is (moving somebody else's address) asks by hand below.
         routes.put(prefix + "/members/{accountId}", this::updateAccount, StationPermission.LOGIN);
         routes.post(
                 prefix + "/members/reset-password",
                 this::resetPassword,
                 StationPermission.MEMBER_EDIT,
                 StepUpCategory.ACCOUNT_SECURITY);
-        // Onboard again: every passkey disabled, every session ended, a fresh setup link where
-        // mail about the account already goes. Not a new power: whoever may press this can
-        // reset a password today.
         routes.post(
                 prefix + "/members/onboard-again",
                 this::onboardAgain,
                 StationPermission.MEMBER_EDIT,
                 StepUpCategory.ACCOUNT_SECURITY);
-        // The member manager's passkey code, for an addressless member with no guardian to hand
-        // it over. Refused for anybody who has an address of their own: the mail path is right
-        // there and is the one with a second party in it.
         routes.post(
                 prefix + "/members/passkey-code",
                 this::issuePasskeyCode,
@@ -93,6 +86,21 @@ public class MemberRoutes implements Routes {
                 prefix + "/members/passkey-code/{accountId}", this::revokePasskeyCode, StationPermission.MEMBER_EDIT);
     }
 
+    /**
+     * Onboards a member again: every passkey disabled, every session ended, a fresh setup link where
+     * mail about the account already goes. Not a new power: whoever may press this can reset a
+     * password today.
+     */
+    @OpenApi(
+            path = "/api/v1/members/onboard-again",
+            methods = HttpMethod.POST,
+            summary = "Onboard a member again",
+            tags = {"Members"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AccountActionRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = OnboardAgainResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void onboardAgain(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(AccountActionRequest.class);
@@ -105,6 +113,21 @@ public class MemberRoutes implements Routes {
         ctx.json(new OnboardAgainResponse(mailed));
     }
 
+    /**
+     * The member manager's passkey code, for an addressless member with no guardian to hand it
+     * over. Refused for anybody who has an address of their own: the mail path is right there and is
+     * the one with a second party in it.
+     */
+    @OpenApi(
+            path = "/api/v1/members/passkey-code",
+            methods = HttpMethod.POST,
+            summary = "Issue a passkey code for an addressless member",
+            tags = {"Members"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AccountActionRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PasskeyCodeResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void issuePasskeyCode(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(AccountActionRequest.class);
@@ -121,6 +144,16 @@ public class MemberRoutes implements Routes {
         ctx.json(new PasskeyCodeResponse(issued.code(), issued.qrPng(), issued.expiresAt()));
     }
 
+    @OpenApi(
+            path = "/api/v1/members/passkey-code/{accountId}",
+            methods = HttpMethod.DELETE,
+            summary = "Revoke the passkey code of a member",
+            tags = {"Members"},
+            pathParams = @OpenApiParam(name = "accountId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void revokePasskeyCode(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int accountId = pathInt(ctx, "accountId");
@@ -129,6 +162,11 @@ public class MemberRoutes implements Routes {
         ctx.json(new MessageResponse("Code revoked"));
     }
 
+    /**
+     * Updates an account's name and address. No route-level step-up category: everybody edits their
+     * own name here, and that is not sensitive. The one branch that is (moving somebody else's
+     * address) asks by hand.
+     */
     @OpenApi(
             path = "/api/v1/members/{accountId}",
             methods = HttpMethod.PUT,
@@ -159,7 +197,7 @@ public class MemberRoutes implements Routes {
             tags = {"Members"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InviteRequest.class)),
             responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = InviteResponse.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberInviteResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
@@ -180,7 +218,7 @@ public class MemberRoutes implements Routes {
                     null,
                     SetupMail.of(request.sendSetupMail()));
             ctx.status(HttpStatus.CREATED)
-                    .json(new InviteResponse(
+                    .json(new MemberInviteResponse(
                             provisioned.accountId(),
                             provisioned.email(),
                             provisioned.firstName(),
@@ -217,8 +255,6 @@ public class MemberRoutes implements Routes {
         }
     }
 
-    // -- Request/Response records --
-
     /**
      * @param sendSetupMail whether the setup mail leaves with the account. Absent means it does,
      *                      which is what inviting somebody has always done.
@@ -227,7 +263,12 @@ public class MemberRoutes implements Routes {
 
     public record ResetPasswordRequest(Integer accountId, Boolean forceChange) {}
 
-    public record InviteResponse(int id, String email, String firstName, String lastName) {}
+    /**
+     * The account an invitation provisioned.
+     *
+     * @param email its address, or null for a member reached through their guardians
+     */
+    public record MemberInviteResponse(int id, @Nullable String email, String firstName, String lastName) {}
 
     public record AccountActionRequest(Integer accountId) {}
 
@@ -236,6 +277,4 @@ public class MemberRoutes implements Routes {
      *         the way to the member
      */
     public record OnboardAgainResponse(boolean mailed) {}
-
-    public record PasskeyCodeResponse(String code, String qrPng, java.time.Instant expiresAt) {}
 }

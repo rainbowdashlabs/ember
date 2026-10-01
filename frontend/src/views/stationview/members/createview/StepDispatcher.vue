@@ -11,8 +11,8 @@ import FieldsStep from './FieldsStep.vue'
 import GroupsStep from './GroupsStep.vue'
 import ManagerStep from './ManagerStep.vue'
 import DoneStep from './DoneStep.vue'
-import type { ProfileField } from '@/api/profileFields'
-import {StationUserType, type MemberGroup, type StationMember} from '@/api/types'
+import type { MemberWithName, ProfileField } from '@/api/generated/schema'
+import {StationUserType, type MemberGroup} from '@/api/types'
 
 type Step = 'userType' | 'identity' | 'fields' | 'groups' | 'manager' | 'done'
 
@@ -28,7 +28,7 @@ const props = defineProps<{
   fieldValues: Map<number, string>
   allGroups: MemberGroup[]
   selectedGroupIds: Set<number>
-  allMembers: StationMember[]
+  allMembers: MemberWithName[]
   selectedManagerIds: Set<number>
   createdManagers: Array<{ id: number; memberId: number; firstName: string; lastName: string; email: string }>
   saving: boolean

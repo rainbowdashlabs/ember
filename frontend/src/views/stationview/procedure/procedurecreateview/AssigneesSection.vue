@@ -11,7 +11,7 @@ import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {fromCompletion} from '@/components/input/select/memberOption'
-import type {MemberCompletion} from '@/api/stationMembers'
+import type {MemberCompletion} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

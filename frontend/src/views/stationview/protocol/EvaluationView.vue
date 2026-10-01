@@ -17,8 +17,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers } from '@/api'
-import type { EvaluationResponse } from '@/api/generated/schema'
-import type { StationMember } from '@/api/types'
+import type { EvaluationResponse, MemberWithName } from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
 import { formatDate } from '@/util/format'
 import EvaluationTable from './evaluationview/EvaluationTable.vue'
@@ -31,7 +30,7 @@ const { loaded } = useSession()
 
 const runId = computed(() => Number(route.params.id))
 const evalData = ref<EvaluationResponse | null>(null)
-const memberMap = ref<Map<number, StationMember>>(new Map())
+const memberMap = ref<Map<number, MemberWithName>>(new Map())
 
 const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   const [ev, members] = await Promise.all([

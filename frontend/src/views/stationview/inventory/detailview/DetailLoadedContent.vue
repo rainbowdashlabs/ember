@@ -26,7 +26,7 @@ import ProcurementTable from './ProcurementTable.vue'
 import LostItemsTable from './LostItemsTable.vue'
 import FreeItemsGrid from './FreeItemsGrid.vue'
 import {isLendableInventory} from '@/api/inventory'
-import type { StationMember } from '@/api/types'
+import type { MemberLike } from '@/components/input/select/memberOption'
 import type { InventoryItemActionEmits } from '../itemEmits'
 
 type SizeStat = {
@@ -63,7 +63,7 @@ const props = withDefaults(defineProps<{
   arts?: InventoryArt[]
   freeItems: InventoryItem[]
   lostItems: InventoryItem[]
-  memberMap: Map<number, StationMember>
+  memberMap: Map<number, MemberLike>
   openProcurement: ProcurementResponse[]
   lentOutItems: LentOutItem[]
   lentItemStationMap: Map<number, string>

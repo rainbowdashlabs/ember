@@ -6,15 +6,16 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {buildMemberSections, type MemberSectionSources} from './memberSections'
-import type {AttendanceEntry} from '@/api/generated/schema'
-import type {MemberGroup, StationMember} from '@/api/types'
+import type {AttendanceEntry, MemberWithName} from '@/api/generated/schema'
+import type {MemberGroup, StationUserTypeName} from '@/api/types'
+import {createMember} from '@/test/mocks/factories'
 
 /**
  * The blocks a sheet is read in follow whom it expects: its groups, then its user types, then
  * everybody else on it. A sheet started for other people than its template's shows those people.
  */
-function member(id: number, name: string, userType: string, formerAt: string | null = null): StationMember {
-    return {id, stationId: 's', accountId: id, name, userType, formerAt}
+function member(id: number, name: string, userType: StationUserTypeName, formerAt: string | null = null): MemberWithName {
+    return createMember({id, stationId: 's', accountId: id, name, userType, formerAt})
 }
 
 function entry(memberId: number): AttendanceEntry {

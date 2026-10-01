@@ -14,7 +14,7 @@ import SingleFieldModal from '@/components/feedback/SingleFieldModal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {MemberGroupSet} from '@/api/groupSets'
+import type {MemberGroupSet} from '@/api/generated/schema'
 
 /**
  * The sets of groups beside the groups: each one a name, whose groups a member can be in only one of.

@@ -15,14 +15,14 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PerDateFieldValue from './PerDateFieldValue.vue'
 import {EventFieldTypes} from '@/api/events'
 import type {EventField} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import {events} from '@/api'
 import {showToast} from '@/util/toast'
 
 const props = defineProps<{
   eventId: number
   fields: EventField[]
-  allMembers: StationMember[]
+  allMembers: MemberLike[]
   currentMemberId: number
   startFormatted: string
   endFormatted: string
@@ -40,7 +40,7 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const memberById = computed(() => {
-  const map = new Map<number, StationMember>()
+  const map = new Map<number, MemberLike>()
   for (const m of props.allMembers) map.set(m.id, m)
   return map
 })

@@ -14,7 +14,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
-import {TicketPriority, type BoardLane, type TicketPriorityName} from '@/api/boards'
+import {TicketPriority, type TicketPriorityName} from '@/api/boards'
+import type {BoardLane} from '@/api/generated/schema'
 
 const modelValue = defineModel<boolean>({required: true})
 const title = defineModel<string>('title', {required: true})

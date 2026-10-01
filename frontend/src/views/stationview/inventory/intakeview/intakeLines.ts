@@ -5,7 +5,6 @@
  */
 import type {ItemOwnerName} from '@/api/inventory'
 import type {InventoryFieldDefinition, InventoryIntakeRow} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
 import {buildItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
 import {
     getMemberFirstName,
@@ -31,8 +30,17 @@ export interface IntakeLine {
     askedFor: boolean
 }
 
+/** Whom a line is for: the member's row id and whatever of their name is known. */
+export interface IntakeMember {
+    id: number
+    name?: string | null
+    email?: string | null
+    firstName?: string
+    lastName?: string
+}
+
 /** A line for somebody, with nothing written on it yet. */
-export function lineFor(member: StationMember): IntakeLine {
+export function lineFor(member: IntakeMember): IntakeLine {
     return {
         memberId: member.id,
         memberName: memberDisplayName(member),

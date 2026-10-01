@@ -25,7 +25,7 @@ import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import FederationCompatibilityBadge from './federationview/FederationCompatibilityBadge.vue'
 import { federation } from '@/api'
-import type { FederationContract, PartnerResponse, PairRequest } from '@/api/federation'
+import type { FederationContract, PairRequestResponse, PartnerResponse } from '@/api/generated/schema'
 import { resolveFederationVersion } from '@/util/federationVersion'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useFlashMessage } from '@/composables/useFlashMessage'
@@ -39,7 +39,7 @@ const { canManageFederation, loaded } = useSession()
 const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const partners = ref<PartnerResponse[]>([])
-const pairRequests = ref<PairRequest[]>([])
+const pairRequests = ref<PairRequestResponse[]>([])
 const localContract = ref<FederationContract | null>(null)
 const {message: success, flash} = useFlashMessage(3000)
 

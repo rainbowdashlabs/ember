@@ -9,15 +9,17 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {
     DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
-    type AssignmentRequest, type AssignmentTarget,
-    type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
+    type AssignmentTarget, type EditableField, type EditableFieldRequest, type FieldSettings,
+    type FieldSwitchName, type FieldTypeName, type ProfileFieldScopeName,
 } from '@/api/profileFields'
-import {asAsked, type ProfileFieldAssignment} from '@/util/profileFields'
-import type {StationGroupResponse} from '@/api/generated/schema'
+import type {AssignmentRequest, ProfileFieldAssignment, StationGroupResponse} from '@/api/generated/schema'
+import {asAsked} from '@/util/profileFields'
 import type {MemberGroup} from '@/api/types'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure} from '@/util/failure'
-import {withoutKey} from '@/util/record'
+
+/** What one switch on a question changes, written into the list at once and sent with the rest. */
+type FieldPatch = Partial<Pick<EditableField, 'required' | 'readonly' | 'keepOnArchive' | 'stationReadonly' | 'config'>>
 
 /**
  * Where a set of profile fields lives, and which choices whoever owns them may make.
@@ -29,20 +31,20 @@ import {withoutKey} from '@/util/record'
  */
 export interface FieldsPort {
     /** The questions themselves, without reference to who is asked them. */
-    list(): Promise<ProfileField[]>
+    list(): Promise<EditableField[]>
     /** Who each question is asked of. Read separately because one question has many audiences. */
     listAssignments(): Promise<ProfileFieldAssignment[]>
-    create(field: ProfileFieldRequest): Promise<ProfileField>
-    update(id: number, field: ProfileFieldRequest): Promise<unknown>
+    create(field: EditableFieldRequest): Promise<EditableField>
+    update(id: number, field: EditableFieldRequest): Promise<unknown>
     remove(id: number): Promise<unknown>
     /** Puts a question to an audience, or changes how it is put to them. */
     assign(fieldId: number, assignment: AssignmentRequest): Promise<unknown>
     /** Stops asking an audience. The question and its answers stay. */
     unassign(fieldId: number, target: AssignmentTarget): Promise<unknown>
     /** Writes a whole form's order at once, because dragging one question moves every one below it. */
-    reorder(role: string, fieldIds: number[]): Promise<unknown>
+    reorder(role: ProfileFieldScopeName, fieldIds: number[]): Promise<unknown>
     /** The kinds of member this owner may ask, in the order the forms are listed. */
-    roles: readonly string[]
+    roles: readonly ProfileFieldScopeName[]
     /** Which field types this owner may choose. A template naming any other does not offer itself. */
     types: readonly string[]
     /** The groups a question can be pointed at. An association has none: a group belongs to one station. */
@@ -86,7 +88,7 @@ export const Writability = {
 export type WritabilityName = (typeof Writability)[keyof typeof Writability]
 
 /** Reads the pair of flags as the rung it sits on. */
-export function writabilityOf(field: ProfileField): WritabilityName {
+export function writabilityOf(field: EditableField): WritabilityName {
     if (!field.readonly) return Writability.EVERYONE
     return field.stationReadonly ? Writability.OWNER_ONLY : Writability.NOT_MEMBER
 }
@@ -117,7 +119,7 @@ export interface Audience {
  * the audience's answer rather than the question's.
  */
 export interface FormEntry {
-    field: ProfileField
+    field: EditableField
     assignment: ProfileFieldAssignment
 }
 
@@ -171,7 +173,7 @@ export function useFieldsConfig(port: FieldsPort) {
         groups: !!port.listGroups,
     })
 
-    const allFields = ref<ProfileField[]>([])
+    const allFields = ref<EditableField[]>([])
     const allAssignments = ref<ProfileFieldAssignment[]>([])
     const availableGroups = ref<MemberGroup[]>([])
     const availableStationGroups = ref<StationGroupResponse[]>([])
@@ -179,7 +181,7 @@ export function useFieldsConfig(port: FieldsPort) {
     /** The question whose audiences the right hand panel is showing. */
     const selectedFieldId = ref<number | null>(null)
     /** Whose form the preview draws, which is one of the roles rather than a group. */
-    const previewRole = ref(port.roles[0] ?? 'MEMBER')
+    const previewRole = ref<ProfileFieldScopeName>(port.roles[0] ?? 'MEMBER')
     /**
      * Which station group's questions the screen is showing, {@code null} for the ones asked of every
      * station. An association's axis, and nothing to do with a station's member groups.
@@ -187,7 +189,7 @@ export function useFieldsConfig(port: FieldsPort) {
     const selectedStationGroupId = ref<number | null>(null)
 
     const showFieldModal = ref(false)
-    const editingField = ref<ProfileField | null>(null)
+    const editingField = ref<EditableField | null>(null)
 
     async function fetchAll() {
         const [fields, assignments, groups, stationGroups] = await Promise.all([
@@ -272,8 +274,8 @@ export function useFieldsConfig(port: FieldsPort) {
 
     function targetOf(assignment: ProfileFieldAssignment): AssignmentTarget {
         return assignment.targetKind === 'GROUP'
-            ? {groupId: assignment.groupId ?? null}
-            : {role: assignment.role ?? null}
+            ? {groupId: assignment.groupId ?? undefined}
+            : {role: assignment.role ?? undefined}
     }
 
     /** Who the selected question is put to, roles first and then groups, each named for the screen. */
@@ -291,7 +293,7 @@ export function useFieldsConfig(port: FieldsPort) {
         const asked = new Set(assignmentsOf(selectedFieldId.value)
             .filter(a => a.targetKind === 'ROLE')
             .map(a => a.role))
-        return port.roles.filter(role => !asked.has(role as never))
+        return port.roles.filter(role => !asked.has(role))
     })
 
     /** The groups the selected question is not yet put to. */
@@ -311,7 +313,7 @@ export function useFieldsConfig(port: FieldsPort) {
         questions.value.filter(f => assignmentsOf(f.id).length === 0))
 
     /** One audience's form, in the order that audience sees it. */
-    function formFor(role: string): FormEntry[] {
+    function formFor(role: ProfileFieldScopeName): FormEntry[] {
         return allAssignments.value
             .filter(a => a.targetKind === 'ROLE' && a.role === role)
             .map(a => ({field: allFields.value.find(f => f.id === a.fieldId), assignment: a}))
@@ -349,7 +351,7 @@ export function useFieldsConfig(port: FieldsPort) {
         showFieldModal.value = true
     }
 
-    function openEditField(field: ProfileField) {
+    function openEditField(field: EditableField) {
         editingField.value = field
         showFieldModal.value = true
     }
@@ -358,9 +360,9 @@ export function useFieldsConfig(port: FieldsPort) {
      * A question is asked of whichever station group the screen is showing. A port that files no station
      * groups never sends the key, because its endpoint neither expects nor reads it.
      */
-    function withTarget<T extends ProfileFieldRequest>(data: T): T {
+    function withTarget<T extends EditableFieldRequest>(data: T): T {
         if (!port.listStationGroups) return data
-        return {...data, stationGroupId: selectedStationGroupId.value}
+        return {...data, stationGroupId: selectedStationGroupId.value ?? undefined}
     }
 
     /**
@@ -369,7 +371,7 @@ export function useFieldsConfig(port: FieldsPort) {
      * <p>A new one is put to nobody yet: naming the audiences is the next thing the screen asks for, and
      * guessing one here is how a question ends up on a form nobody meant it to be on.
      */
-    async function saveField(data: ProfileFieldRequest) {
+    async function saveField(data: EditableFieldRequest) {
         failure.value = null
         try {
             if (editingField.value) {
@@ -386,42 +388,40 @@ export function useFieldsConfig(port: FieldsPort) {
         await reloadAfterWrite()
     }
 
-    async function toggleKeepOnArchive(field: ProfileField, value: boolean) {
+    async function toggleKeepOnArchive(field: EditableField, value: boolean) {
         await writeField(field, {keepOnArchive: value})
     }
 
-    async function toggleRequired(field: ProfileField, value: boolean) {
+    async function toggleRequired(field: EditableField, value: boolean) {
         await writeField(field, {required: value})
     }
 
     /** Whether only the member management may write the answer, which holds for everybody asked it. */
-    async function toggleReadonly(field: ProfileField, value: boolean) {
+    async function toggleReadonly(field: EditableField, value: boolean) {
         await writeField(field, {readonly: value})
     }
 
-    async function toggleFieldConfig(field: ProfileField, key: string, value: boolean) {
-        const current = parseFieldConfig(field.config)
-        const config = value ? {...current, [key]: true} : withoutKey(current, key)
-        await writeField(field, {config})
+    async function toggleFieldConfig(field: EditableField, key: FieldSwitchName, value: boolean) {
+        await writeField(field, {config: {...parseFieldConfig(field.config), [key]: value}})
     }
 
     /** The whole question as the API wants it back, with one part replaced. */
-    function requestFor(field: ProfileField, patch: Partial<ProfileFieldRequest> = {}): ProfileFieldRequest {
+    function requestFor(field: EditableField, patch: FieldPatch = {}): EditableFieldRequest {
         return {
-            name: field.name ?? '',
-            fieldType: field.fieldType ?? '',
+            name: field.name,
+            fieldType: field.fieldType,
             config: parseFieldConfig(field.config),
-            required: field.required ?? false,
-            readonly: field.readonly ?? false,
-            width: field.width ?? null,
+            required: field.required,
+            readonly: field.readonly,
+            width: field.width ?? undefined,
             keepOnArchive: field.keepOnArchive,
             stationReadonly: field.stationReadonly,
-            ...(port.listStationGroups ? {stationGroupId: field.stationGroupId ?? null} : {}),
+            ...(port.listStationGroups ? {stationGroupId: field.stationGroupId ?? undefined} : {}),
             ...patch,
         }
     }
 
-    async function writeField(field: ProfileField, patch: Partial<ProfileFieldRequest>) {
+    async function writeField(field: EditableField, patch: FieldPatch) {
         allFields.value = allFields.value.map(f => f.id === field.id ? {...f, ...patch} : f)
         try {
             await port.update(field.id, requestFor(field, patch))
@@ -458,9 +458,9 @@ export function useFieldsConfig(port: FieldsPort) {
         await writeAssignment(selectedFieldId.value, {
             ...audience.target,
             position: audience.assignment.position,
-            widthOverride: audience.assignment.widthOverride,
-            readonlyOverride: audience.assignment.readonlyOverride,
-            requiredOverride: audience.assignment.requiredOverride,
+            widthOverride: audience.assignment.widthOverride ?? undefined,
+            readonlyOverride: audience.assignment.readonlyOverride ?? undefined,
+            requiredOverride: audience.assignment.requiredOverride ?? undefined,
             ...patch,
         })
     }
@@ -471,7 +471,7 @@ export function useFieldsConfig(port: FieldsPort) {
      * <p>Both halves are the question's, so this is one write. An association sets the second half as
      * well; a station has nobody below it and leaves it alone.
      */
-    async function setWritability(field: ProfileField, level: WritabilityName) {
+    async function setWritability(field: EditableField, level: WritabilityName) {
         const flags = writabilityFlags(level)
         await writeField(field, port.stationReadonly
             ? {readonly: flags.readonly, stationReadonly: flags.stationReadonly}
@@ -494,7 +494,7 @@ export function useFieldsConfig(port: FieldsPort) {
         target: deleteTarget,
         requestDelete,
         confirm: confirmDelete,
-    } = useConfirmDelete<ProfileField>({
+    } = useConfirmDelete<EditableField>({
         onDelete: async (field) => { await port.remove(field.id) },
         onSuccess: () => reload(),
         failure,
@@ -510,7 +510,7 @@ export function useFieldsConfig(port: FieldsPort) {
      * order it is being shown, so there is nothing to fetch back; a refusal puts the old order back
      * and says so.
      */
-    async function onReorder(role: string, fromIndex: number, toIndex: number) {
+    async function onReorder(role: ProfileFieldScopeName, fromIndex: number, toIndex: number) {
         const ordered = moveWithin(formFor(role), fromIndex, toIndex).map(entry => entry.field.id)
         const before = allAssignments.value
         allAssignments.value = allAssignments.value.map(assignment =>
@@ -583,7 +583,7 @@ export function useFieldsConfig(port: FieldsPort) {
      * <p>The form is one audience's, so this is that audience's override and no other form moves. The
      * width the question carries is its default, set where the question itself is written.
      */
-    async function setPreviewWidth(field: ProfileField, width: string) {
+    async function setPreviewWidth(field: EditableField, width: string) {
         const assignment = allAssignments.value.find(a =>
             a.fieldId === field.id && a.targetKind === 'ROLE' && a.role === previewRole.value)
         if (!assignment) return
@@ -591,8 +591,8 @@ export function useFieldsConfig(port: FieldsPort) {
             role: previewRole.value,
             position: assignment.position,
             widthOverride: width,
-            readonlyOverride: assignment.readonlyOverride,
-            requiredOverride: assignment.requiredOverride,
+            readonlyOverride: assignment.readonlyOverride ?? undefined,
+            requiredOverride: assignment.requiredOverride ?? undefined,
         })
     }
 
@@ -608,12 +608,12 @@ export function useFieldsConfig(port: FieldsPort) {
     async function applyTemplate(
         template: {fields: Array<{
             name: string
-            fieldType: string
-            config: ProfileFieldConfig
+            fieldType: FieldTypeName
+            config: FieldSettings
             required?: boolean
             readonly?: boolean
         }>},
-        role: string,
+        role: ProfileFieldScopeName,
     ) {
         failure.value = null
         try {
@@ -638,7 +638,7 @@ export function useFieldsConfig(port: FieldsPort) {
     }
 
     return {
-        allFields: allFields as Ref<ProfileField[]>,
+        allFields: allFields as Ref<EditableField[]>,
         allAssignments: allAssignments as Ref<ProfileFieldAssignment[]>,
         availableGroups,
         availableStationGroups,

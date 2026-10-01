@@ -5,7 +5,7 @@
  */
 import { ref, watch, type Ref } from 'vue'
 import { boards } from '@/api'
-import type { BoardTicketAttachment } from '@/api/boards'
+import type { BoardTicketAttachment } from '@/api/generated/schema'
 import { useAuthImages } from '@/composables/useAuthImage'
 import { downloadAuthed } from '@/util/downloadAuthed'
 import { fileKindIcon, fileKindOf } from '@/util/fileKind'

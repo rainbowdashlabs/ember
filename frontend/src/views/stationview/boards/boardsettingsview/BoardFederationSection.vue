@@ -12,8 +12,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import BoardFederationTargetList from './BoardFederationTargetList.vue'
-import type { FederationTarget } from '@/api/boards'
-import type { PartnerResponse } from '@/api/federation'
+import type { FederationTargetResponse, PartnerResponse } from '@/api/generated/schema'
 
 export interface RoleOption {
     value: string
@@ -22,7 +21,7 @@ export interface RoleOption {
 
 defineProps<{
     canFederate: boolean
-    targets: FederationTarget[]
+    targets: FederationTargetResponse[]
     availablePartners: PartnerResponse[]
     hasFullMode: boolean
     addPartnerId: number | null

@@ -14,9 +14,10 @@ import type {
   AttendanceSession,
   AttendanceSessionField,
   AttendanceTemplateField,
+  MemberWithName,
   SessionAudience,
 } from '@/api/generated/schema'
-import {StationPermission, type MemberGroup, type StationMember} from '@/api/types'
+import {StationPermission, type MemberGroup} from '@/api/types'
 import {attendance, events, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -67,9 +68,9 @@ const templateFields = ref<AttendanceTemplateField[]>([])
 /** Whom the sheet expects, as the backend decides it: what it was started with, or its template's. */
 const audience = ref<SessionAudience>({userTypes: [], groupIds: []})
 const entries = ref<AttendanceEntry[]>([])
-const allMembers = ref<StationMember[]>([])
+const allMembers = ref<MemberWithName[]>([])
 const groups = ref<MemberGroup[]>([])
-const groupMembers = ref<Map<number, StationMember[]>>(new Map())
+const groupMembers = ref<Map<number, MemberWithName[]>>(new Map())
 
 const selectedMemberId = ref('')
 
@@ -180,8 +181,8 @@ function referencedGroupIds(fields: AttendanceTemplateField[]): Set<number> {
   return groupIds
 }
 
-async function loadGroupMembers(fields: AttendanceTemplateField[]): Promise<Map<number, StationMember[]>> {
-  const byGroup = new Map<number, StationMember[]>()
+async function loadGroupMembers(fields: AttendanceTemplateField[]): Promise<Map<number, MemberWithName[]>> {
+  const byGroup = new Map<number, MemberWithName[]>()
   for (const groupId of referencedGroupIds(fields)) {
     try {
       byGroup.set(groupId, await memberGroups.getGroupMembers(groupId))

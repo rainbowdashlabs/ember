@@ -13,7 +13,7 @@ import ItemListControls from '../itemtable/ItemListControls.vue'
 import {useItemTable} from '../itemtable/useItemTable'
 import {InventoryTypes} from '@/api/inventory'
 import type {InventoryDetail, InventoryItem} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import {inventory} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -22,7 +22,7 @@ const {t} = useI18n()
 const props = defineProps<{
   detail: InventoryDetail
   items: InventoryItem[]
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const emit = defineEmits<{

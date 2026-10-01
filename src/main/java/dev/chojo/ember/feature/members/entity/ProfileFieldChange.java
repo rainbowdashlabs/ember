@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -31,19 +32,19 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 public record ProfileFieldChange(
         int id,
-        Integer fieldId,
-        Integer clusterFieldId,
+        @Nullable Integer fieldId,
+        @Nullable Integer clusterFieldId,
         int memberId,
-        String oldValue,
-        String newValue,
+        @Nullable String oldValue,
+        @Nullable String newValue,
         int changedBy,
         Instant changedAt,
         boolean requiresAcknowledgement,
         String changedByName,
-        String fieldName,
-        String fieldType,
+        @Nullable String fieldName,
+        @Nullable String fieldType,
         List<ProfileFieldChangeAcknowledgement> acknowledgements,
-        String memberName) {
+        @Nullable String memberName) {
     /**
      * Whether the field that changed was asked for by the station's cluster rather than by the station.
      *

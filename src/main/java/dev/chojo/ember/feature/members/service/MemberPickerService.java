@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository.PickerMember;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Base64;
 import java.util.List;
@@ -96,9 +97,9 @@ public class MemberPickerService {
     public record MemberSearchResult(
             UUID memberUid,
             String displayName,
-            String userType,
-            String nameColor,
-            String displayTag,
-            String displayTagColor,
-            String avatarUrl) {}
+            @Nullable String userType,
+            @Nullable String nameColor,
+            @Nullable String displayTag,
+            @Nullable String displayTagColor,
+            @Nullable String avatarUrl) {}
 }

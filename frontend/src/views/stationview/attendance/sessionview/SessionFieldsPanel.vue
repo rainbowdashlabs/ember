@@ -11,8 +11,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
-import type {AttendanceTemplateField} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {AttendanceTemplateField, MemberWithName} from '@/api/generated/schema'
 import {QuestionKinds, memberIdsOf, questionKindOf, type QuestionKindName} from '@/util/questions'
 
 const {t} = useI18n()
@@ -20,8 +19,8 @@ const {t} = useI18n()
 const props = defineProps<{
   templateFields: AttendanceTemplateField[]
   fieldValues: Map<number, string>
-  groupMembers: Map<number, StationMember[]>
-  allMembers: StationMember[]
+  groupMembers: Map<number, MemberWithName[]>
+  allMembers: MemberWithName[]
   readonly?: boolean
 }>()
 
@@ -74,7 +73,7 @@ function writeField(field: AttendanceTemplateField, value: string) {
 function getMemberOptions(field: AttendanceTemplateField): MemberOption[] {
   const config = parseFieldConfig(field.config)
   const groupId = config.groupId
-  let members: StationMember[]
+  let members: MemberWithName[]
   if (groupId && props.groupMembers.has(groupId)) {
     members = props.groupMembers.get(groupId)!
   } else {

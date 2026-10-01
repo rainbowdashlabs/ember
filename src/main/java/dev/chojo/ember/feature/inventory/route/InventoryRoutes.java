@@ -25,13 +25,11 @@ import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
-import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
-import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
+import dev.chojo.ember.feature.inventory.entity.MyInventoryItem;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
 import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
-import dev.chojo.ember.feature.inventory.service.GlyphResolver;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
@@ -40,6 +38,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryLossService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.InventorySwitchRefusedException;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
+import dev.chojo.ember.feature.inventory.service.MemberGearService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -83,7 +82,7 @@ public class InventoryRoutes implements Routes {
     private final InventoryIntakeService intakeService;
     private final BorrowedGearService borrowedGearService;
     private final SelfCheckService selfCheckService;
-    private final GlyphResolver glyphResolver;
+    private final MemberGearService memberGearService;
 
     @Inject
     public InventoryRoutes(
@@ -98,8 +97,8 @@ public class InventoryRoutes implements Routes {
             InventoryIntakeService intakeService,
             BorrowedGearService borrowedGearService,
             SelfCheckService selfCheckService,
-            GlyphResolver glyphResolver) {
-        this.glyphResolver = glyphResolver;
+            MemberGearService memberGearService) {
+        this.memberGearService = memberGearService;
         this.intakeService = intakeService;
         this.borrowedGearService = borrowedGearService;
         this.inventoryService = inventoryService;
@@ -290,9 +289,7 @@ public class InventoryRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MyInventoryItem[].class)))
     private void myItems(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(inventoryService.findMemberEntries(session.member().id()).stream()
-                .map(this::toMyItem)
-                .toList());
+        ctx.json(memberGearService.heldBy(session.member().id()));
     }
 
     @OpenApi(
@@ -326,7 +323,7 @@ public class InventoryRoutes implements Routes {
                         .findById(entry.item().inventoryId())
                         .map(inv -> inv.stationId() == session.stationId())
                         .orElse(false))
-                .map(this::toMyItem)
+                .map(memberGearService::toItem)
                 .toList());
     }
 
@@ -395,57 +392,6 @@ public class InventoryRoutes implements Routes {
      * @param sizeId      the size, or {@code null} where the inventory keeps none
      */
     public record HandOutRequest(int inventoryId, @Nullable Integer sizeId) {}
-
-    /**
-     * Renders one line of a member's own inventory, carrying the step of whatever movement the item
-     * is on so the member can watch an exchange happen rather than watch their jacket vanish.
-     */
-    private MyInventoryItem toMyItem(MemberInventoryEntry entry) {
-        var item = entry.item();
-        var inventory = inventoryService.findById(item.inventoryId());
-        String inventoryName = inventory.map(Inventory::name).orElse("");
-        // Whether the piece can be exchanged at all travels with the piece, because the screens that
-        // offer an exchange are the member's own and have no list of inventories to look it up in
-        boolean homogeneous = inventory.map(Inventory::homogeneous).orElse(true);
-        String sizeName = null;
-        if (item.sizeId() != null) {
-            sizeName = inventoryService.findSizes(item.inventoryId()).stream()
-                    .filter(s -> s.id() == item.sizeId())
-                    .map(InventorySize::label)
-                    .findFirst()
-                    .orElse(null);
-        }
-        Glyph glyph = glyphResolver.forItem(item);
-        return new MyInventoryItem(
-                item.id(),
-                item.inventoryId(),
-                item.name(),
-                item.internalId(),
-                inventoryName,
-                homogeneous,
-                item.sizeId(),
-                sizeName,
-                item.lostAt(),
-                item.custody(),
-                entry.movementId(),
-                entry.movementStep(),
-                item.ownerKind(),
-                item.ownerClusterId(),
-                item.lostNote(),
-                noteAuthor(item.lostNoteBy()),
-                glyph.icon(),
-                glyph.color());
-    }
-
-    /**
-     * Who wrote the note about a loss, as an identity rather than a name.
-     *
-     * <p>It matters who it was: a guardian may report a loss for the person they act for, and the note then
-     * says so rather than reading as if the member wrote it themselves.
-     */
-    private MemberIdentity noteAuthor(Integer memberId) {
-        return memberId == null ? null : memberIdentityFactory.fromMemberId(memberId);
-    }
 
     @OpenApi(
             path = "/api/v1/inventories/summary",
@@ -1325,36 +1271,6 @@ public class InventoryRoutes implements Routes {
             Instant givenOut,
             @Nullable Instant returned,
             boolean corrected) {}
-
-    public record MyInventoryItem(
-            int id,
-            int inventoryId,
-            String name,
-            @Nullable String internalId,
-            String inventoryName,
-            /**
-             * Whether the inventory holds one thing in many copies, which is what makes a piece
-             * exchangeable. Among a drawer of different things there is nothing to swap it for.
-             */
-            boolean inventoryHomogeneous,
-            @Nullable Integer sizeId,
-            @Nullable String sizeName,
-            @Nullable Instant lostAt,
-            ItemCustody custody,
-            @Nullable Integer movementId,
-            @Nullable String movementStep,
-            /** Who owns it, which a member is entitled to know about what they are looking after. */
-            ItemOwner ownerKind,
-            @Nullable Integer ownerClusterId,
-            /** What was written when it was reported missing, which the member wrote or had written for them. */
-            @Nullable String lostNote,
-            @Nullable MemberIdentity lostNoteBy,
-            /**
-             * The picture the piece is drawn with, resolved from its kind and its inventory. A member's
-             * own page loads neither of those, so the answer travels with the row.
-             */
-            @Nullable String icon,
-            @Nullable String color) {}
 
     public record MyRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
 

@@ -10,10 +10,10 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
-import type {ProfileField} from '@/api/profileFields'
+import type {MergedField} from '@/api/generated/schema'
 
 const props = defineProps<{
-  editableFields: ProfileField[]
+  editableFields: MergedField[]
   getValue: (fieldId: number) => string
   saveAction: () => Promise<void>
 }>()

@@ -13,10 +13,10 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 const props = defineProps<{
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const emit = defineEmits<{

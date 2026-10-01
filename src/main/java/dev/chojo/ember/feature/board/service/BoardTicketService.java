@@ -10,6 +10,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.feature.board.entity.Board;
+import dev.chojo.ember.feature.board.entity.BoardActivityEntry;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
@@ -658,7 +659,7 @@ public class BoardTicketService {
 
     // -- History --
 
-    public List<BoardTicketRepository.ActivityEntry> findActivity(int ticketId) {
+    public List<BoardActivityEntry> findActivity(int ticketId) {
         return ticketRepository.findActivity(ticketId);
     }
 

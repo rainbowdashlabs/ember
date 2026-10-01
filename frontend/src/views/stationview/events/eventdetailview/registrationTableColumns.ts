@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {MemberTableCellTypes, type MemberTable, type MemberTableColumn, type MemberTableHeader} from '@/api/memberTable'
+import {MemberTableCellTypes, type ColumnChoice} from '@/api/memberTable'
+import type {MemberTable, MemberTableHeader} from '@/api/generated/schema'
 import {columnTypeOf, type CellValue, type ColumnOption, type TableColumn} from '@/components/table/tableColumn'
 
 /** One person on the drawn table: the cells as read back by column key, without anything beside them. */
@@ -21,13 +22,13 @@ export interface DrawnRow<Extra> extends DrawnCells {
  * The one string that stands for a column, unique across the three kinds: the kind, and then either
  * the builtin's name or the question's id. The server is told the columns, never these strings.
  */
-export function keyOf(column: MemberTableHeader | MemberTableColumn): string {
+export function keyOf(column: MemberTableHeader | ColumnChoice): string {
     if (column.kind === 'BUILTIN') return `b:${column.key}`
     return column.kind === 'PROFILE_FIELD' ? `p:${column.fieldId}` : `q:${column.fieldId}`
 }
 
 /** The column a key stands for, or null where it names nothing a table can draw. */
-export function columnOf(key: string): MemberTableColumn | null {
+export function columnOf(key: string): ColumnChoice | null {
     const [kind, rest] = [key.slice(0, 1), key.slice(2)]
     if (kind === 'b') return {kind: 'BUILTIN', key: rest, fieldId: null}
     const fieldId = Number(rest)

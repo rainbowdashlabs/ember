@@ -6,7 +6,8 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
-import type {MemberChangeSummary, ProfileFieldChange} from '@/api/profileFieldChanges'
+import type {ChangeEntry} from '@/api/profileFieldChanges'
+import type {EnrichedMemberChangeSummary} from '@/api/generated/schema'
 import PendingMemberCard from './PendingMemberCard.vue'
 
 const {t} = useI18n()
@@ -15,13 +16,13 @@ const acknowledgeComment = defineModel<string>('acknowledgeComment', {required: 
 
 defineProps<{
   loading: boolean
-  summaries: MemberChangeSummary[]
+  summaries: EnrichedMemberChangeSummary[]
   expandedMemberId: number | null
-  memberChanges: ProfileFieldChange[]
+  memberChanges: ChangeEntry[]
   loadingChanges: boolean
   acknowledging: boolean
   showCommentForChangeId: number | null
-  isAcknowledgedByMe: (change: ProfileFieldChange) => boolean
+  isAcknowledgedByMe: (change: ChangeEntry) => boolean
   formatDate: (dateStr?: string) => string
 }>()
 

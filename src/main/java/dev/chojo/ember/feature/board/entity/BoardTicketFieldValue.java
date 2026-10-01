@@ -6,8 +6,13 @@
 package dev.chojo.ember.feature.board.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
-public record BoardTicketFieldValue(int ticketId, int fieldId, BoardFieldType fieldType, BoardFieldValue value) {
+public record BoardTicketFieldValue(
+        int ticketId,
+        int fieldId,
+        BoardFieldType fieldType,
+        @Nullable BoardFieldValue value) {
 
     public static RowMapping<BoardTicketFieldValue> map() {
         return row -> {

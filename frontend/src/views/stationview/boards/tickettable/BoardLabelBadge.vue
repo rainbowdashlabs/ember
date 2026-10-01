@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import BaseBadge from '@/components/badge/BaseBadge.vue'
-import type {BoardLabel} from '@/api/boards'
+import type {BoardLabel} from '@/api/generated/schema'
 import {contrastTextColor} from '@/util/contrastColor'
 
 /** One label of a board, in the colour the board gave it. */

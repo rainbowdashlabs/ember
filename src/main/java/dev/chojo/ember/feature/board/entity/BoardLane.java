@@ -6,8 +6,10 @@
 package dev.chojo.ember.feature.board.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
-public record BoardLane(int id, int boardId, String name, String color, int position) {
+public record BoardLane(
+        int id, int boardId, String name, @Nullable String color, int position) {
 
     public static RowMapping<BoardLane> map() {
         return row -> new BoardLane(

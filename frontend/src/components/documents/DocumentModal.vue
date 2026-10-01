@@ -21,7 +21,7 @@ import {formatDate, formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {contentUrl} from '@/api/documents'
 import type {MemberDocumentResponse} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 /**
  * A document, open: what it says, whom it belongs to, and the words it is filed under.
@@ -35,7 +35,7 @@ const modelValue = defineModel<boolean>({required: true})
 const props = defineProps<{
   document: MemberDocumentResponse | null
   /** Every member of the station, to name and to choose the ones a document is bound to. */
-  allMembers?: StationMember[]
+  allMembers?: MemberLike[]
   /** Every label written so far, offered while typing. */
   allTags?: string[]
   canEdit?: boolean
@@ -62,7 +62,7 @@ const memberOptions = computed(() => (props.allMembers ?? []).map(fromMember))
 const boundNames = computed(() => (props.allMembers ?? [])
     .filter(member => props.document?.memberIds.includes(member.id))
     .map(member => member.name)
-    .filter(Boolean))
+    .filter((name): name is string => !!name))
 
 function saveMembers() {
   if (!props.document) return

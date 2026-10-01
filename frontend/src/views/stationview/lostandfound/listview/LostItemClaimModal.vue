@@ -14,7 +14,7 @@ import {fromMember} from '@/components/input/select/memberOption'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
-import type {ManagedMember} from '@/api/managedMembers'
+import type {ManagedMember} from '@/api/generated/schema'
 
 /**
  * Claiming an item, for oneself or for somebody in one's care.

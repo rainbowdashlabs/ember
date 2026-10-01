@@ -8,9 +8,9 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {DiscoveryIdentity} from '@/api/discovery'
+import type {IdentityResponse} from '@/api/generated/schema'
 
-defineProps<{ identity: DiscoveryIdentity }>()
+defineProps<{ identity: IdentityResponse }>()
 
 const {t} = useI18n()
 </script>

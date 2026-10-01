@@ -15,10 +15,11 @@ import type {
     EventCategory,
     EventFieldEntry,
     EventTemplate,
+    PartnerResponse,
     RegistrationFieldDefinition,
 } from '@/api/generated/schema'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
-import type {PartnerResponse} from '@/api/federation'
+import type {MemberGroup, UserTag} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import type {RestrictionSelection} from '@/components/input/restriction'
 import EventEditHeader from './EventEditHeader.vue'
 import EventFormCard from './EventFormCard.vue'
@@ -41,8 +42,8 @@ const props = defineProps<{
   attendanceFields: AttendanceTemplateField[]
   groups: MemberGroup[]
   tags: UserTag[]
-  allMembers: StationMember[]
-  groupMembers: Map<number, StationMember[]>
+  allMembers: MemberLike[]
+  groupMembers: Map<number, MemberLike[]>
   currentTemplateFields: AttendanceTemplateField[]
   fieldDefaults: Map<number, FieldDefaultEntry>
   partners: PartnerResponse[]

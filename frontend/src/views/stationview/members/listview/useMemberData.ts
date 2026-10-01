@@ -4,11 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { ref, computed } from 'vue'
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
-import {calculatedAnswer, type ProfileFieldAssignment} from '@/util/profileFields'
-import type { StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
+import {parseFieldConfig} from '@/api/profileFields'
+import {calculatedAnswer} from '@/util/profileFields'
+import type { StationMember, MemberGroup, MemberIdentity, UserTag, PermissionGrant } from '@/api/types'
 import { profileFields, stationMembers } from '@/api'
-import type { RichMember } from '@/api/stationMembers'
+import type { MemberWithName, ProfileField, ProfileFieldAssignment, RichMember } from '@/api/generated/schema'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useI18n } from 'vue-i18n'
 import { describeFailure } from '@/util/failure'
@@ -21,6 +21,13 @@ export function memberDisplayName(m: {id: number; name?: string | null; email?: 
   return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
 }
 
+/** What the name helpers read of a person: the whole name and, where the list carries them, its halves. */
+interface NamedMember {
+  name?: string | null
+  firstName?: string
+  lastName?: string
+}
+
 /**
  * The two halves of a name, taken as they are stored where the server sends them.
  *
@@ -28,15 +35,24 @@ export function memberDisplayName(m: {id: number; name?: string | null; email?: 
  * names or two surnames: "Millie Jo Harnack" reads as a surname of "Jo Harnack". It stays as the
  * fallback for the lists that do not carry the halves.
  */
-export function getMemberFirstName(m: StationMember): string {
+export function getMemberFirstName(m: NamedMember): string {
   if (m.firstName !== undefined) return m.firstName
   return (m.name ?? '').split(' ')[0] ?? ''
 }
 
-export function getMemberLastName(m: StationMember): string {
+export function getMemberLastName(m: NamedMember): string {
   if (m.lastName !== undefined) return m.lastName
   return (m.name ?? '').split(' ').slice(1).join(' ')
 }
+
+/**
+ * One person as the member list reads them: what a station's own roll sends, and what an association's
+ * search can say about somebody at one of its stations.
+ */
+export type RosterMember = Pick<RichMember,
+    'id' | 'stationId' | 'accountId' | 'name' | 'firstName' | 'lastName' | 'email' | 'accountSetupPending'
+    | 'setupMailExpiresAt' | 'mailReaches' | 'former' | 'roles' | 'groups' | 'tags' | 'profileValues'>
+    & {userType: string; identity: MemberIdentity}
 
 /**
  * Where a member list gets its people, its questions and its grants.
@@ -50,13 +66,13 @@ export interface MemberDataSource {
    * @return the people, the questions, who each question is put to, and the permissions in force
    */
   load(): Promise<{
-    members: RichMember[]
+    members: RosterMember[]
     fields: ProfileField[]
     assignments: ProfileFieldAssignment[]
     roles: PermissionGrant[]
   }>
   /** Who manages this person, fetched when a row is opened. Absent where nobody does. */
-  loadManagers?(memberId: number): Promise<StationMember[]>
+  loadManagers?(memberId: number): Promise<MemberWithName[]>
 }
 
 /** The station's own roll, which is what this screen has always shown. */
@@ -84,7 +100,7 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
   const memberRolesMap = ref<Map<number, string[]>>(new Map())
   const memberGroupsMap = ref<Map<number, string[]>>(new Map())
   const memberTagsMap = ref<Map<number, string[]>>(new Map())
-  const memberManagers = ref<Map<number, StationMember[]>>(new Map())
+  const memberManagers = ref<Map<number, MemberWithName[]>>(new Map())
   const expandedId = ref<number | null>(null)
 
   const overviewFields = computed(() => fields.value.filter(f => parseFieldConfig(f.config).overview))

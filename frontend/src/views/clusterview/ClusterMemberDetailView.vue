@@ -60,7 +60,7 @@ const fields = computed<LaidOutField[]>(() => (profile.value?.fields ?? []).map(
   id: f.id,
   name: f.name,
   fieldType: f.fieldType,
-  config: f.config ?? undefined,
+  config: f.config ?? {},
   position: f.position,
 })))
 

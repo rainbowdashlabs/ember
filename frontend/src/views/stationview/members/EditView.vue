@@ -16,11 +16,10 @@ import MemberEditTabs from './editview/MemberEditTabs.vue'
 import MemberAccessActions from './editview/MemberAccessActions.vue'
 import type {MemberEditData} from './editview/types'
 import {memberDisplayName} from './listview/useMemberData'
-import {StationPermission, StationUserType, type MemberGroup, type PermissionGrant, type StationMember, type UserTag} from '@/api/types'
+import {StationPermission, StationUserType, type MemberGroup, type PermissionGrant, type UserTag} from '@/api/types'
+import type {MemberGroupSet, MemberWithName, MergedField, MyInventoryItem} from '@/api/generated/schema'
 import {profileFields, stationMembers, memberGroups, groupSets, userTags, inventory} from '@/api'
-import type {MemberGroupSet} from '@/api/groupSets'
-import type {MyInventoryItem} from '@/api/generated/schema'
-import {decodeMergedValues, type MergedProfileField} from '@/util/profileFields'
+import {decodeMergedValues} from '@/util/profileFields'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
@@ -31,8 +30,8 @@ const router = useRouter()
 
 const memberId = computed(() => Number(route.params.id))
 
-const member = ref<StationMember | null>(null)
-const fields = ref<MergedProfileField[]>([])
+const member = ref<MemberWithName | null>(null)
+const fields = ref<MergedField[]>([])
 const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allSets = ref<MemberGroupSet[]>([])
@@ -47,7 +46,7 @@ const lockedPermissions = computed(() => new Map([...groupLockedPermissions.valu
 const editUserType = ref('')
 const memberInventory = ref<MyInventoryItem[]>([])
 
-const allMembers = ref<StationMember[]>([])
+const allMembers = ref<MemberWithName[]>([])
 
 const editData = computed<MemberEditData>(() => ({
   fields: fields.value,
@@ -125,7 +124,7 @@ const {loading, failure} = useAsyncLoader(async () => {
     stationMembers.listAllPermissions(),
     stationMembers.getMember(memberId.value),
     stationMembers.getPermissions(memberId.value),
-    profileFields.getMergedValues(memberId.value),
+    profileFields.getValues(memberId.value),
     memberGroups.listGroups(),
     groupSets.listSets(),
     userTags.listTags(),

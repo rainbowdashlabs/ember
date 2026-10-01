@@ -20,10 +20,12 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -56,6 +58,7 @@ public class StationMemberInviteRoutes implements Routes {
                     + "member they belong to. Every recipient receives a password-setup email to "
                     + "claim the created account.",
             tags = {"Station Member Invites"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateInvitesRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CreateInvitesResponse.class)))
     private void createInvites(Context ctx) {
         UserSession session = UserSession.from(ctx);
@@ -129,7 +132,7 @@ public class StationMemberInviteRoutes implements Routes {
     public record ProvisionedMemberResponse(
             int memberId,
             int accountId,
-            String email,
+            @Nullable String email,
             String firstName,
             String lastName,
             StationUserType userType,
@@ -149,5 +152,6 @@ public class StationMemberInviteRoutes implements Routes {
     }
 
     /** One failed entry in the create-invites response. */
-    public record FailedInviteResponse(String email, String reason) {}
+    public record FailedInviteResponse(
+            String email, @Nullable String reason) {}
 }

@@ -12,10 +12,11 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import type {BlocklistKind, DiscoveryBlocklistEntry} from '@/api/discovery'
+import type {BlocklistKind} from '@/api/discovery'
+import type {BlocklistResponse} from '@/api/generated/schema'
 
 defineProps<{
-  blocklist: DiscoveryBlocklistEntry[]
+  blocklist: BlocklistResponse[]
 }>()
 
 const value = defineModel<string>('value', {required: true})
@@ -24,7 +25,7 @@ const note = defineModel<string>('note', {required: true})
 
 const emit = defineEmits<{
   add: []
-  remove: [entry: DiscoveryBlocklistEntry]
+  remove: [entry: BlocklistResponse]
 }>()
 
 const {t} = useI18n()

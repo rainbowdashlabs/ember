@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.board.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -18,11 +19,11 @@ public record Board(
         UUID uid,
         int stationId,
         String name,
-        String description,
+        @Nullable String description,
         String shortKey,
         int hideDoneAfterDays,
         int ticketCounter,
-        Integer backlogLaneId,
+        @Nullable Integer backlogLaneId,
         Instant createdAt) {
 
     public static RowMapping<Board> map() {

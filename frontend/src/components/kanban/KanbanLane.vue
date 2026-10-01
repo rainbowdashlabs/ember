@@ -10,8 +10,7 @@ import {VueDraggable, type SortableEvent} from 'vue-draggable-plus'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import KanbanCard from './KanbanCard.vue'
-import type {BoardLabel, BoardLane, BoardTicket} from '@/api/boards'
-import type {MemberCompletion} from '@/api/stationMembers'
+import type {BoardLabel, BoardLane, MemberCompletion, TicketSummary} from '@/api/generated/schema'
 
 /**
  * One column of the kanban board and the cards shown in it.
@@ -24,7 +23,7 @@ import type {MemberCompletion} from '@/api/stationMembers'
  */
 const props = defineProps<{
   lane: BoardLane
-  tickets: BoardTicket[]
+  tickets: TicketSummary[]
   otherLanes: BoardLane[]
   archivedCount: number
   archiveLinked: boolean
@@ -38,7 +37,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   place: [ticketId: number, laneId: number, index: number]
   send: [ticketId: number, laneId: number]
-  open: [ticket: BoardTicket]
+  open: [ticket: TicketSummary]
   openArchive: []
 }>()
 
@@ -46,12 +45,12 @@ const {t} = useI18n()
 
 const MENU = '[data-kanban-menu]'
 
-const cards = ref<BoardTicket[]>([])
+const cards = ref<TicketSummary[]>([])
 watch(() => props.tickets, tickets => {
   cards.value = [...tickets]
 }, {immediate: true})
 
-function memberNameFor(ticket: BoardTicket): string | undefined {
+function memberNameFor(ticket: TicketSummary): string | undefined {
   if (!ticket.assignee || !props.members) return undefined
   return props.members.find(m => m.memberUid === ticket.assignee?.memberUid)?.name
 }

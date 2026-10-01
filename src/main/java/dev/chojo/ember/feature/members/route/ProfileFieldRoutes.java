@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
-import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -280,6 +279,30 @@ public class ProfileFieldRoutes implements Routes {
 
     // -- Field Values --
 
+    /**
+     * Puts the fields in the given order, in one request rather than one per field.
+     *
+     * <p>Registered before the path that takes a field id, or "order" is read as one.
+     */
+    @OpenApi(
+            path = "/api/v1/profile-fields/order",
+            methods = HttpMethod.PUT,
+            summary = "Put one audience's profile fields in order",
+            tags = {"Profile Fields"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FieldOrderRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void reorder(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(FieldOrderRequest.class);
+        if (req.role() == null) throw Refusal.PROFILE_FIELD_ORDER_AUDIENCE_MISSING.raise();
+        profileFieldService.reorder(
+                session.stationId(), req.role(), req.fieldIds() != null ? req.fieldIds() : List.of());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
     @OpenApi(
             path = "/api/v1/profile-fields/{id}",
             methods = HttpMethod.DELETE,
@@ -290,20 +313,6 @@ public class ProfileFieldRoutes implements Routes {
                 @OpenApiResponse(status = "204"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
-    /**
-     * Puts the fields in the given order, in one request rather than one per field.
-     *
-     * <p>Registered before the path that takes a field id, or "order" is read as one.
-     */
-    private void reorder(Context ctx) {
-        var session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(FieldOrderRequest.class);
-        if (req.role() == null) throw Refusal.PROFILE_FIELD_ORDER_AUDIENCE_MISSING.raise();
-        profileFieldService.reorder(
-                session.stationId(), req.role(), req.fieldIds() != null ? req.fieldIds() : List.of());
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedField(ctx, id);
@@ -320,7 +329,10 @@ public class ProfileFieldRoutes implements Routes {
             summary = "Get applicable profile field definitions for a member based on their user type",
             tags = {"Profile Fields"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileField[].class)))
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = ProfileFieldService.MergedField[].class)))
     private void getApplicableFields(Context ctx) {
         int memberId = pathInt(ctx, "memberId");
         requireOwnedMember(ctx, memberId);
@@ -333,7 +345,10 @@ public class ProfileFieldRoutes implements Routes {
             summary = "Get profile field values for a member",
             tags = {"Profile Fields"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldValue[].class)))
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = ProfileFieldService.MergedValue[].class)))
     private void getValues(Context ctx) {
         int memberId = pathInt(ctx, "memberId");
         requireOwnedMember(ctx, memberId);
@@ -348,7 +363,10 @@ public class ProfileFieldRoutes implements Routes {
             tags = {"Profile Fields"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetValuesRequest.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldValue[].class)))
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = ProfileFieldService.MergedValue[].class)))
     private void setValues(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");

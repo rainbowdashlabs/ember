@@ -15,13 +15,12 @@ import MemberEntryReadonlyTimes from './memberentry/MemberEntryReadonlyTimes.vue
 import MemberCheckNotes from './MemberCheckNotes.vue'
 import {actionCount, hasAnything, hasBirthday} from './memberNotes'
 import type {AttendanceStatus} from '@/api/attendance'
-import type {AttendanceEntry, MemberNotes} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {AttendanceEntry, MemberNotes, MemberWithName} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
 const props = defineProps<{
-  member: StationMember
+  member: MemberWithName
   entry?: AttendanceEntry
   memberName: string
   readonly?: boolean

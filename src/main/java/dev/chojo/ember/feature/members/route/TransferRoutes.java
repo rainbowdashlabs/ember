@@ -26,6 +26,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,7 +139,10 @@ public class TransferRoutes implements Routes {
             summary = "List export tables using a transfer token",
             tags = {"Transfer"},
             pathParams = @OpenApiParam(name = "token", required = true),
-            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "403")})
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = TablesResponse.class)),
+                @OpenApiResponse(status = "403")
+            })
     private void tokenListTables(Context ctx) {
         String token = ctx.pathParam("token");
         int stationId =
@@ -310,8 +314,8 @@ public class TransferRoutes implements Routes {
             ImportProgress.Status status,
             List<String> phases,
             int completedPhases,
-            String currentPhase,
+            @Nullable String currentPhase,
             int subTotal,
             int subCompleted,
-            String error) {}
+            @Nullable String error) {}
 }

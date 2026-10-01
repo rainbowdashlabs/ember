@@ -11,7 +11,8 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember} from '@/components/input/select/memberOption'
-import {StationUserType, StationUserTypeLabels, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
+import {StationUserType, StationUserTypeLabels, type MemberGroup, type UserTag} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import type {RestrictionSelection} from '@/components/input/restriction'
 
 const {t} = useI18n()
@@ -19,7 +20,7 @@ const {t} = useI18n()
 const props = withDefaults(defineProps<{
   groups?: MemberGroup[]
   tags?: UserTag[]
-  members?: StationMember[]
+  members?: MemberLike[]
   showUserTypes?: boolean
   showGroups?: boolean
   showTags?: boolean

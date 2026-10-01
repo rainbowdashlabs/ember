@@ -19,8 +19,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import { useI18n } from 'vue-i18n'
-import type { ProfileField } from '@/api/profileFields'
-import type { StationMember } from '@/api/types'
+import type { ProfileQuestion } from '@/api/profileFields'
+import type { MemberWithName } from '@/api/generated/schema'
 
 /**
  * The wording one section carries. Both halves of the relation read the same way and only the
@@ -46,15 +46,15 @@ export interface RelationLabels {
 
 const props = withDefaults(defineProps<{
   labels: RelationLabels
-  people: StationMember[]
-  available: StationMember[]
-  fields: ProfileField[]
+  people: MemberWithName[]
+  available: MemberWithName[]
+  fields: ProfileQuestion[]
   readonly?: boolean
   /** Whether somebody who is not a member yet can be invited straight into this relation. */
   allowCreate?: boolean
   rowTestid?: string
-  displayName: (m: StationMember) => string
-  fieldsFor: (id: number) => ProfileField[]
+  displayName: (m: MemberWithName) => string
+  fieldsFor: (id: number) => ProfileQuestion[]
   fieldValue: (id: number, fieldId: number) => unknown
 }>(), {
   readonly: false,

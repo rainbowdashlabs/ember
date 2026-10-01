@@ -9,8 +9,8 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
-import type {Inventory, ProcurementResponse} from '@/api/generated/schema'
-import {StationPermission, type StationMember} from '@/api/types'
+import type {Inventory, MemberWithName, ProcurementResponse} from '@/api/generated/schema'
+import {StationPermission} from '@/api/types'
 import { procurement, inventory, stationMembers } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -26,7 +26,7 @@ const canManageProcurement = computed(() => hasPermission(StationPermission.INVE
 
 const entries = ref<ProcurementResponse[]>([])
 const inventories = ref<Inventory[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 
 const showCreateModal = ref(false)
 

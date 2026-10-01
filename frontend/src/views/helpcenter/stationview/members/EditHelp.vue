@@ -20,7 +20,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import {computed, ref} from 'vue'
 import MemberGroupChips from '@/views/stationview/members/editview/MemberGroupChips.vue'
 import {StationUserType, type MemberGroup} from '@/api/types'
-import type {MemberGroupSet} from '@/api/groupSets'
+import type {MemberGroupSet} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

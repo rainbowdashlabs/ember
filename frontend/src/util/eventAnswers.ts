@@ -113,7 +113,7 @@ export function membersToRegister<M extends {value: string}>(
 interface ManagedMember {
     id: number
     name?: string
-    email?: string
+    email?: string | null
 }
 
 /**

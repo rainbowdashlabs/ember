@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
-import type { MemberCompletion } from '@/api/stationMembers'
+import type { MemberCompletion } from '@/api/generated/schema'
 
 const selected = defineModel<Set<string>>({ required: true })
 

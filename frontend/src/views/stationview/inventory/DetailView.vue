@@ -19,9 +19,10 @@ import type {
   InventoryItem,
   InventorySize,
   LentOutItem,
+  MemberWithName,
   ProcurementResponse,
 } from '@/api/generated/schema'
-import {StationPermission, type StationMember} from '@/api/types'
+import {StationPermission} from '@/api/types'
 import { inventory, inventoryArts, inventoryContainers, stationMembers, procurement } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -46,7 +47,7 @@ const inventoryId = computed(() => Number(route.params.id))
 const detail = ref<InventoryDetail | null>(null)
 const items = ref<InventoryItem[]>([])
 const arts = ref<InventoryArt[]>([])
-const memberMap = ref<Map<number, StationMember>>(new Map())
+const memberMap = ref<Map<number, MemberWithName>>(new Map())
 const openProcurement = ref<ProcurementResponse[]>([])
 const lentOutItems = ref<LentOutItem[]>([])
 const containers = ref<InventoryContainer[]>([])
@@ -213,7 +214,7 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   arts.value = inv.homogeneous === false
       ? await inventoryArts.listArts(inventoryId.value).catch(() => [] as InventoryArt[])
       : []
-  const map = new Map<number, StationMember>()
+  const map = new Map<number, MemberWithName>()
   for (const m of members) map.set(m.id, m)
   memberMap.value = map
   try {

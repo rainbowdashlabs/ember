@@ -4,14 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {components, OnboardingStatus} from './generated/schema'
+
+type Schemas = components['schemas']
+
+export type OnboardingLevelName = Schemas['OnboardingLevel']
 
 export const OnboardingLevel = {
     MEMBER: 'MEMBER',
     STATION: 'STATION',
     INSTANCE: 'INSTANCE',
-} as const
+} as const satisfies Record<OnboardingLevelName, OnboardingLevelName>
 
-export type OnboardingLevelName = (typeof OnboardingLevel)[keyof typeof OnboardingLevel]
+export type OnboardingTaskStateName = Schemas['OnboardingTaskState']
 
 export const OnboardingTaskState = {
     OPEN: 'OPEN',
@@ -19,35 +24,7 @@ export const OnboardingTaskState = {
     SKIPPED: 'SKIPPED',
     /** Thrown away for good. Sent to the server, never received: such a task is not listed again. */
     DISMISSED: 'DISMISSED',
-} as const
-
-export type OnboardingTaskStateName = (typeof OnboardingTaskState)[keyof typeof OnboardingTaskState]
-
-/** One task as its reader sees it. */
-export interface OnboardingTaskView {
-    /** What is sent back to tick the task off or pass it over. Carries the member it is about where a task repeats. */
-    id: string
-    /** The catalogue key, which is what the text is looked up under. */
-    key: string
-    /** The first name of the member the task is about, or null. */
-    subject: string | null
-    /** The member the task is about, or null. */
-    subjectId: number | null
-    state: OnboardingTaskStateName
-    /** Whether it can be ticked off by hand. A task read from the data cannot. */
-    confirmable: boolean
-    /** Who settled it, on the shared levels only. */
-    actorName: string | null
-    changedAt: string | null
-}
-
-export interface OnboardingStatus {
-    level: OnboardingLevelName
-    tasks: OnboardingTaskView[]
-    open: number
-    done: number
-    skipped: number
-}
+} as const satisfies Record<OnboardingTaskStateName, OnboardingTaskStateName>
 
 const path: Record<OnboardingLevelName, string> = {
     MEMBER: '/onboarding/member',

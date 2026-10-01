@@ -5,79 +5,39 @@
  */
 import client from './client'
 import {pageParams} from './crud'
-import type {MemberIdentity, PageMeta} from './types'
+import type {
+    AcknowledgeRequest,
+    EnrichedMemberChangeSummary,
+    EnrichedProfileFieldChange,
+    MemberIdentity,
+    PagedChangesResponse,
+    ProfileFieldChange,
+    ProfileFieldChangeAcknowledgement,
+} from './generated/schema'
 
-export interface ProfileFieldChangeAcknowledgement {
-    id: number
-    changeId: number
-    acknowledgedBy: number
-    acknowledgedAt?: string
-    comment?: string
-    acknowledgedByName?: string
+/** A change to a profile answer together with whose profile it is, as the screens list one. */
+export type ChangeEntry = ProfileFieldChange & {memberIdentity: MemberIdentity}
+
+/** One page of changes, each already paired with whose profile it is. */
+export type ChangePage = Omit<PagedChangesResponse, 'changes'> & {changes: ChangeEntry[]}
+
+function flatten(enriched: EnrichedProfileFieldChange): ChangeEntry {
+    return {...enriched.change, memberIdentity: enriched.memberIdentity}
 }
 
-export interface ProfileFieldChange {
-    id: number
-    fieldId: number
-    memberId: number
-    oldValue?: string
-    newValue?: string
-    changedBy: number
-    changedAt?: string
-    requiresAcknowledgement: boolean
-    changedByName?: string
-    fieldName?: string
-    fieldType?: string | null
-    acknowledgements: ProfileFieldChangeAcknowledgement[]
-    memberName?: string | null
-    memberIdentity?: MemberIdentity | null
-}
-
-export interface MemberChangeSummary {
-    memberId: number
-    memberName?: string
-    pendingCount: number
-    latestChange?: string
-    identity?: MemberIdentity | null
-}
-
-export interface AcknowledgeRequest {
-    comment?: string
-}
-
-interface EnrichedProfileFieldChange {
-    change: ProfileFieldChange
-    memberIdentity?: MemberIdentity | null
-}
-
-interface RawPagedChangesResponse extends PageMeta {
-    changes: EnrichedProfileFieldChange[]
-}
-
-export interface PagedChangesResponse extends PageMeta {
-    changes: ProfileFieldChange[]
-}
-
-function flatten(enriched: EnrichedProfileFieldChange): ProfileFieldChange {
-    return { ...enriched.change, memberIdentity: enriched.memberIdentity ?? null }
-}
-
-export async function getAllChanges(offset = 0, limit = 20): Promise<PagedChangesResponse> {
-    const res = await client.get<RawPagedChangesResponse>('/profile-changes/all', {
+export async function getAllChanges(offset = 0, limit = 20): Promise<ChangePage> {
+    const res = await client.get<PagedChangesResponse>('/profile-changes/all', {
         params: pageParams({offset, limit}),
     })
-    return {
-        ...res.data,
-        changes: res.data.changes.map(flatten),
-    }
+    return {...res.data, changes: res.data.changes.map(flatten)}
 }
 
-export async function getPendingSummary(): Promise<MemberChangeSummary[]> {
-    const res = await client.get<MemberChangeSummary[]>('/profile-changes/pending')
+export async function getPendingSummary(): Promise<EnrichedMemberChangeSummary[]> {
+    const res = await client.get<EnrichedMemberChangeSummary[]>('/profile-changes/pending')
     return res.data
 }
 
-export async function getChanges(memberId: number): Promise<ProfileFieldChange[]> {
+export async function getChanges(memberId: number): Promise<ChangeEntry[]> {
     const res = await client.get<EnrichedProfileFieldChange[]>(`/station-members/${memberId}/profile-changes`)
     return res.data.map(flatten)
 }

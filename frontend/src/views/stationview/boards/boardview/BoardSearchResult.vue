@@ -9,10 +9,10 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import { contrastTextColor } from '@/util/contrastColor'
 import { priorityIcon, priorityColor } from '@/util/ticketPriority'
-import type { BoardLabel, BoardTicket } from '@/api/boards'
+import type { BoardLabel, TicketSummary } from '@/api/generated/schema'
 
 const props = defineProps<{
-    result: BoardTicket
+    result: TicketSummary
     shortKey: string
     labels: BoardLabel[]
     laneName: string

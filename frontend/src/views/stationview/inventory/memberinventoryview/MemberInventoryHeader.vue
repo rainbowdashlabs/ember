@@ -7,10 +7,10 @@
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 defineProps<{
-  member: StationMember | null
+  member: MemberLike | null
 }>()
 
 defineEmits<{
@@ -19,7 +19,7 @@ defineEmits<{
 
 const {t} = useI18n()
 
-function memberDisplayName(m: StationMember): string {
+function memberDisplayName(m: MemberLike): string {
   return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
 }
 </script>

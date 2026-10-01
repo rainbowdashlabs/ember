@@ -50,9 +50,14 @@ const port: GroupsPort = {
     ])
     return {members, roles}
   },
-  createGroup: (patch) => rules.guarded(() => memberGroups.createGroup({...patch, rules: rules.payload()})),
+  createGroup: (patch) => rules.guarded(() => memberGroups.createGroup({
+    ...patch,
+    color: patch.color ?? undefined,
+    rules: rules.payload(),
+  })),
   updateGroup: (groupId, patch) => rules.guarded(() => memberGroups.updateGroup(groupId, {
     ...patch,
+    color: patch.color ?? undefined,
     rules: rules.payload(),
     removeNonMatching: rules.removeNonMatching.value,
   })),

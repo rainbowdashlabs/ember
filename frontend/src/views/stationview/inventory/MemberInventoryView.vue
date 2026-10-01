@@ -13,8 +13,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {inventory, movements, stationMembers} from '@/api'
 import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
-import type {InventoryItem, MyInventoryItem} from '@/api/generated/schema'
-import {StationPermission, type StationMember} from '@/api/types'
+import type {InventoryItem, MemberWithName, MyInventoryItem} from '@/api/generated/schema'
+import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -113,7 +113,7 @@ const memberId = computed(() => Number(route.params.memberId))
 
 const canManage = computed(() => hasPermission(StationPermission.INVENTORY_MANAGER))
 
-const member = ref<StationMember | null>(null)
+const member = ref<MemberWithName | null>(null)
 const items = ref<MyInventoryItem[]>([])
 
 /**

@@ -17,7 +17,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type { InventorySize } from '@/api/generated/schema'
-import type { StationMember } from '@/api/types'
+import type { MemberLike } from '@/components/input/select/memberOption'
 
 const modelValue = defineModel<boolean>({required: true})
 const memberId = defineModel<string>('memberId', {required: true})
@@ -28,7 +28,7 @@ const props = defineProps<{
   created: boolean
   hasSizes: boolean
   sizes: InventorySize[] | undefined
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const emit = defineEmits<{

@@ -12,7 +12,7 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import DragList from '@/components/input/DragList.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { BoardChecklistItem } from '@/api/boards'
+import type { BoardChecklistItem } from '@/api/generated/schema'
 
 const newTitle = defineModel<string>('newTitle', {required: true})
 

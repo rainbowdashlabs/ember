@@ -11,7 +11,7 @@ import RowLink from '@/components/navigation/RowLink.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import { boards } from '@/api'
-import type { Board } from '@/api/boards'
+import type { Board } from '@/api/generated/schema'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()

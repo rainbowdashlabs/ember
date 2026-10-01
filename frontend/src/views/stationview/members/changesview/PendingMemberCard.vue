@@ -12,7 +12,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type {MemberChangeSummary, ProfileFieldChange} from '@/api/profileFieldChanges'
+import type {ChangeEntry} from '@/api/profileFieldChanges'
+import type {EnrichedMemberChangeSummary} from '@/api/generated/schema'
 import PendingChangeRow from './PendingChangeRow.vue'
 
 const {t} = useI18n()
@@ -24,13 +25,13 @@ const {t} = useI18n()
 const acknowledgeComment = defineModel<string>('acknowledgeComment', {required: true})
 
 defineProps<{
-  summary: MemberChangeSummary
+  summary: EnrichedMemberChangeSummary
   expanded: boolean
-  memberChanges: ProfileFieldChange[]
+  memberChanges: ChangeEntry[]
   loadingChanges: boolean
   acknowledging: boolean
   showCommentForChangeId: number | null
-  isAcknowledgedByMe: (change: ProfileFieldChange) => boolean
+  isAcknowledgedByMe: (change: ChangeEntry) => boolean
   formatDate: (dateStr?: string) => string
 }>()
 

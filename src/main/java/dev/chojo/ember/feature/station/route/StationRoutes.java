@@ -22,6 +22,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +60,7 @@ public class StationRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List all stations",
             tags = {"Stations"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Station[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationDetail[].class)))
     private void list(Context ctx) {
         ctx.json(stationService.findAll().stream().map(this::toDetail).toList());
     }
@@ -93,7 +94,7 @@ public class StationRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get a station by ID with manager info",
             tags = {"Stations"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "id", type = UUID.class, required = true),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationDetail.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -108,7 +109,7 @@ public class StationRoutes implements Routes {
             methods = HttpMethod.PUT,
             summary = "Update a station with optional manager",
             tags = {"Stations"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "id", type = UUID.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = StationRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationDetail.class)),
@@ -139,7 +140,7 @@ public class StationRoutes implements Routes {
             methods = HttpMethod.DELETE,
             summary = "Delete a station",
             tags = {"Stations"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "id", type = UUID.class, required = true),
             responses = {
                 @OpenApiResponse(status = "204"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -187,15 +188,16 @@ public class StationRoutes implements Routes {
      * @param name    the station name
      * @param manager the manager details, or {@code null} if no manager is assigned
      */
-    public record StationDetail(String id, String name, ManagerDetail manager) {}
+    public record StationDetail(
+            String id, String name, @Nullable ManagerDetail manager) {}
 
     /**
      * Manager information included in station detail responses.
      *
-     * @param email        the manager's email address
+     * @param email        the manager's email address, or {@code null} for an account without one
      * @param firstName    the manager's first name
      * @param lastName     the manager's last name
      * @param accountReady whether the manager's account is fully set up
      */
-    public record ManagerDetail(String email, String firstName, String lastName, boolean accountReady) {}
+    public record ManagerDetail(@Nullable String email, String firstName, String lastName, boolean accountReady) {}
 }

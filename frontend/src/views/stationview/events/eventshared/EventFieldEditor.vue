@@ -19,7 +19,8 @@ import {usableOptions} from '@/util/choiceOptions'
 import {fieldConstraint, isMemberFieldType} from './eventFieldConfig'
 import {EventFieldTypes, type EventFieldTypeName} from '@/api/events'
 import type {AttendanceTemplateField, EventFieldConfig, EventFieldEntry} from '@/api/generated/schema'
-import {StationUserType, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
+import {StationUserType, type MemberGroup, type UserTag} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 const modelValue = defineModel<EventFieldEntry>({required: true})
 
@@ -27,11 +28,11 @@ const props = defineProps<{
   attendanceFields?: AttendanceTemplateField[]
   showValue?: boolean
   valueLabel?: string
-  allMembers?: StationMember[]
+  allMembers?: MemberLike[]
   groups?: MemberGroup[]
-  groupMembers?: Map<number, StationMember[]>
+  groupMembers?: Map<number, MemberLike[]>
   tags?: UserTag[]
-  tagMembers?: Map<number, StationMember[]>
+  tagMembers?: Map<number, MemberLike[]>
   /** Whether the event repeats, which is what offers answering a field per date. */
   recurring?: boolean
 }>()

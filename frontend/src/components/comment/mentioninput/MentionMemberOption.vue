@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import type {MemberCompletion} from '@/api/stationMembers'
+import type {MemberCompletion} from '@/api/generated/schema'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import DisplayTagBadge from '@/components/badge/DisplayTagBadge.vue'
 

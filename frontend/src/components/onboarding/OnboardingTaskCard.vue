@@ -17,7 +17,8 @@ import {emberGuide, defaultGazePositions} from '@/composables/useEmberLogo'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
 import {flowFor} from '@/util/onboardingFlows'
 import {canInstall, runInstall} from '@/util/installPrompt'
-import {OnboardingTaskState, type OnboardingLevelName, type OnboardingTaskView} from '@/api/onboarding'
+import {OnboardingTaskState, type OnboardingLevelName} from '@/api/onboarding'
+import type {OnboardingTaskView} from '@/api/generated/schema'
 
 /**
  * What Ember still asks of the reader, on the level it asks it.

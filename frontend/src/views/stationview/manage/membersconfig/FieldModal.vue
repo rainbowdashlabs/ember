@@ -18,8 +18,8 @@ import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
 import WidthField from '@/components/profilefields/WidthField.vue'
 import {
-    ageSourceOf, DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
-    type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
+    ageSourceOf, DATE_FIELD_TYPES, fieldTypeOf, FieldTypes, parseFieldConfig,
+    type EditableField, type FieldSettings, type EditableFieldRequest,
 } from '@/api/profileFields'
 import {FieldWidths} from '@/components/profilefields/fieldLayout'
 import {expiryConfigOf, expirySettingsOf, type ExpirySettings} from '@/util/expiry'
@@ -34,10 +34,10 @@ const {t} = useI18n()
 const modelValue = defineModel<boolean>({required: true})
 
 const props = defineProps<{
-  field: ProfileField | null
-  dateFields: ProfileField[]
+  field: EditableField | null
+  dateFields: EditableField[]
   /** The field that already is the station's birth date, if any. */
-  birthDateField: ProfileField | null
+  birthDateField: EditableField | null
 }>()
 
 /** The birth date carries a date like any other, so it offers the same configuration. */
@@ -58,7 +58,7 @@ const holdsValue = computed(() =>
 const isSpacer = computed(() => fieldType.value === FieldTypes.SPACER)
 
 const emit = defineEmits<{
-  save: [data: ProfileFieldRequest]
+  save: [data: EditableFieldRequest]
 }>()
 
 const fieldName = ref('')
@@ -155,8 +155,8 @@ watch(modelValue, (open) => {
  * <p>A birth date's age is the exception in reverse: it is recorded only where it was switched off,
  * so every birth date written before there was a switch keeps showing the age it always showed.
  */
-function buildConfig(): ProfileFieldConfig {
-  const cfg: ProfileFieldConfig = {}
+function buildConfig(): FieldSettings {
+  const cfg: FieldSettings = {}
   if (fieldDescription.value.trim()) cfg.description = fieldDescription.value.trim()
   if (fieldNotifyOnChange.value) cfg.notifyOnChange = true
   if (fieldOverview.value) cfg.overview = true
@@ -191,11 +191,11 @@ function submit() {
   saving.value = true
   emit('save', {
     name: fieldName.value,
-    fieldType: fieldType.value,
+    fieldType: fieldTypeOf(fieldType.value),
     config: buildConfig(),
     required: fieldRequired.value,
     readonly: fieldReadonly.value,
-    width: fieldWidth.value === FieldWidths.FULL ? null : fieldWidth.value,
+    width: fieldWidth.value === FieldWidths.FULL ? undefined : fieldWidth.value,
     keepOnArchive: fieldKeepOnArchive.value,
   })
   saving.value = false

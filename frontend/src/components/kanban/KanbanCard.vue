@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import TicketTile from './TicketTile.vue'
-import type {BoardLabel, BoardLane, BoardTicket} from '@/api/boards'
+import type {BoardLabel, BoardLane, TicketSummary} from '@/api/generated/schema'
 import type {MemberIdentity} from '@/api/types'
 
 /**
@@ -21,7 +21,7 @@ import type {MemberIdentity} from '@/api/types'
  * without the menu.
  */
 const props = defineProps<{
-  ticket: BoardTicket
+  ticket: TicketSummary
   shortKey: string
   labels: BoardLabel[]
   memberName?: string
@@ -33,7 +33,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  open: [ticket: BoardTicket]
+  open: [ticket: TicketSummary]
   up: []
   down: []
   toLane: [laneId: number]

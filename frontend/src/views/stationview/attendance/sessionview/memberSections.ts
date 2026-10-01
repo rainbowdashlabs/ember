@@ -3,15 +3,15 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AttendanceEntry, SessionAudience} from '@/api/generated/schema'
-import {StationUserType, StationUserTypeLabels, type MemberGroup, type StationMember} from '@/api/types'
+import type {AttendanceEntry, MemberWithName, SessionAudience} from '@/api/generated/schema'
+import {StationUserType, StationUserTypeLabels, type MemberGroup} from '@/api/types'
 
 /** One block of names on a sheet, headed by a group or a user type, or by nothing for the rest. */
 export interface MemberSection {
     key: string
     /** What the block is headed with, null for everybody no group or type took. */
     title: string | null
-    members: StationMember[]
+    members: MemberWithName[]
 }
 
 /** What the blocks of a sheet are built from. */
@@ -19,8 +19,8 @@ export interface MemberSectionSources {
     /** Whom the sheet expects, its own or its template's. */
     audience: SessionAudience
     groups: MemberGroup[]
-    groupMembers: Map<number, StationMember[]>
-    allMembers: StationMember[]
+    groupMembers: Map<number, MemberWithName[]>
+    allMembers: MemberWithName[]
     entries: AttendanceEntry[]
     locale: string
 }
@@ -35,11 +35,11 @@ export interface MemberSectionSources {
  * an entry.
  */
 export function buildMemberSections(sources: MemberSectionSources): MemberSection[] {
-    const byName = (a: StationMember, b: StationMember) =>
+    const byName = (a: MemberWithName, b: MemberWithName) =>
         (a.name ?? '').localeCompare(b.name ?? '', sources.locale)
     const sections: MemberSection[] = []
     const assigned = new Set<number>()
-    const take = (key: string, title: string | null, members: StationMember[]) => {
+    const take = (key: string, title: string | null, members: MemberWithName[]) => {
         if (members.length === 0) return
         const sorted = [...members].sort(byName)
         sections.push({key, title, members: sorted})
@@ -63,6 +63,6 @@ export function buildMemberSections(sources: MemberSectionSources): MemberSectio
     take('others', null, sources.entries
         .filter(entry => !assigned.has(entry.memberId))
         .map(entry => sources.allMembers.find(member => member.id === entry.memberId))
-        .filter((member): member is StationMember => member != null))
+        .filter((member): member is MemberWithName => member != null))
     return sections
 }

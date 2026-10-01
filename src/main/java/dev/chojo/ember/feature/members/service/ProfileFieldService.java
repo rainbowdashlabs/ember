@@ -41,6 +41,7 @@ import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -253,9 +254,9 @@ public class ProfileFieldService {
             ProfileFieldConfig config,
             boolean required,
             int position,
-            String width,
+            @Nullable String width,
             boolean readonly,
-            ProfileFieldScope role,
+            @Nullable ProfileFieldScope role,
             FieldOrigin origin,
             boolean readonlyAtStation) {
         /**
@@ -538,7 +539,7 @@ public class ProfileFieldService {
      * @param value   the answer
      * @param origin  who asked
      */
-    public record MergedValue(int fieldId, String value, FieldOrigin origin) {}
+    public record MergedValue(int fieldId, @Nullable String value, FieldOrigin origin) {}
 
     public List<MergedValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy) {
         return setValues(memberId, entries, changedBy, false);

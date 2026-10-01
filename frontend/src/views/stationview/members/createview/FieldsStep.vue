@@ -12,7 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
-import type {ProfileField} from '@/api/profileFields'
+import type {ProfileField} from '@/api/generated/schema'
 
 /**
  * The questions a new member is asked, drawn the way they are drawn everywhere else.

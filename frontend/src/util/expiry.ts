@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {ProfileFieldConfig} from '@/api/profileFields'
+import type {FieldSettings} from '@/api/profileFields'
 
 /**
  * Where an expiry date stands. The date is the last valid day: valid until the 31st means valid all
@@ -46,9 +46,9 @@ function wholeDays(value: unknown): number | null {
 }
 
 /** The settings of one field, the missing ones at their defaults. */
-export function expirySettingsOf(config: ProfileFieldConfig | null | undefined): ExpirySettings {
+export function expirySettingsOf(config: FieldSettings | null | undefined): ExpirySettings {
     const cfg = config ?? {}
-    const days = Array.isArray(cfg.reminderDays)
+    const days = cfg.reminderDays
         ? [...new Set(cfg.reminderDays.map(wholeDays).filter((d): d is number => d !== null))].sort((a, b) => a - b)
         : [...DEFAULT_REMINDER_DAYS]
     return {
@@ -61,8 +61,8 @@ export function expirySettingsOf(config: ProfileFieldConfig | null | undefined):
 }
 
 /** The settings as a field's configuration keeps them. */
-export function expiryConfigOf(settings: ExpirySettings): ProfileFieldConfig {
-    const config: ProfileFieldConfig = {
+export function expiryConfigOf(settings: ExpirySettings): FieldSettings {
+    const config: FieldSettings = {
         warnFromDays: settings.warnFromDays,
         reminderDays: [...settings.reminderDays],
         remindMember: settings.remindMember,

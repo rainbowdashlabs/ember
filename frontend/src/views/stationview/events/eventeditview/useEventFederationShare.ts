@@ -5,8 +5,7 @@
  */
 import {computed, reactive, ref, type Ref} from 'vue'
 import {events, federation} from '@/api'
-import type {PartnerResponse} from '@/api/federation'
-import type {ShareScope} from '@/api/generated/schema'
+import type {PartnerResponse, ShareScope} from '@/api/generated/schema'
 import {modelBindings} from './modelBindings'
 
 /** The scope the share picker's choice names, everybody unless it names a choice of partners. */

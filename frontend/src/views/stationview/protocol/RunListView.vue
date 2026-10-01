@@ -30,9 +30,9 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 import { protocol, stationMembers, memberGroups, userTags } from '@/api'
-import type { TestProtocol, TestProtocolRun } from '@/api/generated/schema'
+import type { MemberWithName, TestProtocol, TestProtocolRun } from '@/api/generated/schema'
 import { RunStatus } from '@/api/protocol'
-import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
+import {StationPermission, type MemberGroup, type UserTag} from '@/api/types'
 import { formatDate, todayIsoDate } from '@/util/format'
 
 const { t } = useI18n()
@@ -42,7 +42,7 @@ const canCreateRun = computed(() => hasPermission(StationPermission.PROTOCOL_CRE
 
 const runs = ref<TestProtocolRun[]>([])
 const protocols = ref<TestProtocol[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 

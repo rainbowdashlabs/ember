@@ -14,7 +14,8 @@ import type {
     EventCategory,
     EventFieldEntry,
 } from '@/api/generated/schema'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 defineProps<{
   categories: EventCategory[]
@@ -22,8 +23,8 @@ defineProps<{
   attendanceFields: AttendanceTemplateField[]
   groups: MemberGroup[]
   tags: UserTag[]
-  allMembers: StationMember[]
-  groupMembers: Map<number, StationMember[]>
+  allMembers: MemberLike[]
+  groupMembers: Map<number, MemberLike[]>
 }>()
 
 const name = defineModel<string>('name', {required: true})

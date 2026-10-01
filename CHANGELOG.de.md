@@ -110,6 +110,9 @@
 - **Eine Art, die das Umstellen einer Liste verhinderte, wurde nicht genannt.** Ließ sich eine Sammlung nicht in einen Bestand umstellen, weil darin noch Arten angelegt sind, erschien der Grund als unlesbarer Text. Jetzt wird die Art genannt, die im Weg steht.
 - **Der Inventarschalter eines Verbands stand immer auf aus.** Die Einstellung, dass ein Verband seine Ausrüstung in Ember führt, erschien beim Öffnen seiner Inventareinstellungen immer ausgeschaltet, auch wenn sie an war. Sie zeigt jetzt, wie sie eingestellt ist.
 - **Abgewiesene unsignierte Mails erschienen als unlesbarer Text.** Im Importprotokoll eines Postfachs, das nur signierte Mails ablegt, erschien eine wegen fehlender, fremder oder ungültiger Signatur abgewiesene Nachricht als unlesbarer Text statt mit einem Grund. Jetzt wird der Grund genannt.
+- **Die öffentliche URL-Kennung einer Wache ließ sich nicht entfernen.** Wer in den Föderations-Einstellungen die URL-Kennung der öffentlichen Seite leerte, behielt die alte, und sie kam nach dem Neuladen zurück. Ein leeres Feld entfernt sie jetzt.
+- **Ein neues Lesezeichen auf einem föderierten Board erschien nicht.** Ein Lesezeichen auf der Seite der föderierten Boards blieb bis zum Neuladen unmarkiert, und ein zweiter Klick versuchte, das Board noch einmal zu merken. Das Lesezeichen erscheint jetzt sofort, und ein zweiter Klick entfernt es.
+- **Erziehungsberechtigte sahen die Ausrüstung ihrer betreuten Mitglieder ohne ihren Stand.** Unter „Mein Inventar“ zeigte diese Ausrüstung weder den Schritt eines Tauschs noch ihr Bild und bot für Gegenstände, die schon unterwegs waren, weiter Tausch und Verlustmeldung an. Sie erscheint jetzt genau so, wie das Mitglied sie selbst sieht.
 
 ## v26.19.5
 

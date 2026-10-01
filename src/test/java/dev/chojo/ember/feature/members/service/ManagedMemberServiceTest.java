@@ -11,13 +11,11 @@ import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.inventory.entity.Inventory;
-import dev.chojo.ember.feature.inventory.entity.InventoryItem;
-import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.MyInventoryItem;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
-import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.inventory.service.MemberGearService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
@@ -38,7 +36,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -57,37 +54,13 @@ class ManagedMemberServiceTest {
     private StationMemberRepository members;
     private AccountRepository accounts;
     private ProfileFieldService profileFields;
-    private InventoryService inventory;
+    private MemberGearService gear;
     private InventoryCheckService checks;
     private GdprExportService exports;
     private ManagedMemberService service;
 
     private static StationMember child(Integer accountId) {
         return new StationMember(CHILD, STATION_ID, null, accountId, false, null, "Kind", StationUserType.MEMBER, null);
-    }
-
-    private static InventoryItem item(Integer sizeId, Integer lostNoteBy) {
-        return new InventoryItem(
-                5,
-                9,
-                "J-1",
-                "Jacke",
-                sizeId,
-                null,
-                null,
-                CHILD,
-                null,
-                "weg",
-                lostNoteBy,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null);
     }
 
     private static ProfileField field(int id) {
@@ -100,21 +73,13 @@ class ManagedMemberServiceTest {
         members = mock(StationMemberRepository.class);
         accounts = mock(AccountRepository.class);
         profileFields = mock(ProfileFieldService.class);
-        inventory = mock(InventoryService.class);
+        gear = mock(MemberGearService.class);
         checks = mock(InventoryCheckService.class);
         exports = mock(GdprExportService.class);
         var access = mock(AccessManager.class);
         when(access.resolveExpandedMemberPermissions(anyInt())).thenReturn(Set.of());
         service = new ManagedMemberService(
-                memberService,
-                members,
-                accounts,
-                profileFields,
-                inventory,
-                checks,
-                exports,
-                access,
-                mock(MemberIdentityFactory.class));
+                memberService, members, accounts, profileFields, gear, checks, exports, access);
         when(memberService.findManaged(GUARDIAN)).thenReturn(List.of(child(1)));
         when(members.findById(CHILD)).thenReturn(Optional.of(child(1)));
         when(profileFields.findReadableBy(eq(STATION_ID), any())).thenReturn(List.of(field(1)));
@@ -191,30 +156,11 @@ class ManagedMemberServiceTest {
     }
 
     @Test
-    void equipmentCarriesItsInventoryAndSize() {
-        when(inventory.findItemsByMember(CHILD)).thenReturn(List.of(item(2, null), item(null, 11)));
-        when(inventory.findById(9))
-                .thenReturn(Optional.of(new Inventory(
-                        9, STATION_ID, "Jacken", InventoryType.INTERNAL, true, false, false, null, null)));
-        when(inventory.findSizes(9)).thenReturn(List.of(new InventorySize(2, 9, "M", 0, null)));
+    void equipmentIsTheGearTheMemberReadsThemselves() {
+        List<MyInventoryItem> held = List.of(mock(MyInventoryItem.class));
+        when(gear.heldBy(CHILD)).thenReturn(held);
 
-        var items = service.inventory(GUARDIAN, CHILD);
-
-        assertEquals("Jacken", items.getFirst().inventoryName());
-        assertEquals("M", items.getFirst().sizeName());
-        assertNull(items.get(1).sizeName());
-    }
-
-    @Test
-    void equipmentOfAVanishedInventoryCountsAsExchangeable() {
-        when(inventory.findItemsByMember(CHILD)).thenReturn(List.of(item(7, null)));
-        when(inventory.findById(9)).thenReturn(Optional.empty());
-
-        var item = service.inventory(GUARDIAN, CHILD).getFirst();
-
-        assertEquals("", item.inventoryName());
-        assertTrue(item.inventoryHomogeneous());
-        assertNull(item.sizeName());
+        assertEquals(held, service.inventory(GUARDIAN, CHILD));
     }
 
     @Test

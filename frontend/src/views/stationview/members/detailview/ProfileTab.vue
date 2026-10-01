@@ -10,14 +10,14 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ProfileFieldsDisplay from '@/components/profilefields/ProfileFieldsDisplay.vue'
 import ChangeHistory from './ChangeHistory.vue'
-import type { ProfileFieldChange } from '@/api/profileFieldChanges'
-import type { ProfileField } from '@/api/profileFields'
+import type { ChangeEntry } from '@/api/profileFieldChanges'
+import type { ProfileQuestion } from '@/api/profileFields'
 
 defineProps<{
-  applicableFields: ProfileField[]
+  applicableFields: ProfileQuestion[]
   memberId: number
   currentMemberId: number
-  changes: ProfileFieldChange[]
+  changes: ChangeEntry[]
   showChangeHistory: boolean
   getFieldValue: (fieldId: number) => unknown
 }>()

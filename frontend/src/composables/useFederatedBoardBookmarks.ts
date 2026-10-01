@@ -4,11 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {readonly} from 'vue'
-import {listBookmarks, type FederatedBoardBookmark} from '@/api/federatedBoards'
+import {listBookmarks} from '@/api/federatedBoards'
+import type {EnrichedBookmark} from '@/api/generated/schema'
 
 /** The boards of partner stations the reader keeps in the sidebar. */
 export function useFederatedBoardBookmarks() {
-    const bookmarks = useState<FederatedBoardBookmark[]>('useFederatedBoardBookmarks', () => [])
+    const bookmarks = useState<EnrichedBookmark[]>('useFederatedBoardBookmarks', () => [])
 
     async function refresh() {
         try {

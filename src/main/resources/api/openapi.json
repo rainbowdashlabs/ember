@@ -1405,6 +1405,404 @@
         } ]
       }
     },
+    "/api/v1/admin/discovery/blocklist" : {
+      "post" : {
+        "summary" : "Add an entry to the discovery blocklist",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BlocklistRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the discovery blocklist",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BlocklistResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/discovery/blocklist/{value}" : {
+      "delete" : {
+        "summary" : "Remove an entry from the discovery blocklist",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangedResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "value",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/discovery/discover-now" : {
+      "post" : {
+        "summary" : "Ping every peer and fetch every station card now",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DiscoverNowResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/discovery/identity" : {
+      "get" : {
+        "summary" : "Get how this instance introduces itself to discovery peers",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IdentityResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/discovery/peers" : {
+      "post" : {
+        "summary" : "Add a discovery peer by hand",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PeerResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddPeerRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the discovery peers",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PeerResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/discovery/peers/probe" : {
+      "post" : {
+        "summary" : "Probe an address for a discovery peer",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DiscoveryInfoResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProbeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/discovery/peers/{publicKey}" : {
+      "delete" : {
+        "summary" : "Remove a discovery peer",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangedResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "publicKey",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/discovery/peers/{publicKey}/block" : {
+      "post" : {
+        "summary" : "Block a discovery peer",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PeerResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "publicKey",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/discovery/peers/{publicKey}/downvote" : {
+      "post" : {
+        "summary" : "Lower a discovery peer's reputation",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PeerResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "publicKey",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/discovery/peers/{publicKey}/ping" : {
+      "post" : {
+        "summary" : "Ping a discovery peer now",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "publicKey",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/discovery/peers/{publicKey}/unblock" : {
+      "post" : {
+        "summary" : "Unblock a discovery peer",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PeerResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "publicKey",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/discovery/peers/{publicKey}/upvote" : {
+      "post" : {
+        "summary" : "Raise a discovery peer's reputation",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PeerResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "publicKey",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/discovery/seed" : {
+      "post" : {
+        "summary" : "Add the federation partners as discovery peers",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangedCountResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/discovery/settings" : {
+      "get" : {
+        "summary" : "Get the discovery settings",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DiscoverySettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Change the discovery settings",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DiscoverySettingsResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DiscoverySettingsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/feed-metrics" : {
       "get" : {
         "summary" : "Get the personal feed render histogram per day",
@@ -1458,6 +1856,49 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/admin/first-station" : {
+      "post" : {
+        "summary" : "Found the instance's first station",
+        "tags" : [ "Stations" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FoundedStation"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FirstStationRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "Whether the instance still waits for its first station",
+        "tags" : [ "Stations" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FirstStationStatus"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/admin/legal/placeholders" : {
@@ -2445,7 +2886,17 @@
         "tags" : [ "Station Applications" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StationApplication"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2456,7 +2907,14 @@
         "tags" : [ "Station Applications" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationApplication"
+                }
+              }
+            }
           },
           "404" : {
             "description" : "Not Found"
@@ -2479,7 +2937,14 @@
         "tags" : [ "Station Applications" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationApplication"
+                }
+              }
+            }
           },
           "400" : {
             "description" : "Bad Request"
@@ -2505,7 +2970,14 @@
         "tags" : [ "Station Applications" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationApplication"
+                }
+              }
+            }
           },
           "400" : {
             "description" : "Bad Request"
@@ -5607,7 +6079,17 @@
         "tags" : [ "Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MemberCompletion"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -5626,7 +6108,14 @@
         "tags" : [ "Boards" ],
         "responses" : {
           "201" : {
-            "description" : "Created"
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BoardLane"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -5662,7 +6151,14 @@
         "tags" : [ "Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CanEditResponse"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -5715,7 +6211,14 @@
         "tags" : [ "Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OkResponse"
+                }
+              }
+            }
           },
           "404" : {
             "description" : "Not Found",
@@ -5831,7 +6334,14 @@
         "tags" : [ "Boards" ],
         "responses" : {
           "201" : {
-            "description" : "Created"
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BoardLabel"
+                }
+              }
+            }
           },
           "400" : {
             "description" : "Bad Request",
@@ -5867,7 +6377,17 @@
         "tags" : [ "Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardLabel"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -5947,7 +6467,17 @@
         "tags" : [ "Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardLane"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -5964,7 +6494,17 @@
         "tags" : [ "Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardLane"
+                  }
+                }
+              }
+            }
           },
           "404" : {
             "description" : "Not Found",
@@ -6005,7 +6545,17 @@
         "tags" : [ "Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MemberCompletion"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -6024,7 +6574,17 @@
         "tags" : [ "Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TicketLabelMapping"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -6280,7 +6840,17 @@
         "tags" : [ "Board Tickets" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardActivityEntry"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -6484,7 +7054,15 @@
         "tags" : [ "Board Tickets" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/octet-stream" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
           },
           "404" : {
             "description" : "Not Found",
@@ -6734,7 +7312,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/BoardComment"
+                  "$ref" : "#/components/schemas/CommentResponse"
                 }
               }
             }
@@ -6787,7 +7365,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/BoardComment"
+                    "$ref" : "#/components/schemas/CommentResponse"
                   }
                 }
               }
@@ -6978,7 +7556,16 @@
             "type" : "integer",
             "format" : "int32"
           }
-        } ]
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BoardFieldValue"
+              }
+            }
+          }
+        }
       },
       "delete" : {
         "summary" : "Delete a field value from a ticket",
@@ -7026,7 +7613,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/BoardTicketHistory"
+                    "$ref" : "#/components/schemas/BoardTicketHistoryResponse"
                   }
                 }
               }
@@ -7510,7 +8097,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/BoardTicketTransition"
+                    "$ref" : "#/components/schemas/BoardTicketTransitionResponse"
                   }
                 }
               }
@@ -10981,6 +11568,100 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/DemoLoginRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/discovery/peers" : {
+      "post" : {
+        "summary" : "Receive a peer's signed answer to one of this instance's pings",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DiscoveryCallbackMessage"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/discovery/ping" : {
+      "post" : {
+        "summary" : "Receive a signed discovery ping from a peer",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DiscoveryPingMessage"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/discovery/request" : {
+      "post" : {
+        "summary" : "Ask a discovered station to federate",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FederationRequestBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/discovery/stations" : {
+      "get" : {
+        "summary" : "List the stations the discovery peers publish",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DiscoveredStationResponse"
+                  }
+                }
               }
             }
           }
@@ -14621,7 +15302,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DiscoveredBoard"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -14632,7 +15323,14 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationBoardBookmark"
+                }
+              }
+            }
           }
         },
         "requestBody" : {
@@ -14650,7 +15348,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EnrichedBookmark"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -14681,7 +15389,14 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederatedBoardDetail"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -14707,7 +15422,14 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AccessOverrideResponse"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -14766,7 +15488,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardField"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -14792,7 +15524,14 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BoardLabel"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -14825,7 +15564,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardLabel"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -14851,7 +15600,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardLane"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -14877,7 +15636,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MemberCompletion"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -14903,7 +15672,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TicketLabelMapping"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -14929,7 +15708,14 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BoardTicket"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -14962,7 +15748,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TicketSummary"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -14988,7 +15784,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TicketSummary"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15020,7 +15826,14 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BoardTicket"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15052,7 +15865,14 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BoardTicket"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15127,7 +15947,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardTicketAttachment"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15161,7 +15991,14 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BoardChecklistItem"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15202,7 +16039,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardChecklistItem"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15327,7 +16174,14 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BoardComment"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15368,7 +16222,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CommentResponse"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15402,7 +16266,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardTicketHistoryResponse"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15436,7 +16310,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardLabel"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15470,7 +16354,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardLabel"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15547,12 +16441,63 @@
       }
     },
     "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links" : {
+      "post" : {
+        "summary" : "Link two tickets on a federated board",
+        "tags" : [ "Federated Boards" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created"
+          }
+        },
+        "parameters" : [ {
+          "name" : "partnerUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "boardKey",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "ticketNumber",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LocalLinkRequest"
+              }
+            }
+          }
+        }
+      },
       "get" : {
         "summary" : "Get links for a ticket on a federated board",
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardTicketLink"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15580,13 +16525,62 @@
         } ]
       }
     },
+    "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links/{linkedNumber}" : {
+      "delete" : {
+        "summary" : "Remove a link between two tickets on a federated board",
+        "tags" : [ "Federated Boards" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "partnerUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "boardKey",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "ticketNumber",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "linkedNumber",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/move" : {
       "put" : {
         "summary" : "Move a ticket to a different lane on a federated board",
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BoardTicket"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15672,7 +16666,17 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BoardTicketTransitionResponse"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -15772,7 +16776,14 @@
         "tags" : [ "Federated Boards" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WatcherResponse"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -16524,6 +17535,577 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/federation/accept" : {
+      "post" : {
+        "summary" : "Enter a pairing code from another station",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationPartner"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AcceptRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/info" : {
+      "get" : {
+        "summary" : "Get the federation contract this instance speaks",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationInfoResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/invite" : {
+      "post" : {
+        "summary" : "Create a pairing code for this station",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InviteCodeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/partners" : {
+      "get" : {
+        "summary" : "List the station's federation partners",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PartnerResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/partners/{id}" : {
+      "get" : {
+        "summary" : "Get a federation partner",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PartnerResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "delete" : {
+        "summary" : "End a federation partnership",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federation/partners/{id}/capabilities" : {
+      "get" : {
+        "summary" : "List what is exchanged with a federation partner",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FederationCapability"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Set what is exchanged with a federation partner",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FederationCapability"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "array",
+                "items" : {
+                  "$ref" : "#/components/schemas/CapabilityRequest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/partners/{id}/resume" : {
+      "post" : {
+        "summary" : "Resume a suspended federation partner",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationPartner"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federation/partners/{id}/suspend" : {
+      "post" : {
+        "summary" : "Suspend a federation partner",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationPartner"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federation/requests" : {
+      "get" : {
+        "summary" : "List the pair requests waiting for this station",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PairRequestResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/requests/{id}/accept" : {
+      "post" : {
+        "summary" : "Accept a pair request",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationPartner"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federation/requests/{id}/decline" : {
+      "post" : {
+        "summary" : "Decline a pair request",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federation/shares/kb" : {
+      "post" : {
+        "summary" : "Share a knowledge base entry with partners",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationShare"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/KbShareRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the station's knowledge base shares",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/KbShareResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/shares/kb/{id}" : {
+      "delete" : {
+        "summary" : "Stop sharing a knowledge base entry",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federation/shares/protocol" : {
+      "post" : {
+        "summary" : "Share a test protocol with partners",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationShare"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProtocolShareRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the station's test protocol shares",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FederationShare"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/shares/protocol/{id}" : {
+      "delete" : {
+        "summary" : "Stop sharing a test protocol",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federation/shares/quiz" : {
+      "post" : {
+        "summary" : "Share a quiz catalog with partners",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationShare"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuizShareRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the station's quiz catalog shares",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FederationShare"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/shares/quiz/{id}" : {
+      "delete" : {
+        "summary" : "Stop sharing a quiz catalog",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federation/stations/search" : {
+      "get" : {
+        "summary" : "Search the stations a page may name as partners",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StationPickerResult"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/feed/token" : {
@@ -18278,7 +19860,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/StationMember"
+                    "$ref" : "#/components/schemas/MemberWithName"
                   }
                 }
               }
@@ -23508,7 +25090,12 @@
         "tags" : [ "Managed Members" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : { }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -23534,7 +25121,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/MemberInventoryItem"
+                    "$ref" : "#/components/schemas/MyInventoryItem"
                   }
                 }
               }
@@ -23558,7 +25145,17 @@
         "tags" : [ "Managed Members" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MemberRequirement"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -23606,6 +25203,58 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/managed-members/{memberId}/passkey-code" : {
+      "post" : {
+        "summary" : "Issue a passkey code for a managed member",
+        "tags" : [ "Managed Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PasskeyCodeResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "delete" : {
+        "summary" : "Revoke the passkey code of a managed member",
+        "tags" : [ "Managed Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/managed-members/{memberId}/password" : {
@@ -23678,7 +25327,17 @@
         "tags" : [ "Managed Members" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MergedValue"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -23997,6 +25656,185 @@
         }
       }
     },
+    "/api/v1/member-table" : {
+      "post" : {
+        "summary" : "Draw a member table of chosen people and columns",
+        "tags" : [ "Member Table" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberTable"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MemberTableRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/member-table/columns" : {
+      "get" : {
+        "summary" : "List the columns this reader may draw a member table with",
+        "tags" : [ "Member Table" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MemberTableHeader"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/member-table/export.csv" : {
+      "post" : {
+        "summary" : "Export a member table as CSV",
+        "tags" : [ "Member Table" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/csv" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "separator",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MemberTableRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/member-table/export.pdf" : {
+      "post" : {
+        "summary" : "Export a member table as PDF",
+        "tags" : [ "Member Table" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/pdf" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MemberTableRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/member-table/presets" : {
+      "get" : {
+        "summary" : "List the saved column selections of the station",
+        "tags" : [ "Member Table" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MemberTablePreset"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Save a column selection under a name",
+        "tags" : [ "Member Table" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberTablePreset"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SavePresetRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/member-table/presets/{id}" : {
+      "delete" : {
+        "summary" : "Delete a saved column selection",
+        "tags" : [ "Member Table" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/members/import" : {
       "post" : {
         "summary" : "Import members from CSV with column mappings",
@@ -24192,7 +26030,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/InviteResponse"
+                  "$ref" : "#/components/schemas/MemberInviteResponse"
                 }
               }
             }
@@ -24227,6 +26065,117 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/members/onboard-again" : {
+      "post" : {
+        "summary" : "Onboard a member again",
+        "tags" : [ "Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OnboardAgainResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AccountActionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/members/passkey-code" : {
+      "post" : {
+        "summary" : "Issue a passkey code for an addressless member",
+        "tags" : [ "Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PasskeyCodeResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AccountActionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/members/passkey-code/{accountId}" : {
+      "delete" : {
+        "summary" : "Revoke the passkey code of a member",
+        "tags" : [ "Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "accountId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/members/reset-password" : {
@@ -24287,6 +26236,12 @@
         },
         "parameters" : [ {
           "name" : "q",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "uid",
           "in" : "query",
           "schema" : {
             "type" : "string"
@@ -26710,6 +28665,27 @@
         }
       }
     },
+    "/api/v1/permissions" : {
+      "get" : {
+        "summary" : "List every permission a member, a group or a user type can be granted",
+        "tags" : [ "Station Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Permission"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/problem-reports" : {
       "post" : {
         "summary" : "Submit a problem report",
@@ -27318,7 +29294,14 @@
         "tags" : [ "Profile Field Changes" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagedChangesResponse"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -27350,7 +29333,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/MemberChangeSummary"
+                    "$ref" : "#/components/schemas/EnrichedMemberChangeSummary"
                   }
                 }
               }
@@ -27466,6 +29449,36 @@
                     "$ref" : "#/components/schemas/ProfileFieldAssignment"
                   }
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile-fields/order" : {
+      "put" : {
+        "summary" : "Put one audience's profile fields in order",
+        "tags" : [ "Profile Fields" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FieldOrderRequest"
               }
             }
           }
@@ -28247,7 +30260,14 @@
         "tags" : [ "Station Manage" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
           },
           "400" : {
             "description" : "Bad Request"
@@ -28286,6 +30306,93 @@
             "type" : "string"
           }
         } ]
+      }
+    },
+    "/api/v1/public/discovery" : {
+      "get" : {
+        "summary" : "List the stations on the discovery page",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DiscoveryEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/discovery/info" : {
+      "get" : {
+        "summary" : "Get this instance's discovery metadata",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DiscoveryInfoResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/discovery/invite" : {
+      "post" : {
+        "summary" : "Create a pairing code for a station open to invitations",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InviteCodeResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FederationRequestBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/discovery/stations" : {
+      "get" : {
+        "summary" : "List the station cards this instance publishes",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DiscoveryStationsResponse"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Service Unavailable"
+          }
+        }
       }
     },
     "/api/v1/public/events/{stationUid}" : {
@@ -28626,8 +30733,17 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/PresetResponse"
+                  "$ref" : "#/components/schemas/InstallPresetResponse"
                 }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InstallPresetRequest"
               }
             }
           }
@@ -28640,7 +30756,14 @@
         "tags" : [ "Install" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "text/plain" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "404" : {
             "description" : "Not Found"
@@ -29719,6 +31842,53 @@
         }
       }
     },
+    "/api/v1/public/stations/{stationId}/logo" : {
+      "get" : {
+        "summary" : "Get a station's logo by ID, without signing in",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/*" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/public/tos" : {
       "get" : {
         "summary" : "Get terms of service",
@@ -29958,7 +32128,14 @@
         "tags" : [ "Transfer" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TablesResponse"
+                }
+              }
+            }
           },
           "403" : {
             "description" : "Forbidden"
@@ -32224,7 +34401,14 @@
         "tags" : [ "Station Applications" ],
         "responses" : {
           "201" : {
-            "description" : "Created"
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationApplication"
+                }
+              }
+            }
           },
           "400" : {
             "description" : "Bad Request"
@@ -32274,7 +34458,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/StationMember"
+                  "$ref" : "#/components/schemas/MemberWithName"
                 }
               }
             }
@@ -32301,7 +34485,7 @@
         }
       },
       "get" : {
-        "summary" : "List members of a station with account info",
+        "summary" : "List members of the caller's station with account info",
         "tags" : [ "Station Members" ],
         "responses" : {
           "200" : {
@@ -32319,14 +34503,30 @@
           }
         },
         "parameters" : [ {
-          "name" : "stationId",
+          "name" : "includeFormer",
           "in" : "query",
-          "required" : true,
           "schema" : {
-            "type" : "integer",
-            "format" : "int32"
+            "type" : "boolean"
           }
         } ]
+      }
+    },
+    "/api/v1/station-members/all-permissions" : {
+      "get" : {
+        "summary" : "Get the permissions of every member of the caller's station, by member id",
+        "tags" : [ "Station Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PermissionsByMember"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/station-members/by-uid/{uid}" : {
@@ -32365,6 +34565,41 @@
         } ]
       }
     },
+    "/api/v1/station-members/completions" : {
+      "get" : {
+        "summary" : "List the active members of the caller's station for autocomplete",
+        "tags" : [ "Station Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MemberCompletion"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "restrictionType",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/RestrictionType"
+          }
+        }, {
+          "name" : "entityId",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/station-members/former" : {
       "get" : {
         "summary" : "List former members of the station",
@@ -32398,6 +34633,15 @@
                 "schema" : {
                   "$ref" : "#/components/schemas/CreateInvitesResponse"
                 }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateInvitesRequest"
               }
             }
           }
@@ -32442,7 +34686,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/StationMember"
+                  "$ref" : "#/components/schemas/MemberWithName"
                 }
               }
             }
@@ -32538,7 +34782,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/StationMember"
+                    "$ref" : "#/components/schemas/MemberWithName"
                   }
                 }
               }
@@ -32554,6 +34798,43 @@
             "format" : "int32"
           }
         } ]
+      },
+      "put" : {
+        "summary" : "Set the members this member manages (replaces all existing ones)",
+        "tags" : [ "Station Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MemberWithName"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetManagedRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/station-members/{id}/managers" : {
@@ -32568,7 +34849,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/StationMember"
+                    "$ref" : "#/components/schemas/MemberWithName"
                   }
                 }
               }
@@ -32596,7 +34877,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/StationMember"
+                    "$ref" : "#/components/schemas/MemberWithName"
                   }
                 }
               }
@@ -32629,7 +34910,14 @@
         "tags" : [ "Station Members" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FormerCheckResponse"
+                }
+              }
+            }
           },
           "400" : {
             "description" : "Bad Request",
@@ -32755,7 +35043,14 @@
         "tags" : [ "Station Members" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FormerCheckResponse"
+                }
+              }
+            }
           },
           "400" : {
             "description" : "Bad Request",
@@ -32925,7 +35220,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/ProfileField"
+                    "$ref" : "#/components/schemas/MergedField"
                   }
                 }
               }
@@ -33133,7 +35428,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/ProfileFieldValue"
+                    "$ref" : "#/components/schemas/MergedValue"
                   }
                 }
               }
@@ -33161,7 +35456,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/ProfileFieldValue"
+                    "$ref" : "#/components/schemas/MergedValue"
                   }
                 }
               }
@@ -33200,7 +35495,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/ProfileFieldChange"
+                    "$ref" : "#/components/schemas/EnrichedProfileFieldChange"
                   }
                 }
               }
@@ -33519,6 +35814,58 @@
             "$ref" : "#/components/schemas/Instant"
           }
         } ]
+      }
+    },
+    "/api/v1/station/location" : {
+      "get" : {
+        "summary" : "Get where the station is",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Set where the station is",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LocationView"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LocationUpdate"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Clear where the station is",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
       }
     },
     "/api/v1/station/mail-import/log" : {
@@ -34030,7 +36377,14 @@
         "tags" : [ "Station Manage" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationImportProgress"
+                }
+              }
+            }
           },
           "404" : {
             "description" : "Not Found"
@@ -34070,19 +36424,27 @@
         "tags" : [ "Station Manage" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
-          },
-          "404" : {
-            "description" : "Not Found",
+            "description" : "OK",
             "content" : {
-              "application/json" : {
+              "image/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                  "type" : "string"
                 }
               }
             }
+          },
+          "204" : {
+            "description" : "No Content"
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       },
       "delete" : {
         "summary" : "Delete station logo",
@@ -34824,7 +37186,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/Station"
+                    "$ref" : "#/components/schemas/StationDetail"
                   }
                 }
               }
@@ -34864,8 +37226,8 @@
           "in" : "path",
           "required" : true,
           "schema" : {
-            "type" : "integer",
-            "format" : "int32"
+            "type" : "string",
+            "format" : "uuid"
           }
         } ]
       },
@@ -34899,8 +37261,8 @@
           "in" : "path",
           "required" : true,
           "schema" : {
-            "type" : "integer",
-            "format" : "int32"
+            "type" : "string",
+            "format" : "uuid"
           }
         } ],
         "requestBody" : {
@@ -34936,8 +37298,8 @@
           "in" : "path",
           "required" : true,
           "schema" : {
-            "type" : "integer",
-            "format" : "int32"
+            "type" : "string",
+            "format" : "uuid"
           }
         } ]
       }
@@ -34948,10 +37310,20 @@
         "tags" : [ "Station Manage" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "image/*" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "204" : {
-            "description" : "No Content",
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -34965,6 +37337,13 @@
           "name" : "stationId",
           "in" : "path",
           "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
           "schema" : {
             "type" : "integer",
             "format" : "int32"
@@ -35954,6 +38333,14 @@
         },
         "required" : [ "memberId", "memberName", "memberIdentity", "absentFrom", "absentUntil", "reason" ]
       },
+      "AcceptRequest" : {
+        "type" : "object",
+        "properties" : {
+          "inviteCode" : {
+            "type" : "string"
+          }
+        }
+      },
       "AccessData" : {
         "type" : "object",
         "properties" : {
@@ -35979,6 +38366,18 @@
           }
         },
         "required" : [ "userTypes", "groupIds", "tagIds" ]
+      },
+      "AccessOverrideResponse" : {
+        "type" : "object",
+        "properties" : {
+          "view" : {
+            "$ref" : "#/components/schemas/AccessData"
+          },
+          "edit" : {
+            "$ref" : "#/components/schemas/AccessData"
+          }
+        },
+        "required" : [ "view", "edit" ]
       },
       "AccessRequest" : {
         "type" : "object",
@@ -36014,6 +38413,15 @@
           },
           "openByDefault" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "AccountActionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "accountId" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },
@@ -36176,6 +38584,17 @@
           }
         },
         "required" : [ "added", "restored", "skipped" ]
+      },
+      "AddPeerRequest" : {
+        "type" : "object",
+        "properties" : {
+          "baseUrl" : {
+            "type" : "string"
+          },
+          "expectedPublicKey" : {
+            "type" : "string"
+          }
+        }
       },
       "AddressCardConfig" : {
         "type" : "object",
@@ -36697,6 +39116,10 @@
           }
         },
         "required" : [ "stationRegistrationEnabled", "instanceDefaultTheme", "instanceDefaultFeel", "instanceLockFeel", "forcePrideFlag", "defaultMailLocale", "availableMailLocales" ]
+      },
+      "ApplicationStatus" : {
+        "type" : "string",
+        "enum" : [ "PENDING", "ACCEPTED", "DENIED", "UNVERIFIED" ]
       },
       "ApplyPresetRequest" : {
         "type" : "object",
@@ -37936,6 +40359,42 @@
           }
         }
       },
+      "BlocklistKind" : {
+        "type" : "string",
+        "enum" : [ "BASE_URL", "PUBLIC_KEY" ]
+      },
+      "BlocklistRequest" : {
+        "type" : "object",
+        "properties" : {
+          "value" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/BlocklistKind"
+          },
+          "note" : {
+            "type" : "string"
+          }
+        }
+      },
+      "BlocklistResponse" : {
+        "type" : "object",
+        "properties" : {
+          "value" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/BlocklistKind"
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "value", "kind", "note", "createdAt" ]
+      },
       "BlocksResponse" : {
         "type" : "object",
         "properties" : {
@@ -37987,7 +40446,7 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "shortKey" : {
             "type" : "string"
@@ -38001,7 +40460,7 @@
             "format" : "int32"
           },
           "backlogLaneId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "createdAt" : {
@@ -38009,6 +40468,26 @@
           }
         },
         "required" : [ "id", "uid", "stationId", "name", "description", "shortKey", "hideDoneAfterDays", "ticketCounter", "backlogLaneId", "createdAt" ]
+      },
+      "BoardActivityEntry" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "$ref" : "#/components/schemas/BoardActivityType"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "timestamp" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "type", "id", "timestamp" ]
+      },
+      "BoardActivityType" : {
+        "type" : "string",
+        "enum" : [ "COMMENT", "TRANSITION", "HISTORY" ]
       },
       "BoardChecklistItem" : {
         "type" : "object",
@@ -38046,11 +40525,15 @@
             "format" : "int32"
           },
           "parentId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "author" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
           },
           "content" : {
             "type" : "string"
@@ -38062,7 +40545,11 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "updatedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "id", "ticketId", "parentId", "author", "content", "deleted", "createdAt", "updatedAt" ]
@@ -38190,6 +40677,30 @@
         },
         "required" : [ "id", "boardId", "name", "color" ]
       },
+      "BoardLane" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "boardId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "boardId", "name", "color", "position" ]
+      },
       "BoardShareMode" : {
         "type" : "string",
         "enum" : [ "READ_ONLY", "FULL" ]
@@ -38217,16 +40728,24 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "assignee" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
           },
           "priority" : {
             "$ref" : "#/components/schemas/TicketPriority"
           },
           "dueDate" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           },
           "position" : {
             "type" : "integer",
@@ -38333,12 +40852,20 @@
             "$ref" : "#/components/schemas/BoardFieldType"
           },
           "value" : {
-            "$ref" : "#/components/schemas/BoardFieldValue"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/BoardFieldValue"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "ticketId", "fieldId", "fieldType", "value" ]
       },
-      "BoardTicketHistory" : {
+      "BoardTicketHistoryAction" : {
+        "type" : "string",
+        "enum" : [ "TITLE_CHANGED", "DESCRIPTION_CHANGED", "PRIORITY_CHANGED", "DUE_DATE_CHANGED", "ASSIGNEE_CHANGED", "LABEL_ADDED", "LABEL_REMOVED", "LINK_ADDED", "LINK_REMOVED", "FIELD_CHANGED" ]
+      },
+      "BoardTicketHistoryResponse" : {
         "type" : "object",
         "properties" : {
           "id" : {
@@ -38353,20 +40880,23 @@
             "$ref" : "#/components/schemas/BoardTicketHistoryAction"
           },
           "detail" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "actor" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "actorName" : {
+            "type" : [ "string", "null" ]
           },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
           }
         },
-        "required" : [ "id", "ticketId", "action", "detail", "actor", "createdAt" ]
-      },
-      "BoardTicketHistoryAction" : {
-        "type" : "string",
-        "enum" : [ "TITLE_CHANGED", "DESCRIPTION_CHANGED", "PRIORITY_CHANGED", "DUE_DATE_CHANGED", "ASSIGNEE_CHANGED", "LABEL_ADDED", "LABEL_REMOVED", "LINK_ADDED", "LINK_REMOVED", "FIELD_CHANGED" ]
+        "required" : [ "id", "ticketId", "action", "detail", "actor", "actorName", "createdAt" ]
       },
       "BoardTicketKbLink" : {
         "type" : "object",
@@ -38409,7 +40939,7 @@
         },
         "required" : [ "ticketId", "linkedTicketId", "linkType" ]
       },
-      "BoardTicketTransition" : {
+      "BoardTicketTransitionResponse" : {
         "type" : "object",
         "properties" : {
           "id" : {
@@ -38421,21 +40951,28 @@
             "format" : "int32"
           },
           "fromLaneId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "toLaneId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "actor" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "actorName" : {
+            "type" : [ "string", "null" ]
           },
           "movedAt" : {
             "$ref" : "#/components/schemas/Instant"
           }
         },
-        "required" : [ "id", "ticketId", "fromLaneId", "toLaneId", "actor", "movedAt" ]
+        "required" : [ "id", "ticketId", "fromLaneId", "toLaneId", "actor", "actorName", "movedAt" ]
       },
       "BoardWeblink" : {
         "type" : "object",
@@ -38743,6 +41280,15 @@
         "type" : "string",
         "enum" : [ "INFO", "WARNING", "SUCCESS", "TIP" ]
       },
+      "CanEditResponse" : {
+        "type" : "object",
+        "properties" : {
+          "canEdit" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "canEdit" ]
+      },
       "CancelRequest" : {
         "type" : "object",
         "properties" : {
@@ -38793,6 +41339,24 @@
           }
         },
         "required" : [ "eventId", "cancellation" ]
+      },
+      "CapabilityRequest" : {
+        "type" : "object",
+        "properties" : {
+          "capability" : {
+            "$ref" : "#/components/schemas/CapabilityType"
+          },
+          "direction" : {
+            "$ref" : "#/components/schemas/Direction"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "CapabilityType" : {
+        "type" : "string",
+        "enum" : [ "KB_SHARE", "QUIZ_SHARE", "PROTOCOL_SHARE", "INVENTORY_LEND", "EVENT_SHARE", "BOARD_SHARE", "NEWS_SHARE" ]
       },
       "CatalogImportRejected" : {
         "type" : "object",
@@ -39248,6 +41812,25 @@
           }
         },
         "required" : [ "challengeToken", "optionsJson" ]
+      },
+      "ChangedCountResponse" : {
+        "type" : "object",
+        "properties" : {
+          "changed" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "changed" ]
+      },
+      "ChangedResponse" : {
+        "type" : "object",
+        "properties" : {
+          "changed" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "changed" ]
       },
       "ChangelogEntry" : {
         "type" : "object",
@@ -41013,6 +43596,20 @@
           }
         }
       },
+      "CreateInvitesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "invites" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InviteEntry"
+            }
+          },
+          "sendSetupMail" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "CreateInvitesResponse" : {
         "type" : "object",
         "properties" : {
@@ -41795,6 +44392,364 @@
           }
         }
       },
+      "Direction" : {
+        "type" : "string",
+        "enum" : [ "IMPORT", "EXPORT" ]
+      },
+      "DiscoverNowResponse" : {
+        "type" : "object",
+        "properties" : {
+          "pingsDispatched" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationsFetched" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "pingsDispatched", "stationsFetched" ]
+      },
+      "DiscoveredBoard" : {
+        "type" : "object",
+        "properties" : {
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerStationUid" : {
+            "type" : "string"
+          },
+          "remoteBoardUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "shortKey" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "shareMode" : {
+            "$ref" : "#/components/schemas/BoardShareMode"
+          },
+          "partnerStationName" : {
+            "type" : "string"
+          },
+          "requiredUserType" : {
+            "$ref" : "#/components/schemas/StationUserType"
+          }
+        },
+        "required" : [ "partnerId", "partnerStationUid", "remoteBoardUid", "name", "shortKey", "description", "shareMode", "partnerStationName", "requiredUserType" ]
+      },
+      "DiscoveredStationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "stationUid" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "slogan" : {
+            "type" : [ "string", "null" ]
+          },
+          "logoUrl" : {
+            "type" : "string"
+          },
+          "country" : {
+            "type" : [ "string", "null" ]
+          },
+          "region" : {
+            "type" : [ "string", "null" ]
+          },
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "contactUrl" : {
+            "type" : "string"
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "memberCount" : {
+            "type" : "string"
+          },
+          "publishedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "addressLine" : {
+            "type" : [ "string", "null" ]
+          },
+          "latitude" : {
+            "type" : [ "number", "null" ]
+          },
+          "longitude" : {
+            "type" : [ "number", "null" ]
+          },
+          "instancePublicKey" : {
+            "type" : "string"
+          },
+          "fetchedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "stationUid", "name", "slogan", "logoUrl", "country", "region", "city", "contactUrl", "tags", "memberCount", "publishedAt", "addressLine", "latitude", "longitude", "instancePublicKey", "fetchedAt" ]
+      },
+      "DiscoveryCallbackMessage" : {
+        "type" : "object",
+        "properties" : {
+          "from" : {
+            "$ref" : "#/components/schemas/DiscoveryIdentity"
+          },
+          "inReplyTo" : {
+            "type" : "string"
+          },
+          "issuedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "peers" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PeerAnnouncement"
+            }
+          }
+        }
+      },
+      "DiscoveryEntry" : {
+        "type" : "object",
+        "properties" : {
+          "stationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "hasLogo" : {
+            "type" : "boolean"
+          },
+          "hasPublicKb" : {
+            "type" : "boolean"
+          },
+          "hasPublicCalendar" : {
+            "type" : "boolean"
+          },
+          "alreadyFederated" : {
+            "type" : "boolean"
+          },
+          "isOwnStation" : {
+            "type" : "boolean"
+          },
+          "publicSlug" : {
+            "type" : [ "string", "null" ]
+          },
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "country" : {
+            "type" : [ "string", "null" ]
+          },
+          "latitude" : {
+            "type" : [ "number", "null" ]
+          },
+          "longitude" : {
+            "type" : [ "number", "null" ]
+          },
+          "clusterUid" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "clusterName" : {
+            "type" : [ "string", "null" ]
+          },
+          "instanceHost" : {
+            "type" : [ "string", "null" ]
+          },
+          "publicPageUrl" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "stationUid", "name", "description", "hasLogo", "hasPublicKb", "hasPublicCalendar", "alreadyFederated", "isOwnStation", "publicSlug", "city", "country", "latitude", "longitude", "clusterUid", "clusterName", "instanceHost", "publicPageUrl" ]
+      },
+      "DiscoveryIdentity" : {
+        "type" : "object",
+        "properties" : {
+          "baseUrl" : {
+            "type" : "string"
+          },
+          "publicKey" : {
+            "type" : "string"
+          },
+          "instanceId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "baseUrl", "publicKey", "instanceId" ]
+      },
+      "DiscoveryInfoResponse" : {
+        "type" : "object",
+        "properties" : {
+          "baseUrl" : {
+            "type" : "string"
+          },
+          "instanceId" : {
+            "type" : "string"
+          },
+          "publicKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "softwareVersion" : {
+            "type" : "string"
+          },
+          "discoveryEnabled" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "baseUrl", "instanceId", "publicKey", "softwareVersion", "discoveryEnabled" ]
+      },
+      "DiscoveryPingMessage" : {
+        "type" : "object",
+        "properties" : {
+          "from" : {
+            "$ref" : "#/components/schemas/DiscoveryIdentity"
+          },
+          "nonce" : {
+            "type" : "string"
+          },
+          "issuedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "callbackUrl" : {
+            "type" : "string"
+          },
+          "depth" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "DiscoverySettingsRequest" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "maxDepth" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pingIntervalMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "DiscoverySettingsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "maxDepth" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pingIntervalMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "hardMaxDepth" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "enabled", "maxDepth", "pingIntervalMinutes", "hardMaxDepth" ]
+      },
+      "DiscoveryStationCard" : {
+        "type" : "object",
+        "properties" : {
+          "stationUid" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "slogan" : {
+            "type" : [ "string", "null" ]
+          },
+          "logoUrl" : {
+            "type" : "string"
+          },
+          "country" : {
+            "type" : [ "string", "null" ]
+          },
+          "region" : {
+            "type" : [ "string", "null" ]
+          },
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "contactUrl" : {
+            "type" : "string"
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "memberCount" : {
+            "type" : "string"
+          },
+          "publishedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "addressLine" : {
+            "type" : [ "string", "null" ]
+          },
+          "latitude" : {
+            "type" : [ "number", "null" ]
+          },
+          "longitude" : {
+            "type" : [ "number", "null" ]
+          },
+          "clusterUid" : {
+            "type" : [ "string", "null" ]
+          },
+          "clusterName" : {
+            "type" : [ "string", "null" ]
+          },
+          "publicSlug" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "stationUid", "name", "slogan", "logoUrl", "country", "region", "city", "contactUrl", "tags", "memberCount", "publishedAt", "addressLine", "latitude", "longitude", "clusterUid", "clusterName", "publicSlug" ]
+      },
+      "DiscoveryStationsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "instance" : {
+            "$ref" : "#/components/schemas/DiscoveryIdentity"
+          },
+          "stations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DiscoveryStationCard"
+            }
+          }
+        },
+        "required" : [ "instance", "stations" ]
+      },
       "DiscoveryVisibility" : {
         "type" : "string",
         "enum" : [ "NONE", "INSTANCE", "PUBLIC" ]
@@ -42058,6 +45013,44 @@
         },
         "required" : [ "method", "path", "requestCount", "avgDurationMs", "minDurationMs", "maxDurationMs", "errorRate" ]
       },
+      "EnrichedBookmark" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerStationUid" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "remoteBoardUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "remoteBoardName" : {
+            "type" : "string"
+          },
+          "remoteBoardShortKey" : {
+            "type" : "string"
+          },
+          "shareMode" : {
+            "$ref" : "#/components/schemas/BoardShareMode"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "memberId", "partnerId", "partnerStationUid", "remoteBoardUid", "remoteBoardName", "remoteBoardShortKey", "shareMode", "createdAt" ]
+      },
       "EnrichedCheckDetail" : {
         "type" : "object",
         "properties" : {
@@ -42193,6 +45186,29 @@
         },
         "required" : [ "item", "inventoryName" ]
       },
+      "EnrichedMemberChangeSummary" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberName" : {
+            "type" : "string"
+          },
+          "pendingCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "latestChange" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "identity" : {
+            "$ref" : "#/components/schemas/MemberIdentity"
+          }
+        },
+        "required" : [ "memberId", "memberName", "pendingCount", "latestChange", "identity" ]
+      },
       "EnrichedMessage" : {
         "type" : "object",
         "properties" : {
@@ -42207,6 +45223,18 @@
           }
         },
         "required" : [ "message", "senderName", "senderStationName" ]
+      },
+      "EnrichedProfileFieldChange" : {
+        "type" : "object",
+        "properties" : {
+          "change" : {
+            "$ref" : "#/components/schemas/ProfileFieldChange"
+          },
+          "memberIdentity" : {
+            "$ref" : "#/components/schemas/MemberIdentity"
+          }
+        },
+        "required" : [ "change", "memberIdentity" ]
       },
       "EntryAudience" : {
         "type" : "object",
@@ -43465,7 +46493,7 @@
             "type" : "string"
           },
           "reason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "email", "reason" ]
@@ -43498,6 +46526,21 @@
             "type" : "string"
           }
         }
+      },
+      "FederatedBoardDetail" : {
+        "type" : "object",
+        "properties" : {
+          "board" : {
+            "$ref" : "#/components/schemas/RemoteBoard"
+          },
+          "shareMode" : {
+            "$ref" : "#/components/schemas/BoardShareMode"
+          },
+          "stationName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "board", "shareMode", "stationName" ]
       },
       "FederatedEventItem" : {
         "type" : "object",
@@ -43559,7 +46602,7 @@
             "type" : "string"
           },
           "stationUid" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "partnerId" : {
             "type" : "integer",
@@ -43591,7 +46634,7 @@
             "type" : "string"
           },
           "stationUid" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "partnerId" : {
             "type" : "integer",
@@ -43678,6 +46721,63 @@
         },
         "required" : [ "status" ]
       },
+      "FederationBoardBookmark" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "remoteBoardUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "remoteBoardName" : {
+            "type" : "string"
+          },
+          "remoteBoardShortKey" : {
+            "type" : "string"
+          },
+          "shareMode" : {
+            "$ref" : "#/components/schemas/BoardShareMode"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "memberId", "partnerId", "remoteBoardUid", "remoteBoardName", "remoteBoardShortKey", "shareMode", "createdAt" ]
+      },
+      "FederationCapability" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "capability" : {
+            "$ref" : "#/components/schemas/CapabilityType"
+          },
+          "direction" : {
+            "$ref" : "#/components/schemas/Direction"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "partnerId", "capability", "direction", "enabled" ]
+      },
       "FederationConfigRequest" : {
         "type" : "object",
         "properties" : {
@@ -43713,6 +46813,130 @@
         },
         "required" : [ "targets", "editUserTypes" ]
       },
+      "FederationContract" : {
+        "type" : "object",
+        "properties" : {
+          "core" : {
+            "type" : "string"
+          },
+          "features" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "core", "features" ]
+      },
+      "FederationInfoResponse" : {
+        "type" : "object",
+        "properties" : {
+          "contract" : {
+            "$ref" : "#/components/schemas/FederationContract"
+          }
+        },
+        "required" : [ "contract" ]
+      },
+      "FederationPartner" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "partnerStationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "inviteCode" : {
+            "type" : [ "string", "null" ]
+          },
+          "publicKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "partnerPublicKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/FederationStatus"
+          },
+          "federationContract" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FederationContract"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "updatedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "remoteHost" : {
+            "type" : [ "string", "null" ]
+          },
+          "partnerStationName" : {
+            "type" : [ "string", "null" ]
+          },
+          "clusterManaged" : {
+            "type" : "boolean"
+          },
+          "clusterHome" : {
+            "type" : "boolean"
+          },
+          "remote" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "stationId", "partnerStationId", "inviteCode", "publicKey", "partnerPublicKey", "status", "federationContract", "createdAt", "updatedAt", "remoteHost", "partnerStationName", "clusterManaged", "clusterHome", "remote" ]
+      },
+      "FederationRequestBody" : {
+        "type" : "object",
+        "properties" : {
+          "stationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }
+      },
+      "FederationShare" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "fileId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "folderId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "catalogId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "protocolId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "shareScope" : {
+            "$ref" : "#/components/schemas/ShareScope"
+          }
+        },
+        "required" : [ "id", "stationId", "fileId", "folderId", "catalogId", "protocolId", "shareScope" ]
+      },
       "FederationShareResponse" : {
         "type" : "object",
         "properties" : {
@@ -43735,6 +46959,10 @@
           }
         },
         "required" : [ "shared", "scope", "partnerIds" ]
+      },
+      "FederationStatus" : {
+        "type" : "string",
+        "enum" : [ "PENDING", "ACTIVE", "SUSPENDED" ]
       },
       "FederationTargetRequest" : {
         "type" : "object",
@@ -43970,6 +47198,21 @@
           },
           "config" : {
             "$ref" : "#/components/schemas/FieldConfig"
+          }
+        }
+      },
+      "FieldOrderRequest" : {
+        "type" : "object",
+        "properties" : {
+          "role" : {
+            "$ref" : "#/components/schemas/ProfileFieldScope"
+          },
+          "fieldIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
           }
         }
       },
@@ -44226,6 +47469,23 @@
       "FilterTableType" : {
         "type" : "string",
         "enum" : [ "MEMBERS", "EVENTS", "INVENTORY", "ATTENDANCE", "NEWS", "FORMS", "QUIZ" ]
+      },
+      "FirstStationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          }
+        }
+      },
+      "FirstStationStatus" : {
+        "type" : "object",
+        "properties" : {
+          "needed" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "needed" ]
       },
       "FlowPreview" : {
         "type" : "object",
@@ -45307,6 +48567,18 @@
         },
         "required" : [ "form", "stillHeldBy" ]
       },
+      "FormerCheckResponse" : {
+        "type" : "object",
+        "properties" : {
+          "canMarkFormer" : {
+            "type" : "boolean"
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "canMarkFormer", "reason" ]
+      },
       "FormsCtaConfig" : {
         "type" : "object",
         "properties" : {
@@ -45333,6 +48605,19 @@
           }
         },
         "required" : [ "itemId", "description" ]
+      },
+      "FoundedStation" : {
+        "type" : "object",
+        "properties" : {
+          "stationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "stationUid", "name" ]
       },
       "FreeAnswer" : {
         "type" : "object",
@@ -45654,6 +48939,20 @@
           }
         }
       },
+      "GuardianEntry" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          }
+        }
+      },
       "HandOutRequest" : {
         "type" : "object",
         "properties" : {
@@ -45905,6 +49204,21 @@
         },
         "required" : [ "type", "column" ]
       },
+      "IdentityResponse" : {
+        "type" : "object",
+        "properties" : {
+          "instanceId" : {
+            "type" : "string"
+          },
+          "publicKey" : {
+            "type" : "string"
+          },
+          "baseUrl" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "instanceId", "publicKey", "baseUrl" ]
+      },
       "IdentityType" : {
         "type" : "string",
         "enum" : [ "ACCOUNT_ID", "MEMBER_ID", "MEMBER_UID" ]
@@ -46021,7 +49335,7 @@
             "format" : "int32"
           },
           "currentPhase" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "subTotal" : {
             "type" : "integer",
@@ -46032,7 +49346,7 @@
             "format" : "int32"
           },
           "error" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "stationId", "stationName", "status", "phases", "completedPhases", "currentPhase", "subTotal", "subCompleted", "error" ]
@@ -46108,6 +49422,30 @@
           }
         },
         "required" : [ "stationId", "stationName" ]
+      },
+      "InstallPresetRequest" : {
+        "type" : "object",
+        "properties" : {
+          "options" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "InstallPresetResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "validForHours" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "code", "validForHours" ]
       },
       "InstanceBackendRequest" : {
         "oneOf" : [ {
@@ -47207,6 +50545,42 @@
         "type" : "string",
         "enum" : [ "INTERNAL", "EXTERNAL", "MIXED" ]
       },
+      "InviteCodeResponse" : {
+        "type" : "object",
+        "properties" : {
+          "inviteCode" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "inviteCode" ]
+      },
+      "InviteEntry" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "userType" : {
+            "type" : "string"
+          },
+          "groupId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "guardians" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/GuardianEntry"
+            }
+          }
+        }
+      },
       "InviteRequest" : {
         "type" : "object",
         "properties" : {
@@ -47223,25 +50597,6 @@
             "type" : "boolean"
           }
         }
-      },
-      "InviteResponse" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "email" : {
-            "type" : "string"
-          },
-          "firstName" : {
-            "type" : "string"
-          },
-          "lastName" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "id", "email", "firstName", "lastName" ]
       },
       "ItemAssignment" : {
         "type" : "object",
@@ -47878,6 +51233,57 @@
           }
         },
         "required" : [ "userTypes", "groupIds", "tagIds", "memberIds", "grants" ]
+      },
+      "KbShareRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fileId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "folderId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "shareScope" : {
+            "$ref" : "#/components/schemas/ShareScope"
+          },
+          "partnerIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
+      "KbShareResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fileId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "folderId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "shareScope" : {
+            "$ref" : "#/components/schemas/ShareScope"
+          },
+          "partnerIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "id", "fileId", "folderId", "shareScope", "partnerIds" ]
       },
       "KbTag" : {
         "type" : "object",
@@ -48573,6 +51979,18 @@
         "type" : "string",
         "format" : "date-time"
       },
+      "LocalLinkRequest" : {
+        "type" : "object",
+        "properties" : {
+          "linkedTicketNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "linkType" : {
+            "$ref" : "#/components/schemas/LinkType"
+          }
+        }
+      },
       "LocalMoveTicketRequest" : {
         "type" : "object",
         "properties" : {
@@ -48692,6 +52110,53 @@
             "$ref" : "#/components/schemas/LocalDate"
           }
         }
+      },
+      "LocationUpdate" : {
+        "type" : "object",
+        "properties" : {
+          "addressLine" : {
+            "type" : "string"
+          },
+          "postalCode" : {
+            "type" : "string"
+          },
+          "city" : {
+            "type" : "string"
+          },
+          "country" : {
+            "type" : "string"
+          },
+          "latitude" : {
+            "type" : "number"
+          },
+          "longitude" : {
+            "type" : "number"
+          }
+        }
+      },
+      "LocationView" : {
+        "type" : "object",
+        "properties" : {
+          "addressLine" : {
+            "type" : [ "string", "null" ]
+          },
+          "postalCode" : {
+            "type" : [ "string", "null" ]
+          },
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "country" : {
+            "type" : [ "string", "null" ]
+          },
+          "latitude" : {
+            "type" : [ "number", "null" ]
+          },
+          "longitude" : {
+            "type" : [ "number", "null" ]
+          }
+        },
+        "required" : [ "addressLine", "postalCode", "city", "country", "latitude", "longitude" ]
       },
       "LogEntry" : {
         "type" : "object",
@@ -49391,10 +52856,10 @@
         "type" : "object",
         "properties" : {
           "email" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "username" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "loginEnabled" : {
             "type" : "boolean"
@@ -49424,7 +52889,7 @@
             "type" : "string"
           },
           "email" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "stationId", "accountId", "name", "email" ]
@@ -49530,7 +52995,7 @@
         "type" : "object",
         "properties" : {
           "email" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "firstName" : {
             "type" : "string"
@@ -49706,26 +53171,6 @@
         },
         "required" : [ "id", "memberId", "absentFrom", "absentUntil", "reason", "createdAt", "createdBy" ]
       },
-      "MemberChangeSummary" : {
-        "type" : "object",
-        "properties" : {
-          "memberId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "memberName" : {
-            "type" : "string"
-          },
-          "pendingCount" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "latestChange" : {
-            "$ref" : "#/components/schemas/Instant"
-          }
-        },
-        "required" : [ "memberId", "memberName", "pendingCount", "latestChange" ]
-      },
       "MemberCheckState" : {
         "type" : "object",
         "properties" : {
@@ -49777,6 +53222,40 @@
           }
         },
         "required" : [ "memberName", "memberIdentity", "required", "assigned", "lastCheck", "unassigned", "onTheMove", "overtookSelfChecks" ]
+      },
+      "MemberCompletion" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "stationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "memberUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : [ "string", "null" ]
+          },
+          "nameColor" : {
+            "type" : [ "string", "null" ]
+          },
+          "displayTag" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DisplayTag"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "id", "name", "stationUid", "memberUid", "stationName", "nameColor", "displayTag" ]
       },
       "MemberDocumentResponse" : {
         "type" : "object",
@@ -49906,14 +53385,14 @@
             "type" : "string"
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "position" : {
             "type" : "integer",
             "format" : "int32"
           },
           "groupSetId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "userTypes" : {
@@ -49966,16 +53445,20 @@
             "format" : "uuid"
           },
           "name" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "stationName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "nameColor" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "displayTag" : {
-            "$ref" : "#/components/schemas/DisplayTag"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DisplayTag"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "stationUid", "memberUid", "name", "stationName", "nameColor", "displayTag" ]
@@ -50007,47 +53490,24 @@
         },
         "required" : [ "id", "stationId", "accountId", "uid", "calledName", "nickname" ]
       },
-      "MemberInventoryItem" : {
+      "MemberInviteResponse" : {
         "type" : "object",
         "properties" : {
           "id" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "inventoryId" : {
-            "type" : "integer",
-            "format" : "int32"
+          "email" : {
+            "type" : [ "string", "null" ]
           },
-          "name" : {
+          "firstName" : {
             "type" : "string"
           },
-          "internalId" : {
+          "lastName" : {
             "type" : "string"
-          },
-          "inventoryName" : {
-            "type" : "string"
-          },
-          "inventoryHomogeneous" : {
-            "type" : "boolean"
-          },
-          "sizeId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "sizeName" : {
-            "type" : "string"
-          },
-          "lostAt" : {
-            "$ref" : "#/components/schemas/Instant"
-          },
-          "lostNote" : {
-            "type" : "string"
-          },
-          "lostNoteBy" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
           }
         },
-        "required" : [ "id", "inventoryId", "name", "internalId", "inventoryName", "inventoryHomogeneous", "sizeId", "sizeName", "lostAt", "lostNote", "lostNoteBy" ]
+        "required" : [ "id", "email", "firstName", "lastName" ]
       },
       "MemberListConfig" : {
         "type" : "object",
@@ -50306,6 +53766,23 @@
         },
         "required" : [ "fieldId", "value", "origin" ]
       },
+      "MemberRequirement" : {
+        "type" : "object",
+        "properties" : {
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryName" : {
+            "type" : "string"
+          },
+          "requiredQuantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "inventoryId", "inventoryName", "requiredQuantity" ]
+      },
       "MemberRequirements" : {
         "type" : "object",
         "properties" : {
@@ -50338,19 +53815,19 @@
             "type" : "string"
           },
           "userType" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "nameColor" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "displayTag" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "displayTagColor" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "avatarUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "memberUid", "displayName", "userType", "nameColor", "displayTag", "displayTagColor", "avatarUrl" ]
@@ -50425,13 +53902,14 @@
             "$ref" : "#/components/schemas/MemberTableColumnKind"
           },
           "key" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "fieldId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
-        }
+        },
+        "required" : [ "kind", "key", "fieldId" ]
       },
       "MemberTableColumnKind" : {
         "type" : "string",
@@ -50447,10 +53925,10 @@
             "$ref" : "#/components/schemas/MemberTableColumnKind"
           },
           "key" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "fieldId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "type" : {
@@ -50458,6 +53936,47 @@
           }
         },
         "required" : [ "label", "kind", "key", "fieldId", "type" ]
+      },
+      "MemberTablePreset" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "columns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MemberTableColumn"
+            }
+          }
+        },
+        "required" : [ "id", "stationId", "name", "columns" ]
+      },
+      "MemberTableRequest" : {
+        "type" : "object",
+        "properties" : {
+          "memberIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "columns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MemberTableColumn"
+            }
+          }
+        }
       },
       "MemberTableRow" : {
         "type" : "object",
@@ -50500,13 +54019,13 @@
             "type" : "string"
           },
           "nickname" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "email" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "username" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "userType" : {
             "$ref" : "#/components/schemas/StationUserType"
@@ -50515,7 +54034,11 @@
             "type" : "boolean"
           },
           "formerAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "joinDate" : {
             "$ref" : "#/components/schemas/LocalDate"
@@ -50525,6 +54048,67 @@
           }
         },
         "required" : [ "id", "stationId", "accountId", "name", "firstName", "lastName", "nickname", "email", "username", "userType", "profileComplete", "formerAt", "joinDate", "identity" ]
+      },
+      "MergedField" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "fieldType" : {
+            "$ref" : "#/components/schemas/ProfileFieldType"
+          },
+          "config" : {
+            "$ref" : "#/components/schemas/ProfileFieldConfig"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "width" : {
+            "type" : [ "string", "null" ]
+          },
+          "readonly" : {
+            "type" : "boolean"
+          },
+          "role" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ProfileFieldScope"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "origin" : {
+            "$ref" : "#/components/schemas/FieldOrigin"
+          },
+          "readonlyAtStation" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "name", "fieldType", "config", "required", "position", "width", "readonly", "role", "origin", "readonlyAtStation" ]
+      },
+      "MergedValue" : {
+        "type" : "object",
+        "properties" : {
+          "fieldId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "value" : {
+            "type" : [ "string", "null" ]
+          },
+          "origin" : {
+            "$ref" : "#/components/schemas/FieldOrigin"
+          }
+        },
+        "required" : [ "fieldId", "value", "origin" ]
       },
       "MessageBody" : {
         "type" : "object",
@@ -50659,7 +54243,7 @@
             }
           },
           "clusterName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "disabledModules", "clusterDeniedModules", "clusterName" ]
@@ -52001,6 +55585,24 @@
         },
         "required" : [ "value" ]
       },
+      "OkResponse" : {
+        "type" : "object",
+        "properties" : {
+          "ok" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "ok" ]
+      },
+      "OnboardAgainResponse" : {
+        "type" : "object",
+        "properties" : {
+          "mailed" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "mailed" ]
+      },
       "OnboardingLevel" : {
         "type" : "string",
         "enum" : [ "MEMBER", "STATION", "INSTANCE" ]
@@ -52046,10 +55648,10 @@
             "type" : "string"
           },
           "subject" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "subjectId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "state" : {
@@ -52059,10 +55661,14 @@
             "type" : "boolean"
           },
           "actorName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "changedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "id", "key", "subject", "subjectId", "state", "confirmable", "actorName", "changedAt" ]
@@ -52280,6 +55886,30 @@
           }
         }
       },
+      "PagedChangesResponse" : {
+        "type" : "object",
+        "properties" : {
+          "changes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EnrichedProfileFieldChange"
+            }
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "offset" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "limit" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "changes", "total", "offset", "limit" ]
+      },
       "PagesListResponse" : {
         "type" : "object",
         "properties" : {
@@ -52308,6 +55938,22 @@
         },
         "required" : [ "left", "right" ]
       },
+      "PairRequestResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "stationName", "createdAt" ]
+      },
       "ParseResult" : {
         "type" : "object",
         "properties" : {
@@ -52329,6 +55975,18 @@
         },
         "required" : [ "headers", "rows" ]
       },
+      "PartnerResponse" : {
+        "type" : "object",
+        "properties" : {
+          "partner" : {
+            "$ref" : "#/components/schemas/FederationPartner"
+          },
+          "partnerStationName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "partner", "partnerStationName" ]
+      },
       "PartnerStationsConfig" : {
         "type" : "object",
         "properties" : {
@@ -52345,6 +56003,21 @@
             "type" : "boolean"
           }
         }
+      },
+      "PasskeyCodeResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "qrPng" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "code", "qrPng", "expiresAt" ]
       },
       "PasskeysConfigRequest" : {
         "type" : "object",
@@ -52471,6 +56144,81 @@
           }
         }
       },
+      "PeerAnnouncement" : {
+        "type" : "object",
+        "properties" : {
+          "baseUrl" : {
+            "type" : "string"
+          },
+          "publicKey" : {
+            "type" : "string"
+          },
+          "instanceId" : {
+            "type" : "string"
+          },
+          "firstSeenBy" : {
+            "type" : "string"
+          },
+          "lastSeenAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        }
+      },
+      "PeerResponse" : {
+        "type" : "object",
+        "properties" : {
+          "publicKey" : {
+            "type" : "string"
+          },
+          "baseUrl" : {
+            "type" : "string"
+          },
+          "instanceId" : {
+            "type" : "string"
+          },
+          "firstSeenAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastSeenAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastPingedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "lastReachedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "reachable" : {
+            "type" : "boolean"
+          },
+          "source" : {
+            "$ref" : "#/components/schemas/PeerSource"
+          },
+          "introducedBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "reputation" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "blocked" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "publicKey", "baseUrl", "instanceId", "firstSeenAt", "lastSeenAt", "lastPingedAt", "lastReachedAt", "reachable", "source", "introducedBy", "reputation", "blocked" ]
+      },
+      "PeerSource" : {
+        "type" : "string",
+        "enum" : [ "BOOTSTRAP", "GOSSIP", "MANUAL" ]
+      },
       "Permission" : {
         "type" : "object",
         "properties" : {
@@ -52498,6 +56246,15 @@
           }
         },
         "required" : [ "name", "children" ]
+      },
+      "PermissionsByMember" : {
+        "type" : "object",
+        "additionalProperties" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/components/schemas/Permission"
+          }
+        }
       },
       "PickerEvent" : {
         "type" : "object",
@@ -52708,19 +56465,6 @@
           }
         }
       },
-      "PresetResponse" : {
-        "type" : "object",
-        "properties" : {
-          "code" : {
-            "type" : "string"
-          },
-          "validForHours" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        },
-        "required" : [ "code", "validForHours" ]
-      },
       "PreviewResult" : {
         "type" : "object",
         "properties" : {
@@ -52738,6 +56482,14 @@
           }
         },
         "required" : [ "members", "warnings" ]
+      },
+      "ProbeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "baseUrl" : {
+            "type" : "string"
+          }
+        }
       },
       "ProbeResult" : {
         "type" : "object",
@@ -53258,11 +57010,11 @@
             "format" : "int32"
           },
           "fieldId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "clusterFieldId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "memberId" : {
@@ -53270,10 +57022,10 @@
             "format" : "int32"
           },
           "oldValue" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "newValue" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "changedBy" : {
             "type" : "integer",
@@ -53289,10 +57041,10 @@
             "type" : "string"
           },
           "fieldName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "fieldType" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "acknowledgements" : {
             "type" : "array",
@@ -53301,7 +57053,7 @@
             }
           },
           "memberName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "fieldId", "clusterFieldId", "memberId", "oldValue", "newValue", "changedBy", "changedAt", "requiresAcknowledgement", "changedByName", "fieldName", "fieldType", "acknowledgements", "memberName" ]
@@ -53325,7 +57077,7 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "comment" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "acknowledgedByName" : {
             "type" : "string"
@@ -53337,7 +57089,7 @@
         "type" : "object",
         "properties" : {
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "notifyOnChange" : {
             "type" : "boolean"
@@ -53346,7 +57098,7 @@
             "type" : "boolean"
           },
           "options" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "items" : {
               "type" : "string"
             }
@@ -53356,38 +57108,38 @@
             "type" : "boolean"
           },
           "sourceField" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "sourceFieldId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "ageMode" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "showAge" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "warnFromDays" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "reminderDays" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "items" : {
               "type" : "integer",
               "format" : "int32"
             }
           },
           "repeatEveryDays" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "remindMember" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "remindManagement" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           }
         },
         "required" : [ "description", "notifyOnChange", "overview", "options", "defaultValue", "computed", "sourceField", "sourceFieldId", "ageMode", "showAge", "warnFromDays", "reminderDays", "repeatEveryDays", "remindMember", "remindManagement" ]
@@ -53599,6 +57351,18 @@
           }
         }
       },
+      "ProtocolShareRequest" : {
+        "type" : "object",
+        "properties" : {
+          "protocolId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "shareScope" : {
+            "$ref" : "#/components/schemas/ShareScope"
+          }
+        }
+      },
       "ProviderBlock" : {
         "type" : "object",
         "properties" : {
@@ -53678,7 +57442,7 @@
             "format" : "int32"
           },
           "email" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "firstName" : {
             "type" : "string"
@@ -54171,7 +57935,7 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "hasLogo" : {
             "type" : "boolean"
@@ -54192,19 +57956,19 @@
             "type" : "boolean"
           },
           "landingPageSlug" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "publicSlug" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "defaultTheme" : {
             "type" : "string"
           },
           "defaultFeel" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "customThemeColors" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "timezone" : {
             "type" : "string"
@@ -54882,6 +58646,18 @@
             "items" : {
               "$ref" : "#/components/schemas/QuizSourceRequest"
             }
+          }
+        }
+      },
+      "QuizShareRequest" : {
+        "type" : "object",
+        "properties" : {
+          "catalogId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "shareScope" : {
+            "$ref" : "#/components/schemas/ShareScope"
           }
         }
       },
@@ -56028,6 +59804,43 @@
         },
         "required" : [ "id", "name", "fileName", "mimeType", "fileSize" ]
       },
+      "RemoteBoard" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "shortKey" : {
+            "type" : "string"
+          },
+          "hideDoneAfterDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ticketCounter" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "backlogLaneId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "stationId", "name", "description", "shortKey", "hideDoneAfterDays", "ticketCounter", "backlogLaneId", "createdAt" ]
+      },
       "RemoteCatalogDetail" : {
         "type" : "object",
         "properties" : {
@@ -56859,6 +60672,10 @@
           }
         }
       },
+      "RestrictionType" : {
+        "type" : "string",
+        "enum" : [ "EVENT", "EVENT_VIEW", "EVENT_TEMPLATE", "EVENT_TEMPLATE_VIEW", "QUIZ_TEST", "FORM", "NEWS", "KB_FOLDER", "KB_FILE" ]
+      },
       "ResultFieldCondition" : {
         "type" : "object",
         "properties" : {
@@ -56975,7 +60792,7 @@
             "format" : "uuid"
           },
           "accountId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "name" : {
@@ -56988,7 +60805,7 @@
             "type" : "string"
           },
           "nickname" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "email" : {
             "type" : "string"
@@ -56997,7 +60814,11 @@
             "type" : "boolean"
           },
           "setupMailExpiresAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "mailReaches" : {
             "$ref" : "#/components/schemas/MailReaches"
@@ -57343,6 +61164,20 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/BlockRowRequest"
+            }
+          }
+        }
+      },
+      "SavePresetRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "columns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MemberTableColumn"
             }
           }
         }
@@ -58386,6 +62221,18 @@
           }
         }
       },
+      "SetManagedRequest" : {
+        "type" : "object",
+        "properties" : {
+          "managedIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
       "SetManagersRequest" : {
         "type" : "object",
         "properties" : {
@@ -58639,7 +62486,11 @@
         "type" : "object",
         "properties" : {
           "completedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "requiredSteps" : {
             "type" : "array",
@@ -59252,116 +63103,6 @@
           }
         }
       },
-      "Station" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "uid" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "timezone" : {
-            "type" : "string"
-          },
-          "locale" : {
-            "type" : "string"
-          },
-          "ownerMemberId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "defaultTheme" : {
-            "type" : "string"
-          },
-          "allowUserTheme" : {
-            "type" : "boolean"
-          },
-          "customThemeColors" : {
-            "type" : "string"
-          },
-          "defaultFeel" : {
-            "$ref" : "#/components/schemas/ThemeFeel"
-          },
-          "allowUserFeel" : {
-            "type" : "boolean"
-          },
-          "publicKbMode" : {
-            "$ref" : "#/components/schemas/PublicKbMode"
-          },
-          "discoveryVisibility" : {
-            "$ref" : "#/components/schemas/DiscoveryVisibility"
-          },
-          "discoveryDescription" : {
-            "type" : "string"
-          },
-          "discoveryShowKb" : {
-            "type" : "boolean"
-          },
-          "publicCalendarEnabled" : {
-            "type" : "boolean"
-          },
-          "landingPageId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "publicPagesEnabled" : {
-            "type" : "boolean"
-          },
-          "publicSlug" : {
-            "type" : "string"
-          },
-          "publicWaitlistEnabled" : {
-            "type" : "boolean"
-          },
-          "publicBlogEnabled" : {
-            "type" : "boolean"
-          },
-          "addressLine" : {
-            "type" : "string"
-          },
-          "postalCode" : {
-            "type" : "string"
-          },
-          "city" : {
-            "type" : "string"
-          },
-          "country" : {
-            "type" : "string"
-          },
-          "latitude" : {
-            "type" : "number"
-          },
-          "longitude" : {
-            "type" : "number"
-          },
-          "setupCompletedAt" : {
-            "$ref" : "#/components/schemas/Instant"
-          },
-          "stationKind" : {
-            "$ref" : "#/components/schemas/StationKind"
-          },
-          "clusterId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "lossNoteRequired" : {
-            "type" : "boolean"
-          },
-          "pdfHidesInstanceUrl" : {
-            "type" : "boolean"
-          },
-          "nicknamesEnabled" : {
-            "type" : "boolean"
-          }
-        },
-        "required" : [ "id", "uid", "name", "timezone", "locale", "ownerMemberId", "defaultTheme", "allowUserTheme", "customThemeColors", "defaultFeel", "allowUserFeel", "publicKbMode", "discoveryVisibility", "discoveryDescription", "discoveryShowKb", "publicCalendarEnabled", "landingPageId", "publicPagesEnabled", "publicSlug", "publicWaitlistEnabled", "publicBlogEnabled", "addressLine", "postalCode", "city", "country", "latitude", "longitude", "setupCompletedAt", "stationKind", "clusterId", "lossNoteRequired", "pdfHidesInstanceUrl", "nicknamesEnabled" ]
-      },
       "StationAiProvider" : {
         "type" : "object",
         "properties" : {
@@ -59384,6 +63125,50 @@
           }
         },
         "required" : [ "id", "stationId", "provider", "apiKey", "model" ]
+      },
+      "StationApplication" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "introduction" : {
+            "type" : "string"
+          },
+          "verificationToken" : {
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/ApplicationStatus"
+          },
+          "denyReason" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "resolvedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "id", "firstName", "lastName", "email", "stationName", "introduction", "verificationToken", "status", "denyReason", "createdAt", "resolvedAt" ]
       },
       "StationClusterResponse" : {
         "type" : "object",
@@ -59417,7 +63202,11 @@
             "type" : "string"
           },
           "manager" : {
-            "$ref" : "#/components/schemas/ManagerDetail"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ManagerDetail"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "id", "name", "manager" ]
@@ -59669,6 +63458,46 @@
           }
         }
       },
+      "StationImportProgress" : {
+        "type" : "object",
+        "properties" : {
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/Status"
+          },
+          "phases" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "completedPhases" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "currentPhase" : {
+            "type" : [ "string", "null" ]
+          },
+          "subTotal" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "subCompleted" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "error" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "stationId", "stationName", "status", "phases", "completedPhases", "currentPhase", "subTotal", "subCompleted", "error" ]
+      },
       "StationImportRequest" : {
         "type" : "object",
         "properties" : {
@@ -59699,7 +63528,7 @@
             "type" : "boolean"
           },
           "ownerMemberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "isOwner" : {
@@ -59712,7 +63541,7 @@
             "type" : "boolean"
           },
           "customThemeColors" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "defaultFeel" : {
             "$ref" : "#/components/schemas/ThemeFeel"
@@ -59727,7 +63556,7 @@
             "$ref" : "#/components/schemas/DiscoveryVisibility"
           },
           "discoveryDescription" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "discoveryShowKb" : {
             "type" : "boolean"
@@ -59739,7 +63568,7 @@
             "type" : "boolean"
           },
           "publicSlug" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "publicWaitlistEnabled" : {
             "type" : "boolean"
@@ -59766,14 +63595,10 @@
             "type" : "boolean"
           },
           "clusterName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "name", "timezone", "locale", "hasLogo", "ownerMemberId", "isOwner", "defaultTheme", "allowUserTheme", "customThemeColors", "defaultFeel", "allowUserFeel", "publicKbMode", "discoveryVisibility", "discoveryDescription", "discoveryShowKb", "publicCalendarEnabled", "publicPagesEnabled", "publicSlug", "publicWaitlistEnabled", "publicBlogEnabled", "pdfHidesInstanceUrl", "nicknamesEnabled", "themeLocked", "colorsLocked", "feelLocked", "logoLocked", "clusterName" ]
-      },
-      "StationKind" : {
-        "type" : "string",
-        "enum" : [ "REGULAR", "CLUSTER_HOME" ]
       },
       "StationMember" : {
         "type" : "object",
@@ -59791,14 +63616,18 @@
             "format" : "uuid"
           },
           "accountId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "former" : {
             "type" : "boolean"
           },
           "formerAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "displayName" : {
             "type" : "string"
@@ -59810,7 +63639,7 @@
             "$ref" : "#/components/schemas/LocalDate"
           },
           "nickname" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "stationId", "uid", "accountId", "former", "formerAt", "displayName", "userType", "joinDate", "nickname" ]
@@ -59928,6 +63757,30 @@
             }
           }
         }
+      },
+      "StationPickerResult" : {
+        "type" : "object",
+        "properties" : {
+          "stationUid" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "country" : {
+            "type" : [ "string", "null" ]
+          },
+          "logoUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "selectable" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "stationUid", "name", "city", "country", "logoUrl", "selectable" ]
       },
       "StationRegistrationStatus" : {
         "type" : "object",
@@ -60666,6 +64519,24 @@
           }
         }
       },
+      "TablesResponse" : {
+        "type" : "object",
+        "properties" : {
+          "tables" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "schemaHash" : {
+            "type" : "string"
+          },
+          "appVersion" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "tables", "schemaHash", "appVersion" ]
+      },
       "TabsConfig" : {
         "type" : "object",
         "properties" : {
@@ -61324,6 +65195,20 @@
         },
         "required" : [ "instanceDefaultTheme", "instanceDefaultFeel", "instanceLockFeel", "defaultTheme", "defaultFeel", "allowUserTheme", "allowUserFeel", "customThemeColors", "userTheme", "userDarkMode", "userFeel" ]
       },
+      "TicketLabelMapping" : {
+        "type" : "object",
+        "properties" : {
+          "ticketId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "labelId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "ticketId", "labelId" ]
+      },
       "TicketPriority" : {
         "type" : "string",
         "enum" : [ "LOWEST", "LOW", "MEDIUM", "HIGH", "HIGHEST" ]
@@ -61351,13 +65236,21 @@
             "type" : "string"
           },
           "assignee" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
           },
           "priority" : {
             "$ref" : "#/components/schemas/TicketPriority"
           },
           "dueDate" : {
-            "$ref" : "#/components/schemas/LocalDate"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
           },
           "position" : {
             "type" : "integer",
@@ -61687,7 +65580,7 @@
             "type" : "boolean"
           },
           "targetInstanceUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "readOnly", "targetInstanceUrl" ]
@@ -61893,7 +65786,11 @@
             "type" : "string"
           },
           "emailChange" : {
-            "$ref" : "#/components/schemas/EmailChangeResult"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EmailChangeResult"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "message", "emailChange" ]
@@ -62186,7 +66083,7 @@
             "type" : "string"
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "visible" : {
             "type" : "boolean"
@@ -63009,6 +66906,23 @@
           }
         },
         "required" : [ "list", "entryCount" ]
+      },
+      "WatcherResponse" : {
+        "type" : "object",
+        "properties" : {
+          "local" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "federated" : {
+            "type" : "array",
+            "items" : { }
+          }
+        },
+        "required" : [ "local", "federated" ]
       },
       "WebAuthnConfig" : {
         "type" : "object",

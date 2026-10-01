@@ -10,11 +10,11 @@ import EvaluationMemberHeader from './EvaluationMemberHeader.vue'
 import EvaluationSectionRows from './EvaluationSectionRows.vue'
 import EvaluationTotalRow from './EvaluationTotalRow.vue'
 import type { EvaluationResponse, TestProtocolSection } from '@/api/generated/schema'
-import type { StationMember } from '@/api/types'
+import type { MemberLike } from '@/components/input/select/memberOption'
 
 const props = defineProps<{
   evalData: EvaluationResponse
-  memberMap: Map<number, StationMember>
+  memberMap: Map<number, MemberLike>
 }>()
 
 const emit = defineEmits<{

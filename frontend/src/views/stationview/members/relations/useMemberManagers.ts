@@ -5,8 +5,9 @@
  */
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ProfileField } from '@/api/profileFields'
-import { StationUserType, type StationMember } from '@/api/types'
+import type { ProfileQuestion } from '@/api/profileFields'
+import { StationUserType } from '@/api/types'
+import type { MemberWithName } from '@/api/generated/schema'
 import { members, profileFields, stationMembers } from '@/api'
 import { memberDisplayName } from '../listview/useMemberData'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
@@ -22,13 +23,13 @@ import { describeFailure, FailureKind, type Failure } from '@/util/failure'
  */
 export function useMemberManagers(
     memberId: Ref<number>,
-    allMembers: Ref<StationMember[]>,
-    fieldsForUserType: (userType: string) => ProfileField[],
+    allMembers: Ref<MemberWithName[]>,
+    fieldsForUserType: (userType: string) => ProfileQuestion[],
     failure: Ref<Failure | null>,
 ) {
   const { t } = useI18n()
 
-  const managers = ref<StationMember[]>([])
+  const managers = ref<MemberWithName[]>([])
   const managerValues = ref<Map<number, Map<number, string>>>(new Map())
   const managerUserTypes = ref<Map<number, string>>(new Map())
 
@@ -48,7 +49,7 @@ export function useMemberManagers(
         .sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
   })
 
-  function getManagerFields(mgrId: number): ProfileField[] {
+  function getManagerFields(mgrId: number): ProfileQuestion[] {
     return fieldsForUserType(managerUserTypes.value.get(mgrId) ?? '')
   }
 
@@ -65,7 +66,7 @@ export function useMemberManagers(
    * <p>Said out loud where any of them could not be read, because the panel then shows that manager with
    * empty fields, and an empty telephone number on a guardian reads as one nobody has given.
    */
-  async function loadDetails(mgrs: StationMember[]) {
+  async function loadDetails(mgrs: MemberWithName[]) {
     const mgrVals = new Map<number, Map<number, string>>()
     const mgrTypes = new Map<number, string>()
     let unreadable: unknown = null

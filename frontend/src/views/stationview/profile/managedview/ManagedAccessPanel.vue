@@ -19,7 +19,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PasskeyCodeDisplay from '@/components/passkey/PasskeyCodeDisplay.vue'
 import {managedMembers, passkeys} from '@/api'
-import type {ManagedAccess, PasskeyCode} from '@/api/managedMembers'
+import type {ManagedAccess, PasskeyCodeResponse} from '@/api/generated/schema'
 import type {PasskeyModeName} from '@/api/adminSettings'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
@@ -97,7 +97,7 @@ async function savePassword() {
 }
 
 const passkeyMode = ref<PasskeyModeName>('OFF')
-const passkeyCode = ref<PasskeyCode | null>(null)
+const passkeyCode = ref<PasskeyCodeResponse | null>(null)
 const passwordless = computed(() => passkeyMode.value === 'PASSWORDLESS')
 
 onMounted(() => {

@@ -7,7 +7,9 @@
 import {mount} from '@vue/test-utils'
 import {defineComponent, ref} from 'vue'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
-import type {StationMember} from '@/api/types'
+import type {MemberWithName} from '@/api/generated/schema'
+import type {StationUserTypeName} from '@/api/types'
+import {createMember} from '@/test/mocks/factories'
 import {useMemberManagers} from './useMemberManagers'
 
 const invite = vi.fn()
@@ -33,12 +35,12 @@ vi.mock('@/api', () => ({
     },
 }))
 
-function member(id: number, accountId: number, userType: string): StationMember {
-    return {id, stationId: 'station-1', accountId, name: `Person ${id}`, userType} as StationMember
+function member(id: number, accountId: number, userType: StationUserTypeName): MemberWithName {
+    return createMember({id, stationId: 'station-1', accountId, name: `Person ${id}`, userType})
 }
 
 /** The composable reaches for the locale, so it is used from inside a component as the app does. */
-function managersFor(all: StationMember[]) {
+function managersFor(all: MemberWithName[]) {
     let api: ReturnType<typeof useMemberManagers> | null = null
     mount(defineComponent({
         setup() {

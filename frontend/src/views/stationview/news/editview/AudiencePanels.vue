@@ -7,8 +7,9 @@
 import PublicBlogPanel from './PublicBlogPanel.vue'
 import RestrictionsPanel from './RestrictionsPanel.vue'
 import FederationPanel from './FederationPanel.vue'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
-import type {PartnerResponse} from '@/api/federation'
+import type {MemberGroup, UserTag} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
+import type {PartnerResponse} from '@/api/generated/schema'
 
 /**
  * Who an entry is for and how far it travels: the public blog, the audience inside the station,
@@ -27,7 +28,7 @@ const federationVisibilityRole = defineModel<string>('federationVisibilityRole',
 defineProps<{
   groups: MemberGroup[]
   tags: UserTag[]
-  members: StationMember[]
+  members: MemberLike[]
   partners: PartnerResponse[]
   canFederate: boolean
 }>()

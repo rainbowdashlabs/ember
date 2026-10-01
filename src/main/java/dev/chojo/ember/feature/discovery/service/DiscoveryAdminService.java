@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -224,11 +225,11 @@ public class DiscoveryAdminService {
             String instanceId,
             Instant firstSeenAt,
             Instant lastSeenAt,
-            Instant lastPingedAt,
-            Instant lastReachedAt,
+            @Nullable Instant lastPingedAt,
+            @Nullable Instant lastReachedAt,
             boolean reachable,
             PeerSource source,
-            String introducedBy,
+            @Nullable String introducedBy,
             int reputation,
             boolean blocked) {}
 
@@ -236,5 +237,6 @@ public class DiscoveryAdminService {
 
     public record BlocklistRequest(String value, BlocklistKind kind, String note) {}
 
-    public record BlocklistResponse(String value, BlocklistKind kind, String note, Instant createdAt) {}
+    public record BlocklistResponse(
+            String value, BlocklistKind kind, @Nullable String note, Instant createdAt) {}
 }

@@ -13,7 +13,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import FederatedBoardSearchResults from '@/views/stationview/federation/federatedboardview/FederatedBoardSearchResults.vue'
-import type {BoardTicket, TicketPriorityName} from '@/api/boards'
+import type {TicketPriorityName} from '@/api/boards'
+import type {TicketSummary} from '@/api/generated/schema'
 
 defineProps<{
   boardName: string
@@ -21,9 +22,9 @@ defineProps<{
   isReadOnly: boolean
   isFull: boolean
   canManageBoards: boolean
-  searchResults: BoardTicket[] | null
+  searchResults: TicketSummary[] | null
   /** Where each hit of the search leads. */
-  ticketPage: (ticket: BoardTicket) => string
+  ticketPage: (ticket: TicketSummary) => string
   laneName: (laneId: number) => string
   priorityIcon: (priority: TicketPriorityName) => string[]
   priorityColor: (priority: TicketPriorityName) => string

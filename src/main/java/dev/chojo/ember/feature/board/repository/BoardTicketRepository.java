@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.board.repository;
 
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.feature.board.entity.BoardActivityEntry;
 import dev.chojo.ember.feature.board.entity.BoardActivityType;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
@@ -674,7 +675,7 @@ public class BoardTicketRepository {
 
     // -- Activity feed --
 
-    public List<ActivityEntry> findActivity(int ticketId) {
+    public List<BoardActivityEntry> findActivity(int ticketId) {
         return query("""
                 SELECT 'COMMENT' AS type, id, created_at AS ts FROM board_ticket_comment WHERE ticket_id = :ticket_id AND NOT deleted
                 UNION ALL
@@ -683,12 +684,10 @@ public class BoardTicketRepository {
                 SELECT 'HISTORY' AS type, id, created_at AS ts FROM board_ticket_history WHERE ticket_id = :ticket_id
                 ORDER BY ts;""")
                 .single(call().bind("ticket_id", ticketId))
-                .map(row -> new ActivityEntry(
+                .map(row -> new BoardActivityEntry(
                         row.getEnum("type", BoardActivityType.class),
                         row.getInt("id"),
                         row.get("ts", StandardValueConverter.INSTANT_TIMESTAMP)))
                 .all();
     }
-
-    public record ActivityEntry(BoardActivityType type, int id, Instant timestamp) {}
 }

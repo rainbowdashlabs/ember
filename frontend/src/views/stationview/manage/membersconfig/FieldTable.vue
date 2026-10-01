@@ -7,7 +7,7 @@
 import DesktopHeaderRow from './fieldtable/DesktopHeaderRow.vue'
 import DesktopFieldRow from './fieldtable/DesktopFieldRow.vue'
 import MobileFieldCard from './fieldtable/MobileFieldCard.vue'
-import type {ProfileField} from '@/api/profileFields'
+import type {EditableField, FieldSwitchName} from '@/api/profileFields'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import {useElementWidth} from '@/composables/useElementWidth'
 import {computed, ref} from 'vue'
@@ -25,7 +25,7 @@ import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFiel
  * @param audienceCount how many audiences each question is put to, by question id
  */
 const props = defineProps<{
-  fields: ProfileField[]
+  fields: EditableField[]
   selectedId: number | null
   audienceCount: Record<number, number>
   /** The questions ticked for putting to somebody all at once. */
@@ -47,15 +47,15 @@ const tiled = computed(() => width.value === null
     : !fitsFieldGrid(width.value, capabilities.writability))
 
 const emit = defineEmits<{
-  select: [field: ProfileField]
-  toggleChecked: [field: ProfileField]
-  edit: [field: ProfileField]
-  delete: [field: ProfileField]
-  toggleConfig: [field: ProfileField, key: string, value: boolean]
-  toggleKeepOnArchive: [field: ProfileField, value: boolean]
-  toggleRequired: [field: ProfileField, value: boolean]
-  toggleReadonly: [field: ProfileField, value: boolean]
-  setWritability: [field: ProfileField, level: WritabilityName]
+  select: [field: EditableField]
+  toggleChecked: [field: EditableField]
+  edit: [field: EditableField]
+  delete: [field: EditableField]
+  toggleConfig: [field: EditableField, key: FieldSwitchName, value: boolean]
+  toggleKeepOnArchive: [field: EditableField, value: boolean]
+  toggleRequired: [field: EditableField, value: boolean]
+  toggleReadonly: [field: EditableField, value: boolean]
+  setWritability: [field: EditableField, level: WritabilityName]
 }>()
 
 const {t} = useI18n()
@@ -64,7 +64,7 @@ function typeLabel(value: string): string {
   return fieldTypeLabel(t, value)
 }
 
-function audiencesOf(field: ProfileField): number {
+function audiencesOf(field: EditableField): number {
   return props.audienceCount[field.id] ?? 0
 }
 </script>

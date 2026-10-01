@@ -110,6 +110,9 @@
 - **A kind blocking a change of inventory was not named.** When a collection could not become a stock because kinds are still defined in it, the reason was shown as unreadable text. It now names the kind that stands in the way.
 - **The association's inventory switch always showed as off.** The setting that an association keeps its gear in Ember always read as switched off when its inventory settings were opened, even where it was on. It now shows how it is set.
 - **Refused unsigned mail showed as unreadable text.** The import log of a mailbox that files signed mail only showed a message refused for a missing, unrelated or broken signature as unreadable text instead of a reason. It now names the reason.
+- **A station's public web address could not be removed.** Emptying the web address of the station's public page in the federation settings kept the old one, and it came back after reloading. An empty field now removes it.
+- **A new bookmark on a federated board did not show.** Bookmarking a board on the federated boards page left it unmarked until the page was reloaded, and a second click tried to bookmark it again. The bookmark now shows at once, and a second click removes it.
+- **Guardians saw the gear of the members in their care without its state.** Under My inventory, that gear showed neither the step of an exchange nor its picture, and still offered an exchange or a loss report for pieces already on their way. It is now shown exactly as the member sees it.
 
 ## v26.19.5
 

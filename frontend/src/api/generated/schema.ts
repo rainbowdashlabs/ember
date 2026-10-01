@@ -2069,6 +2069,600 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/discovery/blocklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the discovery blocklist */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BlocklistResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Add an entry to the discovery blocklist */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BlocklistRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discovery/blocklist/{value}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove an entry from the discovery blocklist */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    value: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChangedResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discovery/discover-now": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ping every peer and fetch every station card now */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscoverNowResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discovery/identity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get how this instance introduces itself to discovery peers */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IdentityResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discovery/peers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the discovery peers */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeerResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Add a discovery peer by hand */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AddPeerRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeerResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discovery/peers/{publicKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a discovery peer */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    publicKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChangedResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discovery/peers/{publicKey}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Block a discovery peer */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    publicKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeerResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discovery/peers/{publicKey}/downvote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lower a discovery peer's reputation */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    publicKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeerResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discovery/peers/{publicKey}/ping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ping a discovery peer now */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    publicKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discovery/peers/{publicKey}/unblock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unblock a discovery peer */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    publicKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeerResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discovery/peers/{publicKey}/upvote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Raise a discovery peer's reputation */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    publicKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeerResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discovery/peers/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Probe an address for a discovery peer */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProbeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscoveryInfoResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discovery/seed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add the federation partners as discovery peers */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChangedCountResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discovery/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the discovery settings */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscoverySettingsResponse"];
+                    };
+                };
+            };
+        };
+        /** Change the discovery settings */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DiscoverySettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscoverySettingsResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/feed-metrics": {
         parameters: {
             query?: never;
@@ -2139,6 +2733,66 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/first-station": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the instance still waits for its first station */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FirstStationStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Found the instance's first station */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FirstStationRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FoundedStation"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -3432,7 +4086,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["StationApplication"][];
+                    };
                 };
             };
         };
@@ -3468,7 +4124,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["StationApplication"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -3513,7 +4171,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["StationApplication"];
+                    };
                 };
                 /** @description Bad Request */
                 400: {
@@ -3567,7 +4227,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["StationApplication"];
+                    };
                 };
                 /** @description Bad Request */
                 400: {
@@ -7422,7 +8084,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MemberCompletion"][];
+                    };
                 };
             };
         };
@@ -7460,7 +8124,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardLane"];
+                    };
                 };
             };
         };
@@ -7514,7 +8180,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["CanEditResponse"];
+                    };
                 };
             };
         };
@@ -7586,7 +8254,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["OkResponse"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -7703,7 +8373,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardLabel"][];
+                    };
                 };
             };
         };
@@ -7729,7 +8401,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardLabel"];
+                    };
                 };
                 /** @description Bad Request */
                 400: {
@@ -7834,7 +8508,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardLane"][];
+                    };
                 };
             };
         };
@@ -7859,7 +8535,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardLane"][];
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -7903,7 +8581,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MemberCompletion"][];
+                    };
                 };
             };
         };
@@ -7939,7 +8619,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["TicketLabelMapping"][];
+                    };
                 };
             };
         };
@@ -8163,7 +8845,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardActivityEntry"][];
+                    };
                 };
             };
         };
@@ -8371,7 +9055,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/octet-stream": string;
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -8598,7 +9284,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["BoardComment"][];
+                        "application/json": components["schemas"]["CommentResponse"][];
                     };
                 };
             };
@@ -8627,7 +9313,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["BoardComment"];
+                        "application/json": components["schemas"]["CommentResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -8770,7 +9456,11 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BoardFieldValue"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -8854,7 +9544,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["BoardTicketHistory"][];
+                        "application/json": components["schemas"]["BoardTicketHistoryResponse"][];
                     };
                 };
             };
@@ -9317,7 +10007,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["BoardTicketTransition"][];
+                        "application/json": components["schemas"]["BoardTicketTransitionResponse"][];
                     };
                 };
             };
@@ -13923,6 +14613,172 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discovery/peers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Receive a peer's signed answer to one of this instance's pings */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DiscoveryCallbackMessage"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discovery/ping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Receive a signed discovery ping from a peer */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DiscoveryPingMessage"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discovery/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask a discovered station to federate */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FederationRequestBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discovery/stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the stations the discovery peers publish */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscoveredStationResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -19162,7 +20018,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["DiscoveredBoard"][];
+                    };
                 };
             };
         };
@@ -19199,7 +20057,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["FederatedBoardDetail"];
+                    };
                 };
             };
         };
@@ -19236,7 +20096,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["AccessOverrideResponse"];
+                    };
                 };
             };
         };
@@ -19298,7 +20160,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardField"][];
+                    };
                 };
             };
         };
@@ -19335,7 +20199,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardLabel"][];
+                    };
                 };
             };
         };
@@ -19362,7 +20228,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardLabel"];
+                    };
                 };
             };
         };
@@ -19397,7 +20265,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardLane"][];
+                    };
                 };
             };
         };
@@ -19434,7 +20304,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MemberCompletion"][];
+                    };
                 };
             };
         };
@@ -19471,7 +20343,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["TicketLabelMapping"][];
+                    };
                 };
             };
         };
@@ -19508,7 +20382,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["TicketSummary"][];
+                    };
                 };
             };
         };
@@ -19535,7 +20411,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardTicket"];
+                    };
                 };
             };
         };
@@ -19571,7 +20449,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardTicket"];
+                    };
                 };
             };
         };
@@ -19598,7 +20478,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardTicket"];
+                    };
                 };
             };
         };
@@ -19657,7 +20539,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardTicketAttachment"][];
+                    };
                 };
             };
         };
@@ -19695,7 +20579,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardChecklistItem"][];
+                    };
                 };
             };
         };
@@ -19723,7 +20609,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardChecklistItem"];
+                    };
                 };
             };
         };
@@ -19825,7 +20713,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"][];
+                    };
                 };
             };
         };
@@ -19853,7 +20743,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardComment"];
+                    };
                 };
             };
         };
@@ -19889,7 +20781,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardTicketHistoryResponse"][];
+                    };
                 };
             };
         };
@@ -19927,7 +20821,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardLabel"][];
+                    };
                 };
             };
         };
@@ -19968,7 +20864,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardLabel"][];
+                    };
                 };
             };
         };
@@ -20027,13 +20925,80 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardTicketLink"][];
+                    };
                 };
             };
         };
         put?: never;
-        post?: never;
+        /** Link two tickets on a federated board */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    boardKey: string;
+                    partnerUid: string;
+                    ticketNumber: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["LocalLinkRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/links/{linkedNumber}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a link between two tickets on a federated board */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    boardKey: string;
+                    linkedNumber: number;
+                    partnerUid: string;
+                    ticketNumber: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -20070,7 +21035,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardTicket"];
+                    };
                 };
             };
         };
@@ -20149,7 +21116,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["BoardTicketTransitionResponse"][];
+                    };
                 };
             };
         };
@@ -20247,7 +21216,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["WatcherResponse"];
+                    };
                 };
             };
         };
@@ -20286,7 +21257,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["TicketSummary"][];
+                    };
                 };
             };
         };
@@ -20320,7 +21293,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["EnrichedBookmark"][];
+                    };
                 };
             };
         };
@@ -20344,7 +21319,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["FederationBoardBookmark"];
+                    };
                 };
             };
         };
@@ -20774,6 +21751,800 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enter a pairing code from another station */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AcceptRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationPartner"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the federation contract this instance speaks */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationInfoResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a pairing code for this station */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InviteCodeResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/partners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the station's federation partners */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/partners/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a federation partner */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** End a federation partnership */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/partners/{id}/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List what is exchanged with a federation partner */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationCapability"][];
+                    };
+                };
+            };
+        };
+        /** Set what is exchanged with a federation partner */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CapabilityRequest"][];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationCapability"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/partners/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a suspended federation partner */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationPartner"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/partners/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend a federation partner */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationPartner"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the pair requests waiting for this station */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/requests/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept a pair request */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationPartner"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/requests/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline a pair request */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/shares/kb": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the station's knowledge base shares */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KbShareResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Share a knowledge base entry with partners */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["KbShareRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationShare"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/shares/kb/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Stop sharing a knowledge base entry */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/shares/protocol": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the station's test protocol shares */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationShare"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Share a test protocol with partners */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProtocolShareRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationShare"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/shares/protocol/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Stop sharing a test protocol */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/shares/quiz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the station's quiz catalog shares */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationShare"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Share a quiz catalog with partners */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QuizShareRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationShare"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/shares/quiz/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Stop sharing a quiz catalog */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/stations/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search the stations a page may name as partners */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    q?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationPickerResult"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -22776,7 +24547,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["StationMember"][];
+                        "application/json": components["schemas"]["MemberWithName"][];
                     };
                 };
             };
@@ -29923,7 +31694,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": unknown;
+                    };
                 };
             };
         };
@@ -29960,7 +31733,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MemberInventoryItem"][];
+                        "application/json": components["schemas"]["MyInventoryItem"][];
                     };
                 };
             };
@@ -29997,7 +31770,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MemberRequirement"][];
+                    };
                 };
             };
         };
@@ -30046,6 +31821,66 @@ export interface paths {
         };
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/managed-members/{memberId}/passkey-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a passkey code for a managed member */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PasskeyCodeResponse"];
+                    };
+                };
+            };
+        };
+        /** Revoke the passkey code of a managed member */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -30151,7 +31986,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MergedValue"][];
+                    };
                 };
             };
         };
@@ -30724,6 +32561,267 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/member-table": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw a member table of chosen people and columns */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MemberTableRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberTable"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-table/columns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the columns this reader may draw a member table with */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberTableHeader"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-table/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export a member table as CSV */
+        post: {
+            parameters: {
+                query?: {
+                    separator?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MemberTableRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": string;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-table/export.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export a member table as PDF */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MemberTableRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/pdf": string;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-table/presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the saved column selections of the station */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberTablePreset"][];
+                    };
+                };
+            };
+        };
+        /** Save a column selection under a name */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SavePresetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberTablePreset"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-table/presets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a saved column selection */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/members/{accountId}": {
         parameters: {
             query?: never;
@@ -31058,7 +33156,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["InviteResponse"];
+                        "application/json": components["schemas"]["MemberInviteResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -31082,6 +33180,151 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/members/onboard-again": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Onboard a member again */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AccountActionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OnboardAgainResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/members/passkey-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a passkey code for an addressless member */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AccountActionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PasskeyCodeResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/members/passkey-code/{accountId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke the passkey code of a member */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -31149,6 +33392,7 @@ export interface paths {
                 query?: {
                     limit?: number;
                     q?: string;
+                    uid?: string;
                 };
                 header?: never;
                 path?: never;
@@ -34381,6 +36625,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List every permission a member, a group or a user type can be granted */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Permission"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/problem-reports": {
         parameters: {
             query?: never;
@@ -35411,7 +37691,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["PagedChangesResponse"];
+                    };
                 };
             };
         };
@@ -35446,7 +37728,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MemberChangeSummary"][];
+                        "application/json": components["schemas"]["EnrichedMemberChangeSummary"][];
                     };
                 };
             };
@@ -35750,6 +38032,53 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile-fields/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put one audience's profile fields in order */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -36939,7 +39268,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
                 };
                 /** @description Bad Request */
                 400: {
@@ -36985,6 +39316,161 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["DocumentResponse"];
                     };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/discovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the stations on the discovery page */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscoveryEntry"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/discovery/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get this instance's discovery metadata */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscoveryInfoResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/discovery/invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a pairing code for a station open to invitations */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FederationRequestBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InviteCodeResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/discovery/stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the station cards this instance publishes */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscoveryStationsResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -37427,7 +39913,11 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["InstallPresetRequest"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -37435,7 +39925,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PresetResponse"];
+                        "application/json": components["schemas"]["InstallPresetResponse"];
                     };
                 };
             };
@@ -37470,7 +39960,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/plain": string;
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -39095,6 +41587,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/stations/{stationId}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a station's logo by ID, without signing in */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    stationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/*": string;
+                    };
+                };
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/tos": {
         parameters: {
             query?: never;
@@ -39529,7 +42077,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["TablesResponse"];
+                    };
                 };
                 /** @description Forbidden */
                 403: {
@@ -42869,7 +45419,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["StationApplication"];
+                    };
                 };
                 /** @description Bad Request */
                 400: {
@@ -42938,11 +45490,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List members of a station with account info */
+        /** List members of the caller's station with account info */
         get: {
             parameters: {
-                query: {
-                    stationId: number;
+                query?: {
+                    includeFormer?: boolean;
                 };
                 header?: never;
                 path?: never;
@@ -42982,7 +45534,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["StationMember"];
+                        "application/json": components["schemas"]["MemberWithName"];
                     };
                 };
                 /** @description Bad Request */
@@ -43027,7 +45579,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["StationMember"];
+                        "application/json": components["schemas"]["MemberWithName"];
                     };
                 };
                 /** @description Not Found */
@@ -43143,12 +45695,38 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["StationMember"][];
+                        "application/json": components["schemas"]["MemberWithName"][];
                     };
                 };
             };
         };
-        put?: never;
+        /** Set the members this member manages (replaces all existing ones) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetManagedRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberWithName"][];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -43181,7 +45759,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["StationMember"][];
+                        "application/json": components["schemas"]["MemberWithName"][];
                     };
                 };
             };
@@ -43208,7 +45786,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["StationMember"][];
+                        "application/json": components["schemas"]["MemberWithName"][];
                     };
                 };
             };
@@ -43246,7 +45824,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["FormerCheckResponse"];
+                    };
                 };
                 /** @description Bad Request */
                 400: {
@@ -43395,7 +45975,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["FormerCheckResponse"];
+                    };
                 };
                 /** @description Bad Request */
                 400: {
@@ -43602,7 +46184,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProfileField"][];
+                        "application/json": components["schemas"]["MergedField"][];
                     };
                 };
             };
@@ -43824,7 +46406,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProfileFieldValue"][];
+                        "application/json": components["schemas"]["MergedValue"][];
                     };
                 };
             };
@@ -43851,7 +46433,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProfileFieldValue"][];
+                        "application/json": components["schemas"]["MergedValue"][];
                     };
                 };
             };
@@ -43888,7 +46470,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProfileFieldChange"][];
+                        "application/json": components["schemas"]["EnrichedProfileFieldChange"][];
                     };
                 };
             };
@@ -44029,6 +46611,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station-members/all-permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the permissions of every member of the caller's station, by member id */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PermissionsByMember"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station-members/by-uid/{uid}": {
         parameters: {
             query?: never;
@@ -44064,6 +46682,45 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station-members/completions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the active members of the caller's station for autocomplete */
+        get: {
+            parameters: {
+                query?: {
+                    entityId?: number;
+                    restrictionType?: components["schemas"]["RestrictionType"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberCompletion"][];
                     };
                 };
             };
@@ -44129,7 +46786,11 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateInvitesRequest"];
+                };
+            };
             responses: {
                 /** @description Created */
                 201: {
@@ -44428,6 +47089,84 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get where the station is */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationView"];
+                    };
+                };
+            };
+        };
+        /** Set where the station is */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["LocationUpdate"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LocationView"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Clear where the station is */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -45109,7 +47848,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["StationImportProgress"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -45138,7 +47879,9 @@ export interface paths {
         /** Get station logo */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    size?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -45150,16 +47893,16 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "image/*": string;
+                    };
                 };
-                /** @description Not Found */
-                404: {
+                /** @description No Content */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
+                    content?: never;
                 };
             };
         };
@@ -46327,7 +49070,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Station"][];
+                        "application/json": components["schemas"]["StationDetail"][];
                     };
                 };
             };
@@ -46386,7 +49129,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    id: number;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -46418,7 +49161,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    id: number;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -46455,7 +49198,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    id: number;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -46494,10 +49237,12 @@ export interface paths {
         /** Get a station's logo by ID */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    size?: number;
+                };
                 header?: never;
                 path: {
-                    stationId: number;
+                    stationId: string;
                 };
                 cookie?: never;
             };
@@ -46508,10 +49253,19 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "image/*": string;
+                    };
                 };
                 /** @description No Content */
                 204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -47871,10 +50625,17 @@ export interface components {
             memberName: string;
             reason: string | null;
         };
+        AcceptRequest: {
+            inviteCode?: string;
+        };
         AccessData: {
             groupIds: number[];
             tagIds: number[];
             userTypes: components["schemas"]["StationUserType"][];
+        };
+        AccessOverrideResponse: {
+            edit: components["schemas"]["AccessData"];
+            view: components["schemas"]["AccessData"];
         };
         AccessRequest: {
             groupIds: number[];
@@ -47884,6 +50645,10 @@ export interface components {
         AccordionConfig: {
             openByDefault?: boolean;
             title?: string;
+        };
+        AccountActionRequest: {
+            /** Format: int32 */
+            accountId?: number;
         };
         AccountInfo: {
             email: string;
@@ -47942,6 +50707,10 @@ export interface components {
             restored: number;
             /** Format: int32 */
             skipped: number;
+        };
+        AddPeerRequest: {
+            baseUrl?: string;
+            expectedPublicKey?: string;
         };
         AddressCardConfig: {
             addressLine?: string;
@@ -48134,6 +50903,8 @@ export interface components {
             instanceLockFeel: boolean;
             stationRegistrationEnabled: boolean;
         };
+        /** @enum {string} */
+        ApplicationStatus: "PENDING" | "ACCEPTED" | "DENIED" | "UNVERIFIED";
         ApplyPresetRequest: {
             stationUids?: string[];
         };
@@ -48554,6 +51325,19 @@ export interface components {
             sortOrder?: number;
             widthPercent?: number;
         };
+        /** @enum {string} */
+        BlocklistKind: "BASE_URL" | "PUBLIC_KEY";
+        BlocklistRequest: {
+            kind?: components["schemas"]["BlocklistKind"];
+            note?: string;
+            value?: string;
+        };
+        BlocklistResponse: {
+            createdAt: components["schemas"]["Instant"];
+            kind: components["schemas"]["BlocklistKind"];
+            note: string | null;
+            value: string;
+        };
         BlockRowRequest: {
             cells?: components["schemas"]["BlockCellRequest"][];
             /** Format: int32 */
@@ -48570,9 +51354,9 @@ export interface components {
         };
         Board: {
             /** Format: int32 */
-            backlogLaneId: number;
+            backlogLaneId: number | null;
             createdAt: components["schemas"]["Instant"];
-            description: string;
+            description: string | null;
             /** Format: int32 */
             hideDoneAfterDays: number;
             /** Format: int32 */
@@ -48586,6 +51370,14 @@ export interface components {
             /** Format: uuid */
             uid: string;
         };
+        BoardActivityEntry: {
+            /** Format: int32 */
+            id: number;
+            timestamp: components["schemas"]["Instant"];
+            type: components["schemas"]["BoardActivityType"];
+        };
+        /** @enum {string} */
+        BoardActivityType: "COMMENT" | "TRANSITION" | "HISTORY";
         BoardChecklistItem: {
             checked: boolean;
             /** Format: int32 */
@@ -48597,17 +51389,17 @@ export interface components {
             title: string;
         };
         BoardComment: {
-            author: components["schemas"]["MemberIdentity"];
+            author: components["schemas"]["MemberIdentity"] | null;
             content: string;
             createdAt: components["schemas"]["Instant"];
             deleted: boolean;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
-            parentId: number;
+            parentId: number | null;
             /** Format: int32 */
             ticketId: number;
-            updatedAt: components["schemas"]["Instant"];
+            updatedAt: components["schemas"]["Instant"] | null;
         };
         BoardField: {
             /** Format: int32 */
@@ -48648,10 +51440,20 @@ export interface components {
             id: number;
             name: string;
         };
+        BoardLane: {
+            /** Format: int32 */
+            boardId: number;
+            color: string | null;
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            position: number;
+        };
         /** @enum {string} */
         BoardShareMode: "READ_ONLY" | "FULL";
         BoardTicket: {
-            assignee: components["schemas"]["MemberIdentity"];
+            assignee: components["schemas"]["MemberIdentity"] | null;
             /** Format: int32 */
             attachmentCount: number;
             /** Format: int32 */
@@ -48662,8 +51464,8 @@ export interface components {
             checklistTotal: number;
             createdAt: components["schemas"]["Instant"];
             creator: components["schemas"]["MemberIdentity"];
-            description: string;
-            dueDate: components["schemas"]["LocalDate"];
+            description: string | null;
+            dueDate: components["schemas"]["LocalDate"] | null;
             /** Format: int32 */
             id: number;
             laneEnteredAt: components["schemas"]["Instant"];
@@ -48708,20 +51510,21 @@ export interface components {
             fieldType: components["schemas"]["BoardFieldType"];
             /** Format: int32 */
             ticketId: number;
-            value: components["schemas"]["BoardFieldValue"];
+            value: components["schemas"]["BoardFieldValue"] | null;
         };
-        BoardTicketHistory: {
+        /** @enum {string} */
+        BoardTicketHistoryAction: "TITLE_CHANGED" | "DESCRIPTION_CHANGED" | "PRIORITY_CHANGED" | "DUE_DATE_CHANGED" | "ASSIGNEE_CHANGED" | "LABEL_ADDED" | "LABEL_REMOVED" | "LINK_ADDED" | "LINK_REMOVED" | "FIELD_CHANGED";
+        BoardTicketHistoryResponse: {
             action: components["schemas"]["BoardTicketHistoryAction"];
-            actor: components["schemas"]["MemberIdentity"];
+            actor: components["schemas"]["MemberIdentity"] | null;
+            actorName: string | null;
             createdAt: components["schemas"]["Instant"];
-            detail: string;
+            detail: string | null;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
             ticketId: number;
         };
-        /** @enum {string} */
-        BoardTicketHistoryAction: "TITLE_CHANGED" | "DESCRIPTION_CHANGED" | "PRIORITY_CHANGED" | "DUE_DATE_CHANGED" | "ASSIGNEE_CHANGED" | "LABEL_ADDED" | "LABEL_REMOVED" | "LINK_ADDED" | "LINK_REMOVED" | "FIELD_CHANGED";
         BoardTicketKbLink: {
             folderPath: string;
             /** Format: int32 */
@@ -48739,17 +51542,18 @@ export interface components {
             /** Format: int32 */
             ticketId: number;
         };
-        BoardTicketTransition: {
-            actor: components["schemas"]["MemberIdentity"];
+        BoardTicketTransitionResponse: {
+            actor: components["schemas"]["MemberIdentity"] | null;
+            actorName: string | null;
             /** Format: int32 */
-            fromLaneId: number;
+            fromLaneId: number | null;
             /** Format: int32 */
             id: number;
             movedAt: components["schemas"]["Instant"];
             /** Format: int32 */
             ticketId: number;
             /** Format: int32 */
-            toLaneId: number;
+            toLaneId: number | null;
         };
         BoardWeblink: {
             /** Format: int32 */
@@ -48864,6 +51668,16 @@ export interface components {
         CancelRequest: {
             reason?: string | null;
         };
+        CanEditResponse: {
+            canEdit: boolean;
+        };
+        CapabilityRequest: {
+            capability?: components["schemas"]["CapabilityType"];
+            direction?: components["schemas"]["Direction"];
+            enabled?: boolean;
+        };
+        /** @enum {string} */
+        CapabilityType: "KB_SHARE" | "QUIZ_SHARE" | "PROTOCOL_SHARE" | "INVENTORY_LEND" | "EVENT_SHARE" | "BOARD_SHARE" | "NEWS_SHARE";
         CatalogImportRejected: {
             problems: components["schemas"]["CatalogTransferProblem"][];
         };
@@ -48997,6 +51811,13 @@ export interface components {
         CeremonyResponse: {
             challengeToken: string;
             optionsJson: string;
+        };
+        ChangedCountResponse: {
+            /** Format: int32 */
+            changed: number;
+        };
+        ChangedResponse: {
+            changed: boolean;
         };
         ChangelogEntry: {
             body: string;
@@ -49626,6 +52447,10 @@ export interface components {
             name?: string;
             tableType?: components["schemas"]["FilterTableType"];
         };
+        CreateInvitesRequest: {
+            invites?: components["schemas"]["InviteEntry"][];
+            sendSetupMail?: boolean;
+        };
         CreateInvitesResponse: {
             failed: components["schemas"]["FailedInviteResponse"][];
             provisioned: components["schemas"]["ProvisionedMemberResponse"][];
@@ -49909,6 +52734,131 @@ export interface components {
             hits: number;
         };
         /** @enum {string} */
+        Direction: "IMPORT" | "EXPORT";
+        DiscoveredBoard: {
+            description: string | null;
+            name: string;
+            /** Format: int32 */
+            partnerId: number;
+            partnerStationName: string;
+            partnerStationUid: string;
+            /** Format: uuid */
+            remoteBoardUid: string;
+            requiredUserType: components["schemas"]["StationUserType"];
+            shareMode: components["schemas"]["BoardShareMode"];
+            shortKey: string;
+        };
+        DiscoveredStationResponse: {
+            addressLine: string | null;
+            city: string | null;
+            contactUrl: string;
+            country: string | null;
+            fetchedAt: components["schemas"]["Instant"];
+            instancePublicKey: string;
+            latitude: number | null;
+            logoUrl: string;
+            longitude: number | null;
+            memberCount: string;
+            name: string;
+            publishedAt: components["schemas"]["Instant"];
+            region: string | null;
+            slogan: string | null;
+            stationUid: string;
+            tags: string[];
+        };
+        DiscoverNowResponse: {
+            /** Format: int32 */
+            pingsDispatched: number;
+            /** Format: int32 */
+            stationsFetched: number;
+        };
+        DiscoveryCallbackMessage: {
+            from?: components["schemas"]["DiscoveryIdentity"];
+            inReplyTo?: string;
+            issuedAt?: components["schemas"]["Instant"];
+            peers?: components["schemas"]["PeerAnnouncement"][];
+        };
+        DiscoveryEntry: {
+            alreadyFederated: boolean;
+            city: string | null;
+            clusterName: string | null;
+            /** Format: uuid */
+            clusterUid: string | null;
+            country: string | null;
+            description: string | null;
+            hasLogo: boolean;
+            hasPublicCalendar: boolean;
+            hasPublicKb: boolean;
+            instanceHost: string | null;
+            isOwnStation: boolean;
+            latitude: number | null;
+            longitude: number | null;
+            name: string;
+            publicPageUrl: string | null;
+            publicSlug: string | null;
+            /** Format: uuid */
+            stationUid: string;
+        };
+        DiscoveryIdentity: {
+            baseUrl: string;
+            instanceId: string;
+            publicKey: string;
+        };
+        DiscoveryInfoResponse: {
+            baseUrl: string;
+            discoveryEnabled: boolean;
+            instanceId: string;
+            publicKey: string | null;
+            softwareVersion: string;
+        };
+        DiscoveryPingMessage: {
+            callbackUrl?: string;
+            /** Format: int32 */
+            depth?: number;
+            from?: components["schemas"]["DiscoveryIdentity"];
+            issuedAt?: components["schemas"]["Instant"];
+            nonce?: string;
+        };
+        DiscoverySettingsRequest: {
+            enabled?: boolean;
+            /** Format: int32 */
+            maxDepth?: number;
+            /** Format: int32 */
+            pingIntervalMinutes?: number;
+        };
+        DiscoverySettingsResponse: {
+            enabled: boolean;
+            /** Format: int32 */
+            hardMaxDepth: number;
+            /** Format: int32 */
+            maxDepth: number;
+            /** Format: int32 */
+            pingIntervalMinutes: number;
+        };
+        DiscoveryStationCard: {
+            addressLine: string | null;
+            city: string | null;
+            clusterName: string | null;
+            clusterUid: string | null;
+            contactUrl: string;
+            country: string | null;
+            latitude: number | null;
+            logoUrl: string;
+            longitude: number | null;
+            memberCount: string;
+            name: string;
+            publicSlug: string | null;
+            publishedAt: components["schemas"]["Instant"];
+            region: string | null;
+            slogan: string | null;
+            stationUid: string;
+            tags: string[];
+        };
+        DiscoveryStationsResponse: {
+            instance: components["schemas"]["DiscoveryIdentity"];
+            stations: components["schemas"]["DiscoveryStationCard"][];
+        };
+        /** @enum {string} */
         DiscoveryVisibility: "NONE" | "INSTANCE" | "PUBLIC";
         DispatchRequest: {
             itemIds?: number[];
@@ -49999,6 +52949,22 @@ export interface components {
             /** Format: int64 */
             requestCount: number;
         };
+        EnrichedBookmark: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            memberId: number;
+            /** Format: int32 */
+            partnerId: number;
+            /** Format: uuid */
+            partnerStationUid: string | null;
+            remoteBoardName: string;
+            remoteBoardShortKey: string;
+            /** Format: uuid */
+            remoteBoardUid: string;
+            shareMode: components["schemas"]["BoardShareMode"];
+        };
         EnrichedCheckDetail: {
             check: components["schemas"]["InventoryCheck"];
             checkerFirstName: string;
@@ -50043,10 +53009,23 @@ export interface components {
             inventoryName: string;
             item: components["schemas"]["LendingRequestItem"];
         };
+        EnrichedMemberChangeSummary: {
+            identity: components["schemas"]["MemberIdentity"];
+            latestChange: components["schemas"]["Instant"];
+            /** Format: int32 */
+            memberId: number;
+            memberName: string;
+            /** Format: int32 */
+            pendingCount: number;
+        };
         EnrichedMessage: {
             message: components["schemas"]["LendingMessage"];
             senderName: string | null;
             senderStationName: string;
+        };
+        EnrichedProfileFieldChange: {
+            change: components["schemas"]["ProfileFieldChange"];
+            memberIdentity: components["schemas"]["MemberIdentity"];
         };
         EntryAudience: {
             /** Format: int32 */
@@ -50507,7 +53486,7 @@ export interface components {
         ExternalLinkImageDisplay: "BANNER" | "ICON";
         FailedInviteResponse: {
             email: string;
-            reason: string;
+            reason: string | null;
         };
         FeaturedEventConfig: {
             ctaText?: string;
@@ -50518,6 +53497,11 @@ export interface components {
             eventUid?: string;
             location?: string;
             title?: string;
+        };
+        FederatedBoardDetail: {
+            board: components["schemas"]["RemoteBoard"];
+            shareMode: components["schemas"]["BoardShareMode"];
+            stationName: string;
         };
         FederatedEventItem: {
             event: components["schemas"]["SharedEvent"];
@@ -50538,7 +53522,7 @@ export interface components {
             /** Format: int32 */
             remoteId: number;
             stationName: string;
-            stationUid: string;
+            stationUid: string | null;
             title: string;
             userTypes: string[];
         };
@@ -50549,7 +53533,7 @@ export interface components {
             /** Format: int32 */
             remoteId: number;
             stationName: string;
-            stationUid: string;
+            stationUid: string | null;
             title: string;
             userTypes: string[];
         };
@@ -50580,6 +53564,29 @@ export interface components {
         FederatedRegistrationAnswer: {
             status: components["schemas"]["RegistrationStatus"];
         };
+        FederationBoardBookmark: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            memberId: number;
+            /** Format: int32 */
+            partnerId: number;
+            remoteBoardName: string;
+            remoteBoardShortKey: string;
+            /** Format: uuid */
+            remoteBoardUid: string;
+            shareMode: components["schemas"]["BoardShareMode"];
+        };
+        FederationCapability: {
+            capability: components["schemas"]["CapabilityType"];
+            direction: components["schemas"]["Direction"];
+            enabled: boolean;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            partnerId: number;
+        };
         FederationConfigRequest: {
             editUserTypes?: components["schemas"]["StationUserType"][];
             targets?: components["schemas"]["FederationTargetRequest"][];
@@ -50588,11 +53595,61 @@ export interface components {
             editUserTypes: components["schemas"]["StationUserType"][];
             targets: components["schemas"]["FederationTargetResponse"][];
         };
+        FederationContract: {
+            core: string;
+            features: {
+                [key: string]: string;
+            };
+        };
+        FederationInfoResponse: {
+            contract: components["schemas"]["FederationContract"];
+        };
+        FederationPartner: {
+            clusterHome: boolean;
+            clusterManaged: boolean;
+            createdAt: components["schemas"]["Instant"];
+            federationContract: components["schemas"]["FederationContract"] | null;
+            /** Format: int32 */
+            id: number;
+            inviteCode: string | null;
+            partnerPublicKey: string | null;
+            /** Format: uuid */
+            partnerStationId: string;
+            partnerStationName: string | null;
+            publicKey: string | null;
+            remote: boolean;
+            remoteHost: string | null;
+            /** Format: uuid */
+            stationId: string;
+            status: components["schemas"]["FederationStatus"];
+            updatedAt: components["schemas"]["Instant"];
+        };
+        FederationRequestBody: {
+            /** Format: uuid */
+            stationUid?: string;
+        };
+        FederationShare: {
+            /** Format: int32 */
+            catalogId: number | null;
+            /** Format: int32 */
+            fileId: number | null;
+            /** Format: int32 */
+            folderId: number | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            protocolId: number | null;
+            shareScope: components["schemas"]["ShareScope"];
+            /** Format: uuid */
+            stationId: string;
+        };
         FederationShareResponse: {
             partnerIds: number[] | null;
             scope: components["schemas"]["ShareScope"] | null;
             shared: boolean;
         };
+        /** @enum {string} */
+        FederationStatus: "PENDING" | "ACTIVE" | "SUSPENDED";
         FederationTargetRequest: {
             /** Format: int32 */
             partnerId?: number;
@@ -50678,6 +53735,10 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
         };
+        FieldOrderRequest: {
+            fieldIds?: number[];
+            role?: components["schemas"]["ProfileFieldScope"];
+        };
         /** @enum {string} */
         FieldOrigin: "STATION" | "CLUSTER";
         FieldRequest: {
@@ -50761,6 +53822,12 @@ export interface components {
         };
         /** @enum {string} */
         FilterTableType: "MEMBERS" | "EVENTS" | "INVENTORY" | "ATTENDANCE" | "NEWS" | "FORMS" | "QUIZ";
+        FirstStationRequest: {
+            name?: string;
+        };
+        FirstStationStatus: {
+            needed: boolean;
+        };
         FlowPreview: {
             flow: components["schemas"]["FlowResponse"];
             ownerKind: components["schemas"]["ItemOwner"];
@@ -50886,6 +53953,10 @@ export interface components {
         };
         FormDuplicateRequest: {
             title?: string;
+        };
+        FormerCheckResponse: {
+            canMarkFormer: boolean;
+            reason: string | null;
         };
         FormLayout: {
             pages: components["schemas"]["FormPage"][];
@@ -51099,6 +54170,11 @@ export interface components {
             form: components["schemas"]["Form"];
             stillHeldBy: components["schemas"]["PageUsingForm"][];
         };
+        FoundedStation: {
+            name: string;
+            /** Format: uuid */
+            stationUid: string;
+        };
         FoundNote: {
             description: string;
             /** Format: int32 */
@@ -51216,6 +54292,11 @@ export interface components {
         GroupSetRequest: {
             name?: string;
         };
+        GuardianEntry: {
+            email?: string;
+            firstName?: string;
+            lastName?: string;
+        };
         HandOutRequest: {
             /** Format: int32 */
             inventoryId?: number;
@@ -51306,6 +54387,11 @@ export interface components {
             filter?: string;
             type: components["schemas"]["IdentityType"];
         };
+        IdentityResponse: {
+            baseUrl: string;
+            instanceId: string;
+            publicKey: string;
+        };
         /** @enum {string} */
         IdentityType: "ACCOUNT_ID" | "MEMBER_ID" | "MEMBER_UID";
         ImageConfig: {
@@ -51344,8 +54430,8 @@ export interface components {
         ImportProgressResponse: {
             /** Format: int32 */
             completedPhases: number;
-            currentPhase: string;
-            error: string;
+            currentPhase: string | null;
+            error: string | null;
             phases: string[];
             /** Format: uuid */
             stationId: string;
@@ -51380,6 +54466,16 @@ export interface components {
             /** Format: uuid */
             stationId: string;
             stationName: string;
+        };
+        InstallPresetRequest: {
+            options?: {
+                [key: string]: string;
+            };
+        };
+        InstallPresetResponse: {
+            code: string;
+            /** Format: int64 */
+            validForHours: number;
         };
         InstanceBackendRequest: components["schemas"]["InstanceLocalRequest"] | components["schemas"]["InstanceS3Request"] | components["schemas"]["InstanceSftpRequest"] | components["schemas"]["InstanceSmbRequest"];
         InstanceBackendSummary: components["schemas"]["InstanceLocalSummary"] | components["schemas"]["InstanceS3Summary"] | components["schemas"]["InstanceSftpSummary"] | components["schemas"]["InstanceSmbSummary"];
@@ -51825,18 +54921,23 @@ export interface components {
         };
         /** @enum {string} */
         InventoryType: "INTERNAL" | "EXTERNAL" | "MIXED";
+        InviteCodeResponse: {
+            inviteCode: string;
+        };
+        InviteEntry: {
+            email?: string;
+            firstName?: string;
+            /** Format: int32 */
+            groupId?: number;
+            guardians?: components["schemas"]["GuardianEntry"][];
+            lastName?: string;
+            userType?: string;
+        };
         InviteRequest: {
             email?: string;
             firstName?: string;
             lastName?: string;
             sendSetupMail?: boolean;
-        };
-        InviteResponse: {
-            email: string;
-            firstName: string;
-            /** Format: int32 */
-            id: number;
-            lastName: string;
         };
         ItemAssignment: {
             /** Format: int32 */
@@ -52079,6 +55180,24 @@ export interface components {
             memberIds: number[];
             tagIds: number[];
             userTypes: components["schemas"]["StationUserType"][];
+        };
+        KbShareRequest: {
+            /** Format: int32 */
+            fileId?: number;
+            /** Format: int32 */
+            folderId?: number;
+            partnerIds?: number[];
+            shareScope?: components["schemas"]["ShareScope"];
+        };
+        KbShareResponse: {
+            /** Format: int32 */
+            fileId: number | null;
+            /** Format: int32 */
+            folderId: number | null;
+            /** Format: int32 */
+            id: number;
+            partnerIds: number[];
+            shareScope: components["schemas"]["ShareScope"];
         };
         KbTag: {
             /** Format: int32 */
@@ -52352,6 +55471,11 @@ export interface components {
         LocalDate: string;
         /** Format: date-time */
         LocalDateTime: string;
+        LocalLinkRequest: {
+            /** Format: int32 */
+            linkedTicketNumber?: number;
+            linkType?: components["schemas"]["LinkType"];
+        };
         LocalMoveTicketRequest: {
             /** Format: int32 */
             position?: number;
@@ -52391,6 +55515,22 @@ export interface components {
             dueDate?: components["schemas"]["LocalDate"];
             priority?: components["schemas"]["TicketPriority"];
             title?: string;
+        };
+        LocationUpdate: {
+            addressLine?: string;
+            city?: string;
+            country?: string;
+            latitude?: number;
+            longitude?: number;
+            postalCode?: string;
+        };
+        LocationView: {
+            addressLine: string | null;
+            city: string | null;
+            country: string | null;
+            latitude: number | null;
+            longitude: number | null;
+            postalCode: string | null;
         };
         LogEntry: {
             /** Format: int64 */
@@ -52643,14 +55783,14 @@ export interface components {
         MailTitleSource: "SUBJECT" | "FILE_NAME";
         ManagedAccess: {
             canSignIn: boolean;
-            email: string;
+            email: string | null;
             loginEnabled: boolean;
-            username: string;
+            username: string | null;
         };
         ManagedMember: {
             /** Format: int32 */
             accountId: number;
-            email: string;
+            email: string | null;
             /** Format: int32 */
             id: number;
             name: string;
@@ -52696,7 +55836,7 @@ export interface components {
         };
         ManagerDetail: {
             accountReady: boolean;
-            email: string;
+            email: string | null;
             firstName: string;
             lastName: string;
         };
@@ -52764,14 +55904,6 @@ export interface components {
             memberId: number;
             reason: string | null;
         };
-        MemberChangeSummary: {
-            latestChange: components["schemas"]["Instant"];
-            /** Format: int32 */
-            memberId: number;
-            memberName: string;
-            /** Format: int32 */
-            pendingCount: number;
-        };
         MemberCheckState: {
             assigned: components["schemas"]["InventoryItem"][];
             lastCheck: components["schemas"]["InventoryCheck"] | null;
@@ -52785,6 +55917,18 @@ export interface components {
             unassigned: {
                 [key: string]: components["schemas"]["InventoryItem"][];
             };
+        };
+        MemberCompletion: {
+            displayTag: components["schemas"]["DisplayTag"] | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: uuid */
+            memberUid: string;
+            name: string;
+            nameColor: string | null;
+            stationName: string | null;
+            /** Format: uuid */
+            stationUid: string;
         };
         MemberDocumentResponse: {
             createdAt: components["schemas"]["Instant"];
@@ -52822,9 +55966,9 @@ export interface components {
             showSize?: boolean | null;
         };
         MemberGroup: {
-            color: string;
+            color: string | null;
             /** Format: int32 */
-            groupSetId: number;
+            groupSetId: number | null;
             /** Format: int32 */
             id: number;
             name: string;
@@ -52845,12 +55989,12 @@ export interface components {
             groupIds?: number[];
         };
         MemberIdentity: {
-            displayTag: components["schemas"]["DisplayTag"];
+            displayTag: components["schemas"]["DisplayTag"] | null;
             /** Format: uuid */
             memberUid: string;
-            name: string;
-            nameColor: string;
-            stationName: string;
+            name: string | null;
+            nameColor: string | null;
+            stationName: string | null;
             /** Format: uuid */
             stationUid: string;
         };
@@ -52865,21 +56009,12 @@ export interface components {
             /** Format: uuid */
             uid: string;
         };
-        MemberInventoryItem: {
+        MemberInviteResponse: {
+            email: string | null;
+            firstName: string;
             /** Format: int32 */
             id: number;
-            internalId: string;
-            inventoryHomogeneous: boolean;
-            /** Format: int32 */
-            inventoryId: number;
-            inventoryName: string;
-            lostAt: components["schemas"]["Instant"];
-            lostNote: string;
-            lostNoteBy: components["schemas"]["MemberIdentity"];
-            name: string;
-            /** Format: int32 */
-            sizeId: number;
-            sizeName: string;
+            lastName: string;
         };
         MemberListConfig: {
             memberDescriptions?: {
@@ -52966,6 +56101,13 @@ export interface components {
             origin: string;
             value: string | null;
         };
+        MemberRequirement: {
+            /** Format: int32 */
+            inventoryId: number;
+            inventoryName: string;
+            /** Format: int32 */
+            requiredQuantity: number;
+        };
         MemberRequirements: {
             required: components["schemas"]["RequiredInventoryItem"][];
             unassigned: {
@@ -52973,14 +56115,14 @@ export interface components {
             };
         };
         MemberSearchResult: {
-            avatarUrl: string;
+            avatarUrl: string | null;
             displayName: string;
-            displayTag: string;
-            displayTagColor: string;
+            displayTag: string | null;
+            displayTagColor: string | null;
             /** Format: uuid */
             memberUid: string;
-            nameColor: string;
-            userType: string;
+            nameColor: string | null;
+            userType: string | null;
         };
         MemberSpotlightConfig: {
             blurb?: string;
@@ -53006,19 +56148,31 @@ export interface components {
         MemberTableCellType: "TEXT" | "NUMBER" | "DATE" | "BIRTH_DATE" | "BOOLEAN" | "ENUM";
         MemberTableColumn: {
             /** Format: int32 */
-            fieldId?: number;
-            key?: string;
-            kind?: components["schemas"]["MemberTableColumnKind"];
+            fieldId: number | null;
+            key: string | null;
+            kind: components["schemas"]["MemberTableColumnKind"];
         };
         /** @enum {string} */
         MemberTableColumnKind: "BUILTIN" | "PROFILE_FIELD" | "REGISTRATION_FIELD";
         MemberTableHeader: {
             /** Format: int32 */
-            fieldId: number;
-            key: string;
+            fieldId: number | null;
+            key: string | null;
             kind: components["schemas"]["MemberTableColumnKind"];
             label: string;
             type: components["schemas"]["MemberTableCellType"];
+        };
+        MemberTablePreset: {
+            columns: components["schemas"]["MemberTableColumn"][];
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: uuid */
+            stationId: string;
+        };
+        MemberTableRequest: {
+            columns?: components["schemas"]["MemberTableColumn"][];
+            memberIds?: number[];
         };
         MemberTableRow: {
             /** Format: int32 */
@@ -53028,21 +56182,42 @@ export interface components {
         MemberWithName: {
             /** Format: int32 */
             accountId: number;
-            email: string;
+            email: string | null;
             firstName: string;
-            formerAt: components["schemas"]["Instant"];
+            formerAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             id: number;
             identity: components["schemas"]["MemberIdentity"];
             joinDate: components["schemas"]["LocalDate"];
             lastName: string;
             name: string;
-            nickname: string;
+            nickname: string | null;
             profileComplete: boolean;
             /** Format: uuid */
             stationId: string;
-            username: string;
+            username: string | null;
             userType: components["schemas"]["StationUserType"];
+        };
+        MergedField: {
+            config: components["schemas"]["ProfileFieldConfig"];
+            fieldType: components["schemas"]["ProfileFieldType"];
+            /** Format: int32 */
+            id: number;
+            name: string;
+            origin: components["schemas"]["FieldOrigin"];
+            /** Format: int32 */
+            position: number;
+            readonly: boolean;
+            readonlyAtStation: boolean;
+            required: boolean;
+            role: components["schemas"]["ProfileFieldScope"] | null;
+            width: string | null;
+        };
+        MergedValue: {
+            /** Format: int32 */
+            fieldId: number;
+            origin: components["schemas"]["FieldOrigin"];
+            value: string | null;
         };
         MessageBody: {
             message?: string;
@@ -53088,7 +56263,7 @@ export interface components {
         };
         ModulesResponse: {
             clusterDeniedModules: components["schemas"]["StationModule"][];
-            clusterName: string;
+            clusterName: string | null;
             disabledModules: components["schemas"]["StationModule"][];
         };
         MonitoringCounts: {
@@ -53549,6 +56724,12 @@ export interface components {
         NumberValue: {
             value: number;
         };
+        OkResponse: {
+            ok: boolean;
+        };
+        OnboardAgainResponse: {
+            mailed: boolean;
+        };
         /** @enum {string} */
         OnboardingLevel: "MEMBER" | "STATION" | "INSTANCE";
         OnboardingStatus: {
@@ -53564,15 +56745,15 @@ export interface components {
         /** @enum {string} */
         OnboardingTaskState: "OPEN" | "DONE" | "SKIPPED" | "DISMISSED";
         OnboardingTaskView: {
-            actorName: string;
-            changedAt: components["schemas"]["Instant"];
+            actorName: string | null;
+            changedAt: components["schemas"]["Instant"] | null;
             confirmable: boolean;
             id: string;
             key: string;
             state: components["schemas"]["OnboardingTaskState"];
-            subject: string;
+            subject: string | null;
             /** Format: int32 */
-            subjectId: number;
+            subjectId: number | null;
         };
         Option: {
             key: string;
@@ -53601,6 +56782,15 @@ export interface components {
         };
         OwnerAboveResponse: {
             name: string | null;
+        };
+        PagedChangesResponse: {
+            changes: components["schemas"]["EnrichedProfileFieldChange"][];
+            /** Format: int32 */
+            limit: number;
+            /** Format: int32 */
+            offset: number;
+            /** Format: int32 */
+            total: number;
         };
         PageDetailResponse: {
             countries: components["schemas"]["DimensionTotal"][];
@@ -53651,14 +56841,29 @@ export interface components {
             left: string;
             right: string;
         };
+        PairRequestResponse: {
+            createdAt: string;
+            /** Format: int32 */
+            id: number;
+            stationName: string;
+        };
         ParseResult: {
             headers: string[];
             rows: string[][];
+        };
+        PartnerResponse: {
+            partner: components["schemas"]["FederationPartner"];
+            partnerStationName: string;
         };
         PartnerStationsConfig: {
             autoFillFromPartners?: boolean;
             stationUids?: string[];
             title?: string;
+        };
+        PasskeyCodeResponse: {
+            code: string;
+            expiresAt: components["schemas"]["Instant"];
+            qrPng: string;
         };
         PasskeysConfigRequest: {
             mode?: string;
@@ -53708,6 +56913,30 @@ export interface components {
             heightPx?: number;
             url?: string;
         };
+        PeerAnnouncement: {
+            baseUrl?: string;
+            firstSeenBy?: string;
+            instanceId?: string;
+            lastSeenAt?: components["schemas"]["Instant"];
+            publicKey?: string;
+        };
+        PeerResponse: {
+            baseUrl: string;
+            blocked: boolean;
+            firstSeenAt: components["schemas"]["Instant"];
+            instanceId: string;
+            introducedBy: string | null;
+            lastPingedAt: components["schemas"]["Instant"] | null;
+            lastReachedAt: components["schemas"]["Instant"] | null;
+            lastSeenAt: components["schemas"]["Instant"];
+            publicKey: string;
+            reachable: boolean;
+            /** Format: int32 */
+            reputation: number;
+            source: components["schemas"]["PeerSource"];
+        };
+        /** @enum {string} */
+        PeerSource: "BOOTSTRAP" | "GOSSIP" | "MANUAL";
         Permission: {
             /** Format: int32 */
             id: number;
@@ -53716,6 +56945,9 @@ export interface components {
         PermissionNode: {
             children: string[];
             name: string;
+        };
+        PermissionsByMember: {
+            [key: string]: components["schemas"]["Permission"][];
         };
         PickerEvent: {
             categoryName: string | null;
@@ -53798,14 +57030,12 @@ export interface components {
             /** Format: int64 */
             total?: number;
         };
-        PresetResponse: {
-            code: string;
-            /** Format: int64 */
-            validForHours: number;
-        };
         PreviewResult: {
             members: components["schemas"]["MemberPreview"][];
             warnings: string[];
+        };
+        ProbeRequest: {
+            baseUrl?: string;
         };
         ProbeResult: {
             checkedAt: string;
@@ -53988,18 +57218,18 @@ export interface components {
             changedBy: number;
             changedByName: string;
             /** Format: int32 */
-            clusterFieldId: number;
+            clusterFieldId: number | null;
             /** Format: int32 */
-            fieldId: number;
-            fieldName: string;
-            fieldType: string;
+            fieldId: number | null;
+            fieldName: string | null;
+            fieldType: string | null;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
             memberId: number;
-            memberName: string;
-            newValue: string;
-            oldValue: string;
+            memberName: string | null;
+            newValue: string | null;
+            oldValue: string | null;
             requiresAcknowledgement: boolean;
         };
         ProfileFieldChangeAcknowledgement: {
@@ -54009,29 +57239,29 @@ export interface components {
             acknowledgedByName: string;
             /** Format: int32 */
             changeId: number;
-            comment: string;
+            comment: string | null;
             /** Format: int32 */
             id: number;
         };
         ProfileFieldConfig: {
-            ageMode: string;
+            ageMode: string | null;
             computed: boolean;
             defaultValue: unknown;
-            description: string;
+            description: string | null;
             notifyOnChange: boolean;
-            options: string[];
+            options: string[] | null;
             overview: boolean;
-            reminderDays: number[];
-            remindManagement: boolean;
-            remindMember: boolean;
+            reminderDays: number[] | null;
+            remindManagement: boolean | null;
+            remindMember: boolean | null;
             /** Format: int32 */
-            repeatEveryDays: number;
-            showAge: boolean;
-            sourceField: string;
+            repeatEveryDays: number | null;
+            showAge: boolean | null;
+            sourceField: string | null;
             /** Format: int32 */
-            sourceFieldId: number;
+            sourceFieldId: number | null;
             /** Format: int32 */
-            warnFromDays: number;
+            warnFromDays: number | null;
         };
         ProfileFieldRequest: {
             config?: components["schemas"]["ProfileFieldConfig"];
@@ -54102,6 +57332,11 @@ export interface components {
             /** Format: int32 */
             position?: number | null;
         };
+        ProtocolShareRequest: {
+            /** Format: int32 */
+            protocolId?: number;
+            shareScope?: components["schemas"]["ShareScope"];
+        };
         ProviderBlock: {
             expiresAt: components["schemas"]["Instant"];
             firstBlockedAt: components["schemas"]["Instant"];
@@ -54132,7 +57367,7 @@ export interface components {
             accountCreated: boolean;
             /** Format: int32 */
             accountId: number;
-            email: string;
+            email: string | null;
             firstName: string;
             lastName: string;
             /** Format: int32 */
@@ -54293,19 +57528,19 @@ export interface components {
             title: string;
         };
         PublicStationInfo: {
-            customThemeColors: string;
-            defaultFeel: string;
+            customThemeColors: string | null;
+            defaultFeel: string | null;
             defaultTheme: string;
-            description: string;
+            description: string | null;
             hasLogo: boolean;
             hasPublicBlog: boolean;
             hasPublicCalendar: boolean;
             hasPublicKb: boolean;
             hasPublicPages: boolean;
             hasPublicWaitlist: boolean;
-            landingPageSlug: string;
+            landingPageSlug: string | null;
             name: string;
-            publicSlug: string;
+            publicSlug: string | null;
             stationUid: string;
             timezone: string;
         };
@@ -54533,6 +57768,11 @@ export interface components {
             description?: string | null;
             sources?: components["schemas"]["QuizSourceRequest"][] | null;
             title?: string | null;
+        };
+        QuizShareRequest: {
+            /** Format: int32 */
+            catalogId?: number;
+            shareScope?: components["schemas"]["ShareScope"];
         };
         QuizSourceRequest: {
             /** Format: int32 */
@@ -54947,6 +58187,21 @@ export interface components {
             mimeType: string;
             name: string;
         };
+        RemoteBoard: {
+            /** Format: int32 */
+            backlogLaneId: number | null;
+            createdAt: string;
+            description: string | null;
+            /** Format: int32 */
+            hideDoneAfterDays: number;
+            /** Format: int32 */
+            id: number;
+            name: string;
+            shortKey: string;
+            stationId: string;
+            /** Format: int32 */
+            ticketCounter: number;
+        };
         RemoteCatalogDetail: {
             catalog: components["schemas"]["QuizCatalog"];
             categories: components["schemas"]["QuizCategory"][];
@@ -55202,6 +58457,8 @@ export interface components {
             tagIds?: number[];
             userTypes?: components["schemas"]["StationUserType"][];
         };
+        /** @enum {string} */
+        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE";
         ResultFieldCondition: {
             /** Format: int32 */
             fieldId?: number;
@@ -55234,7 +58491,7 @@ export interface components {
         };
         RichMember: {
             /** Format: int32 */
-            accountId: number;
+            accountId: number | null;
             accountSetupPending: boolean;
             email: string;
             firstName: string;
@@ -55247,12 +58504,12 @@ export interface components {
             lastName: string;
             mailReaches: components["schemas"]["MailReaches"];
             name: string;
-            nickname: string;
+            nickname: string | null;
             profileValues: {
                 [key: string]: unknown;
             };
             roles: string[];
-            setupMailExpiresAt: components["schemas"]["Instant"];
+            setupMailExpiresAt: components["schemas"]["Instant"] | null;
             /** Format: uuid */
             stationId: string;
             tags: components["schemas"]["TagEntry"][];
@@ -55383,6 +58640,10 @@ export interface components {
             rows?: components["schemas"]["BlockRowRequest"][];
             slug?: string;
             title?: string;
+        };
+        SavePresetRequest: {
+            columns?: components["schemas"]["MemberTableColumn"][];
+            name?: string;
         };
         /** @enum {string} */
         Scope: "STATION" | "INSTANCE" | "USER" | "CLUSTER";
@@ -55712,6 +58973,9 @@ export interface components {
         SetManagedPasswordRequest: {
             password?: string;
         };
+        SetManagedRequest: {
+            managedIds?: number[];
+        };
         SetManagersRequest: {
             managerIds?: number[];
         };
@@ -55778,7 +59042,7 @@ export interface components {
             theme: string;
         };
         SetupStatus: {
-            completedAt: components["schemas"]["Instant"];
+            completedAt: components["schemas"]["Instant"] | null;
             optionalSteps: components["schemas"]["StepState"][];
             requiredSteps: components["schemas"]["StepState"][];
         };
@@ -56023,46 +59287,6 @@ export interface components {
             /** Format: int32 */
             heightPx?: number;
         };
-        Station: {
-            addressLine: string;
-            allowUserFeel: boolean;
-            allowUserTheme: boolean;
-            city: string;
-            /** Format: uuid */
-            clusterId: string;
-            country: string;
-            customThemeColors: string;
-            defaultFeel: components["schemas"]["ThemeFeel"];
-            defaultTheme: string;
-            discoveryDescription: string;
-            discoveryShowKb: boolean;
-            discoveryVisibility: components["schemas"]["DiscoveryVisibility"];
-            /** Format: int32 */
-            id: number;
-            /** Format: int32 */
-            landingPageId: number;
-            latitude: number;
-            locale: string;
-            longitude: number;
-            lossNoteRequired: boolean;
-            name: string;
-            nicknamesEnabled: boolean;
-            /** Format: int32 */
-            ownerMemberId: number;
-            pdfHidesInstanceUrl: boolean;
-            postalCode: string;
-            publicBlogEnabled: boolean;
-            publicCalendarEnabled: boolean;
-            publicKbMode: components["schemas"]["PublicKbMode"];
-            publicPagesEnabled: boolean;
-            publicSlug: string;
-            publicWaitlistEnabled: boolean;
-            setupCompletedAt: components["schemas"]["Instant"];
-            stationKind: components["schemas"]["StationKind"];
-            timezone: string;
-            /** Format: uuid */
-            uid: string;
-        };
         StationAiProvider: {
             apiKey: string;
             /** Format: int32 */
@@ -56071,6 +59295,20 @@ export interface components {
             provider: string;
             /** Format: uuid */
             stationId: string;
+        };
+        StationApplication: {
+            createdAt: components["schemas"]["Instant"];
+            denyReason: string | null;
+            email: string;
+            firstName: string;
+            /** Format: int32 */
+            id: number;
+            introduction: string;
+            lastName: string;
+            resolvedAt: components["schemas"]["Instant"] | null;
+            stationName: string;
+            status: components["schemas"]["ApplicationStatus"];
+            verificationToken: string | null;
         };
         StationClusterResponse: {
             applications: components["schemas"]["ClusterApplicationView"][];
@@ -56081,7 +59319,7 @@ export interface components {
         };
         StationDetail: {
             id: string;
-            manager: components["schemas"]["ManagerDetail"];
+            manager: components["schemas"]["ManagerDetail"] | null;
             name: string;
         };
         StationEvent: {
@@ -56177,6 +59415,21 @@ export interface components {
         StationGroupStationsRequest: {
             stationUids?: string[];
         };
+        StationImportProgress: {
+            /** Format: int32 */
+            completedPhases: number;
+            currentPhase: string | null;
+            error: string | null;
+            phases: string[];
+            /** Format: uuid */
+            stationId: string;
+            stationName: string;
+            status: components["schemas"]["Status"];
+            /** Format: int32 */
+            subCompleted: number;
+            /** Format: int32 */
+            subTotal: number;
+        };
         StationImportRequest: {
             sourceUrl?: string;
             token?: string;
@@ -56184,12 +59437,12 @@ export interface components {
         StationInfo: {
             allowUserFeel: boolean;
             allowUserTheme: boolean;
-            clusterName: string;
+            clusterName: string | null;
             colorsLocked: boolean;
-            customThemeColors: string;
+            customThemeColors: string | null;
             defaultFeel: components["schemas"]["ThemeFeel"];
             defaultTheme: string;
-            discoveryDescription: string;
+            discoveryDescription: string | null;
             discoveryShowKb: boolean;
             discoveryVisibility: components["schemas"]["DiscoveryVisibility"];
             feelLocked: boolean;
@@ -56201,29 +59454,27 @@ export interface components {
             name: string;
             nicknamesEnabled: boolean;
             /** Format: int32 */
-            ownerMemberId: number;
+            ownerMemberId: number | null;
             pdfHidesInstanceUrl: boolean;
             publicBlogEnabled: boolean;
             publicCalendarEnabled: boolean;
             publicKbMode: components["schemas"]["PublicKbMode"];
             publicPagesEnabled: boolean;
-            publicSlug: string;
+            publicSlug: string | null;
             publicWaitlistEnabled: boolean;
             themeLocked: boolean;
             timezone: string;
         };
-        /** @enum {string} */
-        StationKind: "REGULAR" | "CLUSTER_HOME";
         StationMember: {
             /** Format: int32 */
-            accountId: number;
+            accountId: number | null;
             displayName: string;
             former: boolean;
-            formerAt: components["schemas"]["Instant"];
+            formerAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             id: number;
             joinDate: components["schemas"]["LocalDate"];
-            nickname: string;
+            nickname: string | null;
             /** Format: uuid */
             stationId: string;
             /** Format: uuid */
@@ -56274,6 +59525,14 @@ export interface components {
         StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
         StationPermissionsRequest: {
             permissions?: string[];
+        };
+        StationPickerResult: {
+            city: string | null;
+            country: string | null;
+            logoUrl: string | null;
+            name: string;
+            selectable: boolean;
+            stationUid: string;
         };
         StationRegistrationStatus: {
             enabled: boolean;
@@ -56530,6 +59789,11 @@ export interface components {
             stationTransfer: components["schemas"]["TransferContext"];
             tableHash: string;
         };
+        TablesResponse: {
+            appVersion: string;
+            schemaHash: string;
+            tables: string[];
+        };
         TableUpdate: {
             columnVerified?: {
                 [key: string]: boolean;
@@ -56785,10 +60049,16 @@ export interface components {
             userFeel: string;
             userTheme: string;
         };
+        TicketLabelMapping: {
+            /** Format: int32 */
+            labelId: number;
+            /** Format: int32 */
+            ticketId: number;
+        };
         /** @enum {string} */
         TicketPriority: "LOWEST" | "LOW" | "MEDIUM" | "HIGH" | "HIGHEST";
         TicketSummary: {
-            assignee: components["schemas"]["MemberIdentity"];
+            assignee: components["schemas"]["MemberIdentity"] | null;
             /** Format: int32 */
             attachmentCount: number;
             /** Format: int32 */
@@ -56797,7 +60067,7 @@ export interface components {
             checklistChecked: number;
             /** Format: int32 */
             checklistTotal: number;
-            dueDate: components["schemas"]["LocalDate"];
+            dueDate: components["schemas"]["LocalDate"] | null;
             /** Format: int32 */
             id: number;
             laneEnteredAt: components["schemas"]["Instant"];
@@ -56931,7 +60201,7 @@ export interface components {
         };
         TransferStatusResponse: {
             readOnly: boolean;
-            targetInstanceUrl: string;
+            targetInstanceUrl: string | null;
         };
         TransientKeyRequest: {
             apiKey?: string | null;
@@ -57002,7 +60272,7 @@ export interface components {
             username?: string;
         };
         UpdateAccountResponse: {
-            emailChange: components["schemas"]["EmailChangeResult"];
+            emailChange: components["schemas"]["EmailChangeResult"] | null;
             message: string;
         };
         UpdateBoardRequest: {
@@ -57101,7 +60371,7 @@ export interface components {
             userAgents: components["schemas"]["FeedUserAgentStat"][];
         };
         UserTag: {
-            color: string;
+            color: string | null;
             /** Format: int32 */
             id: number;
             name: string;
@@ -57391,6 +60661,10 @@ export interface components {
             entryCount: number;
             list: components["schemas"]["WaitingList"];
         };
+        WatcherResponse: {
+            federated: unknown[];
+            local: number[];
+        };
         WebAuthnConfig: {
             attestation: string;
             rpId: string;
@@ -57437,9 +60711,12 @@ export interface components {
 export type AbsenceRequest = components['schemas']['AbsenceRequest'];
 export type AbsenceResponse = components['schemas']['AbsenceResponse'];
 export type AbsentMemberResponse = components['schemas']['AbsentMemberResponse'];
+export type AcceptRequest = components['schemas']['AcceptRequest'];
 export type AccessData = components['schemas']['AccessData'];
+export type AccessOverrideResponse = components['schemas']['AccessOverrideResponse'];
 export type AccessRequest = components['schemas']['AccessRequest'];
 export type AccordionConfig = components['schemas']['AccordionConfig'];
+export type AccountActionRequest = components['schemas']['AccountActionRequest'];
 export type AccountInfo = components['schemas']['AccountInfo'];
 export type AchievementItem = components['schemas']['AchievementItem'];
 export type AchievementsConfig = components['schemas']['AchievementsConfig'];
@@ -57451,6 +60728,7 @@ export type ActiveSession = components['schemas']['ActiveSession'];
 export type Actual = components['schemas']['Actual'];
 export type AddMembersRequest = components['schemas']['AddMembersRequest'];
 export type AddMembersResponse = components['schemas']['AddMembersResponse'];
+export type AddPeerRequest = components['schemas']['AddPeerRequest'];
 export type AddressCardConfig = components['schemas']['AddressCardConfig'];
 export type AdminOverview = components['schemas']['AdminOverview'];
 export type AdminStationUsage = components['schemas']['AdminStationUsage'];
@@ -57469,6 +60747,7 @@ export type ApplicationDecisionRequest = components['schemas']['ApplicationDecis
 export type ApplicationLogPage = components['schemas']['ApplicationLogPage'];
 export type ApplicationRequest = components['schemas']['ApplicationRequest'];
 export type ApplicationSettings = components['schemas']['ApplicationSettings'];
+export type ApplicationStatus = components['schemas']['ApplicationStatus'];
 export type ApplyPresetRequest = components['schemas']['ApplyPresetRequest'];
 export type ApplyRequest = components['schemas']['ApplyRequest'];
 export type ApplyTierRequest = components['schemas']['ApplyTierRequest'];
@@ -57526,10 +60805,15 @@ export type BindingRequest = components['schemas']['BindingRequest'];
 export type BindingResponse = components['schemas']['BindingResponse'];
 export type BlockAudience = components['schemas']['BlockAudience'];
 export type BlockCellRequest = components['schemas']['BlockCellRequest'];
+export type BlocklistKind = components['schemas']['BlocklistKind'];
+export type BlocklistRequest = components['schemas']['BlocklistRequest'];
+export type BlocklistResponse = components['schemas']['BlocklistResponse'];
 export type BlockRowRequest = components['schemas']['BlockRowRequest'];
 export type BlocksResponse = components['schemas']['BlocksResponse'];
 export type BlogSignupConfig = components['schemas']['BlogSignupConfig'];
 export type Board = components['schemas']['Board'];
+export type BoardActivityEntry = components['schemas']['BoardActivityEntry'];
+export type BoardActivityType = components['schemas']['BoardActivityType'];
 export type BoardChecklistItem = components['schemas']['BoardChecklistItem'];
 export type BoardComment = components['schemas']['BoardComment'];
 export type BoardField = components['schemas']['BoardField'];
@@ -57539,17 +60823,18 @@ export type BoardFieldType = components['schemas']['BoardFieldType'];
 export type BoardFieldValue = components['schemas']['BoardFieldValue'];
 export type BoardFieldValueByType = components['schemas']['BoardFieldValueByType'];
 export type BoardLabel = components['schemas']['BoardLabel'];
+export type BoardLane = components['schemas']['BoardLane'];
 export type BoardShareMode = components['schemas']['BoardShareMode'];
 export type BoardTicket = components['schemas']['BoardTicket'];
 export type BoardTicketAssignRequest = components['schemas']['BoardTicketAssignRequest'];
 export type BoardTicketAttachment = components['schemas']['BoardTicketAttachment'];
 export type BoardTicketCommentRequest = components['schemas']['BoardTicketCommentRequest'];
 export type BoardTicketFieldValue = components['schemas']['BoardTicketFieldValue'];
-export type BoardTicketHistory = components['schemas']['BoardTicketHistory'];
 export type BoardTicketHistoryAction = components['schemas']['BoardTicketHistoryAction'];
+export type BoardTicketHistoryResponse = components['schemas']['BoardTicketHistoryResponse'];
 export type BoardTicketKbLink = components['schemas']['BoardTicketKbLink'];
 export type BoardTicketLink = components['schemas']['BoardTicketLink'];
-export type BoardTicketTransition = components['schemas']['BoardTicketTransition'];
+export type BoardTicketTransitionResponse = components['schemas']['BoardTicketTransitionResponse'];
 export type BoardWeblink = components['schemas']['BoardWeblink'];
 export type Body = components['schemas']['Body'];
 export type BooleanConfig = components['schemas']['BooleanConfig'];
@@ -57570,6 +60855,9 @@ export type CancellationCause = components['schemas']['CancellationCause'];
 export type CancellationNotice = components['schemas']['CancellationNotice'];
 export type CancelledEventDate = components['schemas']['CancelledEventDate'];
 export type CancelRequest = components['schemas']['CancelRequest'];
+export type CanEditResponse = components['schemas']['CanEditResponse'];
+export type CapabilityRequest = components['schemas']['CapabilityRequest'];
+export type CapabilityType = components['schemas']['CapabilityType'];
 export type CatalogImportRejected = components['schemas']['CatalogImportRejected'];
 export type CatalogListResponse = components['schemas']['CatalogListResponse'];
 export type CatalogMetadata = components['schemas']['CatalogMetadata'];
@@ -57587,6 +60875,8 @@ export type CellContentType = components['schemas']['CellContentType'];
 export type CellResponse = components['schemas']['CellResponse'];
 export type CellWriteRequest = components['schemas']['CellWriteRequest'];
 export type CeremonyResponse = components['schemas']['CeremonyResponse'];
+export type ChangedCountResponse = components['schemas']['ChangedCountResponse'];
+export type ChangedResponse = components['schemas']['ChangedResponse'];
 export type ChangelogEntry = components['schemas']['ChangelogEntry'];
 export type CheckItemResult = components['schemas']['CheckItemResult'];
 export type ChecklistDetailResponse = components['schemas']['ChecklistDetailResponse'];
@@ -57680,6 +60970,7 @@ export type CreateCommentRequest = components['schemas']['CreateCommentRequest']
 export type Created = components['schemas']['Created'];
 export type CreateEntryRequest = components['schemas']['CreateEntryRequest'];
 export type CreateFilterRequest = components['schemas']['CreateFilterRequest'];
+export type CreateInvitesRequest = components['schemas']['CreateInvitesRequest'];
 export type CreateInvitesResponse = components['schemas']['CreateInvitesResponse'];
 export type CreateItemRequest = components['schemas']['CreateItemRequest'];
 export type CreateKbCommentRequest = components['schemas']['CreateKbCommentRequest'];
@@ -57722,6 +61013,19 @@ export type Dimension = components['schemas']['Dimension'];
 export type Dimensions = components['schemas']['Dimensions'];
 export type DimensionsRequest = components['schemas']['DimensionsRequest'];
 export type DimensionTotal = components['schemas']['DimensionTotal'];
+export type Direction = components['schemas']['Direction'];
+export type DiscoveredBoard = components['schemas']['DiscoveredBoard'];
+export type DiscoveredStationResponse = components['schemas']['DiscoveredStationResponse'];
+export type DiscoverNowResponse = components['schemas']['DiscoverNowResponse'];
+export type DiscoveryCallbackMessage = components['schemas']['DiscoveryCallbackMessage'];
+export type DiscoveryEntry = components['schemas']['DiscoveryEntry'];
+export type DiscoveryIdentity = components['schemas']['DiscoveryIdentity'];
+export type DiscoveryInfoResponse = components['schemas']['DiscoveryInfoResponse'];
+export type DiscoveryPingMessage = components['schemas']['DiscoveryPingMessage'];
+export type DiscoverySettingsRequest = components['schemas']['DiscoverySettingsRequest'];
+export type DiscoverySettingsResponse = components['schemas']['DiscoverySettingsResponse'];
+export type DiscoveryStationCard = components['schemas']['DiscoveryStationCard'];
+export type DiscoveryStationsResponse = components['schemas']['DiscoveryStationsResponse'];
 export type DiscoveryVisibility = components['schemas']['DiscoveryVisibility'];
 export type DispatchRequest = components['schemas']['DispatchRequest'];
 export type DisplayTag = components['schemas']['DisplayTag'];
@@ -57742,12 +61046,15 @@ export type EmptyTrashResponse = components['schemas']['EmptyTrashResponse'];
 export type EmptyView = components['schemas']['EmptyView'];
 export type EndpointDetail = components['schemas']['EndpointDetail'];
 export type EndpointStats = components['schemas']['EndpointStats'];
+export type EnrichedBookmark = components['schemas']['EnrichedBookmark'];
 export type EnrichedCheckDetail = components['schemas']['EnrichedCheckDetail'];
 export type EnrichedCheckItem = components['schemas']['EnrichedCheckItem'];
 export type EnrichedCheckSummary = components['schemas']['EnrichedCheckSummary'];
 export type EnrichedFederationRegistration = components['schemas']['EnrichedFederationRegistration'];
 export type EnrichedItem = components['schemas']['EnrichedItem'];
+export type EnrichedMemberChangeSummary = components['schemas']['EnrichedMemberChangeSummary'];
 export type EnrichedMessage = components['schemas']['EnrichedMessage'];
+export type EnrichedProfileFieldChange = components['schemas']['EnrichedProfileFieldChange'];
 export type EntryAudience = components['schemas']['EntryAudience'];
 export type EntryResponse = components['schemas']['EntryResponse'];
 export type EntrySource = components['schemas']['EntrySource'];
@@ -57797,6 +61104,7 @@ export type ExternalLinkCardConfig = components['schemas']['ExternalLinkCardConf
 export type ExternalLinkImageDisplay = components['schemas']['ExternalLinkImageDisplay'];
 export type FailedInviteResponse = components['schemas']['FailedInviteResponse'];
 export type FeaturedEventConfig = components['schemas']['FeaturedEventConfig'];
+export type FederatedBoardDetail = components['schemas']['FederatedBoardDetail'];
 export type FederatedEventItem = components['schemas']['FederatedEventItem'];
 export type FederatedKbBrowse = components['schemas']['FederatedKbBrowse'];
 export type FederatedKbFolder = components['schemas']['FederatedKbFolder'];
@@ -57805,9 +61113,17 @@ export type FederatedNewsData = components['schemas']['FederatedNewsData'];
 export type FederatedNewsItem = components['schemas']['FederatedNewsItem'];
 export type FederatedRegBody = components['schemas']['FederatedRegBody'];
 export type FederatedRegistrationAnswer = components['schemas']['FederatedRegistrationAnswer'];
+export type FederationBoardBookmark = components['schemas']['FederationBoardBookmark'];
+export type FederationCapability = components['schemas']['FederationCapability'];
 export type FederationConfigRequest = components['schemas']['FederationConfigRequest'];
 export type FederationConfigResponse = components['schemas']['FederationConfigResponse'];
+export type FederationContract = components['schemas']['FederationContract'];
+export type FederationInfoResponse = components['schemas']['FederationInfoResponse'];
+export type FederationPartner = components['schemas']['FederationPartner'];
+export type FederationRequestBody = components['schemas']['FederationRequestBody'];
+export type FederationShare = components['schemas']['FederationShare'];
 export type FederationShareResponse = components['schemas']['FederationShareResponse'];
+export type FederationStatus = components['schemas']['FederationStatus'];
 export type FederationTargetRequest = components['schemas']['FederationTargetRequest'];
 export type FederationTargetResponse = components['schemas']['FederationTargetResponse'];
 export type FeedMetricDaily = components['schemas']['FeedMetricDaily'];
@@ -57819,6 +61135,7 @@ export type FieldConfig = components['schemas']['FieldConfig'];
 export type FieldDateValueRequest = components['schemas']['FieldDateValueRequest'];
 export type FieldDefaultEntry = components['schemas']['FieldDefaultEntry'];
 export type FieldDefinitionRequest = components['schemas']['FieldDefinitionRequest'];
+export type FieldOrderRequest = components['schemas']['FieldOrderRequest'];
 export type FieldOrigin = components['schemas']['FieldOrigin'];
 export type FieldRequest = components['schemas']['FieldRequest'];
 export type FieldType = components['schemas']['FieldType'];
@@ -57835,6 +61152,8 @@ export type FileUpdateRequest = components['schemas']['FileUpdateRequest'];
 export type FillInTheBlank = components['schemas']['FillInTheBlank'];
 export type FillInTheBlankView = components['schemas']['FillInTheBlankView'];
 export type FilterTableType = components['schemas']['FilterTableType'];
+export type FirstStationRequest = components['schemas']['FirstStationRequest'];
+export type FirstStationStatus = components['schemas']['FirstStationStatus'];
 export type FlowPreview = components['schemas']['FlowPreview'];
 export type FlowProblem = components['schemas']['FlowProblem'];
 export type FlowRequest = components['schemas']['FlowRequest'];
@@ -57851,6 +61170,7 @@ export type FormDraft = components['schemas']['FormDraft'];
 export type FormDraftRequest = components['schemas']['FormDraftRequest'];
 export type FormDraftResponse = components['schemas']['FormDraftResponse'];
 export type FormDuplicateRequest = components['schemas']['FormDuplicateRequest'];
+export type FormerCheckResponse = components['schemas']['FormerCheckResponse'];
 export type FormLayout = components['schemas']['FormLayout'];
 export type FormLayoutRequest = components['schemas']['FormLayoutRequest'];
 export type FormListEntry = components['schemas']['FormListEntry'];
@@ -57879,6 +61199,7 @@ export type FormSubmitRequest = components['schemas']['FormSubmitRequest'];
 export type FormVisibility = components['schemas']['FormVisibility'];
 export type FormVisibilityRequest = components['schemas']['FormVisibilityRequest'];
 export type FormVisibilityResponse = components['schemas']['FormVisibilityResponse'];
+export type FoundedStation = components['schemas']['FoundedStation'];
 export type FoundNote = components['schemas']['FoundNote'];
 export type FreeAnswer = components['schemas']['FreeAnswer'];
 export type FreeAnswerView = components['schemas']['FreeAnswerView'];
@@ -57898,6 +61219,7 @@ export type GroupEntry = components['schemas']['GroupEntry'];
 export type GroupRequest = components['schemas']['GroupRequest'];
 export type GroupRulesRequest = components['schemas']['GroupRulesRequest'];
 export type GroupSetRequest = components['schemas']['GroupSetRequest'];
+export type GuardianEntry = components['schemas']['GuardianEntry'];
 export type HandOutRequest = components['schemas']['HandOutRequest'];
 export type HandOutSelfChecksRequest = components['schemas']['HandOutSelfChecksRequest'];
 export type HandoverRequest = components['schemas']['HandoverRequest'];
@@ -57911,6 +61233,7 @@ export type HourlyTotal = components['schemas']['HourlyTotal'];
 export type HourlyTrafficResponse = components['schemas']['HourlyTrafficResponse'];
 export type HourlyTrafficRow = components['schemas']['HourlyTrafficRow'];
 export type IdentityColumn = components['schemas']['IdentityColumn'];
+export type IdentityResponse = components['schemas']['IdentityResponse'];
 export type IdentityType = components['schemas']['IdentityType'];
 export type ImageConfig = components['schemas']['ImageConfig'];
 export type ImageFit = components['schemas']['ImageFit'];
@@ -57921,6 +61244,8 @@ export type ImportProgressResponse = components['schemas']['ImportProgressRespon
 export type ImportRequest = components['schemas']['ImportRequest'];
 export type ImportResult = components['schemas']['ImportResult'];
 export type ImportStartResponse = components['schemas']['ImportStartResponse'];
+export type InstallPresetRequest = components['schemas']['InstallPresetRequest'];
+export type InstallPresetResponse = components['schemas']['InstallPresetResponse'];
 export type InstanceBackendRequest = components['schemas']['InstanceBackendRequest'];
 export type InstanceBackendSummary = components['schemas']['InstanceBackendSummary'];
 export type InstanceLocalRequest = components['schemas']['InstanceLocalRequest'];
@@ -57964,8 +61289,9 @@ export type InventorySummary = components['schemas']['InventorySummary'];
 export type InventoryTag = components['schemas']['InventoryTag'];
 export type InventoryTagRequest = components['schemas']['InventoryTagRequest'];
 export type InventoryType = components['schemas']['InventoryType'];
+export type InviteCodeResponse = components['schemas']['InviteCodeResponse'];
+export type InviteEntry = components['schemas']['InviteEntry'];
 export type InviteRequest = components['schemas']['InviteRequest'];
-export type InviteResponse = components['schemas']['InviteResponse'];
 export type ItemAssignment = components['schemas']['ItemAssignment'];
 export type ItemBooleanValue = components['schemas']['ItemBooleanValue'];
 export type ItemCheckHistoryEntry = components['schemas']['ItemCheckHistoryEntry'];
@@ -57997,6 +61323,8 @@ export type KbReach = components['schemas']['KbReach'];
 export type KbRefusalReason = components['schemas']['KbRefusalReason'];
 export type KbRestrictionRequest = components['schemas']['KbRestrictionRequest'];
 export type KbRestrictionResponse = components['schemas']['KbRestrictionResponse'];
+export type KbShareRequest = components['schemas']['KbShareRequest'];
+export type KbShareResponse = components['schemas']['KbShareResponse'];
 export type KbTag = components['schemas']['KbTag'];
 export type KbTagRequest = components['schemas']['KbTagRequest'];
 export type KbVersionResponse = components['schemas']['KbVersionResponse'];
@@ -58038,6 +61366,7 @@ export type LocalCreateLabelRequest = components['schemas']['LocalCreateLabelReq
 export type LocalCreateTicketRequest = components['schemas']['LocalCreateTicketRequest'];
 export type LocalDate = components['schemas']['LocalDate'];
 export type LocalDateTime = components['schemas']['LocalDateTime'];
+export type LocalLinkRequest = components['schemas']['LocalLinkRequest'];
 export type LocalMoveTicketRequest = components['schemas']['LocalMoveTicketRequest'];
 export type LocalOverrideRequest = components['schemas']['LocalOverrideRequest'];
 export type LocalReorderRequest = components['schemas']['LocalReorderRequest'];
@@ -58045,6 +61374,8 @@ export type LocalRequest = components['schemas']['LocalRequest'];
 export type LocalTime = components['schemas']['LocalTime'];
 export type LocalUpdateChecklistItemRequest = components['schemas']['LocalUpdateChecklistItemRequest'];
 export type LocalUpdateTicketRequest = components['schemas']['LocalUpdateTicketRequest'];
+export type LocationUpdate = components['schemas']['LocationUpdate'];
+export type LocationView = components['schemas']['LocationView'];
 export type LogEntry = components['schemas']['LogEntry'];
 export type LogEntryResponse = components['schemas']['LogEntryResponse'];
 export type LogFacet = components['schemas']['LogFacet'];
@@ -58097,8 +61428,8 @@ export type MediaFolderRequest = components['schemas']['MediaFolderRequest'];
 export type MediaPruneResult = components['schemas']['MediaPruneResult'];
 export type MediaTagRequest = components['schemas']['MediaTagRequest'];
 export type MemberAbsence = components['schemas']['MemberAbsence'];
-export type MemberChangeSummary = components['schemas']['MemberChangeSummary'];
 export type MemberCheckState = components['schemas']['MemberCheckState'];
+export type MemberCompletion = components['schemas']['MemberCompletion'];
 export type MemberDocumentResponse = components['schemas']['MemberDocumentResponse'];
 export type MemberDocumentSummary = components['schemas']['MemberDocumentSummary'];
 export type MemberExportRequest = components['schemas']['MemberExportRequest'];
@@ -58107,7 +61438,7 @@ export type MemberGroupSet = components['schemas']['MemberGroupSet'];
 export type MemberGroupsRequest = components['schemas']['MemberGroupsRequest'];
 export type MemberIdentity = components['schemas']['MemberIdentity'];
 export type MemberInfo = components['schemas']['MemberInfo'];
-export type MemberInventoryItem = components['schemas']['MemberInventoryItem'];
+export type MemberInviteResponse = components['schemas']['MemberInviteResponse'];
 export type MemberListConfig = components['schemas']['MemberListConfig'];
 export type MemberListSortBy = components['schemas']['MemberListSortBy'];
 export type MemberNotes = components['schemas']['MemberNotes'];
@@ -58119,6 +61450,7 @@ export type MemberProfileRequest = components['schemas']['MemberProfileRequest']
 export type MemberProfileResponse = components['schemas']['MemberProfileResponse'];
 export type MemberProfileValueRequest = components['schemas']['MemberProfileValueRequest'];
 export type MemberProfileValueResponse = components['schemas']['MemberProfileValueResponse'];
+export type MemberRequirement = components['schemas']['MemberRequirement'];
 export type MemberRequirements = components['schemas']['MemberRequirements'];
 export type MemberSearchResult = components['schemas']['MemberSearchResult'];
 export type MemberSpotlightConfig = components['schemas']['MemberSpotlightConfig'];
@@ -58128,8 +61460,12 @@ export type MemberTableCellType = components['schemas']['MemberTableCellType'];
 export type MemberTableColumn = components['schemas']['MemberTableColumn'];
 export type MemberTableColumnKind = components['schemas']['MemberTableColumnKind'];
 export type MemberTableHeader = components['schemas']['MemberTableHeader'];
+export type MemberTablePreset = components['schemas']['MemberTablePreset'];
+export type MemberTableRequest = components['schemas']['MemberTableRequest'];
 export type MemberTableRow = components['schemas']['MemberTableRow'];
 export type MemberWithName = components['schemas']['MemberWithName'];
+export type MergedField = components['schemas']['MergedField'];
+export type MergedValue = components['schemas']['MergedValue'];
 export type MessageBody = components['schemas']['MessageBody'];
 export type MessageResponse = components['schemas']['MessageResponse'];
 export type MetricsBatch = components['schemas']['MetricsBatch'];
@@ -58200,6 +61536,8 @@ export type NotificationSchedulePayload = components['schemas']['NotificationSch
 export type NotificationToggle = components['schemas']['NotificationToggle'];
 export type NumberConfig = components['schemas']['NumberConfig'];
 export type NumberValue = components['schemas']['NumberValue'];
+export type OkResponse = components['schemas']['OkResponse'];
+export type OnboardAgainResponse = components['schemas']['OnboardAgainResponse'];
 export type OnboardingLevel = components['schemas']['OnboardingLevel'];
 export type OnboardingStatus = components['schemas']['OnboardingStatus'];
 export type OnboardingTaskState = components['schemas']['OnboardingTaskState'];
@@ -58211,6 +61549,7 @@ export type OrderRequest = components['schemas']['OrderRequest'];
 export type OutputShape = components['schemas']['OutputShape'];
 export type OverviewResponse = components['schemas']['OverviewResponse'];
 export type OwnerAboveResponse = components['schemas']['OwnerAboveResponse'];
+export type PagedChangesResponse = components['schemas']['PagedChangesResponse'];
 export type PageDetailResponse = components['schemas']['PageDetailResponse'];
 export type PageLeaderboardEntry = components['schemas']['PageLeaderboardEntry'];
 export type PageLinkConfig = components['schemas']['PageLinkConfig'];
@@ -58221,8 +61560,11 @@ export type PageUsingForm = components['schemas']['PageUsingForm'];
 export type PageVisibility = components['schemas']['PageVisibility'];
 export type PageVisibilityRequest = components['schemas']['PageVisibilityRequest'];
 export type Pair = components['schemas']['Pair'];
+export type PairRequestResponse = components['schemas']['PairRequestResponse'];
 export type ParseResult = components['schemas']['ParseResult'];
+export type PartnerResponse = components['schemas']['PartnerResponse'];
 export type PartnerStationsConfig = components['schemas']['PartnerStationsConfig'];
+export type PasskeyCodeResponse = components['schemas']['PasskeyCodeResponse'];
 export type PasskeysConfigRequest = components['schemas']['PasskeysConfigRequest'];
 export type PasskeysConfigResponse = components['schemas']['PasskeysConfigResponse'];
 export type PasswordlessReport = components['schemas']['PasswordlessReport'];
@@ -58230,8 +61572,12 @@ export type PasswordRequest = components['schemas']['PasswordRequest'];
 export type PastEventRecapConfig = components['schemas']['PastEventRecapConfig'];
 export type PatchItemRequest = components['schemas']['PatchItemRequest'];
 export type PdfConfig = components['schemas']['PdfConfig'];
+export type PeerAnnouncement = components['schemas']['PeerAnnouncement'];
+export type PeerResponse = components['schemas']['PeerResponse'];
+export type PeerSource = components['schemas']['PeerSource'];
 export type Permission = components['schemas']['Permission'];
 export type PermissionNode = components['schemas']['PermissionNode'];
+export type PermissionsByMember = components['schemas']['PermissionsByMember'];
 export type PickerEvent = components['schemas']['PickerEvent'];
 export type PickerPage = components['schemas']['PickerPage'];
 export type PlaceholderValues = components['schemas']['PlaceholderValues'];
@@ -58243,8 +61589,8 @@ export type PolicyResponse = components['schemas']['PolicyResponse'];
 export type PollEmbedConfig = components['schemas']['PollEmbedConfig'];
 export type PoolRequest = components['schemas']['PoolRequest'];
 export type PresetRequest = components['schemas']['PresetRequest'];
-export type PresetResponse = components['schemas']['PresetResponse'];
 export type PreviewResult = components['schemas']['PreviewResult'];
+export type ProbeRequest = components['schemas']['ProbeRequest'];
 export type ProbeResult = components['schemas']['ProbeResult'];
 export type ProblemPayload = components['schemas']['ProblemPayload'];
 export type ProblemReport = components['schemas']['ProblemReport'];
@@ -58275,6 +61621,7 @@ export type ProtocolListResponse = components['schemas']['ProtocolListResponse']
 export type ProtocolRequest = components['schemas']['ProtocolRequest'];
 export type ProtocolRunRequest = components['schemas']['ProtocolRunRequest'];
 export type ProtocolSectionRequest = components['schemas']['ProtocolSectionRequest'];
+export type ProtocolShareRequest = components['schemas']['ProtocolShareRequest'];
 export type ProviderBlock = components['schemas']['ProviderBlock'];
 export type ProviderStanding = components['schemas']['ProviderStanding'];
 export type ProviderTestRequest = components['schemas']['ProviderTestRequest'];
@@ -58330,6 +61677,7 @@ export type QuizQuestionView = components['schemas']['QuizQuestionView'];
 export type QuizReportRequest = components['schemas']['QuizReportRequest'];
 export type QuizSectionDetail = components['schemas']['QuizSectionDetail'];
 export type QuizSectionRequest = components['schemas']['QuizSectionRequest'];
+export type QuizShareRequest = components['schemas']['QuizShareRequest'];
 export type QuizSourceRequest = components['schemas']['QuizSourceRequest'];
 export type QuizSuccessResponse = components['schemas']['QuizSuccessResponse'];
 export type QuizTeaserConfig = components['schemas']['QuizTeaserConfig'];
@@ -58382,6 +61730,7 @@ export type RegistrationUpdateItem = components['schemas']['RegistrationUpdateIt
 export type RelatedFilesRequest = components['schemas']['RelatedFilesRequest'];
 export type RelatedFilesResponse = components['schemas']['RelatedFilesResponse'];
 export type RemoteAttachment = components['schemas']['RemoteAttachment'];
+export type RemoteBoard = components['schemas']['RemoteBoard'];
 export type RemoteCatalogDetail = components['schemas']['RemoteCatalogDetail'];
 export type RemoteEventDetail = components['schemas']['RemoteEventDetail'];
 export type RemoteKbFile = components['schemas']['RemoteKbFile'];
@@ -58420,6 +61769,7 @@ export type RestrictionMode = components['schemas']['RestrictionMode'];
 export type RestrictionRequest = components['schemas']['RestrictionRequest'];
 export type RestrictionResponse = components['schemas']['RestrictionResponse'];
 export type RestrictionSelection = components['schemas']['RestrictionSelection'];
+export type RestrictionType = components['schemas']['RestrictionType'];
 export type ResultFieldCondition = components['schemas']['ResultFieldCondition'];
 export type ResultFilter = components['schemas']['ResultFilter'];
 export type ResultGrouping = components['schemas']['ResultGrouping'];
@@ -58436,6 +61786,7 @@ export type S3Summary = components['schemas']['S3Summary'];
 export type SaveBlocksRequest = components['schemas']['SaveBlocksRequest'];
 export type SavedFilter = components['schemas']['SavedFilter'];
 export type SavePageRequest = components['schemas']['SavePageRequest'];
+export type SavePresetRequest = components['schemas']['SavePresetRequest'];
 export type Scope = components['schemas']['Scope'];
 export type SearchResultItem = components['schemas']['SearchResultItem'];
 export type SearchResultResponse = components['schemas']['SearchResultResponse'];
@@ -58481,6 +61832,7 @@ export type SetGroupsRequest = components['schemas']['SetGroupsRequest'];
 export type SetJoinDateRequest = components['schemas']['SetJoinDateRequest'];
 export type SetLoginRequest = components['schemas']['SetLoginRequest'];
 export type SetManagedPasswordRequest = components['schemas']['SetManagedPasswordRequest'];
+export type SetManagedRequest = components['schemas']['SetManagedRequest'];
 export type SetManagersRequest = components['schemas']['SetManagersRequest'];
 export type SetMembersRequest = components['schemas']['SetMembersRequest'];
 export type SetNewsFederationShareRequest = components['schemas']['SetNewsFederationShareRequest'];
@@ -58526,8 +61878,8 @@ export type Snapshot = components['schemas']['Snapshot'];
 export type SourceOccurrenceRequest = components['schemas']['SourceOccurrenceRequest'];
 export type SourceOccurrenceResponse = components['schemas']['SourceOccurrenceResponse'];
 export type SpacerConfig = components['schemas']['SpacerConfig'];
-export type Station = components['schemas']['Station'];
 export type StationAiProvider = components['schemas']['StationAiProvider'];
+export type StationApplication = components['schemas']['StationApplication'];
 export type StationClusterResponse = components['schemas']['StationClusterResponse'];
 export type StationDetail = components['schemas']['StationDetail'];
 export type StationEvent = components['schemas']['StationEvent'];
@@ -58538,9 +61890,9 @@ export type StationGroupRequest = components['schemas']['StationGroupRequest'];
 export type StationGroupResponse = components['schemas']['StationGroupResponse'];
 export type StationGroupStationResponse = components['schemas']['StationGroupStationResponse'];
 export type StationGroupStationsRequest = components['schemas']['StationGroupStationsRequest'];
+export type StationImportProgress = components['schemas']['StationImportProgress'];
 export type StationImportRequest = components['schemas']['StationImportRequest'];
 export type StationInfo = components['schemas']['StationInfo'];
-export type StationKind = components['schemas']['StationKind'];
 export type StationMember = components['schemas']['StationMember'];
 export type StationMembers = components['schemas']['StationMembers'];
 export type StationMembership = components['schemas']['StationMembership'];
@@ -58548,6 +61900,7 @@ export type StationModule = components['schemas']['StationModule'];
 export type StationPage = components['schemas']['StationPage'];
 export type StationPermission = components['schemas']['StationPermission'];
 export type StationPermissionsRequest = components['schemas']['StationPermissionsRequest'];
+export type StationPickerResult = components['schemas']['StationPickerResult'];
 export type StationRegistrationStatus = components['schemas']['StationRegistrationStatus'];
 export type StationRequest = components['schemas']['StationRequest'];
 export type StationRoomResponse = components['schemas']['StationRoomResponse'];
@@ -58587,6 +61940,7 @@ export type SystemNewsResponse = components['schemas']['SystemNewsResponse'];
 export type TabItem = components['schemas']['TabItem'];
 export type TableColumnsResponse = components['schemas']['TableColumnsResponse'];
 export type TableEntry = components['schemas']['TableEntry'];
+export type TablesResponse = components['schemas']['TablesResponse'];
 export type TableUpdate = components['schemas']['TableUpdate'];
 export type TabsConfig = components['schemas']['TabsConfig'];
 export type TagEntry = components['schemas']['TagEntry'];
@@ -58619,6 +61973,7 @@ export type TextAnswer = components['schemas']['TextAnswer'];
 export type TextConfig = components['schemas']['TextConfig'];
 export type ThemeFeel = components['schemas']['ThemeFeel'];
 export type ThemeInfo = components['schemas']['ThemeInfo'];
+export type TicketLabelMapping = components['schemas']['TicketLabelMapping'];
 export type TicketPriority = components['schemas']['TicketPriority'];
 export type TicketSummary = components['schemas']['TicketSummary'];
 export type TidyResult = components['schemas']['TidyResult'];
@@ -58702,6 +62057,7 @@ export type WaitingListRegistrationStatus = components['schemas']['WaitingListRe
 export type WaitingListRequest = components['schemas']['WaitingListRequest'];
 export type WaitingListVisibleFieldsRequest = components['schemas']['WaitingListVisibleFieldsRequest'];
 export type WaitingListWithCount = components['schemas']['WaitingListWithCount'];
+export type WatcherResponse = components['schemas']['WatcherResponse'];
 export type WebAuthnConfig = components['schemas']['WebAuthnConfig'];
 export type WebhookUrl = components['schemas']['WebhookUrl'];
 export type WebhookUrlResponse = components['schemas']['WebhookUrlResponse'];

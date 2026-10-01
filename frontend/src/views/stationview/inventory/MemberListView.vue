@@ -17,8 +17,8 @@ import MemberListBody from './memberlistview/MemberListBody.vue'
 import MemberListFilters from './memberlistview/MemberListFilters.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import { inventory, stationMembers, memberGroups, userTags } from '@/api'
-import type { Inventory, InventoryItem } from '@/api/generated/schema'
-import type { MemberGroup, StationMember, UserTag } from '@/api/types'
+import type { Inventory, InventoryItem, MemberWithName } from '@/api/generated/schema'
+import type { MemberGroup, UserTag } from '@/api/types'
 import { useMemberFilter } from '@/composables/useMemberFilter'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useDataTable } from '@/composables/useDataTable'
@@ -32,7 +32,7 @@ const routes = useInventoryRoutes()
 const { t } = useI18n()
 const router = useRouter()
 
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 const inventories = ref<Inventory[]>([])
 const allItems = ref<InventoryItem[]>([])
 const sizeMap = ref<Map<number, string>>(new Map())
@@ -89,7 +89,7 @@ function formatItemLabel(item: InventoryItem): string {
   return itemLabel(item, parts.value)
 }
 
-const table = useDataTable<StationMember>({
+const table = useDataTable<MemberWithName>({
   id: 'inventory-members',
   rows: candidates,
   columns: computed(() => inventoryMemberColumns({

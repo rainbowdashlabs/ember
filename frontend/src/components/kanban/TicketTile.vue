@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import { computed } from 'vue'
-import type { BoardTicket, BoardLabel } from '@/api/boards'
+import type { TicketSummary, BoardLabel } from '@/api/generated/schema'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { contrastTextColor } from '@/util/contrastColor'
 import type { MemberIdentity } from '@/api/types'
@@ -20,7 +20,7 @@ import { formatDayMonth, todayIsoDate } from '@/util/format'
  * a keyboard and a screen reader reach, and its press travels up to the card.
  */
 const props = defineProps<{
-    ticket: BoardTicket
+    ticket: TicketSummary
     shortKey: string
     memberName?: string
     identity?: MemberIdentity | null
@@ -29,7 +29,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-    click: [ticket: BoardTicket]
+    click: [ticket: TicketSummary]
 }>()
 
 const priorityIcon = computed(() => toPriorityIcon(props.ticket.priority))

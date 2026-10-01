@@ -16,13 +16,18 @@ import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
 import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
+import {StationModules, type StationModuleName} from '@/api/types'
 
 const {t} = useI18n()
 const router = useRouter()
 const {load: reloadSession} = useSession()
 const {reload} = useSetupStatus()
 
-const disabled = ref<Set<string>>(new Set(['INVENTORY', 'ATTENDANCE', 'FORMS', 'LOST_AND_FOUND', 'WAITING_LIST', 'QUIZ', 'TEST_PROTOCOL', 'BOARDS', 'PROCEDURES']))
+const disabled = ref<Set<StationModuleName>>(new Set([
+  StationModules.INVENTORY, StationModules.ATTENDANCE, StationModules.FORMS, StationModules.LOST_AND_FOUND,
+  StationModules.WAITING_LIST, StationModules.QUIZ, StationModules.TEST_PROTOCOL, StationModules.BOARDS,
+  StationModules.PROCEDURES,
+]))
 const loading = ref(true)
 
 onMounted(async () => {
@@ -33,11 +38,11 @@ onMounted(async () => {
   loading.value = false
 })
 
-function isEnabled(key: string): boolean {
+function isEnabled(key: StationModuleName): boolean {
   return !disabled.value.has(key)
 }
 
-function toggle(key: string) {
+function toggle(key: StationModuleName) {
   const next = new Set(disabled.value)
   if (next.has(key)) next.delete(key)
   else next.add(key)

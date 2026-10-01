@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import {parseFieldConfig} from '@/api/profileFields'
+import type {ProfileField} from '@/api/generated/schema'
 import {StationUserType, StationUserTypeLabels, type StationMember, type StationUserTypeName} from '@/api/types'
 import {
     ColumnTypes, columnTypeOf, enumOptions,
@@ -39,7 +40,7 @@ export function userTypeOptions(): ColumnOption[] {
 export const MEMBER_NAME_KEY = 'name'
 
 /** The member's name as the pinned first column of any table of members. */
-export function memberNameColumn(t: (key: string) => string): TableColumn<StationMember> {
+export function memberNameColumn<T extends Parameters<typeof memberDisplayName>[0]>(t: (key: string) => string): TableColumn<T> {
     return {key: MEMBER_NAME_KEY, label: t('membersList.colName'), type: ColumnTypes.TEXT, value: memberDisplayName, pinned: true}
 }
 

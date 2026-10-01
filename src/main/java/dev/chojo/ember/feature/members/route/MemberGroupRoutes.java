@@ -240,7 +240,7 @@ public class MemberGroupRoutes implements Routes {
             summary = "Get members of a group",
             tags = {"Member Groups"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void getMembers(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);

@@ -78,12 +78,12 @@ async function save() {
   localError.value = ''
   try {
     const saved = await stationManage.updateStationLocation({
-      addressLine: addressLine.value || null,
-      postalCode: postalCode.value || null,
-      city: city.value || null,
-      country: country.value || null,
-      latitude: latitude.value,
-      longitude: longitude.value,
+      addressLine: addressLine.value || undefined,
+      postalCode: postalCode.value || undefined,
+      city: city.value || undefined,
+      country: country.value || undefined,
+      latitude: latitude.value ?? undefined,
+      longitude: longitude.value ?? undefined,
     })
     addressLine.value = saved.addressLine ?? ''
     postalCode.value = saved.postalCode ?? ''

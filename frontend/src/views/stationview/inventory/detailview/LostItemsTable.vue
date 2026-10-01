@@ -15,13 +15,13 @@ import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
 import type { InventoryItem, InventorySize } from '@/api/generated/schema'
-import type { StationMember } from '@/api/types'
+import type { MemberLike } from '@/components/input/select/memberOption'
 import { formatDate } from '@/util/format'
 
 const props = defineProps<{
   items: InventoryItem[]
   sizes: InventorySize[]
-  memberMap: Map<number, StationMember>
+  memberMap: Map<number, MemberLike>
 }>()
 
 const { t } = useI18n()

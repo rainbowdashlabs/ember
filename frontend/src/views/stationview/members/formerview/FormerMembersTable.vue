@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import { ColumnTypes, type TableColumn } from '@/components/table/tableColumn'
-import type { StationMember } from '@/api/types'
+import type { MemberWithName } from '@/api/generated/schema'
 import { useDataTable } from '@/composables/useDataTable'
 import { memberNameColumn } from '../listview/memberColumns'
 
@@ -18,22 +18,22 @@ import { memberNameColumn } from '../listview/memberColumns'
  * The ones who left most recently come first.
  */
 const props = defineProps<{
-  members: StationMember[]
+  members: MemberWithName[]
 }>()
 
 defineEmits<{
-  (e: 'reactivate', member: StationMember): void
+  (e: 'reactivate', member: MemberWithName): void
 }>()
 
 const { t } = useI18n()
 
-const columns = computed<TableColumn<StationMember>[]>(() => [
+const columns = computed<TableColumn<MemberWithName>[]>(() => [
   memberNameColumn(t),
   { key: 'email', label: t('membersList.colEmail'), type: ColumnTypes.TEXT, value: member => member.email },
   { key: 'formerAt', label: t('formerMembers.colFormerAt'), type: ColumnTypes.DATE, value: member => member.formerAt },
 ])
 
-const table = useDataTable<StationMember>({
+const table = useDataTable<MemberWithName>({
   id: 'former-members',
   rows: () => props.members,
   columns,

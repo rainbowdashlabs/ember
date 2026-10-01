@@ -15,13 +15,14 @@ import EventGeneralInfoPanel from './EventGeneralInfoPanel.vue'
 import EventAttachmentsPanel from './EventAttachmentsPanel.vue'
 import {isRecurringEvent} from '@/api/events'
 import type {AbsentMemberResponse, EventField, StationEvent} from '@/api/generated/schema'
-import {StationPermission, type StationMember} from '@/api/types'
+import {StationPermission} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 const props = defineProps<{
   event: StationEvent
   eventId: number
   fields: EventField[]
-  allMembers: StationMember[]
+  allMembers: MemberLike[]
   currentMemberId: number
   absentMembers: AbsentMemberResponse[]
   focusedDate: string | null

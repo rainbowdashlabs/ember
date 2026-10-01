@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Ref} from 'vue'
-import {ageSourceOf, FieldTypes, parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import {ageSourceOf, FieldTypes, parseFieldConfig, type FieldOriginName, type FieldSettings} from '@/api/profileFields'
+import type {MergedValue, ProfileFieldAssignment} from '@/api/generated/schema'
 import {computeAge} from '@/util/age'
 
 /**
@@ -21,15 +22,15 @@ import {computeAge} from '@/util/age'
  * @param rawValueOf reads the answer to another question of the same member
  */
 export function calculatedAnswer(
-    field: Pick<ProfileField, 'fieldType' | 'config'>,
-    fields: readonly ProfileField[],
+    field: {fieldType: string; config?: FieldSettings | null},
+    fields: readonly {id: number; name: string}[],
     rawValueOf: (fieldId: number) => unknown,
 ): string | null {
     if (field.fieldType !== FieldTypes.AGE) return null
     const config = parseFieldConfig(field.config)
     const source = ageSourceOf(config, fields)
     if (!source) return ''
-    return computeAge(String(rawValueOf(source.id) ?? ''), (config.ageMode as string) ?? 'now')
+    return computeAge(String(rawValueOf(source.id) ?? ''), config.ageMode ?? 'now')
 }
 
 /**
@@ -52,13 +53,8 @@ export function setFieldValue(values: Ref<Map<number, string>>, fieldId: number,
     values.value = next
 }
 
-/**
- * Shape of a single profile-field value entry as returned by the backend.
- */
-export interface ProfileFieldValueEntry {
-    fieldId: number
-    value?: string | null
-}
+/** One stored answer, as every list of answers the backend sends carries it. */
+export type ProfileFieldValueEntry = Pick<MergedValue, 'fieldId'> & {value?: string | null}
 
 /**
  * Decodes a list of profile-field value entries into a {@link Map} keyed by
@@ -81,80 +77,6 @@ export function decodeProfileValues(entries: ReadonlyArray<ProfileFieldValueEntr
     return map
 }
 
-/** Who asked a profile question: the station itself, or the cluster above it. */
-export type FieldOrigin = 'STATION' | 'CLUSTER'
-
-/**
- * A field as the member profile sees it, whoever asked it.
- *
- * The profile is the one screen that shows both, so it is the one place that has to tell them apart. A
- * station numbers its own fields and a cluster numbers its own, in separate tables, so the id alone is
- * not a name: {@link profileKey} is.
- */
-export interface MergedProfileField {
-    id: number
-    /** Absent on a cluster's question, which belongs to no one station. */
-    stationId?: string
-    name?: string
-    fieldType?: string
-    config?: Record<string, unknown>
-    /** Whether this audience must answer, which their assignment may decide against the definition. */
-    required: boolean
-    /** Where the question sits on this audience's form. */
-    position: number
-    /** How much of a row it takes for this audience. Null or absent is the whole row. */
-    width?: string | null
-    /** Whether this audience may read the answer but not write it. */
-    readonly: boolean
-    /** The kind of member this form was built for. Absent where a group is asked. */
-    role?: string
-    origin: FieldOrigin
-    /** Whether the people at the station may read the answer but not write it. Only a cluster field can be. */
-    readonlyAtStation: boolean
-}
-
-/** Which kind of member a question is put to. A group is a target of its own, not one of these. */
-export type ProfileFieldRole = 'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM' | 'MANAGER'
-
-/** What an assignment names: a kind of member, or one group of them. */
-export type ProfileFieldTarget = 'ROLE' | 'GROUP'
-
-/**
- * Who a field is asked of, and how it is put to them.
- *
- * The definition beside this says what the question is. The same question can stand in two forms
- * without being two questions: a manager may read a date the team writes.
- */
-export interface ProfileFieldAssignment {
-    id: number
-    fieldId: number
-    targetKind: ProfileFieldTarget
-    /** Set where this names a kind of member. */
-    role?: ProfileFieldRole | null
-    /** Set where this names a group. */
-    groupId?: number | null
-    position: number
-    /** Null means the definition's width stands, which is the ordinary case. */
-    widthOverride?: string | null
-    /** Null means the definition decides who may write the answer, which is the ordinary case. */
-    readonlyOverride?: boolean | null
-    /** Null means the definition decides, which is the ordinary case. */
-    requiredOverride?: boolean | null
-}
-
-/** A station's question, defined once, whoever is asked it. */
-export interface ProfileFieldDefinition {
-    id: number
-    stationId: number
-    name: string
-    fieldType: string
-    config?: Record<string, unknown>
-    required: boolean
-    /** How much of a row it takes unless an audience says otherwise. Null is the whole row. */
-    width?: string | null
-    keepOnArchive: boolean
-}
-
 /**
  * The question as one audience meets it: the definition, with whatever their assignment says instead.
  *
@@ -174,8 +96,13 @@ export function asAsked<T extends {required?: boolean; readonly?: boolean; width
     }
 }
 
-/** The key an answer is held under on the profile, which is the pair and not the id. */
-export function profileKey(fieldId: number, origin: FieldOrigin): string {
+/**
+ * The key an answer is held under on the profile, which is the pair and not the id.
+ *
+ * <p>A station numbers its own fields and an association numbers its own, in separate tables, so the
+ * id alone does not name a question on a profile that shows both.
+ */
+export function profileKey(fieldId: number, origin: FieldOriginName): string {
     return `${origin}:${fieldId}`
 }
 
@@ -186,7 +113,7 @@ export function profileKey(fieldId: number, origin: FieldOrigin): string {
  * has one origin and wrong for the profile, where two questions can carry the same number.
  */
 export function decodeMergedValues(
-    entries: ReadonlyArray<ProfileFieldValueEntry & {origin?: FieldOrigin}>,
+    entries: ReadonlyArray<ProfileFieldValueEntry & {origin?: FieldOriginName}>,
 ): Map<string, string> {
     const map = new Map<string, string>()
     for (const entry of entries) {

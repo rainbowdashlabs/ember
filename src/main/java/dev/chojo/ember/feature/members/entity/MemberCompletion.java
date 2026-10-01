@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.entity;
 
 import dev.chojo.ember.api.MemberIdentity;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -27,6 +28,6 @@ public record MemberCompletion(
         String name,
         UUID stationUid,
         UUID memberUid,
-        String stationName,
-        String nameColor,
-        MemberIdentity.DisplayTag displayTag) {}
+        @Nullable String stationName,
+        @Nullable String nameColor,
+        MemberIdentity.@Nullable DisplayTag displayTag) {}

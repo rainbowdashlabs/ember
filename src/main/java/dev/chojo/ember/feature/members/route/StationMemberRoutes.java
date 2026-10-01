@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.route;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
@@ -13,6 +14,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
+import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.Permission;
@@ -40,10 +42,12 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.pathUuid;
@@ -200,12 +204,11 @@ public class StationMemberRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/station-members",
+            path = "/api/v1/permissions",
             methods = HttpMethod.GET,
-            summary = "List members of a station with account info",
+            summary = "List every permission a member, a group or a user type can be granted",
             tags = {"Station Members"},
-            queryParams = @OpenApiParam(name = "stationId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Permission[].class)))
     private void listAllPermissions(Context ctx) {
         ctx.json(memberService.findAllPermissions());
     }
@@ -218,7 +221,11 @@ public class StationMemberRoutes implements Routes {
                     + " scoped to the caller's own station. Empty query returns the 20 most"
                     + " recently joined active members.",
             tags = {"Station Members"},
-            queryParams = {@OpenApiParam(name = "q"), @OpenApiParam(name = "limit", type = Integer.class)},
+            queryParams = {
+                @OpenApiParam(name = "q"),
+                @OpenApiParam(name = "uid"),
+                @OpenApiParam(name = "limit", type = Integer.class)
+            },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberSearchResult[].class)))
     private void searchPicker(Context ctx) {
         var session = UserSession.from(ctx);
@@ -226,6 +233,16 @@ public class StationMemberRoutes implements Routes {
         ctx.json(pickerService.search(session.stationId(), ctx.queryParam("q"), ctx.queryParam("uid"), limit));
     }
 
+    @OpenApi(
+            path = "/api/v1/station-members/completions",
+            methods = HttpMethod.GET,
+            summary = "List the active members of the caller's station for autocomplete",
+            tags = {"Station Members"},
+            queryParams = {
+                @OpenApiParam(name = "restrictionType", type = RestrictionType.class),
+                @OpenApiParam(name = "entityId", type = Integer.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCompletion[].class)))
     private void completions(Context ctx) {
         var session = UserSession.from(ctx);
         var completions = memberService.findCompletions(session.stationId());
@@ -249,6 +266,13 @@ public class StationMemberRoutes implements Routes {
         ctx.json(memberIdentityFactory.enrichCompletions(completions));
     }
 
+    @OpenApi(
+            path = "/api/v1/station-members",
+            methods = HttpMethod.GET,
+            summary = "List members of the caller's station with account info",
+            tags = {"Station Members"},
+            queryParams = @OpenApiParam(name = "includeFormer", type = Boolean.class),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void listByStation(Context ctx) {
         var session = UserSession.from(ctx);
         int stationId = session.stationId();
@@ -256,6 +280,9 @@ public class StationMemberRoutes implements Routes {
         ctx.json(memberViews.withCompleteness(memberService.findByStation(stationId, includeFormer)));
     }
 
+    /**
+     * Everybody on the register, with the answers this reader may read and no others.
+     */
     @OpenApi(
             path = "/api/v1/station-members/rich",
             methods = HttpMethod.GET,
@@ -263,9 +290,6 @@ public class StationMemberRoutes implements Routes {
             tags = {"Station Members"},
             queryParams = @OpenApiParam(name = "includeFormer", type = Boolean.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RichMember[].class)))
-    /**
-     * Everybody on the register, with the answers this reader may read and no others.
-     */
     private void listRichMembers(Context ctx) {
         var session = UserSession.from(ctx);
         boolean includeFormer = "true".equals(ctx.queryParam("includeFormer"));
@@ -279,7 +303,7 @@ public class StationMemberRoutes implements Routes {
             tags = {"Station Members"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
@@ -328,7 +352,7 @@ public class StationMemberRoutes implements Routes {
             tags = {"Station Members"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateMemberRequest.class)),
             responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationMember.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberWithName.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
@@ -386,12 +410,11 @@ public class StationMemberRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/station-members/{id}/permissions",
+            path = "/api/v1/station-members/all-permissions",
             methods = HttpMethod.GET,
-            summary = "Get roles of a station member",
+            summary = "Get the permissions of every member of the caller's station, by member id",
             tags = {"Station Members"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Permission[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PermissionsByMember.class)))
     private void getAllMemberPermissions(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var members = memberService.findByStation(session.stationId());
@@ -399,9 +422,16 @@ public class StationMemberRoutes implements Routes {
         for (var member : members) {
             result.put(member.id(), memberService.findPermissions(member.id()));
         }
-        ctx.json(result);
+        ctx.json(new PermissionsByMember(result));
     }
 
+    @OpenApi(
+            path = "/api/v1/station-members/{id}/permissions",
+            methods = HttpMethod.GET,
+            summary = "Get roles of a station member",
+            tags = {"Station Members"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Permission[].class)))
     private void getPermissions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedMember(ctx, id);
@@ -434,7 +464,7 @@ public class StationMemberRoutes implements Routes {
             summary = "Get members managed by this member",
             tags = {"Station Members"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void getManaged(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedMember(ctx, id);
@@ -447,7 +477,7 @@ public class StationMemberRoutes implements Routes {
             summary = "Get managers of this member",
             tags = {"Station Members"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void getManagers(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedMember(ctx, id);
@@ -463,16 +493,24 @@ public class StationMemberRoutes implements Routes {
             tags = {"Station Members"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetManagersRequest.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void setManagers(Context ctx) {
         int managedId = pathInt(ctx, "id");
         requireOwnedMember(ctx, managedId);
         var request = ctx.bodyAsClass(SetManagersRequest.class);
         List<Integer> managerIds = request.managerIds() != null ? request.managerIds() : List.of();
         requireOwnedMembers(ctx, managerIds);
-        ctx.json(memberService.setManagers(managedId, managerIds));
+        ctx.json(memberViews.withCompleteness(memberService.setManagers(managedId, managerIds)));
     }
 
+    @OpenApi(
+            path = "/api/v1/station-members/{id}/managed",
+            methods = HttpMethod.PUT,
+            summary = "Set the members this member manages (replaces all existing ones)",
+            tags = {"Station Members"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetManagedRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void setManaged(Context ctx) {
         int managerId = pathInt(ctx, "id");
         requireOwnedMember(ctx, managerId);
@@ -500,7 +538,7 @@ public class StationMemberRoutes implements Routes {
             tags = {"Station Members"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormerCheckResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void markFormer(Context ctx) {
@@ -520,7 +558,7 @@ public class StationMemberRoutes implements Routes {
             tags = {"Station Members"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormerCheckResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void reactivate(Context ctx) {
@@ -567,8 +605,6 @@ public class StationMemberRoutes implements Routes {
         ctx.json(new UserTypeChangeResponse(userTypeChanges.change(memberId, request.userType())));
     }
 
-    // -- User Type --
-
     @OpenApi(
             path = "/api/v1/station-members/{id}/join-date",
             methods = HttpMethod.PUT,
@@ -588,8 +624,6 @@ public class StationMemberRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Join Date --
-
     @OpenApi(
             path = "/api/v1/user-type-permissions/{userType}",
             methods = HttpMethod.GET,
@@ -602,8 +636,6 @@ public class StationMemberRoutes implements Routes {
         StationUserType userType = StationUserType.valueOf(ctx.pathParam("userType"));
         ctx.json(memberService.findUserTypePermissions(session.stationId(), userType));
     }
-
-    // -- User Type Permissions --
 
     @OpenApi(
             path = "/api/v1/user-type-permissions/{userType}",
@@ -642,7 +674,21 @@ public class StationMemberRoutes implements Routes {
 
     public record SetManagedRequest(List<Integer> managedIds) {}
 
-    public record FormerCheckResponse(boolean canMarkFormer, String reason) {}
+    /**
+     * Whether a member may be marked former.
+     *
+     * @param canMarkFormer whether they may
+     * @param reason        why not, or null when they may
+     */
+    public record FormerCheckResponse(
+            boolean canMarkFormer, @Nullable String reason) {}
+
+    /**
+     * The permissions of every member of a station, keyed by member id.
+     *
+     * @param byMember the permissions, by member id
+     */
+    public record PermissionsByMember(@JsonValue Map<Integer, List<Permission>> byMember) {}
 
     public record SetUserTypeRequest(StationUserType userType) {}
 

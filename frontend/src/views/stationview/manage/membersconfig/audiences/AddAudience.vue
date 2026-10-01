@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {AssignmentTarget} from '@/api/profileFields'
+import {scopeOf, type AssignmentTarget} from '@/api/profileFields'
 import type {MemberGroup} from '@/api/types'
 
 /**
@@ -38,7 +38,7 @@ const {t} = useI18n()
 function onPick(value: string) {
     if (!value) return
     const [kind, name] = value.split(':')
-    emit('add', kind === 'GROUP' ? {groupId: Number(name)} : {role: name})
+    emit('add', kind === 'GROUP' ? {groupId: Number(name)} : {role: scopeOf(name)})
 }
 </script>
 

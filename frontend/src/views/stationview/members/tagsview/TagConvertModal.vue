@@ -9,7 +9,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import type {UserTag} from '@/api/types'
+import type {UserTag} from '@/api/generated/schema'
 import {useModelProxy} from '@/composables/useModelProxy'
 
 const {t} = useI18n()

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.federation.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -17,15 +18,15 @@ public record FederationPartner(
         int id,
         int stationId,
         UUID partnerStationId,
-        String inviteCode,
-        String publicKey,
-        String partnerPublicKey,
+        @Nullable String inviteCode,
+        @Nullable String publicKey,
+        @Nullable String partnerPublicKey,
         FederationStatus status,
-        FederationContract federationContract,
+        @Nullable FederationContract federationContract,
         Instant createdAt,
         Instant updatedAt,
-        String remoteHost,
-        String partnerStationName,
+        @Nullable String remoteHost,
+        @Nullable String partnerStationName,
         boolean clusterManaged,
         boolean clusterHome) {
 

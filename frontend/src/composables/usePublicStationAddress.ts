@@ -5,7 +5,7 @@
  */
 import {computed, inject, type Ref} from 'vue'
 import {useRoute} from 'vue-router'
-import type {PublicStationInfo} from '@/api/discovery'
+import type {PublicStationInfo} from '@/api/generated/schema'
 
 /**
  * How a station's public pages are addressed, which is not one answer but two.

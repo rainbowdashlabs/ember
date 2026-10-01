@@ -20,9 +20,10 @@ import { useManagedMembers } from './relations/useManagedMembers'
 import { useMemberInventory } from './detailview/useMemberInventory'
 import { useMemberLifecycle } from './detailview/useMemberLifecycle'
 import { memberDisplayName } from './listview/useMemberData'
-import type { ProfileFieldChange } from '@/api/profileFieldChanges'
+import type { ChangeEntry } from '@/api/profileFieldChanges'
 import { canHaveGuardians, looksAfterMembers, relationsTabLabel } from './relations/relationSides'
-import {StationModules, StationPermission, type MemberGroup, type PermissionGrant, type StationMember, type UserTag} from '@/api/types'
+import {StationModules, StationPermission, type MemberGroup, type PermissionGrant, type UserTag} from '@/api/types'
+import type {MemberWithName} from '@/api/generated/schema'
 import { memberGroups, profileFieldChanges, profileFields, stationMembers, userTags } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -41,10 +42,10 @@ const memberId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
 const showChangeHistory = computed(() => hasPermission(StationPermission.MEMBER_CHANGES) || isGuardian())
 
-const member = ref<StationMember | null>(null)
+const member = ref<MemberWithName | null>(null)
 const memberUserType = ref<string>('')
-const allMembers = ref<StationMember[]>([])
-const changes = ref<ProfileFieldChange[]>([])
+const allMembers = ref<MemberWithName[]>([])
+const changes = ref<ChangeEntry[]>([])
 const memberPermissions = ref<PermissionGrant[]>([])
 const memberGroupList = ref<MemberGroup[]>([])
 const memberTagList = ref<UserTag[]>([])

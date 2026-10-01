@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {PartnerResponse} from '@/api/federation'
+import type {PartnerResponse} from '@/api/generated/schema'
 import {ShareScope} from '@/api/lending'
 
 const shared = defineModel<boolean>('shared', {required: true})

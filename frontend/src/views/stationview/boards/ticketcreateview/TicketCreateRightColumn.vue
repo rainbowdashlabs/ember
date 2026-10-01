@@ -11,8 +11,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import TicketCreateMetaFields from './TicketCreateMetaFields.vue'
-import type { TicketPriorityName, BoardLane, BoardLabel } from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+import type { TicketPriorityName } from '@/api/boards'
+import type { BoardLabel, BoardLane, MemberCompletion } from '@/api/generated/schema'
 import type { Failure } from '@/util/failure'
 
 defineProps<{

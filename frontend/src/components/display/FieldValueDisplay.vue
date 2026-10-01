@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
-import {FieldTypes, parseFieldConfig, type ProfileFieldConfig} from '@/api/profileFields'
+import {FieldTypes, parseFieldConfig, type FieldSettings} from '@/api/profileFields'
 import {computeAge} from '@/util/age'
 import {formatDate} from '@/util/format'
 import ExpiryStateBadge from './ExpiryStateBadge.vue'
@@ -14,7 +14,7 @@ const props = defineProps<{
   value: unknown
   fieldType?: string
   /** The field's own settings, which say whether a birth date carries its age behind it. */
-  config?: ProfileFieldConfig | null
+  config?: FieldSettings | null
   /**
    * Writes a date as the day it is, without what today makes of it: no age behind a birth date and
    * no state beside an expiry date. For a value from the past, which today says nothing about.

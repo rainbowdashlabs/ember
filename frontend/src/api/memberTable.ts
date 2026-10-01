@@ -6,22 +6,16 @@
 import client from './client'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import type {ExportSeparator} from '@/util/exportFormat'
+import type {
+    components,
+    MemberTable,
+    MemberTableColumn,
+    MemberTableHeader,
+    MemberTablePreset,
+    TableColumnsResponse,
+} from './generated/schema'
 
-/** Where a chosen column draws its values from. */
-export type MemberTableColumnKind = 'BUILTIN' | 'PROFILE_FIELD' | 'REGISTRATION_FIELD'
-
-/**
- * One column, named by what it points at rather than by what it says.
- *
- * <p>No label travels with it. What a column is called is the question's own business and is worked
- * out wherever the table is drawn, so a question renamed after a selection was saved is printed
- * under its new name.
- */
-export interface MemberTableColumn {
-    kind: MemberTableColumnKind
-    key?: string | null
-    fieldId?: number | null
-}
+export type MemberTableCellTypeName = components['schemas']['MemberTableCellType']
 
 /**
  * What a drawn column holds. Dates and birth dates arrive as `dd.mm.yyyy` from the station's own
@@ -35,44 +29,15 @@ export const MemberTableCellTypes = {
     BIRTH_DATE: 'BIRTH_DATE',
     BOOLEAN: 'BOOLEAN',
     ENUM: 'ENUM',
-} as const
+} as const satisfies Record<MemberTableCellTypeName, MemberTableCellTypeName>
 
-export type MemberTableCellTypeName = (typeof MemberTableCellTypes)[keyof typeof MemberTableCellTypes]
-
-/** A column as the reader may see it, which is what a picker offers and what a table prints. */
-export interface MemberTableHeader {
-    label: string
-    kind: MemberTableColumnKind
-    key: string | null
-    fieldId: number | null
-    type: MemberTableCellTypeName
-}
-
-/** One person's row, in the same order as the columns. */
-export interface MemberTableRow {
-    memberId: number
-    values: string[]
-}
-
-/** A drawn table: only the columns this reader may see, and a row each. */
-export interface MemberTable {
-    columns: MemberTableHeader[]
-    rows: MemberTableRow[]
-}
-
-/** A named set of columns a station saved. */
-export interface MemberTablePreset {
-    id: number
-    stationId: number
-    name: string
-    columns: MemberTableColumn[]
-}
-
-/** What may go on an appointment's table: what the station knows, and what the appointment asked. */
-export interface RegistrationTableColumns {
-    member: MemberTableHeader[]
-    questions: {fieldId: number; label: string; type: MemberTableCellTypeName}[]
-}
+/**
+ * One column as a screen asks for it, named by what it points at rather than by what it says.
+ *
+ * <p>A saved column comes back with a well-formed flag as well; a request names only the three
+ * parts that point at the column.
+ */
+export type ColumnChoice = Pick<MemberTableColumn, 'kind' | 'key' | 'fieldId'>
 
 /** The columns this reader may put on a table of the register. */
 export async function listColumns(): Promise<MemberTableHeader[]> {
@@ -81,8 +46,8 @@ export async function listColumns(): Promise<MemberTableHeader[]> {
 }
 
 /** The columns this reader may put on one appointment's table, the appointment's own included. */
-export async function listRegistrationColumns(eventId: number): Promise<RegistrationTableColumns> {
-    const res = await client.get<RegistrationTableColumns>(`/events/${eventId}/registration-table/columns`)
+export async function listRegistrationColumns(eventId: number): Promise<TableColumnsResponse> {
+    const res = await client.get<TableColumnsResponse>(`/events/${eventId}/registration-table/columns`)
     return res.data
 }
 
@@ -92,7 +57,7 @@ export async function listPresets(): Promise<MemberTablePreset[]> {
 }
 
 /** Saves a selection under a name, writing over one saved under that name before. */
-export async function savePreset(name: string, columns: MemberTableColumn[]): Promise<MemberTablePreset> {
+export async function savePreset(name: string, columns: ColumnChoice[]): Promise<MemberTablePreset> {
     const res = await client.put<MemberTablePreset>('/member-table/presets', {name, columns})
     return res.data
 }
@@ -102,14 +67,14 @@ export async function deletePreset(id: number): Promise<void> {
 }
 
 /** The register drawn for the people the screen is already showing. */
-export async function drawMemberTable(memberIds: number[], columns: MemberTableColumn[]): Promise<MemberTable> {
+export async function drawMemberTable(memberIds: number[], columns: ColumnChoice[]): Promise<MemberTable> {
     const res = await client.post<MemberTable>('/member-table', {memberIds, columns})
     return res.data
 }
 
 /** Everybody standing on one appointment's list for one day. */
 export async function drawRegistrationTable(
-    eventId: number, date: string, columns: MemberTableColumn[],
+    eventId: number, date: string, columns: ColumnChoice[],
 ): Promise<MemberTable> {
     const res = await client.post<MemberTable>(`/events/${eventId}/registration-table`, {date, columns})
     return res.data
@@ -123,7 +88,7 @@ export async function drawRegistrationTable(
  */
 export async function exportMemberTable(
     memberIds: number[],
-    columns: MemberTableColumn[],
+    columns: ColumnChoice[],
     format: 'csv' | 'pdf',
     separator: ExportSeparator = 'semicolon',
 ): Promise<DocumentFile> {
@@ -138,7 +103,7 @@ export async function exportMemberTable(
 export async function exportRegistrationTable(
     eventId: number,
     date: string,
-    columns: MemberTableColumn[],
+    columns: ColumnChoice[],
     format: 'csv' | 'pdf',
     separator: ExportSeparator = 'semicolon',
 ): Promise<DocumentFile> {

@@ -10,7 +10,8 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
-import type {MemberChangeSummary, ProfileFieldChange} from '@/api/profileFieldChanges'
+import type {ChangeEntry} from '@/api/profileFieldChanges'
+import type {EnrichedMemberChangeSummary} from '@/api/generated/schema'
 import {profileFieldChanges} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
@@ -32,12 +33,12 @@ const tabs = [
   {key: 'history', label: t('memberChanges.tabHistory')},
 ]
 
-const summaries = ref<MemberChangeSummary[]>([])
+const summaries = ref<EnrichedMemberChangeSummary[]>([])
 const expandedMemberId = ref<number | null>(null)
-const memberChanges = ref<ProfileFieldChange[]>([])
+const memberChanges = ref<ChangeEntry[]>([])
 const loadingChanges = ref(false)
 
-const historyChanges = ref<ProfileFieldChange[]>([])
+const historyChanges = ref<ChangeEntry[]>([])
 const historyTotal = ref(0)
 const historyOffset = ref(0)
 const historyLimit = 20

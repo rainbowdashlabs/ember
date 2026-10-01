@@ -19,7 +19,7 @@ import {toCellValue} from '@/components/table/tableColumn'
 import {useExport, type ExportColumn, type ExportFormatName} from '@/composables/useExport'
 import {useDataTable} from '@/composables/useDataTable'
 import {memberTable} from '@/api'
-import type {MemberTableColumn} from '@/api/memberTable'
+import type {ColumnChoice} from '@/api/memberTable'
 import {presentFile} from '@/util/documentFile'
 import type {ExportSeparator} from '@/util/exportFormat'
 import {useMemberFilter} from '@/composables/useMemberFilter'
@@ -157,8 +157,8 @@ export function useMemberListConfig(port: MemberListPort) {
      * PDF and has no business deciding what a reader may see. So that one asks the server, naming the
      * people and the columns and letting it cut them down to what this reader may actually read.
      */
-    function chosenServerColumns(): MemberTableColumn[] {
-        const chosen: MemberTableColumn[] = [{kind: 'BUILTIN', key: 'name', fieldId: null}]
+    function chosenServerColumns(): ColumnChoice[] {
+        const chosen: ColumnChoice[] = [{kind: 'BUILTIN', key: 'name', fieldId: null}]
         for (const column of exportColumns.value) {
             if (!exporting.selectedColumns.value.has(column.key)) continue
             if (column.key === 'groups') chosen.push({kind: 'BUILTIN', key: 'groups', fieldId: null})

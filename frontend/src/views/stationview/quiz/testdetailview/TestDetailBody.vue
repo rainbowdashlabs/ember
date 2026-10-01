@@ -17,14 +17,15 @@ import TestSectionsList from './TestSectionsList.vue'
 import FrozenQuestionsList from './FrozenQuestionsList.vue'
 import PickQuestionModal from './PickQuestionModal.vue'
 import type {FrozenQuestionDetail, QuizQuestion, QuizTestAttempt, QuizTestDetail} from '@/api/generated/schema'
-import type { MemberGroup, UserTag, StationMember } from '@/api/types'
+import type { MemberGroup, UserTag } from '@/api/types'
+import type { MemberLike } from '@/components/input/select/memberOption'
 
 defineProps<{
   test: QuizTestDetail['test']
   detail: QuizTestDetail | null
   sections: QuizTestDetail['sections']
   attempts: QuizTestAttempt[]
-  members: StationMember[]
+  members: MemberLike[]
   frozenQuestions: FrozenQuestionDetail[]
   frozenLoading: boolean
   filteredAvailableQuestions: QuizQuestion[]

@@ -9,8 +9,8 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {AttendanceStatus} from '@/api/attendance'
-import type {AttendanceEntry, AttendanceSession, AttendanceTemplateField, MemberNotes} from '@/api/generated/schema'
-import type {MemberIdentity, StationMember} from '@/api/types'
+import type {AttendanceEntry, AttendanceSession, AttendanceTemplateField, MemberNotes, MemberWithName} from '@/api/generated/schema'
+import type {MemberIdentity} from '@/api/types'
 import type {CheckRow} from './useCheckMode'
 import SessionToolbar from './SessionToolbar.vue'
 import SessionHeader from './SessionHeader.vue'
@@ -44,8 +44,8 @@ defineProps<{
   currentMemberIdentity: MemberIdentity | null
   templateFields: AttendanceTemplateField[]
   fieldValues: Map<number, string>
-  groupMembers: Map<number, StationMember[]>
-  allMembers: StationMember[]
+  groupMembers: Map<number, MemberWithName[]>
+  allMembers: MemberWithName[]
   entries: AttendanceEntry[]
   memberSections: MemberSection[]
   /** When the appointment behind the sheet runs, absent where the sheet stands on its own. */

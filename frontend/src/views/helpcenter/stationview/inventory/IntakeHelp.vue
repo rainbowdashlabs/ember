@@ -24,7 +24,7 @@ const SIZES = [
 
 /** A made-up member for the example table, named the way the real one is. */
 function someone(id: number, name: string): IntakeLine {
-  return lineFor({id, stationId: '1', accountId: id, name})
+  return lineFor({id, name})
 }
 
 const lines = ref<IntakeLine[]>([

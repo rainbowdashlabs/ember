@@ -117,7 +117,7 @@ const {running: saving, failure: saveFailure, run: runSave} = useAsyncAction(asy
         allowUserTheme: !lockTheme.value,
         defaultFeel: themeCtrl.activeFeel.value,
         allowUserFeel: !lockFeel.value,
-        customThemeColors: customEnabled.value ? JSON.stringify(customColors.value) : null,
+        customThemeColors: customEnabled.value ? JSON.stringify(customColors.value) : undefined,
     })
     await reload()
     goToNextStep(router, 'branding')

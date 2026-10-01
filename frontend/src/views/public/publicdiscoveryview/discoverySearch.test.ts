@@ -5,7 +5,7 @@
  */
 import {describe, expect, it} from 'vitest'
 import {initialSearchTerm, searchDiscovery} from './discoverySearch'
-import type {DiscoveryEntry} from '@/api/discovery'
+import type {DiscoveryEntry} from '@/api/generated/schema'
 
 /**
  * The search on the public discovery page reaches the stations of other instances as it reaches
@@ -29,6 +29,10 @@ describe('searchDiscovery', () => {
             country: null,
             latitude: null,
             longitude: null,
+            clusterUid: null,
+            clusterName: null,
+            instanceHost: null,
+            publicPageUrl: null,
             ...overrides,
         }
     }

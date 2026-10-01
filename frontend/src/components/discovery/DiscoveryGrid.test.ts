@@ -6,7 +6,7 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import DiscoveryGrid from './DiscoveryGrid.vue'
-import type {DiscoveryEntry} from '@/api/discovery'
+import type {DiscoveryEntry} from '@/api/generated/schema'
 
 /**
  * A card on the discovery page for a station of this instance and for one of another instance.
@@ -34,6 +34,10 @@ describe('DiscoveryGrid', () => {
             country: null,
             latitude: null,
             longitude: null,
+            clusterUid: null,
+            clusterName: null,
+            instanceHost: null,
+            publicPageUrl: null,
             ...overrides,
         }
     }

@@ -13,7 +13,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import ResultFilterControls from './ResultFilterControls.vue'
 import ResultGroupingControls from './ResultGroupingControls.vue'
 import type {ResultFilterState, ResultGroupingState} from '@/api/forms'
-import type {ProfileField} from '@/api/profileFields'
+import type {ProfileField} from '@/api/generated/schema'
 import type {MemberGroup, UserTag} from '@/api/types'
 
 /**

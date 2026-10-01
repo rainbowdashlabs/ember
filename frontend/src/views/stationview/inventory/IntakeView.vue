@@ -21,8 +21,8 @@ import IntakeTableCard from './intakeview/IntakeTableCard.vue'
 import {lineFor, namesAPiece, rowsOf, type IntakeLine} from './intakeview/intakeLines'
 import {inventory, inventoryFields, memberGroups as memberGroupsApi, stationMembers} from '@/api'
 import {InventoryTypes, ItemOwner, type ItemOwnerName} from '@/api/inventory'
-import type {InventoryDetail, InventoryFieldDefinition} from '@/api/generated/schema'
-import type {MemberGroup, StationMember} from '@/api/types'
+import type {InventoryDetail, InventoryFieldDefinition, MemberWithName} from '@/api/generated/schema'
+import type {MemberGroup} from '@/api/types'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
@@ -43,7 +43,7 @@ const inventoryId = computed(() => Number(route.params.id))
 
 const detail = ref<InventoryDetail | null>(null)
 const fields = ref<InventoryFieldDefinition[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 const groups = ref<MemberGroup[]>([])
 
 const audience = ref<IntakeAudienceName>(IntakeAudience.ALL)
@@ -92,7 +92,7 @@ async function openTable() {
   loaded.value = true
 }
 
-async function membersOfAudience(): Promise<StationMember[]> {
+async function membersOfAudience(): Promise<MemberWithName[]> {
   if (audience.value === IntakeAudience.USER_TYPE) {
     return members.value.filter(member => member.userType === userType.value)
   }

@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {EvaluationResponse, TestProtocolItem, TestProtocolSection} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
 import type {PitchEvaluation, PitchGrading} from './pitchTypes'
+import {pitchMember} from './pitchMembers'
 
 /**
  * The badge test a demonstration works through. The grading panel and the evaluation table of the
@@ -48,12 +48,8 @@ export const PROTOCOL_GRADING: PitchGrading = {
     done: false,
 }
 
-function member(id: number, name: string): StationMember {
-    return {id, stationId: 'wache', accountId: id, name}
-}
-
-const MEMBERS = [member(1, 'Anna Müller'), member(2, 'Ben Krüger'),
-    member(3, 'Clara Weiß'), member(4, 'Jonas Behr')]
+const MEMBERS = [pitchMember(1, 'Anna Müller'), pitchMember(2, 'Ben Krüger'),
+    pitchMember(3, 'Clara Weiß'), pitchMember(4, 'Jonas Behr')]
 
 const SCORES: Record<number, number[]> = {
     1: [8, 7, 6, 6],

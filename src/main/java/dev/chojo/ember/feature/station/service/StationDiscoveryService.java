@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.Station;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -205,19 +206,19 @@ public class StationDiscoveryService {
     public record DiscoveryEntry(
             UUID stationUid,
             String name,
-            String description,
+            @Nullable String description,
             boolean hasLogo,
             boolean hasPublicKb,
             boolean hasPublicCalendar,
             boolean alreadyFederated,
             boolean isOwnStation,
-            String publicSlug,
-            String city,
-            String country,
-            Double latitude,
-            Double longitude,
-            UUID clusterUid,
-            String clusterName,
-            String instanceHost,
-            String publicPageUrl) {}
+            @Nullable String publicSlug,
+            @Nullable String city,
+            @Nullable String country,
+            @Nullable Double latitude,
+            @Nullable Double longitude,
+            @Nullable UUID clusterUid,
+            @Nullable String clusterName,
+            @Nullable String instanceHost,
+            @Nullable String publicPageUrl) {}
 }

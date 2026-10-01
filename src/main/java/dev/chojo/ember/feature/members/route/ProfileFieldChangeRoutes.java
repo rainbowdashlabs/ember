@@ -11,7 +11,6 @@ import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.members.entity.MemberChangeSummary;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -128,7 +127,7 @@ public class ProfileFieldChangeRoutes implements Routes {
                 @OpenApiParam(name = "offset", type = Integer.class),
                 @OpenApiParam(name = "limit", type = Integer.class)
             },
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PagedChangesResponse.class)))
     private void getAllChanges(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
@@ -149,7 +148,10 @@ public class ProfileFieldChangeRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get summary of members with unacknowledged profile field changes",
             tags = {"Profile Field Changes"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberChangeSummary[].class)))
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = EnrichedMemberChangeSummary[].class)))
     private void getPendingSummary(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var visible = visibleMembers(session);
@@ -177,7 +179,10 @@ public class ProfileFieldChangeRoutes implements Routes {
             summary = "Get profile field change history for a member",
             tags = {"Profile Field Changes"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldChange[].class)))
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = EnrichedProfileFieldChange[].class)))
     private void getChanges(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");

@@ -6,8 +6,7 @@
 import { ref, type Ref } from 'vue'
 import client from '@/api/client'
 import { profileFields } from '@/api'
-import type { ProfileField } from '@/api/profileFields'
-import type { StationMember } from '@/api/types'
+import type { MemberWithName, ProfileField } from '@/api/generated/schema'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import {presentFile, documentFrom} from '@/util/documentFile'
 import type {ExportFormat, ExportSeparator} from '@/util/exportFormat'
@@ -34,7 +33,7 @@ export interface ItemLabelOptions {
  * @param labelOptions         which parts of an item name to include
  */
 export function useInventoryMemberExport(
-  filteredMembers: () => readonly StationMember[],
+  filteredMembers: () => readonly MemberWithName[],
   visibleInventoryIds: Ref<Set<number>>,
   labelOptions: ItemLabelOptions,
 ) {

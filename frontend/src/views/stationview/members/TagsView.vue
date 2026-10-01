@@ -9,7 +9,8 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {StationPermission, type StationMember, type UserTag} from '@/api/types'
+import {StationPermission} from '@/api/types'
+import type {MemberWithName, UserTag} from '@/api/generated/schema'
 import {stationMembers, userTags} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -29,10 +30,10 @@ const {hasPermission} = useSession()
 const canConvertToGroup = computed(() => hasPermission(StationPermission.MEMBER_MANAGE_GROUP))
 
 const tags = ref<UserTag[]>([])
-const allMembers = ref<StationMember[]>([])
+const allMembers = ref<MemberWithName[]>([])
 
 const selectedTag = ref<UserTag | null>(null)
-const tagMembers = ref<StationMember[]>([])
+const tagMembers = ref<MemberWithName[]>([])
 const tagLoading = ref(false)
 
 const showTagModal = ref(false)
@@ -145,9 +146,9 @@ const {
   run: saveTag,
 } = useAsyncAction(async () => {
   if (editingTag.value) {
-    await userTags.updateTag(editingTag.value.id, {name: tagName.value, color: tagColor.value || null, visible: tagVisible.value, position: tagPosition.value})
+    await userTags.updateTag(editingTag.value.id, {name: tagName.value, color: tagColor.value || undefined, visible: tagVisible.value, position: tagPosition.value})
   } else {
-    await userTags.createTag({name: tagName.value, color: tagColor.value || null, visible: tagVisible.value, position: tagPosition.value})
+    await userTags.createTag({name: tagName.value, color: tagColor.value || undefined, visible: tagVisible.value, position: tagPosition.value})
   }
   showTagModal.value = false
 

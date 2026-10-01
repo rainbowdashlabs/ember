@@ -22,6 +22,7 @@ import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,7 +85,8 @@ public class ManagedAccessService {
      * @param canSignIn    whether granting access is possible at all, which needs either an address
      *                     or a name to sign in with
      */
-    public record ManagedAccess(String email, String username, boolean loginEnabled, boolean canSignIn) {}
+    public record ManagedAccess(
+            @Nullable String email, @Nullable String username, boolean loginEnabled, boolean canSignIn) {}
 
     /**
      * Reads the access state of a managed member.

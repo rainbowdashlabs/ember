@@ -17,10 +17,11 @@ import type {
   CancellationNotice,
   EventCategory,
   EventField,
+  ManagedMember,
+  MemberCompletion,
   RegistrationResponse,
   StationEvent,
 } from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
 import {attendance, events, managedMembers as managedMembersApi, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -56,8 +57,8 @@ const templates = ref<AttendanceTemplate[]>([])
 const fields = ref<EventField[]>([])
 const reminders = ref<number[]>([])
 const absentMembers = ref<AbsentMemberResponse[]>([])
-const managedMembers = ref<StationMember[]>([])
-const allMembers = ref<StationMember[]>([])
+const managedMembers = ref<ManagedMember[]>([])
+const allMembers = ref<MemberCompletion[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
 const allMyRegistrations = ref<RegistrationResponse[]>([])
 const cancelledDates = ref<CancellationNotice[]>([])
@@ -199,12 +200,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
   nextOccurrenceDate.value = nextDate
   categories.value = cats
   fields.value = flds
-  allMembers.value = completions.map(c => ({
-    id: c.id,
-    stationId: '',
-    accountId: 0,
-    name: c.name,
-  }))
+  allMembers.value = completions
   try { reminders.value = await events.getEventReminders(eventId.value) } catch { reminders.value = [] }
   await reloadMyRegistrations()
   if (canManageEvents()) {
@@ -214,9 +210,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
     isGuardian() ? managedMembersApi.listManaged() : Promise.resolve([]),
     events.listEligibleMembers(),
   ])
-  managedMembers.value = managed.map(m => ({
-    id: m.id, stationId: m.stationId, accountId: m.accountId, name: m.name, email: m.email,
-  }))
+  managedMembers.value = managed
   eligibleMembers.value = elig
   if ((canManageEvents() || canManageAttendance()) && isRecurringEvent(ev.eventType) && ev.dayOfWeek) {
     await loadAbsences()

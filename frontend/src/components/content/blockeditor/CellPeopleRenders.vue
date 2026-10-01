@@ -9,9 +9,9 @@ import {useI18n} from 'vue-i18n'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import UserTagBadge from '@/components/badge/UserTagBadge.vue'
-import {getMemberPickerByUid, type MemberSearchResult} from '@/api/members'
+import {getMemberPickerByUid} from '@/api/members'
 import {isMemberListSource, resolveMemberListSource, type LayoutKindName} from '@/api/pageManage'
-import type {MemberListConfig, MemberSpotlightConfig, ResolvedMember} from '@/api/generated/schema'
+import type {MemberListConfig, MemberSearchResult, MemberSpotlightConfig, ResolvedMember} from '@/api/generated/schema'
 
 /**
  * Renderer for MEMBER_SPOTLIGHT and MEMBER_LIST_SPOTLIGHT (member-list spotlight).

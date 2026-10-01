@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.station.route;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.feature.station.entity.StationApplication;
 import dev.chojo.ember.feature.station.service.StationApplicationService;
 import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import io.javalin.http.Context;
@@ -65,7 +66,10 @@ public class StationApplicationRoutes implements Routes {
             summary = "Submit a station application",
             tags = {"Station Applications"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ApplicationRequest.class)),
-            responses = {@OpenApiResponse(status = "201"), @OpenApiResponse(status = "400")})
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationApplication.class)),
+                @OpenApiResponse(status = "400")
+            })
     private void submit(Context ctx) {
         if (!instanceSettings.stationRegistrationEnabled()) {
             throw Refusal.STATION_REGISTRATION_SWITCHED_OFF.raise();
@@ -110,7 +114,7 @@ public class StationApplicationRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List all station applications",
             tags = {"Station Applications"},
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationApplication[].class)))
     private void list(Context ctx) {
         ctx.json(applicationService.findAll());
     }
@@ -121,7 +125,10 @@ public class StationApplicationRoutes implements Routes {
             summary = "Get a station application by ID",
             tags = {"Station Applications"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationApplication.class)),
+                @OpenApiResponse(status = "404")
+            })
     private void get(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         applicationService.findById(id).ifPresentOrElse(ctx::json, () -> {
@@ -136,7 +143,7 @@ public class StationApplicationRoutes implements Routes {
             tags = {"Station Applications"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationApplication.class)),
                 @OpenApiResponse(status = "400"),
                 @OpenApiResponse(status = "404")
             })
@@ -162,7 +169,7 @@ public class StationApplicationRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DenyRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationApplication.class)),
                 @OpenApiResponse(status = "400"),
                 @OpenApiResponse(status = "404")
             })

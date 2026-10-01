@@ -12,11 +12,11 @@ import ProfileTab from './ProfileTab.vue'
 import RelationsTab from './RelationsTab.vue'
 import NotesTab from './NotesTab.vue'
 import type {MemberEditData} from './types'
-import type {StationMember} from '@/api/types'
+import type {MemberWithName} from '@/api/generated/schema'
 import {relationsTabLabel} from '../relations/relationSides'
 
 const props = defineProps<{
-  member: StationMember
+  member: MemberWithName
   memberId: number
   data: MemberEditData
 }>()

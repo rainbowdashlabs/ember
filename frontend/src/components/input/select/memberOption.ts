@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {MemberCompletion} from '@/api/stationMembers'
-import type {MemberSearchResult} from '@/api/members'
+import type {MemberCompletion, MemberSearchResult} from '@/api/generated/schema'
 import type {MemberIdentity} from '@/api/types'
 
 /**

@@ -10,13 +10,15 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.feature.inventory.entity.MyInventoryItem;
 import dev.chojo.ember.feature.members.service.ManagedAccessService;
 import dev.chojo.ember.feature.members.service.ManagedAccessService.ManagedAccess;
 import dev.chojo.ember.feature.members.service.ManagedMemberService;
 import dev.chojo.ember.feature.members.service.ManagedMemberService.ManagedMember;
-import dev.chojo.ember.feature.members.service.ManagedMemberService.MemberInventoryItem;
 import dev.chojo.ember.feature.members.service.ManagedMemberService.MemberProfile;
+import dev.chojo.ember.feature.members.service.ManagedMemberService.MemberRequirement;
 import dev.chojo.ember.feature.members.service.ManagedMemberService.ValueEntry;
+import dev.chojo.ember.feature.members.service.ProfileFieldService.MergedValue;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentWord;
 import dev.chojo.ember.util.SafeContentDisposition;
@@ -123,7 +125,7 @@ public class ManagedMemberRoutes implements Routes {
             tags = {"Managed Members"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ManagedMemberSetValuesRequest.class)),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MergedValue[].class)))
     private void setProfile(Context ctx) {
         int memberId = pathInt(ctx, "memberId");
         var request = ctx.bodyAsClass(ManagedMemberSetValuesRequest.class);
@@ -197,6 +199,13 @@ public class ManagedMemberRoutes implements Routes {
      * a hijacked guardian session putting a credential on a child's account is what this is
      * otherwise wide open to.
      */
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/passkey-code",
+            methods = HttpMethod.POST,
+            summary = "Issue a passkey code for a managed member",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PasskeyCodeResponse.class)))
     private void issuePasskeyCode(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var issued = accessService.issuePasskeyCode(
@@ -208,13 +217,18 @@ public class ManagedMemberRoutes implements Routes {
         ctx.json(new PasskeyCodeResponse(issued.code(), issued.qrPng(), issued.expiresAt()));
     }
 
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/passkey-code",
+            methods = HttpMethod.DELETE,
+            summary = "Revoke the passkey code of a managed member",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void revokePasskeyCode(Context ctx) {
         UserSession session = UserSession.from(ctx);
         accessService.revokePasskeyCode(session.member().id(), pathInt(ctx, "memberId"));
         ctx.json(new MessageResponse("Code revoked"));
     }
-
-    public record PasskeyCodeResponse(String code, String qrPng, java.time.Instant expiresAt) {}
 
     @OpenApi(
             path = "/api/v1/managed-members/{memberId}/login",
@@ -258,7 +272,7 @@ public class ManagedMemberRoutes implements Routes {
             summary = "Get inventory items for a managed member",
             tags = {"Managed Members"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberInventoryItem[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MyInventoryItem[].class)))
     private void getMemberInventory(Context ctx) {
         ctx.json(managedMembers.inventory(guardianId(ctx), pathInt(ctx, "memberId")));
     }
@@ -269,7 +283,7 @@ public class ManagedMemberRoutes implements Routes {
             summary = "Get inventory requirements for a managed member",
             tags = {"Managed Members"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberRequirement[].class)))
     private void getMemberRequirements(Context ctx) {
         ctx.json(managedMembers.requirements(guardianId(ctx), pathInt(ctx, "memberId")));
     }
@@ -280,7 +294,7 @@ public class ManagedMemberRoutes implements Routes {
             summary = "Export all personal data for a managed member (GDPR/DSGVO)",
             tags = {"Managed Members"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Object.class)))
     private void gdprExport(Context ctx) {
         var export = managedMembers.export(guardianId(ctx), pathInt(ctx, "memberId"));
         String filename = DocumentName.of("json", DocumentWord.DATA_EXPORT.in("de"), DocumentName.part(export.name()));

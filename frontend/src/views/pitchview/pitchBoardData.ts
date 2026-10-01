@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Comment} from '@/api/comments'
-import type {MemberCompletion} from '@/api/stationMembers'
-import type {MemberIdentity} from '@/api/types'
+import type {MemberCompletion, MemberIdentity} from '@/api/generated/schema'
 import type {PitchBoard} from './pitchTypes'
 
 /**
@@ -26,7 +25,7 @@ function inDays(days: number): string {
 }
 
 function identity(name: string, uid: string): MemberIdentity {
-    return {stationUid: 'wache', memberUid: uid, name}
+    return {stationUid: 'wache', memberUid: uid, name, stationName: null, nameColor: null, displayTag: null}
 }
 
 const ANNA = identity('Anna Müller', 'm-anna')
@@ -36,8 +35,11 @@ const CLARA = identity('Clara Weiß', 'm-clara')
 const MEMBERS: MemberCompletion[] = [ANNA, BEN, CLARA].map((member, index) => ({
     id: index + 1,
     name: member.name ?? '',
-    stationUid: 'wache',
-    memberUid: member.memberUid ?? '',
+    stationUid: member.stationUid,
+    memberUid: member.memberUid,
+    stationName: null,
+    nameColor: null,
+    displayTag: null,
 }))
 
 const MATERIAL = {id: 1, boardId: 1, name: 'Material', color: '#3694FF'}

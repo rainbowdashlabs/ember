@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {watch} from 'vue'
 import {useRouter} from 'vue-router'
-import type {PublicStationInfo} from '@/api/discovery'
+import type {PublicStationInfo} from '@/api/generated/schema'
 import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
 
 const router = useRouter()

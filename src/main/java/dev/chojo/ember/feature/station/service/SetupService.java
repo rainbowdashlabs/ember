@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -245,5 +246,6 @@ public class SetupService {
      * @param requiredSteps required step states, in display order
      * @param optionalSteps optional step states, in display order
      */
-    public record SetupStatus(Instant completedAt, List<StepState> requiredSteps, List<StepState> optionalSteps) {}
+    public record SetupStatus(
+            @Nullable Instant completedAt, List<StepState> requiredSteps, List<StepState> optionalSteps) {}
 }

@@ -15,18 +15,18 @@ import PermissionsTab from './PermissionsTab.vue'
 import MemberRelationsPanel from '../relations/MemberRelationsPanel.vue'
 import InventoryTab from './InventoryTab.vue'
 import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
-import type { ProfileFieldChange } from '@/api/profileFieldChanges'
-import type { ProfileField } from '@/api/profileFields'
-import type { StationMember, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
-import type { MemberRequirements, MyInventoryItem } from '@/api/generated/schema'
+import type { ChangeEntry } from '@/api/profileFieldChanges'
+import type { ProfileQuestion } from '@/api/profileFields'
+import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
+import type { MemberRequirements, MemberWithName, MyInventoryItem } from '@/api/generated/schema'
 
 defineProps<{
-  member: StationMember
+  member: MemberWithName
   memberId: number
   currentMemberId: number
   tabs: { key: string; label: string }[]
-  applicableFields: ProfileField[]
-  changes: ProfileFieldChange[]
+  applicableFields: ProfileQuestion[]
+  changes: ChangeEntry[]
   showChangeHistory: boolean
   getFieldValue: (fieldId: number) => unknown
   memberUserType: string
@@ -35,15 +35,15 @@ defineProps<{
   memberTagList: UserTag[]
   showGuardians: boolean
   showManaged: boolean
-  managers: StationMember[]
-  managedMembers: StationMember[]
-  availableManagers: StationMember[]
-  availableManaged: StationMember[]
-  allMembers: StationMember[]
-  fields: ProfileField[]
+  managers: MemberWithName[]
+  managedMembers: MemberWithName[]
+  availableManagers: MemberWithName[]
+  availableManaged: MemberWithName[]
+  allMembers: MemberWithName[]
+  fields: ProfileQuestion[]
   canEdit: boolean
-  memberDisplayName: (m: StationMember) => string
-  getManagerFields: (id: number) => ProfileField[]
+  memberDisplayName: (m: MemberWithName) => string
+  getManagerFields: (id: number) => ProfileQuestion[]
   getManagerFieldValue: (mgrId: number, fieldId: number) => unknown
   memberInventory: MyInventoryItem[]
   memberRequirements: MemberRequirements

@@ -11,12 +11,12 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
-import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
@@ -93,7 +93,7 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiParam(name = "boardKey", type = String.class, required = true),
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardComment[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void getComments(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int ticketId = guards.viewableTicketId(ctx, session);
@@ -113,7 +113,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BoardTicketCommentRequest.class)),
             responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardComment.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createComment(Context ctx) {
@@ -341,6 +341,7 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "fieldId", type = Integer.class, required = true)
             },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BoardFieldValue.class)),
             responses = {
                 @OpenApiResponse(status = "200"),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),

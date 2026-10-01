@@ -13,20 +13,19 @@ import TicketTitleEditor from './TicketTitleEditor.vue'
 import TicketDescriptionEditor from './TicketDescriptionEditor.vue'
 import TicketAddMenu from './TicketAddMenu.vue'
 import TicketKbLinksSection from './TicketKbLinksSection.vue'
+import type { AnyBoard, BoardTicketComment } from '@/api/boards'
 import type {
-    Board, BoardLane, BoardTicket, BoardChecklistItem, BoardTicketLink,
-    BoardTicketTransition, BoardTicketHistoryEntry, BoardComment,
-    BoardWeblink, BoardTicketAttachment, BoardTicketKbLink, BoardLabel,
-} from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+    BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment, BoardTicketHistoryResponse,
+    BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink, MemberCompletion, TicketSummary,
+} from '@/api/generated/schema'
 import type {PriorityOption, KbSearchResult} from './types'
 
 
 
 defineProps<{
-    board: Board
+    board: AnyBoard
     ticket: BoardTicket
-    allTickets: BoardTicket[]
+    allTickets: TicketSummary[]
     lanes: BoardLane[]
     members: MemberCompletion[]
     allLabels: BoardLabel[]
@@ -36,9 +35,9 @@ defineProps<{
     links: BoardTicketLink[]
     weblinks: BoardWeblink[]
     attachments: BoardTicketAttachment[]
-    transitions: BoardTicketTransition[]
-    history: BoardTicketHistoryEntry[]
-    comments: BoardComment[]
+    transitions: BoardTicketTransitionResponse[]
+    history: BoardTicketHistoryResponse[]
+    comments: BoardTicketComment[]
     kbLinks: BoardTicketKbLink[]
     kbSearchResults: KbSearchResult[]
     canEdit: boolean

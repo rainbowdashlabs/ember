@@ -12,8 +12,8 @@ import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import LabelSelectInput from '@/components/input/select/LabelSelectInput.vue'
 import { fromCompletion } from '@/components/input/select/memberOption'
-import {TicketPriority, type BoardLabel, type BoardLane, type TicketPriorityName} from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+import {TicketPriority, type TicketPriorityName} from '@/api/boards'
+import type {BoardLabel, BoardLane, MemberCompletion} from '@/api/generated/schema'
 
 const props = defineProps<{
     laneId: string

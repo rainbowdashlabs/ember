@@ -15,7 +15,6 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
-import dev.chojo.ember.feature.inventory.service.GlyphResolver;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
@@ -23,6 +22,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryIntakeService;
 import dev.chojo.ember.feature.inventory.service.InventoryLossService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
+import dev.chojo.ember.feature.inventory.service.MemberGearService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -109,7 +109,7 @@ class InventoryRoutesTest {
                 mock(InventoryIntakeService.class),
                 mock(BorrowedGearService.class),
                 mock(SelfCheckService.class),
-                mock(GlyphResolver.class)));
+                mock(MemberGearService.class)));
     }
 
     private Response put(HttpClient client, String path, String json, StationPermission permission) {

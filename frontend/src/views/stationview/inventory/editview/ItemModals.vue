@@ -27,7 +27,7 @@ import type {
   InventoryFieldDefinition,
   InventoryItem,
 } from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import {inventory, inventoryArts, inventoryFields} from '@/api'
 import {useModalTarget} from '@/composables/useModalTarget'
 import AddItemFields from './itemmodals/AddItemFields.vue'
@@ -44,7 +44,7 @@ const {t} = useI18n()
 
 const props = defineProps<{
   detail: InventoryDetail
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const emit = defineEmits<{

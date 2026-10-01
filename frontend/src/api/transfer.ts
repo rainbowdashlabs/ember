@@ -4,55 +4,45 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {
+    components,
+    ImportProgressResponse,
+    ImportStartResponse,
+    MessageResponse,
+    TokenResponse,
+    TransferStatusResponse,
+} from './generated/schema'
 
-export interface TransferToken {
-    token: string
-    version: string
-}
+export type ImportStatusName = components['schemas']['Status']
 
-export interface ImportStartResult {
-    stationId: string
-    stationName: string
-}
+/** How far a station import has come, as both import progress answers report it. */
+export const ImportStatus = {
+    IN_PROGRESS: 'IN_PROGRESS',
+    COMPLETED: 'COMPLETED',
+    FAILED: 'FAILED',
+} as const satisfies Record<ImportStatusName, ImportStatusName>
 
-export interface ImportProgress {
-    stationId: string
-    stationName: string
-    status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
-    phases: string[]
-    completedPhases: number
-    currentPhase: string | null
-    subTotal: number
-    subCompleted: number
-    error: string | null
-}
-
-export async function createTransferToken(): Promise<TransferToken> {
-    const res = await client.post<TransferToken>('/station/transfer/create-token')
+export async function createTransferToken(): Promise<TokenResponse> {
+    const res = await client.post<TokenResponse>('/station/transfer/create-token')
     return res.data
 }
 
-export async function startImport(token: string): Promise<ImportStartResult> {
-    const res = await client.post<ImportStartResult>('/admin/transfer/import', {token})
+export async function startImport(token: string): Promise<ImportStartResponse> {
+    const res = await client.post<ImportStartResponse>('/admin/transfer/import', {token})
     return res.data
 }
 
-export async function getImportProgress(stationId: string): Promise<ImportProgress> {
-    const res = await client.get<ImportProgress>(`/admin/transfer/import/${stationId}/progress`)
+export async function getImportProgress(stationUid: string): Promise<ImportProgressResponse> {
+    const res = await client.get<ImportProgressResponse>(`/admin/transfer/import/${stationUid}/progress`)
     return res.data
 }
 
-export interface TransferStatus {
-    readOnly: boolean
-    targetInstanceUrl: string | null
-}
-
-export async function getTransferStatus(): Promise<TransferStatus> {
-    const res = await client.get<TransferStatus>('/station/transfer/status')
+export async function getTransferStatus(): Promise<TransferStatusResponse> {
+    const res = await client.get<TransferStatusResponse>('/station/transfer/status')
     return res.data
 }
 
-export async function deleteMovedStation(): Promise<{message: string}> {
-    const res = await client.post<{message: string}>('/station/manage/delete-moved')
+export async function deleteMovedStation(): Promise<MessageResponse> {
+    const res = await client.post<MessageResponse>('/station/manage/delete-moved')
     return res.data
 }

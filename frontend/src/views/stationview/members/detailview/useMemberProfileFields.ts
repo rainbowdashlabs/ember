@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref, type Ref } from 'vue'
-import type { ProfileField } from '@/api/profileFields'
+import type { ProfileQuestion } from '@/api/profileFields'
 import { StationUserType } from '@/api/types'
 import { calculatedAnswer } from '@/util/profileFields'
 import { useFieldAudiences } from '@/composables/useFieldAudiences'
@@ -28,11 +28,11 @@ function roleOfUserType(userType: string): string {
  * including which fields apply to a given user type.
  */
 export function useMemberProfileFields(memberUserType: Ref<string>) {
-  const fields = ref<ProfileField[]>([])
+  const fields = ref<ProfileQuestion[]>([])
   const values = ref<Map<number, string>>(new Map())
   const audiences = useFieldAudiences()
 
-  function fieldsForUserType(userType: string): ProfileField[] {
+  function fieldsForUserType(userType: string): ProfileQuestion[] {
     return audiences.fieldsFor(fields.value, roleOfUserType(userType))
   }
 

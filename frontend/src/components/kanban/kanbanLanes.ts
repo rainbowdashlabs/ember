@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { BoardLane, BoardTicket } from '@/api/boards'
+import type { BoardLane, TicketSummary } from '@/api/generated/schema'
 
 /** What the kanban board needs to know about the board it draws. */
 export interface KanbanBoardSettings {
@@ -18,7 +18,7 @@ export function boardLanes(lanes: BoardLane[], backlogLaneId: number | null): Bo
 }
 
 /** The tickets of one lane in their order. */
-export function laneTickets(tickets: BoardTicket[], laneId: number): BoardTicket[] {
+export function laneTickets(tickets: TicketSummary[], laneId: number): TicketSummary[] {
   return tickets.filter(ticket => ticket.laneId === laneId).sort((a, b) => a.position - b.position)
 }
 
@@ -27,7 +27,7 @@ export function laneTickets(tickets: BoardTicket[], laneId: number): BoardTicket
  *
  * @param now the moment to measure from
  */
-export function isPastDoneLimit(ticket: BoardTicket, hideDoneAfterDays: number, now: Date = new Date()): boolean {
+export function isPastDoneLimit(ticket: TicketSummary, hideDoneAfterDays: number, now: Date = new Date()): boolean {
   const cutoff = new Date(now)
   cutoff.setDate(cutoff.getDate() - hideDoneAfterDays)
   return new Date(ticket.laneEnteredAt) < cutoff
@@ -45,7 +45,7 @@ export function isPastDoneLimit(ticket: BoardTicket, hideDoneAfterDays: number, 
  * @param shownIndex   the place among the shown cards
  * @return the place among all tickets of the lane
  */
-export function positionInLane(lane: BoardTicket[], shown: BoardTicket[], shownIndex: number): number {
+export function positionInLane(lane: TicketSummary[], shown: TicketSummary[], shownIndex: number): number {
   const before = shown[shownIndex]
   if (before) return lane.findIndex(ticket => ticket.id === before.id)
   const last = shown[shown.length - 1]

@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {inventory, inventoryArts} from '@/api'
 import type {InventoryArt, InventoryItem, InventorySize, ItemLocationResponse} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import ItemEditForm from './ItemEditForm.vue'
 import ItemMetadataDisplay from './ItemMetadataDisplay.vue'
 import {parseItemMetadata} from '../detailview/itemMetadata'
@@ -20,7 +20,7 @@ import {describeFailure, type Failure} from '@/util/failure'
 const props = defineProps<{
   item: InventoryItem
   sizes: InventorySize[]
-  members: StationMember[]
+  members: MemberLike[]
   location: ItemLocationResponse | null
   canEditItem: boolean
 }>()

@@ -13,7 +13,8 @@ import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import OccurrenceSearchPicker from '@/components/input/search/OccurrenceSearchPicker.vue'
 import type {RestrictionSelection} from '@/components/input/restriction'
 import type {EventOccurrenceRef} from '@/api/events'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 /**
  * Chooses what a list is made of: a description of people, or one date of an appointment.
@@ -29,7 +30,7 @@ const occurrence = defineModel<EventOccurrenceRef | null>('occurrence', {require
 defineProps<{
   groups: MemberGroup[]
   tags: UserTag[]
-  members: StationMember[]
+  members: MemberLike[]
   /** What the chip should read for an occurrence this list already follows. */
   selectedOccurrenceLabel?: string | null
 }>()

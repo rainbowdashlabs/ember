@@ -4,17 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {AttendanceEntry} from '@/api/generated/schema'
-import type {MemberGroup, StationMember} from '@/api/types'
+import type {MemberGroup} from '@/api/types'
 import type {PitchAttendance, PitchCheckMode} from './pitchTypes'
 import type {MemberSection} from '@/views/stationview/attendance/sessionview/memberSections'
-
-/**
- * The attendance a demonstration shows. The application's own list, summary and check panel read
- * these objects, so the preview cannot drift away from what the screens really do.
- */
-function member(id: number, name: string): StationMember {
-    return {id, stationId: 'wache', accountId: id, name, identity: {memberUid: `m-${id}`, name}}
-}
+import {pitchMember as member} from './pitchMembers'
 
 const CREW: MemberGroup = {id: 1, stationId: 'wache', name: 'Löschgruppe', position: 0}
 const RECRUITS: MemberGroup = {id: 2, stationId: 'wache', name: 'Anwärter', position: 1}

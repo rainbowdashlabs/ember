@@ -27,8 +27,7 @@ import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import HandOutChoice from '@/components/inventory/HandOutChoice.vue'
 import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
 import {inventory, movements, stationMembers} from '@/api'
-import type {InventoryItem} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {InventoryItem, MemberWithName} from '@/api/generated/schema'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import {formatTime} from '@/util/format'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -46,7 +45,7 @@ interface AssignmentEvent {
 
 const {t} = useI18n()
 
-const {config: members, loading, failure} = useConfigPanel<StationMember[]>({
+const {config: members, loading, failure} = useConfigPanel<MemberWithName[]>({
   initial: [],
   fetch: () => stationMembers.listMembers(),
 })
@@ -73,8 +72,8 @@ const unknownScanCode = ref<string | null>(null)
 const selectedMember = computed(() =>
     memberId.value != null ? members.value.find(m => m.id === memberId.value) ?? null : null)
 
-function memberDisplay(m: StationMember): string {
-  return (m.name ?? '').trim() || `#${m.id}`
+function memberDisplay(m: MemberWithName): string {
+  return m.name.trim() || `#${m.id}`
 }
 
 /**
@@ -97,7 +96,7 @@ async function onMemberPicked(uid: string | null) {
     memberId.value = known.id
     return
   }
-  let fetched: StationMember | null
+  let fetched: MemberWithName | null
   try {
     fetched = await stationMembers.getMemberByUid(uid)
   } catch (e) {
@@ -201,7 +200,7 @@ const reassignPrevious = computed(() => {
   return previous ? memberDisplay(previous) : `#${holder}`
 })
 
-function pushRecent(action: 'ASSIGN' | 'RETURN', item: InventoryItem, member: StationMember | null) {
+function pushRecent(action: 'ASSIGN' | 'RETURN', item: InventoryItem, member: MemberWithName | null) {
   recent.value.unshift({
     id: recentCounter.value++,
     itemName: item.name ?? '',

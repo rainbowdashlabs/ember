@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import LabelSelectInput from '@/components/input/select/LabelSelectInput.vue'
 import { contrastTextColor } from '@/util/contrastColor'
-import type { BoardLabel } from '@/api/boards'
+import type { BoardLabel } from '@/api/generated/schema'
 
 defineProps<{
     allLabels: BoardLabel[]

@@ -14,7 +14,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import ImportProgressChecklist from '@/components/transfer/ImportProgressChecklist.vue'
 import {stationManage} from '@/api'
-import type {StationImportProgress} from '@/api/stationManage'
+import type {StationImportProgress} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const emit = defineEmits<{

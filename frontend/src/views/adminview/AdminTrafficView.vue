@@ -13,7 +13,6 @@ import HelpCenterHint from '@/components/help/HelpCenterHint.vue'
 import {stations, traffic} from '@/api'
 import type {AuthBucketName} from '@/api/traffic'
 import type {HourlyTrafficRow} from '@/api/generated/schema'
-import type {Station} from '@/api/stations'
 import TrafficTotals from './admintrafficview/TrafficTotals.vue'
 import TrafficWindowSelector from './admintrafficview/TrafficWindowSelector.vue'
 import TrafficChartCard from './admintrafficview/TrafficChartCard.vue'
@@ -42,12 +41,9 @@ const {loading, reload} = useAsyncLoader(async (isCurrent) => {
 
 async function loadStationNames() {
   try {
-    const list: Station[] = await stations.listStations()
+    const list = await stations.listStations()
     const map = new Map<string, string>()
-    for (const s of list) {
-      const uid = String((s as unknown as {id: unknown}).id)
-      map.set(uid, s.name ?? uid)
-    }
+    for (const s of list) map.set(s.id, s.name)
     stationNames.value = map
   } catch {
     stationNames.value = new Map()

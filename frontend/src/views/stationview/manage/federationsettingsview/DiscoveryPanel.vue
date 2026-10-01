@@ -10,8 +10,9 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import type {DiscoveryVisibilityName} from '@/api/stationManage'
 
-const visibility = defineModel<string>('visibility', {required: true})
+const visibility = defineModel<DiscoveryVisibilityName>('visibility', {required: true})
 const description = defineModel<string>('description', {required: true})
 
 const {t} = useI18n()

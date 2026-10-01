@@ -5,11 +5,11 @@
  */
 import {computed, readonly} from 'vue'
 import {transfer} from '@/api'
-import type {TransferStatus} from '@/api/transfer'
+import type {TransferStatusResponse} from '@/api/generated/schema'
 
 /** Whether the station has moved to another instance, asked once and read wherever it matters. */
 export function useStationTransferStatus() {
-    const status = useState<TransferStatus | null>('useStationTransferStatus.status', () => null)
+    const status = useState<TransferStatusResponse | null>('useStationTransferStatus.status', () => null)
     const loaded = useState('useStationTransferStatus.loaded', () => false)
 
     async function load() {

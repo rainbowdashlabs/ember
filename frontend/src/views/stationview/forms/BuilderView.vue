@@ -29,9 +29,9 @@ import { useUnsavedLayout } from './builderview/useUnsavedLayout'
 import ContentDraftBanner from '@/components/content/ContentDraftBanner.vue'
 import { AnswerLossDeclined, type Removals, useAnswerLossConsent } from './builderview/useAnswerLossConsent'
 import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, type FormPurposeName, type FormVisibilityName, type QuestionType} from '@/api/forms'
-import type {Form, FormQuestion, PageUsingForm} from '@/api/generated/schema'
+import type {Form, FormQuestion, MemberWithName, PageUsingForm} from '@/api/generated/schema'
 import { optionKeysOf } from '@/util/formOptions'
-import type { MemberGroup, StationMember, UserTag } from '@/api/types'
+import type { MemberGroup, UserTag } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 import { instantToLocalInput } from '@/util/format'
@@ -116,7 +116,7 @@ const pageSubtitle = computed(() =>
 
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
-const allMembers = ref<StationMember[]>([])
+const allMembers = ref<MemberWithName[]>([])
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 
 /**

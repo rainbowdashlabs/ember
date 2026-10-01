@@ -33,7 +33,8 @@ import type {
 } from '@/api/generated/schema'
 import {attendance, events} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {StationModules, StationPermission, type StationMember} from '@/api/types'
+import {StationModules, StationPermission} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import {formatDateTime} from '@/util/format'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 import {useSession} from '@/composables/useSession'
@@ -42,7 +43,7 @@ const props = defineProps<{
   event: StationEvent
   eventId: number
   fields: EventField[]
-  allMembers: StationMember[]
+  allMembers: MemberLike[]
   reminders: number[]
   absentMembers: AbsentMemberResponse[]
   focusedDate: string | null

@@ -14,7 +14,7 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import AudienceCount from './AudienceCount.vue'
 import WritabilitySelect from './WritabilitySelect.vue'
 import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFieldsConfig'
-import {type ProfileField, parseFieldConfig} from '@/api/profileFields'
+import {type EditableField, type FieldSwitchName, parseFieldConfig} from '@/api/profileFields'
 import {holdsAnswer, isSection, widthOf} from '@/components/profilefields/fieldLayout'
 import {widthLabel} from '../fieldTypes'
 
@@ -22,7 +22,7 @@ const {t} = useI18n()
 const writabilityId = useId()
 
 defineProps<{
-  field: ProfileField
+  field: EditableField
   typeLabel: string
   audiences: number
   selected: boolean
@@ -30,15 +30,15 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  select: [field: ProfileField]
-  toggleChecked: [field: ProfileField]
-  edit: [field: ProfileField]
-  delete: [field: ProfileField]
-  toggleConfig: [field: ProfileField, key: string, value: boolean]
-  toggleKeepOnArchive: [field: ProfileField, value: boolean]
-  toggleRequired: [field: ProfileField, value: boolean]
-  toggleReadonly: [field: ProfileField, value: boolean]
-  setWritability: [field: ProfileField, level: WritabilityName]
+  select: [field: EditableField]
+  toggleChecked: [field: EditableField]
+  edit: [field: EditableField]
+  delete: [field: EditableField]
+  toggleConfig: [field: EditableField, key: FieldSwitchName, value: boolean]
+  toggleKeepOnArchive: [field: EditableField, value: boolean]
+  toggleRequired: [field: EditableField, value: boolean]
+  toggleReadonly: [field: EditableField, value: boolean]
+  setWritability: [field: EditableField, level: WritabilityName]
 }>()
 
 const capabilities = useFieldsCapabilities()

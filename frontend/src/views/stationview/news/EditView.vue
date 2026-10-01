@@ -13,8 +13,8 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
-import type { PartnerResponse } from '@/api/federation'
+import {StationPermission, type MemberGroup, type UserTag} from '@/api/types'
+import type {BlockCellRequest, BlockRowRequest, ContentRow, MemberCompletion, PartnerResponse} from '@/api/generated/schema'
 import { ShareScope } from '@/api/lending'
 import { userTypesOf } from '@/util/stationUserTypes'
 import { news, memberGroups, userTags, federation, events, stationMembers } from '@/api'
@@ -23,7 +23,6 @@ import AnnouncementNotice from './editview/AnnouncementNotice.vue'
 import ContentPanel from './editview/ContentPanel.vue'
 import {ContentMode, type ContentModeName} from '@/api/news'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
-import type {BlockCellRequest, BlockRowRequest, ContentRow} from '@/api/generated/schema'
 import {markdownAsSingleBlock} from '@/util/blockSwitch'
 import AttachmentsPanel from './editview/AttachmentsPanel.vue'
 import EditActions from './editview/EditActions.vue'
@@ -71,7 +70,7 @@ const selectedTagIds = ref<number[]>([])
 const selectedMemberIds = ref<number[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberCompletion[]>([])
 
 const publicBlog = ref(false)
 const contentMode = ref<ContentModeName>(ContentMode.SIMPLE)
@@ -205,7 +204,7 @@ async function loadAnnouncement(eventId: number) {
     memberIds: view?.memberIds ?? [],
     mode: 'AND' as const,
   }
-  const names = new Map(members.value.map(m => [m.id, m.name ?? m.email ?? `#${m.id}`]))
+  const names = new Map(members.value.map(m => [m.id, m.name || `#${m.id}`]))
   const draft = buildAnnouncementDraft(
       {event, eventUid, date: announcedDate.value, fields, timezone: sessionInfo.value?.stationTimezone},
       audience,
@@ -235,7 +234,7 @@ const { loading, failure, reload } = useAsyncLoader(async () => {
   ])
   groups.value = groupList
   tags.value = tagList
-  members.value = memberList.map(m => ({id: m.id, stationId: '', accountId: 0, name: m.name}))
+  members.value = memberList
   if (canFederateNews()) {
     partners.value = (await federation.listPartners()).filter(p => p.partner.status === 'ACTIVE')
   }

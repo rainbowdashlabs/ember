@@ -11,10 +11,8 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import { managedMembers as managedMembersApi, profileFields } from '@/api'
-import type { ManagedMember } from '@/api/managedMembers'
-import {
-  decodeProfileValues, getFieldValue, setFieldValue, type MergedProfileField,
-} from '@/util/profileFields'
+import type { ManagedMember, MergedField } from '@/api/generated/schema'
+import {decodeProfileValues, getFieldValue, setFieldValue} from '@/util/profileFields'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -30,7 +28,7 @@ const { t } = useI18n()
 const { sessionInfo } = useSession()
 const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
-const fields = ref<MergedProfileField[]>([])
+const fields = ref<MergedField[]>([])
 const values = ref<Map<number, string>>(new Map())
 
 const memberId = computed(() => sessionInfo.value?.member?.id ?? null)

@@ -19,10 +19,9 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MemberUserTypeSelect from './MemberUserTypeSelect.vue'
 import MemberGroupChips from './MemberGroupChips.vue'
 import MemberTagChips from './MemberTagChips.vue'
-import {StationUserType, type MemberGroup, type PermissionGrant, type StationMember, type UserTag} from '@/api/types'
-import type {MemberGroupSet} from '@/api/groupSets'
+import {StationUserType, type MemberGroup, type PermissionGrant, type UserTag} from '@/api/types'
+import type {MemberGroupSet, MemberWithName, MyInventoryItem} from '@/api/generated/schema'
 import {stationMembers, memberGroups} from '@/api'
-import type {MyInventoryItem} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -36,7 +35,7 @@ const {t} = useI18n()
  * member in one step, so two editors cannot overwrite each other's work on a whole group.
  */
 const props = defineProps<{
-  member: StationMember
+  member: MemberWithName
   memberId: number
   allRoles: PermissionGrant[]
   allGroups: MemberGroup[]

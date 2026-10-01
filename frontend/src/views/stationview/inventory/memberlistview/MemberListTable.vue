@@ -11,8 +11,7 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
-import type { InventoryItem } from '@/api/generated/schema'
-import type { StationMember } from '@/api/types'
+import type { InventoryItem, MemberWithName } from '@/api/generated/schema'
 import type { DataTableApi } from '@/composables/useDataTable'
 import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import MemberInventoryItems from './MemberInventoryItems.vue'
@@ -24,7 +23,7 @@ import type { ItemLabelParts } from './itemLabel'
  * member's pieces, or ticks the member while choosing whom to export.
  */
 const props = defineProps<{
-  table: DataTableApi<StationMember>
+  table: DataTableApi<MemberWithName>
   exportMode: boolean
   selectedForExport: Set<number>
   itemsFor: (memberId: number, inventoryId: number) => InventoryItem[]
@@ -41,7 +40,7 @@ const { t } = useI18n()
 const routes = useInventoryRoutes()
 
 /** Where the member's name leads, or nowhere while the list is being ticked for an export. */
-function memberPage(member: StationMember) {
+function memberPage(member: MemberWithName) {
   if (props.exportMode || !routes.member) return null
   return { name: routes.member, params: { memberId: member.id } }
 }
@@ -54,7 +53,7 @@ const inventoryColumns = computed(() => props.table.visibleColumns
 const allSelected = computed(() =>
   props.table.rows.length > 0 && props.selectedForExport.size === props.table.rows.length)
 
-function handleRowClick(member: StationMember) {
+function handleRowClick(member: MemberWithName) {
   if (props.exportMode) emit('toggleExportSelection', member.id)
   else emit('goToMember', member.id)
 }

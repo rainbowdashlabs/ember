@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import type {ProfileField} from '@/api/profileFields'
+import type {MemberWithName, ProfileField} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 
 const {t} = useI18n()
@@ -16,10 +16,10 @@ defineProps<{
   member: StationMember
   colSpan: number
   overviewFields: ProfileField[]
-  managers: StationMember[]
+  managers: MemberWithName[]
   getFieldValueFor: (memberId: number, fieldId: number) => unknown
   getOverviewFieldsFor: (memberId: number) => ProfileField[]
-  managerName: (mgr: StationMember) => string
+  managerName: (mgr: MemberWithName) => string
 }>()
 </script>
 

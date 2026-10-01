@@ -15,7 +15,7 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {useMemberPick} from '@/composables/useMemberPick'
 import {fromMember, identityOf, type MemberOption} from '@/components/input/select/memberOption'
-import type {UserTag} from '@/api/types'
+import type {UserTag} from '@/api/generated/schema'
 import type {AssignableMember} from '@/composables/useGroupsConfig'
 
 const {t} = useI18n()

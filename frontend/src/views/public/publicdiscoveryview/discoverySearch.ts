@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {DiscoveryEntry} from '@/api/discovery'
+import type {DiscoveryEntry} from '@/api/generated/schema'
 
 /**
  * The stations whose name, description, place, association or instance contain the search term,

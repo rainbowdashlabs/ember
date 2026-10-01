@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {OnboardingLevelName, OnboardingStatus} from '@/api/onboarding'
+import type {OnboardingLevelName} from '@/api/onboarding'
+import type {OnboardingStatus} from '@/api/generated/schema'
 
 /**
  * What the task tour currently knows and is currently doing. Lives here rather than in one of the

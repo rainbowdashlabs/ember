@@ -24,8 +24,7 @@ import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
 import MovementWizard from '@/views/stationview/inventory/movementwizard/MovementWizard.vue'
 import type {WizardPrefill} from '@/views/stationview/inventory/movementwizard/useMovementWizard'
 import {MovementPurpose} from '@/api/movements'
-import type {InventoryItem, MyInventoryItem} from '@/api/generated/schema'
-import type { StationMember } from '@/api/types'
+import type {InventoryItem, MemberWithName, MyInventoryItem} from '@/api/generated/schema'
 
 const { t } = useI18n()
 
@@ -35,9 +34,9 @@ const props = defineProps<{
   formerBlockReasons: string[]
   markingFormer: boolean
   deletingMember: boolean
-  allMembers: StationMember[]
+  allMembers: MemberWithName[]
   memberId: number
-  memberDisplayNameFn: (m: StationMember) => string
+  memberDisplayNameFn: (m: MemberWithName) => string
 }>()
 
 const emit = defineEmits<{

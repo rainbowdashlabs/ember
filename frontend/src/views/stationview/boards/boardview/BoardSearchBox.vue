@@ -10,7 +10,7 @@ import SearchInput from '@/components/input/text/SearchInput.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import BoardSearchResult from './BoardSearchResult.vue'
 import { boards } from '@/api'
-import type { BoardLabel, BoardTicket } from '@/api/boards'
+import type { BoardLabel, TicketSummary } from '@/api/generated/schema'
 import { describeFailure, type Failure } from '@/util/failure'
 
 const props = defineProps<{
@@ -23,7 +23,7 @@ const props = defineProps<{
 const { t } = useI18n()
 
 const searchQuery = ref('')
-const searchResults = ref<BoardTicket[] | null>(null)
+const searchResults = ref<TicketSummary[] | null>(null)
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 

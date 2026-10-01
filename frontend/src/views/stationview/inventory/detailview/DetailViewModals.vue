@@ -14,14 +14,14 @@ import ItemModals from '../editview/ItemModals.vue'
 import { inventory, procurement } from '@/api'
 import {InventoryTypes} from '@/api/inventory'
 import type {InventoryDetail, InventoryItem} from '@/api/generated/schema'
-import type { StationMember } from '@/api/types'
+import type { MemberLike } from '@/components/input/select/memberOption'
 import { useModalTarget } from '@/composables/useModalTarget'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   detail: InventoryDetail | null
-  memberMap: Map<number, StationMember>
-  unassignedMembers: StationMember[]
+  memberMap: Map<number, MemberLike>
+  unassignedMembers: MemberLike[]
 }>()
 
 const emit = defineEmits<{

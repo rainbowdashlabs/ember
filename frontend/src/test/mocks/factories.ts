@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {MemberGroup, MemberIdentity, StationMember, UserTag} from '@/api/types'
+import type {MemberWithName} from '@/api/generated/schema'
+import type {MemberGroup, MemberIdentity, UserTag} from '@/api/types'
 
 /**
  * Typed test data with sensible defaults, so a test states only what it cares about and the rest
@@ -31,18 +32,30 @@ export function createIdentity(overrides: Partial<MemberIdentity> = {}): MemberI
     }
 }
 
-export function createMember(overrides: Partial<StationMember> = {}): StationMember {
+export function createMember(overrides: Partial<MemberWithName> = {}): MemberWithName {
     const id = nextId++
     return {
         id,
         stationId: 'test-station',
         accountId: id,
         name: `Member ${id}`,
+        firstName: 'Member',
+        lastName: String(id),
+        nickname: null,
         email: `member${id}@example.com`,
+        username: null,
         userType: 'MEMBER',
         profileComplete: true,
         formerAt: null,
-        identity: createIdentity({name: `Member ${id}`}),
+        joinDate: '2020-01-01',
+        identity: {
+            stationUid: 'station-uid',
+            memberUid: `member-uid-${id}`,
+            name: `Member ${id}`,
+            stationName: 'Test Station',
+            nameColor: null,
+            displayTag: null,
+        },
         ...overrides,
     }
 }

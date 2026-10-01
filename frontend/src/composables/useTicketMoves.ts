@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type { Ref } from 'vue'
-import type { BoardTicket } from '@/api/boards'
+import type { TicketSummary } from '@/api/generated/schema'
 
 /**
  * The two writes a move can produce. A local board and a federation partner's board reach
@@ -28,14 +28,14 @@ export interface TicketMoveTargets {
  * @param reload  called to resynchronise when a write fails
  */
 export function useTicketMoves(
-  tickets: Ref<BoardTicket[]>,
+  tickets: Ref<TicketSummary[]>,
   targets: TicketMoveTargets,
   reload: () => Promise<void>,
 ) {
   /**
    * @param position where the ticket lands among the other tickets of the lane, in their order
    */
-  async function moveTicket(ticket: BoardTicket, laneId: number, position: number) {
+  async function moveTicket(ticket: TicketSummary, laneId: number, position: number) {
     const movedLane = ticket.laneId !== laneId
     const others = tickets.value
       .filter(t => t.laneId === laneId && t.id !== ticket.id)

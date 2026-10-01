@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, nextTick, type Ref, ref} from 'vue'
-import type {MemberCompletion} from '@/api/stationMembers'
+import type {MemberCompletion} from '@/api/generated/schema'
 import type {MemberGroup} from '@/api/types'
 
 export interface SpecialMention {

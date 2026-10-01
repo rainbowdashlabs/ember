@@ -10,7 +10,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import {StationUserType, StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
-import type {MemberGroupSet} from '@/api/groupSets'
+import type {MemberGroupSet} from '@/api/generated/schema'
 
 /**
  * The rules of a group in its form: the set it belongs to, and the member types it takes. No type

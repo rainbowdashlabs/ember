@@ -5,8 +5,7 @@
  */
 import {computed, ref, type Ref} from 'vue'
 import {stationMembers as stationMembersApi} from '@/api'
-import type {RegistrationFieldResponse} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {MemberWithName, RegistrationFieldResponse} from '@/api/generated/schema'
 
 /**
  * The members a set of questions needs before it can be answered.
@@ -22,7 +21,7 @@ import type {StationMember} from '@/api/types'
  * @param fields the questions the dialog is showing
  */
 export function useAnswerMembers(fields: Ref<RegistrationFieldResponse[]>) {
-    const allMembers = ref<StationMember[]>([])
+    const allMembers = ref<MemberWithName[]>([])
 
     /** Whether any question asks for a member, which is the only reason to fetch them. */
     const needsMembers = computed(() => fields.value.some(field => field.fieldType.startsWith('MEMBER')))

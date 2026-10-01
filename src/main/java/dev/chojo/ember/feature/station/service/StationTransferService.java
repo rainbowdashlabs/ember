@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,5 +74,6 @@ public class StationTransferService {
      * @param readOnly          whether the station is read-only because it is being moved out
      * @param targetInstanceUrl the instance it moves to, or null
      */
-    public record TransferStatusResponse(boolean readOnly, String targetInstanceUrl) {}
+    public record TransferStatusResponse(
+            boolean readOnly, @Nullable String targetInstanceUrl) {}
 }

@@ -9,7 +9,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import type { BoardTicketKbLink } from '@/api/boards'
+import type { BoardTicketKbLink } from '@/api/generated/schema'
 import type {KbSearchResult} from './types'
 
 

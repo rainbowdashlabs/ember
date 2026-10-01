@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {ProfileFieldConfig} from '@/api/profileFields'
+import type {FieldSettings, FieldTypeName} from '@/api/profileFields'
 
 /**
  * One question a template writes down.
@@ -14,8 +14,8 @@ import type {ProfileFieldConfig} from '@/api/profileFields'
  */
 export interface TemplateField {
   name: string
-  fieldType: string
-  config: ProfileFieldConfig
+  fieldType: FieldTypeName
+  config: FieldSettings
   required?: boolean
   readonly?: boolean
 }

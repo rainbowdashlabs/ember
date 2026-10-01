@@ -20,7 +20,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {DocumentUpload} from '@/api/documents'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 /**
  * Putting a document in: the file, what it is called, and what is to become of it.
@@ -31,7 +31,7 @@ const props = defineProps<{
   /** Whether the reader may keep a document from the members it belongs to. */
   canHide?: boolean
   /** The members it can be put on straight away. Absent where the profile already says who. */
-  members?: StationMember[]
+  members?: MemberLike[]
   /** Every label written so far, offered while typing. */
   allTags?: string[]
 }>()

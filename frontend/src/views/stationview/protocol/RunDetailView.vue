@@ -24,9 +24,8 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 import { protocol, stationMembers } from '@/api'
-import type { TestProtocolRun, RunMemberWithProgress } from '@/api/generated/schema'
+import type { MemberWithName, TestProtocolRun, RunMemberWithProgress } from '@/api/generated/schema'
 import { RunStatus } from '@/api/protocol'
-import type { StationMember } from '@/api/types'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { formatDate } from '@/util/format'
 
@@ -39,7 +38,7 @@ const { canManageProtocol, canTestProtocol, loaded } = useSession()
 const runId = computed(() => Number(route.params.id))
 const run = ref<TestProtocolRun | null>(null)
 const runMembers = ref<RunMemberWithProgress[]>([])
-const memberMap = ref<Map<number, StationMember>>(new Map())
+const memberMap = ref<Map<number, MemberWithName>>(new Map())
 const filterIncomplete = ref(false)
 
 const {loading, failure, reload: loadData} = useAsyncLoader(async () => {

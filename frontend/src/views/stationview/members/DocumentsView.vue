@@ -21,8 +21,7 @@ import {usePermissions} from '@/composables/usePermissions'
 import {StationPermission} from '@/api/types'
 import {documents as documentsApi, stationMembers} from '@/api'
 import type {DocumentUpload} from '@/api/documents'
-import type {MemberDocumentResponse} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {MemberDocumentResponse, MemberWithName} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -41,7 +40,7 @@ const search = ref('')
 const memberFilter = ref<string[]>([])
 const unboundOnly = ref(false)
 const allTags = ref<string[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 const loading = ref(false)
 const failure = ref<Failure | null>(null)
 

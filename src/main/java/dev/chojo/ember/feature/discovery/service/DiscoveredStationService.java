@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheReposit
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -102,23 +103,28 @@ public class DiscoveredStationService {
      * the frontend stays stable should the picker widen to partners that are not discoverable.
      */
     public record StationPickerResult(
-            String stationUid, String name, String city, String country, String logoUrl, boolean selectable) {}
+            String stationUid,
+            String name,
+            @Nullable String city,
+            @Nullable String country,
+            @Nullable String logoUrl,
+            boolean selectable) {}
 
     public record DiscoveredStationResponse(
             String stationUid,
             String name,
-            String slogan,
+            @Nullable String slogan,
             String logoUrl,
-            String country,
-            String region,
-            String city,
+            @Nullable String country,
+            @Nullable String region,
+            @Nullable String city,
             String contactUrl,
             List<String> tags,
             String memberCount,
             Instant publishedAt,
-            String addressLine,
-            BigDecimal latitude,
-            BigDecimal longitude,
+            @Nullable String addressLine,
+            @Nullable BigDecimal latitude,
+            @Nullable BigDecimal longitude,
             String instancePublicKey,
             Instant fetchedAt) {}
 }

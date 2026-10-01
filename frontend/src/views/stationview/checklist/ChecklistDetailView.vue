@@ -22,12 +22,13 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 import {useSession} from '@/composables/useSession'
 import {showToast} from '@/util/toast'
-import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
+import {StationPermission, type MemberGroup, type UserTag} from '@/api/types'
 import {checklists, memberGroups, stationMembers, userTags} from '@/api'
 import type {
   AddMembersResponse as ChecklistAddMembersResult,
   CellResponse as ChecklistCell,
   ChecklistDetailResponse as ChecklistDetail,
+  MemberWithName,
   RefreshResponse as ChecklistRefreshResult,
   UpdateRequest as ChecklistUpdateRequest,
 } from '@/api/generated/schema'
@@ -54,7 +55,7 @@ const readOnly = computed(() => !canManage.value)
 const detail = ref<ChecklistDetail | null>(null)
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 
 const memberSearch = ref('')
 const columnFilters = ref<Record<number, 'any' | 'checked' | 'unchecked'>>({})

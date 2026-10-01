@@ -6,8 +6,7 @@
 import {ref} from 'vue'
 import {clusterMembers} from '@/api'
 import type {ManagedMemberResponse} from '@/api/generated/schema'
-import type {RichMember} from '@/api/stationMembers'
-import type {MemberDataSource} from '@/views/stationview/members/listview/useMemberData'
+import type {MemberDataSource, RosterMember} from '@/views/stationview/members/listview/useMemberData'
 
 /**
  * How many people the association's list will pull in before it stops asking.
@@ -32,10 +31,10 @@ const PAGE_SIZE = 200
  * an empty span beside an empty avatar on every line of the list, with the name sitting unread in the
  * field beside it.
  */
-function toRich(member: ManagedMemberResponse): RichMember {
+function toRich(member: ManagedMemberResponse): RosterMember {
     return {
         id: member.id,
-        stationId: 0,
+        stationId: member.stationUid,
         accountId: null,
         name: member.name,
         firstName: member.name,

@@ -13,7 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ColorDot from '@/components/display/ColorDot.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {UserTag} from '@/api/types'
+import type {UserTag} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

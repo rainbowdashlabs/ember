@@ -6,7 +6,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {mount, flushPromises} from '@vue/test-utils'
 import OnboardingTaskCard from './OnboardingTaskCard.vue'
-import type {OnboardingStatus, OnboardingTaskView} from '@/api/onboarding'
+import type {OnboardingStatus, OnboardingTaskView} from '@/api/generated/schema'
 import {onboardingState} from '@/util/onboardingState'
 
 const getTasks = vi.fn()

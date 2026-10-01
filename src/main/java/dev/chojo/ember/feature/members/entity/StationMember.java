@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.auth.StationUserType;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -30,13 +31,13 @@ public record StationMember(
         int id,
         int stationId,
         UUID uid,
-        Integer accountId,
+        @Nullable Integer accountId,
         boolean former,
-        Instant formerAt,
+        @Nullable Instant formerAt,
         String displayName,
         StationUserType userType,
         LocalDate joinDate,
-        String nickname) {
+        @Nullable String nickname) {
 
     /**
      * A member as they are read where the name they are called by does not matter.

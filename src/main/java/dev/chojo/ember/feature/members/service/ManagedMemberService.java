@@ -6,15 +6,12 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.AccessManager;
-import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.inventory.entity.Inventory;
-import dev.chojo.ember.feature.inventory.entity.InventoryItem;
-import dev.chojo.ember.feature.inventory.entity.InventorySize;
+import dev.chojo.ember.feature.inventory.entity.MyInventoryItem;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
-import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.inventory.service.MemberGearService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
@@ -25,8 +22,8 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,11 +42,10 @@ public class ManagedMemberService {
     private final StationMemberRepository memberRepository;
     private final AccountRepository accountRepository;
     private final ProfileFieldService profileFieldService;
-    private final InventoryService inventoryService;
+    private final MemberGearService memberGear;
     private final InventoryCheckService checkService;
     private final GdprExportService gdprExportService;
     private final AccessManager accessManager;
-    private final MemberIdentityFactory identityFactory;
 
     @Inject
     public ManagedMemberService(
@@ -57,20 +53,18 @@ public class ManagedMemberService {
             StationMemberRepository memberRepository,
             AccountRepository accountRepository,
             ProfileFieldService profileFieldService,
-            InventoryService inventoryService,
+            MemberGearService memberGear,
             InventoryCheckService checkService,
             GdprExportService gdprExportService,
-            AccessManager accessManager,
-            MemberIdentityFactory identityFactory) {
+            AccessManager accessManager) {
         this.memberService = memberService;
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.profileFieldService = profileFieldService;
-        this.inventoryService = inventoryService;
+        this.memberGear = memberGear;
         this.checkService = checkService;
         this.gdprExportService = gdprExportService;
         this.accessManager = accessManager;
-        this.identityFactory = identityFactory;
     }
 
     /**
@@ -149,43 +143,16 @@ public class ManagedMemberService {
     }
 
     /**
-     * The equipment a member the guardian looks after holds. Whether a piece can be exchanged
-     * travels with it: a guardian's screen has no list of inventories to look the answer up in.
+     * The equipment a member the guardian looks after holds, as the member reads it themselves: with
+     * the movement each piece is on, its owner and its picture.
      *
      * @param guardianId the guardian's member id
      * @param memberId   the member
      * @return the pieces
      */
-    public List<MemberInventoryItem> inventory(int guardianId, int memberId) {
+    public List<MyInventoryItem> inventory(int guardianId, int memberId) {
         requireManaged(guardianId, memberId, Refusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER);
-        return inventoryService.findItemsByMember(memberId).stream()
-                .map(this::toInventoryItem)
-                .toList();
-    }
-
-    private MemberInventoryItem toInventoryItem(InventoryItem item) {
-        var inventory = inventoryService.findById(item.inventoryId());
-        return new MemberInventoryItem(
-                item.id(),
-                item.inventoryId(),
-                item.name(),
-                item.internalId(),
-                inventory.map(Inventory::name).orElse(""),
-                inventory.map(Inventory::homogeneous).orElse(true),
-                item.sizeId(),
-                sizeName(item),
-                item.lostAt(),
-                item.lostNote(),
-                item.lostNoteBy() == null ? null : identityFactory.fromMemberId(item.lostNoteBy()));
-    }
-
-    private String sizeName(InventoryItem item) {
-        if (item.sizeId() == null) return null;
-        return inventoryService.findSizes(item.inventoryId()).stream()
-                .filter(s -> s.id() == item.sizeId())
-                .map(InventorySize::label)
-                .findFirst()
-                .orElse(null);
+        return memberGear.heldBy(memberId);
     }
 
     /**
@@ -225,24 +192,14 @@ public class ManagedMemberService {
      */
     public record DataExport(Map<String, Object> data, String name) {}
 
-    public record MemberInventoryItem(
-            int id,
-            int inventoryId,
-            String name,
-            String internalId,
-            String inventoryName,
-            /** Whether the inventory holds one thing in many copies, which is what makes a piece exchangeable. */
-            boolean inventoryHomogeneous,
-            Integer sizeId,
-            String sizeName,
-            Instant lostAt,
-            /** What was written when it was reported missing, which a guardian may have written themselves. */
-            String lostNote,
-            MemberIdentity lostNoteBy) {}
-
     public record MemberRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
 
-    public record ManagedMember(int id, int stationId, int accountId, String name, String email) {}
+    public record ManagedMember(
+            int id,
+            int stationId,
+            int accountId,
+            String name,
+            @Nullable String email) {}
 
     public record MemberProfile(List<ProfileField> fields, List<ProfileFieldValue> values) {}
 

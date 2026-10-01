@@ -10,14 +10,14 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {QuizAttemptStatus} from '@/api/quiz'
 import type {QuizTestAttempt} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import AttemptListGroup from './testattemptlist/AttemptListGroup.vue'
 
 const props = defineProps<{
   testId: number
   attempts: QuizTestAttempt[]
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const {t} = useI18n()

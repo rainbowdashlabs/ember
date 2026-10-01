@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.api;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Objects;
 import java.util.UUID;
 
@@ -20,7 +22,12 @@ import java.util.UUID;
  * @param displayTag  the highest-priority visible tag to show as a badge (null if none)
  */
 public record MemberIdentity(
-        UUID stationUid, UUID memberUid, String name, String stationName, String nameColor, DisplayTag displayTag) {
+        UUID stationUid,
+        UUID memberUid,
+        @Nullable String name,
+        @Nullable String stationName,
+        @Nullable String nameColor,
+        @Nullable DisplayTag displayTag) {
 
     public MemberIdentity(UUID stationUid, UUID memberUid) {
         this(stationUid, memberUid, null, null, null, null);

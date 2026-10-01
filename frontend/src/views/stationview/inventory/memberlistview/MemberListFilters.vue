@@ -15,7 +15,8 @@ import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import type { DataTableApi } from '@/composables/useDataTable'
 import type { FilterCriteria } from '@/composables/useMemberFilter'
-import type { MemberGroup, StationMember, UserTag } from '@/api/types'
+import type { MemberGroup, UserTag } from '@/api/types'
+import type { MemberWithName } from '@/api/generated/schema'
 
 const { t } = useI18n()
 
@@ -28,7 +29,7 @@ defineProps<{
   groups: MemberGroup[]
   tags: UserTag[]
   /** The table whose columns, one per inventory, the list offers to show. */
-  table: DataTableApi<StationMember>
+  table: DataTableApi<MemberWithName>
 }>()
 
 const emit = defineEmits<{

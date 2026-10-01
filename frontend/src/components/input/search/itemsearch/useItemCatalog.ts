@@ -16,8 +16,8 @@ import type {
     InventoryContainer,
     InventoryItem,
     InventorySize,
+    MemberWithName,
 } from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
 import type {ItemSearchText} from './itemRanking'
 
 type ItemState = 'member' | 'storage' | 'lost' | 'free'
@@ -70,7 +70,7 @@ export function useItemCatalog(wantedSizeId: () => number | null | undefined, wi
     const items = ref<InventoryItem[]>([])
     const arts = ref<InventoryArt[]>([])
     const containers = ref<InventoryContainer[]>([])
-    const members = ref<StationMember[]>([])
+    const members = ref<MemberWithName[]>([])
     const inventories = ref<Inventory[]>([])
     const sizes = ref<InventorySize[]>([])
     const ready = ref(false)

@@ -5,13 +5,14 @@
  */
 <script lang="ts" setup>
 import RowLink from '@/components/navigation/RowLink.vue'
-import type {BoardTicket, TicketPriorityName} from '@/api/boards'
+import type {TicketPriorityName} from '@/api/boards'
+import type {TicketSummary} from '@/api/generated/schema'
 
 const props = defineProps<{
-  results: BoardTicket[]
+  results: TicketSummary[]
   shortKey: string
   /** Where a hit leads, which is the ticket on this board. */
-  ticketPage: (ticket: BoardTicket) => string
+  ticketPage: (ticket: TicketSummary) => string
   laneName: (laneId: number) => string
   priorityIcon: (priority: TicketPriorityName) => string[]
   priorityColor: (priority: TicketPriorityName) => string

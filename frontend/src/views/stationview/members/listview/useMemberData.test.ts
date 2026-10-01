@@ -7,13 +7,18 @@
 import {mount} from '@vue/test-utils'
 import {defineComponent} from 'vue'
 import {describe, expect, it} from 'vitest'
-import type {RichMember} from '@/api/stationMembers'
-import {getMemberFirstName, getMemberLastName, useMemberData, type MemberDataSource} from './useMemberData'
+import {
+  getMemberFirstName,
+  getMemberLastName,
+  useMemberData,
+  type MemberDataSource,
+  type RosterMember,
+} from './useMemberData'
 
-function richMember(id: number, name: string, mailReaches: RichMember['mailReaches']): RichMember {
+function richMember(id: number, name: string, mailReaches: RosterMember['mailReaches']): RosterMember {
   return {
     id,
-    stationId: 1,
+    stationId: 'station-1',
     accountId: id,
     name,
     firstName: name.split(' ')[0] ?? '',
@@ -28,16 +33,16 @@ function richMember(id: number, name: string, mailReaches: RichMember['mailReach
     groups: [],
     tags: [],
     profileValues: {},
-    identity: null,
+    identity: {memberUid: `member-${id}`, name},
   }
 }
 
-function sourceOf(members: RichMember[]): MemberDataSource {
+function sourceOf(members: RosterMember[]): MemberDataSource {
   return {load: async () => ({members, fields: [], assignments: [], roles: []})}
 }
 
 /** The composable reaches for the locale, so it is used from inside a component as the app does. */
-function dataFor(members: RichMember[]) {
+function dataFor(members: RosterMember[]) {
   let api: ReturnType<typeof useMemberData> | null = null
   mount(defineComponent({
     setup() {

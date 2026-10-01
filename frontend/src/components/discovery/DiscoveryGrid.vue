@@ -14,7 +14,8 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import DiscoveryInstanceNote from '@/components/discovery/DiscoveryInstanceNote.vue'
 import DiscoveryRemoteLink from '@/components/discovery/DiscoveryRemoteLink.vue'
-import {isRemoteEntry, type DiscoveryEntry} from '@/api/discovery'
+import {isRemoteEntry} from '@/api/discovery'
+import type {DiscoveryEntry} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

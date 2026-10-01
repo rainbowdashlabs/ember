@@ -10,6 +10,7 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import tools.jackson.core.type.TypeReference;
 
@@ -51,15 +52,15 @@ public record RichMember(
         int id,
         int stationId,
         UUID uid,
-        Integer accountId,
+        @Nullable Integer accountId,
         String name,
         String firstName,
         String lastName,
         /** The name this station calls them by, so a screen can show and change it. */
-        String nickname,
+        @Nullable String nickname,
         String email,
         boolean accountSetupPending,
-        Instant setupMailExpiresAt,
+        @Nullable Instant setupMailExpiresAt,
         MailReaches mailReaches,
         boolean former,
         StationUserType userType,

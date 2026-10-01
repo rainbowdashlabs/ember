@@ -11,7 +11,8 @@ import RowLink from '@/components/navigation/RowLink.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import {type DiscoveredBoard, BoardShareMode} from '@/api/federatedBoards'
+import {BoardShareMode} from '@/api/federatedBoards'
+import type {DiscoveredBoard} from '@/api/generated/schema'
 
 const props = defineProps<{
     board: DiscoveredBoard

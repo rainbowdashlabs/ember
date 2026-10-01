@@ -17,8 +17,7 @@ import BoardFilterBar from './boardview/BoardFilterBar.vue'
 import BoardCreateTicketModal from './boardview/BoardCreateTicketModal.vue'
 import { useTicketMoves } from '@/composables/useTicketMoves'
 import { boards, stationMembers } from '@/api'
-import type { MemberCompletion } from '@/api/stationMembers'
-import type { Board, BoardLane, BoardTicket, BoardLabel } from '@/api/boards'
+import type { Board, BoardLabel, BoardLane, MemberCompletion, TicketSummary } from '@/api/generated/schema'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 
@@ -30,7 +29,7 @@ const { sessionInfo } = useSession()
 const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
 const lanes = ref<BoardLane[]>([])
-const tickets = ref<BoardTicket[]>([])
+const tickets = ref<TicketSummary[]>([])
 
 const assigneeFilter = ref<Set<string>>(new Set())
 const labelFilter = ref<string[]>([])
@@ -76,7 +75,7 @@ const visibleLanes = computed(() => boardLanes(lanes.value, board.value?.backlog
 const backlogLane = computed(() => board.value?.backlogLaneId ? lanes.value.find(l => l.id === board.value!.backlogLaneId) ?? null : null)
 
 /** Whether a ticket passes the assignee and label filters; an empty filter lets everything through. */
-function matchesFilters(ticket: BoardTicket): boolean {
+function matchesFilters(ticket: TicketSummary): boolean {
     if (assigneeFilter.value.size > 0 && !(ticket.assignee?.memberUid && assigneeFilter.value.has(ticket.assignee.memberUid))) {
         return false
     }
@@ -113,7 +112,7 @@ const assignees = computed(() => {
     return self ? [self, ...list] : list
 })
 
-function openTicketDetail(ticket: BoardTicket) {
+function openTicketDetail(ticket: TicketSummary) {
     router.push(`/station/boards/${boardKey.value}/tickets/${ticket.ticketNumber}`)
 }
 

@@ -16,6 +16,7 @@ import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import { federatedBoards, memberGroups, userTags } from '@/api'
 import type { MemberGroup, UserTag } from '@/api/types'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
+import { userTypesOf } from '@/util/stationUserTypes'
 
 const { t } = useI18n()
 
@@ -44,16 +45,16 @@ async function loadData() {
         allGroups.value = groups
         allTags.value = tags
         viewRestriction.value = {
-            userTypes: override.view.userTypes ?? [],
-            groupIds: override.view.groupIds ?? [],
-            tagIds: override.view.tagIds ?? [],
+            userTypes: override.view.userTypes,
+            groupIds: override.view.groupIds,
+            tagIds: override.view.tagIds,
             memberIds: [],
             mode: 'AND',
         }
         editRestriction.value = {
-            userTypes: override.edit.userTypes ?? [],
-            groupIds: override.edit.groupIds ?? [],
-            tagIds: override.edit.tagIds ?? [],
+            userTypes: override.edit.userTypes,
+            groupIds: override.edit.groupIds,
+            tagIds: override.edit.tagIds,
             memberIds: [],
             mode: 'AND',
         }
@@ -66,10 +67,10 @@ async function save() {
     failure.value = null
     try {
         await federatedBoards.setAccessOverride(props.partnerUid, props.boardKey, {
-            viewUserTypes: viewRestriction.value.userTypes,
+            viewUserTypes: userTypesOf(viewRestriction.value.userTypes),
             viewGroupIds: viewRestriction.value.groupIds,
             viewTagIds: viewRestriction.value.tagIds,
-            editUserTypes: editRestriction.value.userTypes,
+            editUserTypes: userTypesOf(editRestriction.value.userTypes),
             editGroupIds: editRestriction.value.groupIds,
             editTagIds: editRestriction.value.tagIds,
         })

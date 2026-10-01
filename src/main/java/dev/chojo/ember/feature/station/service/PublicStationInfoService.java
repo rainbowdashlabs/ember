@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * What a station tells the open web about itself, and whether it answers the open web at all.
@@ -117,17 +118,17 @@ public class PublicStationInfoService {
     public record PublicStationInfo(
             String stationUid,
             String name,
-            String description,
+            @Nullable String description,
             boolean hasLogo,
             boolean hasPublicKb,
             boolean hasPublicCalendar,
             boolean hasPublicPages,
             boolean hasPublicWaitlist,
             boolean hasPublicBlog,
-            String landingPageSlug,
-            String publicSlug,
+            @Nullable String landingPageSlug,
+            @Nullable String publicSlug,
             String defaultTheme,
-            String defaultFeel,
-            String customThemeColors,
+            @Nullable String defaultFeel,
+            @Nullable String customThemeColors,
             String timezone) {}
 }

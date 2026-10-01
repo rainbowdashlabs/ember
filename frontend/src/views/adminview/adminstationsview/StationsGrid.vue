@@ -10,16 +10,16 @@ import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type {Station} from '@/api/stations'
+import type {StationDetail} from '@/api/generated/schema'
 
 defineProps<{
-  stations: Station[]
+  stations: StationDetail[]
 }>()
 
 defineEmits<{
   import: []
   edit: [id: string]
-  delete: [station: Station]
+  delete: [station: StationDetail]
 }>()
 
 const {t} = useI18n()
@@ -52,7 +52,7 @@ const newStationPage = {name: 'admin-station-edit'}
                       class="flex items-center justify-between py-6">
       <span class="font-medium text-lg">{{ station.name }}</span>
       <div class="flex items-center gap-2">
-        <EditButton @click="$emit('edit', station.id.toString())"/>
+        <EditButton @click="$emit('edit', station.id)"/>
         <DeleteButton @click="$emit('delete', station)"/>
       </div>
     </NeutralContainer>

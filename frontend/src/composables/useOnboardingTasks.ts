@@ -9,10 +9,9 @@ import {
     OnboardingLevel,
     OnboardingTaskState,
     type OnboardingLevelName,
-    type OnboardingStatus,
     type OnboardingTaskStateName,
-    type OnboardingTaskView,
 } from '@/api/onboarding'
+import type {OnboardingStatus, OnboardingTaskView} from '@/api/generated/schema'
 import {flowFor} from '@/util/onboardingFlows'
 import {clearActiveTask, onboardingState} from '@/util/onboardingState'
 

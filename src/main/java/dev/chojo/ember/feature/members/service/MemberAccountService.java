@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The accounts behind the members of a station, as whoever manages the members acts on them:
@@ -186,5 +187,5 @@ public class MemberAccountService {
      *                    address was left alone, COMMITTED when it is already the account's, and
      *                    WAITING when it becomes so once a link in the reader's mail is clicked
      */
-    public record UpdateAccountResponse(String message, AuthService.EmailChangeResult emailChange) {}
+    public record UpdateAccountResponse(String message, AuthService.@Nullable EmailChangeResult emailChange) {}
 }

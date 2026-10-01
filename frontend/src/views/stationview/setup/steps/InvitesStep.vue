@@ -19,7 +19,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import SetupMailChoice from '@/components/input/toggle/SetupMailChoice.vue'
 import {memberGroups, stationMemberInvites} from '@/api'
 import type {MemberGroup} from '@/api/types'
-import type {GuardianRequest, InviteEntry} from '@/api/stationMemberInvites'
+import type {GuardianEntry, InviteEntry} from '@/api/generated/schema'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep, nextStepHref} from '@/views/stationview/setup/steps'
@@ -41,7 +41,7 @@ interface RichRow {
     email: string
     userType: string
     groupId: number | null
-    guardians: GuardianRequest[]
+    guardians: GuardianEntry[]
 }
 
 const richRows = ref<RichRow[]>([])
@@ -92,9 +92,13 @@ const expandedBulk = computed(() => {
         email,
         userType: bulkUserType.value,
         groupId: bulkGroupId.value,
-        guardians: [] as GuardianRequest[],
+        guardians: [] as GuardianEntry[],
     }))
 })
+
+function entryOf(row: RichRow): InviteEntry {
+    return {...row, groupId: row.groupId ?? undefined}
+}
 
 const {running: saving, failure, run: runSave, clearError} = useAsyncAction(async (payload: InviteEntry[]) => {
     const result = await stationMemberInvites.createInvites({
@@ -109,9 +113,10 @@ const {running: saving, failure, run: runSave, clearError} = useAsyncAction(asyn
 function save() {
     clearError()
     successCount.value = 0
-    const payload: InviteEntry[] = tab.value === 'bulk'
+    const rows = tab.value === 'bulk'
         ? expandedBulk.value
         : richRows.value.filter((r) => r.email.trim() !== '')
+    const payload = rows.map(entryOf)
     if (payload.length === 0) {
         goToNextStep(router, 'invites')
         return

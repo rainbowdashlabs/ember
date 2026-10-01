@@ -10,8 +10,8 @@ import { useRouter } from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import RelationSection from './RelationSection.vue'
-import type { ProfileField } from '@/api/profileFields'
-import type { StationMember } from '@/api/types'
+import type { ProfileQuestion } from '@/api/profileFields'
+import type { MemberWithName } from '@/api/generated/schema'
 
 /**
  * Who a member is linked to, both ways round, on whichever page has them open.
@@ -26,14 +26,14 @@ const props = defineProps<{
   showGuardians: boolean
   /** Whether this member is the kind that looks after others. */
   showManaged: boolean
-  managers: StationMember[]
-  managedMembers: StationMember[]
-  availableManagers: StationMember[]
-  availableManaged: StationMember[]
-  fields: ProfileField[]
+  managers: MemberWithName[]
+  managedMembers: MemberWithName[]
+  availableManagers: MemberWithName[]
+  availableManaged: MemberWithName[]
+  fields: ProfileQuestion[]
   canEdit: boolean
-  memberDisplayName: (m: StationMember) => string
-  getManagerFields: (id: number) => ProfileField[]
+  memberDisplayName: (m: MemberWithName) => string
+  getManagerFields: (id: number) => ProfileQuestion[]
   getManagerFieldValue: (mgrId: number, fieldId: number) => unknown
 }>()
 

@@ -8,11 +8,12 @@ import BoardGeneralSection from './BoardGeneralSection.vue'
 import BoardLanesSection from './BoardLanesSection.vue'
 import BoardFieldsSection from './BoardFieldsSection.vue'
 import type { LaneDraft } from './BoardLanesSection.vue'
-import type { FieldDraft, FieldTypeOption } from './BoardFieldsSection.vue'
+import type { FieldTypeOption } from './BoardFieldsSection.vue'
+import type { BoardFieldDraft, BoardFieldTypeName } from '@/api/boards'
 
 defineProps<{
     lanes: LaneDraft[]
-    fields: FieldDraft[]
+    fields: BoardFieldDraft[]
     fieldTypeOptions: FieldTypeOption[]
 }>()
 
@@ -22,7 +23,7 @@ const hideDoneAfterDays = defineModel<number>('hideDoneAfterDays', { required: t
 const hasBacklog = defineModel<boolean>('hasBacklog', { required: true })
 const newLaneName = defineModel<string>('newLaneName', { required: true })
 const newFieldName = defineModel<string>('newFieldName', { required: true })
-const newFieldType = defineModel<string>('newFieldType', { required: true })
+const newFieldType = defineModel<BoardFieldTypeName>('newFieldType', { required: true })
 
 const emit = defineEmits<{
     addLane: []

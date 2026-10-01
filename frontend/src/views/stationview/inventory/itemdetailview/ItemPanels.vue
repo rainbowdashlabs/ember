@@ -21,7 +21,7 @@ import type {
   ItemCheckHistoryEntry,
   ItemLocationResponse,
 } from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import type {Failure} from '@/util/failure'
 
 /**
@@ -32,7 +32,7 @@ const props = defineProps<{
   item: InventoryItem
   itemId: number
   sizes: InventorySize[]
-  members: StationMember[]
+  members: MemberLike[]
   location: ItemLocationResponse | null
   historyEntries: HistoryResponse[]
   checkHistory: ItemCheckHistoryEntry[]

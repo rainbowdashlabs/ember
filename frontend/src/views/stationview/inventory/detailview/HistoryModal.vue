@@ -12,14 +12,14 @@ import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import type { HistoryResponse, InventoryItem } from '@/api/generated/schema'
-import type { StationMember } from '@/api/types'
+import type { MemberLike } from '@/components/input/select/memberOption'
 import { inventory } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { formatDate } from '@/util/format'
 
 const props = defineProps<{
   item: InventoryItem | null
-  memberMap: Map<number, StationMember>
+  memberMap: Map<number, MemberLike>
 }>()
 
 const show = defineModel<boolean>({ default: false })

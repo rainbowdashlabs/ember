@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref} from 'vue'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/types'
 
 export interface FilterCriteria {
     userTypes: string[]
@@ -13,8 +13,14 @@ export interface FilterCriteria {
     mode: 'AND' | 'OR'
 }
 
-export function useMemberFilter(
-    _members: () => StationMember[],
+/** What the filter reads of a person: who they are and what kind of member. */
+interface FilterableMember {
+    id: number
+    userType?: string | null
+}
+
+export function useMemberFilter<T extends FilterableMember>(
+    _members: () => T[],
     memberGroupsMap: () => Map<number, string[]>,
     memberTagsMap: () => Map<number, string[]>,
     allGroups: () => MemberGroup[],
@@ -26,7 +32,7 @@ export function useMemberFilter(
         filterCriteria.value = criteria
     }
 
-    function applyFilter(list: StationMember[]): StationMember[] {
+    function applyFilter(list: T[]): T[] {
         const fc = filterCriteria.value
         if (fc.userTypes.length === 0 && fc.groupIds.length === 0 && fc.tagIds.length === 0) return list
 

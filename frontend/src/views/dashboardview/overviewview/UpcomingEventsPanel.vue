@@ -15,8 +15,7 @@ import DashboardEventTile from './upcomingeventspanel/DashboardEventTile.vue'
 import EventAnswerDialog from '@/views/stationview/events/eventshared/EventAnswerDialog.vue'
 import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 import {EventTypes, isQuarterMonthOf, isRecurringEvent} from '@/api/events'
-import type {EventBreak, EventCategory, EventSummary, RegistrationResponse} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {EventBreak, EventCategory, EventSummary, ManagedMember, RegistrationResponse} from '@/api/generated/schema'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
 import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
@@ -35,7 +34,7 @@ const eventBreaks = ref<EventBreak[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
 const feedStatus = ref<FeedStatusResponse | null>(null)
 const myRegistrations = ref<RegistrationResponse[]>([])
-const managed = ref<StationMember[]>([])
+const managed = ref<ManagedMember[]>([])
 const declining = ref<UpcomingEvent | null>(null)
 const decliningBusy = ref(false)
 const declineFailure = ref<Failure | null>(null)

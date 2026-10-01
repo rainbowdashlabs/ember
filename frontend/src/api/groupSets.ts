@@ -4,13 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-
-/** A set of groups a member can be in only one of, such as the levels of a training. */
-export interface MemberGroupSet {
-    id: number
-    stationId: string
-    name: string
-}
+import type {MemberGroupSet} from './generated/schema'
 
 /** The sets of groups of the current station, by name. */
 export async function listSets(): Promise<MemberGroupSet[]> {

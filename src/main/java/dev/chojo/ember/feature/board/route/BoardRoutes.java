@@ -16,12 +16,16 @@ import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
 import dev.chojo.ember.feature.board.entity.BoardFieldType;
+import dev.chojo.ember.feature.board.entity.BoardLabel;
+import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.LaneData;
 import dev.chojo.ember.feature.board.entity.LanePreset;
+import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import dev.chojo.ember.feature.board.service.SharedBoardChangeService;
+import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.Context;
@@ -194,7 +198,7 @@ public class BoardRoutes implements Routes {
             summary = "Check if the current user can edit a board",
             tags = {"Boards"},
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CanEditResponse.class)))
     private void canEdit(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
@@ -251,7 +255,7 @@ public class BoardRoutes implements Routes {
             summary = "Get lanes for a board",
             tags = {"Boards"},
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardLane[].class)))
     private void getLanes(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
@@ -266,7 +270,7 @@ public class BoardRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LaneRequest[].class)),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardLane[].class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setLanes(Context ctx) {
@@ -397,7 +401,7 @@ public class BoardRoutes implements Routes {
             summary = "Enable backlog lane for a board",
             tags = {"Boards"},
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
-            responses = @OpenApiResponse(status = "201"))
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardLane.class)))
     private void enableBacklog(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
@@ -425,7 +429,7 @@ public class BoardRoutes implements Routes {
             summary = "Get labels for a board",
             tags = {"Boards"},
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardLabel[].class)))
     private void getLabels(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
@@ -440,7 +444,7 @@ public class BoardRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LabelRequest.class)),
             responses = {
-                @OpenApiResponse(status = "201"),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardLabel.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createLabel(Context ctx) {
@@ -502,7 +506,7 @@ public class BoardRoutes implements Routes {
             summary = "Get all ticket-label assignments for a board",
             tags = {"Boards"},
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TicketLabelMapping[].class)))
     private void getAllTicketLabels(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
@@ -515,7 +519,7 @@ public class BoardRoutes implements Routes {
             summary = "List the station's members, for rendering the names a board shows",
             tags = {"Boards"},
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCompletion[].class)))
     private void listBoardMembers(Context ctx) {
         UserSession session = UserSession.from(ctx);
         resolveBoardId(ctx, session.stationId());
@@ -532,7 +536,7 @@ public class BoardRoutes implements Routes {
             summary = "List members that may be assigned tickets on this board",
             tags = {"Boards"},
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCompletion[].class)))
     private void listAssignableMembers(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int boardId = resolveBoardId(ctx, session.stationId());
@@ -570,7 +574,7 @@ public class BoardRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FederationConfigRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = OkResponse.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setFederationConfig(Context ctx) {

@@ -8,7 +8,7 @@ import {mount, type VueWrapper} from '@vue/test-utils'
 import {nextTick} from 'vue'
 import {VueDraggable} from 'vue-draggable-plus'
 import KanbanBoard from './KanbanBoard.vue'
-import type {BoardLane, BoardTicket} from '@/api/boards'
+import type {BoardLane, TicketSummary} from '@/api/generated/schema'
 
 let wrapper: VueWrapper | null = null
 
@@ -22,7 +22,7 @@ function lane(id: number, name: string): BoardLane {
     return {id, boardId: 1, name, color: null, position: id}
 }
 
-function ticket(id: number, laneId: number, position: number): BoardTicket {
+function ticket(id: number, laneId: number, position: number): TicketSummary {
     return {
         id,
         boardId: 1,

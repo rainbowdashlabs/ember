@@ -16,7 +16,8 @@ import KanbanBoard from '@/components/kanban/KanbanBoard.vue'
 import {boardLanes} from '@/components/kanban/kanbanLanes'
 import FederatedBoardCreateTicketModal
   from '@/views/stationview/federation/federatedboardview/FederatedBoardCreateTicketModal.vue'
-import {TicketPriority, type BoardLabel, type BoardLane, type BoardTicket, type TicketPriorityName} from '@/api/boards'
+import {TicketPriority, type TicketPriorityName} from '@/api/boards'
+import type {BoardLabel, BoardLane, FederatedBoardDetail, TicketSummary} from '@/api/generated/schema'
 import {priorityIcon, priorityColor} from '@/util/ticketPriority'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -24,7 +25,6 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useTicketMoves} from '@/composables/useTicketMoves'
 import {reportCaughtError} from '@/util/devErrorReporter'
 import {
-  type FederatedBoardDetail,
   BoardShareMode,
   getBoard as fedGetBoard,
   getLanes as fedGetLanes,
@@ -47,7 +47,7 @@ const boardKey = computed(() => route.params.boardKey as string)
 
 const boardDetail = ref<FederatedBoardDetail | null>(null)
 const lanes = ref<BoardLane[]>([])
-const tickets = ref<BoardTicket[]>([])
+const tickets = ref<TicketSummary[]>([])
 const allLabels = ref<BoardLabel[]>([])
 const ticketLabelMap = ref<Map<number, number[]>>(new Map())
 
@@ -63,7 +63,7 @@ const createValidationError = ref('')
 
 const showOverrideModal = ref(false)
 const searchQuery = ref('')
-const searchResults = ref<BoardTicket[] | null>(null)
+const searchResults = ref<TicketSummary[] | null>(null)
 const searching = ref(false)
 
 const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
@@ -142,11 +142,11 @@ function onSearchInput() {
   }, 300)
 }
 
-function ticketPage(ticket: BoardTicket) {
+function ticketPage(ticket: TicketSummary) {
   return `/station/federation/boards/${partnerUid.value}/${boardKey.value}/tickets/${ticket.ticketNumber}`
 }
 
-function openTicketDetail(ticket: BoardTicket) {
+function openTicketDetail(ticket: TicketSummary) {
   router.push(ticketPage(ticket))
 }
 

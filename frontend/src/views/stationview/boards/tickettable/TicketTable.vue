@@ -11,7 +11,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
-import type {BoardLabel, BoardTicket} from '@/api/boards'
+import type {BoardLabel, TicketSummary} from '@/api/generated/schema'
 import {priorityColor, priorityIcon} from '@/util/ticketPriority'
 import BoardLabelBadge from './BoardLabelBadge.vue'
 import type {TicketTableApi} from './useTicketTable'
@@ -23,7 +23,7 @@ import type {TicketTableApi} from './useTicketTable'
 const props = withDefaults(defineProps<{
   table: TicketTableApi
   shortKey: string
-  labelsOf?: (ticket: BoardTicket) => BoardLabel[]
+  labelsOf?: (ticket: TicketSummary) => BoardLabel[]
 }>(), {
   labelsOf: () => [],
 })
@@ -31,11 +31,11 @@ const props = withDefaults(defineProps<{
 const {t} = useI18n()
 const router = useRouter()
 
-function ticketPage(ticket: BoardTicket): string {
+function ticketPage(ticket: TicketSummary): string {
   return `/station/boards/${props.shortKey}/tickets/${ticket.ticketNumber}`
 }
 
-function open(ticket: BoardTicket) {
+function open(ticket: TicketSummary) {
   router.push(ticketPage(ticket))
 }
 </script>

@@ -12,8 +12,9 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import StepDispatcher from './createview/StepDispatcher.vue'
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
-import {StationUserType, type MemberGroup, type StationMember} from '@/api/types'
+import {parseFieldConfig} from '@/api/profileFields'
+import type {MemberWithName, ProfileField} from '@/api/generated/schema'
+import {StationUserType, type MemberGroup} from '@/api/types'
 import {memberGroups, members, profileFields, stationMembers} from '@/api'
 import {setFieldValue as writeFieldValue} from '@/util/profileFields'
 import {admits, groupOfSet, toggled} from '@/util/groupRules'
@@ -37,7 +38,7 @@ const allFields = ref<ProfileField[]>([])
 const fieldValues = ref<Map<number, string>>(new Map())
 const allGroups = ref<MemberGroup[]>([])
 const selectedGroupIds = ref<Set<number>>(new Set())
-const allMembers = ref<StationMember[]>([])
+const allMembers = ref<MemberWithName[]>([])
 const selectedManagerIds = ref<Set<number>>(new Set())
 const createdManagers = ref<Array<{
   id: number;

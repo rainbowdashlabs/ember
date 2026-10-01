@@ -5,7 +5,7 @@
  */
 import {ref, type Ref} from 'vue'
 import {listAssignments} from '@/api/profileFields'
-import type {ProfileFieldAssignment} from '@/util/profileFields'
+import type {ProfileFieldAssignment} from '@/api/generated/schema'
 
 /**
  * Reading a list of assignments as the answer to "is this question put to that kind of member".
@@ -39,8 +39,8 @@ export function fieldAudiences(assignments: Ref<ProfileFieldAssignment[]>) {
     /** Every kind of member one question is put to, which is how a question names its own audiences. */
     function rolesOf(fieldId: number): string[] {
         return assignments.value
-            .filter(a => a.fieldId === fieldId && a.targetKind === 'ROLE' && a.role)
-            .map(a => a.role as string)
+            .filter(a => a.fieldId === fieldId && a.targetKind === 'ROLE')
+            .flatMap(a => a.role ? [a.role] : [])
     }
 
     return {isAskedOf, isAskedOfAny, fieldsFor, rolesOf}

@@ -8,16 +8,17 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import RadioInput from '@/components/input/toggle/RadioInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import {DiscoveryVisibility, type DiscoveryVisibilityName} from '@/api/stationManage'
 
 /** The three places a station can be listed, each with what it means written beside it. */
-const visibility = defineModel<string>({required: true})
+const visibility = defineModel<DiscoveryVisibilityName>({required: true})
 
 const {t} = useI18n()
 
 const options = computed(() => [
-  {value: 'PUBLIC', label: t('setup.steps.federation.visibilityPublic'), hint: t('setup.steps.federation.visibilityPublicHint')},
-  {value: 'INSTANCE', label: t('setup.steps.federation.visibilityInstance'), hint: t('setup.steps.federation.visibilityInstanceHint')},
-  {value: 'NONE', label: t('setup.steps.federation.visibilityNone'), hint: t('setup.steps.federation.visibilityNoneHint')},
+  {value: DiscoveryVisibility.PUBLIC, label: t('setup.steps.federation.visibilityPublic'), hint: t('setup.steps.federation.visibilityPublicHint')},
+  {value: DiscoveryVisibility.INSTANCE, label: t('setup.steps.federation.visibilityInstance'), hint: t('setup.steps.federation.visibilityInstanceHint')},
+  {value: DiscoveryVisibility.NONE, label: t('setup.steps.federation.visibilityNone'), hint: t('setup.steps.federation.visibilityNoneHint')},
 ])
 </script>
 

@@ -14,9 +14,10 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DiscoveryVisibilityChoice from '@/views/stationview/setup/steps/federationstep/DiscoveryVisibilityChoice.vue'
 import PublicListingContents from '@/views/stationview/setup/steps/federationstep/PublicListingContents.vue'
 import WizardFrame from './setuphelp/WizardFrame.vue'
+import {DiscoveryVisibility, type DiscoveryVisibilityName} from '@/api/stationManage'
 
 const {t} = useI18n()
-const sampleVisibility = ref('PUBLIC')
+const sampleVisibility = ref<DiscoveryVisibilityName>(DiscoveryVisibility.PUBLIC)
 </script>
 
 <template>

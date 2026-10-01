@@ -105,7 +105,7 @@ async function save() {
       allowUserTheme: !lockTheme.value,
       defaultFeel: themeCtrl.activeFeel.value,
       allowUserFeel: !lockFeel.value,
-      customThemeColors: customEnabled.value ? JSON.stringify(customColors.value) : null,
+      customThemeColors: customEnabled.value ? JSON.stringify(customColors.value) : undefined,
     })
   } catch (e) {
     failure.value = describeFailure(e, t)

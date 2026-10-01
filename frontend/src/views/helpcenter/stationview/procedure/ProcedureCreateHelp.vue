@@ -16,8 +16,7 @@ import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/
 import AssigneesSection from '@/views/stationview/procedure/procedurecreateview/AssigneesSection.vue'
 import ItemsSection from '@/views/stationview/procedure/procedurecreateview/ItemsSection.vue'
 import type {EditableItem} from '@/composables/useProcedureForm'
-import type {ProcedureTemplate} from '@/api/generated/schema'
-import type {MemberCompletion} from '@/api/stationMembers'
+import type {MemberCompletion, ProcedureTemplate} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -34,8 +33,8 @@ const TEMPLATES: ProcedureTemplate[] = [
 ]
 
 const MEMBERS: MemberCompletion[] = [
-  {id: 1, name: 'Sabine Krüger', stationUid: 'demo', memberUid: 'm-1'},
-  {id: 2, name: 'Jonas Weber', stationUid: 'demo', memberUid: 'm-2'},
+  {id: 1, name: 'Sabine Krüger', stationUid: 'demo', memberUid: 'm-1', stationName: null, nameColor: null, displayTag: null},
+  {id: 2, name: 'Jonas Weber', stationUid: 'demo', memberUid: 'm-2', stationName: null, nameColor: null, displayTag: null},
 ]
 
 const ITEMS: EditableItem[] = [

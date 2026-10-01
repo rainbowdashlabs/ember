@@ -10,7 +10,7 @@ import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue
 import MutedText from '@/components/typography/MutedText.vue'
 import SectionLabel from '@/components/typography/SectionLabel.vue'
 import type {MemberGroup} from '@/api/types'
-import type {MemberGroupSet} from '@/api/groupSets'
+import type {MemberGroupSet} from '@/api/generated/schema'
 import {
   admits,
   boundTypeNames,

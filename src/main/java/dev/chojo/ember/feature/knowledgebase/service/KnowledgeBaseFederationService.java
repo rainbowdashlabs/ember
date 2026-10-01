@@ -1266,19 +1266,20 @@ public class KnowledgeBaseFederationService implements FederationServer {
             String title,
             String description,
             String stationName,
-            String stationUid,
+            @Nullable String stationUid,
             int partnerId,
             List<String> userTypes) {}
 
     /**
-     * A folder a partner shares, as offered to the station reading it.
+     * A folder a partner shares, as offered to the station reading it. The station UUID is null when
+     * the partnership behind the folder can no longer be resolved.
      */
     public record FederatedKbFolder(
             int remoteId,
             String title,
             String description,
             String stationName,
-            String stationUid,
+            @Nullable String stationUid,
             int partnerId,
             List<String> userTypes) {}
 

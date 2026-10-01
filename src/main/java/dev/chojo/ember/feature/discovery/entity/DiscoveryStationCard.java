@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.discovery.entity;
 
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
@@ -24,21 +25,21 @@ import java.util.List;
 public record DiscoveryStationCard(
         String stationUid,
         String name,
-        String slogan,
+        @Nullable String slogan,
         String logoUrl,
-        String country,
-        String region,
-        String city,
+        @Nullable String country,
+        @Nullable String region,
+        @Nullable String city,
         String contactUrl,
         List<String> tags,
         String memberCount,
         Instant publishedAt,
-        String addressLine,
-        BigDecimal latitude,
-        BigDecimal longitude,
-        String clusterUid,
-        String clusterName,
-        String publicSlug) {
+        @Nullable String addressLine,
+        @Nullable BigDecimal latitude,
+        @Nullable BigDecimal longitude,
+        @Nullable String clusterUid,
+        @Nullable String clusterName,
+        @Nullable String publicSlug) {
 
     /**
      * A card from a peer that predates the public address, which reads as "addressed by its identifier".

@@ -18,8 +18,9 @@ import {checklists, memberGroups, stationMembers, userTags} from '@/api'
 import type {
     ChecklistSummaryResponse as ChecklistSummary,
     CreateRequest as ChecklistCreateRequest,
+    MemberWithName,
 } from '@/api/generated/schema'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/types'
 import ChecklistTile from './checklistindexview/ChecklistTile.vue'
 import ChecklistCreateModal from './ChecklistCreateModal.vue'
 
@@ -29,7 +30,7 @@ const router = useRouter()
 const items = ref<ChecklistSummary[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 const showCreate = ref(false)
 
 const {loading, failure} = useAsyncLoader(async () => {

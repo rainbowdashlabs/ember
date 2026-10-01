@@ -11,8 +11,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import InlineEditTrigger from '@/components/button/InlineEditTrigger.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { fromCompletion } from '@/components/input/select/memberOption'
-import type { BoardTicket } from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+import type { BoardTicket, MemberCompletion } from '@/api/generated/schema'
 
 const props = defineProps<{
     ticket: BoardTicket

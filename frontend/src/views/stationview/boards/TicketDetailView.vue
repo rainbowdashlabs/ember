@@ -16,8 +16,8 @@ import Modal from '@/components/feedback/Modal.vue'
 import TicketHeaderBar from './ticketdetailview/TicketHeaderBar.vue'
 import TicketBody from './ticketdetailview/TicketBody.vue'
 import { knowledgeBase, boards } from '@/api'
-import type { MemberCompletion } from '@/api/stationMembers'
-import {TicketPriority, type Board, type BoardChecklistItem, type BoardComment, type BoardField, type BoardLabel, type BoardLane, type BoardTicket, type BoardTicketAttachment, type BoardTicketHistoryEntry, type BoardTicketKbLink, type BoardTicketLink, type BoardTicketTransition, type BoardWeblink, type TicketPriorityName} from '@/api/boards'
+import {rawFieldValue, TicketPriority, type AnyBoard, type BoardFieldRaw, type BoardFieldTypeName, type BoardTicketComment, type TicketPriorityName, type TypedBoardField} from '@/api/boards'
+import type {BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment, BoardTicketHistoryResponse, BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink, MemberCompletion, TicketSummary} from '@/api/generated/schema'
 import { useSession } from '@/composables/useSession'
 import { useBoardApi } from '@/composables/useBoardApi'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -37,7 +37,7 @@ const api = useBoardApi()
 const boardKey = api.boardKey
 const ticketNumber = api.ticketNumber
 
-const board = ref<Board | null>(null)
+const board = ref<AnyBoard | null>(null)
 const ticket = ref<BoardTicket | null>(null)
 const lanes = ref<BoardLane[]>([])
 const members = ref<MemberCompletion[]>([])
@@ -65,8 +65,8 @@ const dueDate = ref('')
 const checklist = ref<BoardChecklistItem[]>([])
 const newChecklistTitle = ref('')
 const links = ref<BoardTicketLink[]>([])
-const transitions = ref<BoardTicketTransition[]>([])
-const ticketHistory = ref<BoardTicketHistoryEntry[]>([])
+const transitions = ref<BoardTicketTransitionResponse[]>([])
+const ticketHistory = ref<BoardTicketHistoryResponse[]>([])
 const kbLinks = ref<BoardTicketKbLink[]>([])
 const showKbSearch = ref(false)
 const kbSearchQuery = ref('')
@@ -77,7 +77,7 @@ interface KbSearchResult {
 }
 
 const kbSearchResults = ref<KbSearchResult[]>([])
-const comments = ref<BoardComment[]>([])
+const comments = ref<BoardTicketComment[]>([])
 const weblinks = ref<BoardWeblink[]>([])
 const attachments = ref<BoardTicketAttachment[]>([])
 
@@ -91,9 +91,9 @@ const priorityChoices = computed<PriorityOption[]>(() => priorityOptions(t).reve
 }))
 const isWatching = ref(false)
 
-const allTickets = ref<BoardTicket[]>([])
-const boardFields = ref<BoardField[]>([])
-const fieldValues = ref<Record<number, unknown>>({})
+const allTickets = ref<TicketSummary[]>([])
+const boardFields = ref<TypedBoardField[]>([])
+const fieldValues = ref<Record<number, BoardFieldRaw | null>>({})
 const allLabels = ref<BoardLabel[]>([])
 const ticketLabels = ref<BoardLabel[]>([])
 
@@ -107,7 +107,7 @@ const {loading, failure: loadFailure, reload} = useAsyncLoader(async (isCurrent)
         api.getFields(),
     ])
     if (!isCurrent()) return
-    board.value = boardResult.board as Board
+    board.value = boardResult.board
     ticket.value = tk
     lanes.value = l
     members.value = m
@@ -151,7 +151,7 @@ async function loadDetails() {
         comments.value = co
         weblinks.value = wl
         attachments.value = at
-        fieldValues.value = Object.fromEntries(fv.map(v => [v.fieldId, !v.value ? null : v.fieldType === 'LANE_ASSIGNEE' ? (v.value.memberId ?? null) : (v.value.value ?? null)]))
+        fieldValues.value = Object.fromEntries(fv.map(v => [v.fieldId, rawFieldValue(v)]))
         ticketLabels.value = await api.getTicketLabels()
         kbLinks.value = await api.getKbLinks()
 }
@@ -199,7 +199,7 @@ async function refreshDetails() {
 }
 
 const {failure: saveFailure, run: runSaveTicket} = useAsyncAction(async () => {
-    await api.updateTicket({ title: title.value, description: description.value || null, assignedMemberId: assignedMemberId.value ? Number(assignedMemberId.value) : null, priority: priority.value, dueDate: dueDate.value || null })
+    await api.updateTicket({ title: title.value, description: description.value || undefined, assignedMemberId: assignedMemberId.value ? Number(assignedMemberId.value) : undefined, priority: priority.value, dueDate: dueDate.value || undefined })
     ticket.value = await api.getTicket()
     await loadDetails()
 }, {coalesce: true})
@@ -219,15 +219,14 @@ async function toggleChecklistItem(item: BoardChecklistItem) { await act(() => a
 async function reorderChecklist(fromIndex: number, toIndex: number) { const items = moveWithin(checklist.value, fromIndex, toIndex); checklist.value = items; await act(() => api.reorderChecklist({ orderedIds: items.map(i => i.id) }), () => Promise.resolve()) }
 async function removeAllChecklistItems() { const items = [...checklist.value]; await act(async () => { for (const item of items) { await api.deleteChecklistItem(item.id) } }, async () => { showChecklist.value = false; await loadDetails() }) }
 async function removeChecklistItem(itemId: number) { await act(() => api.deleteChecklistItem(itemId)) }
-async function createComment(parentId: number | null, content: string) { await act(() => api.createComment({ parentId, content })) }
+async function createComment(parentId: number | null, content: string) { await act(() => api.createComment({ parentId: parentId ?? undefined, content })) }
 async function updateComment(commentId: number, content: string) { await act(() => api.updateComment(commentId, { content })) }
 
-async function saveFieldValue(fieldId: number, fieldType: boards.BoardFieldTypeName, value: unknown) {
-    const empty = value === null || value === undefined || value === ''
+async function saveFieldValue(fieldId: number, fieldType: BoardFieldTypeName, value: BoardFieldRaw | null) {
     await act(
-        () => (empty ? api.deleteFieldValue(fieldId) : api.setFieldValue(fieldId, fieldType, value)),
+        () => (value === null || value === '' ? api.deleteFieldValue(fieldId) : api.setFieldValue(fieldId, fieldType, value)),
         () => {
-            fieldValues.value = empty ? withoutKey(fieldValues.value, fieldId) : {...fieldValues.value, [fieldId]: value}
+            fieldValues.value = value === null || value === '' ? withoutKey(fieldValues.value, fieldId) : {...fieldValues.value, [fieldId]: value}
             return Promise.resolve()
         },
     )

@@ -10,8 +10,7 @@ import { useRouter } from 'vue-router'
 import IconButton from '@/components/button/IconButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import BoardAssigneeFilter from './BoardAssigneeFilter.vue'
-import type { BoardLabel } from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+import type { BoardLabel, MemberCompletion } from '@/api/generated/schema'
 
 const assigneeFilter = defineModel<Set<string>>('assigneeFilter', { required: true })
 const labelFilter = defineModel<string[]>('labelFilter', { required: true })

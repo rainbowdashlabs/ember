@@ -9,14 +9,15 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import type { RestrictionSelection } from '@/components/input/restriction'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { MemberGroup, StationMember, UserTag } from '@/api/types'
+import type { MemberGroup, UserTag } from '@/api/types'
+import type { MemberLike } from '@/components/input/select/memberOption'
 
 const { t } = useI18n()
 
 defineProps<{
   groups: MemberGroup[]
   tags: UserTag[]
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const restriction = defineModel<RestrictionSelection>({ required: true })

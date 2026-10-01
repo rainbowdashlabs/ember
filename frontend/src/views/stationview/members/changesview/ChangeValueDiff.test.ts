@@ -7,7 +7,7 @@ import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import ChangeValueDiff from './ChangeValueDiff.vue'
 import {FieldTypes} from '@/api/profileFields'
-import type {ProfileFieldChange} from '@/api/profileFieldChanges'
+import type {ProfileFieldChange} from '@/api/generated/schema'
 
 /**
  * A change to a profile field as the history shows it: both sides written the way the field reads
@@ -16,10 +16,11 @@ import type {ProfileFieldChange} from '@/api/profileFieldChanges'
  * @vitest-environment happy-dom
  */
 describe('ChangeValueDiff', () => {
-    function show(oldValue: string | undefined, newValue: string | undefined, fieldType?: string | null) {
+    function show(oldValue: string | null, newValue: string | null, fieldType: string | null = null) {
         const change: ProfileFieldChange = {
-            id: 1, fieldId: 1, memberId: 1, changedBy: 1, requiresAcknowledgement: false,
-            acknowledgements: [], oldValue, newValue, fieldType,
+            id: 1, fieldId: 1, clusterFieldId: null, memberId: 1, memberName: null, changedBy: 1,
+            changedByName: 'Anna', changedAt: '2026-04-02T10:00:00Z', requiresAcknowledgement: false,
+            acknowledgements: [], oldValue, newValue, fieldName: null, fieldType,
         }
         const wrapper = mount(ChangeValueDiff, {props: {change}, global: {stubs: {FontAwesomeIcon: true}}})
         return wrapper.findAll('[data-testid="change-side"]').map(side => side.text())
@@ -39,7 +40,7 @@ describe('ChangeValueDiff', () => {
 
     it('writes a missing side as a dash', () => {
         expect(show('null', '"2026-04-02"', FieldTypes.DATE)).toEqual(['–', '02.04.2026'])
-        expect(show(undefined, '"Blau"', FieldTypes.TEXT)).toEqual(['–', 'Blau'])
+        expect(show(null, '"Blau"', FieldTypes.TEXT)).toEqual(['–', 'Blau'])
     })
 
     it('leaves text alone', () => {

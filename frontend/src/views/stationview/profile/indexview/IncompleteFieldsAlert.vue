@@ -6,10 +6,10 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
-import type { ProfileField } from '@/api/profileFields'
+import type { MergedField } from '@/api/generated/schema'
 
 defineProps<{
-  incompleteFields: ProfileField[]
+  incompleteFields: MergedField[]
 }>()
 
 const { t } = useI18n()

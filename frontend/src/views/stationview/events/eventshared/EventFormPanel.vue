@@ -27,7 +27,8 @@ import type {
     EventCategory,
     EventFieldEntry,
 } from '@/api/generated/schema'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import {weekdayName} from '@/util/format'
 
 defineProps<{
@@ -38,9 +39,9 @@ defineProps<{
   tags?: UserTag[]
   showSchedule?: boolean
   showValue?: boolean
-  allMembers?: StationMember[]
-  groupMembers?: Map<number, StationMember[]>
-  tagMembers?: Map<number, StationMember[]>
+  allMembers?: MemberLike[]
+  groupMembers?: Map<number, MemberLike[]>
+  tagMembers?: Map<number, MemberLike[]>
 }>()
 
 const name = defineModel<string>('name', {required: true})

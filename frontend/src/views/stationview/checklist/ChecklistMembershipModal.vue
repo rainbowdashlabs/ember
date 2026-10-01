@@ -21,7 +21,8 @@ import type {
   SourceOccurrenceResponse as ChecklistSourceOccurrence,
   UpdateRequest as ChecklistUpdateRequest,
 } from '@/api/generated/schema'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import {formatDate} from '@/util/format'
 import type {Failure} from '@/util/failure'
 
@@ -40,7 +41,7 @@ const props = defineProps<{
   initialSource?: ChecklistSourceOccurrence | null
   groups: MemberGroup[]
   tags: UserTag[]
-  members: StationMember[]
+  members: MemberLike[]
   saving: boolean
   /** What the last save ran into, described, or nothing where nothing has. */
   failure?: Failure | null

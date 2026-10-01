@@ -20,6 +20,11 @@ import dev.chojo.ember.lifecycle.SerialLane;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -78,6 +83,12 @@ public class PublicDiscoveryRoutes implements Routes {
         routes.post(prefix + "/discovery/peers", this::receiveCallback);
     }
 
+    @OpenApi(
+            path = "/api/v1/public/discovery/info",
+            methods = HttpMethod.GET,
+            summary = "Get this instance's discovery metadata",
+            tags = {"Discovery"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DiscoveryInfoResponse.class)))
     private void getInfo(Context ctx) {
         var response = new DiscoveryInfoResponse(
                 pingService.selfBaseUrl(),
@@ -89,6 +100,15 @@ public class PublicDiscoveryRoutes implements Routes {
         ctx.json(response);
     }
 
+    @OpenApi(
+            path = "/api/v1/public/discovery/stations",
+            methods = HttpMethod.GET,
+            summary = "List the station cards this instance publishes",
+            tags = {"Discovery"},
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = DiscoveryStationsResponse.class)),
+                @OpenApiResponse(status = "503")
+            })
     private void getStations(Context ctx) {
         if (!settingsService.isEnabled()) {
             ctx.status(HttpStatus.SERVICE_UNAVAILABLE);
@@ -100,6 +120,13 @@ public class PublicDiscoveryRoutes implements Routes {
         ctx.json(response);
     }
 
+    @OpenApi(
+            path = "/api/v1/discovery/ping",
+            methods = HttpMethod.POST,
+            summary = "Receive a signed discovery ping from a peer",
+            tags = {"Discovery"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DiscoveryPingMessage.class)),
+            responses = {@OpenApiResponse(status = "204"), @OpenApiResponse(status = "400")})
     private void receivePing(Context ctx) {
         String body = ctx.body();
         String signature = ctx.header(DiscoverySigningService.SIGNATURE_HEADER);
@@ -123,6 +150,13 @@ public class PublicDiscoveryRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/discovery/peers",
+            methods = HttpMethod.POST,
+            summary = "Receive a peer's signed answer to one of this instance's pings",
+            tags = {"Discovery"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DiscoveryCallbackMessage.class)),
+            responses = {@OpenApiResponse(status = "204"), @OpenApiResponse(status = "400")})
     private void receiveCallback(Context ctx) {
         String body = ctx.body();
         String signature = ctx.header(DiscoverySigningService.SIGNATURE_HEADER);

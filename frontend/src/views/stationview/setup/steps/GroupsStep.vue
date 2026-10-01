@@ -111,7 +111,7 @@ async function persistGroup(group: MemberGroup, patch: Partial<MemberGroup>) {
     try {
         const updated = await memberGroups.updateGroup(group.id, {
             name: patch.name ?? group.name,
-            color: patch.color !== undefined ? (patch.color || null) : group.color,
+            color: (patch.color !== undefined ? patch.color : group.color) || undefined,
             position: patch.position ?? group.position,
         })
         groups.value = sortByPosition(groups.value.map((g) => (g.id === group.id ? {...g, ...updated} : g)))

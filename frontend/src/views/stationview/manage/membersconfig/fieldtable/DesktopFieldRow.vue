@@ -11,7 +11,7 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import {useI18n} from 'vue-i18n'
 import DesktopFieldToggles from './DesktopFieldToggles.vue'
 import AudienceCount from './AudienceCount.vue'
-import type {ProfileField} from '@/api/profileFields'
+import type {EditableField, FieldSwitchName} from '@/api/profileFields'
 import {isSection, widthOf} from '@/components/profilefields/fieldLayout'
 import {widthLabel} from '../fieldTypes'
 import {fieldGrid} from './fieldGrid'
@@ -25,7 +25,7 @@ import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFiel
  * question's name is the control a keyboard and a screen reader reach.
  */
 defineProps<{
-  field: ProfileField
+  field: EditableField
   typeLabel: string
   audiences: number
   selected: boolean
@@ -35,15 +35,15 @@ defineProps<{
 const {t} = useI18n()
 
 const emit = defineEmits<{
-  select: [field: ProfileField]
-  toggleChecked: [field: ProfileField]
-  edit: [field: ProfileField]
-  delete: [field: ProfileField]
-  toggleConfig: [field: ProfileField, key: string, value: boolean]
-  toggleKeepOnArchive: [field: ProfileField, value: boolean]
-  toggleRequired: [field: ProfileField, value: boolean]
-  toggleReadonly: [field: ProfileField, value: boolean]
-  setWritability: [field: ProfileField, level: WritabilityName]
+  select: [field: EditableField]
+  toggleChecked: [field: EditableField]
+  edit: [field: EditableField]
+  delete: [field: EditableField]
+  toggleConfig: [field: EditableField, key: FieldSwitchName, value: boolean]
+  toggleKeepOnArchive: [field: EditableField, value: boolean]
+  toggleRequired: [field: EditableField, value: boolean]
+  toggleReadonly: [field: EditableField, value: boolean]
+  setWritability: [field: EditableField, level: WritabilityName]
 }>()
 
 const capabilities = useFieldsCapabilities()

@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -217,7 +218,7 @@ public class FederatedBoardDiscoveryService implements FederationServer {
             UUID remoteBoardUid,
             String name,
             String shortKey,
-            String description,
+            @Nullable String description,
             BoardShareMode shareMode,
             String partnerStationName,
             StationUserType requiredUserType) {}
@@ -229,11 +230,11 @@ public class FederatedBoardDiscoveryService implements FederationServer {
             int id,
             String stationId,
             String name,
-            String description,
+            @Nullable String description,
             String shortKey,
             int hideDoneAfterDays,
             int ticketCounter,
-            Integer backlogLaneId,
+            @Nullable Integer backlogLaneId,
             String createdAt) {
 
         /**

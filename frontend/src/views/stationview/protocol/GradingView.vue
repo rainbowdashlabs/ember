@@ -21,8 +21,7 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers } from '@/api'
-import type { TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
-import type { StationMember } from '@/api/types'
+import type { MemberWithName, TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
 import { reportCaughtError } from '@/util/devErrorReporter'
 
 const { t } = useI18n()
@@ -40,7 +39,7 @@ const sections = ref<TestProtocolSection[]>([])
 const items = ref<TestProtocolItem[]>([])
 const checks = ref<Map<number, boolean>>(new Map())
 const doneSections = ref<Set<number>>(new Set())
-const member = ref<StationMember | null>(null)
+const member = ref<MemberWithName | null>(null)
 const locked = ref(false)
 const currentSectionIndex = ref(0)
 

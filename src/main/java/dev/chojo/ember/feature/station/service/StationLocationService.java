@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,12 +145,12 @@ public class StationLocationService {
      * Response payload for {@code GET /station/location}.
      */
     public record LocationView(
-            String addressLine,
-            String postalCode,
-            String city,
-            String country,
-            BigDecimal latitude,
-            BigDecimal longitude) {}
+            @Nullable String addressLine,
+            @Nullable String postalCode,
+            @Nullable String city,
+            @Nullable String country,
+            @Nullable BigDecimal latitude,
+            @Nullable BigDecimal longitude) {}
 
     /**
      * Request payload for {@code PUT /station/location}.

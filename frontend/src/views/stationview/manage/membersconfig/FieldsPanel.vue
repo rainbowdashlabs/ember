@@ -15,7 +15,7 @@ import FieldTable from './FieldTable.vue'
 import TemplateButtons from './TemplateButtons.vue'
 import BatchAssignBar from './BatchAssignBar.vue'
 import type {FieldTemplate} from './fieldTemplates'
-import type {AssignmentTarget, ProfileField} from '@/api/profileFields'
+import type {AssignmentTarget, EditableField, FieldSwitchName} from '@/api/profileFields'
 import type {MemberGroup} from '@/api/types'
 import type {WritabilityName} from '@/composables/useFieldsConfig'
 
@@ -27,7 +27,7 @@ import type {WritabilityName} from '@/composables/useFieldsConfig'
  * answers to what read as one question.
  */
 const props = defineProps<{
-  fields: ProfileField[]
+  fields: EditableField[]
   selectedId: number | null
   audienceCount: Record<number, number>
   /** The questions ticked for putting to somebody all at once. */
@@ -39,17 +39,17 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   add: []
-  select: [field: ProfileField]
-  'toggle-checked': [field: ProfileField]
+  select: [field: EditableField]
+  'toggle-checked': [field: EditableField]
   'assign-checked': [target: AssignmentTarget]
   'clear-checked': []
-  edit: [field: ProfileField]
-  delete: [field: ProfileField]
-  'toggle-config': [field: ProfileField, key: string, value: boolean]
-  'toggle-keep-on-archive': [field: ProfileField, value: boolean]
-  'toggle-required': [field: ProfileField, value: boolean]
-  'toggle-readonly': [field: ProfileField, value: boolean]
-  'set-writability': [field: ProfileField, level: WritabilityName]
+  edit: [field: EditableField]
+  delete: [field: EditableField]
+  'toggle-config': [field: EditableField, key: FieldSwitchName, value: boolean]
+  'toggle-keep-on-archive': [field: EditableField, value: boolean]
+  'toggle-required': [field: EditableField, value: boolean]
+  'toggle-readonly': [field: EditableField, value: boolean]
+  'set-writability': [field: EditableField, level: WritabilityName]
   'apply-template': [tpl: FieldTemplate]
 }>()
 
@@ -89,15 +89,15 @@ const {t} = useI18n()
         :fields="props.fields"
         :selected-id="props.selectedId"
         :checked-ids="props.checkedIds"
-        @select="(f: ProfileField) => emit('select', f)"
-        @toggle-checked="(f: ProfileField) => emit('toggle-checked', f)"
-        @delete="(f: ProfileField) => emit('delete', f)"
-        @edit="(f: ProfileField) => emit('edit', f)"
-        @toggle-config="(f: ProfileField, k: string, v: boolean) => emit('toggle-config', f, k, v)"
-        @toggle-keep-on-archive="(f: ProfileField, v: boolean) => emit('toggle-keep-on-archive', f, v)"
-        @toggle-required="(f: ProfileField, v: boolean) => emit('toggle-required', f, v)"
-        @toggle-readonly="(f: ProfileField, v: boolean) => emit('toggle-readonly', f, v)"
-        @set-writability="(f: ProfileField, level: WritabilityName) => emit('set-writability', f, level)"
+        @select="(f: EditableField) => emit('select', f)"
+        @toggle-checked="(f: EditableField) => emit('toggle-checked', f)"
+        @delete="(f: EditableField) => emit('delete', f)"
+        @edit="(f: EditableField) => emit('edit', f)"
+        @toggle-config="(f: EditableField, k: FieldSwitchName, v: boolean) => emit('toggle-config', f, k, v)"
+        @toggle-keep-on-archive="(f: EditableField, v: boolean) => emit('toggle-keep-on-archive', f, v)"
+        @toggle-required="(f: EditableField, v: boolean) => emit('toggle-required', f, v)"
+        @toggle-readonly="(f: EditableField, v: boolean) => emit('toggle-readonly', f, v)"
+        @set-writability="(f: EditableField, level: WritabilityName) => emit('set-writability', f, level)"
     />
 
     <div v-if="props.fields.length > 0" class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">

@@ -15,7 +15,8 @@ import StationModuleToggle from '@/components/modules/StationModuleToggle.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
 import {stationManage} from '@/api'
-import {StationPermission} from '@/api/types'
+import {StationPermission, type StationModuleName} from '@/api/types'
+import type {ModulesResponse} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -30,20 +31,20 @@ watch(loaded, (isLoaded) => {
 
 const {t} = useI18n()
 
-const disabledModules = ref<Set<string>>(new Set())
-const clusterDenied = ref<Set<string>>(new Set())
+const disabledModules = ref<Set<StationModuleName>>(new Set())
+const clusterDenied = ref<Set<StationModuleName>>(new Set())
 const clusterName = ref<string | null>(null)
 
-function isModuleEnabled(key: string): boolean {
+function isModuleEnabled(key: StationModuleName): boolean {
   return !disabledModules.value.has(key) && !clusterDenied.value.has(key)
 }
 
 /** A module the cluster switched off is shown as locked rather than simply off, and says who locked it. */
-function isLockedByCluster(key: string): boolean {
+function isLockedByCluster(key: StationModuleName): boolean {
   return clusterDenied.value.has(key)
 }
 
-const {running: modulesSaving, failure, run: toggleModule} = useAsyncAction(async (key: string) => {
+const {running: modulesSaving, failure, run: toggleModule} = useAsyncAction(async (key: StationModuleName) => {
   const next = new Set(disabledModules.value)
   if (next.has(key)) next.delete(key)
   else next.add(key)
@@ -52,10 +53,10 @@ const {running: modulesSaving, failure, run: toggleModule} = useAsyncAction(asyn
   reloadSession()
 })
 
-function apply(res: stationManage.ModulesResponse) {
+function apply(res: ModulesResponse) {
   disabledModules.value = new Set(res.disabledModules)
-  clusterDenied.value = new Set(res.clusterDeniedModules ?? [])
-  clusterName.value = res.clusterName ?? null
+  clusterDenied.value = new Set(res.clusterDeniedModules)
+  clusterName.value = res.clusterName
 }
 
 const {loading, failure: loadFailure} = useAsyncLoader(async () => {

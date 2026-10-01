@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
@@ -15,17 +16,27 @@ import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
+import dev.chojo.ember.feature.federation.entity.FederationCapability;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.FederationShare;
+import dev.chojo.ember.feature.federation.entity.InviteCodeResponse;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationEnrollmentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -142,6 +153,12 @@ public class FederationRoutes implements Routes {
         routes.get(prefix + "/federation/info", this::getInfo, StationPermission.STATION_FEDERATION);
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/partners",
+            methods = HttpMethod.GET,
+            summary = "List the station's federation partners",
+            tags = {"Federation"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PartnerResponse[].class)))
     private void listPartners(Context ctx) {
         var session = UserSession.from(ctx);
         var partners = service.findPartners(session.stationId());
@@ -154,17 +171,33 @@ public class FederationRoutes implements Routes {
      * A station invite, which carries a token proving consent, so the partnership is active as soon
      * as the other station accepts it.
      */
+    @OpenApi(
+            path = "/api/v1/federation/invite",
+            methods = HttpMethod.POST,
+            summary = "Create a pairing code for this station",
+            tags = {"Federation"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InviteCodeResponse.class)))
     private void createInvite(Context ctx) {
         var session = UserSession.from(ctx);
         var code = service.generateStationInvite(session.stationId())
                 .orElseThrow(Refusal.FEDERATION_STATION_NOT_HERE::raise);
-        ctx.json(new InviteResponse(code));
+        ctx.json(new InviteCodeResponse(code));
     }
 
     /**
      * A refusal is reported with the reason as its own field, so the page can say what actually
      * stands in the way instead of guessing at an expiry that no pairing code has.
      */
+    @OpenApi(
+            path = "/api/v1/federation/accept",
+            methods = HttpMethod.POST,
+            summary = "Enter a pairing code from another station",
+            tags = {"Federation"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AcceptRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = FederationPartner.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void acceptInvite(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(AcceptRequest.class);
@@ -204,6 +237,12 @@ public class FederationRoutes implements Routes {
         };
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/requests",
+            methods = HttpMethod.GET,
+            summary = "List the pair requests waiting for this station",
+            tags = {"Federation"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PairRequestResponse[].class)))
     private void listPendingRequests(Context ctx) {
         var session = UserSession.from(ctx);
         var requests = service.findPendingRequests(session.stationId());
@@ -213,6 +252,13 @@ public class FederationRoutes implements Routes {
                 .toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/requests/{id}/accept",
+            methods = HttpMethod.POST,
+            summary = "Accept a pair request",
+            tags = {"Federation"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationPartner.class)))
     private void acceptPairRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int requestId = ctx.pathParamAsClass("id", Integer.class).get();
@@ -221,6 +267,13 @@ public class FederationRoutes implements Routes {
         ctx.json(service.acceptPairRequest(requestId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/requests/{id}/decline",
+            methods = HttpMethod.POST,
+            summary = "Decline a pair request",
+            tags = {"Federation"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void declinePairRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int requestId = ctx.pathParamAsClass("id", Integer.class).get();
@@ -243,11 +296,25 @@ public class FederationRoutes implements Routes {
         return partner;
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/partners/{id}",
+            methods = HttpMethod.GET,
+            summary = "Get a federation partner",
+            tags = {"Federation"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PartnerResponse.class)))
     private void getPartner(Context ctx) {
         var partner = requireOwnedPartner(ctx);
         ctx.json(new PartnerResponse(partner, service.partnerName(partner)));
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/partners/{id}/suspend",
+            methods = HttpMethod.POST,
+            summary = "Suspend a federation partner",
+            tags = {"Federation"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationPartner.class)))
     private void suspendPartner(Context ctx) {
         var partner = requireOwnedPartner(ctx);
         service.suspendPartner(partner.id());
@@ -255,6 +322,13 @@ public class FederationRoutes implements Routes {
                 .orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE_AFTER_SUSPENDING::raise));
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/partners/{id}/resume",
+            methods = HttpMethod.POST,
+            summary = "Resume a suspended federation partner",
+            tags = {"Federation"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationPartner.class)))
     private void resumePartner(Context ctx) {
         var partner = requireOwnedPartner(ctx);
         service.resumePartner(partner.id());
@@ -262,17 +336,41 @@ public class FederationRoutes implements Routes {
                 .orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE_AFTER_RESUMING::raise));
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/partners/{id}",
+            methods = HttpMethod.DELETE,
+            summary = "End a federation partnership",
+            tags = {"Federation"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
     private void endFederation(Context ctx) {
         var partner = requireOwnedPartner(ctx);
         service.endFederation(partner.id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/partners/{id}/capabilities",
+            methods = HttpMethod.GET,
+            summary = "List what is exchanged with a federation partner",
+            tags = {"Federation"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationCapability[].class)))
     private void getCapabilities(Context ctx) {
         var partner = requireOwnedPartner(ctx);
         ctx.json(service.findCapabilities(partner.id()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/partners/{id}/capabilities",
+            methods = HttpMethod.PUT,
+            summary = "Set what is exchanged with a federation partner",
+            tags = {"Federation"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CapabilityRequest[].class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationCapability[].class)))
     private void setCapabilities(Context ctx) {
         var partner = requireOwnedPartner(ctx);
         var req = ctx.bodyAsClass(CapabilityRequest[].class);
@@ -282,6 +380,12 @@ public class FederationRoutes implements Routes {
         ctx.json(service.findCapabilities(partner.id()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/shares/kb",
+            methods = HttpMethod.GET,
+            summary = "List the station's knowledge base shares",
+            tags = {"Federation"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbShareResponse[].class)))
     private void listKbShares(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(service.findKbShares(session.stationId()).stream()
@@ -289,11 +393,18 @@ public class FederationRoutes implements Routes {
                         share.id(),
                         share.fileId(),
                         share.folderId(),
-                        share.shareScope().name(),
+                        share.shareScope(),
                         service.findKbShareTargets(share.id())))
                 .toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/shares/kb",
+            methods = HttpMethod.POST,
+            summary = "Share a knowledge base entry with partners",
+            tags = {"Federation"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = KbShareRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = FederationShare.class)))
     private void createKbShare(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(KbShareRequest.class);
@@ -306,6 +417,13 @@ public class FederationRoutes implements Routes {
                         req.partnerIds() != null ? req.partnerIds() : List.of()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/shares/kb/{id}",
+            methods = HttpMethod.DELETE,
+            summary = "Stop sharing a knowledge base entry",
+            tags = {"Federation"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
     private void deleteKbShare(Context ctx) {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -315,11 +433,24 @@ public class FederationRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/shares/quiz",
+            methods = HttpMethod.GET,
+            summary = "List the station's quiz catalog shares",
+            tags = {"Federation"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationShare[].class)))
     private void listQuizShares(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(service.findQuizShares(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/shares/quiz",
+            methods = HttpMethod.POST,
+            summary = "Share a quiz catalog with partners",
+            tags = {"Federation"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuizShareRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = FederationShare.class)))
     private void createQuizShare(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(QuizShareRequest.class);
@@ -330,6 +461,13 @@ public class FederationRoutes implements Routes {
                         req.shareScope() != null ? req.shareScope() : ShareScope.ALL_PARTNERS));
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/shares/quiz/{id}",
+            methods = HttpMethod.DELETE,
+            summary = "Stop sharing a quiz catalog",
+            tags = {"Federation"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
     private void deleteQuizShare(Context ctx) {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -339,11 +477,24 @@ public class FederationRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/shares/protocol",
+            methods = HttpMethod.GET,
+            summary = "List the station's test protocol shares",
+            tags = {"Federation"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationShare[].class)))
     private void listProtocolShares(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(service.findProtocolShares(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/shares/protocol",
+            methods = HttpMethod.POST,
+            summary = "Share a test protocol with partners",
+            tags = {"Federation"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolShareRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = FederationShare.class)))
     private void createProtocolShare(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(ProtocolShareRequest.class);
@@ -354,6 +505,13 @@ public class FederationRoutes implements Routes {
                         req.shareScope() != null ? req.shareScope() : ShareScope.ALL_PARTNERS));
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/shares/protocol/{id}",
+            methods = HttpMethod.DELETE,
+            summary = "Stop sharing a test protocol",
+            tags = {"Federation"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
     private void deleteProtocolShare(Context ctx) {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -363,6 +521,13 @@ public class FederationRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/info",
+            methods = HttpMethod.GET,
+            summary = "Get the federation contract this instance speaks",
+            tags = {"Federation"},
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationInfoResponse.class)))
     private void getInfo(Context ctx) {
         ctx.json(new FederationInfoResponse(FederationContractVersions.current()));
     }
@@ -378,7 +543,11 @@ public class FederationRoutes implements Routes {
      * the audience it is about to change rather than starting blank every time.
      */
     public record KbShareResponse(
-            int id, Integer fileId, Integer folderId, String shareScope, List<Integer> partnerIds) {}
+            int id,
+            @Nullable Integer fileId,
+            @Nullable Integer folderId,
+            ShareScope shareScope,
+            List<Integer> partnerIds) {}
 
     public record QuizShareRequest(int catalogId, ShareScope shareScope) {}
 
@@ -387,10 +556,6 @@ public class FederationRoutes implements Routes {
     public record PartnerResponse(FederationPartner partner, String partnerStationName) {}
 
     public record PairRequestResponse(int id, String stationName, String createdAt) {}
-
-    public record InviteResponse(String inviteCode) {}
-
-    public record MessageResponse(String message) {}
 
     public record FederationInfoResponse(FederationContract contract) {}
 }
