@@ -44,7 +44,8 @@ import java.util.Objects;
  *
  * <p>The outcome switches of the password and email-change flows end in a throwing default: an
  * outcome added later would otherwise fall out of the switch with nothing written, and an empty 200
- * reads as success.
+ * reads as success. The address-setup flow maps its outcomes in a switch expression instead, which
+ * the compiler holds to every outcome.
  */
 @Singleton
 public class AuthRoutes implements Routes {
@@ -250,14 +251,27 @@ public class AuthRoutes implements Routes {
 
         var result = authService.setRequiredAddress(
                 request.token(), request.email(), ctx.userAgent(), ctx.header("CF-IPCountry"));
-        switch (result.outcome()) {
-            case OK -> answerSignIn(ctx, result.login());
-            case TOKEN_INVALID -> throw Refusal.ADDRESS_SETUP_LINK_UNKNOWN.raise();
-            case TOKEN_EXPIRED -> throw Refusal.ADDRESS_SETUP_LINK_EXPIRED.raise();
-            case ADDRESS_MALFORMED -> throw Refusal.ADDRESS_MALFORMED.raise();
-            case ADDRESS_UNREACHABLE -> throw Refusal.ADDRESS_UNREACHABLE.raise();
-            case ADDRESS_TAKEN -> throw Refusal.ADDRESS_TAKEN_ON_SETUP.raise();
-        }
+        if (result.outcome() != AuthService.AddressOutcome.OK)
+            throw addressSetupRefusal(result.outcome()).raise();
+        answerSignIn(ctx, result.login());
+    }
+
+    /**
+     * The refusal for an address that was not put on the account. A switch expression, so an outcome
+     * added later does not compile until it is answered here.
+     *
+     * @param outcome what became of the attempt, anything but {@code OK}
+     * @return the refusal to answer with
+     */
+    static Refusal addressSetupRefusal(AuthService.AddressOutcome outcome) {
+        return switch (outcome) {
+            case TOKEN_INVALID -> Refusal.ADDRESS_SETUP_LINK_UNKNOWN;
+            case TOKEN_EXPIRED -> Refusal.ADDRESS_SETUP_LINK_EXPIRED;
+            case ADDRESS_MALFORMED -> Refusal.ADDRESS_MALFORMED;
+            case ADDRESS_UNREACHABLE -> Refusal.ADDRESS_UNREACHABLE;
+            case ADDRESS_TAKEN -> Refusal.ADDRESS_TAKEN_ON_SETUP;
+            case OK -> throw new IllegalArgumentException("An address that was set needs no refusal");
+        };
     }
 
     @OpenApi(
