@@ -27,7 +27,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -193,7 +193,7 @@ class StatisticsRepositoryTest extends RepositoryTestBase {
 
         var months = statistics.stationStatistics(station.id()).attendanceByMonth();
 
-        String month = YearMonth.from(start.atZone(ZoneOffset.UTC)).toString();
+        String month = YearMonth.from(start.atZone(ZoneId.systemDefault())).toString();
         assertEquals(List.of(new AttendanceMonth(month, 2, 1, 1, 1)), months);
     }
 
