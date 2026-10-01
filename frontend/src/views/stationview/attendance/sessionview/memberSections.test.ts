@@ -6,15 +6,14 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {buildMemberSections, type MemberSectionSources} from './memberSections'
-import type {AttendanceEntry, MemberWithName} from '@/api/generated/schema'
-import type {MemberGroup, StationUserTypeName} from '@/api/types'
+import type {AttendanceEntry, MemberGroup, MemberWithName, StationUserType} from '@/api/generated/schema'
 import {createMember} from '@/test/mocks/factories'
 
 /**
  * The blocks a sheet is read in follow whom it expects: its groups, then its user types, then
  * everybody else on it. A sheet started for other people than its template's shows those people.
  */
-function member(id: number, name: string, userType: StationUserTypeName, formerAt: string | null = null): MemberWithName {
+function member(id: number, name: string, userType: StationUserType, formerAt: string | null = null): MemberWithName {
     return createMember({id, stationId: 's', accountId: id, name, userType, formerAt})
 }
 
@@ -22,8 +21,8 @@ function entry(memberId: number): AttendanceEntry {
     return {id: memberId, sessionId: 1, memberId, status: 'UNCONFIRMED', source: 'EXPECTED', checkIn: null, checkOut: null}
 }
 
-const YOUTH: MemberGroup = {id: 1, stationId: 's', name: 'Jugend', position: 0}
-const ADULTS: MemberGroup = {id: 2, stationId: 's', name: 'Aktive', position: 1}
+const YOUTH: MemberGroup = {id: 1, stationId: 's', name: 'Jugend', position: 0, color: null, groupSetId: null, userTypes: []}
+const ADULTS: MemberGroup = {id: 2, stationId: 's', name: 'Aktive', position: 1, color: null, groupSetId: null, userTypes: []}
 const JANA = member(1, 'Jana', 'MEMBER')
 const TOM = member(2, 'Tom', 'TEAM')
 const ANNA = member(3, 'Anna', 'TEAM')

@@ -6,14 +6,14 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
+import {emptyRestriction} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
 import ChecklistFormModal from './checklistmodals/ChecklistFormModal.vue'
 import ChecklistColumnsEditor from './checklistmodals/ChecklistColumnsEditor.vue'
 import ChecklistMembershipEditor from './checklistmodals/ChecklistMembershipEditor.vue'
 import type {ChecklistColumnDraft} from '@/api/checklists'
 import type {EventOccurrenceRef} from '@/api/events'
-import type {CreateRequest as ChecklistCreateRequest} from '@/api/generated/schema'
-import type {MemberGroup, UserTag} from '@/api/types'
+import type {CreateRequest as ChecklistCreateRequest, MemberGroup, UserTag} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
 const visible = defineModel<boolean>({required: true})

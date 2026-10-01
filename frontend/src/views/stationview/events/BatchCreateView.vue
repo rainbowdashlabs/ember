@@ -19,7 +19,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
-import {type RestrictionSelection, emptyRestriction, toRestriction} from '@/components/input/restriction'
+import {emptyRestriction, toRestriction} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
 import BatchScheduleStep from './batchcreateview/BatchScheduleStep.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
 import type {
@@ -30,7 +31,6 @@ import type {
     EventTemplate,
 } from '@/api/generated/schema'
 import {attendance, events} from '@/api'
-import {audienceOf} from '@/api/events'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -142,8 +142,8 @@ const {running: saving, failure: createFailure, run: createBatch} = useAsyncActi
     requiresRegistration: requiresRegistration.value,
     requiresConfirmation: requiresConfirmation.value,
     registrationDeadline: registrationDeadline.value || undefined,
-    restriction: audienceOf(restriction.value),
-    viewRestriction: audienceOf(viewRestriction.value),
+    restriction: restriction.value,
+    viewRestriction: viewRestriction.value,
   })
   success.value = t('batchCreate.success', {count: created.length})
   setTimeout(() => router.push({name: eventRoutes.index}), 1500)

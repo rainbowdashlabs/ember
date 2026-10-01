@@ -9,6 +9,7 @@ import { activeModeVariables, applyVariables, backgroundVariables, feelVariables
 import { getItem, setItem } from '@/api/storage'
 import { hasSessionCookie } from '@/api/sessionCookie'
 import { userSettings } from '@/api'
+import type { ThemeInfo } from '@/api/generated/schema'
 import { usePride } from '@/composables/usePride'
 import { sessionInfo } from '@/util/sessionState'
 import { themeRepainted } from '@/util/themeState'
@@ -220,35 +221,19 @@ function clearStationOverride(state: ThemeState) {
     }
 }
 
-/** The theme facts a session carries about the instance, the station and the member. */
-interface SessionThemeInfo {
-    instanceDefaultTheme?: string
-    instanceDefaultFeel?: string
-    instanceLockFeel?: boolean
-    defaultTheme?: string
-    defaultFeel?: string
-    allowUserTheme?: boolean
-    allowUserFeel?: boolean
-    customThemeColors?: string | null
-    userTheme?: string
-    userDarkMode?: string
-    userFeel?: string
-}
-
 /** Theme precedence: member (when allowed) → station → instance → 'ember'. */
-function resolveSessionTheme(state: ThemeState, themeInfo: SessionThemeInfo): string {
-    const instance = themeInfo.instanceDefaultTheme ?? 'ember'
+function resolveSessionTheme(state: ThemeState, themeInfo: ThemeInfo): string {
+    const instance = themeInfo.instanceDefaultTheme
     const station = state.stationDefaultTheme.value
     const base = station !== 'ember' ? station : instance
     return state.allowUserTheme.value && themeInfo.userTheme ? themeInfo.userTheme : base
 }
 
 /** Feel precedence: member (when allowed) → station → instance (unless locked) → rounded. */
-function resolveSessionFeel(state: ThemeState, themeInfo: SessionThemeInfo, resolvedTheme: string): FeelValue {
-    const instance = (themeInfo.instanceDefaultFeel ?? 'ROUNDED') as FeelValue
-    const locked = themeInfo.instanceLockFeel ?? false
-    const station = (themeInfo.defaultFeel ?? null) as FeelValue | null
-    const base = locked ? instance : (station ?? instance)
+function resolveSessionFeel(state: ThemeState, themeInfo: ThemeInfo, resolvedTheme: string): FeelValue {
+    const instance: FeelValue = themeInfo.instanceDefaultFeel
+    const locked = themeInfo.instanceLockFeel
+    const base = locked ? instance : themeInfo.defaultFeel
     const userFeel = themeInfo.userFeel as FeelValue | null
     const userCanSetFeel = !locked && state.allowUserFeel.value
     return resolveEffectiveFeel(userCanSetFeel && userFeel ? userFeel : base, resolvedTheme)
@@ -262,11 +247,11 @@ function applyCustomColorsFromSession(state: ThemeState, customThemeColorsJson: 
     }
 }
 
-function initFromSession(state: ThemeState, themeInfo: SessionThemeInfo | null | undefined) {
+function initFromSession(state: ThemeState, themeInfo: ThemeInfo | null | undefined) {
     if (!themeInfo) return
-    state.stationDefaultTheme.value = themeInfo.defaultTheme ?? 'ember'
-    state.allowUserTheme.value = themeInfo.allowUserTheme ?? true
-    state.allowUserFeel.value = themeInfo.allowUserFeel ?? true
+    state.stationDefaultTheme.value = themeInfo.defaultTheme
+    state.allowUserTheme.value = themeInfo.allowUserTheme
+    state.allowUserFeel.value = themeInfo.allowUserFeel
     if (themeInfo.customThemeColors) {
         applyCustomColorsFromSession(state, themeInfo.customThemeColors)
     }
@@ -389,7 +374,7 @@ export function useTheme() {
         applyDarkMode: (mode: DarkModeValue) => applyDarkMode(state, mode),
         resolveEffectiveFeel,
         initFromLocalStorage: () => initFromLocalStorage(state),
-        initFromSession: (themeInfo: SessionThemeInfo | null | undefined) => initFromSession(state, themeInfo),
+        initFromSession: (themeInfo: ThemeInfo | null | undefined) => initFromSession(state, themeInfo),
         setTheme: (themeKey: string) => setTheme(state, themeKey),
         setFeel: (feel: FeelValue) => setFeel(state, feel),
         setDarkMode: (mode: DarkModeValue) => setDarkMode(state, mode),

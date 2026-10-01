@@ -18,7 +18,7 @@ import type {
     NewMemberRequest,
     NewMemberResponse,
 } from './generated/schema'
-import type {MemberIdentity} from './types'
+import type {PersonIdentity} from '@/util/personIdentity'
 import {uploadFile} from './upload'
 import {downloadAuthed} from '@/util/downloadAuthed'
 
@@ -26,7 +26,7 @@ import {downloadAuthed} from '@/util/downloadAuthed'
  * How a cluster member is drawn in the lists that draw a person: by their account, because somebody
  * who runs an association need belong to no station and so is nobody's member.
  */
-export function clusterMemberIdentity(member: ClusterMemberResponse): MemberIdentity {
+export function clusterMemberIdentity(member: ClusterMemberResponse): PersonIdentity {
     return {accountUid: member.accountUid ?? undefined, name: member.name ?? member.email ?? ''}
 }
 

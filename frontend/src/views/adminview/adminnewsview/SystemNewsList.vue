@@ -11,8 +11,8 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import {StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
-import type {SystemNewsResponse} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
+import type {StationUserType, SystemNewsResponse} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 defineProps<{
@@ -27,7 +27,7 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 function label(userType: string): string {
-  return StationUserTypeLabels[userType as StationUserTypeName] ?? userType
+  return StationUserTypeLabels[userType as StationUserType] ?? userType
 }
 </script>
 

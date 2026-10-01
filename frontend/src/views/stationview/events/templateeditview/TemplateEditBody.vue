@@ -13,15 +13,16 @@ import EventFieldList from '../eventshared/EventFieldList.vue'
 import EventReminderEditor from '../eventshared/EventReminderEditor.vue'
 import EventDefaultsSection from './EventDefaultsSection.vue'
 import TemplateAudienceSection from './TemplateAudienceSection.vue'
-import type {RestrictionSelection} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
 import {isRecurringEvent} from '@/api/events'
 import type {
     AttendanceTemplate,
     AttendanceTemplateField,
     EventCategory,
     EventFieldEntry,
+    MemberGroup,
+    UserTag,
 } from '@/api/generated/schema'
-import type {MemberGroup, UserTag} from '@/api/types'
 
 /**
  * Everything a template is edited through, once it has been loaded.

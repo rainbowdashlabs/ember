@@ -3,8 +3,14 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {MemberWithName} from '@/api/generated/schema'
-import type {MemberGroup, MemberIdentity, UserTag} from '@/api/types'
+import type {
+    AccountInfo,
+    MemberGroup,
+    MemberIdentity,
+    MemberWithName,
+    SessionInfo,
+    UserTag,
+} from '@/api/generated/schema'
 
 /**
  * Typed test data with sensible defaults, so a test states only what it cares about and the rest
@@ -67,7 +73,68 @@ export function createGroup(overrides: Partial<MemberGroup> = {}): MemberGroup {
         stationId: 'test-station',
         name: `Group ${id}`,
         color: null,
+        position: id,
+        groupSetId: null,
+        userTypes: [],
         ...overrides,
+    }
+}
+
+/**
+ * Somebody signed in at a station as a plain member with no permissions beyond signing in, on an
+ * instance that can send mail. A test overrides the account and whatever else its case is about.
+ */
+export function createSessionInfo(
+    overrides: Partial<Omit<SessionInfo, 'account'>> & {account?: Partial<AccountInfo>} = {},
+): SessionInfo {
+    const id = nextId++
+    const {account, ...rest} = overrides
+    return {
+        account: {
+            id,
+            uid: `account-uid-${id}`,
+            email: `account${id}@example.com`,
+            username: null,
+            firstName: 'Account',
+            lastName: String(id),
+            ...account,
+        },
+        stationId: 'test-station',
+        member: null,
+        permissions: ['LOGIN'],
+        userType: 'MEMBER',
+        instanceUserType: 'USER',
+        managedMembers: [],
+        groups: [],
+        tags: [],
+        roleIds: [],
+        groupIds: [],
+        tagIds: [],
+        profileComplete: true,
+        disabledModules: [],
+        theme: {
+            instanceDefaultTheme: 'ember',
+            instanceDefaultFeel: 'ROUNDED',
+            instanceLockFeel: false,
+            defaultTheme: 'ember',
+            defaultFeel: 'ROUNDED',
+            allowUserTheme: true,
+            allowUserFeel: true,
+            customThemeColors: null,
+            userTheme: null,
+            userDarkMode: null,
+            userFeel: null,
+        },
+        publicKbMode: null,
+        setupCompletedAt: null,
+        clusterId: null,
+        clusterUserType: null,
+        clusterPermissions: [],
+        ownStationPermissions: [],
+        canSendMail: true,
+        pdfHidesInstanceUrl: false,
+        stationTimezone: 'UTC',
+        ...rest,
     }
 }
 
@@ -79,6 +146,7 @@ export function createTag(overrides: Partial<UserTag> = {}): UserTag {
         name: `Tag ${id}`,
         color: null,
         visible: true,
+        position: id,
         ...overrides,
     }
 }

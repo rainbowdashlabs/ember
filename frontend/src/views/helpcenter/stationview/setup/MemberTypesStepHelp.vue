@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
+import type {Permission} from '@/api/generated/schema'
 import WizardFrame from './setuphelp/WizardFrame.vue'
 
 const {t} = useI18n()
@@ -24,7 +25,7 @@ const USER_TYPES = [
   {label: t('helpCenter.typePermissions.typeManager'), desc: t('helpCenter.typePermissions.typeManagerDesc')},
 ] as const
 
-const dummyRoles = [
+const dummyRoles: Permission[] = [
   {id: 1, permission: 'LOGIN'},
   {id: 2, permission: 'EVENT_EDIT'},
   {id: 3, permission: 'MEMBER_EDIT'},

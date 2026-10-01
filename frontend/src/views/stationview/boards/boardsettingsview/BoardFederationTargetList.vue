@@ -7,8 +7,8 @@
 import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type { FederationTargetResponse } from '@/api/generated/schema'
-import { StationUserType, StationUserTypeLabels, type StationUserTypeName } from '@/api/types'
+import type { FederationTargetResponse, StationUserType as StationUserTypeName } from '@/api/generated/schema'
+import { StationUserType, StationUserTypeLabels } from '@/api/types'
 
 defineProps<{
     targets: FederationTargetResponse[]

@@ -13,20 +13,21 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
-import {StationUserType, type PermissionGrant} from '@/api/types'
+import {StationUserType} from '@/api/types'
+import type {Permission} from '@/api/generated/schema'
 import {stationMembers} from '@/api'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 
-const {config: allRoles, loading, failure} = useConfigPanel<PermissionGrant[]>({
+const {config: allRoles, loading, failure} = useConfigPanel<Permission[]>({
   initial: [],
   fetch: () => stationMembers.listAllPermissions(),
 })
 
 const selectedType = ref<string | null>(null)
-const typePermissions = ref<PermissionGrant[]>([])
+const typePermissions = ref<Permission[]>([])
 const typeLoading = ref(false)
 
 const USER_TYPES = [

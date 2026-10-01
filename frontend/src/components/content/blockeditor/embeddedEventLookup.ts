@@ -6,7 +6,7 @@
 import {getEmbeddedEvent} from '@/api/events'
 import {listPublicEvents} from '@/api/publicEvents'
 import {sessionInfo} from '@/util/sessionState'
-import type {BlockAudience} from '@/api/pageManage'
+import type {BlockAudience} from '@/api/generated/schema'
 
 /** Where an event block found its event, which decides where its link goes. */
 export type EmbeddedEventSource =

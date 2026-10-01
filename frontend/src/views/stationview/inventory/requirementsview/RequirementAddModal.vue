@@ -10,8 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { Inventory, StationGroupResponse } from '@/api/generated/schema'
-import type { MemberGroup } from '@/api/types'
+import type { Inventory, MemberGroup, StationGroupResponse } from '@/api/generated/schema'
 import RequirementAddForm from './RequirementAddForm.vue'
 
 const show = defineModel<boolean>('show', { default: false })

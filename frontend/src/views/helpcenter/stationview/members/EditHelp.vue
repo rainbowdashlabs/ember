@@ -19,8 +19,8 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {computed, ref} from 'vue'
 import MemberGroupChips from '@/views/stationview/members/editview/MemberGroupChips.vue'
-import {StationUserType, type MemberGroup} from '@/api/types'
-import type {MemberGroupSet} from '@/api/generated/schema'
+import {StationUserType} from '@/api/types'
+import type {MemberGroup, MemberGroupSet, Permission} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -33,18 +33,21 @@ const tabs = [
 ]
 
 const dummyUserType = ref('MEMBER')
-const dummyRoles = [
-  {id: 1, permission: 'ATTENDANCE_MANAGEMENT', label: 'Anwesenheitsverwaltung'},
-  {id: 2, permission: 'INVENTORY_READ', label: 'Inventar lesen'},
+const dummyRoles: Permission[] = [
+  {id: 1, permission: 'ATTENDANCE_MANAGER'},
+  {id: 2, permission: 'INVENTORY_READ'},
 ]
 const dummySelected = new Set([1])
 
 const dummySets = computed<MemberGroupSet[]>(() => [{id: 1, stationId: '', name: t('helpCenter.sample.groups.levels')}])
 const dummyGroups = computed<MemberGroup[]>(() => [
-  {id: 1, name: t('helpCenter.sample.groups.beginners'), groupSetId: 1},
-  {id: 2, name: t('helpCenter.sample.groups.advancedPlural'), groupSetId: 1},
-  {id: 3, name: t('helpCenter.sample.groups.competitionGroup')},
-  {id: 4, name: t('helpCenter.sample.groups.supervisors'), userTypes: [StationUserType.TEAM, StationUserType.MANAGER]},
+  {id: 1, stationId: '', name: t('helpCenter.sample.groups.beginners'), color: null, position: 0, groupSetId: 1, userTypes: []},
+  {id: 2, stationId: '', name: t('helpCenter.sample.groups.advancedPlural'), color: null, position: 1, groupSetId: 1, userTypes: []},
+  {id: 3, stationId: '', name: t('helpCenter.sample.groups.competitionGroup'), color: null, position: 2, groupSetId: null, userTypes: []},
+  {
+    id: 4, stationId: '', name: t('helpCenter.sample.groups.supervisors'), color: null, position: 3, groupSetId: null,
+    userTypes: [StationUserType.TEAM, StationUserType.MANAGER],
+  },
 ])
 const dummyGroupIds = new Set([1, 3])
 </script>

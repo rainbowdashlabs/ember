@@ -15,7 +15,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import GroupList from './groupsstep/GroupList.vue'
 import GroupEditor from './groupsstep/GroupEditor.vue'
 import {memberGroups, stationMembers} from '@/api'
-import type {MemberGroup, PermissionGrant} from '@/api/types'
+import type {MemberGroup, Permission} from '@/api/generated/schema'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
@@ -30,7 +30,7 @@ const draft = ref('')
 const loading = ref(true)
 const failure = ref<Failure | null>(null)
 
-const allRoles = ref<PermissionGrant[]>([])
+const allRoles = ref<Permission[]>([])
 const permissionsByGroup = reactive(new Map<number, Set<number>>())
 const permissionLoading = reactive<Record<number, boolean>>({})
 const selectedId = ref<number | null>(null)

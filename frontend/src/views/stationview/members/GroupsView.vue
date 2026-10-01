@@ -9,7 +9,8 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {StationPermission, type MemberGroup} from '@/api/types'
+import {StationPermission} from '@/api/types'
+import type {GroupRow} from '@/util/groupRules'
 import {memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
@@ -117,7 +118,7 @@ function createGroup() {
   openCreateGroup()
 }
 
-function editGroup(group: MemberGroup) {
+function editGroup(group: GroupRow) {
   rules.load(group)
   openEditGroup(group)
 }
@@ -133,7 +134,7 @@ const {
   target: convertTarget,
   request: requestConvertToTag,
   confirm: confirmConvertToTag,
-} = useConfirmAction<MemberGroup>({
+} = useConfirmAction<GroupRow>({
   onConfirm: g => memberGroups.convertToTag(g.id),
   onSuccess: converted => refreshAfter(converted.id),
   failure,

@@ -7,13 +7,13 @@
 import {mount} from '@vue/test-utils'
 import {describe, expect, it} from 'vitest'
 import UserTypesEditor from './UserTypesEditor.vue'
-import type {StationUserTypeName} from '@/api/types'
+import type {StationUserType} from '@/api/generated/schema'
 
 /**
  * The user types a template enters besides its groups. Ticking or unticking one hands the whole
  * new choice on at once, the way the groups beside it are saved.
  */
-function editor(modelValue: StationUserTypeName[]) {
+function editor(modelValue: StationUserType[]) {
     return mount(UserTypesEditor, {props: {modelValue}, global: {stubs: {'font-awesome-icon': true}}})
 }
 

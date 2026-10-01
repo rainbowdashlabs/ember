@@ -12,7 +12,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {MemberGroup} from '@/api/types'
+import type {MemberGroup} from '@/api/generated/schema'
 
 defineProps<{
   groups: MemberGroup[]

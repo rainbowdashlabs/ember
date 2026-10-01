@@ -3,8 +3,15 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {MemberGroupSet, MemberWithName, MergedField, MyInventoryItem} from '@/api/generated/schema'
-import type {MemberGroup, PermissionGrant, UserTag} from '@/api/types'
+import type {
+    MemberGroup,
+    MemberGroupSet,
+    MemberWithName,
+    MergedField,
+    MyInventoryItem,
+    Permission,
+    UserTag,
+} from '@/api/generated/schema'
 
 /**
  * Everything the member edit tabs render, loaded once by the view and handed
@@ -13,7 +20,7 @@ import type {MemberGroup, PermissionGrant, UserTag} from '@/api/types'
 export interface MemberEditData {
     fields: MergedField[]
     values: Map<string, string>
-    allRoles: PermissionGrant[]
+    allRoles: Permission[]
     allGroups: MemberGroup[]
     allSets: MemberGroupSet[]
     allTags: UserTag[]

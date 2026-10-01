@@ -6,8 +6,8 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import {StationUserTypeLabels, type MemberGroup} from '@/api/types'
-import type {AttendanceReportPreset} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
+import type {AttendanceReportPreset, MemberGroup} from '@/api/generated/schema'
 
 const props = defineProps<{
   presets: AttendanceReportPreset[]

@@ -6,16 +6,16 @@
 import type {
     ActiveSession, AttendanceEntry, BoardLabel, BoardLane, CheckResult, ContentRow, EvaluationResponse, Form,
     FormAnswerValue, FormQuestion, FormQuestionInfo, FormResultGroup, InventoryContainer, InventoryContainerKind,
-    InventoryItem, InventorySize, MemberCompletion, MemberWithName, PartnerResponse, ProcedureItem,
+    InventoryItem, InventorySize, MemberCompletion, MemberGroup, MemberIdentity, MemberWithName, PartnerResponse,
+    ProcedureItem,
     ProcedureTemplateItem, QuizCatalog, RequiredInventoryItem, SettingsResponse, StationPage, TestProtocolItem,
-    TestProtocolSection, TicketSummary, WaitingList, WaitingListEntryWithScore, WaitingListField, WaitingListWithCount,
+    TestProtocolSection, TicketSummary, UserTag, WaitingList, WaitingListEntryWithScore, WaitingListField, WaitingListWithCount,
 } from '@/api/generated/schema'
 import type {CheckEntry} from '@/composables/useMemberCheck'
 import type {CheckRow} from '@/views/stationview/attendance/sessionview/useCheckMode'
 import type {MemberSection} from '@/views/stationview/attendance/sessionview/memberSections'
 import type {KbItem} from '@/views/stationview/knowledge/knowledgebaseview/useKbItems'
 import type {Comment} from '@/api/comments'
-import type {MemberGroup, MemberIdentity, UserTag} from '@/api/types'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
 /** The accent a slide is drawn in. Maps onto the theme colours, not onto fixed hex values. */

@@ -21,7 +21,8 @@ import FormQuestionsSection from './builderview/FormQuestionsSection.vue'
 import FormCompletionEditor from './builderview/FormCompletionEditor.vue'
 import FormMetadataEditor from './builderview/FormMetadataEditor.vue'
 import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
-import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
+import { emptyRestriction } from '@/components/input/restriction'
+import type { RestrictionSelection } from '@/api/types'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { storedQuestionId } from './builderview/types'
 import { useFormLayout } from './builderview/useFormLayout'
@@ -29,14 +30,12 @@ import { useUnsavedLayout } from './builderview/useUnsavedLayout'
 import ContentDraftBanner from '@/components/content/ContentDraftBanner.vue'
 import { AnswerLossDeclined, type Removals, useAnswerLossConsent } from './builderview/useAnswerLossConsent'
 import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, type FormPurposeName, type FormVisibilityName, type QuestionType} from '@/api/forms'
-import type {Form, FormQuestion, MemberWithName, PageUsingForm} from '@/api/generated/schema'
+import type {Form, FormQuestion, MemberGroup, MemberWithName, PageUsingForm, UserTag} from '@/api/generated/schema'
 import { optionKeysOf } from '@/util/formOptions'
-import type { MemberGroup, UserTag } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 import { instantToLocalInput } from '@/util/format'
 import { isOfferableLink } from '@/util/completionLink'
-import { userTypesOf } from '@/util/stationUserTypes'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -250,7 +249,7 @@ const limits = useInstantSave(
     async selection => {
       if (!formId.value || !answeredByMembers.value) return
       await forms.setRestrictions(formId.value, {
-        userTypes: userTypesOf(selection.userTypes),
+        userTypes: selection.userTypes,
         groupIds: selection.groupIds,
         tagIds: selection.tagIds,
         memberIds: selection.memberIds,
@@ -376,7 +375,7 @@ async function save() {
     await limits.flush()
     if (answeredByMembers.value && !formId.value) {
       await forms.setRestrictions(id, {
-        userTypes: userTypesOf(restriction.value.userTypes),
+        userTypes: restriction.value.userTypes,
         groupIds: restriction.value.groupIds,
         tagIds: restriction.value.tagIds,
         memberIds: restriction.value.memberIds,

@@ -7,7 +7,7 @@ import {afterEach, describe, expect, it} from 'vitest'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import QuizSidebarGroup from './QuizSidebarGroup.vue'
 import {sessionInfo} from '@/util/sessionState'
-import type {SessionInfo} from '@/api/types'
+import {createSessionInfo} from '@/test/mocks/factories'
 
 /**
  * What the group is called, and what it holds, depends on the reader.
@@ -18,11 +18,10 @@ import type {SessionInfo} from '@/api/types'
  */
 describe('QuizSidebarGroup', () => {
     function signIn(permissions: string[]) {
-        sessionInfo.value = {
+        sessionInfo.value = createSessionInfo({
             permissions,
-            disabledModules: [],
-            member: {id: 1},
-        } as unknown as SessionInfo
+            member: {id: 1, stationId: 'test-station', accountId: 1, uid: 'member-uid-1', calledName: 'Member', nickname: null},
+        })
     }
 
     afterEach(() => {

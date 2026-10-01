@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import {scopeOf, type AssignmentTarget} from '@/api/profileFields'
-import type {MemberGroup} from '@/api/types'
+import type {MemberGroup} from '@/api/generated/schema'
 
 /**
  * Putting several questions to one audience at once.

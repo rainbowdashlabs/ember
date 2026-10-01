@@ -8,13 +8,14 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
+import type {Permission} from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 
-const dummyRoles = [
-  {id: 1, permission: 'ATTENDANCE_MANAGEMENT', label: 'Anwesenheitsverwaltung'},
-  {id: 2, permission: 'INVENTORY_READ', label: 'Inventar lesen'},
+const dummyRoles: Permission[] = [
+  {id: 1, permission: 'ATTENDANCE_MANAGER'},
+  {id: 2, permission: 'INVENTORY_READ'},
 ]
 const dummySelected = new Set([1])
 </script>

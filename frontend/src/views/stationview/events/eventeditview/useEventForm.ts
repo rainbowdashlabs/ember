@@ -5,7 +5,7 @@
  */
 import {computed, reactive, watch} from 'vue'
 import {events} from '@/api'
-import {audienceOf, EventTypes, needsDayOfWeek} from '@/api/events'
+import {EventTypes, needsDayOfWeek} from '@/api/events'
 import type {
     EventField,
     EventFieldEntry,
@@ -149,8 +149,8 @@ export function useEventForm() {
       registrationLimit: state.registrationLimit ?? undefined,
       minRegistrations: state.minRegistrations ?? undefined,
       thresholdDays: state.minRegistrations ? state.thresholdDays ?? null : null,
-      restriction: audienceOf(state.restriction),
-      viewRestriction: audienceOf(state.viewRestriction),
+      restriction: state.restriction,
+      viewRestriction: state.viewRestriction,
       registrationCloseDays: state.registrationCloseDays ?? undefined,
       repeatUntil: repeats() && state.repeatUntil ? state.repeatUntil : null,
       repeatCount: repeats() && !state.repeatUntil ? state.repeatCount ?? null : null,

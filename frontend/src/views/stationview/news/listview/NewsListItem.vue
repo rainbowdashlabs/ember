@@ -10,8 +10,7 @@ import RowLink from '@/components/navigation/RowLink.vue'
 import NewsListItemHeader from './NewsListItemHeader.vue'
 import NewsListItemComments from './NewsListItemComments.vue'
 import {useNewsRoutes} from '@/composables/useNewsRoutes'
-import type {NewsResponse} from '@/api/generated/schema'
-import type {MemberIdentity} from '@/api/types'
+import type {MemberIdentity, NewsResponse} from '@/api/generated/schema'
 import NewsExcerpt from '../newsshared/NewsExcerpt.vue'
 
 const props = defineProps<{

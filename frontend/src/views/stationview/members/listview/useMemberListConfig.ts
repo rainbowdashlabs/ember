@@ -6,10 +6,9 @@
 import {computed, onMounted, type ComputedRef} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, type RouteLocationRaw} from 'vue-router'
-import type {StationMember} from '@/api/types'
 import {
     useMemberData, getMemberFirstName, getMemberLastName,
-    type MemberDataSource,
+    type MemberDataSource, type RosterMember,
 } from './useMemberData'
 import {useSavedFilters} from './useSavedFilters'
 import {useMemberListTabs} from './useMemberListTabs'
@@ -55,7 +54,7 @@ export interface MemberListPort {
      */
     stationLocalColumns?: boolean
     /** Narrows the people further than the tabs and filters do, such as to one station. */
-    keeps?: (member: StationMember) => boolean
+    keeps?: (member: RosterMember) => boolean
 }
 
 /**
@@ -119,7 +118,7 @@ export function useMemberListConfig(port: MemberListPort) {
         stationLocalColumns: port.stationLocalColumns ?? true,
     }))
 
-    const table = useDataTable<StationMember>({
+    const table = useDataTable<RosterMember>({
         id: () => `${port.tableId}:${activeTab.value}`,
         rows: tabMembers,
         columns,
@@ -130,7 +129,7 @@ export function useMemberListConfig(port: MemberListPort) {
 
     useAddressFilter(loading, activeTab, table)
 
-    const exportColumns = computed((): ExportColumn<StationMember>[] => [
+    const exportColumns = computed((): ExportColumn<RosterMember>[] => [
         {key: 'firstName', label: t('membersList.export.colFirstName'), value: getMemberFirstName},
         {key: 'lastName', label: t('membersList.export.colLastName'), value: getMemberLastName},
         {key: 'email', label: t('membersList.export.colEmail'), value: m => m.email ?? ''},
@@ -138,7 +137,7 @@ export function useMemberListConfig(port: MemberListPort) {
         ...tabScopedFields.value.map(f => ({
             key: `field:${f.id}`,
             label: f.name ?? '',
-            value: (m: StationMember) => getFieldValueAsString(m.id, f.id),
+            value: (m: RosterMember) => getFieldValueAsString(m.id, f.id),
         })),
     ])
 
@@ -190,20 +189,20 @@ export function useMemberListConfig(port: MemberListPort) {
     }
 
     /** The page a person's name leads to, or nothing where this reader has no such page. */
-    function detailRouteOf(member: StationMember): RouteLocationRaw | null {
+    function detailRouteOf(member: RosterMember): RouteLocationRaw | null {
         return port.routes.detail ? {name: port.routes.detail, params: {id: member.id}} : null
     }
 
     /** Opens a person's screen, or does nothing where this reader has no such screen to open. */
-    function navigateTo(routeName: string | undefined, member: StationMember, event: Event) {
+    function navigateTo(routeName: string | undefined, member: RosterMember, event: Event) {
         event.stopPropagation()
         if (!routeName) return
         router.push({name: routeName, params: {id: member.id}})
     }
 
-    const navigateToDetail = (member: StationMember, event: Event) =>
+    const navigateToDetail = (member: RosterMember, event: Event) =>
         navigateTo(port.routes.detail, member, event)
-    const navigateToEdit = (member: StationMember, event: Event) =>
+    const navigateToEdit = (member: RosterMember, event: Event) =>
         navigateTo(port.routes.edit, member, event)
 
     onMounted(() => {

@@ -5,8 +5,7 @@
  */
 <script setup lang="ts">
 import {onMounted, ref, watch} from 'vue'
-import type {MemberCompletion} from '@/api/generated/schema'
-import type {MemberGroup} from '@/api/types'
+import type {MemberCompletion, MemberGroup} from '@/api/generated/schema'
 import {useMentionQuery, type SpecialMention as MentionSpecialMention, type Suggestion as MentionSuggestion} from '@/composables/useMentionQuery'
 import {htmlToRaw, rawToHtml} from './mentioninput/mentionMarkup'
 import MentionSuggestionList from './mentioninput/MentionSuggestionList.vue'

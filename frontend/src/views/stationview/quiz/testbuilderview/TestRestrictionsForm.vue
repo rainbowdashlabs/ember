@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import { toRestrictionSelection } from '@/components/input/restriction'
-import type { MemberGroup, UserTag } from '@/api/types'
+import type { MemberGroup, UserTag } from '@/api/generated/schema'
 
 const props = defineProps<{
   groups: MemberGroup[]

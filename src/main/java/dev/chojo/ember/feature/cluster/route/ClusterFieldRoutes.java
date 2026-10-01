@@ -309,7 +309,7 @@ public class ClusterFieldRoutes implements Routes {
         return new ClusterFieldResponse(
                 field.id(),
                 field.name(),
-                field.fieldType().name(),
+                field.fieldType(),
                 field.config(),
                 field.required(),
                 field.readonly(),
@@ -339,8 +339,8 @@ public class ClusterFieldRoutes implements Routes {
     public record ClusterFieldResponse(
             int id,
             String name,
-            String fieldType,
-            @Nullable ProfileFieldConfig config,
+            ProfileFieldType fieldType,
+            ProfileFieldConfig config,
             boolean required,
             boolean readonly,
             @Nullable String width,

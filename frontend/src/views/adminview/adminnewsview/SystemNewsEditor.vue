@@ -16,11 +16,11 @@ import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import {StationUserType, StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
 import {ContentMode, type ContentModeName} from '@/api/news'
 import {INSTANCE_MEDIA_SCOPE} from '@/api/media'
 import {markdownAsSingleBlock} from '@/util/blockSwitch'
-import type {SystemNewsResponse} from '@/api/generated/schema'
+import type {StationUserType as StationUserTypeName, SystemNewsResponse} from '@/api/generated/schema'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 
 const props = defineProps<{

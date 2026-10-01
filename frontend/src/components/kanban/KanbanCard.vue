@@ -9,8 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import TicketTile from './TicketTile.vue'
-import type {BoardLabel, BoardLane, TicketSummary} from '@/api/generated/schema'
-import type {MemberIdentity} from '@/api/types'
+import type {BoardLabel, BoardLane, MemberIdentity, TicketSummary} from '@/api/generated/schema'
 
 /**
  * A card on the kanban board with the menu that moves it.

@@ -5,8 +5,7 @@
  */
 import {computed, type WritableComputedRef} from 'vue'
 import type {RestrictionSelection} from '@/api/types'
-
-export type {RestrictionSelection}
+import {userTypesOf} from '@/util/stationUserTypes'
 
 /**
  * A fresh, empty restriction selection. Use to initialise a `ref<RestrictionSelection>`
@@ -55,7 +54,7 @@ export function toRestrictionSelection(
 ): WritableComputedRef<RestrictionSelection> {
     return computed({
         get: (): RestrictionSelection => ({
-            userTypes: userTypes.value,
+            userTypes: userTypesOf(userTypes.value),
             groupIds: groupIds.value,
             tagIds: tagIds.value,
             memberIds: memberIds?.value ?? [],

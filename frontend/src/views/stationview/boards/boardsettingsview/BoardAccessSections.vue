@@ -8,11 +8,16 @@ import { useI18n } from 'vue-i18n'
 import BoardAccessSection from './BoardAccessSection.vue'
 import BoardFederationSection from './BoardFederationSection.vue'
 import type { RoleOption } from './BoardFederationSection.vue'
-import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
-import type { FederationTargetResponse, PartnerResponse } from '@/api/generated/schema'
+import type {
+    FederationTargetResponse,
+    MemberGroup,
+    PartnerResponse,
+    Permission,
+    UserTag,
+} from '@/api/generated/schema'
 
 defineProps<{
-    allRoles: PermissionGrant[]
+    allRoles: Permission[]
     allGroups: MemberGroup[]
     allTags: UserTag[]
     canFederate: boolean

@@ -10,15 +10,15 @@ import EditButton from '@/components/button/EditButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {StationMember} from '@/api/types'
 import {useMemberRowExtras} from './memberRowExtras'
+import type {RosterMember} from './useMemberData'
 
 /**
  * The start of a member's row: a tick while choosing whom to export, otherwise the ways into the
  * person's own screens, or a lock where this reader may not touch them.
  */
 const props = defineProps<{
-  member: StationMember
+  member: RosterMember
   exportMode: boolean
   selected: boolean
   canEdit: boolean

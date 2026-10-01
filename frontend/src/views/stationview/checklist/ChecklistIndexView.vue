@@ -18,9 +18,10 @@ import {checklists, memberGroups, stationMembers, userTags} from '@/api'
 import type {
     ChecklistSummaryResponse as ChecklistSummary,
     CreateRequest as ChecklistCreateRequest,
+    MemberGroup,
     MemberWithName,
+    UserTag,
 } from '@/api/generated/schema'
-import type {MemberGroup, UserTag} from '@/api/types'
 import ChecklistTile from './checklistindexview/ChecklistTile.vue'
 import ChecklistCreateModal from './ChecklistCreateModal.vue'
 

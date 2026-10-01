@@ -6,7 +6,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {findEmbeddedNews} from './embeddedNewsLookup'
 import {sessionInfo} from '@/util/sessionState'
-import type {SessionInfo} from '@/api/types'
+import {createSessionInfo} from '@/test/mocks/factories'
 
 const getPublicNewsTeaser = vi.fn()
 const getMemberNewsTeaser = vi.fn()
@@ -22,7 +22,7 @@ const NEWS_UID = 'news-1'
 const TEASER = {id: 7, publicUid: NEWS_UID, title: 'Drehleiter', summary: '', publishedAt: null}
 
 function signedInTo(stationId: string) {
-    sessionInfo.value = {stationId} as SessionInfo
+    sessionInfo.value = createSessionInfo({stationId})
 }
 
 /**

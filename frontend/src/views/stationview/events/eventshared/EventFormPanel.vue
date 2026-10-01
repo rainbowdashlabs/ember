@@ -17,7 +17,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
-import type {RestrictionSelection} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
 import EventFieldList from './EventFieldList.vue'
 import RepeatEndField from './RepeatEndField.vue'
 import {EventTypes, isRecurringEvent, needsDayOfWeek} from '@/api/events'
@@ -26,8 +26,9 @@ import type {
     AttendanceTemplateField,
     EventCategory,
     EventFieldEntry,
+    MemberGroup,
+    UserTag,
 } from '@/api/generated/schema'
-import type {MemberGroup, UserTag} from '@/api/types'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {weekdayName} from '@/util/format'
 

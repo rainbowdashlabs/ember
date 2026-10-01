@@ -9,13 +9,13 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import UserTypeCheckboxes from '@/components/input/toggle/UserTypeCheckboxes.vue'
-import type {StationUserTypeName} from '@/api/types'
+import type {StationUserType} from '@/api/generated/schema'
 
 /**
  * The user types a template enters besides the members of its groups. Every change is handed on at
  * once, the way a change to the groups is.
  */
-const userTypes = defineModel<StationUserTypeName[]>({required: true})
+const userTypes = defineModel<StationUserType[]>({required: true})
 
 const {t} = useI18n()
 </script>

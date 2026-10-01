@@ -15,9 +15,14 @@ import ReportFilters from './reportview/ReportFilters.vue'
 import ReportPreview from './reportview/ReportPreview.vue'
 import ExportFormatModal from '@/components/documents/ExportFormatModal.vue'
 import type {ExportFormat, ExportSeparator} from '@/util/exportFormat'
-import {StationUserType, StationUserTypeLabels, type MemberGroup, type StationUserTypeName} from '@/api/types'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
 import {attendance, memberGroups} from '@/api'
-import type {AttendanceReportPreset, ReportData} from '@/api/generated/schema'
+import type {
+  AttendanceReportPreset,
+  MemberGroup,
+  ReportData,
+  StationUserType as StationUserTypeName,
+} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'

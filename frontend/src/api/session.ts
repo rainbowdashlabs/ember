@@ -6,7 +6,6 @@
 import client from './client'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import {uploadFile} from './upload'
-import type {SessionInfo} from './types'
 import type {
     ActiveSession,
     ConsentChangesResponse,
@@ -16,6 +15,7 @@ import type {
     LegalVersionsResponse,
     MessageResponse,
     RecordConsentRequest,
+    SessionInfo,
     StationMembership,
 } from './generated/schema'
 import {prepareImageUpload} from '@/util/imageUpload'

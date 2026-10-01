@@ -10,7 +10,6 @@ import type {
     CorrectRowRequest,
     HandOutSelfChecksRequest,
     HeldReportRequest,
-    InventoryItemMetadata as ItemMetadata,
     RefuseRowRequest,
     SelfCheckAnswerRequest,
     SelfCheckRaised,
@@ -97,15 +96,7 @@ export async function takeRow(id: number, rowId: number): Promise<SelfCheckRevie
     return res.data
 }
 
-/**
- * A correction as the shared correction dialog hands it over, whose piece data still comes in the
- * inventory module's own shape.
- *
- * TODO: use the generated request alone once the inventory module's piece data is the generated one.
- */
-export type RowCorrection = Omit<CorrectRowRequest, 'metadata'> & {metadata?: ItemMetadata | null}
-
-export async function correctRow(id: number, rowId: number, data: RowCorrection): Promise<SelfCheckReview> {
+export async function correctRow(id: number, rowId: number, data: CorrectRowRequest): Promise<SelfCheckReview> {
     const res = await client.post<SelfCheckReview>(`/self-check-reviews/${id}/rows/${rowId}/correct`, data)
     return res.data
 }

@@ -5,10 +5,9 @@
  */
 <script lang="ts" setup>
 import { computed } from 'vue'
-import type { TicketSummary, BoardLabel } from '@/api/generated/schema'
+import type { TicketSummary, BoardLabel, MemberIdentity } from '@/api/generated/schema'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { contrastTextColor } from '@/util/contrastColor'
-import type { MemberIdentity } from '@/api/types'
 import { priorityIcon as toPriorityIcon, priorityColor as toPriorityColor } from '@/util/ticketPriority'
 import { formatDayMonth, todayIsoDate } from '@/util/format'
 

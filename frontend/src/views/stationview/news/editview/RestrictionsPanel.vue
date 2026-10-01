@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import {toRestrictionSelection} from '@/components/input/restriction'
-import type {MemberGroup, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
 const selectedUserTypes = defineModel<string[]>('selectedUserTypes', {required: true})

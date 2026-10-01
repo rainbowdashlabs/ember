@@ -7,7 +7,8 @@ import { computed, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSession } from '@/composables/useSession'
 import { PALETTE_ROUTES, type PaletteRouteEntry } from '@/data/paletteRoutes'
-import { StationModules, StationPermission, type MemberIdentity } from '@/api/types'
+import { StationModules, StationPermission } from '@/api/types'
+import type { PersonIdentity } from '@/util/personIdentity'
 import { listCompletions } from '@/api/stationMembers'
 import { search as searchKb } from '@/api/knowledgeBase'
 import { listUpcomingOccurrences } from '@/api/events'
@@ -29,7 +30,7 @@ export interface PaletteResult {
   label: string
   sublabel?: string
   icon: string
-  identity?: MemberIdentity
+  identity?: PersonIdentity
   to: { name?: string; path?: string; params?: Record<string, string | number> }
 }
 

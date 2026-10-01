@@ -19,8 +19,15 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MemberUserTypeSelect from './MemberUserTypeSelect.vue'
 import MemberGroupChips from './MemberGroupChips.vue'
 import MemberTagChips from './MemberTagChips.vue'
-import {StationUserType, type MemberGroup, type PermissionGrant, type UserTag} from '@/api/types'
-import type {MemberGroupSet, MemberWithName, MyInventoryItem} from '@/api/generated/schema'
+import {StationUserType} from '@/api/types'
+import type {
+  MemberGroup,
+  MemberGroupSet,
+  MemberWithName,
+  MyInventoryItem,
+  Permission,
+  UserTag,
+} from '@/api/generated/schema'
 import {stationMembers, memberGroups} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -37,7 +44,7 @@ const {t} = useI18n()
 const props = defineProps<{
   member: MemberWithName
   memberId: number
-  allRoles: PermissionGrant[]
+  allRoles: Permission[]
   allGroups: MemberGroup[]
   allSets: MemberGroupSet[]
   allTags: UserTag[]

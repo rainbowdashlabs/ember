@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref} from 'vue'
-import type {MemberGroup, UserTag} from '@/api/types'
+import type {GroupEntry, TagEntry} from '@/api/generated/schema'
 
 export interface FilterCriteria {
     userTypes: string[]
@@ -23,8 +23,8 @@ export function useMemberFilter<T extends FilterableMember>(
     _members: () => T[],
     memberGroupsMap: () => Map<number, string[]>,
     memberTagsMap: () => Map<number, string[]>,
-    allGroups: () => MemberGroup[],
-    allTags: () => UserTag[],
+    allGroups: () => GroupEntry[],
+    allTags: () => TagEntry[],
 ) {
     const filterCriteria = ref<FilterCriteria>({userTypes: [], groupIds: [], tagIds: [], mode: 'AND'})
 
@@ -37,7 +37,7 @@ export function useMemberFilter<T extends FilterableMember>(
         if (fc.userTypes.length === 0 && fc.groupIds.length === 0 && fc.tagIds.length === 0) return list
 
         const filterUserTypes = new Set(fc.userTypes)
-        const filterGroupNames = new Set(allGroups().filter(g => fc.groupIds.includes(g.id)).map(g => g.name ?? ''))
+        const filterGroupNames = new Set(allGroups().filter(g => fc.groupIds.includes(g.id)).map(g => g.name))
         const filterTagNames = new Set(allTags().filter(t => fc.tagIds.includes(t.id)).map(t => t.name))
 
         return list.filter(m => {

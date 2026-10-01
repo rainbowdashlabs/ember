@@ -11,8 +11,8 @@ import FieldsStep from './FieldsStep.vue'
 import GroupsStep from './GroupsStep.vue'
 import ManagerStep from './ManagerStep.vue'
 import DoneStep from './DoneStep.vue'
-import type { MemberWithName, ProfileField } from '@/api/generated/schema'
-import {StationUserType, type MemberGroup} from '@/api/types'
+import type { MemberGroup, MemberWithName, ProfileField } from '@/api/generated/schema'
+import {StationUserType} from '@/api/types'
 
 type Step = 'userType' | 'identity' | 'fields' | 'groups' | 'manager' | 'done'
 

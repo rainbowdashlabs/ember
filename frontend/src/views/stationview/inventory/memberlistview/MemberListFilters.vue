@@ -12,11 +12,11 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
-import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
+import { emptyRestriction } from '@/components/input/restriction'
+import type { RestrictionSelection } from '@/api/types'
 import type { DataTableApi } from '@/composables/useDataTable'
 import type { FilterCriteria } from '@/composables/useMemberFilter'
-import type { MemberGroup, UserTag } from '@/api/types'
-import type { MemberWithName } from '@/api/generated/schema'
+import type { MemberGroup, MemberWithName, UserTag } from '@/api/generated/schema'
 
 const { t } = useI18n()
 

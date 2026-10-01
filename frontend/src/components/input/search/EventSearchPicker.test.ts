@@ -8,7 +8,7 @@ import {defineComponent, h} from 'vue'
 import {flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import EventSearchPicker from './EventSearchPicker.vue'
-import type {BlockAudience} from '@/api/pageManage'
+import type {BlockAudience} from '@/api/generated/schema'
 import {provideBlockAudience} from '@/composables/useBlockAudience'
 
 const searchEvents = vi.fn()

@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
+import type {StationUserType} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
 import PillBadge from '@/components/badge/PillBadge.vue'
 
 defineProps<{
@@ -21,5 +22,5 @@ defineProps<{
         'bg-info/10 text-info-accent': userType === 'GUARDIAN',
         'bg-bg-light-accent dark:bg-bg-dark-accent text-(--text-muted)': userType === 'MEMBER' || userType === 'TRIAL',
       }"
-  >{{ StationUserTypeLabels[userType as StationUserTypeName] ?? userType }}</PillBadge>
+  >{{ StationUserTypeLabels[userType as StationUserType] ?? userType }}</PillBadge>
 </template>

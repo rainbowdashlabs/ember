@@ -13,8 +13,10 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import {StationPermission, type MemberGroup, type UserTag} from '@/api/types'
-import type {BlockCellRequest, BlockRowRequest, ContentRow, MemberCompletion, PartnerResponse} from '@/api/generated/schema'
+import {StationPermission} from '@/api/types'
+import type {
+    BlockCellRequest, BlockRowRequest, ContentRow, MemberCompletion, MemberGroup, PartnerResponse, UserTag,
+} from '@/api/generated/schema'
 import { ShareScope } from '@/api/lending'
 import { userTypesOf } from '@/util/stationUserTypes'
 import { news, memberGroups, userTags, federation, events, stationMembers } from '@/api'

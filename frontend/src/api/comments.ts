@@ -5,7 +5,7 @@
  */
 import client from './client'
 import { createCrudResource, createScopedCrudResource, type NoContent } from './crud'
-import type { MemberIdentity } from './types'
+import type { MemberIdentity } from './generated/schema'
 import { apiErrorStatus } from '@/util/apiError'
 
 export interface Comment {

@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {MemberGroupSet} from '@/api/generated/schema'
-import {StationUserTypeLabels, type MemberGroup, type StationUserTypeName} from '@/api/types'
+import type {MemberGroup, MemberGroupSet} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
 import {apiErrorBody, apiErrorCode, type ApiGroupConflict} from '@/util/apiError'
 
 /** A change to groups refused for the members it would break a rule for, as the screen shows it. */
@@ -24,10 +24,17 @@ export function groupConflictOf(e: unknown): GroupConflict | null {
 /** The refusal of a binding that some members of the group do not fit, which can be answered by taking them out. */
 export const BINDING_EXCLUDES_MEMBERS = 'M-128'
 
+/**
+ * A group as the shared group screens draw it. A station's group carries a colour, a position, its
+ * set and the member types it takes; an association's carries only its name.
+ */
+export type GroupRow = Pick<MemberGroup, 'id' | 'name'>
+    & Partial<Pick<MemberGroup, 'color' | 'position' | 'groupSetId' | 'userTypes'>>
+
 /** A set of groups with the groups that belong to it, in the order the station lists them. */
-export interface SetOfGroups {
+export interface SetOfGroups<G extends GroupRow = MemberGroup> {
     set: MemberGroupSet
-    groups: MemberGroup[]
+    groups: G[]
 }
 
 /**
@@ -36,25 +43,23 @@ export interface SetOfGroups {
  * @param group    the group
  * @param userType the member's type
  */
-export function admits(group: MemberGroup, userType: string): boolean {
+export function admits(group: GroupRow, userType: string): boolean {
     const bound = group.userTypes ?? []
-    return bound.length === 0 || (bound as string[]).includes(userType)
+    return bound.length === 0 || bound.some(type => type === userType)
 }
 
 /** The member types a bound group takes, named as the screens name them and joined for a sentence. */
-export function boundTypeNames(group: MemberGroup): string {
-    return (group.userTypes ?? [])
-        .map(type => StationUserTypeLabels[type as StationUserTypeName] ?? type)
-        .join(', ')
+export function boundTypeNames(group: GroupRow): string {
+    return (group.userTypes ?? []).map(type => StationUserTypeLabels[type]).join(', ')
 }
 
 /** The groups in no set, which a member joins and leaves one by one. */
-export function groupsOutsideSets(groups: MemberGroup[]): MemberGroup[] {
+export function groupsOutsideSets<G extends GroupRow>(groups: G[]): G[] {
     return groups.filter(group => group.groupSetId == null)
 }
 
 /** Every set that holds a group, with its groups, so each can be offered as one choice. */
-export function setsWithGroups(groups: MemberGroup[], sets: MemberGroupSet[]): SetOfGroups[] {
+export function setsWithGroups<G extends GroupRow>(groups: G[], sets: MemberGroupSet[]): SetOfGroups<G>[] {
     return sets
         .map(set => ({set, groups: groups.filter(group => group.groupSetId === set.id)}))
         .filter(entry => entry.groups.length > 0)
@@ -68,7 +73,11 @@ export function setsWithGroups(groups: MemberGroup[], sets: MemberGroupSet[]): S
  * @param entry    the set chosen in
  * @param groupId  the group chosen, or null for none of the set
  */
-export function chooseInSet(selected: ReadonlySet<number>, entry: SetOfGroups, groupId: number | null): Set<number> {
+export function chooseInSet(
+    selected: ReadonlySet<number>,
+    entry: SetOfGroups<GroupRow>,
+    groupId: number | null,
+): Set<number> {
     const next = new Set(selected)
     for (const group of entry.groups) next.delete(group.id)
     if (groupId !== null) next.add(groupId)
@@ -91,12 +100,12 @@ export function toggled(selected: ReadonlySet<number>, groupId: number): Set<num
  * @param setId          the set
  * @param exceptGroupId  a group to leave out, the one they are about to be put into
  */
-export function groupOfSet(
+export function groupOfSet<G extends GroupRow>(
     memberGroupIds: Iterable<number>,
-    groups: MemberGroup[],
+    groups: G[],
     setId: number | null | undefined,
     exceptGroupId?: number,
-): MemberGroup | undefined {
+): G | undefined {
     if (setId == null) return undefined
     const ids = new Set(memberGroupIds)
     return groups.find(group => group.groupSetId === setId && group.id !== exceptGroupId && ids.has(group.id))

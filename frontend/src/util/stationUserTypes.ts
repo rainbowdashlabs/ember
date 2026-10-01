@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {StationUserType, type StationUserTypeName} from '@/api/types'
+import type {StationUserType as StationUserTypeName} from '@/api/generated/schema'
+import {StationUserType} from '@/api/types'
 
 /**
  * The user types among what an audience picker hands back.

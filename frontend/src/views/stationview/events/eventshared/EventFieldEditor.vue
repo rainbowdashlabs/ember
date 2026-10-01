@@ -18,8 +18,14 @@ import EventFieldTypeConfig from './EventFieldTypeConfig.vue'
 import {usableOptions} from '@/util/choiceOptions'
 import {fieldConstraint, isMemberFieldType} from './eventFieldConfig'
 import {EventFieldTypes, type EventFieldTypeName} from '@/api/events'
-import type {AttendanceTemplateField, EventFieldConfig, EventFieldEntry} from '@/api/generated/schema'
-import {StationUserType, type MemberGroup, type UserTag} from '@/api/types'
+import type {
+  AttendanceTemplateField,
+  EventFieldConfig,
+  EventFieldEntry,
+  MemberGroup,
+  UserTag,
+} from '@/api/generated/schema'
+import {StationUserType} from '@/api/types'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
 const modelValue = defineModel<EventFieldEntry>({required: true})

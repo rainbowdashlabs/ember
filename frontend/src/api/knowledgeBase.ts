@@ -7,8 +7,8 @@ import client from './client'
 import {ContentMode} from './news'
 import {createCrudResource, createScopedCrudResource, type NoContent} from './crud'
 import {uploadFile as uploadMultipart} from './upload'
-import type {MemberIdentity} from './types'
 import type {
+    MemberIdentity,
     AudienceRequest,
     BlockRowRequest,
     BlocksResponse,

@@ -8,8 +8,7 @@ import {defineComponent, h} from 'vue'
 import {flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import NewsSearchPicker from './NewsSearchPicker.vue'
-import type {NewsSearchResult} from '@/api/generated/schema'
-import type {BlockAudience} from '@/api/pageManage'
+import type {BlockAudience, NewsSearchResult} from '@/api/generated/schema'
 import {provideBlockAudience} from '@/composables/useBlockAudience'
 
 const searchNews = vi.fn()

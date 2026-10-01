@@ -14,7 +14,7 @@ import MemberInventoryLink from '@/components/inventory/MemberInventoryLink.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import {ItemOwner} from '@/api/inventory'
 import type {InventoryItem} from '@/api/generated/schema'
-import type {MemberIdentity} from '@/api/types'
+import type {PersonIdentity} from '@/util/personIdentity'
 import {formatDate} from '@/util/format'
 import ItemActions from '../itemstable/ItemActions.vue'
 import type {InventoryItemActionEmits} from '../itemEmits'
@@ -33,7 +33,7 @@ const props = withDefaults(defineProps<{
   showActions?: boolean
   lentItemMap?: Map<number, string>
   containerPathById?: Map<number, string>
-  memberIdentity: (memberId: number) => MemberIdentity | null | undefined
+  memberIdentity: (memberId: number) => PersonIdentity | null | undefined
 }>(), {
   subset: undefined,
   showActions: false,

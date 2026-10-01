@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {AllEventRestrictions} from '@/api/events'
-import type {RestrictionAudience} from '@/api/generated/schema'
-import type {MemberGroup, StationUserTypeName, UserTag} from '@/api/types'
+import type {MemberGroup, RestrictionAudience, UserTag} from '@/api/generated/schema'
 import {StationUserTypeLabels} from '@/api/types'
 
 /** The slice of vue-i18n's translate this module needs: plain, interpolated and pluralised. */
@@ -60,7 +59,7 @@ export function registrationAudienceNote(
     const or = t('eventsUpcoming.audienceOr')
     const parts: string[] = []
     const typeLabels = register.userTypes
-        .map(ut => StationUserTypeLabels[ut as StationUserTypeName] ?? ut)
+        .map(ut => StationUserTypeLabels[ut])
     if (typeLabels.length > 0) parts.push(typeLabels.join(or))
     const groupNames = register.groupIds.map(id => groups.find(g => g.id === id)?.name ?? `#${id}`)
     if (groupNames.length > 0) parts.push(groupNames.join(or))

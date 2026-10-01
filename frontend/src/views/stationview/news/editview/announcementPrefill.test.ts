@@ -7,7 +7,7 @@
 import {describe, expect, it} from 'vitest'
 import {buildAnnouncementDraft, type AnnouncedEvent} from './announcementPrefill'
 import type {EventField, StationEvent} from '@/api/generated/schema'
-import type {RestrictionSelection} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
 
 const WORDS = {
     until: 'bis',

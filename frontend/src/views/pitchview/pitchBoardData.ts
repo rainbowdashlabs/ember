@@ -4,8 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Comment} from '@/api/comments'
-import type {MemberCompletion, MemberIdentity} from '@/api/generated/schema'
+import type {MemberCompletion} from '@/api/generated/schema'
 import type {PitchBoard} from './pitchTypes'
+import {pitchIdentity} from './pitchMembers'
 
 /**
  * The board a demonstration shows. It is fed to the application's own board components, so every
@@ -24,13 +25,9 @@ function inDays(days: number): string {
     return date.toISOString().slice(0, 10)
 }
 
-function identity(name: string, uid: string): MemberIdentity {
-    return {stationUid: 'wache', memberUid: uid, name, stationName: null, nameColor: null, displayTag: null}
-}
-
-const ANNA = identity('Anna Müller', 'm-anna')
-const BEN = identity('Ben Krüger', 'm-ben')
-const CLARA = identity('Clara Weiß', 'm-clara')
+const ANNA = pitchIdentity('Anna Müller', 'm-anna')
+const BEN = pitchIdentity('Ben Krüger', 'm-ben')
+const CLARA = pitchIdentity('Clara Weiß', 'm-clara')
 
 const MEMBERS: MemberCompletion[] = [ANNA, BEN, CLARA].map((member, index) => ({
     id: index + 1,

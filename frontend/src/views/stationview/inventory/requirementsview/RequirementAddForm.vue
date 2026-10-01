@@ -9,8 +9,7 @@ import { useI18n } from 'vue-i18n'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import InventorySearchPicker from '@/components/input/search/InventorySearchPicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { Inventory, StationGroupResponse } from '@/api/generated/schema'
-import type { MemberGroup } from '@/api/types'
+import type { Inventory, MemberGroup, StationGroupResponse } from '@/api/generated/schema'
 import RequirementTargetFields from './RequirementTargetFields.vue'
 
 const targetType = defineModel<'userType' | 'group'>('targetType', { default: 'userType' })

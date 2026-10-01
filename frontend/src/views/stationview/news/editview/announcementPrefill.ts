@@ -6,7 +6,7 @@
 import type {EventField, StationEvent} from '@/api/generated/schema'
 import {CellContentType, type CellContentTypeName} from '@/api/pageManage'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
-import type {RestrictionSelection} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
 import {eventFieldText} from '@/views/stationview/events/eventshared/eventFieldText'
 import {occurrenceLabel} from '@/util/occurrenceLabel'
 import {announcementSentences, type Say} from './announcementSentences'

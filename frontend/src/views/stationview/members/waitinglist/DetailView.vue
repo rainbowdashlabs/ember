@@ -18,12 +18,13 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import TransitionConfirmModal from './detailview/TransitionConfirmModal.vue'
 import InviteEntryModal from './detailview/InviteEntryModal.vue'
 import type {
+  MemberGroup,
   WaitingList,
   WaitingListEntryWithScore,
   WaitingListField,
   WaitingListInvite,
 } from '@/api/generated/schema'
-import {StationPermission, type MemberGroup} from '@/api/types'
+import {StationPermission} from '@/api/types'
 import { waitingList, memberGroups } from '@/api'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useSession } from '@/composables/useSession'

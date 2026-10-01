@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { StationMember } from '@/api/types'
+import type { RosterMember } from './useMemberData'
 
 /**
  * Where a member stands between being entered and having an account of their own.
@@ -29,7 +29,10 @@ export type SetupLinkState = (typeof SetupLink)[keyof typeof SetupLink]
  * @param member the row
  * @param now    the moment to judge the expiry against, the present unless a test says otherwise
  */
-export function setupLinkState(member: StationMember, now: Date = new Date()): SetupLinkState {
+export function setupLinkState(
+    member: Pick<RosterMember, 'accountSetupPending' | 'setupMailExpiresAt'>,
+    now: Date = new Date(),
+): SetupLinkState {
     if (!member.accountSetupPending) return SetupLink.DONE
     if (!member.setupMailExpiresAt) return SetupLink.NEVER_SENT
     const expiresAt = new Date(member.setupMailExpiresAt)

@@ -10,7 +10,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {AttendanceStatus} from '@/api/attendance'
 import type {AttendanceEntry, AttendanceSession, AttendanceTemplateField, MemberNotes, MemberWithName} from '@/api/generated/schema'
-import type {MemberIdentity} from '@/api/types'
+import type {PersonIdentity} from '@/util/personIdentity'
 import type {CheckRow} from './useCheckMode'
 import SessionToolbar from './SessionToolbar.vue'
 import SessionHeader from './SessionHeader.vue'
@@ -41,7 +41,7 @@ defineProps<{
   openRows: CheckRow[]
   currentCheckRow: CheckRow | null
   currentMemberName: string
-  currentMemberIdentity: MemberIdentity | null
+  currentMemberIdentity: PersonIdentity | null
   templateFields: AttendanceTemplateField[]
   fieldValues: Map<number, string>
   groupMembers: Map<number, MemberWithName[]>

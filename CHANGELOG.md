@@ -116,6 +116,7 @@
 - **Guardians saw the gear of the members in their care without its state.** Under My inventory, that gear showed neither the step of an exchange nor its picture, and still offered an exchange or a loss report for pieces already on their way. It is now shown exactly as the member sees it.
 - **A profile answer could land on the wrong question.** In some cases, when a station and its association each asked a question under the same number, a member's own profile page showed one answer for both and saved it to the station's question only. Each question now keeps its own answer.
 - **Accounts without an address read "(null)".** An account that signs in with a username and has no email address was shown as its name followed by "(null)" in the administration's account picker and when resetting its second factor. It now shows the name alone.
+- **Help examples left a permission unticked.** In the help center's examples for member, user type and group permissions, the attendance and appointment management rights the example grants showed as not granted. The examples now show them ticked.
 
 ## v26.19.5
 

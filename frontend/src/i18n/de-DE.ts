@@ -2217,7 +2217,6 @@ export default {
         colGroups: 'Gruppen',
         colTags: 'Tags',
         detail: 'Details',
-        incomplete: 'Unvollständig',
         empty: 'Keine Mitglieder gefunden.',
         managers: 'Verwalter',
         savedFilters: 'Gespeicherte Filter',

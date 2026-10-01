@@ -17,8 +17,13 @@ import FieldLayoutPreview from '@/components/profilefields/FieldLayoutPreview.vu
 import {configOf} from '@/components/profilefields/fieldLayout'
 import {moveWithin} from '@/util/reorder'
 import {EventFieldTypes} from '@/api/events'
-import type {AttendanceTemplateField, EventFieldConfig, EventFieldEntry} from '@/api/generated/schema'
-import type {MemberGroup, UserTag} from '@/api/types'
+import type {
+  AttendanceTemplateField,
+  EventFieldConfig,
+  EventFieldEntry,
+  MemberGroup,
+  UserTag,
+} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})

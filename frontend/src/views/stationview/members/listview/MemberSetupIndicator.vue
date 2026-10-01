@@ -10,12 +10,12 @@ import IconButton from '@/components/button/IconButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import {SetupLink, setupLinkState} from './setupLinkState'
 import {formatDate} from '@/util/format'
-import type {StationMember} from '@/api/types'
+import type {RosterMember} from './useMemberData'
 
 const {t} = useI18n()
 
 const props = defineProps<{
-  member: StationMember
+  member: RosterMember
   canEdit?: boolean
 }>()
 

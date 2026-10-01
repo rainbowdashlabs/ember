@@ -16,7 +16,7 @@ import TemplateButtons from './TemplateButtons.vue'
 import BatchAssignBar from './BatchAssignBar.vue'
 import type {FieldTemplate} from './fieldTemplates'
 import type {AssignmentTarget, EditableField, FieldSwitchName} from '@/api/profileFields'
-import type {MemberGroup} from '@/api/types'
+import type {MemberGroup} from '@/api/generated/schema'
 import type {WritabilityName} from '@/composables/useFieldsConfig'
 
 /**

@@ -6,9 +6,17 @@
 import { ref, computed } from 'vue'
 import {parseFieldConfig} from '@/api/profileFields'
 import {calculatedAnswer} from '@/util/profileFields'
-import type { StationMember, MemberGroup, MemberIdentity, UserTag, PermissionGrant } from '@/api/types'
 import { profileFields, stationMembers } from '@/api'
-import type { MemberWithName, ProfileField, ProfileFieldAssignment, RichMember } from '@/api/generated/schema'
+import type {
+  GroupEntry,
+  MemberIdentity,
+  MemberWithName,
+  Permission,
+  ProfileField,
+  ProfileFieldAssignment,
+  RichMember,
+  TagEntry,
+} from '@/api/generated/schema'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useI18n } from 'vue-i18n'
 import { describeFailure } from '@/util/failure'
@@ -69,7 +77,7 @@ export interface MemberDataSource {
     members: RosterMember[]
     fields: ProfileField[]
     assignments: ProfileFieldAssignment[]
-    roles: PermissionGrant[]
+    roles: Permission[]
   }>
   /** Who manages this person, fetched when a row is opened. Absent where nobody does. */
   loadManagers?(memberId: number): Promise<MemberWithName[]>
@@ -90,12 +98,12 @@ export const STATION_MEMBER_SOURCE: MemberDataSource = {
 }
 
 export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) {
-  const members = ref<StationMember[]>([])
+  const members = ref<RosterMember[]>([])
   const fields = ref<ProfileField[]>([])
   const assignments = ref<ProfileFieldAssignment[]>([])
-  const allGroups = ref<MemberGroup[]>([])
-  const allTags = ref<UserTag[]>([])
-  const allRoles = ref<PermissionGrant[]>([])
+  const allGroups = ref<GroupEntry[]>([])
+  const allTags = ref<TagEntry[]>([])
+  const allRoles = ref<Permission[]>([])
   const memberValues = ref<Map<number, Map<number, string>>>(new Map())
   const memberRolesMap = ref<Map<number, string[]>>(new Map())
   const memberGroupsMap = ref<Map<number, string[]>>(new Map())
@@ -145,30 +153,14 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
     assignments.value = allAssignments
     allRoles.value = roles
 
-    const memberList: StationMember[] = []
     const valMap = new Map<number, Map<number, string>>()
     const rolesMap = new Map<number, string[]>()
     const groupsMap = new Map<number, string[]>()
     const tagsMap = new Map<number, string[]>()
-    const groupSet = new Map<number, MemberGroup>()
-    const tagSet = new Map<number, UserTag>()
+    const groupSet = new Map<number, GroupEntry>()
+    const tagSet = new Map<number, TagEntry>()
 
     for (const rm of richMembers) {
-      memberList.push({
-        id: rm.id,
-        stationId: String(rm.stationId),
-        accountId: rm.accountId ?? 0,
-        name: rm.name,
-        firstName: rm.firstName,
-        lastName: rm.lastName,
-        email: rm.email,
-        userType: rm.userType,
-        identity: rm.identity,
-        accountSetupPending: rm.accountSetupPending,
-        setupMailExpiresAt: rm.setupMailExpiresAt,
-        mailReaches: rm.mailReaches,
-      })
-
       rolesMap.set(rm.id, rm.roles)
 
       const fieldMap = new Map<number, string>()
@@ -178,21 +170,17 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
       valMap.set(rm.id, fieldMap)
 
       groupsMap.set(rm.id, rm.groups.map(g => g.name))
-      for (const g of rm.groups) {
-        if (!groupSet.has(g.id)) {
-          groupSet.set(g.id, { id: g.id, stationId: String(rm.stationId), name: g.name })
-        }
+      for (const group of rm.groups) {
+        if (!groupSet.has(group.id)) groupSet.set(group.id, group)
       }
 
       tagsMap.set(rm.id, rm.tags.map(t => t.name))
       for (const tag of rm.tags) {
-        if (!tagSet.has(tag.id)) {
-          tagSet.set(tag.id, { id: tag.id, stationId: String(rm.stationId), name: tag.name })
-        }
+        if (!tagSet.has(tag.id)) tagSet.set(tag.id, tag)
       }
     }
 
-    members.value = memberList
+    members.value = richMembers
     memberValues.value = valMap
     memberRolesMap.value = rolesMap
     memberGroupsMap.value = groupsMap
@@ -207,7 +195,7 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
    * <p>A failure here used to be swallowed, and the open row then read as though nobody managed them,
    * which for a young member is the opposite of the truth. It is said out loud instead.
    */
-  async function toggleExpand(member: StationMember) {
+  async function toggleExpand(member: RosterMember) {
     if (expandedId.value === member.id) { expandedId.value = null; return }
     expandedId.value = member.id
     if (source.loadManagers && !memberManagers.value.has(member.id)) {

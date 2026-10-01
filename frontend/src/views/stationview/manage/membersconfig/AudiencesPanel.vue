@@ -12,9 +12,8 @@ import MutedText from '@/components/typography/MutedText.vue'
 import AudienceRow from './audiences/AudienceRow.vue'
 import AddAudience from './audiences/AddAudience.vue'
 import type {EditableField, AssignmentTarget} from '@/api/profileFields'
-import type {AssignmentRequest} from '@/api/generated/schema'
+import type {AssignmentRequest, MemberGroup} from '@/api/generated/schema'
 import type {Audience} from '@/composables/useFieldsConfig'
-import type {MemberGroup} from '@/api/types'
 
 /**
  * Who the selected question is put to, and how it is put to each of them.

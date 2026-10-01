@@ -6,10 +6,9 @@
 <script lang="ts" setup>
 import {computed, toRef} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {PermissionGrant} from '@/api/types'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import {usePermissionTree, type PermissionScope} from '@/composables/usePermissionTree'
+import {usePermissionTree, type PermissionGrant, type PermissionScope} from '@/composables/usePermissionTree'
 import {GROUP_ICONS} from '@/components/input/permissionpicker/groupIcons'
 
 /**

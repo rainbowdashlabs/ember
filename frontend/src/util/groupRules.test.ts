@@ -5,13 +5,13 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import type {MemberGroup} from '@/api/types'
+import {createGroup} from '@/test/mocks/factories'
 import {admits, chooseInSet, groupOfSet, groupsOutsideSets, setsWithGroups, toggled} from './groupRules'
 
-const beginners: MemberGroup = {id: 1, name: 'Anfänger', groupSetId: 10, userTypes: ['MEMBER']}
-const advanced: MemberGroup = {id: 2, name: 'Fortgeschritten', groupSetId: 10}
-const trainers: MemberGroup = {id: 3, name: 'Ausbilder', groupSetId: null, userTypes: ['TEAM', 'MANAGER']}
-const swimmers: MemberGroup = {id: 4, name: 'Schwimmer'}
+const beginners = createGroup({id: 1, name: 'Anfänger', groupSetId: 10, userTypes: ['MEMBER']})
+const advanced = createGroup({id: 2, name: 'Fortgeschritten', groupSetId: 10})
+const trainers = createGroup({id: 3, name: 'Ausbilder', userTypes: ['TEAM', 'MANAGER']})
+const swimmers = createGroup({id: 4, name: 'Schwimmer'})
 const groups = [beginners, advanced, trainers, swimmers]
 const levels = {id: 10, stationId: 's', name: 'Stufen'}
 const empty = {id: 11, stationId: 's', name: 'Leer'}

@@ -12,9 +12,8 @@ import {
     type AssignmentTarget, type EditableField, type EditableFieldRequest, type FieldSettings,
     type FieldSwitchName, type FieldTypeName, type ProfileFieldScopeName,
 } from '@/api/profileFields'
-import type {AssignmentRequest, ProfileFieldAssignment, StationGroupResponse} from '@/api/generated/schema'
+import type {AssignmentRequest, MemberGroup, ProfileFieldAssignment, StationGroupResponse} from '@/api/generated/schema'
 import {asAsked} from '@/util/profileFields'
-import type {MemberGroup} from '@/api/types'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure} from '@/util/failure'
 

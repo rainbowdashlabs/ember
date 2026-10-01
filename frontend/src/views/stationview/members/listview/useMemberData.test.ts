@@ -14,6 +14,7 @@ import {
   type MemberDataSource,
   type RosterMember,
 } from './useMemberData'
+import {createIdentity} from '@/test/mocks/factories'
 
 function richMember(id: number, name: string, mailReaches: RosterMember['mailReaches']): RosterMember {
   return {
@@ -33,7 +34,7 @@ function richMember(id: number, name: string, mailReaches: RosterMember['mailRea
     groups: [],
     tags: [],
     profileValues: {},
-    identity: {memberUid: `member-${id}`, name},
+    identity: createIdentity({memberUid: `member-${id}`, name}),
   }
 }
 

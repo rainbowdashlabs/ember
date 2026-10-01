@@ -10,7 +10,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {StationUserType, StationUserTypeLabels} from '@/api/types'
-import type {MemberGroup} from '@/api/types'
+import type {MemberGroup} from '@/api/generated/schema'
 import {IntakeAudience, type IntakeAudienceName} from './intakeAudience'
 
 /**

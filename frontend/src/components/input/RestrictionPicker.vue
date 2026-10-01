@@ -11,15 +11,16 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember} from '@/components/input/select/memberOption'
-import {StationUserType, StationUserTypeLabels, type MemberGroup, type UserTag} from '@/api/types'
+import {StationUserType, StationUserTypeLabels, type RestrictionSelection} from '@/api/types'
+import {userTypesOf} from '@/util/stationUserTypes'
+import type {GroupEntry, TagEntry} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
-import type {RestrictionSelection} from '@/components/input/restriction'
 
 const {t} = useI18n()
 
 const props = withDefaults(defineProps<{
-  groups?: MemberGroup[]
-  tags?: UserTag[]
+  groups?: GroupEntry[]
+  tags?: TagEntry[]
   members?: MemberLike[]
   showUserTypes?: boolean
   showGroups?: boolean
@@ -49,11 +50,11 @@ const mode = computed({
 })
 
 const userTypeOptions = computed(() =>
-    Object.values(StationUserType).map(ut => ({value: ut, label: StationUserTypeLabels[ut] ?? ut}))
+    Object.values(StationUserType).map(ut => ({value: ut, label: StationUserTypeLabels[ut]}))
 )
 
 const groupOptions = computed(() =>
-    props.groups.map(g => ({value: String(g.id), label: g.name ?? ''}))
+    props.groups.map(g => ({value: String(g.id), label: g.name}))
 )
 
 const tagOptions = computed(() =>
@@ -69,7 +70,7 @@ const selectedTagValues = computed(() => model.value.tagIds.map(String))
 const selectedMemberValues = computed(() => model.value.memberIds.map(String))
 
 function onUserTypesChange(values: string[]) {
-  patch({userTypes: values})
+  patch({userTypes: userTypesOf(values)})
 }
 
 function onGroupsChange(values: string[]) {

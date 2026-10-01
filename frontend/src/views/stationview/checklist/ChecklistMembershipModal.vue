@@ -14,17 +14,20 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ChecklistMembershipEditor from './checklistmodals/ChecklistMembershipEditor.vue'
-import {toRestriction, type RestrictionSelection} from '@/components/input/restriction'
+import {toRestriction} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
 import type {EventOccurrenceRef} from '@/api/events'
 import type {
   RestrictionResponse as ChecklistRestriction,
   SourceOccurrenceResponse as ChecklistSourceOccurrence,
   UpdateRequest as ChecklistUpdateRequest,
+  MemberGroup,
+  UserTag,
 } from '@/api/generated/schema'
-import type {MemberGroup, UserTag} from '@/api/types'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {formatDate} from '@/util/format'
 import type {Failure} from '@/util/failure'
+import {userTypesOf} from '@/util/stationUserTypes'
 
 /**
  * Changes what an existing list is made of, which nothing could do before.
@@ -57,9 +60,9 @@ const follows = ref<'FILTER' | 'EVENT'>('FILTER')
 const restriction = ref<RestrictionSelection>(editorRestriction(props.initialRestriction))
 const occurrence = ref<EventOccurrenceRef | null>(null)
 
-/** The list's filter as the editor binds it; the wire names the combination mode as plain text. */
+/** The list's filter as the editor binds it; the wire names the user types and the combination mode as plain text. */
 function editorRestriction(filter: ChecklistRestriction): RestrictionSelection {
-  return toRestriction({...filter, mode: filter.mode === 'OR' ? 'OR' : 'AND'})
+  return toRestriction({...filter, userTypes: userTypesOf(filter.userTypes), mode: filter.mode === 'OR' ? 'OR' : 'AND'})
 }
 
 const initialLabel = computed(() => {

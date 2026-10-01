@@ -17,9 +17,17 @@ import BoardAccessSections from './boardsettingsview/BoardAccessSections.vue'
 import type { LaneDraft } from './boardsettingsview/BoardLanesSection.vue'
 import { boards, stationMembers, memberGroups, userTags, federation } from '@/api'
 import { BoardFieldType, fieldDraftOf, type BoardFieldDraft, type BoardFieldTypeName } from '@/api/boards'
-import type { Board, FederationConfigResponse, FederationTargetResponse, PartnerResponse } from '@/api/generated/schema'
+import type {
+  Board,
+  FederationConfigResponse,
+  FederationTargetResponse,
+  MemberGroup,
+  PartnerResponse,
+  Permission,
+  UserTag,
+} from '@/api/generated/schema'
 import { userTypesOf } from '@/util/stationUserTypes'
-import {StationPermission, StationUserType, StationUserTypeLabels, type MemberGroup, type PermissionGrant, type UserTag} from '@/api/types'
+import {StationPermission, StationUserType, StationUserTypeLabels} from '@/api/types'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useFlashMessage } from '@/composables/useFlashMessage'
@@ -46,7 +54,7 @@ const fields = ref<BoardFieldDraft[]>([])
 const newFieldName = ref('')
 const newFieldType = ref<BoardFieldTypeName>(BoardFieldType.STRING)
 
-const allRoles = ref<PermissionGrant[]>([])
+const allRoles = ref<Permission[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 const viewUserTypes = ref<string[]>([])

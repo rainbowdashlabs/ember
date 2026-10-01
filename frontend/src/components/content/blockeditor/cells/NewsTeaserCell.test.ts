@@ -9,7 +9,7 @@ import {flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import NewsTeaserCell from './NewsTeaserCell.vue'
 import type {FoundNews} from '../embeddedNewsLookup'
-import type {BlockAudience} from '@/api/pageManage'
+import type {BlockAudience} from '@/api/generated/schema'
 import {provideBlockAudience} from '@/composables/useBlockAudience'
 
 const findEmbeddedNews = vi.fn()

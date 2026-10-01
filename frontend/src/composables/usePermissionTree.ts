@@ -5,8 +5,7 @@
  */
 import { computed, onMounted, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type {PermissionNode} from '@/api/generated/schema'
-import type { PermissionGrant } from '@/api/types'
+import type {Permission, PermissionNode} from '@/api/generated/schema'
 import { data } from '@/api'
 
 export interface TreeNode {
@@ -22,6 +21,13 @@ export interface FlatItem {
 
 /** Which set of permissions a picker is drawing, and the one that sits above all of them. */
 export type PermissionScope = 'station' | 'cluster'
+
+/**
+ * One numbered grant as the picker draws it: a station's permission row as the server sends it, or
+ * an association's permission name, which its port numbers on the way out because the association's
+ * API speaks names only.
+ */
+export type PermissionGrant = Omit<Permission, 'permission'> & {permission: string}
 
 const ROOTS: Record<PermissionScope, string> = {
   station: 'STATION_ADMINISTRATOR',

@@ -5,8 +5,7 @@
  */
 import {clusters, session} from '@/api'
 import {isFirstStationNeeded} from '@/api/stations'
-import type {ClusterResponse, StationMembership} from '@/api/generated/schema'
-import type {SessionInfo} from '@/api/types'
+import type {ClusterResponse, SessionInfo, StationMembership} from '@/api/generated/schema'
 
 /**
  * Where a fresh session belongs, and what it makes current.

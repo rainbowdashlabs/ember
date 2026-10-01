@@ -12,11 +12,12 @@ import type {
   EventField,
   EventSummary,
   ManagedMember,
+  MemberGroup,
   RegistrationCount,
   RegistrationResponse,
   UpcomingEventOccurrence,
+  UserTag,
 } from '@/api/generated/schema'
-import type { MemberGroup, UserTag } from '@/api/types'
 import { events, managedMembers as managedMembersApi, memberGroups, userTags } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useEventAnswer } from '@/composables/useEventAnswer'

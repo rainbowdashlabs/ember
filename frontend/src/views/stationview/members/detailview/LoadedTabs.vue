@@ -17,8 +17,14 @@ import InventoryTab from './InventoryTab.vue'
 import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
 import type { ChangeEntry } from '@/api/profileFieldChanges'
 import type { ProfileQuestion } from '@/api/profileFields'
-import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
-import type { MemberRequirements, MemberWithName, MyInventoryItem } from '@/api/generated/schema'
+import type {
+  MemberGroup,
+  MemberRequirements,
+  MemberWithName,
+  MyInventoryItem,
+  Permission,
+  UserTag,
+} from '@/api/generated/schema'
 
 defineProps<{
   member: MemberWithName
@@ -30,7 +36,7 @@ defineProps<{
   showChangeHistory: boolean
   getFieldValue: (fieldId: number) => unknown
   memberUserType: string
-  memberPermissions: PermissionGrant[]
+  memberPermissions: Permission[]
   memberGroupList: MemberGroup[]
   memberTagList: UserTag[]
   showGuardians: boolean

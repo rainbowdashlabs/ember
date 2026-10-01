@@ -7,11 +7,11 @@
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
-import type {StationMember} from '@/api/types'
 import ExportModal from './ExportModal.vue'
 import MemberFilterBar from './FilterBar.vue'
 import MemberTable from './MemberTable.vue'
 import type {MemberListConfig} from './useMemberListConfig'
+import type {RosterMember} from './useMemberData'
 
 /**
  * The member list, drawn from a configuration: the tabs, the filters above the table, the table
@@ -22,7 +22,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  resendSetup: [member: StationMember]
+  resendSetup: [member: RosterMember]
 }>()
 
 const c = props.config

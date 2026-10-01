@@ -12,12 +12,12 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
-import type {MemberGroup, PermissionGrant} from '@/api/types'
+import type {MemberGroup, Permission} from '@/api/generated/schema'
 
 defineProps<{
   group: MemberGroup
   color: string
-  allRoles: PermissionGrant[]
+  allRoles: Permission[]
   permissions: Set<number>
   permissionsLoading: boolean
 }>()

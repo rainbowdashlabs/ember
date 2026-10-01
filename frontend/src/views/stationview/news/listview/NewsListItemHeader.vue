@@ -17,8 +17,7 @@ import {emberLogo} from '@/composables/useEmberLogo'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NewsViewBadge from '../newsshared/NewsViewBadge.vue'
-import type {NewsResponse} from '@/api/generated/schema'
-import type {MemberIdentity} from '@/api/types'
+import type {MemberIdentity, NewsResponse} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{

@@ -5,11 +5,11 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
-import type {MemberIdentity} from '@/api/types'
+import type {PersonIdentity} from '@/util/personIdentity'
 import {useAuthImage} from '@/composables/useAuthImage'
 
 const props = withDefaults(defineProps<{
-  identity?: MemberIdentity | null
+  identity?: PersonIdentity | null
   size?: 'sm' | 'md' | 'lg'
   name?: string
 }>(), {

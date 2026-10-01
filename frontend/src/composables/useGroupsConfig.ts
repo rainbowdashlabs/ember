@@ -8,9 +8,10 @@ import {useI18n} from 'vue-i18n'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
-import type {PermissionScope} from '@/composables/usePermissionTree'
+import type {PermissionGrant, PermissionScope} from '@/composables/usePermissionTree'
 import {describeFailure} from '@/util/failure'
-import type {MemberGroup, MemberIdentity, PermissionGrant} from '@/api/types'
+import type {GroupRow} from '@/util/groupRules'
+import type {PersonIdentity} from '@/util/personIdentity'
 
 /**
  * A person who can be put into a group or given a tag, which is all those panels ever read of one.
@@ -24,7 +25,7 @@ export interface AssignableMember {
     id: number
     name?: string | null
     email?: string | null
-    identity?: MemberIdentity | null
+    identity?: PersonIdentity | null
     /** What kind of member they are, where the list knows. Absent for a list of stations. */
     userType?: string | null
 }
@@ -55,7 +56,7 @@ export interface GroupDetailShape {
  * nothing to answer with.
  */
 export interface GroupsPort {
-    listGroups(): Promise<MemberGroup[]>
+    listGroups(): Promise<GroupRow[]>
     listCandidates(): Promise<AssignableMember[]>
     listAllRoles?: () => Promise<PermissionGrant[]>
     getDetail(groupId: number): Promise<GroupDetailShape>
@@ -113,17 +114,17 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
 
     provide(GROUPS_CAPABILITIES, capabilities)
 
-    const groups = ref<MemberGroup[]>([])
+    const groups = ref<GroupRow[]>([])
     const allMembers = ref<AssignableMember[]>([])
     const allRoles = ref<PermissionGrant[]>([])
 
-    const selectedGroup = ref<MemberGroup | null>(null)
+    const selectedGroup = ref<GroupRow | null>(null)
     const groupMembers = ref<AssignableMember[]>([])
     const groupRoles = ref<PermissionGrant[]>([])
     const groupLoading = ref(false)
 
     const showGroupModal = ref(false)
-    const editingGroup = ref<MemberGroup | null>(null)
+    const editingGroup = ref<GroupRow | null>(null)
     const groupName = ref('')
     const groupColor = ref('')
     const groupPosition = ref(0)
@@ -144,7 +145,7 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
         set: (newIds: Set<number>) => { void syncGroupRoles(newIds) },
     })
 
-    async function selectGroup(group: MemberGroup) {
+    async function selectGroup(group: GroupRow) {
         selectedGroup.value = group
         groupLoading.value = true
         try {
@@ -181,7 +182,7 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
         target: deleteTarget,
         requestDelete,
         confirm: confirmDelete,
-    } = useConfirmDelete<MemberGroup>({
+    } = useConfirmDelete<GroupRow>({
         onDelete: async g => { await port.deleteGroup(g.id) },
         onSuccess: deleted => refreshAfter(deleted.id),
         error,
@@ -196,7 +197,7 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
         showGroupModal.value = true
     }
 
-    function openEditGroup(group: MemberGroup) {
+    function openEditGroup(group: GroupRow) {
         editingGroup.value = group
         groupName.value = group.name ?? ''
         groupColor.value = group.color ?? ''
@@ -256,7 +257,7 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
     }
 
     return {
-        groups: groups as Ref<MemberGroup[]>,
+        groups: groups as Ref<GroupRow[]>,
         allMembers,
         allRoles,
         selectedGroup,

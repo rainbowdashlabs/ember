@@ -9,12 +9,16 @@ import {mount} from '@vue/test-utils'
 import {createI18n} from 'vue-i18n'
 import MemberGroupChips from './MemberGroupChips.vue'
 import deDE from '@/i18n/de-DE'
-import type {MemberGroup} from '@/api/types'
+import type {MemberGroup} from '@/api/generated/schema'
 
-const beginners: MemberGroup = {id: 1, name: 'Anfänger', groupSetId: 10}
-const advanced: MemberGroup = {id: 2, name: 'Fortgeschritten', groupSetId: 10}
-const trainers: MemberGroup = {id: 3, name: 'Ausbilder', userTypes: ['TEAM', 'MANAGER']}
-const swimmers: MemberGroup = {id: 4, name: 'Schwimmer'}
+function group(id: number, name: string, rules: Partial<Pick<MemberGroup, 'groupSetId' | 'userTypes'>> = {}): MemberGroup {
+  return {id, name, stationId: 's', color: null, position: id, groupSetId: null, userTypes: [], ...rules}
+}
+
+const beginners = group(1, 'Anfänger', {groupSetId: 10})
+const advanced = group(2, 'Fortgeschritten', {groupSetId: 10})
+const trainers = group(3, 'Ausbilder', {userTypes: ['TEAM', 'MANAGER']})
+const swimmers = group(4, 'Schwimmer')
 
 function chips(selected: number[], userType = 'MEMBER') {
   return mount(MemberGroupChips, {

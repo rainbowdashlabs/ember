@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AttendanceEntry, MemberWithName, SessionAudience} from '@/api/generated/schema'
-import {StationUserType, StationUserTypeLabels, type MemberGroup} from '@/api/types'
+import type {AttendanceEntry, MemberGroup, MemberWithName, SessionAudience} from '@/api/generated/schema'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
 
 /** One block of names on a sheet, headed by a group or a user type, or by nothing for the rest. */
 export interface MemberSection {

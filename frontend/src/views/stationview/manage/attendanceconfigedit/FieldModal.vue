@@ -21,9 +21,9 @@ import type {
   AttendanceFieldConfig,
   AttendanceFieldType,
   AttendanceTemplateField,
+  MemberGroup,
   TemplateFieldRequest,
 } from '@/api/generated/schema'
-import type {MemberGroup} from '@/api/types'
 
 const props = defineProps<{
   field: AttendanceTemplateField | null

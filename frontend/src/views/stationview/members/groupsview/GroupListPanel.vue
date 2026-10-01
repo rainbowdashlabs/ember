@@ -15,15 +15,14 @@ import ColorDot from '@/components/display/ColorDot.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {MemberGroup} from '@/api/types'
 import type {MemberGroupSet} from '@/api/generated/schema'
-import {boundTypeNames} from '@/util/groupRules'
+import {boundTypeNames, type GroupRow} from '@/util/groupRules'
 
 const {t} = useI18n()
 
 const props = defineProps<{
-  groups: MemberGroup[]
-  selectedGroup: MemberGroup | null
+  groups: GroupRow[]
+  selectedGroup: GroupRow | null
   canConvertToTag: boolean
   /** The sets the groups can belong to, where the owner keeps any; a group in one shows its name. */
   sets?: MemberGroupSet[]
@@ -31,17 +30,17 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   create: []
-  select: [group: MemberGroup]
-  edit: [group: MemberGroup]
-  delete: [group: MemberGroup]
-  convert: [group: MemberGroup]
+  select: [group: GroupRow]
+  edit: [group: GroupRow]
+  delete: [group: GroupRow]
+  convert: [group: GroupRow]
 }>()
 
-function setName(group: MemberGroup): string | undefined {
+function setName(group: GroupRow): string | undefined {
   return props.sets?.find(set => set.id === group.groupSetId)?.name
 }
 
-function boundTo(group: MemberGroup): string {
+function boundTo(group: GroupRow): string {
   return t('memberEdit.groupBoundTo', {types: boundTypeNames(group)})
 }
 </script>

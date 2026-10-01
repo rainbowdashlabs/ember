@@ -15,8 +15,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import NewMemberFields from './NewMemberFields.vue'
 import {clusterMembers} from '@/api'
-import type {ManagedStationResponse} from '@/api/generated/schema'
-import {StationUserType, type StationUserTypeName} from '@/api/types'
+import type {ManagedStationResponse, StationUserType as StationUserTypeName} from '@/api/generated/schema'
+import {StationUserType} from '@/api/types'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**

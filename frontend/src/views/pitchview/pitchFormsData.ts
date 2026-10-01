@@ -3,10 +3,12 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {Form, FormQuestion, FormQuestionConfig, FormQuestionInfo, FormResultGroup} from '@/api/generated/schema'
-import type {MemberIdentity} from '@/api/types'
+import type {
+    Form, FormQuestion, FormQuestionConfig, FormQuestionInfo, FormResultGroup, MemberIdentity,
+} from '@/api/generated/schema'
 import type {PitchForm, PitchFormAnalytics} from './pitchTypes'
 import {numberedOptions} from '@/util/formOptions'
+import {pitchIdentity} from './pitchMembers'
 
 /**
  * The survey a demonstration works through. Questions, answers and charts are handed to the
@@ -95,9 +97,9 @@ const EVERYONE: FormResultGroup = {
 }
 
 const MISSING: MemberIdentity[] = [
-    {stationUid: 'wache', memberUid: 'm-jonas', name: 'Jonas Behr'},
-    {stationUid: 'wache', memberUid: 'm-mira', name: 'Mira Sand'},
-    {stationUid: 'wache', memberUid: 'm-timo', name: 'Timo Reich'},
+    pitchIdentity('Jonas Behr', 'm-jonas'),
+    pitchIdentity('Mira Sand', 'm-mira'),
+    pitchIdentity('Timo Reich', 'm-timo'),
 ]
 
 export const FORM_ANALYTICS_DATA: PitchFormAnalytics = {questions: QUESTIONS, groups: [EVERYONE], missing: MISSING}

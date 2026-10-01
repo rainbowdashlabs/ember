@@ -4,9 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref} from 'vue'
-import type {GroupRulesRequest} from '@/api/generated/schema'
-import type {MemberGroup, StationUserTypeName} from '@/api/types'
-import {groupConflictOf, type GroupConflict} from '@/util/groupRules'
+import type {GroupRulesRequest, StationUserType} from '@/api/generated/schema'
+import {groupConflictOf, type GroupConflict, type GroupRow} from '@/util/groupRules'
 
 /**
  * The rules of the group open in the form: which set it belongs to and which member types it takes,
@@ -18,11 +17,11 @@ import {groupConflictOf, type GroupConflict} from '@/util/groupRules'
  */
 export function useGroupRulesForm() {
     const groupSetId = ref<number | null>(null)
-    const userTypes = ref<StationUserTypeName[]>([])
+    const userTypes = ref<StationUserType[]>([])
     const removeNonMatching = ref(false)
     const conflict = ref<GroupConflict | null>(null)
 
-    function load(group: MemberGroup | null) {
+    function load(group: GroupRow | null) {
         groupSetId.value = group?.groupSetId ?? null
         userTypes.value = [...(group?.userTypes ?? [])]
         removeNonMatching.value = false

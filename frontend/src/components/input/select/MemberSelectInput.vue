@@ -17,7 +17,7 @@ import MemberMenuRow from './membermenu/MemberMenuRow.vue'
 import MemberMenuSearch from './membermenu/MemberMenuSearch.vue'
 import {useFinePointer} from '@/composables/useFinePointer'
 import {useMemberOptions} from './membermenu/useMemberOptions'
-import type {MemberIdentity} from '@/api/types'
+import type {PersonIdentity} from '@/util/personIdentity'
 import {identityOf, type MemberOption} from './memberOption'
 
 /**
@@ -113,7 +113,7 @@ const triggerLabel = computed(() => {
   return optionFor(model.value)?.name ?? props.placeholder ?? t('memberSelect.choose')
 })
 
-const triggerIdentity = computed<MemberIdentity | null>(() => {
+const triggerIdentity = computed<PersonIdentity | null>(() => {
   if (props.multiple || !model.value) return null
   const option = optionFor(model.value)
   return option ? identityOf(option) : null

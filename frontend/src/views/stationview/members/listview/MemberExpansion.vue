@@ -8,12 +8,12 @@ import {useI18n} from 'vue-i18n'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import type {MemberWithName, ProfileField} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
+import type {RosterMember} from './useMemberData'
 
 const {t} = useI18n()
 
 defineProps<{
-  member: StationMember
+  member: RosterMember
   colSpan: number
   overviewFields: ProfileField[]
   managers: MemberWithName[]

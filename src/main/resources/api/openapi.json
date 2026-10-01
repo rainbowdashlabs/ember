@@ -40140,13 +40140,13 @@
             "format" : "int32"
           },
           "uid" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "email" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "username" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "firstName" : {
             "type" : "string"
@@ -44070,14 +44070,10 @@
             "type" : "string"
           },
           "fieldType" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/ProfileFieldType"
           },
           "config" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/ProfileFieldConfig"
-            }, {
-              "type" : "null"
-            } ]
+            "$ref" : "#/components/schemas/ProfileFieldConfig"
           },
           "required" : {
             "type" : "boolean"
@@ -55200,7 +55196,7 @@
             "format" : "int32"
           },
           "stationId" : {
-            "type" : "string",
+            "type" : [ "string", "null" ],
             "format" : "uuid"
           },
           "uid" : {
@@ -55814,7 +55810,7 @@
             "format" : "int32"
           },
           "stationId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "accountId" : {
             "type" : "integer",
@@ -55828,7 +55824,7 @@
             "type" : "string"
           },
           "nickname" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "stationId", "accountId", "uid", "calledName", "nickname" ]
@@ -64547,10 +64543,14 @@
             "$ref" : "#/components/schemas/AccountInfo"
           },
           "stationId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "member" : {
-            "$ref" : "#/components/schemas/MemberInfo"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberInfo"
+            }, {
+              "type" : "null"
+            } ]
           },
           "permissions" : {
             "type" : "array",
@@ -64559,7 +64559,11 @@
             }
           },
           "userType" : {
-            "$ref" : "#/components/schemas/StationUserType"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StationUserType"
+            }, {
+              "type" : "null"
+            } ]
           },
           "instanceUserType" : {
             "$ref" : "#/components/schemas/InstanceUserType"
@@ -64616,16 +64620,28 @@
             "$ref" : "#/components/schemas/ThemeInfo"
           },
           "publicKbMode" : {
-            "$ref" : "#/components/schemas/PublicKbMode"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/PublicKbMode"
+            }, {
+              "type" : "null"
+            } ]
           },
           "setupCompletedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "clusterId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "clusterUserType" : {
-            "$ref" : "#/components/schemas/ClusterUserType"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ClusterUserType"
+            }, {
+              "type" : "null"
+            } ]
           },
           "clusterPermissions" : {
             "type" : "array",
@@ -67913,16 +67929,16 @@
             "type" : "boolean"
           },
           "customThemeColors" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "userTheme" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "userDarkMode" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "userFeel" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "instanceDefaultTheme", "instanceDefaultFeel", "instanceLockFeel", "defaultTheme", "defaultFeel", "allowUserTheme", "allowUserFeel", "customThemeColors", "userTheme", "userDarkMode", "userFeel" ]

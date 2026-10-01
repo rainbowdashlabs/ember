@@ -14,9 +14,9 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import { federatedBoards, memberGroups, userTags } from '@/api'
-import type { MemberGroup, UserTag } from '@/api/types'
-import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
-import { userTypesOf } from '@/util/stationUserTypes'
+import type { MemberGroup, UserTag } from '@/api/generated/schema'
+import { emptyRestriction } from '@/components/input/restriction'
+import type { RestrictionSelection } from '@/api/types'
 
 const { t } = useI18n()
 
@@ -67,10 +67,10 @@ async function save() {
     failure.value = null
     try {
         await federatedBoards.setAccessOverride(props.partnerUid, props.boardKey, {
-            viewUserTypes: userTypesOf(viewRestriction.value.userTypes),
+            viewUserTypes: viewRestriction.value.userTypes,
             viewGroupIds: viewRestriction.value.groupIds,
             viewTagIds: viewRestriction.value.tagIds,
-            editUserTypes: userTypesOf(editRestriction.value.userTypes),
+            editUserTypes: editRestriction.value.userTypes,
             editGroupIds: editRestriction.value.groupIds,
             editTagIds: editRestriction.value.tagIds,
         })

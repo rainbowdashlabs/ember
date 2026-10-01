@@ -3,22 +3,26 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import type {
+    StationModule,
+    StationPermission as StationPermissionUnion,
+    StationUserType as StationUserTypeUnion,
+} from './generated/schema'
+
 export const StationUserType = {
     TRIAL: 'TRIAL',
     MEMBER: 'MEMBER',
     GUARDIAN: 'GUARDIAN',
     TEAM: 'TEAM',
     MANAGER: 'MANAGER',
-} as const
-
-export type StationUserTypeName = (typeof StationUserType)[keyof typeof StationUserType]
+} as const satisfies Record<StationUserTypeUnion, StationUserTypeUnion>
 
 /**
  * Human-readable German labels for each station user type. Single source of truth
  * for any picker, badge, filter, or summary that needs to render a user type name
  * without going through i18n.
  */
-export const StationUserTypeLabels: Record<StationUserTypeName, string> = {
+export const StationUserTypeLabels: Record<StationUserTypeUnion, string> = {
     TRIAL: 'Probe',
     MEMBER: 'Mitglied',
     GUARDIAN: 'Erziehungsberechtigter',
@@ -119,118 +123,7 @@ export const StationPermission = {
     STATION_STATISTICS: 'STATION_STATISTICS',
     STATION_MANAGER: 'STATION_MANAGER',
     STATION_ADMINISTRATOR: 'STATION_ADMINISTRATOR',
-} as const
-
-export type StationPermissionName = (typeof StationPermission)[keyof typeof StationPermission]
-
-export interface ErrorResponseWrapper {
-    error?: string
-    message?: string
-}
-
-export interface MessageResponse {
-    message?: string
-}
-
-/** Slice metadata every offset-paginated response carries alongside its rows. */
-export interface PageMeta {
-    total: number
-    offset: number
-    limit: number
-}
-
-/** Standard pagination envelope: one slice of rows plus the metadata describing it. */
-export interface Page<T> extends PageMeta {
-    items: T[]
-}
-
-export interface AccountInfo {
-    id: number
-    uid?: string
-    email?: string
-    /** The name this account signs in with, absent when its address is the only way in. */
-    username?: string
-    firstName?: string
-    lastName?: string
-}
-
-export interface MemberInfo {
-    id: number
-    stationId: string
-    accountId: number
-    uid: string
-    /** What this station calls the member, which is what a screen shows. */
-    calledName?: string | null
-    /** The name they set for themselves, so the field they edit can be filled. */
-    nickname?: string | null
-}
-
-export interface ManagedMemberSummary {
-    id: number
-    stationId: string
-    uid?: string | null
-    accountId: number
-    name?: string
-    email?: string
-}
-
-export interface SessionInfo {
-    account?: AccountInfo
-    stationId?: string
-    member?: MemberInfo
-    permissions?: string[]
-    userType?: string
-    instanceUserType?: string
-    managedMembers?: ManagedMemberSummary[]
-    groups?: MemberGroup[]
-    tags?: UserTag[]
-    groupIds?: number[]
-    tagIds?: number[]
-    profileComplete?: boolean
-    disabledModules?: string[]
-    theme?: ThemeSessionInfo
-    /** The clock the station keeps its days by, as an IANA name, or UTC where it keeps none. */
-    stationTimezone?: string | null
-    publicKbMode?: string
-    /** ISO timestamp at which the station setup wizard was finished, or null while it still applies. */
-    setupCompletedAt?: string | null
-    /**
-     * Whether this station's exported PDFs leave the address of the installation off the foot of the
-     * page. Every screen that exports something reads it here, since exporting is not managing.
-     */
-    pdfHidesInstanceUrl?: boolean
-    /** The cluster this request is acting for, when the header named one. */
-    clusterId?: string | null
-    clusterUserType?: string | null
-    /** What the caller may do at that cluster, which is a separate set from the station's. */
-    clusterPermissions?: string[]
-    /**
-     * What the caller may do at the station their association owns, where its knowledge base, news and
-     * calendar are kept. Those screens are the station's own, so they ask the station's own question.
-     */
-    ownStationPermissions?: string[]
-    /**
-     * Whether this instance has anywhere to send system mail through at all. Invitations, setup links
-     * and password resets all leave through the instance rather than through a station's own provider,
-     * so a screen offering to send one can ask this. It says nothing about whether a particular person
-     * can be reached, which is a question about addresses and is answered per member.
-     */
-    canSendMail?: boolean
-}
-
-export interface ThemeSessionInfo {
-    instanceDefaultTheme?: string
-    instanceDefaultFeel?: string
-    instanceLockFeel?: boolean
-    defaultTheme?: string
-    defaultFeel?: string
-    allowUserTheme?: boolean
-    allowUserFeel?: boolean
-    customThemeColors?: string | null
-    userTheme?: string
-    userDarkMode?: string
-    userFeel?: string
-}
+} as const satisfies Record<StationPermissionUnion, StationPermissionUnion>
 
 export const StationModules = {
     INVENTORY: 'INVENTORY',
@@ -246,92 +139,16 @@ export const StationModules = {
     BOARDS: 'BOARDS',
     PROCEDURES: 'PROCEDURES',
     DOCUMENTS: 'DOCUMENTS',
-} as const
-
-export type StationModuleName = (typeof StationModules)[keyof typeof StationModules]
+} as const satisfies Record<StationModule, StationModule>
 
 /**
  * Audience selection shared by every restriction-capable feature. The restriction
  * editor speaks this shape; each feature maps it onto its own request payload.
  */
 export interface RestrictionSelection {
-    userTypes: string[]
+    userTypes: StationUserTypeUnion[]
     groupIds: number[]
     tagIds: number[]
     memberIds: number[]
     mode: 'AND' | 'OR'
-}
-
-export interface StationMember {
-    id: number
-    stationId: string
-    accountId: number
-    name?: string
-    /**
-     * The two halves of the name as they are stored. A screen that lets somebody correct a name
-     * needs these: splitting the whole at the first space guesses, and guesses wrongly for anybody
-     * with two given names or two surnames.
-     */
-    firstName?: string
-    lastName?: string
-    /** The name this station calls them by, absent where they have none. */
-    nickname?: string | null
-    email?: string
-    /** The name this member signs in with, absent when their address is the only way in. */
-    username?: string | null
-    userType?: string
-    profileComplete?: boolean
-    formerAt?: string | null
-    identity?: MemberIdentity | null
-    accountSetupPending?: boolean
-    setupMailExpiresAt?: string | null
-    /**
-     * Who a letter about this member arrives at: their own address, a guardian's where they have
-     * none of their own, or nobody. Absent on the lists that do not ask.
-     */
-    mailReaches?: 'SELF' | 'GUARDIANS' | 'NOBODY'
-    /** ISO yyyy-MM-dd date when the member joined the station. */
-    joinDate?: string | null
-}
-
-export interface PermissionGrant {
-    id: number
-    permission: string
-}
-
-export interface MemberGroup {
-    id: number
-    /** Absent on a group an association keeps, which gathers people at no single station. */
-    stationId?: string
-    name?: string
-    color?: string | null
-    position?: number
-    /** The set of groups this one belongs to, of which a member can be in only one. Absent or null for none. */
-    groupSetId?: number | null
-    /** The member types the group takes. Empty or absent where it takes every type. */
-    userTypes?: StationUserTypeName[]
-}
-
-export interface UserTag {
-    id: number
-    stationId: string
-    name: string
-    color?: string | null
-    visible?: boolean
-    position?: number
-}
-
-export interface MemberIdentity {
-    stationUid?: string
-    memberUid?: string
-    accountUid?: string
-    name?: string | null
-    stationName?: string | null
-    nameColor?: string | null
-    displayTag?: { name: string; color: string } | null
-    /**
-     * The picture itself, where the server sent it inline rather than leaving it to be fetched. The
-     * member search does this, so a menu of twenty faces costs one request instead of twenty-one.
-     */
-    avatarUrl?: string | null
 }

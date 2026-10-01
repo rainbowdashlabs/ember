@@ -12,8 +12,9 @@ import MutedText from '@/components/typography/MutedText.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import GroupMembersTab from './GroupMembersTab.vue'
-import type {MemberGroup, PermissionGrant} from '@/api/types'
 import type {AssignableMember} from '@/composables/useGroupsConfig'
+import type {PermissionGrant} from '@/composables/usePermissionTree'
+import type {GroupRow} from '@/util/groupRules'
 import type {MemberOption} from '@/components/input/select/memberOption'
 import {useGroupsCapabilities} from '@/composables/useGroupsConfig'
 import {useModelProxy} from '@/composables/useModelProxy'
@@ -21,7 +22,7 @@ import {useModelProxy} from '@/composables/useModelProxy'
 const {t} = useI18n()
 
 const props = defineProps<{
-  selectedGroup: MemberGroup
+  selectedGroup: GroupRow
   groupLoading: boolean
   sortedGroupMembers: AssignableMember[]
   availableMembers: MemberOption[]

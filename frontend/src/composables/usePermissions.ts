@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {StationPermission, type StationPermissionName} from '@/api/types'
+import {StationPermission} from '@/api/types'
+import type {StationModule, StationPermission as StationPermissionName} from '@/api/generated/schema'
 import {sessionInfo} from '@/util/sessionState'
 import {getActingStation} from '@/util/actingStationState'
 
@@ -105,8 +106,8 @@ function canEditMemberAccounts(): boolean {
     return hasPermission(StationPermission.MEMBER_EDIT) || isAdmin()
 }
 
-function isModuleEnabled(module: string): boolean {
-    return !(sessionInfo.value?.disabledModules?.includes(module) ?? false)
+function isModuleEnabled(module: StationModule): boolean {
+    return !(sessionInfo.value?.disabledModules.includes(module) ?? false)
 }
 
 /**

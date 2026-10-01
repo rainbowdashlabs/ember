@@ -14,8 +14,9 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import AttendanceFieldModal from './attendanceconfigedit/FieldModal.vue'
 import EditContent from './attendanceconfigedit/EditContent.vue'
-import type {AttendanceTemplateField, TemplateFieldRequest, TemplateGroupEntry} from '@/api/generated/schema'
-import type {MemberGroup, StationUserTypeName} from '@/api/types'
+import type {
+    AttendanceTemplateField, MemberGroup, StationUserType, TemplateFieldRequest, TemplateGroupEntry,
+} from '@/api/generated/schema'
 import {attendance, memberGroups} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -36,7 +37,7 @@ const isEdit = computed(() => templateId.value !== null)
 const name = ref('')
 const fields = ref<AttendanceTemplateField[]>([])
 const templateGroups = ref<TemplateGroupEntry[]>([])
-const templateUserTypes = ref<StationUserTypeName[]>([])
+const templateUserTypes = ref<StationUserType[]>([])
 const availableGroups = ref<MemberGroup[]>([])
 
 const showFieldModal = ref(false)
@@ -108,7 +109,7 @@ async function saveGroups() {
   }
 }
 
-async function saveUserTypes(userTypes: StationUserTypeName[]) {
+async function saveUserTypes(userTypes: StationUserType[]) {
   if (!templateId.value) return
   templateUserTypes.value = userTypes
   try {

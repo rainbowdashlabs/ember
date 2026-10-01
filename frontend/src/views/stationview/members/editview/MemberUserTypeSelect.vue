@@ -14,7 +14,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import {stationMembers} from '@/api'
-import {StationUserType, StationUserTypeLabels, type MemberGroup, type StationUserTypeName} from '@/api/types'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import type {MemberGroup, StationUserType as StationUserTypeName} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**

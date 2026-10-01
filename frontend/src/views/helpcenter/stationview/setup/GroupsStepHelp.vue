@@ -12,16 +12,17 @@ import InfoContainer from '@/components/container/InfoContainer.vue'
 import GroupList from '@/views/stationview/setup/steps/groupsstep/GroupList.vue'
 import GroupEditor from '@/views/stationview/setup/steps/groupsstep/GroupEditor.vue'
 import WizardFrame from './setuphelp/WizardFrame.vue'
+import type {MemberGroup, Permission} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
-const GROUPS = [
-  {id: 1, stationId: 'demo', name: 'Jugendgruppe', color: '#FF6421', position: 0},
-  {id: 2, stationId: 'demo', name: 'Atemschutz', color: '#3694FF', position: 1},
-  {id: 3, stationId: 'demo', name: 'Gerätewart', color: null, position: 2},
+const GROUPS: MemberGroup[] = [
+  {id: 1, stationId: 'demo', name: 'Jugendgruppe', color: '#FF6421', position: 0, groupSetId: null, userTypes: []},
+  {id: 2, stationId: 'demo', name: 'Atemschutz', color: '#3694FF', position: 1, groupSetId: null, userTypes: []},
+  {id: 3, stationId: 'demo', name: 'Gerätewart', color: null, position: 2, groupSetId: null, userTypes: []},
 ]
 
-const dummyRoles = [
+const dummyRoles: Permission[] = [
   {id: 1, permission: 'EVENT_EDIT'},
   {id: 2, permission: 'MEMBER_EDIT'},
 ]

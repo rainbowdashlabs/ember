@@ -5,7 +5,8 @@
  */
 <script setup lang="ts">
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import {StationUserType, StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import type {StationUserType as StationUserTypeName} from '@/api/generated/schema'
 
 /**
  * One checkbox per user type, for choosing whom of a kind something is meant for. The chosen types

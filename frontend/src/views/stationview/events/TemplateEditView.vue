@@ -14,17 +14,19 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import TemplateEditBody from './templateeditview/TemplateEditBody.vue'
-import {emptyRestriction, toRestriction, type RestrictionSelection} from '@/components/input/restriction'
+import {emptyRestriction, toRestriction} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
 import type {
     AttendanceTemplate,
     AttendanceTemplateField,
     EventCategory,
     EventFieldEntry,
+    MemberGroup,
     TemplateDetailResponse,
+    UserTag,
 } from '@/api/generated/schema'
-import type {MemberGroup, UserTag} from '@/api/types'
 import {attendance, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
-import {audienceOf, EventFieldTypes} from '@/api/events'
+import {EventFieldTypes} from '@/api/events'
 import {eventTypeNamed} from './eventeditview/eventFormState'
 import {useSession} from '@/composables/useSession'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -153,8 +155,8 @@ async function save() {
     })
     await events.setTemplateReminders(templateId.value, reminderDays.value)
     await events.setTemplateRestrictions(templateId.value, {
-      register: audienceOf(restriction.value),
-      view: audienceOf(viewRestriction.value),
+      register: restriction.value,
+      view: viewRestriction.value,
     })
     await events.setTemplateFields(templateId.value, {
       fields: fields.value.map((f, i) => ({

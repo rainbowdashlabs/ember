@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref} from 'vue'
-import type {SessionInfo} from '@/api/types'
+import type {SessionInfo} from '@/api/generated/schema'
 
 /**
  * Shared reactive state of the signed-in session. {@code useSession} is the only writer;

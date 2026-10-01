@@ -4,26 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {AssignmentTarget, EditableField as ProfileField, EditableFieldRequest as ProfileFieldRequest} from './profileFields'
+import type {AssignmentTarget, EditableFieldRequest} from './profileFields'
 import type {
     AssignmentRequest,
+    ClusterFieldResponse,
     ClusterProfileFieldAssignment,
     FieldValuesRequest,
     ProfileFieldAssignment,
 } from './generated/schema'
-
-/**
- * A question an association asks, which is a station's question kept in another table.
- *
- * <p>The same shape as a station's on purpose. The settings ride in the same {@code config}, so a
- * width set here lays the field out beside a station's own in the one grid, and anything the station
- * fields gain is gained here without a second declaration to keep in step.
- *
- * TODO: take the generated ClusterFieldResponse once the station's profile field shape is the generated one.
- */
-export type ClusterField = ProfileField
-
-export type ClusterFieldRequest = ProfileFieldRequest
 
 /**
  * What an association may ask for.
@@ -44,17 +32,21 @@ export const CLUSTER_FIELD_TYPES
  */
 export const CLUSTER_FIELD_ROLES = ['MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER'] as const
 
-export async function listFields(): Promise<ClusterField[]> {
-    const res = await client.get<ClusterField[]>('/cluster/fields')
+export async function listFields(): Promise<ClusterFieldResponse[]> {
+    const res = await client.get<ClusterFieldResponse[]>('/cluster/fields')
     return res.data
 }
 
-export async function createField(data: ClusterFieldRequest): Promise<ClusterField> {
-    const res = await client.post<ClusterField>('/cluster/fields', data)
+/**
+ * Adds a question. It is written the way the shared field editor writes a station's, with the
+ * association's two settings beside it.
+ */
+export async function createField(data: EditableFieldRequest): Promise<ClusterFieldResponse> {
+    const res = await client.post<ClusterFieldResponse>('/cluster/fields', data)
     return res.data
 }
 
-export async function updateField(fieldId: number, data: ClusterFieldRequest): Promise<void> {
+export async function updateField(fieldId: number, data: EditableFieldRequest): Promise<void> {
     await client.put(`/cluster/fields/${fieldId}`, data)
 }
 

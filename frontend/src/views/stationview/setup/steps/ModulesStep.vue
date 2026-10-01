@@ -16,14 +16,15 @@ import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
 import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
-import {StationModules, type StationModuleName} from '@/api/types'
+import {StationModules} from '@/api/types'
+import type {StationModule} from '@/api/generated/schema'
 
 const {t} = useI18n()
 const router = useRouter()
 const {load: reloadSession} = useSession()
 const {reload} = useSetupStatus()
 
-const disabled = ref<Set<StationModuleName>>(new Set([
+const disabled = ref<Set<StationModule>>(new Set([
   StationModules.INVENTORY, StationModules.ATTENDANCE, StationModules.FORMS, StationModules.LOST_AND_FOUND,
   StationModules.WAITING_LIST, StationModules.QUIZ, StationModules.TEST_PROTOCOL, StationModules.BOARDS,
   StationModules.PROCEDURES,
@@ -38,11 +39,11 @@ onMounted(async () => {
   loading.value = false
 })
 
-function isEnabled(key: StationModuleName): boolean {
+function isEnabled(key: StationModule): boolean {
   return !disabled.value.has(key)
 }
 
-function toggle(key: StationModuleName) {
+function toggle(key: StationModule) {
   const next = new Set(disabled.value)
   if (next.has(key)) next.delete(key)
   else next.add(key)

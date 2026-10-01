@@ -53526,13 +53526,13 @@ export interface components {
             accountId?: number;
         };
         AccountInfo: {
-            email: string;
+            email: string | null;
             firstName: string;
             /** Format: int32 */
             id: number;
             lastName: string;
-            uid: string;
-            username: string;
+            uid: string | null;
+            username: string | null;
         };
         AccountSearchResult: {
             displayName: string;
@@ -54881,8 +54881,8 @@ export interface components {
             width?: string;
         };
         ClusterFieldResponse: {
-            config: components["schemas"]["ProfileFieldConfig"] | null;
-            fieldType: string;
+            config: components["schemas"]["ProfileFieldConfig"];
+            fieldType: components["schemas"]["ProfileFieldType"];
             /** Format: int32 */
             id: number;
             keepOnArchive: boolean;
@@ -58870,7 +58870,7 @@ export interface components {
             id: number;
             name: string;
             /** Format: uuid */
-            stationId: string;
+            stationId: string | null;
             /** Format: uuid */
             uid: string;
         };
@@ -59086,8 +59086,8 @@ export interface components {
             calledName: string;
             /** Format: int32 */
             id: number;
-            nickname: string;
-            stationId: string;
+            nickname: string | null;
+            stationId: string | null;
             /** Format: uuid */
             uid: string;
         };
@@ -62057,28 +62057,28 @@ export interface components {
         SessionInfo: {
             account: components["schemas"]["AccountInfo"];
             canSendMail: boolean;
-            clusterId: string;
+            clusterId: string | null;
             clusterPermissions: string[];
-            clusterUserType: components["schemas"]["ClusterUserType"];
+            clusterUserType: components["schemas"]["ClusterUserType"] | null;
             disabledModules: components["schemas"]["StationModule"][];
             groupIds: number[];
             groups: components["schemas"]["MemberGroup"][];
             instanceUserType: components["schemas"]["InstanceUserType"];
             managedMembers: components["schemas"]["ManagedMemberInfo"][];
-            member: components["schemas"]["MemberInfo"];
+            member: components["schemas"]["MemberInfo"] | null;
             ownStationPermissions: string[];
             pdfHidesInstanceUrl: boolean;
             permissions: string[];
             profileComplete: boolean;
-            publicKbMode: components["schemas"]["PublicKbMode"];
+            publicKbMode: components["schemas"]["PublicKbMode"] | null;
             roleIds: number[];
-            setupCompletedAt: components["schemas"]["Instant"];
-            stationId: string;
+            setupCompletedAt: components["schemas"]["Instant"] | null;
+            stationId: string | null;
             stationTimezone: string;
             tagIds: number[];
             tags: components["schemas"]["UserTag"][];
             theme: components["schemas"]["ThemeInfo"];
-            userType: components["schemas"]["StationUserType"];
+            userType: components["schemas"]["StationUserType"] | null;
         };
         SessionMemberEntry: {
             checkIn: components["schemas"]["LocalDateTime"];
@@ -63258,15 +63258,15 @@ export interface components {
         ThemeInfo: {
             allowUserFeel: boolean;
             allowUserTheme: boolean;
-            customThemeColors: string;
+            customThemeColors: string | null;
             defaultFeel: components["schemas"]["ThemeFeel"];
             defaultTheme: string;
             instanceDefaultFeel: components["schemas"]["ThemeFeel"];
             instanceDefaultTheme: string;
             instanceLockFeel: boolean;
-            userDarkMode: string;
-            userFeel: string;
-            userTheme: string;
+            userDarkMode: string | null;
+            userFeel: string | null;
+            userTheme: string | null;
         };
         TicketLabelMapping: {
             /** Format: int32 */

@@ -15,8 +15,8 @@ import StationModuleToggle from '@/components/modules/StationModuleToggle.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
 import {stationManage} from '@/api'
-import {StationPermission, type StationModuleName} from '@/api/types'
-import type {ModulesResponse} from '@/api/generated/schema'
+import {StationPermission} from '@/api/types'
+import type {ModulesResponse, StationModule} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -31,20 +31,20 @@ watch(loaded, (isLoaded) => {
 
 const {t} = useI18n()
 
-const disabledModules = ref<Set<StationModuleName>>(new Set())
-const clusterDenied = ref<Set<StationModuleName>>(new Set())
+const disabledModules = ref<Set<StationModule>>(new Set())
+const clusterDenied = ref<Set<StationModule>>(new Set())
 const clusterName = ref<string | null>(null)
 
-function isModuleEnabled(key: StationModuleName): boolean {
+function isModuleEnabled(key: StationModule): boolean {
   return !disabledModules.value.has(key) && !clusterDenied.value.has(key)
 }
 
 /** A module the cluster switched off is shown as locked rather than simply off, and says who locked it. */
-function isLockedByCluster(key: StationModuleName): boolean {
+function isLockedByCluster(key: StationModule): boolean {
   return clusterDenied.value.has(key)
 }
 
-const {running: modulesSaving, failure, run: toggleModule} = useAsyncAction(async (key: StationModuleName) => {
+const {running: modulesSaving, failure, run: toggleModule} = useAsyncAction(async (key: StationModule) => {
   const next = new Set(disabledModules.value)
   if (next.has(key)) next.delete(key)
   else next.add(key)

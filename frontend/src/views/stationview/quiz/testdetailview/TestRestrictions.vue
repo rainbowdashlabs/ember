@@ -10,7 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import {toRestrictionSelection} from '@/components/input/restriction'
-import type {MemberGroup, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/generated/schema'
 
 defineProps<{
   allGroups: MemberGroup[]

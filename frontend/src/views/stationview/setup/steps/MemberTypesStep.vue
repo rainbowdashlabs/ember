@@ -15,7 +15,8 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import {stationMembers} from '@/api'
-import {StationUserType, type PermissionGrant} from '@/api/types'
+import {StationUserType} from '@/api/types'
+import type {Permission} from '@/api/generated/schema'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
@@ -46,7 +47,7 @@ const USER_TYPES = [
     {value: StationUserType.MANAGER, label: 'Leitung', desc: 'Leitungsmitglieder mit Verwaltungsrechten.'},
 ] as const
 
-const allRoles = ref<PermissionGrant[]>([])
+const allRoles = ref<Permission[]>([])
 const permissionCache = reactive<Record<string, Set<number>>>({})
 const selectedType = ref<string>(StationUserType.MEMBER)
 const loading = ref(true)

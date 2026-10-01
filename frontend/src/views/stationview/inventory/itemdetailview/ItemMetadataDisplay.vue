@@ -15,7 +15,7 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import ItemFact from './ItemFact.vue'
 import {ItemOwner} from '@/api/inventory'
 import type {InventoryItem, InventorySize, ItemLocationResponse} from '@/api/generated/schema'
-import type {MemberIdentity} from '@/api/types'
+import type {PersonIdentity} from '@/util/personIdentity'
 import {formatDate} from '@/util/format'
 
 const routes = useInventoryRoutes()
@@ -25,7 +25,7 @@ const props = withDefaults(
       item: InventoryItem
       sizes: InventorySize[]
       location: ItemLocationResponse | null
-      assignedMemberIdentity: MemberIdentity | null
+      assignedMemberIdentity: PersonIdentity | null
       /** What kind of thing this piece is, or null when nobody has said, which is the ordinary state. */
       artName?: string | null
     }>(),

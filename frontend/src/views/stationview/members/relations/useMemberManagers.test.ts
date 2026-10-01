@@ -7,8 +7,7 @@
 import {mount} from '@vue/test-utils'
 import {defineComponent, ref} from 'vue'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
-import type {MemberWithName} from '@/api/generated/schema'
-import type {StationUserTypeName} from '@/api/types'
+import type {MemberWithName, StationUserType} from '@/api/generated/schema'
 import {createMember} from '@/test/mocks/factories'
 import {useMemberManagers} from './useMemberManagers'
 
@@ -35,7 +34,7 @@ vi.mock('@/api', () => ({
     },
 }))
 
-function member(id: number, accountId: number, userType: StationUserTypeName): MemberWithName {
+function member(id: number, accountId: number, userType: StationUserType): MemberWithName {
     return createMember({id, stationId: 'station-1', accountId, name: `Person ${id}`, userType})
 }
 

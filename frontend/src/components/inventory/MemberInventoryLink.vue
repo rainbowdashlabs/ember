@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import MemberName from '@/components/avatar/MemberName.vue'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import type {MemberIdentity} from '@/api/types'
+import type {PersonIdentity} from '@/util/personIdentity'
 
 /**
  * A member's name in the inventory area, which leads to what they are holding.
@@ -20,7 +20,7 @@ import type {MemberIdentity} from '@/api/types'
  * allowed to say in colour, and it outranks the link.
  */
 const props = defineProps<{
-  identity?: MemberIdentity | null
+  identity?: PersonIdentity | null
   /** The member this name belongs to, which is what the link needs. Absent means plain text. */
   memberId?: number | null
 }>()

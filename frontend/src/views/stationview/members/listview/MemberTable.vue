@@ -14,8 +14,7 @@ import RecordTable from '@/components/table/RecordTable.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import type {CellValue} from '@/components/table/tableColumn'
 import type {MemberWithName, ProfileField} from '@/api/generated/schema'
-import type {StationMember} from '@/api/types'
-import {memberDisplayName} from './useMemberData'
+import {memberDisplayName, type RosterMember} from './useMemberData'
 import {roleOf} from './memberColumns'
 import MemberExpansion from './MemberExpansion.vue'
 import MemberNameCell from './MemberNameCell.vue'
@@ -33,7 +32,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  resendSetup: [member: StationMember]
+  resendSetup: [member: RosterMember]
 }>()
 
 const {t} = useI18n()
@@ -64,11 +63,11 @@ function managerName(manager: MemberWithName): string {
   return known ? memberDisplayName(known) : `#${manager.id}`
 }
 
-function answersOf(member: StationMember): ReadonlyMap<number, CellValue> | undefined {
+function answersOf(member: RosterMember): ReadonlyMap<number, CellValue> | undefined {
   return c.answerCells.value.get(member.id)
 }
 
-function rowClass(member: StationMember): string {
+function rowClass(member: RosterMember): string {
   if (exportMode.value) return exporting.selectedIds.value.has(member.id) ? 'bg-primary/5' : ''
   return c.expandedId.value === member.id ? 'bg-bg-light-accent/30 dark:bg-bg-dark-accent/30' : ''
 }
@@ -77,12 +76,12 @@ function rowClass(member: StationMember): string {
  * Where a person's name leads: their own page, unless the list is choosing whom to export or this
  * reader may not reach that person at all.
  */
-function namePageOf(member: StationMember): RouteLocationRaw | null {
+function namePageOf(member: RosterMember): RouteLocationRaw | null {
   if (exportMode.value || extras.blockedReason(member.id)) return null
   return c.detailRouteOf(member)
 }
 
-function onRowClick(member: StationMember) {
+function onRowClick(member: RosterMember) {
   if (exportMode.value) exporting.toggleRow(member.id)
   else c.toggleExpand(member)
 }

@@ -9,9 +9,9 @@ import {mount} from '@vue/test-utils'
 import {createI18n} from 'vue-i18n'
 import GroupRulesFields from './GroupRulesFields.vue'
 import deDE from '@/i18n/de-DE'
-import type {StationUserTypeName} from '@/api/types'
+import type {StationUserType} from '@/api/generated/schema'
 
-function fields(setId: number | null, userTypes: StationUserTypeName[]) {
+function fields(setId: number | null, userTypes: StationUserType[]) {
   return mount(GroupRulesFields, {
     props: {
       sets: [{id: 10, stationId: 's', name: 'Stufen'}],

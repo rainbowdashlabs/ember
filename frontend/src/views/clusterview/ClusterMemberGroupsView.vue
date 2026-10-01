@@ -18,10 +18,10 @@ import {memberDisplayName} from '@/views/stationview/members/listview/useMemberD
 import {clusterMembers, data} from '@/api'
 import {clusterMemberIdentity} from '@/api/clusterMembers'
 import type {ClusterMemberResponse} from '@/api/generated/schema'
+import type {PermissionGrant} from '@/composables/usePermissionTree'
 import {ClusterPermission} from '@/api/clusters'
 import {useSession} from '@/composables/useSession'
 import {useGroupsConfig, type GroupsPort} from '@/composables/useGroupsConfig'
-import type {PermissionGrant} from '@/api/types'
 
 const {t} = useI18n()
 const {hasClusterPermission} = useSession()

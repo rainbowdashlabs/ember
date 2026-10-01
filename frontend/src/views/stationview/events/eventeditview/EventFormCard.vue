@@ -7,14 +7,15 @@
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EventFormPanel from '../eventshared/EventFormPanel.vue'
 import EventReminderEditor from '../eventshared/EventReminderEditor.vue'
-import type {RestrictionSelection} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
 import type {
     AttendanceTemplate,
     AttendanceTemplateField,
     EventCategory,
     EventFieldEntry,
+    MemberGroup,
+    UserTag,
 } from '@/api/generated/schema'
-import type {MemberGroup, UserTag} from '@/api/types'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
 defineProps<{

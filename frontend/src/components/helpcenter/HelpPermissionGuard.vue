@@ -6,11 +6,11 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from 'vue'
 import {useSession} from '@/composables/useSession'
-import type {StationPermissionName} from '@/api/types'
+import type {StationPermission} from '@/api/generated/schema'
 import BareButton from '@/components/button/BareButton.vue'
 
 const props = defineProps<{
-  permissions: StationPermissionName[]
+  permissions: StationPermission[]
   label: string
 }>()
 

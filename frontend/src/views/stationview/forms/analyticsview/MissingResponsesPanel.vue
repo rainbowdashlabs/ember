@@ -9,7 +9,7 @@ import InfoContainer from '@/components/container/InfoContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type {MemberIdentity} from '@/api/types'
+import type {MemberIdentity} from '@/api/generated/schema'
 
 defineProps<{
   members: MemberIdentity[]

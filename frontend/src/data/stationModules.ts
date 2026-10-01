@@ -3,11 +3,12 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {StationModules, type StationModuleName} from '@/api/types'
+import {StationModules} from '@/api/types'
+import type {StationModule} from '@/api/generated/schema'
 
 /** One module a station can switch on or off, as every list of modules shows it. */
 export interface StationModuleOption {
-    value: StationModuleName
+    value: StationModule
     /** The i18n key of its name. */
     labelKey: string
     icon: string[]
@@ -22,7 +23,7 @@ type ModuleDetails = Omit<StationModuleOption, 'value'>
  * them. Keyed by the module, so a module added to {@link StationModules} and forgotten here does not
  * compile rather than silently missing from one of the lists.
  */
-const DETAILS: Record<StationModuleName, ModuleDetails> = {
+const DETAILS: Record<StationModule, ModuleDetails> = {
     [StationModules.INVENTORY]: {labelKey: 'stationManage.moduleInventory', icon: ['fas', 'boxes-stacked'], descriptionKey: 'stationManage.moduleInventoryText'},
     [StationModules.NEWS]: {labelKey: 'stationManage.moduleNews', icon: ['fas', 'newspaper'], descriptionKey: 'stationManage.moduleNewsText'},
     [StationModules.EVENTS]: {labelKey: 'stationManage.moduleEvents', icon: ['fas', 'calendar-days'], descriptionKey: 'stationManage.moduleEventsText'},
@@ -44,4 +45,4 @@ const DETAILS: Record<StationModuleName, ModuleDetails> = {
  * them can offer fewer modules than the station has.
  */
 export const STATION_MODULE_OPTIONS: readonly StationModuleOption[] = Object.entries(DETAILS)
-    .map(([value, details]) => ({value: value as StationModuleName, ...details}))
+    .map(([value, details]) => ({value: value as StationModule, ...details}))

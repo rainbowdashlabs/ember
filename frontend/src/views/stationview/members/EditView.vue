@@ -16,8 +16,16 @@ import MemberEditTabs from './editview/MemberEditTabs.vue'
 import MemberAccessActions from './editview/MemberAccessActions.vue'
 import type {MemberEditData} from './editview/types'
 import {memberDisplayName} from './listview/useMemberData'
-import {StationPermission, StationUserType, type MemberGroup, type PermissionGrant, type UserTag} from '@/api/types'
-import type {MemberGroupSet, MemberWithName, MergedField, MyInventoryItem} from '@/api/generated/schema'
+import {StationPermission, StationUserType} from '@/api/types'
+import type {
+  MemberGroup,
+  MemberGroupSet,
+  MemberWithName,
+  MergedField,
+  MyInventoryItem,
+  Permission,
+  UserTag,
+} from '@/api/generated/schema'
 import {profileFields, stationMembers, memberGroups, groupSets, userTags, inventory} from '@/api'
 import {decodeMergedValues} from '@/util/profileFields'
 import {useSession} from '@/composables/useSession'
@@ -32,7 +40,7 @@ const memberId = computed(() => Number(route.params.id))
 
 const member = ref<MemberWithName | null>(null)
 const fields = ref<MergedField[]>([])
-const allRoles = ref<PermissionGrant[]>([])
+const allRoles = ref<Permission[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allSets = ref<MemberGroupSet[]>([])
 const allTags = ref<UserTag[]>([])

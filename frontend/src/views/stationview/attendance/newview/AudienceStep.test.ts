@@ -7,8 +7,7 @@
 import {mount} from '@vue/test-utils'
 import {describe, expect, it} from 'vitest'
 import AudienceStep from './AudienceStep.vue'
-import type {TemplateDetail} from '@/api/generated/schema'
-import type {MemberGroup} from '@/api/types'
+import type {MemberGroup, TemplateDetail} from '@/api/generated/schema'
 
 /**
  * The step that says whom a sheet nobody kept a template for expects.

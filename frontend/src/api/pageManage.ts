@@ -107,13 +107,6 @@ export const ImageFit = {
 } as const satisfies Record<ImageFitName, ImageFitName>
 
 /**
- * Who reads the content a block sits in, which decides what a news or event block may name and show.
- * A page (`PUBLIC`) only what is public to everyone; a news entry or wiki article (`MEMBERS`) what
- * every signed-in member of the station may see, internal ones included.
- */
-export type BlockAudience = Schemas['BlockAudience']
-
-/**
  * Where a member list takes its members from. The server keeps this part of the settings as written,
  * so its shape is the editor's to define.
  */

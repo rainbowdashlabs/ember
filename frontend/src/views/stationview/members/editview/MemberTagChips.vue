@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {userTags} from '@/api'
-import type {UserTag} from '@/api/types'
+import type {UserTag} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**

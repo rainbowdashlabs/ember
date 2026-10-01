@@ -5,12 +5,12 @@
  */
 import client, {getRequestHistory} from './client'
 import {createCrudResource} from './crud'
-import type {AcknowledgeAllResponse, ProblemReport, ReportRequest} from './generated/schema'
+import type {AcknowledgeAllResponse, ProblemReport, ReportRequest, SessionInfo} from './generated/schema'
 
 /** The session facts a problem report records about its reporter. */
 export interface ReportSessionContext {
-    userType?: string
-    permissions?: readonly string[]
+    userType: SessionInfo['userType']
+    permissions: readonly string[]
 }
 
 /**

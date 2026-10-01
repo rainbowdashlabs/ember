@@ -5,7 +5,6 @@
  */
 import client from './client'
 import {uploadFile} from './upload'
-import type {StationModuleName} from './types'
 import type {
     components,
     DeleteRequestResponse,
@@ -16,6 +15,7 @@ import type {
     ModulesResponse,
     StationImportProgress,
     StationInfo,
+    StationModule,
     UpdateStationRequest,
 } from './generated/schema'
 
@@ -73,7 +73,7 @@ export async function getDisabledModules(): Promise<ModulesResponse> {
     return res.data
 }
 
-export async function setDisabledModules(disabledModules: StationModuleName[]): Promise<ModulesResponse> {
+export async function setDisabledModules(disabledModules: StationModule[]): Promise<ModulesResponse> {
     const res = await client.put<ModulesResponse>('/station/manage/modules', {disabledModules})
     return res.data
 }

@@ -8,7 +8,7 @@ import UserAvatar from './UserAvatar.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import DisplayTagBadge from '@/components/badge/DisplayTagBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {MemberIdentity} from '@/api/types'
+import type {PersonIdentity} from '@/util/personIdentity'
 import {useSession} from '@/composables/useSession'
 import {computed} from 'vue'
 
@@ -17,7 +17,7 @@ import {computed} from 'vue'
  * the name rather than under the avatar, so it lines up whatever size the picture has.
  */
 const props = withDefaults(defineProps<{
-  identity: MemberIdentity | null | undefined
+  identity: PersonIdentity | null | undefined
   size?: 'sm' | 'md' | 'lg'
   detail?: string | null
 }>(), {

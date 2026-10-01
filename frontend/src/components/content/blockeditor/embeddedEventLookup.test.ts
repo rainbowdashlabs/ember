@@ -6,7 +6,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {findEmbeddedEvent} from './embeddedEventLookup'
 import {sessionInfo} from '@/util/sessionState'
-import type {SessionInfo} from '@/api/types'
+import {createSessionInfo} from '@/test/mocks/factories'
 
 const listPublicEvents = vi.fn()
 const getEmbeddedEvent = vi.fn()
@@ -18,7 +18,7 @@ const STATION = 'station-a'
 const EVENT_UID = 'event-1'
 
 function signedInTo(stationId: string) {
-    sessionInfo.value = {stationId} as SessionInfo
+    sessionInfo.value = createSessionInfo({stationId})
 }
 
 function memberEvent(id: number, name: string, cancelled = false) {

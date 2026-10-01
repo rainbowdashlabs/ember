@@ -9,8 +9,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ResultFilterBar from './ResultFilterBar.vue'
 import MissingResponsesPanel from './MissingResponsesPanel.vue'
 import AnalyticsTabs from './AnalyticsTabs.vue'
-import type {Form, FormAnalytics, FormResponseEntry} from '@/api/generated/schema'
-import type {MemberIdentity} from '@/api/types'
+import type {Form, FormAnalytics, FormResponseEntry, MemberIdentity} from '@/api/generated/schema'
 
 /**
  * The answers themselves: how they are narrowed, who is missing, and what they add up to.

@@ -11,9 +11,9 @@ import MutedText from '@/components/typography/MutedText.vue'
 import RadioInput from '@/components/input/toggle/RadioInput.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import OccurrenceSearchPicker from '@/components/input/search/OccurrenceSearchPicker.vue'
-import type {RestrictionSelection} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
 import type {EventOccurrenceRef} from '@/api/events'
-import type {MemberGroup, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
 /**

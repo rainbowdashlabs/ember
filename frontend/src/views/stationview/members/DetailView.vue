@@ -22,8 +22,8 @@ import { useMemberLifecycle } from './detailview/useMemberLifecycle'
 import { memberDisplayName } from './listview/useMemberData'
 import type { ChangeEntry } from '@/api/profileFieldChanges'
 import { canHaveGuardians, looksAfterMembers, relationsTabLabel } from './relations/relationSides'
-import {StationModules, StationPermission, type MemberGroup, type PermissionGrant, type UserTag} from '@/api/types'
-import type {MemberWithName} from '@/api/generated/schema'
+import {StationModules, StationPermission} from '@/api/types'
+import type {MemberGroup, MemberWithName, Permission, UserTag} from '@/api/generated/schema'
 import { memberGroups, profileFieldChanges, profileFields, stationMembers, userTags } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -46,7 +46,7 @@ const member = ref<MemberWithName | null>(null)
 const memberUserType = ref<string>('')
 const allMembers = ref<MemberWithName[]>([])
 const changes = ref<ChangeEntry[]>([])
-const memberPermissions = ref<PermissionGrant[]>([])
+const memberPermissions = ref<Permission[]>([])
 const memberGroupList = ref<MemberGroup[]>([])
 const memberTagList = ref<UserTag[]>([])
 

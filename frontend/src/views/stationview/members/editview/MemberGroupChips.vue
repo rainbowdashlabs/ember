@@ -9,8 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SectionLabel from '@/components/typography/SectionLabel.vue'
-import type {MemberGroup} from '@/api/types'
-import type {MemberGroupSet} from '@/api/generated/schema'
+import type {MemberGroup, MemberGroupSet} from '@/api/generated/schema'
 import {
   admits,
   boundTypeNames,

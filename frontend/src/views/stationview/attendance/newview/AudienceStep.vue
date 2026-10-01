@@ -16,8 +16,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import type {MemberGroup, StationUserTypeName} from '@/api/types'
-import type {SessionAudience, TemplateDetail} from '@/api/generated/schema'
+import type {MemberGroup, SessionAudience, StationUserType, TemplateDetail} from '@/api/generated/schema'
 import {templateAudience} from './templateAudience'
 
 /**
@@ -46,7 +45,7 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const prefilled = props.template ? templateAudience(props.template) : null
-const chosenTypes = ref<StationUserTypeName[]>(prefilled ? [...prefilled.userTypes] : [])
+const chosenTypes = ref<StationUserType[]>(prefilled ? [...prefilled.userTypes] : [])
 const chosenGroups = ref<number[]>(prefilled ? [...prefilled.groupIds] : [])
 
 /** A sheet still carries questions, so one template lends its own, the chosen one or else the first. */

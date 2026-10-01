@@ -11,8 +11,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
-import type {RestrictionSelection} from '@/components/input/restriction'
-import {StationUserTypeLabels, type MemberGroup, type StationUserTypeName, type UserTag} from '@/api/types'
+import {StationUserTypeLabels, type RestrictionSelection} from '@/api/types'
+import type {MemberGroup, StationUserType, UserTag} from '@/api/generated/schema'
 import {KbAccessLevel, type KbAccessLevelName} from '@/api/knowledgeBase'
 import {groupKey, tagKey, userTypeKey, type GrantLevels} from './kbGrantLevels'
 
@@ -51,7 +51,7 @@ interface LevelEntry {
 const entries = computed<LevelEntry[]>(() => [
     ...model.value.userTypes.map(userType => ({
         key: userTypeKey(userType),
-        label: StationUserTypeLabels[userType as StationUserTypeName] ?? userType,
+        label: StationUserTypeLabels[userType as StationUserType] ?? userType,
     })),
     ...model.value.groupIds.map(groupId => ({
         key: groupKey(groupId),

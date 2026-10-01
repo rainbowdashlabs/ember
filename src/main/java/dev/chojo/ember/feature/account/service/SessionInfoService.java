@@ -34,6 +34,7 @@ import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.service.StationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -258,10 +259,10 @@ public class SessionInfoService {
      */
     public record SessionInfo(
             AccountInfo account,
-            String stationId,
-            MemberInfo member,
+            @Nullable String stationId,
+            @Nullable MemberInfo member,
             List<String> permissions,
-            StationUserType userType,
+            @Nullable StationUserType userType,
             InstanceUserType instanceUserType,
             List<ManagedMemberInfo> managedMembers,
             List<MemberGroup> groups,
@@ -272,10 +273,10 @@ public class SessionInfoService {
             boolean profileComplete,
             Set<StationModule> disabledModules,
             ThemeInfo theme,
-            PublicKbMode publicKbMode,
-            Instant setupCompletedAt,
-            String clusterId,
-            ClusterUserType clusterUserType,
+            @Nullable PublicKbMode publicKbMode,
+            @Nullable Instant setupCompletedAt,
+            @Nullable String clusterId,
+            @Nullable ClusterUserType clusterUserType,
             List<String> clusterPermissions,
             List<String> ownStationPermissions,
             boolean canSendMail,
@@ -290,45 +291,58 @@ public class SessionInfoService {
             ThemeFeel defaultFeel,
             boolean allowUserTheme,
             boolean allowUserFeel,
-            String customThemeColors,
-            String userTheme,
-            String userDarkMode,
-            String userFeel) {}
+            @Nullable String customThemeColors,
+            @Nullable String userTheme,
+            @Nullable String userDarkMode,
+            @Nullable String userFeel) {}
 
     /**
      * Summary of a member managed by the current account.
      *
      * @param id        the member identifier
-     * @param stationId the station identifier
+     * @param stationId the station's address, or {@code null} where the station is gone
+     * @param uid       the member's address
      * @param accountId the member's account identifier, or 0 if none
      * @param name      the member's display name
      * @param email     the member's email, or empty string if unavailable
      */
-    public record ManagedMemberInfo(int id, UUID stationId, UUID uid, int accountId, String name, String email) {}
+    public record ManagedMemberInfo(
+            int id, @Nullable UUID stationId, UUID uid, int accountId, String name, String email) {}
 
     /**
      * Account information included in the session response.
      *
      * @param id        the account identifier
-     * @param email     the email address
+     * @param uid       the account's address
+     * @param email     the email address, or {@code null} for an account that has none
+     * @param username  the name this account signs in with, or {@code null} when its address is the only way in
      * @param firstName the first name
      * @param lastName  the last name
      */
-    /**
-     * @param username the name this account signs in with, or null when its address is the only way in
-     */
-    public record AccountInfo(int id, String uid, String email, String username, String firstName, String lastName) {}
+    public record AccountInfo(
+            int id,
+            @Nullable String uid,
+            @Nullable String email,
+            @Nullable String username,
+            String firstName,
+            String lastName) {}
 
     /**
      * Minimal member information for the current session.
      *
-     * @param id        the member identifier
-     * @param stationId the station identifier
-     * @param accountId the account identifier
-     */
-    /**
+     * @param id         the member identifier
+     * @param stationId  the station's address, or {@code null} where the session names none
+     * @param accountId  the account identifier
+     * @param uid        the member's address
      * @param calledName what this station calls the member, which is what the screen shows
-     * @param nickname the name they set for themselves, so the field they edit can be filled
+     * @param nickname   the name they set for themselves, so the field they edit can be filled, or
+     *                   {@code null} where they set none
      */
-    public record MemberInfo(int id, String stationId, int accountId, UUID uid, String calledName, String nickname) {}
+    public record MemberInfo(
+            int id,
+            @Nullable String stationId,
+            int accountId,
+            UUID uid,
+            String calledName,
+            @Nullable String nickname) {}
 }

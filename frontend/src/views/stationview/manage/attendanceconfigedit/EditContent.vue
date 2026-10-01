@@ -13,22 +13,23 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import GroupsEditor from './GroupsEditor.vue'
 import UserTypesEditor from './UserTypesEditor.vue'
 import FieldsList from './FieldsList.vue'
-import type {AttendanceTemplateField, TemplateGroupEntry} from '@/api/generated/schema'
-import type {MemberGroup, StationUserTypeName} from '@/api/types'
+import type {
+    AttendanceTemplateField, MemberGroup, StationUserType, TemplateGroupEntry,
+} from '@/api/generated/schema'
 
 const props = defineProps<{
   isEdit: boolean
   name: string
   fields: AttendanceTemplateField[]
   templateGroups: TemplateGroupEntry[]
-  templateUserTypes: StationUserTypeName[]
+  templateUserTypes: StationUserType[]
   availableGroups: MemberGroup[]
   saveTemplate: () => Promise<void>
 }>()
 
 const emit = defineEmits<{
   'update:name': [value: string]
-  'update-user-types': [userTypes: StationUserTypeName[]]
+  'update-user-types': [userTypes: StationUserType[]]
   'add-group': [groupId: number]
   'remove-group': [groupId: number]
   'reorder-groups': [fromIndex: number, toIndex: number]
@@ -63,7 +64,7 @@ const {t} = useI18n()
     <UserTypesEditor
         v-if="props.isEdit"
         :model-value="props.templateUserTypes"
-        @update:model-value="(types: StationUserTypeName[]) => emit('update-user-types', types)"
+        @update:model-value="(types: StationUserType[]) => emit('update-user-types', types)"
     />
 
     <GroupsEditor

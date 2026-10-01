@@ -6,8 +6,8 @@
 import {ref, watch, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {memberGroups} from '@/api'
-import type {MemberGroup} from '@/api/types'
 import type {AssignableMember} from '@/composables/useGroupsConfig'
+import type {GroupRow} from '@/util/groupRules'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /** A member about to be moved into the open group out of another group of its set. */
@@ -29,8 +29,8 @@ export interface PendingMove {
  * @param failure     the page's failure channel
  */
 export function useSetMoves(
-    groups: Ref<MemberGroup[]>,
-    open: Ref<MemberGroup | null>,
+    groups: Ref<GroupRow[]>,
+    open: Ref<GroupRow | null>,
     members: Ref<AssignableMember[]>,
     addDirectly: (memberId: number) => Promise<void>,
     failure: Ref<Failure | null>,

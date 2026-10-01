@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {MemberCompletion, MemberSearchResult} from '@/api/generated/schema'
-import type {MemberIdentity} from '@/api/types'
+import type {PersonIdentity} from '@/util/personIdentity'
 
 /**
  * Somebody a member menu can offer.
@@ -21,7 +21,7 @@ export interface MemberOption {
     email?: string | null
     /** What kind of member they are, for the optional kind filter. */
     userType?: string | null
-    identity?: MemberIdentity | null
+    identity?: PersonIdentity | null
     /** A remark about them the call site wants seen before they are picked, such as the group they would leave. */
     note?: string | null
 }
@@ -54,7 +54,7 @@ export interface MemberLike {
     name?: string | null
     email?: string | null
     userType?: string | null
-    identity?: MemberIdentity | null
+    identity?: PersonIdentity | null
 }
 
 /**
@@ -80,7 +80,7 @@ export function fromMember(member: MemberLike): MemberOption {
  * <p>A menu still draws a face and a colour for somebody a call site knew nothing about but a name, so
  * the name is carried into the identity rather than the row falling back to bare text.
  */
-export function identityOf(option: MemberOption): MemberIdentity {
+export function identityOf(option: MemberOption): PersonIdentity {
     if (!option.identity) return {name: option.name}
     return {...option.identity, name: option.identity.name ?? option.name}
 }

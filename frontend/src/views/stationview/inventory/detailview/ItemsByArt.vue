@@ -12,7 +12,7 @@ import RecordCardControls from '@/components/table/RecordCardControls.vue'
 import TableFilterDialog from '@/components/table/TableFilterDialog.vue'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import type {InventoryArt, InventoryItem} from '@/api/generated/schema'
-import type {MemberIdentity} from '@/api/types'
+import type {PersonIdentity} from '@/util/personIdentity'
 import InventoryItemTable from '../itemtable/InventoryItemTable.vue'
 import type {ItemTableApi} from '../itemtable/useItemTable'
 import type {InventoryItemActionEmits} from '../itemEmits'
@@ -32,7 +32,7 @@ const props = withDefaults(
     defineProps<{
       items: ItemTableApi
       arts: InventoryArt[]
-      memberIdentity: (memberId: number) => MemberIdentity | null | undefined
+      memberIdentity: (memberId: number) => PersonIdentity | null | undefined
       lentItemStationMap: Map<number, string>
       containerPathById: Map<number, string>
       showActions?: boolean

@@ -12,8 +12,8 @@ import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ResultFieldConditions from './ResultFieldConditions.vue'
 import {ResultMatch, type ResultFilterState, type ResultMatchName} from '@/api/forms'
-import type {ProfileField} from '@/api/generated/schema'
-import {StationUserType, StationUserTypeLabels, type MemberGroup, type UserTag} from '@/api/types'
+import type {MemberGroup, ProfileField, UserTag} from '@/api/generated/schema'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
 import {userTypesOf} from '@/util/stationUserTypes'
 
 /**

@@ -7,13 +7,12 @@ import client from './client'
 import {createCrudResource} from './crud'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import {toIsoDate} from '@/util/format'
-import type {BlockAudience} from './pageManage'
-import {StationUserType, type RestrictionSelection, type StationUserTypeName} from './types'
 import type {
     AbsentMemberResponse,
     AwaitingAnswer,
     BatchCreateRequest,
     BatchRow,
+    BlockAudience,
     BreakRequest,
     CancellationNotice,
     CancelledEventDate,
@@ -55,7 +54,6 @@ import type {
     RemoteAttachment,
     RemoteEventDetail,
     RemoteMemberRegistration,
-    RestrictionAudience,
     SetEventFieldsRequest,
     ShareScope,
     StationEvent,
@@ -116,20 +114,6 @@ export type AnyEvent = StationEvent | EventSummary
  * anybody are in it.
  */
 export type AllEventRestrictions = Record<number, EventRestrictions>
-
-/**
- * An audience the shared restriction editor holds, in the shape an appointment and a template
- * carry it.
- *
- * TODO: drop once the editor's selection names its user types by the generated union rather than as text.
- */
-export function audienceOf(selection: RestrictionSelection): RestrictionAudience {
-    return {...selection, userTypes: selection.userTypes.filter(isStationUserType)}
-}
-
-function isStationUserType(value: string): value is StationUserTypeName {
-    return Object.hasOwn(StationUserType, value)
-}
 
 export function isRecurringEvent(eventType?: string | null): boolean {
     return eventType != null && eventType !== EventTypes.ONE_TIME

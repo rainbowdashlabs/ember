@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {inject, provide, type InjectionKey} from 'vue'
-import type {BlockAudience} from '@/api/pageManage'
+import type {BlockAudience} from '@/api/generated/schema'
 
 const BLOCK_AUDIENCE: InjectionKey<BlockAudience> = Symbol('blockAudience')
 

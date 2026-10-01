@@ -4,9 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {
-    WaitingList, WaitingListEntry, WaitingListEntryWithScore, WaitingListField, WaitingListWithCount,
+    MemberGroup, WaitingList, WaitingListEntry, WaitingListEntryWithScore, WaitingListField, WaitingListWithCount,
 } from '@/api/generated/schema'
-import type {MemberGroup} from '@/api/types'
 import type {PitchWaitlist} from './pitchTypes'
 
 /**
@@ -98,8 +97,8 @@ const TESTING: WaitingListEntryWithScore[] = [
 ]
 
 const GROUPS: MemberGroup[] = [
-    {id: 2, stationId: 'wache', name: 'Löschgruppe', position: 0},
-    {id: 3, stationId: 'wache', name: 'Schnupperkinder', position: 1},
+    {id: 2, stationId: 'wache', name: 'Löschgruppe', color: null, position: 0, groupSetId: null, userTypes: []},
+    {id: 3, stationId: 'wache', name: 'Schnupperkinder', color: null, position: 1, groupSetId: null, userTypes: []},
 ]
 
 export const WAITLIST: PitchWaitlist = {

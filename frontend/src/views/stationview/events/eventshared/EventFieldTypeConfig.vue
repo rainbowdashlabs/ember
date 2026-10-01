@@ -12,7 +12,8 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {EventFieldTypes} from '@/api/events'
-import {StationUserType, StationUserTypeLabels, type MemberGroup, type StationUserTypeName, type UserTag} from '@/api/types'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/generated/schema'
 import {fieldConstraint, isMemberFieldType} from './eventFieldConfig'
 
 const props = defineProps<{
@@ -34,7 +35,7 @@ const {t} = useI18n()
 
 const userTypeOptions = Object.values(StationUserType).map(v => ({
   value: v,
-  label: StationUserTypeLabels[v as StationUserTypeName],
+  label: StationUserTypeLabels[v],
 }))
 
 const constraint = computed(() => fieldConstraint(props.fieldType))

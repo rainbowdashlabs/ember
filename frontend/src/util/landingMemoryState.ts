@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {getItem, removeItem, setItem} from '@/api/storage'
-import type {AccountInfo} from '@/api/types'
+import type {AccountInfo} from '@/api/generated/schema'
 import {sessionInfo} from '@/util/sessionState'
 
 const LANDING_AREA_KEY = 'landing_area'

@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {getMemberNewsTeaser, getPublicNewsTeaser} from '@/api/news'
-import type {NewsTeaser} from '@/api/generated/schema'
-import type {BlockAudience} from '@/api/pageManage'
+import type {BlockAudience, NewsTeaser} from '@/api/generated/schema'
 import {sessionInfo} from '@/util/sessionState'
 
 /** Where a news block found its entry, which decides where its link goes. */

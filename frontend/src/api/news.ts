@@ -5,9 +5,9 @@
  */
 import client from './client'
 import { createCrudResource, createScopedCrudResource, pageParams } from './crud'
-import type { MemberIdentity } from './types'
-import type { BlockAudience } from './pageManage'
 import type {
+    BlockAudience,
+    MemberIdentity,
     BlockRowRequest,
     FederatedNewsData,
     FederatedNewsItem,

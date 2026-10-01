@@ -8,13 +8,14 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import StationModuleToggle from '@/components/modules/StationModuleToggle.vue'
-import {StationModules, type StationModuleName} from '@/api/types'
+import {StationModules} from '@/api/types'
+import type {StationModule} from '@/api/generated/schema'
 import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
 
 const {t} = useI18n()
 
 /** The modules the example station has switched on. */
-const ENABLED = new Set<StationModuleName>([
+const ENABLED = new Set<StationModule>([
   StationModules.INVENTORY,
   StationModules.NEWS,
   StationModules.EVENTS,

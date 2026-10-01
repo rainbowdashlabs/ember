@@ -5,8 +5,8 @@
  */
 <script setup lang="ts">
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
-import type {RestrictionSelection} from '@/components/input/restriction'
-import type {MemberGroup, UserTag} from '@/api/types'
+import type {RestrictionSelection} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/generated/schema'
 
 defineProps<{
   groups: MemberGroup[]

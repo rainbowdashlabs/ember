@@ -10,8 +10,7 @@ import ResultFilterBar from '@/views/stationview/forms/analyticsview/ResultFilte
 import GroupedChartsTab from '@/views/stationview/forms/analyticsview/GroupedChartsTab.vue'
 import {emptyFilter} from '@/views/stationview/forms/analyticsview/resultQuery'
 import {QuestionTypes, ResultDimension, type ResultFilterState, type ResultGroupingState} from '@/api/forms'
-import type {FormQuestionInfo, FormResultGroup} from '@/api/generated/schema'
-import type {MemberGroup, UserTag} from '@/api/types'
+import type {FormQuestionInfo, FormResultGroup, MemberGroup, UserTag} from '@/api/generated/schema'
 import {useThemePaint} from '@/composables/useThemePaint'
 import {seriesColor} from '@/util/seriesPalette'
 import {numberedOptions} from '@/util/formOptions'
@@ -24,11 +23,17 @@ const {t} = useI18n()
 const {dark: darkThemeActive} = useThemePaint()
 
 const groups = computed<MemberGroup[]>(() => [
-  {id: 1, name: t('helpCenter.formsAnalytics.dummyGroupYouth')},
-  {id: 2, name: t('helpCenter.formsAnalytics.dummyGroupActive')},
-  {id: 3, name: t('helpCenter.formsAnalytics.dummyGroupBoard')},
+  dummyGroup(1, t('helpCenter.formsAnalytics.dummyGroupYouth')),
+  dummyGroup(2, t('helpCenter.formsAnalytics.dummyGroupActive')),
+  dummyGroup(3, t('helpCenter.formsAnalytics.dummyGroupBoard')),
 ])
-const tags = computed<UserTag[]>(() => [{id: 1, stationId: 'wache', name: t('helpCenter.formsAnalytics.dummyTag')}])
+const tags = computed<UserTag[]>(() => [
+  {id: 1, stationId: 'wache', name: t('helpCenter.formsAnalytics.dummyTag'), color: null, visible: true, position: 0},
+])
+
+function dummyGroup(id: number, name: string): MemberGroup {
+  return {id, stationId: 'wache', name, color: null, position: id, groupSetId: null, userTypes: []}
+}
 
 const filter = ref<ResultFilterState>(emptyFilter())
 const grouping = ref<ResultGroupingState | null>({by: ResultDimension.GROUP, fieldId: null, only: ['1', '2'], bounds: []})

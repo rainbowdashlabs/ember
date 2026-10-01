@@ -7,9 +7,8 @@
 import PublicBlogPanel from './PublicBlogPanel.vue'
 import RestrictionsPanel from './RestrictionsPanel.vue'
 import FederationPanel from './FederationPanel.vue'
-import type {MemberGroup, UserTag} from '@/api/types'
 import type {MemberLike} from '@/components/input/select/memberOption'
-import type {PartnerResponse} from '@/api/generated/schema'
+import type {MemberGroup, PartnerResponse, UserTag} from '@/api/generated/schema'
 
 /**
  * Who an entry is for and how far it travels: the public blog, the audience inside the station,

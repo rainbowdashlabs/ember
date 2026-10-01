@@ -15,12 +15,13 @@ import type {
     EventCategory,
     EventFieldEntry,
     EventTemplate,
+    MemberGroup,
     PartnerResponse,
     RegistrationFieldDefinition,
+    UserTag,
 } from '@/api/generated/schema'
-import type {MemberGroup, UserTag} from '@/api/types'
 import type {MemberLike} from '@/components/input/select/memberOption'
-import type {RestrictionSelection} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
 import EventEditHeader from './EventEditHeader.vue'
 import EventFormCard from './EventFormCard.vue'
 import FederationCard from './FederationCard.vue'

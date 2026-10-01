@@ -3,14 +3,17 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AttendanceEntry} from '@/api/generated/schema'
-import type {MemberGroup} from '@/api/types'
+import type {AttendanceEntry, MemberGroup} from '@/api/generated/schema'
 import type {PitchAttendance, PitchCheckMode} from './pitchTypes'
 import type {MemberSection} from '@/views/stationview/attendance/sessionview/memberSections'
 import {pitchMember as member} from './pitchMembers'
 
-const CREW: MemberGroup = {id: 1, stationId: 'wache', name: 'Löschgruppe', position: 0}
-const RECRUITS: MemberGroup = {id: 2, stationId: 'wache', name: 'Anwärter', position: 1}
+const CREW: MemberGroup = {
+    id: 1, stationId: 'wache', name: 'Löschgruppe', color: null, position: 0, groupSetId: null, userTypes: [],
+}
+const RECRUITS: MemberGroup = {
+    id: 2, stationId: 'wache', name: 'Anwärter', color: null, position: 1, groupSetId: null, userTypes: [],
+}
 
 const ANNA = member(1, 'Anna Müller')
 const BEN = member(2, 'Ben Krüger')

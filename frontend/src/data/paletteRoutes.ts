@@ -5,6 +5,7 @@
  */
 import {ClusterPermission} from '@/api/clusters'
 import {StationModules, StationPermission} from '@/api/types'
+import type {StationModule} from '@/api/generated/schema'
 import type {QuickSearchScope} from '@/composables/useQuickSearch'
 
 /**
@@ -25,7 +26,7 @@ export interface PaletteRouteEntry {
     icon: string
     permission?: string
     anyPermission?: string[]
-    module?: string
+    module?: StationModule
     /** What the caller must hold at the cluster, for entries of the cluster scope. */
     clusterPermission?: string
     clusterAnyPermission?: string[]
