@@ -67,6 +67,9 @@ const LICENCE_MARKER = /SPDX-License-Identifier/
 
 const TODO = /^\s*(\/\/|\/\*|\*)\s*TODO\b/
 
+/** A Java text block's delimiter, inside which two slashes are text, such as an address. */
+const TEXT_BLOCK = '"""'
+
 /** Where a comment opens in a Vue template, which is markup and holds no doc comments at all. */
 const TEMPLATE_COMMENT = /<!--/
 
@@ -103,11 +106,28 @@ function check(file) {
     const allowed = baseline[key] ?? 0
     const found = []
     const markup = file.endsWith('.vue')
+    const java = file.endsWith('.java')
     let inBlock = false
     let inTemplateComment = false
+    let inTextBlock = false
 
     for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]
+        let line = lines[i]
+
+        if (inTextBlock) {
+            const end = line.indexOf(TEXT_BLOCK)
+            if (end === -1) continue
+            inTextBlock = false
+            line = line.slice(end + TEXT_BLOCK.length)
+        }
+
+        if (java) {
+            const open = line.indexOf(TEXT_BLOCK)
+            if (open !== -1 && line.indexOf(TEXT_BLOCK, open + TEXT_BLOCK.length) === -1) {
+                inTextBlock = true
+                line = line.slice(0, open)
+            }
+        }
 
         if (inTemplateComment) {
             if (line.includes('-->')) inTemplateComment = false

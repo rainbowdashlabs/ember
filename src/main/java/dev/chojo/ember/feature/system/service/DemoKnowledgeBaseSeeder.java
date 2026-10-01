@@ -23,9 +23,6 @@ import java.util.List;
 public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoKnowledgeBaseSeeder.class);
 
-    /** The external address the formatting showcase links to. */
-    private static final String EXTERNAL_LINK = "https://example.com";
-
     private final KnowledgeBaseService kbService;
     private final KbContentService contentService;
     private final KnowledgeBaseRepository kbRepository;
@@ -159,7 +156,7 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
 
                         ## Links
 
-                        Hier ist ein [Link zur Startseite](/) und ein [externer Link](%s).
+                        Hier ist ein [Link zur Startseite](/) und ein [externer Link](https://example.com).
 
                         ---
 
@@ -179,7 +176,7 @@ public class DemoKnowledgeBaseSeeder implements DemoPerStationSeeder {
                         4. **Sonstiges** - Codeblöcke, horizontale Trennlinien
 
                         > Tipp: Markiere Text im Editor, um die Schnellformatierung zu nutzen!
-                        """.formatted(EXTERNAL_LINK),
+                        """,
                 createdBy);
         kbRepository.setFileTags(showcaseFile.id(), List.of("beispiel", "formatierung", "editor"), stationId);
 
