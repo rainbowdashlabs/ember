@@ -12,6 +12,7 @@
 - **Gruppensets.** Gruppen lassen sich zu einem Set zusammenfassen, etwa die Stufen einer Ausbildung, und ein Mitglied kann nur in einer Gruppe eines Sets sein. Ein Set wird auf der Gruppenseite angelegt, und wer eine andere Gruppe des Sets wählt, verschiebt das Mitglied.
 ### Verbesserungen
 
+- **Zahlenspalten listen ihre Werte zum Filtern.** Neben dem Bereich listet der Filter einer Zahlenspalte wie dem Alter jetzt die Werte ihrer Zeilen zum einzelnen Ankreuzen.
 - **Vorschau, Duplizieren und eine Nachricht nach dem Absenden.** Der Formular-Editor zeigt das Formular so, wie es ausgefüllt wird, samt Weg durch die Seiten, und Formulare und Fragen lassen sich duplizieren. Ein Formular kann nach dem Absenden eine eigene Nachricht und einen Link zeigen.
 - **Fragen und Seiten per Ziehen sortieren.** Fragen werden innerhalb einer Seite und zwischen Seiten gezogen, Seiten als Ganzes. Geänderte Fragen gehen nicht mehr verloren, wenn der Editor vor dem Speichern verlassen wird: Ember fragt vorher nach und bietet sie beim nächsten Öffnen wieder an.
 - **Die Ausleihe erreicht Partnerwachen auf anderen Instanzen.** Ausrüstung lässt sich zwischen Partnerwachen auf verschiedenen Instanzen genauso ansehen, anfragen, verleihen und zurückgeben wie zwischen Wachen einer Instanz. Beide Instanzen brauchen diese Version, und eine Partnerwache erscheint in den Angeboten, sobald sie aktualisiert hat.

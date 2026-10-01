@@ -12,6 +12,7 @@
 - **Group sets.** Groups can be put into a set, such as the levels of a training, and a member can be in only one group of a set. A set is created on the groups page, and choosing another group of the set moves the member.
 ### Improvements
 
+- **Number columns list their values to filter by.** Besides the range, the filter of a number column such as an age now lists the values its rows hold, to tick one by one.
 - **Preview, duplicate and a message after sending.** The form editor shows the form as it will be filled in, including the path through its pages, and forms and questions can be duplicated. A form can show its own message and a link once it is sent.
 - **Reorder questions and pages by dragging.** Questions are dragged within a page and between pages, and pages as a whole. Changed questions are no longer lost when the editor is left before saving: leaving asks first, and reopening offers them back.
 - **Lending reaches partner stations on other instances.** Gear can be browsed, requested, lent and given back between partner stations on different instances just as between stations of one instance. Both instances need this version, and a partner shows up among the offers once it has updated.
