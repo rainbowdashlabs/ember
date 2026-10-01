@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {ItemLastCheck} from '@/api/inventoryContainers'
-import type {InventoryItem} from '@/api/inventory'
+import type {InventoryItem, ItemLastCheck} from '@/api/generated/schema'
 
 /**
  * An item the container is expected to hold, together with the result the

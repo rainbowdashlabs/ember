@@ -7,9 +7,9 @@
 import {useI18n} from 'vue-i18n'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {TextFieldConfig} from '@/api/inventoryFields'
+import type {TextConfig} from '@/api/generated/schema'
 
-const config = defineModel<TextFieldConfig>('config', {required: true})
+const config = defineModel<TextConfig>('config', {required: true})
 
 const {t} = useI18n()
 </script>

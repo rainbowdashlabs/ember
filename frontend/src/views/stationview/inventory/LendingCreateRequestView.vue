@@ -22,6 +22,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import * as lending from '@/api/lending'
+import type {AvailableInventoryEntry} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -42,7 +43,7 @@ const dateTo = ref(String(route.query.dateTo ?? ''))
 const quantity = ref(1)
 const note = ref('')
 
-const availableItems = ref<lending.AvailableInventoryEntry[]>([])
+const availableItems = ref<AvailableInventoryEntry[]>([])
 const loadingItems = ref(true)
 const itemsFailure = ref<Failure | null>(null)
 

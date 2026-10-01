@@ -13,8 +13,14 @@ import ReportLossPanel from './ReportLossPanel.vue'
 import ItemHistoryPanel from './ItemHistoryPanel.vue'
 import ItemCheckHistoryPanel from './ItemCheckHistoryPanel.vue'
 import LendingSharePanel from '@/components/lending/LendingSharePanel.vue'
-import {ItemOwner, type InventoryItem, type InventoryItemHistory, type InventorySize} from '@/api/inventory'
-import type {ItemCheckHistoryEntry, ItemLocationResponse} from '@/api/inventoryContainers'
+import {ItemOwner} from '@/api/inventory'
+import type {
+  HistoryResponse,
+  InventoryItem,
+  InventorySize,
+  ItemCheckHistoryEntry,
+  ItemLocationResponse,
+} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 import type {Failure} from '@/util/failure'
 
@@ -28,7 +34,7 @@ const props = defineProps<{
   sizes: InventorySize[]
   members: StationMember[]
   location: ItemLocationResponse | null
-  historyEntries: InventoryItemHistory[]
+  historyEntries: HistoryResponse[]
   checkHistory: ItemCheckHistoryEntry[]
   canEditItem: boolean
   canActOnItem: boolean

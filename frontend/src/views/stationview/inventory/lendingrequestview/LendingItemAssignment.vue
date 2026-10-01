@@ -14,7 +14,7 @@ import SearchInput from '@/components/input/text/SearchInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
-import type {AvailableItemDetail} from '@/api/lending'
+import type {AvailableItemDetail} from '@/api/generated/schema'
 
 const props = defineProps<{
   loading: boolean

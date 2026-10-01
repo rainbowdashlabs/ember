@@ -5,13 +5,18 @@
  */
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {listFields, type InventoryFieldDefinition} from '@/api/inventoryFields'
+import {listFields} from '@/api/inventoryFields'
 import {inventoryItemTags} from '@/api/inventoryTags'
-import type {InventoryItem, InventorySize} from '@/api/inventory'
+import type {
+    InventoryFieldDefinition,
+    InventoryItem,
+    InventoryItemMetadata,
+    InventorySize,
+} from '@/api/generated/schema'
 import {ColumnTypes, toCellValue, type CellValue, type TableColumn} from '@/components/table/tableColumn'
 import { useDataTable } from '@/composables/useDataTable'
 import {itemOwnerOptions} from '@/util/inventoryType'
-import { parseItemMetadata, type ParsedItemMetadata } from '../detailview/itemMetadata'
+import { parseItemMetadata } from '../detailview/itemMetadata'
 
 export interface ItemTableOptions {
   inventoryId: () => number
@@ -77,7 +82,7 @@ export function useItemTable(options: ItemTableOptions) {
   const anyTags = computed(() => [...tagNamesByItem.value.values()].some(names => names.length > 0))
 
   const metadataById = computed(() => {
-    const map = new Map<number, ParsedItemMetadata>()
+    const map = new Map<number, InventoryItemMetadata>()
     for (const item of options.items()) map.set(item.id, parseItemMetadata(item.metadata))
     return map
   })

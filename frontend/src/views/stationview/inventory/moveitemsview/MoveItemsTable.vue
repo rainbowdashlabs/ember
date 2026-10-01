@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import type {InventoryItem} from '@/api/inventory'
+import type {InventoryItem} from '@/api/generated/schema'
 
 /**
  * The pieces on offer to move, each saying what will happen to its size.

@@ -23,7 +23,8 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
-import type {MyInventoryItem} from '@/api/inventory'
+import {ItemCustody, ItemOwner} from '@/api/inventory'
+import type {MyInventoryItem} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -34,20 +35,29 @@ const perspectives: HelpPerspective[] = [
 const activeView = ref('')
 const showExchangeModal = ref(false)
 
-const dummyHelm: MyInventoryItem = {
-  id: 1, inventoryId: 1, inventoryName: 'Helme', inventoryHomogeneous: true, name: 'Helm #12',
-  sizeName: 'M', sizeId: 2, internalId: 'HLM-2024-012', lostAt: null,
+/** The fields a member's own piece carries when nothing about it is out of the ordinary. */
+function dummyPiece(piece: Partial<MyInventoryItem> & Pick<MyInventoryItem, 'id' | 'inventoryId' | 'inventoryName' | 'name'>): MyInventoryItem {
+  return {
+    internalId: null, inventoryHomogeneous: true, sizeId: null, sizeName: null, lostAt: null,
+    custody: ItemCustody.WITH_MEMBER, movementId: null, movementStep: null, ownerKind: ItemOwner.STATION,
+    ownerClusterId: null, lostNote: null, lostNoteBy: null, icon: null, color: null, ...piece,
+  }
 }
+
+const dummyHelm = dummyPiece({
+  id: 1, inventoryId: 1, inventoryName: 'Helme', name: 'Helm #12',
+  sizeName: 'M', sizeId: 2, internalId: 'HLM-2024-012',
+})
 /** A piece with something running on it says the step it stands on, in the chain's own words. */
-const dummyJackeOnItsWay: MyInventoryItem = {
-  id: 2, inventoryId: 2, inventoryName: 'Jacken', inventoryHomogeneous: true, name: 'Einsatzjacke #7',
-  sizeName: 'L', sizeId: 3, internalId: 'JCK-2023-007', lostAt: null,
+const dummyJackeOnItsWay = dummyPiece({
+  id: 2, inventoryId: 2, inventoryName: 'Jacken', name: 'Einsatzjacke #7',
+  sizeName: 'L', sizeId: 3, internalId: 'JCK-2023-007',
   movementId: 1, movementStep: 'Tausch angefordert',
-}
-const dummyStiefel: MyInventoryItem = {
-  id: 3, inventoryId: 3, inventoryName: 'Stiefel', inventoryHomogeneous: true, name: 'Stiefel #3',
-  sizeName: '42', sizeId: 4, lostAt: '2026-03-01T00:00:00Z',
-}
+})
+const dummyStiefel = dummyPiece({
+  id: 3, inventoryId: 3, inventoryName: 'Stiefel', name: 'Stiefel #3',
+  sizeName: '42', sizeId: 4, lostAt: '2026-03-01T00:00:00Z', custody: ItemCustody.LOST,
+})
 </script>
 
 <template>

@@ -19,8 +19,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import LineTargetFields from '@/components/inventory/LineTargetFields.vue'
-import type {Inventory, InventoryItem} from '@/api/inventory'
-import type {InventoryArt} from '@/api/inventoryArts'
+import type {Inventory, InventoryArt, InventoryItem} from '@/api/generated/schema'
 
 const show = defineModel<boolean>('show', {required: true})
 const kind = defineModel<'item' | 'art' | 'inventory'>('kind', {required: true})

@@ -12,7 +12,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
-import type {InventoryItem} from '@/api/inventory'
+import type {InventoryItem} from '@/api/generated/schema'
 
 const props = withDefaults(defineProps<{
   item: InventoryItem

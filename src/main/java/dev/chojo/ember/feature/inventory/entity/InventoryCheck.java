@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -32,13 +33,13 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record InventoryCheck(
         int id,
         int stationId,
-        Integer memberId,
+        @Nullable Integer memberId,
         int checkedBy,
         Instant checkedAt,
         InventoryCheckScope scope,
-        Integer containerId,
+        @Nullable Integer containerId,
         boolean deep,
-        Integer reportedBy) {
+        @Nullable Integer reportedBy) {
     /**
      * Creates a row mapping for database result set conversion.
      */

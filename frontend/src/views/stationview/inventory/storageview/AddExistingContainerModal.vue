@@ -19,7 +19,7 @@ import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {describeFailure, type Failure} from '@/util/failure'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {inventoryContainers} from '@/api'
-import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
+import type {InventoryContainer, InventoryContainerKind} from '@/api/generated/schema'
 
 const props = defineProps<{
   targetContainerId: number

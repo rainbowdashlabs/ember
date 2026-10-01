@@ -14,7 +14,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import type { CheckDetail } from '@/api/inventoryCheck'
+import type { EnrichedCheckDetail } from '@/api/generated/schema'
 import { inventoryCheck } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { formatDateTime } from '@/util/format'
@@ -28,7 +28,7 @@ const router = useRouter()
 
 const memberId = computed(() => Number(route.params.memberId))
 const memberName = computed(() => (route.query.name as string) ?? '')
-const {config: detail, loading, failure} = useConfigPanel<CheckDetail | null>({
+const {config: detail, loading, failure} = useConfigPanel<EnrichedCheckDetail | null>({
   initial: null,
   fetch: () => inventoryCheck.getLastCheck(memberId.value),
 })

@@ -8,7 +8,7 @@ import {describe, expect, it, vi} from 'vitest'
 import {mount} from '@vue/test-utils'
 import {createI18n} from 'vue-i18n'
 import MovementActionPanel from './MovementActionPanel.vue'
-import type {MovementStep} from '@/api/movements'
+import type {MovementStepResponse} from '@/api/generated/schema'
 
 const held = {inventoryRead: true}
 
@@ -32,7 +32,7 @@ const i18n = createI18n({
     messages: {'de-DE': {}, en: {}},
 })
 
-function namingStep(): MovementStep {
+function namingStep(): MovementStepResponse {
     return {
         id: 7,
         position: 2,
@@ -44,7 +44,7 @@ function namingStep(): MovementStep {
         archived: false,
         current: true,
         actionable: true,
-    } as MovementStep
+    } as MovementStepResponse
 }
 
 function panel(extra: Record<string, unknown> = {}) {

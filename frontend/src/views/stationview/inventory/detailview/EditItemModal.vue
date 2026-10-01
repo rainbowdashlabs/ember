@@ -10,17 +10,20 @@ import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import type {InventoryItem, InventorySize} from '@/api/inventory'
 import {inventory, inventoryArts, inventoryContainers, inventoryFields, inventoryTags} from '@/api'
-import type {InventoryArt} from '@/api/inventoryArts'
-import type {InventoryTag} from '@/api/inventoryTags'
+import type {
+  InventoryArt,
+  InventoryContainer,
+  InventoryFieldDefinition,
+  InventoryItem,
+  InventorySize,
+  TagResponse,
+} from '@/api/generated/schema'
 import EditItemFields from './edititemmodal/EditItemFields.vue'
 import EditItemCustomFields from './edititemmodal/EditItemCustomFields.vue'
 import EditItemFooter from './edititemmodal/EditItemFooter.vue'
 import InventoryFieldsPanel from '@/components/inventory/InventoryFieldsPanel.vue'
 import {parseItemMetadata, buildItemMetadata} from './itemMetadata'
-import type {InventoryContainer} from '@/api/inventoryContainers'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const props = withDefaults(
@@ -57,7 +60,7 @@ const containerId = ref<number | null>(null)
 const artId = ref<number | null>(null)
 const artDraft = ref('')
 const arts = ref<InventoryArt[]>([])
-const tags = ref<InventoryTag[]>([])
+const tags = ref<TagResponse[]>([])
 const tagNames = ref<string[]>([])
 const fieldDefs = ref<InventoryFieldDefinition[]>([])
 const fieldValues = ref<Record<string, unknown>>({})

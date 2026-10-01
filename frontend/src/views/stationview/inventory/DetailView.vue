@@ -11,15 +11,21 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {InventoryTypes, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
-import type { ProcurementEntry } from '@/api/procurement'
+import {InventoryTypes} from '@/api/inventory'
+import type {
+  InventoryArt,
+  InventoryContainer,
+  InventoryDetail,
+  InventoryItem,
+  InventorySize,
+  LentOutItem,
+  ProcurementResponse,
+} from '@/api/generated/schema'
 import {StationPermission, type StationMember} from '@/api/types'
 import { inventory, inventoryArts, inventoryContainers, stationMembers, procurement } from '@/api'
-import type { InventoryContainer } from '@/api/inventoryContainers'
-import type { InventoryArt } from '@/api/inventoryArts'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { getLentOutByInventory, type LentOutItem } from '@/api/lending'
+import { getLentOutByInventory } from '@/api/lending'
 import { useStations } from '@/composables/useStations'
 import { containerPathFor } from '@/util/containerPath'
 import DetailHeader from './detailview/DetailHeader.vue'
@@ -41,7 +47,7 @@ const detail = ref<InventoryDetail | null>(null)
 const items = ref<InventoryItem[]>([])
 const arts = ref<InventoryArt[]>([])
 const memberMap = ref<Map<number, StationMember>>(new Map())
-const openProcurement = ref<ProcurementEntry[]>([])
+const openProcurement = ref<ProcurementResponse[]>([])
 const lentOutItems = ref<LentOutItem[]>([])
 const containers = ref<InventoryContainer[]>([])
 const modals = ref<InstanceType<typeof DetailViewModals> | null>(null)

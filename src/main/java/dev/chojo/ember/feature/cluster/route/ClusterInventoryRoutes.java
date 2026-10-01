@@ -33,6 +33,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -161,7 +162,7 @@ public class ClusterInventoryRoutes implements Routes {
                         row.itemId(),
                         row.internalId(),
                         row.name(),
-                        row.custody().name(),
+                        row.custody(),
                         row.stationUid(),
                         row.stationName(),
                         row.holderName(),
@@ -182,7 +183,7 @@ public class ClusterInventoryRoutes implements Routes {
         ctx.json(inventoryService.findQueue(cluster.id()).stream()
                 .map(row -> new ClusterQueueResponse(
                         row.movementId(),
-                        row.purpose().name(),
+                        row.purpose(),
                         row.stationUid(),
                         row.stationName(),
                         row.stepLabel(),
@@ -336,7 +337,7 @@ public class ClusterInventoryRoutes implements Routes {
         return new ClusterFlowResponse(
                 flow.id(),
                 flow.name(),
-                flow.purpose().name(),
+                flow.purpose(),
                 flow.archived(),
                 inventoryService.findSteps(clusterId, flow.id()).stream()
                         .map(ClusterInventoryRoutes::toStep)
@@ -465,12 +466,16 @@ public class ClusterInventoryRoutes implements Routes {
     public record LossReportSettings(LossReportRequirement requires) {}
 
     /** One piece resting in the cluster's store, offered on the dispatch screen. */
-    public record SendableItem(int id, String internalId, String name, Integer inventoryId, String inventoryName) {}
+    public record SendableItem(
+            int id, @Nullable String internalId, String name, Integer inventoryId, String inventoryName) {}
 
     /**
      * A consignment: one station, the pieces going to it, and what the cluster wrote about it.
      */
-    public record DispatchRequest(UUID stationUid, List<Integer> itemIds, String reason) {}
+    public record DispatchRequest(
+            UUID stationUid,
+            List<Integer> itemIds,
+            @Nullable String reason) {}
 
     /**
      * @param stationUid the station holding it, or {@code null} when it rests in the cluster's own store
@@ -479,14 +484,14 @@ public class ClusterInventoryRoutes implements Routes {
      */
     public record ClusterItemResponse(
             int id,
-            String internalId,
+            @Nullable String internalId,
             String name,
-            String custody,
-            UUID stationUid,
-            String stationName,
-            String holderName,
-            Integer sizeId,
-            String sizeLabel) {}
+            ItemCustody custody,
+            @Nullable UUID stationUid,
+            @Nullable String stationName,
+            @Nullable String holderName,
+            @Nullable Integer sizeId,
+            @Nullable String sizeLabel) {}
 
     /**
      * One kind of thing the association owns.
@@ -516,11 +521,11 @@ public class ClusterInventoryRoutes implements Routes {
      */
     public record ClusterQueueResponse(
             int movementId,
-            String purpose,
-            UUID stationUid,
-            String stationName,
-            String stepLabel,
-            String itemName,
+            MovementPurpose purpose,
+            @Nullable UUID stationUid,
+            @Nullable String stationName,
+            @Nullable String stepLabel,
+            @Nullable String itemName,
             Instant createdAt) {}
 
     /**
@@ -531,7 +536,7 @@ public class ClusterInventoryRoutes implements Routes {
      * something whose content it never displayed, and a chain with no steps does nothing at all.
      */
     public record ClusterFlowResponse(
-            int id, String name, String purpose, boolean archived, List<ClusterStepResponse> steps) {}
+            int id, String name, MovementPurpose purpose, boolean archived, List<ClusterStepResponse> steps) {}
 
     public record ClusterStepRequest(
             String label, StepActor actor, StepSubject subject, ItemCustody custodyAfter, boolean picksItem) {}

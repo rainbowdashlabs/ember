@@ -18,7 +18,7 @@ import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vu
 import type { ProfileFieldChange } from '@/api/profileFieldChanges'
 import type { ProfileField } from '@/api/profileFields'
 import type { StationMember, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
-import type { MemberRequirements, MyInventoryItem } from '@/api/inventory'
+import type { MemberRequirements, MyInventoryItem } from '@/api/generated/schema'
 
 defineProps<{
   member: StationMember

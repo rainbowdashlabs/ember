@@ -8,8 +8,7 @@ import { useI18n } from 'vue-i18n'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import CheckItemActions from './CheckItemActions.vue'
-import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
-import type { CheckResult } from '@/api/inventoryCheck'
+import type { CheckResult, InventoryItem, RequiredInventoryItem } from '@/api/generated/schema'
 
 const props = defineProps<{
   item: InventoryItem

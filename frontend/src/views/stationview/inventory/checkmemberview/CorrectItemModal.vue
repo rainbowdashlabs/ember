@@ -17,9 +17,13 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import CorrectNewPiece from './correctitemmodal/CorrectNewPiece.vue'
 import type {Failure} from '@/util/failure'
 import {inventoryFields} from '@/api'
-import {InventoryTypes, ItemOwner, type InventoryItem, type ItemOwnerName, type RequiredInventoryItem} from '@/api/inventory'
-import type {CorrectItemRequest} from '@/api/inventoryCheck'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import {InventoryTypes, ItemOwner, type ItemOwnerName} from '@/api/inventory'
+import type {
+  CorrectItemRequest,
+  InventoryFieldDefinition,
+  InventoryItem,
+  RequiredInventoryItem,
+} from '@/api/generated/schema'
 import {buildItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
 
 /**

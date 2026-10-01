@@ -5,11 +5,11 @@
  */
 <script lang="ts" setup>
 import MemberInventoryLink from '@/components/inventory/MemberInventoryLink.vue'
-import type {Movement} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 
 /** Who a movement is with, leading to what they hold, or the words for the station's store. */
 const props = defineProps<{
-  movement: Movement
+  movement: MovementResponse
   /** The words the cell has without a member, which is the store. */
   text: string
 }>()

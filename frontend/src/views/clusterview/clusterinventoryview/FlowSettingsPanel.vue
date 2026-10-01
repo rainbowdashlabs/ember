@@ -16,8 +16,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FlowCard from '@/views/stationview/inventory/flowview/FlowCard.vue'
 import {clusterInventory} from '@/api'
-import type {ClusterFlow} from '@/api/clusterInventory'
-import {MovementPurpose, type MovementFlow, type StepRequest} from '@/api/movements'
+import {MovementPurpose, type MovementPurposeName} from '@/api/movements'
+import type {ClusterFlowResponse, FlowResponse, StepRequest} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlowProblems} from '@/composables/useFlowProblems'
 import type {Failure} from '@/util/failure'
@@ -33,13 +33,13 @@ import type {Failure} from '@/util/failure'
 const {t} = useI18n()
 const {refusalFailure} = useFlowProblems()
 
-const flows = ref<ClusterFlow[]>([])
+const flows = ref<ClusterFlowResponse[]>([])
 const busy = ref(false)
 const actionFailure = ref<Failure | null>(null)
 const flowFailures = ref<Record<number, Failure | null>>({})
 
 const newName = ref('')
-const newPurpose = ref<string>(MovementPurpose.ISSUE)
+const newPurpose = ref<MovementPurposeName>(MovementPurpose.ISSUE)
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
   flows.value = await clusterInventory.listFlows()
@@ -49,7 +49,8 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
  * The card wants a station's flow. Nobody stands above the association, so nothing here is somebody
  * else's to leave alone, and every chain is editable.
  */
-const cards = computed<MovementFlow[]>(() => flows.value.map(flow => ({...flow, ownedByCluster: false})))
+const cards = computed<FlowResponse[]>(() =>
+  flows.value.map(flow => ({...flow, ownedByCluster: false, problem: null})))
 
 /**
  * Runs one change and reloads. Refusals are shown rather than swallowed: a step cannot be changed while

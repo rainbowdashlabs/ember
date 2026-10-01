@@ -17,12 +17,13 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {ItemCustody} from '@/api/inventory'
-import {StepActor, StepSubject, type MovementFlowStep, type StepRequest} from '@/api/movements'
+import {StepActor, StepSubject} from '@/api/movements'
+import type {StepRequest, StepResponse} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
 const props = defineProps<{
-  step: MovementFlowStep
+  step: StepResponse
   editable: boolean
   /** Whether there is a step above this one to swap with. */
   canMoveUp: boolean

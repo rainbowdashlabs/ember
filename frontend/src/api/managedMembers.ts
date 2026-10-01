@@ -5,7 +5,7 @@
  */
 import client from './client'
 import type {ProfileField, ProfileFieldValue} from './profileFields'
-import type {MyInventoryItem, MyRequirement} from './inventory'
+import type {MyInventoryItem, MyRequirement} from './generated/schema'
 
 export interface ManagedMember {
     id: number

@@ -8,8 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
 import {listSearch, numericPickerModel} from '@/util/listSearch'
-import type {Inventory} from '@/api/inventory'
-import type {InventoryArt} from '@/api/inventoryArts'
+import type {Inventory, InventoryArt} from '@/api/generated/schema'
 
 const model = defineModel<number | null>()
 

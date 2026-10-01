@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -269,7 +270,8 @@ public class LendingRequestViewService {
             String itemSummary,
             boolean overdue) {}
 
-    public record EnrichedMessage(LendingMessage message, String senderName, String senderStationName) {}
+    public record EnrichedMessage(
+            LendingMessage message, @Nullable String senderName, String senderStationName) {}
 
     public record EnrichedItem(LendingRequestItem item, String inventoryName) {}
 
@@ -277,9 +279,9 @@ public class LendingRequestViewService {
             int itemId,
             int inventoryId,
             String inventoryName,
-            String internalId,
+            @Nullable String internalId,
             String itemName,
-            String sizeName,
+            @Nullable String sizeName,
             int requestItemId,
             boolean preselected) {}
 }

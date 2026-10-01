@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {ContainerCheckItemResult} from '@/api/inventoryContainers'
+import type {CheckItemResult} from '@/api/generated/schema'
 import type {ExpectedRow, ExtraRow, WalkCounts} from './types'
 
 /**
@@ -25,8 +25,8 @@ export function countWalkResults(expected: ExpectedRow[], extra: ExtraRow[]): Wa
  * Turns the walk results into the payload that completes the check. Items left
  * untouched count as not in possession.
  */
-export function toCheckItems(expected: ExpectedRow[], extra: ExtraRow[]): ContainerCheckItemResult[] {
-  const items: ContainerCheckItemResult[] = []
+export function toCheckItems(expected: ExpectedRow[], extra: ExtraRow[]): CheckItemResult[] {
+  const items: CheckItemResult[] = []
   for (const row of expected) {
     items.push({
       itemId: row.item.id,

@@ -5,8 +5,27 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
+import type {
+    AvailableInventoryResult,
+    AvailableItemDetail,
+    components,
+    CreateBlockRequest,
+    CreateLendingRequest,
+    EnrichedMessage,
+    InventoryBlock,
+    ItemAssignment,
+    LendingMessage,
+    LendingRequestDetail,
+    LendingRequestResponse,
+    LentOutItem,
+    SetShareRequest,
+    ShareDetail,
+    ShareSetting,
+} from './generated/schema'
 
-// -- Types --
+type Schemas = components['schemas']
+
+export type LendingStatusName = Schemas['LendingStatus']
 
 export const LendingStatus = {
     REQUESTED: 'REQUESTED',
@@ -15,133 +34,9 @@ export const LendingStatus = {
     LENT: 'LENT',
     RETURNED: 'RETURNED',
     CLOSED: 'CLOSED',
-} as const
+} as const satisfies Record<LendingStatusName, LendingStatusName>
 
-export type LendingStatusName = (typeof LendingStatus)[keyof typeof LendingStatus]
-
-export interface LendingRequest {
-    id: number
-    requestingStationId: string
-    owningStationId: string
-    status: LendingStatusName
-    requestedDateFrom: string
-    requestedDateTo: string | null
-    createdBy: number
-    createdAt: string
-    updatedAt: string
-    /** The appointment the request was collected for, at the requesting station. */
-    eventId: number | null
-    eventDate: string | null
-    /** What the request is for, as the owning station reads it. A copy of the name, never a link. */
-    occasion: string
-}
-
-export interface LendingRequestResponse {
-    request: LendingRequest
-    requestingStationName: string
-    owningStationName: string
-    isOwner: boolean
-    itemSummary: string
-    overdue: boolean
-}
-
-export interface LendingRequestItem {
-    id: number
-    requestId: number
-    inventoryId: number | null
-    itemId: number | null
-    /** The kind of thing the line asks for, which is how it says four blue radios. */
-    artId: number | null
-    quantity: number
-    /** The line of an appointment's needs this fills, at the requesting station. */
-    needId: number | null
-}
-
-export interface EnrichedItem {
-    item: LendingRequestItem
-    inventoryName: string
-}
-
-export interface LendingRequestDetail {
-    request: LendingRequestResponse
-    items: EnrichedItem[]
-}
-
-export interface LendingMessage {
-    id: number
-    requestId: number
-    senderStationId: string
-    senderMemberId: number | null
-    message: string
-    isSystem: boolean
-    createdAt: string
-}
-
-export interface AvailableItemDetail {
-    itemId: number
-    inventoryId: number
-    inventoryName: string
-    internalId: string
-    itemName: string
-    sizeName: string | null
-    requestItemId: number
-    preselected: boolean
-}
-
-export interface EnrichedMessage {
-    message: LendingMessage
-    senderName: string | null
-    senderStationName: string
-}
-
-export interface InventoryBlock {
-    id: number
-    stationId: string
-    inventoryId: number | null
-    itemId: number | null
-    blockFrom: string
-    blockTo: string
-    reason: string
-    inventoryName: string | null
-    itemName: string | null
-    itemInternalId: string | null
-}
-
-export interface CreateLendingRequestPayload {
-    owningStationId: string
-    dateFrom: string
-    dateTo: string | null
-    eventId?: number | null
-    eventDate?: string | null
-    items: {
-        inventoryId?: number | null
-        itemId?: number | null
-        artId?: number | null
-        quantity: number
-        needId?: number | null
-    }[]
-}
-
-export interface CreateBlockPayload {
-    inventoryId?: number | null
-    itemId?: number | null
-    blockFrom: string
-    blockTo: string
-    reason?: string
-}
-
-export interface AvailableInventoryEntry {
-    inventoryId: number
-    inventoryName: string
-    /** The kind counted, or null where the row counts a whole inventory. */
-    artId: number | null
-    artName: string | null
-    /** The owning station, as the public UUID the API speaks in. */
-    stationId: string
-    stationName: string
-    availableCount: number
-    distanceKm: number | null
-}
+export type LendingEmptyReasonName = Schemas['EmptyReason']
 
 /**
  * Why a browse answer came back empty. It names the situation and never the gear: which
@@ -150,89 +45,29 @@ export interface AvailableInventoryEntry {
 export const LendingEmptyReason = {
     NOTHING_SHARED: 'NOTHING_SHARED',
     NOTHING_FREE: 'NOTHING_FREE',
-} as const
+} as const satisfies Record<LendingEmptyReasonName, LendingEmptyReasonName>
 
-export type LendingEmptyReasonName = (typeof LendingEmptyReason)[keyof typeof LendingEmptyReason]
-
-export interface AvailableInventoryResult {
-    entries: AvailableInventoryEntry[]
-    emptyReason: LendingEmptyReasonName | null
-}
+export type ShareGrantName = Schemas['ShareGrant']
 
 export const ShareGrant = {
     GRANT: 'GRANT',
     WITHHOLD: 'WITHHOLD',
-} as const
+} as const satisfies Record<ShareGrantName, ShareGrantName>
 
-export type ShareGrantName = (typeof ShareGrant)[keyof typeof ShareGrant]
+export type ShareScopeName = Schemas['ShareScope']
 
 export const ShareScope = {
     ALL_PARTNERS: 'ALL_PARTNERS',
     SPECIFIC: 'SPECIFIC',
-} as const
-
-export type ShareScopeName = (typeof ShareScope)[keyof typeof ShareScope]
-
-export interface ShareSetting {
-    shared: boolean
-    grant: ShareGrantName | null
-    scope: ShareScopeName | null
-    partnerIds: number[]
-}
-
-export interface InventoryShare {
-    id: number
-    stationId: number
-    inventoryId: number | null
-    artId: number | null
-    itemId: number | null
-    shareScope: ShareScopeName
-    shareGrant: ShareGrantName
-}
+} as const satisfies Record<ShareScopeName, ShareScopeName>
 
 /** Which of the three levels a sharing row speaks at. The narrowest one that exists decides. */
 export type ShareTarget = 'inventory' | 'art' | 'item'
-
-export interface SharePartner {
-    partnerId: number
-    stationName: string
-}
-
-export interface ShareDetail {
-    share: InventoryShare
-    inventoryName: string | null
-    artName: string | null
-    itemName: string | null
-    itemInternalId: string | null
-    partners: SharePartner[]
-}
-
-export interface SetSharePayload {
-    grant: ShareGrantName
-    scope: ShareScopeName
-    partnerIds: number[]
-}
-
-// -- Lent-out items by inventory --
-
-export interface LentOutItem {
-    requestItemId: number
-    requestId: number
-    itemId: number | null
-    quantity: number
-    assignedItemId: number | null
-    status: string
-    dateFrom: string
-    dateTo: string | null
-    requestingStationName: string
-}
 
 export async function getLentOutByInventory(inventoryId: number): Promise<LentOutItem[]> {
     const res = await client.get<LentOutItem[]>(`/lending/inventory/${inventoryId}/lent-out`)
     return res.data
 }
-
-// -- Available inventory --
 
 export async function listAvailable(options?: { q?: string; from?: string; to?: string }): Promise<AvailableInventoryResult> {
     const params: Record<string, string> = {}
@@ -274,7 +109,7 @@ export async function getShare(target: ShareTarget, id: number): Promise<ShareSe
     return res.data
 }
 
-export async function setShare(target: ShareTarget, id: number, payload: SetSharePayload): Promise<ShareSetting> {
+export async function setShare(target: ShareTarget, id: number, payload: SetShareRequest): Promise<ShareSetting> {
     const res = await client.put<ShareSetting>(`/lending/shares/${target}/${id}`, payload)
     return res.data
 }
@@ -283,16 +118,14 @@ export async function removeShare(target: ShareTarget, id: number): Promise<void
     await client.delete(`/lending/shares/${target}/${id}`)
 }
 
-// -- Requests --
-
 const requests = createCrudResource<
     LendingRequestResponse,
-    CreateLendingRequestPayload,
-    CreateLendingRequestPayload,
+    CreateLendingRequest,
+    CreateLendingRequest,
     LendingRequestDetail
 >('/lending/requests')
 
-const blocks = createCrudResource<InventoryBlock, CreateBlockPayload>('/lending/blocks')
+const blocks = createCrudResource<InventoryBlock, CreateBlockRequest>('/lending/blocks')
 
 export const listRequests = requests.list
 export const createRequest = requests.create
@@ -323,18 +156,14 @@ export async function closeRequest(id: number): Promise<LendingRequestResponse> 
     return res.data
 }
 
-// -- Item assignment --
-
 export async function getAvailableItems(requestId: number): Promise<AvailableItemDetail[]> {
     const res = await client.get<AvailableItemDetail[]>(`/lending/requests/${requestId}/available-items`)
     return res.data
 }
 
-export async function assignItems(requestId: number, items: { requestItemId: number; itemId: number }[]): Promise<void> {
+export async function assignItems(requestId: number, items: ItemAssignment[]): Promise<void> {
     await client.post(`/lending/requests/${requestId}/assign-items`, {items})
 }
-
-// -- Messages --
 
 export async function getMessages(requestId: number): Promise<EnrichedMessage[]> {
     const res = await client.get<EnrichedMessage[]>(`/lending/requests/${requestId}/messages`)
@@ -345,8 +174,6 @@ export async function sendMessage(requestId: number, message: string): Promise<L
     const res = await client.post<LendingMessage>(`/lending/requests/${requestId}/messages`, {message})
     return res.data
 }
-
-// -- Blocks --
 
 export const listBlocks = blocks.list
 export const createBlock = blocks.create

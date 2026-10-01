@@ -10,7 +10,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {RestorePlanMovement, RestorePlanStep} from '@/api/movements'
+import type {PlannedLanding, PlannedStep} from '@/api/generated/schema'
 
 /**
  * Where the movements on each step of the old chain go once it is replaced.
@@ -22,8 +22,8 @@ import type {RestorePlanMovement, RestorePlanStep} from '@/api/movements'
 const {t} = useI18n()
 
 const props = defineProps<{
-  movements: RestorePlanMovement[]
-  steps: RestorePlanStep[]
+  movements: PlannedLanding[]
+  steps: PlannedStep[]
   /** The step picked for each old step so far, absent where nobody has picked one yet. */
   choices: Record<number, number | null>
 }>()
@@ -33,7 +33,7 @@ const emit = defineEmits<{choose: [stepId: number | null, stepIndex: number | nu
 const anyUncertain = computed(() => props.movements.some(landing => !landing.certain))
 
 /** The key a landing is held under, since the step of a movement that has lost one is nothing. */
-function keyOf(landing: RestorePlanMovement): number {
+function keyOf(landing: PlannedLanding): number {
   return landing.stepId ?? -1
 }
 

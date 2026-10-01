@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, type Ref} from 'vue'
-import type {InventoryContainer} from '@/api/inventoryContainers'
+import type {InventoryContainer} from '@/api/generated/schema'
 import {containerPathFor} from '@/util/containerPath'
 import type {ExpectedRow} from './types'
 

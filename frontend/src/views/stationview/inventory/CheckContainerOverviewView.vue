@@ -16,7 +16,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import ContainerTree from '@/views/stationview/inventory/storageview/ContainerTree.vue'
 import {inventoryContainers} from '@/api'
-import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
+import type {InventoryContainer, InventoryContainerKind} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const routes = useInventoryRoutes()

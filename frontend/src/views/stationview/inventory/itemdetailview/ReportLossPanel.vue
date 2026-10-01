@@ -17,7 +17,8 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {inventory} from '@/api'
-import {LossReportRequirement, type InventoryItem, type LossReportTerms} from '@/api/inventory'
+import {LossReportRequirement} from '@/api/inventory'
+import type {InventoryItem, LossReportTerms} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**

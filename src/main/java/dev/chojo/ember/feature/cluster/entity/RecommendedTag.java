@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * A word an association recommends, as it reads at one of its stations.
  *
@@ -16,4 +18,4 @@ package dev.chojo.ember.feature.cluster.entity;
  * @param color   the badge colour the association chose, or {@code null}
  * @param adopted whether the station already has a tag meaning the same word
  */
-public record RecommendedTag(String name, String color, boolean adopted) {}
+public record RecommendedTag(String name, @Nullable String color, boolean adopted) {}

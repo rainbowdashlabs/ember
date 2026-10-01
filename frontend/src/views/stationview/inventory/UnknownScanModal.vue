@@ -15,9 +15,15 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import UnknownScanForm from '@/views/stationview/inventory/unknownscanmodal/UnknownScanForm.vue'
 import {buildItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
-import {InventoryTypes, ItemOwner, type Inventory, type InventoryItem, type InventorySize, type ItemMetadata, type ItemOwnerName} from '@/api/inventory'
+import {InventoryTypes, ItemOwner, type ItemOwnerName} from '@/api/inventory'
 import {inventory, inventoryFields} from '@/api'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {
+  Inventory,
+  InventoryFieldDefinition,
+  InventoryItem,
+  InventoryItemMetadata,
+  InventorySize,
+} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
@@ -135,7 +141,7 @@ function removeNewSizeRow(index: number) {
   if (newInventorySizes.value.length === 0) newInventorySizes.value.push('')
 }
 
-function buildMetadata(): ItemMetadata | undefined {
+function buildMetadata(): InventoryItemMetadata | undefined {
   if (fieldDefs.value.length === 0) return undefined
   const built = buildItemMetadata(fieldDefs.value, fieldValues.value)
   return Object.keys(built.fields).length === 0 ? undefined : built

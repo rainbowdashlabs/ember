@@ -6,9 +6,9 @@
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
 import {hasMoved, lastMovedAt, queueOrder} from './movementFilter'
-import type {Movement} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 
-function movement(over: Partial<Movement>): Movement {
+function movement(over: Partial<MovementResponse>): MovementResponse {
     return {
         id: 1,
         purpose: 'EXCHANGE',
@@ -16,7 +16,7 @@ function movement(over: Partial<Movement>): Movement {
         reason: '',
         createdAt: '2026-09-01T10:00:00Z',
         ...over,
-    } as Movement
+    } as MovementResponse
 }
 
 describe('hasMoved', () => {

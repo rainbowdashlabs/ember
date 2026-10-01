@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { InventoryRequirement } from '@/api/inventory'
+import type { RequirementResponse } from '@/api/generated/schema'
 
 /**
  * A grouping of inventory requirements rendered as a single card in the
@@ -14,7 +14,7 @@ export interface RequirementGroup {
     type: 'userType' | 'group'
     key: string
     label: string
-    items: InventoryRequirement[]
+    items: RequirementResponse[]
 }
 
 export { StationUserTypeLabels as userTypeFriendlyNames } from '@/api/types'

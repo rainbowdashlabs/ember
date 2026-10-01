@@ -12,7 +12,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import FlowField from './FlowField.vue'
 import {ItemCustody, type ItemCustodyName} from '@/api/inventory'
-import {StepActor, StepSubject, type StepActorName, type StepRequest, type StepSubjectName} from '@/api/movements'
+import {StepActor, StepSubject, type StepActorName, type StepSubjectName} from '@/api/movements'
+import type {StepRequest} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

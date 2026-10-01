@@ -11,7 +11,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {lostAndFound, managedMembers as managedMembersApi} from '@/api'
-import type {LostAndFoundItem} from '@/api/lostAndFound'
+import type {LostAndFoundItemResponse} from '@/api/generated/schema'
 import type {ManagedMember} from '@/api/managedMembers'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
@@ -34,7 +34,7 @@ const canCreate = () => hasPermission(StationPermission.LOST_AND_FOUND_CREATE)
 const canManage = () => hasPermission(StationPermission.LOST_AND_FOUND_MANAGE)
 const myMemberId = () => sessionInfo.value?.member?.id
 
-const items = ref<LostAndFoundItem[]>([])
+const items = ref<LostAndFoundItemResponse[]>([])
 const managed = ref<ManagedMember[]>([])
 const managedIds = computed(() => managed.value.map(m => m.id))
 const {srcFor, load: loadImage, revokeAll} = useAuthImages<number>()

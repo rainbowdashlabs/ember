@@ -6,32 +6,10 @@
 import client from './client'
 import {createCrudResource} from './crud'
 import {uploadFile} from './upload'
-import type {MessageResponse} from './types'
+import type {ClaimRequest, CreateItemRequest, LostAndFoundItemResponse, MessageResponse} from './generated/schema'
 import {prepareImageUpload} from '@/util/imageUpload'
 
-export interface LostAndFoundItem {
-    id: number
-    stationId: string
-    description?: string
-    foundAt?: string
-    hasImage: boolean
-    claimedBy?: number | null
-    claimedByName?: string | null
-    claimedAt?: string | null
-    createdBy: number
-    createdAt: string
-}
-
-export interface CreateLostAndFoundRequest {
-    description?: string
-    foundAt?: string
-}
-
-export interface ClaimLostAndFoundRequest {
-    memberId?: number | null
-}
-
-const items = createCrudResource<LostAndFoundItem, CreateLostAndFoundRequest>('/lost-and-found')
+const items = createCrudResource<LostAndFoundItemResponse, CreateItemRequest>('/lost-and-found')
 
 export const listItems = items.list
 export const getItem = items.get
@@ -51,7 +29,7 @@ export function imageUrl(id: number, size?: number): string {
     return size ? `${base}?size=${size}` : base
 }
 
-export async function claimItem(id: number, request?: ClaimLostAndFoundRequest): Promise<MessageResponse> {
+export async function claimItem(id: number, request?: ClaimRequest): Promise<MessageResponse> {
     const res = await client.post<MessageResponse>(`/lost-and-found/${id}/claim`, request ?? {})
     return res.data
 }

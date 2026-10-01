@@ -14,7 +14,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
-import type { LentOutItem } from '@/api/lending'
+import type { LentOutItem } from '@/api/generated/schema'
 import { formatDate } from '@/util/format'
 
 const routes = useInventoryRoutes()

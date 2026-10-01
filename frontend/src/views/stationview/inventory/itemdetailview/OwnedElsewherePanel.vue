@@ -12,7 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import MovementWizard from '../movementwizard/MovementWizard.vue'
 import type {WizardPrefill} from '../movementwizard/useMovementWizard'
-import type {InventoryItem} from '@/api/inventory'
+import type {InventoryItem} from '@/api/generated/schema'
 import {MovementPurpose, type MovementPurposeName} from '@/api/movements'
 
 /**

@@ -19,7 +19,8 @@ import MovementWizard from './movementwizard/MovementWizard.vue'
 import {MovementColumn, useMovementColumns} from './movementqueueview/movementColumns'
 import {queueOrder} from './movementqueueview/movementFilter'
 import {movements, profileFields} from '@/api'
-import {MovementState, type Movement} from '@/api/movements'
+import {MovementState} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 import type {ProfileField} from '@/api/profileFields'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
@@ -42,7 +43,7 @@ const router = useRouter()
 const routes = useInventoryRoutes()
 const {hasPermission} = useSession()
 
-const rows = ref<Movement[]>([])
+const rows = ref<MovementResponse[]>([])
 const fields = ref<ProfileField[]>([])
 
 const canManage = computed(() => hasPermission(StationPermission.INVENTORY_MOVEMENTS))
@@ -59,7 +60,7 @@ const columns = computed(() => allColumns.value.filter(column => canManage.value
 const state = ref(emptyTableState())
 state.value.filters = new Map([[MovementColumn.STANDING, new Set<string>([MovementState.OPEN])]])
 
-const table = useDataTable<Movement>({
+const table = useDataTable<MovementResponse>({
   id: 'inventory-movements',
   rows,
   columns,
@@ -92,7 +93,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
  * is a starting point and not the answer: a sheet to walk a shelf with is usually a handful of rows
  * out of the list, and everything ticked to begin with makes that a matter of unticking.
  */
-const exportFlow = useExport<Movement>({
+const exportFlow = useExport<MovementResponse>({
   rows: () => table.rows,
   rowId: row => row.id,
   columns: () => fields.value.map(field => ({key: String(field.id), label: field.name ?? String(field.id)})),
@@ -115,7 +116,7 @@ async function downloadPdf() {
   }
 }
 
-function openDetail(movement: Movement) {
+function openDetail(movement: MovementResponse) {
   if (!routes.movement) return
   void router.push({name: routes.movement, params: {id: String(movement.id)}})
 }

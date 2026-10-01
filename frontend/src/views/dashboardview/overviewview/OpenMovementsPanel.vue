@@ -15,7 +15,8 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import ItemChip from '@/components/inventory/ItemChip.vue'
 import {glyphFor} from '@/util/glyph'
-import {MovementState, type Movement} from '@/api/movements'
+import {MovementState} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 import {movements} from '@/api'
 import {useSession} from '@/composables/useSession'
 
@@ -28,7 +29,7 @@ import {useSession} from '@/composables/useSession'
 const {t} = useI18n()
 const {isGuardian, sessionInfo} = useSession()
 
-const rows = ref<Movement[]>([])
+const rows = ref<MovementResponse[]>([])
 
 const movementsPage = {name: 'inventory-movements'}
 
@@ -38,7 +39,7 @@ function isOtherMember(memberId: number | null | undefined): boolean {
   return isGuardian() && memberId != null && memberId !== (sessionInfo.value?.member?.id ?? 0)
 }
 
-function chipOf(movement: Movement) {
+function chipOf(movement: MovementResponse) {
   return {
     glyph: glyphFor({icon: movement.icon, color: movement.color}),
     name: movement.itemName ?? movement.incomingItemName ?? movement.inventoryName ?? '',

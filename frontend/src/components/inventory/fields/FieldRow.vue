@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {InventoryFieldDefinition} from '@/api/generated/schema'
 
 withDefaults(
     defineProps<{

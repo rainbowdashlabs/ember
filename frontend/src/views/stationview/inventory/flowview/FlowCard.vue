@@ -12,7 +12,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {FlowStepMapping, MovementFlow, MovementFlowBinding, StepRequest} from '@/api/movements'
+import type {BindingResponse, ChosenLanding, FlowResponse, StepRequest} from '@/api/generated/schema'
 import FlowDiagram from '@/components/movement/FlowDiagram.vue'
 import FlowStepRow from './FlowStepRow.vue'
 import AddStepForm from './AddStepForm.vue'
@@ -26,12 +26,12 @@ const {t} = useI18n()
 const {problemText} = useFlowProblems()
 
 const props = defineProps<{
-  flow: MovementFlow
+  flow: FlowResponse
   busy: boolean
   /** Why the last change to this chain was refused, shown where the change was made. */
   failure?: Failure | null
   /** The combination this chain serves, absent for one the station wrote itself. */
-  binding?: MovementFlowBinding
+  binding?: BindingResponse
 }>()
 
 const emit = defineEmits<{
@@ -40,7 +40,7 @@ const emit = defineEmits<{
   archiveFlow: [flowId: number]
   saveStep: [stepId: number, step: StepRequest]
   reorder: [flowId: number, stepIds: number[]]
-  restore: [flowId: number, mappings: FlowStepMapping[]]
+  restore: [flowId: number, mappings: ChosenLanding[]]
   /** A refusal the restore dialog read for itself, shown where every other refusal about this chain is. */
   restoreRefused: [flowId: number, failure: Failure | null]
 }>()

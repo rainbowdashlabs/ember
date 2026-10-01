@@ -16,14 +16,8 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {movements} from '@/api'
-import {
-  MovementPurpose,
-  type FlowStepMapping,
-  type MovementFlow,
-  type MovementFlowBinding,
-  type MovementPurposeName,
-  type StepRequest,
-} from '@/api/movements'
+import {MovementPurpose, type MovementPurposeName} from '@/api/movements'
+import type {BindingResponse, ChosenLanding, FlowResponse, StepRequest} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlowProblems} from '@/composables/useFlowProblems'
 import type {Failure} from '@/util/failure'
@@ -32,8 +26,8 @@ import FlowCard from '../flowview/FlowCard.vue'
 const {t} = useI18n()
 const {refusalFailure} = useFlowProblems()
 
-const flows = ref<MovementFlow[]>([])
-const bindings = ref<MovementFlowBinding[]>([])
+const flows = ref<FlowResponse[]>([])
+const bindings = ref<BindingResponse[]>([])
 const busy = ref(false)
 const actionFailure = ref<Failure | null>(null)
 const flowFailures = ref<Record<number, Failure | null>>({})
@@ -61,7 +55,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
  * the card names, since that is the wider of the two answers.
  */
 const bindingOf = computed(() => {
-  const found = new Map<number, MovementFlowBinding>()
+  const found = new Map<number, BindingResponse>()
   for (const binding of bindings.value) {
     const known = found.get(binding.flowId)
     if (!known || (known.inventoryId != null && binding.inventoryId == null)) found.set(binding.flowId, binding)
@@ -92,7 +86,7 @@ const groups = computed(() =>
  * reader is not looking: a step cannot be edited while a movement is walking the chain, and that
  * belongs next to the step.
  */
-async function runOnFlow(flowId: number, action: () => Promise<MovementFlow>) {
+async function runOnFlow(flowId: number, action: () => Promise<FlowResponse>) {
   busy.value = true
   flowFailures.value = {...flowFailures.value, [flowId]: null}
   try {
@@ -104,7 +98,7 @@ async function runOnFlow(flowId: number, action: () => Promise<MovementFlow>) {
   }
 }
 
-function replace(flow: MovementFlow) {
+function replace(flow: FlowResponse) {
   flows.value = flows.value.map(known => (known.id === flow.id ? flow : known))
 }
 
@@ -120,7 +114,7 @@ function showFlowFailure(flowId: number, reported: Failure | null) {
  * for a step is owed. What the card shows is the whole chain, including whether it can be walked at
  * all, and that is only known once the step is in it.
  */
-async function addStep(flowId: number, step: StepRequest): Promise<MovementFlow> {
+async function addStep(flowId: number, step: StepRequest): Promise<FlowResponse> {
   await movements.addStep(flowId, step)
   return movements.getFlow(flowId)
 }
@@ -181,7 +175,7 @@ function createFlow() {
             @archive-flow="(flowId: number) => runOnFlow(flowId, () => movements.archiveFlow(flowId))"
             @save-step="(stepId: number, step: StepRequest) => runOnFlow(flow.id, () => movements.updateStep(stepId, step))"
             @reorder="(flowId: number, stepIds: number[]) => runOnFlow(flowId, () => movements.reorderSteps(flowId, stepIds))"
-            @restore="(flowId: number, mappings: FlowStepMapping[]) => runOnFlow(flowId, () => movements.restoreFlow(flowId, mappings))"
+            @restore="(flowId: number, mappings: ChosenLanding[]) => runOnFlow(flowId, () => movements.restoreFlow(flowId, mappings))"
             @restore-refused="showFlowFailure"
         />
       </div>

@@ -11,8 +11,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ArtPicker from '../ArtPicker.vue'
-import type {InventorySize} from '@/api/inventory'
-import type {InventoryArt} from '@/api/inventoryArts'
+import type {InventoryArt, InventorySize} from '@/api/generated/schema'
 
 const name = defineModel<string>('name', {required: true})
 const internalId = defineModel<string>('internalId', {required: true})

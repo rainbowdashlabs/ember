@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import type {AvailableInventoryEntry} from '@/api/lending'
+import type {AvailableInventoryEntry} from '@/api/generated/schema'
 
 defineProps<{
   offers: AvailableInventoryEntry[]

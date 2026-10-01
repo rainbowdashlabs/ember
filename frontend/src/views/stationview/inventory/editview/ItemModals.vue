@@ -19,16 +19,21 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import {ItemOwner, type InventoryDetail, type InventoryItem, type InventoryItemHistory} from '@/api/inventory'
+import {ItemOwner} from '@/api/inventory'
+import type {
+  HistoryResponse,
+  InventoryArt,
+  InventoryDetail,
+  InventoryFieldDefinition,
+  InventoryItem,
+} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 import {inventory, inventoryArts, inventoryFields} from '@/api'
-import type {InventoryArt} from '@/api/inventoryArts'
 import {useModalTarget} from '@/composables/useModalTarget'
 import AddItemFields from './itemmodals/AddItemFields.vue'
 import EditItemModal from '../detailview/EditItemModal.vue'
 import EditItemCustomFields from '../detailview/edititemmodal/EditItemCustomFields.vue'
 import {buildItemMetadata} from '../detailview/itemMetadata'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {formatDate} from '@/util/format'
@@ -211,7 +216,7 @@ async function submitQuickAssign() {
 
 const showHistoryModal = ref(false)
 const historyTarget = ref<InventoryItem | null>(null)
-const historyEntries = ref<InventoryItemHistory[]>([])
+const historyEntries = ref<HistoryResponse[]>([])
 const {loading: historyLoading, failure: historyFailure, reload: loadHistory} = useAsyncLoader(async (isCurrent) => {
   const item = historyTarget.value
   if (!item) return

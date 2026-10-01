@@ -15,8 +15,13 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {inventory, inventoryContainers, stationMembers} from '@/api'
 import {ItemOwner} from '@/api/inventory'
-import type {InventoryItem, InventoryItemHistory, InventorySize} from '@/api/inventory'
-import type {ItemCheckHistoryEntry, ItemLocationResponse} from '@/api/inventoryContainers'
+import type {
+  HistoryResponse,
+  InventoryItem,
+  InventorySize,
+  ItemCheckHistoryEntry,
+  ItemLocationResponse,
+} from '@/api/generated/schema'
 import {StationPermission, type StationMember} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useActsForOwner} from '@/composables/useActsForOwner'
@@ -36,7 +41,7 @@ const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
 
 const itemId = computed(() => Number(route.params.id))
 const item = ref<InventoryItem | null>(null)
-const historyEntries = ref<InventoryItemHistory[]>([])
+const historyEntries = ref<HistoryResponse[]>([])
 const checkHistory = ref<ItemCheckHistoryEntry[]>([])
 const sizes = ref<InventorySize[]>([])
 const members = ref<StationMember[]>([])

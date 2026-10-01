@@ -14,11 +14,17 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
+import dev.chojo.ember.feature.inventory.entity.EnrichedCheckDetail;
+import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
+import dev.chojo.ember.feature.inventory.entity.ItemCheckHistoryEntry;
 import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
+import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberCheckSummary;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
+import dev.chojo.ember.feature.inventory.service.InventoryCheckService.MemberCheckState;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -35,6 +41,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -150,7 +157,7 @@ public class InventoryCheckRoutes implements Routes {
             tags = {"Inventory Checks"},
             pathParams = @OpenApiParam(name = "containerId", type = Integer.class, required = true),
             queryParams = @OpenApiParam(name = "deep", type = Boolean.class),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryItem[].class)))
     private void containerExpectedItems(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int containerId = pathInt(ctx, "containerId");
@@ -166,7 +173,7 @@ public class InventoryCheckRoutes implements Routes {
             tags = {"Inventory Checks"},
             pathParams = @OpenApiParam(name = "containerId", type = Integer.class, required = true),
             queryParams = @OpenApiParam(name = "deep", type = Boolean.class),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ItemLastCheck[].class)))
     private void containerLastItemResults(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int containerId = pathInt(ctx, "containerId");
@@ -181,7 +188,8 @@ public class InventoryCheckRoutes implements Routes {
             summary = "All recorded check results for a single item, newest-first",
             tags = {"Inventory Checks"},
             pathParams = @OpenApiParam(name = "itemId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = ItemCheckHistoryEntry[].class)))
     private void itemCheckHistory(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int itemId = pathInt(ctx, "itemId");
@@ -196,7 +204,7 @@ public class InventoryCheckRoutes implements Routes {
             tags = {"Inventory Checks"},
             pathParams = @OpenApiParam(name = "containerId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CompleteContainerCheckRequest.class)),
-            responses = @OpenApiResponse(status = "201"))
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryCheck.class)))
     private void completeContainerCheck(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int containerId = pathInt(ctx, "containerId");
@@ -218,7 +226,8 @@ public class InventoryCheckRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get inventory check overview for the current station",
             tags = {"Inventory Checks"},
-            responses = @OpenApiResponse(status = "200"))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = EnrichedCheckSummary[].class)))
     private void overview(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var summaries = checkService.getCheckOverview(session.stationId());
@@ -234,7 +243,7 @@ public class InventoryCheckRoutes implements Routes {
             summary = "Start an inventory check for a member",
             tags = {"Inventory Checks"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCheckState.class)))
     private void startCheck(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
@@ -250,7 +259,7 @@ public class InventoryCheckRoutes implements Routes {
             tags = {"Inventory Checks"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CompleteCheckRequest.class)),
-            responses = @OpenApiResponse(status = "201"))
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryCheck.class)))
     private void completeCheck(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
@@ -291,7 +300,10 @@ public class InventoryCheckRoutes implements Routes {
             summary = "Get the last inventory check for a member",
             tags = {"Inventory Checks"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EnrichedCheckDetail.class)),
+                @OpenApiResponse(status = "404")
+            })
     private void lastCheck(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
@@ -308,7 +320,7 @@ public class InventoryCheckRoutes implements Routes {
             tags = {"Inventory Checks"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AssignItemRequest.class)),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCheckState.class)))
     private void assignItem(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
@@ -332,7 +344,7 @@ public class InventoryCheckRoutes implements Routes {
             tags = {"Inventory Checks"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UnassignItemRequest.class)),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCheckState.class)))
     private void unassignItem(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
@@ -350,7 +362,7 @@ public class InventoryCheckRoutes implements Routes {
             tags = {"Inventory Checks"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateAndAssignRequest.class)),
-            responses = @OpenApiResponse(status = "201"))
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberCheckState.class)))
     private void createAndAssign(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
@@ -375,7 +387,7 @@ public class InventoryCheckRoutes implements Routes {
             tags = {"Inventory Checks"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CorrectItemRequest.class)),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberCheckState.class)))
     private void correctItem(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
@@ -410,13 +422,13 @@ public class InventoryCheckRoutes implements Routes {
             int memberId,
             String firstName,
             String lastName,
-            Instant lastCheckedAt,
-            String checkerFirstName,
-            String checkerLastName,
+            @Nullable Instant lastCheckedAt,
+            @Nullable String checkerFirstName,
+            @Nullable String checkerLastName,
             boolean locked,
-            Integer lockedBy,
-            String lockerFirstName,
-            String lockerLastName,
+            @Nullable Integer lockedBy,
+            @Nullable String lockerFirstName,
+            @Nullable String lockerLastName,
             StationUserType userType,
             MemberIdentity identity) {
         EnrichedCheckSummary(MemberCheckSummary s, MemberIdentity identity) {
@@ -440,13 +452,20 @@ public class InventoryCheckRoutes implements Routes {
 
     public record CompleteContainerCheckRequest(boolean deep, List<CheckItemResult> items) {}
 
-    public record CheckItemResult(Integer itemId, Integer inventoryId, CheckResult result, String note) {}
+    public record CheckItemResult(
+            @Nullable Integer itemId,
+            @Nullable Integer inventoryId,
+            CheckResult result,
+            @Nullable String note) {}
 
-    public record AssignItemRequest(int newItemId, Integer oldItemId) {}
+    public record AssignItemRequest(int newItemId, @Nullable Integer oldItemId) {}
 
     public record UnassignItemRequest(int itemId) {}
 
-    public record CreateAndAssignRequest(int inventoryId, Integer sizeId, Integer oldItemId) {}
+    public record CreateAndAssignRequest(
+            int inventoryId,
+            @Nullable Integer sizeId,
+            @Nullable Integer oldItemId) {}
 
     /**
      * What a check found the member holding, as it arrives over the wire.
@@ -462,16 +481,16 @@ public class InventoryCheckRoutes implements Routes {
      */
     public record CorrectItemRequest(
             int inventoryId,
-            Integer oldItemId,
-            Integer pickedItemId,
-            Integer sizeId,
-            ItemOwner ownerKind,
-            String internalId,
-            InventoryItemMetadata metadata) {
+            @Nullable Integer oldItemId,
+            @Nullable Integer pickedItemId,
+            @Nullable Integer sizeId,
+            @Nullable ItemOwner ownerKind,
+            @Nullable String internalId,
+            @Nullable InventoryItemMetadata metadata) {
         ItemCorrection toCorrection() {
             return new ItemCorrection(inventoryId, oldItemId, pickedItemId, sizeId, ownerKind, internalId, metadata);
         }
     }
 
-    public record NextMemberResponse(Integer memberId) {}
+    public record NextMemberResponse(@Nullable Integer memberId) {}
 }

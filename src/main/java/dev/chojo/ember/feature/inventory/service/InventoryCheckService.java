@@ -41,6 +41,7 @@ import io.javalin.http.ConflictResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -669,7 +670,7 @@ public class InventoryCheckService {
             MemberIdentity memberIdentity,
             List<RequiredInventoryItem> required,
             List<InventoryItem> assigned,
-            InventoryCheck lastCheck,
+            @Nullable InventoryCheck lastCheck,
             Map<Integer, List<InventoryItem>> unassigned,
             Map<Integer, String> onTheMove,
             List<SelfCheck> overtookSelfChecks) {}

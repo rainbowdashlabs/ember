@@ -106,6 +106,8 @@
 - **Eine geleerte Notiz an einem Schritt kam zurück.** Wer die Notiz eines Schritts in einem Ablauf leerte, behielt die alte Notiz. Leeren entfernt sie jetzt.
 - **Quizfragen mit KI zu erzeugen schlug fehl.** Neue Fragen für einen Katalog oder eine neue Fassung ausgewählter Fragen von der KI anzufordern schlug fehl, und Fragen, die doch ankamen, wurden ohne ihre Antworten gespeichert. Erzeugte Fragen kommen jetzt an und werden vollständig gespeichert.
 - **Freitext- und Bildfragen zeigten keine Antwort.** In einem nur lesbar geöffneten Quizkatalog zeigten Freitext- und Bildfragen keine richtige Antwort. Sie nennen jetzt wie alle anderen Fragearten die akzeptierten Antworten.
+- **Korrekturen fehlten im Verlauf eines Gegenstands.** Wenn eine Kontrolle richtigstellte, wer einen Gegenstand hat, erschien das im Verlauf wie eine gewöhnliche Rückgabe. Solche Einträge sind jetzt als Korrektur gekennzeichnet.
+- **Eine Art, die das Umstellen einer Liste verhinderte, wurde nicht genannt.** Ließ sich eine Sammlung nicht in einen Bestand umstellen, weil darin noch Arten angelegt sind, erschien der Grund als unlesbarer Text. Jetzt wird die Art genannt, die im Weg steht.
 
 ## v26.19.5
 

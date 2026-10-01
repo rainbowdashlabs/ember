@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckLock;
+import dev.chojo.ember.feature.inventory.entity.InventoryCheckScope;
 import dev.chojo.ember.feature.inventory.entity.ItemCheckHistoryEntry;
 import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
 import dev.chojo.ember.feature.inventory.entity.MemberCheckSummary;
@@ -334,7 +335,7 @@ public class InventoryCheckRepository {
                             checkerName,
                             reporterName,
                             row.getString("container_name"),
-                            row.getString("scope"),
+                            row.getEnum("scope", InventoryCheckScope.class),
                             note == null ? "" : note);
                 })
                 .all();

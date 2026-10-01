@@ -14,8 +14,7 @@ import ArtSearchPicker from '@/components/input/search/ArtSearchPicker.vue'
 import InventorySearchPicker from '@/components/input/search/InventorySearchPicker.vue'
 import StockHint from './StockHint.vue'
 import {stockByArt, stockByInventory} from '@/util/inventoryStock'
-import type {Inventory, InventoryItem} from '@/api/inventory'
-import type {InventoryArt} from '@/api/inventoryArts'
+import type {Inventory, InventoryArt, InventoryItem} from '@/api/generated/schema'
 
 const kind = defineModel<'item' | 'art' | 'inventory'>('kind', {required: true})
 const itemId = defineModel<string>('itemId', {required: true})

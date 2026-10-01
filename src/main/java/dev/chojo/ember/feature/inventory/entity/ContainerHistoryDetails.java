@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import tools.jackson.databind.ObjectMapper;
 
@@ -76,7 +77,7 @@ public sealed interface ContainerHistoryDetails
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record Created(String name, Integer parentId) implements ContainerHistoryDetails {
+    record Created(String name, @Nullable Integer parentId) implements ContainerHistoryDetails {
         @Override
         public ContainerEventKind eventKind() {
             return ContainerEventKind.CREATED;
@@ -105,7 +106,7 @@ public sealed interface ContainerHistoryDetails
      * @param to   the new parent id, or {@code null} when it became a root
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record Moved(Integer from, Integer to) implements ContainerHistoryDetails {
+    record Moved(@Nullable Integer from, @Nullable Integer to) implements ContainerHistoryDetails {
         @Override
         public ContainerEventKind eventKind() {
             return ContainerEventKind.MOVED;

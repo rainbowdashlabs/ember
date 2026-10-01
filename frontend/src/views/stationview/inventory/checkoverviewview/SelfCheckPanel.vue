@@ -17,8 +17,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {selfChecks} from '@/api'
-import type {MemberCheckSummary} from '@/api/inventoryCheck'
-import type {SelfCheckTask} from '@/api/generated/schema'
+import type {EnrichedCheckSummary, SelfCheckTask} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {byValue} from '@/composables/useSortable'
@@ -32,7 +31,7 @@ import {memberName} from './memberHelpers'
  * and shows on their dashboard, and it never stands in the doorway after they sign in.
  */
 const props = defineProps<{
-  members: MemberCheckSummary[]
+  members: EnrichedCheckSummary[]
   reviewRoute: string
 }>()
 
@@ -100,13 +99,13 @@ function open(task: SelfCheckTask) {
             v-model="askMemberId"
             :search-fn="askableSearch"
             :display-fn="memberName"
-            :key-fn="(member: MemberCheckSummary) => member.memberId"
+            :key-fn="(member: EnrichedCheckSummary) => member.memberId"
             :icon-fn="() => ['fas', 'user']"
             :selected-display="askedMemberName"
             :placeholder="t('selfCheck.panel.pickMember')"
             :empty-label="t('selfCheck.panel.noneAskable')"
             data-testid="self-check-ask-member"
-            @pick="(member: MemberCheckSummary) => askMemberId = String(member.memberId)"
+            @pick="(member: EnrichedCheckSummary) => askMemberId = String(member.memberId)"
         />
       </div>
       <div class="space-y-1">

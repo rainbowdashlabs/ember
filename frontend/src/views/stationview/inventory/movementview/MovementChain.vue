@@ -13,8 +13,7 @@ import MovementStep from './MovementStep.vue'
 import MovementActionPanel, {type AcknowledgePayload} from './MovementActionPanel.vue'
 import MovementRechainButton from './MovementRechainButton.vue'
 import {useMovementParties} from '@/composables/useMovementParties'
-import type {InventorySize} from '@/api/inventory'
-import type {MovementDetail} from '@/api/movements'
+import type {InventorySize, MovementDetail} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 /**

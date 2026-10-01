@@ -5,8 +5,8 @@
  */
 import {computed, inject, provide, ref, type InjectionKey} from 'vue'
 import {inventory, movements} from '@/api'
-import {MovementPurpose, type FlowPreview, type MovementPurposeName} from '@/api/movements'
-import type {Inventory, InventorySize} from '@/api/inventory'
+import {MovementPurpose, type MovementPurposeName} from '@/api/movements'
+import type {FlowPreview, Inventory, InventorySize} from '@/api/generated/schema'
 
 /** Which question the wizard is on. The preview is always last, because it is the answer to the rest. */
 export type WizardStep = 'purpose' | 'party' | 'subject' | 'reason' | 'preview'

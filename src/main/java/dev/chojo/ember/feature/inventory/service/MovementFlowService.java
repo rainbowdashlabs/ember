@@ -25,6 +25,7 @@ import dev.chojo.ember.util.sql.Transactions;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1161,7 +1162,11 @@ public class MovementFlowService {
      *                       restore has to be told
      */
     public record PlannedLanding(
-            Integer stepId, String standingOn, int movements, Integer suggestedIndex, boolean certain) {}
+            @Nullable Integer stepId,
+            @Nullable String standingOn,
+            int movements,
+            @Nullable Integer suggestedIndex,
+            boolean certain) {}
 
     /**
      * Where the movements on one step are to land, as somebody chose it.
@@ -1169,7 +1174,8 @@ public class MovementFlowService {
      * @param stepId    the step they stand on, which has to be one of the chain being written again
      * @param stepIndex the step of the preset they land on, counted from the front
      */
-    public record ChosenLanding(Integer stepId, Integer stepIndex) {}
+    public record ChosenLanding(
+            @Nullable Integer stepId, @Nullable Integer stepIndex) {}
 
     private record Preset(
             String name, MovementPurpose purpose, ItemOwner ownerKind, MovementParty party, List<PresetStep> steps) {

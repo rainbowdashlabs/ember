@@ -10,7 +10,7 @@ import SizeBadge from '@/components/badge/SizeBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import GearGlyph from '@/components/inventory/GearGlyph.vue'
 import {glyphFor} from '@/util/glyph'
-import type {MyInventoryItem} from '@/api/inventory'
+import type {MyInventoryItem} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 /**

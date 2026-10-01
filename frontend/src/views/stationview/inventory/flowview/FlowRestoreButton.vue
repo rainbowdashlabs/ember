@@ -14,7 +14,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {movements} from '@/api'
-import type {FlowStepMapping, RestorePlan} from '@/api/movements'
+import type {ChosenLanding, RestorePlan} from '@/api/generated/schema'
 import {useFlowProblems} from '@/composables/useFlowProblems'
 import type {Failure} from '@/util/failure'
 import FlowRestoreMappingList from './FlowRestoreMappingList.vue'
@@ -38,7 +38,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  confirm: [mappings: FlowStepMapping[]]
+  confirm: [mappings: ChosenLanding[]]
   /** Why the plan could not be read, described for the card that shows it, or null to clear it. */
   refused: [failure: Failure | null]
 }>()

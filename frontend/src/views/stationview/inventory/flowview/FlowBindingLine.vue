@@ -7,12 +7,12 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
-import type {MovementFlowBinding} from '@/api/movements'
+import type {BindingResponse} from '@/api/generated/schema'
 import {itemOwnerLabel} from '@/util/inventoryType'
 
 const {t} = useI18n()
 
-const props = defineProps<{binding: MovementFlowBinding}>()
+const props = defineProps<{binding: BindingResponse}>()
 
 /**
  * The combination a chain serves, as three named facts.

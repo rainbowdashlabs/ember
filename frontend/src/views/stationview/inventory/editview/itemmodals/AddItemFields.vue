@@ -12,8 +12,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import ArtPicker from '../../ArtPicker.vue'
-import type {InventoryDetail} from '@/api/inventory'
-import type {InventoryArt} from '@/api/inventoryArts'
+import type {InventoryArt, InventoryDetail} from '@/api/generated/schema'
 
 /**
  * What is asked when a piece is written down: its identifier, its name, what kind of thing it is,

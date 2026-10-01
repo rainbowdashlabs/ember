@@ -3,27 +3,39 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {FieldTypeName, InventoryFieldDefinition} from '@/api/inventoryFields'
-import type {ItemMetadata} from '@/api/inventory'
+import {FieldType, type FieldTypeName} from '@/api/inventoryFields'
+import type {FieldValue, InventoryFieldDefinition, InventoryItemMetadata} from '@/api/generated/schema'
 
-export interface ParsedItemMetadata {
-    fields: Record<string, {kind: FieldTypeName; value: unknown}>
+/**
+ * The metadata attached to an inventory item, or an empty one where the item carries none, so
+ * callers can bind directly to the result.
+ */
+export function parseItemMetadata(raw: InventoryItemMetadata | null | undefined): InventoryItemMetadata {
+    return {fields: raw?.fields ?? {}}
 }
 
 /**
- * Parses the metadata attached to an inventory item. Accepts both the structured
- * object the API serves and a raw JSONB string. Returns an empty record when the
- * input is missing or malformed so callers can bind directly to the result.
+ * One editor value as the field value of its type, or null where there is nothing to keep.
+ *
+ * <p>The editors hand back what their inputs hold, which for a number can still be the text that
+ * was typed. The value is turned into what the field's type stores, so the payload says what the
+ * backend reads rather than whatever the input happened to produce.
  */
-export function parseItemMetadata(raw: string | ItemMetadata | null | undefined): ParsedItemMetadata {
-    if (!raw) return {fields: {}}
-    try {
-        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-        return {
-            fields: (parsed?.fields ?? {}) as ParsedItemMetadata['fields'],
+export function fieldValueOf(type: FieldTypeName, value: unknown): FieldValue | null {
+    if (value === undefined || value === null || value === '') return null
+    switch (type) {
+        case FieldType.NUMBER: {
+            const num = Number(value)
+            return Number.isNaN(num) ? null : {kind: 'NUMBER', value: num}
         }
-    } catch {
-        return {fields: {}}
+        case FieldType.BOOLEAN:
+            return {kind: 'BOOLEAN', value: value === true || value === 'true'}
+        case FieldType.DATE:
+            return {kind: 'DATE', value: String(value)}
+        case FieldType.ENUM:
+            return {kind: 'ENUM', value: String(value)}
+        case FieldType.TEXT:
+            return {kind: 'TEXT', value: String(value)}
     }
 }
 
@@ -38,12 +50,11 @@ export function parseItemMetadata(raw: string | ItemMetadata | null | undefined)
 export function buildItemMetadata(
     defs: InventoryFieldDefinition[],
     values: Record<string, unknown>,
-): ParsedItemMetadata {
-    const fields: Record<string, {kind: FieldTypeName; value: unknown}> = {}
+): InventoryItemMetadata {
+    const fields: Record<string, FieldValue> = {}
     for (const def of defs) {
-        const v = values[def.key]
-        if (v === undefined || v === null || v === '') continue
-        fields[def.key] = {kind: def.fieldType, value: v}
+        const value = fieldValueOf(def.fieldType, values[def.key])
+        if (value) fields[def.key] = value
     }
     return {fields}
 }

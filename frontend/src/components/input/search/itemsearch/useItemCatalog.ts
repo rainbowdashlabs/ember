@@ -10,10 +10,14 @@ import {containerPathFor} from '@/util/containerPath'
 import {glyphFor} from '@/util/glyph'
 import {inventory, inventoryArts, inventoryContainers, movements, stationMembers} from '@/api'
 import {MovementState} from '@/api/movements'
-import type {InventoryArt} from '@/api/inventoryArts'
-import type {Inventory, InventoryItem, InventorySize} from '@/api/inventory'
+import type {
+    Inventory,
+    InventoryArt,
+    InventoryContainer,
+    InventoryItem,
+    InventorySize,
+} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
-import type {InventoryContainer} from '@/api/inventoryContainers'
 import type {ItemSearchText} from './itemRanking'
 
 type ItemState = 'member' | 'storage' | 'lost' | 'free'

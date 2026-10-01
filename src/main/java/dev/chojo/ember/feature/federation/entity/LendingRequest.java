@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.federation.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -42,12 +43,12 @@ public record LendingRequest(
         UUID owningStationUid,
         LendingStatus status,
         LocalDate requestedDateFrom,
-        LocalDate requestedDateTo,
-        Integer createdBy,
+        @Nullable LocalDate requestedDateTo,
+        @Nullable Integer createdBy,
         Instant createdAt,
         Instant updatedAt,
-        Integer eventId,
-        LocalDate eventDate,
+        @Nullable Integer eventId,
+        @Nullable LocalDate eventDate,
         String occasion,
         UUID uid) {
 

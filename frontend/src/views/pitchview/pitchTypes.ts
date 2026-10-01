@@ -4,13 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {
-    AttendanceEntry, ContentRow, EvaluationResponse, Form, FormAnswerValue, FormQuestion, FormQuestionInfo,
-    FormResultGroup, ProcedureItem, ProcedureTemplateItem, QuizCatalog, StationPage, TestProtocolItem,
+    AttendanceEntry, CheckResult, ContentRow, EvaluationResponse, Form, FormAnswerValue, FormQuestion,
+    FormQuestionInfo, FormResultGroup, InventoryContainer, InventoryContainerKind, InventoryItem, InventorySize,
+    ProcedureItem, ProcedureTemplateItem, QuizCatalog, RequiredInventoryItem, StationPage, TestProtocolItem,
     TestProtocolSection, WaitingList, WaitingListEntryWithScore, WaitingListField, WaitingListWithCount,
 } from '@/api/generated/schema'
-import type {InventoryItem, InventorySize, RequiredInventoryItem} from '@/api/inventory'
-import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
-import type {CheckResult} from '@/api/inventoryCheck'
 import type {CheckEntry} from '@/composables/useMemberCheck'
 import type {CheckRow} from '@/views/stationview/attendance/sessionview/useCheckMode'
 import type {MemberSection} from '@/views/stationview/attendance/sessionview/memberSections'

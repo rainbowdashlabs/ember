@@ -14,7 +14,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
-import type { InventoryItem, InventorySize } from '@/api/inventory'
+import type { InventoryItem, InventorySize } from '@/api/generated/schema'
 import type { StationMember } from '@/api/types'
 import { formatDate } from '@/util/format'
 

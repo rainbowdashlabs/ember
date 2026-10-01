@@ -17,13 +17,13 @@ import RowLink from '@/components/navigation/RowLink.vue'
 import InventoryTabs from './clusterinventoryview/InventoryTabs.vue'
 import {useClusterQueueTable} from './clustermovementqueueview/useClusterQueueTable'
 import {clusterInventory} from '@/api'
-import type {ClusterQueueEntry} from '@/api/clusterInventory'
+import type {ClusterQueueResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
 const router = useRouter()
 
-const {config: queue, loading, failure} = useConfigPanel<ClusterQueueEntry[]>({
+const {config: queue, loading, failure} = useConfigPanel<ClusterQueueResponse[]>({
   initial: [],
   fetch: () => clusterInventory.listQueue(),
 })
@@ -40,11 +40,11 @@ const table = useClusterQueueTable(() => queue.value)
  * <p>A row of a table cannot be a link itself, so the address hangs on the cell naming the step and
  * the rest of the row answers a press as it always did.
  */
-function movementPage(entry: ClusterQueueEntry) {
+function movementPage(entry: ClusterQueueResponse) {
   return {name: 'cluster-inventory-movement', params: {id: String(entry.movementId)}}
 }
 
-function open(entry: ClusterQueueEntry) {
+function open(entry: ClusterQueueResponse) {
   void router.push(movementPage(entry))
 }
 </script>

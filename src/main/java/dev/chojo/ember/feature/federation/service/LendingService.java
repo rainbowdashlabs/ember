@@ -52,6 +52,7 @@ import dev.chojo.ember.feature.station.service.StationLocationService;
 import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1212,12 +1213,12 @@ public class LendingService implements FederationServer {
     public record AvailableInventoryEntry(
             int inventoryId,
             String inventoryName,
-            Integer artId,
-            String artName,
+            @Nullable Integer artId,
+            @Nullable String artName,
             UUID stationId,
             String stationName,
             int availableCount,
-            Double distanceKm) {}
+            @Nullable Double distanceKm) {}
 
     /**
      * The browse answer, with the reason an empty one is empty.
@@ -1225,7 +1226,8 @@ public class LendingService implements FederationServer {
      * @param entries     what is free at the partners right now
      * @param emptyReason why nothing came back, or {@code null} when something did
      */
-    public record AvailableInventoryResult(List<AvailableInventoryEntry> entries, EmptyReason emptyReason) {}
+    public record AvailableInventoryResult(
+            List<AvailableInventoryEntry> entries, @Nullable EmptyReason emptyReason) {}
 
     /**
      * The two situations an empty browse answer can mean. It says nothing finer on purpose: which

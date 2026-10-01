@@ -7,11 +7,11 @@ import {
     MovementPurpose,
     MovementState,
     StepActor,
-    type Movement,
     type MovementPurposeName,
     type MovementStateName,
     type StepActorName,
 } from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 import type {SortComparator} from '@/composables/useSortable'
 import {enumOptions, type ColumnOption} from '@/components/table/tableColumn'
 
@@ -52,12 +52,12 @@ export function turnOptions(t: Translate): ColumnOption[] {
 }
 
 /** The member name a row shows, which is one of the two things a search has to match. */
-export function memberNameOf(movement: Movement): string {
+export function memberNameOf(movement: MovementResponse): string {
     return movement.memberIdentity?.name ?? movement.memberName ?? ''
 }
 
 /** What the row is about in words: the piece where there is one, the inventory otherwise. */
-export function subjectNameOf(movement: Movement): string {
+export function subjectNameOf(movement: MovementResponse): string {
     return movement.itemName ?? movement.incomingItemName ?? movement.inventoryName ?? ''
 }
 
@@ -68,7 +68,7 @@ export function subjectNameOf(movement: Movement): string {
  * member's, then the body's above, and everything finished out of the way. The date orders within a
  * group, which is what the comparator does after this.
  */
-export function turnRank(movement: Movement): number {
+export function turnRank(movement: MovementResponse): number {
     if (movement.state !== MovementState.OPEN) return 4
     if (movement.currentStepActor === StepActor.STATION) return movement.actionable ? 0 : 1
     if (movement.currentStepActor === StepActor.MEMBER) return 2
@@ -82,12 +82,12 @@ export function turnRank(movement: Movement): number {
  * and when it last moved is what says which rows have gone quiet, so a row raised in January and
  * touched yesterday belongs at opposite ends of the two orders.
  */
-export function lastMovedAt(movement: Movement): string {
+export function lastMovedAt(movement: MovementResponse): string {
     return movement.updatedAt ?? movement.createdAt
 }
 
 /** Whether anything has happened to the movement since it was raised. */
-export function hasMoved(movement: Movement): boolean {
+export function hasMoved(movement: MovementResponse): boolean {
     return lastMovedAt(movement) !== movement.createdAt
 }
 
@@ -96,5 +96,5 @@ export function hasMoved(movement: Movement): boolean {
  * and within an equal turn the oldest first, because a movement nobody has touched for a fortnight
  * is the one to deal with.
  */
-export const queueOrder: SortComparator<Movement> = (a, b) =>
+export const queueOrder: SortComparator<MovementResponse> = (a, b) =>
     turnRank(a) - turnRank(b) || a.createdAt.localeCompare(b.createdAt)

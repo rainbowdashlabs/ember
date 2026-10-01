@@ -26,6 +26,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -215,7 +216,7 @@ public class InventoryTagRoutes implements Routes {
      * @param itemCount how many things wear it
      */
     @OpenApiName("InventoryTagResponse")
-    public record TagResponse(int id, String name, String color, int position, int itemCount) {
+    public record TagResponse(int id, String name, @Nullable String color, int position, int itemCount) {
         static TagResponse of(InventoryTag tag, int itemCount) {
             return new TagResponse(tag.id(), tag.name(), tag.color(), tag.position(), itemCount);
         }
@@ -226,7 +227,7 @@ public class InventoryTagRoutes implements Routes {
      * @param color    optional hex colour for the badge
      * @param position where it should sit
      */
-    public record InventoryTagRequest(String name, String color, int position) {}
+    public record InventoryTagRequest(String name, @Nullable String color, int position) {}
 
     /**
      * @param names the words a thing should wear, as somebody typed them

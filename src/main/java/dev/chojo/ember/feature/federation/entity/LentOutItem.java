@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 
@@ -16,12 +17,12 @@ import java.time.LocalDate;
 public record LentOutItem(
         int requestItemId,
         int requestId,
-        Integer itemId,
+        @Nullable Integer itemId,
         int quantity,
-        Integer assignedItemId,
+        @Nullable Integer assignedItemId,
         String status,
         LocalDate dateFrom,
-        LocalDate dateTo,
+        @Nullable LocalDate dateTo,
         String requestingStationName) {
     public static RowMapping<LentOutItem> map() {
         return row -> new LentOutItem(

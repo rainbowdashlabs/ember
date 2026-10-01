@@ -33,7 +33,16 @@ const i18n = createI18n({
 
 function mountPanel(documentName: string | null) {
     return mount(LossReportPanel, {
-        props: {movementId: 4, report: {documentName}},
+        props: {
+            movementId: 4,
+            report: {
+                managerNote: 'Lost on duty',
+                memberNote: null,
+                memberNoteBy: null,
+                documentName,
+                documentType: documentName ? 'application/pdf' : null,
+            },
+        },
         global: {plugins: [i18n]},
     })
 }

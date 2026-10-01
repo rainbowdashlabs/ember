@@ -14,7 +14,7 @@ import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
 import GearGlyph from '@/components/inventory/GearGlyph.vue'
 import {glyphFor} from '@/util/glyph'
 import {inventoryContainers} from '@/api'
-import type {InventoryContainerKind} from '@/api/inventoryContainers'
+import type {InventoryContainerKind} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 

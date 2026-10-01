@@ -6,9 +6,9 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
-import type {BooleanFieldConfig} from '@/api/inventoryFields'
+import type {BooleanConfig} from '@/api/generated/schema'
 
-const config = defineModel<BooleanFieldConfig>('config', {required: true})
+const config = defineModel<BooleanConfig>('config', {required: true})
 
 const {t} = useI18n()
 </script>

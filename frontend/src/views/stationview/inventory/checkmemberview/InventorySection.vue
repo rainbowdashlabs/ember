@@ -11,8 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import InventoryItemCard from './InventoryItemCard.vue'
 import EmptySlotCard from './EmptySlotCard.vue'
-import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
-import type { CheckResult } from '@/api/inventoryCheck'
+import type { CheckResult, InventoryItem, RequiredInventoryItem } from '@/api/generated/schema'
 
 const props = defineProps<{
   req: RequiredInventoryItem

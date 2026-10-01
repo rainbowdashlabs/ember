@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {RechainPlan} from '@/api/movements'
+import type {RechainPlan} from '@/api/generated/schema'
 
 /**
  * The two chains, the step the movement stands on, and the step it is to land on.

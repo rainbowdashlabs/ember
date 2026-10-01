@@ -13,8 +13,14 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { useConfirmAction } from '@/composables/useConfirmAction'
-import type { CheckItemResult, CheckResult, CorrectItemRequest, MemberCheckState } from '@/api/inventoryCheck'
-import type { RequiredInventoryItem, InventoryItem  } from '@/api/inventory'
+import type {
+  CheckItemResult,
+  CheckResult,
+  CorrectItemRequest,
+  InventoryItem,
+  MemberCheckState,
+  RequiredInventoryItem,
+} from '@/api/generated/schema'
 import { inventoryCheck, movements } from '@/api'
 import { MovementPurpose } from '@/api/movements'
 import { useConfigPanel } from '@/composables/useConfigPanel'

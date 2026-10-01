@@ -52,6 +52,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -474,7 +475,7 @@ public class MovementRoutes implements Routes {
      * @param stepIndex the step counted from the front, or {@code null} to take the only one that
      *                  means what the step it stands on means
      */
-    public record RechainRequest(Integer stepIndex) {}
+    public record RechainRequest(@Nullable Integer stepIndex) {}
 
     @OpenApi(
             path = "/api/v1/movements/{id}/decline",
@@ -741,14 +742,14 @@ public class MovementRoutes implements Routes {
      */
     public record CreateMovementRequest(
             MovementPurpose purpose,
-            Integer memberId,
-            Integer outgoingItemId,
-            Integer inventoryId,
-            Integer oldSizeId,
-            Integer newSizeId,
-            String reason,
-            Integer pickedItemId,
-            Integer selfCheckId) {}
+            @Nullable Integer memberId,
+            @Nullable Integer outgoingItemId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer oldSizeId,
+            @Nullable Integer newSizeId,
+            @Nullable String reason,
+            @Nullable Integer pickedItemId,
+            @Nullable Integer selfCheckId) {}
 
     /**
      * @param pickedItemId the arriving piece, when it is one the station already has on its books
@@ -756,7 +757,11 @@ public class MovementRoutes implements Routes {
      *                     from a body outside Ember is the ordinary case for this: there is nothing
      *                     to pick, and without it the chain stops on the step that asks
      */
-    public record AcknowledgeStepRequest(int stepId, String note, Integer pickedItemId, NewItemRequest newItem) {}
+    public record AcknowledgeStepRequest(
+            int stepId,
+            @Nullable String note,
+            @Nullable Integer pickedItemId,
+            @Nullable NewItemRequest newItem) {}
 
     /**
      * A piece recorded at the moment it arrives. Owner and inventory are not asked: they are the
@@ -766,14 +771,17 @@ public class MovementRoutes implements Routes {
      * @param name       what it is
      * @param sizeId     the size, or null where the inventory keeps none
      */
-    public record NewItemRequest(String internalId, String name, Integer sizeId) {}
+    public record NewItemRequest(
+            @Nullable String internalId,
+            String name,
+            @Nullable Integer sizeId) {}
 
     /**
      * @param memberId the member who is to hand everything back
      */
-    public record ReturnEverythingRequest(Integer memberId) {}
+    public record ReturnEverythingRequest(@Nullable Integer memberId) {}
 
-    public record CloseMovementRequest(String reason) {}
+    public record CloseMovementRequest(@Nullable String reason) {}
 
     /**
      * What a correction is to make true of a movement's pieces.
@@ -793,57 +801,61 @@ public class MovementRoutes implements Routes {
     public record ExportMovementsRequest(List<Integer> movementIds, List<Integer> extraFieldIds) {}
 
     public record CorrectMovementRequest(
-            ItemCustody outgoing, ItemCustody incoming, boolean detachArrival, MovementState closeAs, String reason) {}
+            @Nullable ItemCustody outgoing,
+            @Nullable ItemCustody incoming,
+            boolean detachArrival,
+            @Nullable MovementState closeAs,
+            String reason) {}
 
     public record MovementResponse(
             int id,
             MovementPurpose purpose,
             MovementState state,
-            Integer memberId,
-            String memberName,
-            MemberIdentity memberIdentity,
-            Integer inventoryId,
-            String inventoryName,
+            @Nullable Integer memberId,
+            @Nullable String memberName,
+            @Nullable MemberIdentity memberIdentity,
+            @Nullable Integer inventoryId,
+            @Nullable String inventoryName,
             /** Whose gear that inventory holds, which is the shelf a replacement may be taken off. */
-            InventoryType inventoryType,
+            @Nullable InventoryType inventoryType,
             /** The step being waited on, which is what pressing the row's button says has happened. */
-            String currentStepLabel,
+            @Nullable String currentStepLabel,
             /** Where it stands: the last step whose words are already true, or null at the beginning. */
-            String reachedStepLabel,
-            StepActor currentStepActor,
+            @Nullable String reachedStepLabel,
+            @Nullable StepActor currentStepActor,
             String reason,
             /** The size being replaced, and the size asked for, which a piece written down starts as. */
-            Integer oldSizeId,
-            Integer newSizeId,
+            @Nullable Integer oldSizeId,
+            @Nullable Integer newSizeId,
             /**
              * Those two in words, falling back to the size the piece itself is written down as. A
              * movement names a size only where somebody chose one, and both ends have one either way.
              */
-            String oldSizeName,
-            String newSizeName,
+            @Nullable String oldSizeName,
+            @Nullable String newSizeName,
             Instant createdAt,
             /** When it last moved, which is what says whether a row has gone quiet. */
             Instant updatedAt,
-            Instant closedAt,
+            @Nullable Instant closedAt,
             /** Why it was refused or taken back, which the reason it was started does not say. */
-            String closeReason,
+            @Nullable String closeReason,
             /**
              * Whether the body that owns the gear can answer for itself here. Where it cannot, the
              * station both walks its steps and writes down what arrived, because nobody else will.
              */
             boolean ownerAnswersHere,
             /** The association that owns the gear, by name, or null where the station owns it. */
-            String ownerName,
+            @Nullable String ownerName,
             /** That association's stable identity, which is how a screen tells one body's gear from another's. */
-            String ownerClusterId,
+            @Nullable String ownerClusterId,
             /**
              * What the piece that set out is called. A member reading their movements has one question
              * first, which is which of their things this is about, and their inventory no longer answers
              * it once they have handed the piece in.
              */
-            String itemName,
+            @Nullable String itemName,
             /** The piece that set out, so a row can be followed to the piece it is about. */
-            Integer itemId,
+            @Nullable Integer itemId,
             /**
              * Whether the member still has the piece, which is what lets them call the movement off
              * themselves. Once the station has taken it, calling off is the station's to do.
@@ -854,8 +866,8 @@ public class MovementRoutes implements Routes {
             /** Whose gear it is, which is what the owner's column of the chain is named after. */
             ItemOwner ownerKind,
             /** Which of the two pieces the current step is about, and where it lands once acknowledged. */
-            StepSubject currentStepSubject,
-            ItemCustody currentStepCustody,
+            @Nullable StepSubject currentStepSubject,
+            @Nullable ItemCustody currentStepCustody,
             /**
              * Whether this caller may acknowledge the step it stands on, which is what puts the button on
              * a row of the queue rather than only on the page about one movement.
@@ -865,15 +877,15 @@ public class MovementRoutes implements Routes {
              * The arriving piece. An issue has one from the start where it was promised, and an exchange
              * gains one halfway; a row that named only what left says nothing at all about either.
              */
-            Integer incomingItemId,
-            String incomingItemName,
+            @Nullable Integer incomingItemId,
+            @Nullable String incomingItemName,
             /** What is written on the piece the row is about, which is what somebody at a shelf reads. */
-            String itemInternalId,
+            @Nullable String itemInternalId,
             /** The size the row names: the one asked for where there is one, the one replaced otherwise. */
-            String itemSizeName,
+            @Nullable String itemSizeName,
             /** The picture the row is drawn with, resolved from the piece's kind and its inventory. */
-            String icon,
-            String color,
+            @Nullable String icon,
+            @Nullable String color,
             /**
              * Whether the chain it walks is no longer the one its combination is bound to, which is the
              * only case where moving it across to another one is worth offering.
@@ -890,13 +902,16 @@ public class MovementRoutes implements Routes {
             boolean picksItem,
             boolean archived,
             boolean current,
-            AckKind ackKind,
-            String acknowledgedByName,
-            Instant acknowledgedAt,
-            String note,
+            @Nullable AckKind ackKind,
+            @Nullable String acknowledgedByName,
+            @Nullable Instant acknowledgedAt,
+            @Nullable String note,
             boolean actionable) {}
 
-    public record MovementDetail(MovementResponse movement, List<MovementStepResponse> steps, LossReport lossReport) {}
+    public record MovementDetail(
+            MovementResponse movement,
+            List<MovementStepResponse> steps,
+            @Nullable LossReport lossReport) {}
 
     /**
      * What a report that a piece of gear is gone carries, read at both ends.
@@ -913,8 +928,8 @@ public class MovementRoutes implements Routes {
      */
     public record LossReport(
             String managerNote,
-            String memberNote,
-            MemberIdentity memberNoteBy,
-            String documentName,
-            String documentType) {}
+            @Nullable String memberNote,
+            @Nullable MemberIdentity memberNoteBy,
+            @Nullable String documentName,
+            @Nullable String documentType) {}
 }

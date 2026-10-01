@@ -10,7 +10,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import {LendingStatus, type LendingRequestDetail} from '@/api/lending'
+import {LendingStatus} from '@/api/lending'
+import type {LendingRequestDetail} from '@/api/generated/schema'
 
 defineProps<{
   detail: LendingRequestDetail

@@ -5,39 +5,16 @@
  */
 import client from './client'
 import { createCrudResource } from './crud'
-import type { MemberIdentity } from './types'
+import type { CreateProcurementRequest, ProcurementResponse } from './generated/schema'
 
-export interface ProcurementEntry {
-    id: number
-    inventoryId: number
-    inventoryName: string
-    /** Who it is for, absent on an order an association places for its own store. */
-    memberId?: number | null
-    memberName: string
-    sizeId?: number | null
-    sizeLabel: string
-    notes: string
-    requestedAt: string
-    fulfilledAt?: string | null
-    memberIdentity?: MemberIdentity | null
-}
-
-export interface CreateProcurementRequest {
-    inventoryId: number
-    /** Leave it out for an order an association places for its own store. */
-    memberId?: number
-    sizeId?: number | null
-    notes?: string
-}
-
-const procurement = createCrudResource<ProcurementEntry, CreateProcurementRequest>('/procurement')
+const procurement = createCrudResource<ProcurementResponse, CreateProcurementRequest>('/procurement')
 
 export const listProcurement = procurement.list
 export const createProcurement = procurement.create
 export const deleteProcurement = procurement.remove
 
-export async function listOpen(): Promise<ProcurementEntry[]> {
-    const res = await client.get<ProcurementEntry[]>('/procurement/open')
+export async function listOpen(): Promise<ProcurementResponse[]> {
+    const res = await client.get<ProcurementResponse[]>('/procurement/open')
     return res.data
 }
 

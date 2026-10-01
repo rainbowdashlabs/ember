@@ -8,7 +8,7 @@ import {describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount} from '@vue/test-utils'
 import {createI18n} from 'vue-i18n'
 import ItemSearchPicker from './ItemSearchPicker.vue'
-import type {InventoryItem} from '@/api/inventory'
+import type {InventoryItem} from '@/api/generated/schema'
 
 /**
  * Which pieces the picker offers when a step asks which one arrived.

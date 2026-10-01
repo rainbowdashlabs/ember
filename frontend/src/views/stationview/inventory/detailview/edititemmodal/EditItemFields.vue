@@ -10,10 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import EditItemNaming from './EditItemNaming.vue'
-import type {InventorySize} from '@/api/inventory'
-import type {InventoryContainer} from '@/api/inventoryContainers'
-import type {InventoryArt} from '@/api/inventoryArts'
-import type {InventoryTag} from '@/api/inventoryTags'
+import type {InventoryArt, InventoryContainer, InventorySize, TagResponse} from '@/api/generated/schema'
 
 withDefaults(
     defineProps<{
@@ -25,7 +22,7 @@ withDefaults(
       /** Whether kinds are offered at all, which follows from what the inventory holds. */
       showArt?: boolean
       /** The words this station puts on its things, whatever inventory they are filed under. */
-      tags?: InventoryTag[]
+      tags?: TagResponse[]
     }>(),
     {arts: () => [], showArt: false, tags: () => []},
 )

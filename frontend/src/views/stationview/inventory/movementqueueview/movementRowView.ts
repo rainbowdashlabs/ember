@@ -7,7 +7,8 @@ import {computed, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {glyphFor} from '@/util/glyph'
 import {useMovementParties} from '@/composables/useMovementParties'
-import {MovementState, type Movement} from '@/api/movements'
+import {MovementState} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 
 /**
  * What one movement looks like in a list, whichever list it stands in.
@@ -17,7 +18,7 @@ import {MovementState, type Movement} from '@/api/movements'
  *
  * @param movement the movement being drawn
  */
-export function useMovementRowView(movement: Ref<Movement>) {
+export function useMovementRowView(movement: Ref<MovementResponse>) {
     const {t} = useI18n()
     const {ownerLabel, actorLabel} = useMovementParties(movement)
 

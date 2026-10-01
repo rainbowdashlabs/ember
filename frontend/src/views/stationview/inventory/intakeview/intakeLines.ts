@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {IntakeRow, ItemOwnerName} from '@/api/inventory'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {ItemOwnerName} from '@/api/inventory'
+import type {InventoryFieldDefinition, InventoryIntakeRow} from '@/api/generated/schema'
 import type {StationMember} from '@/api/types'
 import {buildItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
 import {
@@ -63,7 +63,7 @@ export function rowsOf(
     lines: IntakeLine[],
     fields: InventoryFieldDefinition[],
     ownerKind?: ItemOwnerName,
-): IntakeRow[] {
+): InventoryIntakeRow[] {
     return lines.filter(namesAPiece).map(line => ({
         memberId: line.memberId,
         internalId: line.internalId.trim() || null,

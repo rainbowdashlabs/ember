@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldValueInput from '@/views/stationview/inventory/detailview/FieldValueInput.vue'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {InventoryFieldDefinition} from '@/api/generated/schema'
 
 const props = defineProps<{
   defs: InventoryFieldDefinition[]

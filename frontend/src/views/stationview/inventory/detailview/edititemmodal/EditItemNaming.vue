@@ -9,8 +9,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ArtPicker from '../../ArtPicker.vue'
 import ItemTagPicker from '../../ItemTagPicker.vue'
-import type {InventoryArt} from '@/api/inventoryArts'
-import type {InventoryTag} from '@/api/inventoryTags'
+import type {InventoryArt, TagResponse} from '@/api/generated/schema'
 
 /**
  * The three answers to "what is this thing": what it is called, what kind of thing it is, and what
@@ -24,7 +23,7 @@ withDefaults(
       /** Whether kinds are offered at all, which follows from what the inventory holds. */
       showArt?: boolean
       /** The words this station puts on its things, whatever inventory they are filed under. */
-      tags?: InventoryTag[]
+      tags?: TagResponse[]
     }>(),
     {arts: () => [], showArt: false, tags: () => []},
 )

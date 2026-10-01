@@ -7,7 +7,8 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
-import {FieldType, numberFieldViolation, type EnumFieldConfig, type InventoryFieldDefinition, type NumberFieldConfig, type TextFieldConfig} from '@/api/inventoryFields'
+import {FieldType, numberFieldViolation} from '@/api/inventoryFields'
+import type {EnumConfig, InventoryFieldDefinition, NumberConfig, TextConfig} from '@/api/generated/schema'
 import {QuestionKinds, questionKindOf, type QuestionKindName} from '@/util/questions'
 
 /**
@@ -33,13 +34,13 @@ const numberError = computed(() => {
       : t('inventory.fields.numberAboveMax', {max: violation.bound})
 })
 
-const textConfig = computed(() => props.field.config as TextFieldConfig)
-const numberConfig = computed(() => props.field.config as NumberFieldConfig)
-const enumConfig = computed(() => props.field.config as EnumFieldConfig)
+const textConfig = computed<TextConfig | null>(() => (props.field.config.kind === 'TEXT' ? props.field.config : null))
+const numberConfig = computed<NumberConfig | null>(() => (props.field.config.kind === 'NUMBER' ? props.field.config : null))
+const enumConfig = computed<EnumConfig | null>(() => (props.field.config.kind === 'ENUM' ? props.field.config : null))
 
 /** A long answer is a text field the station marked as one, which no other feature says separately. */
 const kind = computed<QuestionKindName>(() => {
-  if (props.field.fieldType === FieldType.TEXT && textConfig.value.multiline) return QuestionKinds.LONG_TEXT
+  if (textConfig.value?.multiline) return QuestionKinds.LONG_TEXT
   return questionKindOf(props.field.fieldType) ?? QuestionKinds.TEXT
 })
 
@@ -67,12 +68,12 @@ function write(next: string) {
 <template>
   <QuestionValueInput
       :kind="kind"
-      :max="numberConfig.max ?? undefined"
-      :max-length="textConfig.maxLength || undefined"
-      :min="numberConfig.min ?? undefined"
+      :max="numberConfig?.max ?? undefined"
+      :max-length="textConfig?.maxLength || undefined"
+      :min="numberConfig?.min ?? undefined"
       :model-value="asText"
-      :options="enumConfig.options ?? []"
-      :step="numberConfig.step ?? 1"
+      :options="enumConfig?.options ?? []"
+      :step="numberConfig?.step ?? 1"
       @update:model-value="write($event)"
   />
   <p v-if="numberError" class="text-xs text-error mt-1">{{ numberError }}</p>

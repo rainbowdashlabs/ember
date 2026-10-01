@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import type {DataTableApi} from '@/composables/useDataTable'
-import type {Movement} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 import MovementRecordTable from './MovementRecordTable.vue'
 import MovementRowActions from './MovementRowActions.vue'
 
@@ -20,7 +20,7 @@ import MovementRowActions from './MovementRowActions.vue'
  * whose filters hide everything are different situations, and the second one is a filter to undo.
  */
 const props = defineProps<{
-  table: DataTableApi<Movement>
+  table: DataTableApi<MovementResponse>
   /** How many movements the station has, which decides whether the queue is empty or merely narrowed. */
   total: number
   canCorrect: boolean
@@ -29,10 +29,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  acknowledge: [movement: Movement]
-  correct: [movement: Movement]
-  open: [movement: Movement]
-  pick: [movement: Movement]
+  acknowledge: [movement: MovementResponse]
+  correct: [movement: MovementResponse]
+  open: [movement: MovementResponse]
+  pick: [movement: MovementResponse]
 }>()
 
 const {t} = useI18n()

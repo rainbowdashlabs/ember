@@ -8,7 +8,7 @@ import {toRef} from 'vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import {useMovementRowView} from './movementRowView'
-import type {Movement} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 
 /**
  * Where a movement stands: the last step whose words are already true and who is being waited on,
@@ -19,7 +19,7 @@ import type {Movement} from '@/api/movements'
  * is still on the member. That step is on the row's button instead.
  */
 const props = defineProps<{
-  movement: Movement
+  movement: MovementResponse
 }>()
 
 const {open, standing} = useMovementRowView(toRef(props, 'movement'))

@@ -19,8 +19,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
-import type { CheckResult } from '@/api/inventoryCheck'
+import type { CheckResult, InventoryItem, RequiredInventoryItem } from '@/api/generated/schema'
 import type { CheckEntry } from '@/composables/useMemberCheck'
 
 const props = defineProps<{

@@ -35,6 +35,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Locale;
@@ -472,7 +473,11 @@ public class MovementFlowRoutes implements Routes {
             String label, StepActor actor, StepSubject subject, ItemCustody custodyAfter, boolean picksItem) {}
 
     public record BindingRequest(
-            Integer inventoryId, ItemOwner ownerKind, MovementPurpose purpose, MovementParty party, int flowId) {}
+            @Nullable Integer inventoryId,
+            ItemOwner ownerKind,
+            MovementPurpose purpose,
+            @Nullable MovementParty party,
+            int flowId) {}
 
     /**
      * @param stepIds every active step of the chain, in the order they are to be walked
@@ -500,7 +505,7 @@ public class MovementFlowRoutes implements Routes {
             MovementPurpose purpose,
             boolean archived,
             boolean ownedByCluster,
-            FlowProblem problem,
+            @Nullable FlowProblem problem,
             List<StepResponse> steps) {}
 
     public record StepResponse(
@@ -514,7 +519,11 @@ public class MovementFlowRoutes implements Routes {
             boolean archived) {}
 
     public record BindingResponse(
-            Integer inventoryId, ItemOwner ownerKind, MovementPurpose purpose, MovementParty party, int flowId) {}
+            @Nullable Integer inventoryId,
+            ItemOwner ownerKind,
+            MovementPurpose purpose,
+            MovementParty party,
+            int flowId) {}
 
     /**
      * The chain a movement would walk, and what it would be about.

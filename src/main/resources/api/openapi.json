@@ -14013,6 +14013,22 @@
         }
       }
     },
+    "/api/v1/federated/lending/available" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AvailableInventoryResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/federated/my-registrations" : {
       "get" : {
         "summary" : "List the reader's household's registrations at partner stations",
@@ -16581,6 +16597,44 @@
         }
       }
     },
+    "/api/v1/inventories/all-items" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/InventoryItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inventories/all-sizes" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/InventorySize"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/inventories/members/export" : {
       "post" : {
         "summary" : "Export member inventory list as PDF",
@@ -17629,7 +17683,17 @@
         "tags" : [ "Inventory Checks" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EnrichedCheckSummary"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -17640,7 +17704,14 @@
         "tags" : [ "Inventory Checks" ],
         "responses" : {
           "201" : {
-            "description" : "Created"
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InventoryCheck"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -17669,7 +17740,17 @@
         "tags" : [ "Inventory Checks" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/InventoryItem"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -17695,7 +17776,17 @@
         "tags" : [ "Inventory Checks" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ItemLastCheck"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -17721,7 +17812,17 @@
         "tags" : [ "Inventory Checks" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ItemCheckHistoryEntry"
+                  }
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -17767,7 +17868,14 @@
         "tags" : [ "Inventory Checks" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberCheckState"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -17816,7 +17924,14 @@
         "tags" : [ "Inventory Checks" ],
         "responses" : {
           "201" : {
-            "description" : "Created"
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InventoryCheck"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -17845,7 +17960,14 @@
         "tags" : [ "Inventory Checks" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberCheckState"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -17874,7 +17996,14 @@
         "tags" : [ "Inventory Checks" ],
         "responses" : {
           "201" : {
-            "description" : "Created"
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberCheckState"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -17903,7 +18032,14 @@
         "tags" : [ "Inventory Checks" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EnrichedCheckDetail"
+                }
+              }
+            }
           },
           "404" : {
             "description" : "Not Found"
@@ -17926,7 +18062,14 @@
         "tags" : [ "Inventory Checks" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberCheckState"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -17946,7 +18089,14 @@
         "tags" : [ "Inventory Checks" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberCheckState"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -18701,6 +18851,25 @@
         } ]
       }
     },
+    "/api/v1/inventory-items/{id}/history" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/HistoryResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/inventory-items/{id}/inventory" : {
       "put" : {
         "summary" : "Move an item into another inventory of the same station",
@@ -19031,7 +19200,14 @@
         "tags" : [ "Inventory" ],
         "responses" : {
           "201" : {
-            "description" : "Created"
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InventoryRequirement"
+                }
+              }
+            }
           },
           "400" : {
             "description" : "Bad Request",
@@ -20697,6 +20873,459 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/blocks" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InventoryBlock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateBlockRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/InventoryBlock"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/blocks/{id}" : {
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/lending/inventory/{inventoryId}/lent-out" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/LentOutItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/requests" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LendingRequestResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateLendingRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/LendingRequestResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/requests/{id}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LendingRequestDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/requests/{id}/approve" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LendingRequestResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/requests/{id}/assign-items" : {
+      "post" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssignItemsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/requests/{id}/available-items" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AvailableItemDetail"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/requests/{id}/close" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LendingRequestResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/requests/{id}/decline" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LendingRequestResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeclineBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/requests/{id}/lent" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LendingRequestResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/requests/{id}/messages" : {
+      "post" : {
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LendingMessage"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MessageBody"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EnrichedMessage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/requests/{id}/returned" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LendingRequestResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/shares" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ShareDetail"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lending/shares/art/{artId}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShareSetting"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShareSetting"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetShareRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/lending/shares/inventory/{inventoryId}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShareSetting"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShareSetting"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetShareRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/lending/shares/item/{itemId}" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShareSetting"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShareSetting"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetShareRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
           }
         }
       }
@@ -32714,14 +33343,18 @@
             "format" : "int32"
           },
           "note" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "pickedItemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "newItem" : {
-            "$ref" : "#/components/schemas/NewItemRequest"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/NewItemRequest"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -33296,7 +33929,7 @@
         "type" : "object",
         "properties" : {
           "artId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "itemIds" : {
@@ -33331,17 +33964,17 @@
             "type" : "string"
           },
           "note" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "position" : {
             "type" : "integer",
             "format" : "int32"
           },
           "icon" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -33374,8 +34007,19 @@
             "format" : "int32"
           },
           "oldItemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
+          }
+        }
+      },
+      "AssignItemsRequest" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ItemAssignment"
+            }
           }
         }
       },
@@ -33383,11 +34027,11 @@
         "type" : "object",
         "properties" : {
           "memberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "memberName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -33779,6 +34423,92 @@
         },
         "required" : [ "uid", "name", "description" ]
       },
+      "AvailableInventoryEntry" : {
+        "type" : "object",
+        "properties" : {
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryName" : {
+            "type" : "string"
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "artName" : {
+            "type" : [ "string", "null" ]
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "availableCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "distanceKm" : {
+            "type" : [ "number", "null" ]
+          }
+        },
+        "required" : [ "inventoryId", "inventoryName", "artId", "artName", "stationId", "stationName", "availableCount", "distanceKm" ]
+      },
+      "AvailableInventoryResult" : {
+        "type" : "object",
+        "properties" : {
+          "entries" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AvailableInventoryEntry"
+            }
+          },
+          "emptyReason" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EmptyReason"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "entries", "emptyReason" ]
+      },
+      "AvailableItemDetail" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryName" : {
+            "type" : "string"
+          },
+          "internalId" : {
+            "type" : [ "string", "null" ]
+          },
+          "itemName" : {
+            "type" : "string"
+          },
+          "sizeName" : {
+            "type" : [ "string", "null" ]
+          },
+          "requestItemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "preselected" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "itemId", "inventoryId", "inventoryName", "internalId", "itemName", "sizeName", "requestItemId", "preselected" ]
+      },
       "AwaitingAnswer" : {
         "type" : "object",
         "properties" : {
@@ -34027,7 +34757,7 @@
         "type" : "object",
         "properties" : {
           "inventoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "ownerKind" : {
@@ -34037,7 +34767,11 @@
             "$ref" : "#/components/schemas/MovementPurpose"
           },
           "party" : {
-            "$ref" : "#/components/schemas/MovementParty"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MovementParty"
+            }, {
+              "type" : "null"
+            } ]
           },
           "flowId" : {
             "type" : "integer",
@@ -34049,7 +34783,7 @@
         "type" : "object",
         "properties" : {
           "inventoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "ownerKind" : {
@@ -34691,7 +35425,7 @@
             "format" : "int32"
           },
           "dueOn" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "item", "ownerStationName", "loanRequestId", "dueOn" ]
@@ -35410,18 +36144,18 @@
         "type" : "object",
         "properties" : {
           "itemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "inventoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "result" : {
             "$ref" : "#/components/schemas/CheckResult"
           },
           "note" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -35611,11 +36345,11 @@
         "type" : "object",
         "properties" : {
           "stepId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "stepIndex" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -35628,7 +36362,7 @@
         "type" : "object",
         "properties" : {
           "memberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -35647,7 +36381,7 @@
         "type" : "object",
         "properties" : {
           "reason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -35827,7 +36561,7 @@
             "type" : "string"
           },
           "purpose" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/MovementPurpose"
           },
           "archived" : {
             "type" : "boolean"
@@ -35936,17 +36670,17 @@
             "type" : "string"
           },
           "canonicalName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "position" : {
             "type" : "integer",
             "format" : "int32"
           },
           "stationGroupId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
@@ -35960,30 +36694,30 @@
             "format" : "int32"
           },
           "internalId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
           },
           "custody" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/ItemCustody"
           },
           "stationUid" : {
-            "type" : "string",
+            "type" : [ "string", "null" ],
             "format" : "uuid"
           },
           "stationName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "holderName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "sizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "sizeLabel" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "internalId", "name", "custody", "stationUid", "stationName", "holderName", "sizeId", "sizeLabel" ]
@@ -36106,20 +36840,20 @@
             "format" : "int32"
           },
           "purpose" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/MovementPurpose"
           },
           "stationUid" : {
-            "type" : "string",
+            "type" : [ "string", "null" ],
             "format" : "uuid"
           },
           "stationName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "stepLabel" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "itemName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
@@ -36277,14 +37011,14 @@
             "type" : "string"
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "position" : {
             "type" : "integer",
             "format" : "int32"
           },
           "stationGroupId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -36690,7 +37424,7 @@
         "type" : "object",
         "properties" : {
           "containerId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -36797,21 +37531,21 @@
         "type" : "object",
         "properties" : {
           "parentId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "internalId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
           },
           "kindId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -36893,25 +37627,33 @@
             "format" : "int32"
           },
           "oldItemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "pickedItemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "sizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "ownerKind" : {
-            "$ref" : "#/components/schemas/ItemOwner"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ItemOwner"
+            }, {
+              "type" : "null"
+            } ]
           },
           "internalId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "metadata" : {
-            "$ref" : "#/components/schemas/InventoryItemMetadata"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/InventoryItemMetadata"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -36919,16 +37661,28 @@
         "type" : "object",
         "properties" : {
           "outgoing" : {
-            "$ref" : "#/components/schemas/ItemCustody"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ItemCustody"
+            }, {
+              "type" : "null"
+            } ]
           },
           "incoming" : {
-            "$ref" : "#/components/schemas/ItemCustody"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ItemCustody"
+            }, {
+              "type" : "null"
+            } ]
           },
           "detachArrival" : {
             "type" : "boolean"
           },
           "closeAs" : {
-            "$ref" : "#/components/schemas/MovementState"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MovementState"
+            }, {
+              "type" : "null"
+            } ]
           },
           "reason" : {
             "type" : "string"
@@ -36991,12 +37745,34 @@
             "format" : "int32"
           },
           "sizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "oldItemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
+          }
+        }
+      },
+      "CreateBlockRequest" : {
+        "type" : "object",
+        "properties" : {
+          "inventoryId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "blockFrom" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "blockTo" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -37092,7 +37868,7 @@
         "type" : "object",
         "properties" : {
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "foundAt" : {
             "type" : "string"
@@ -37108,6 +37884,42 @@
           },
           "content" : {
             "type" : "string"
+          }
+        }
+      },
+      "CreateLendingRequest" : {
+        "type" : "object",
+        "properties" : {
+          "owningStationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "dateFrom" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "dateTo" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "eventId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "eventDate" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LendingItemRequest"
+            }
           }
         }
       },
@@ -37131,34 +37943,34 @@
             "$ref" : "#/components/schemas/MovementPurpose"
           },
           "memberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "outgoingItemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "inventoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "oldSizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "newSizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "reason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "pickedItemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "selfCheckId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -37253,15 +38065,15 @@
             "format" : "int32"
           },
           "memberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "sizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "notes" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -37332,7 +38144,7 @@
             "format" : "int32"
           }
         },
-        "required" : [ "name", "parentId" ]
+        "required" : [ "name" ]
       },
       "CsvDraft" : {
         "type" : "object",
@@ -37542,6 +38354,14 @@
         },
         "required" : [ "day", "count" ]
       },
+      "DeclineBody" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "DeleteImpact" : {
         "type" : "object",
         "properties" : {
@@ -37732,7 +38552,7 @@
             }
           },
           "reason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -37879,6 +38699,10 @@
         },
         "required" : [ "id", "name", "description", "startTime", "endTime", "cancelled", "categoryName" ]
       },
+      "EmptyReason" : {
+        "type" : "string",
+        "enum" : [ "NOTHING_SHARED", "NOTHING_FREE" ]
+      },
       "EmptyTrashResponse" : {
         "type" : "object",
         "properties" : {
@@ -37954,6 +38778,113 @@
         },
         "required" : [ "method", "path", "requestCount", "avgDurationMs", "minDurationMs", "maxDurationMs", "errorRate" ]
       },
+      "EnrichedCheckDetail" : {
+        "type" : "object",
+        "properties" : {
+          "check" : {
+            "$ref" : "#/components/schemas/InventoryCheck"
+          },
+          "checkerFirstName" : {
+            "type" : "string"
+          },
+          "checkerLastName" : {
+            "type" : "string"
+          },
+          "reporterFirstName" : {
+            "type" : "string"
+          },
+          "reporterLastName" : {
+            "type" : "string"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EnrichedCheckItem"
+            }
+          }
+        },
+        "required" : [ "check", "checkerFirstName", "checkerLastName", "reporterFirstName", "reporterLastName", "items" ]
+      },
+      "EnrichedCheckItem" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemName" : {
+            "type" : [ "string", "null" ]
+          },
+          "internalId" : {
+            "type" : [ "string", "null" ]
+          },
+          "inventoryName" : {
+            "type" : "string"
+          },
+          "sizeName" : {
+            "type" : [ "string", "null" ]
+          },
+          "result" : {
+            "$ref" : "#/components/schemas/CheckResult"
+          },
+          "note" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "itemId", "itemName", "internalId", "inventoryName", "sizeName", "result", "note" ]
+      },
+      "EnrichedCheckSummary" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "lastCheckedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "checkerFirstName" : {
+            "type" : [ "string", "null" ]
+          },
+          "checkerLastName" : {
+            "type" : [ "string", "null" ]
+          },
+          "locked" : {
+            "type" : "boolean"
+          },
+          "lockedBy" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "lockerFirstName" : {
+            "type" : [ "string", "null" ]
+          },
+          "lockerLastName" : {
+            "type" : [ "string", "null" ]
+          },
+          "userType" : {
+            "$ref" : "#/components/schemas/StationUserType"
+          },
+          "identity" : {
+            "$ref" : "#/components/schemas/MemberIdentity"
+          }
+        },
+        "required" : [ "memberId", "firstName", "lastName", "lastCheckedAt", "checkerFirstName", "checkerLastName", "locked", "lockedBy", "lockerFirstName", "lockerLastName", "userType", "identity" ]
+      },
       "EnrichedFederationRegistration" : {
         "type" : "object",
         "properties" : {
@@ -37969,6 +38900,33 @@
           }
         },
         "required" : [ "registration", "memberIdentity" ]
+      },
+      "EnrichedItem" : {
+        "type" : "object",
+        "properties" : {
+          "item" : {
+            "$ref" : "#/components/schemas/LendingRequestItem"
+          },
+          "inventoryName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "item", "inventoryName" ]
+      },
+      "EnrichedMessage" : {
+        "type" : "object",
+        "properties" : {
+          "message" : {
+            "$ref" : "#/components/schemas/LendingMessage"
+          },
+          "senderName" : {
+            "type" : [ "string", "null" ]
+          },
+          "senderStationName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "message", "senderName", "senderStationName" ]
       },
       "EntryAudience" : {
         "type" : "object",
@@ -39701,11 +40659,11 @@
         "type" : "object",
         "properties" : {
           "artId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "itemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "key" : {
@@ -40014,7 +40972,11 @@
             "type" : "boolean"
           },
           "problem" : {
-            "$ref" : "#/components/schemas/FlowProblem"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FlowProblem"
+            }, {
+              "type" : "null"
+            } ]
           },
           "steps" : {
             "type" : "array",
@@ -41327,7 +42289,7 @@
             "format" : "int32"
           },
           "sizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -41401,6 +42363,47 @@
             "type" : "string"
           }
         }
+      },
+      "HistoryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "memberName" : {
+            "type" : "string"
+          },
+          "memberIdentity" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "givenOut" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "returned" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "corrected" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "itemId", "memberId", "memberName", "memberIdentity", "givenOut", "returned", "corrected" ]
       },
       "HourlyStats" : {
         "type" : "object",
@@ -41672,10 +42675,10 @@
             "type" : "boolean"
           },
           "icon" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "stationId", "name", "inventoryType", "hasSizes", "homogeneous", "borrowed", "icon", "color" ]
@@ -41702,16 +42705,90 @@
             "format" : "int32"
           },
           "mergeKey" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "icon" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "inventoryId", "name", "note", "position", "mergeKey", "icon", "color" ]
+      },
+      "InventoryBlock" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "inventoryId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "blockFrom" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "blockTo" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "stationId", "inventoryId", "itemId", "blockFrom", "blockTo", "reason" ]
+      },
+      "InventoryCheck" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "checkedBy" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "checkedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "scope" : {
+            "$ref" : "#/components/schemas/InventoryCheckScope"
+          },
+          "containerId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "deep" : {
+            "type" : "boolean"
+          },
+          "reportedBy" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "stationId", "memberId", "checkedBy", "checkedAt", "scope", "containerId", "deep", "reportedBy" ]
+      },
+      "InventoryCheckScope" : {
+        "type" : "string",
+        "enum" : [ "MEMBER", "CONTAINER" ]
       },
       "InventoryContainer" : {
         "type" : "object",
@@ -41725,17 +42802,17 @@
             "format" : "uuid"
           },
           "parentId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "internalId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
           },
           "kindId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "description" : {
@@ -41745,7 +42822,7 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "createdBy" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
@@ -41759,7 +42836,7 @@
             "format" : "int32"
           },
           "containerId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "stationId" : {
@@ -41773,7 +42850,7 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "actorId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "details" : {
@@ -41803,7 +42880,7 @@
             "type" : "string"
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "sortOrder" : {
             "type" : "integer",
@@ -41845,10 +42922,10 @@
             }
           },
           "icon" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "stationId", "name", "inventoryType", "hasSizes", "homogeneous", "sizes", "icon", "color" ]
@@ -41865,11 +42942,11 @@
             "format" : "int32"
           },
           "artId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "itemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "key" : {
@@ -41939,68 +43016,72 @@
             "format" : "int32"
           },
           "internalId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
           },
           "sizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "artId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "metadata" : {
             "$ref" : "#/components/schemas/InventoryItemMetadata"
           },
           "assignedTo" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "lostAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "lostNote" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "lostNoteBy" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "ownerKind" : {
             "$ref" : "#/components/schemas/ItemOwner"
           },
           "ownerClusterId" : {
-            "type" : "string",
+            "type" : [ "string", "null" ],
             "format" : "uuid"
           },
           "ownerStationId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "loanRequestItemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "custody" : {
             "$ref" : "#/components/schemas/ItemCustody"
           },
           "custodyStationId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "custodyPartnerStationId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "custodyMovementId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "containerId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
@@ -42028,15 +43109,52 @@
             "type" : "boolean"
           },
           "homogeneous" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "icon" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }
+      },
+      "InventoryRequirement" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "userType" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StationUserType"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "groupId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationGroupId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "inventoryId", "userType", "groupId", "stationGroupId", "quantity", "position" ]
       },
       "InventorySettings" : {
         "type" : "object",
@@ -42054,6 +43172,38 @@
             "type" : "boolean"
           }
         }
+      },
+      "InventoryShare" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "inventoryId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "shareScope" : {
+            "$ref" : "#/components/schemas/ShareScope"
+          },
+          "shareGrant" : {
+            "$ref" : "#/components/schemas/ShareGrant"
+          }
+        },
+        "required" : [ "id", "stationId", "inventoryId", "artId", "itemId", "shareScope", "shareGrant" ]
       },
       "InventorySize" : {
         "type" : "object",
@@ -42190,10 +43340,10 @@
             "format" : "int32"
           },
           "icon" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "stationId", "name", "inventoryType", "hasSizes", "homogeneous", "borrowed", "itemCount", "lostCount", "procurementCount", "lentOutCount", "artCount", "icon", "color" ]
@@ -42213,10 +43363,10 @@
             "type" : "string"
           },
           "canonicalName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "position" : {
             "type" : "integer",
@@ -42232,7 +43382,7 @@
             "type" : "string"
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "position" : {
             "type" : "integer",
@@ -42280,6 +43430,19 @@
         },
         "required" : [ "id", "email", "firstName", "lastName" ]
       },
+      "ItemAssignment" : {
+        "type" : "object",
+        "properties" : {
+          "requestItemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
       "ItemBooleanValue" : {
         "type" : "object",
         "properties" : {
@@ -42292,6 +43455,37 @@
           }
         },
         "required" : [ "kind", "value" ]
+      },
+      "ItemCheckHistoryEntry" : {
+        "type" : "object",
+        "properties" : {
+          "checkId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "result" : {
+            "$ref" : "#/components/schemas/CheckResult"
+          },
+          "checkedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "checkerName" : {
+            "type" : "string"
+          },
+          "reporterName" : {
+            "type" : "string"
+          },
+          "containerName" : {
+            "type" : [ "string", "null" ]
+          },
+          "scope" : {
+            "$ref" : "#/components/schemas/InventoryCheckScope"
+          },
+          "note" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "checkId", "result", "checkedAt", "checkerName", "reporterName", "containerName", "scope", "note" ]
       },
       "ItemCustody" : {
         "type" : "string",
@@ -42329,6 +43523,25 @@
           "$ref" : "#/components/schemas/FieldValue"
         }
       },
+      "ItemLastCheck" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "result" : {
+            "$ref" : "#/components/schemas/CheckResult"
+          },
+          "checkedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "checkerName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "itemId", "result", "checkedAt", "checkerName" ]
+      },
       "ItemLocationResponse" : {
         "type" : "object",
         "properties" : {
@@ -42337,7 +43550,7 @@
             "format" : "int32"
           },
           "containerId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "pathSegments" : {
@@ -42397,27 +43610,35 @@
         "type" : "object",
         "properties" : {
           "internalId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
           },
           "sizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "artId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "metadata" : {
-            "$ref" : "#/components/schemas/InventoryItemMetadata"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/InventoryItemMetadata"
+            }, {
+              "type" : "null"
+            } ]
           },
           "ownerKind" : {
-            "$ref" : "#/components/schemas/ItemOwner"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ItemOwner"
+            }, {
+              "type" : "null"
+            } ]
           },
           "ownerClusterId" : {
-            "type" : "string",
+            "type" : [ "string", "null" ],
             "format" : "uuid"
           }
         }
@@ -42913,7 +44134,7 @@
             "type" : "string"
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "sortOrder" : {
             "type" : "integer",
@@ -43054,6 +44275,243 @@
           }
         },
         "required" : [ "privacyVersion", "tosVersion", "consentVersion" ]
+      },
+      "LendingItemRequest" : {
+        "type" : "object",
+        "properties" : {
+          "inventoryId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "needId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
+      "LendingMessage" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "requestId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "senderStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "senderMemberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "isSystem" : {
+            "type" : "boolean"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "requestId", "senderStationUid", "senderMemberId", "message", "isSystem", "createdAt" ]
+      },
+      "LendingRequest" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "requestingStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "owningStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/LendingStatus"
+          },
+          "requestedDateFrom" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "requestedDateTo" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "createdBy" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "updatedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "eventId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "eventDate" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "occasion" : {
+            "type" : "string"
+          },
+          "uid" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "id", "requestingStationUid", "owningStationUid", "status", "requestedDateFrom", "requestedDateTo", "createdBy", "createdAt", "updatedAt", "eventId", "eventDate", "occasion", "uid" ]
+      },
+      "LendingRequestDetail" : {
+        "type" : "object",
+        "properties" : {
+          "request" : {
+            "$ref" : "#/components/schemas/LendingRequestResponse"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EnrichedItem"
+            }
+          }
+        },
+        "required" : [ "request", "items" ]
+      },
+      "LendingRequestItem" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "requestId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "needId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "requestId", "inventoryId", "itemId", "artId", "quantity", "needId", "label" ]
+      },
+      "LendingRequestResponse" : {
+        "type" : "object",
+        "properties" : {
+          "request" : {
+            "$ref" : "#/components/schemas/LendingRequest"
+          },
+          "requestingStationName" : {
+            "type" : "string"
+          },
+          "owningStationName" : {
+            "type" : "string"
+          },
+          "isOwner" : {
+            "type" : "boolean"
+          },
+          "itemSummary" : {
+            "type" : "string"
+          },
+          "overdue" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "request", "requestingStationName", "owningStationName", "isOwner", "itemSummary", "overdue" ]
+      },
+      "LendingStatus" : {
+        "type" : "string",
+        "enum" : [ "REQUESTED", "APPROVED", "DECLINED", "LENT", "RETURNED", "CLOSED" ]
+      },
+      "LentOutItem" : {
+        "type" : "object",
+        "properties" : {
+          "requestItemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "requestId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "itemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "assignedItemId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "dateFrom" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "dateTo" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "requestingStationName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "requestItemId", "requestId", "itemId", "quantity", "assignedItemId", "status", "dateFrom", "dateTo", "requestingStationName" ]
       },
       "Likert" : {
         "type" : "object",
@@ -43521,16 +44979,20 @@
             "type" : "string"
           },
           "memberNote" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "memberNoteBy" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
           },
           "documentName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "documentType" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "managerNote", "memberNote", "memberNoteBy", "documentName", "documentType" ]
@@ -43555,7 +45017,11 @@
             "type" : "boolean"
           },
           "requires" : {
-            "$ref" : "#/components/schemas/LossReportRequirement"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LossReportRequirement"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "reportable", "requires" ]
@@ -43572,7 +45038,7 @@
             "format" : "uuid"
           },
           "description" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "foundAt" : {
             "type" : "string"
@@ -43581,14 +45047,18 @@
             "type" : "boolean"
           },
           "claimedBy" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "claimedByName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "claimedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "createdBy" : {
             "type" : "integer",
@@ -43604,10 +45074,10 @@
         "type" : "object",
         "properties" : {
           "note" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "selfCheckId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -44070,6 +45540,58 @@
         },
         "required" : [ "memberId", "memberName", "pendingCount", "latestChange" ]
       },
+      "MemberCheckState" : {
+        "type" : "object",
+        "properties" : {
+          "memberName" : {
+            "type" : "string"
+          },
+          "memberIdentity" : {
+            "$ref" : "#/components/schemas/MemberIdentity"
+          },
+          "required" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RequiredInventoryItem"
+            }
+          },
+          "assigned" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InventoryItem"
+            }
+          },
+          "lastCheck" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/InventoryCheck"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "unassigned" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/components/schemas/InventoryItem"
+              }
+            }
+          },
+          "onTheMove" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "overtookSelfChecks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SelfCheck"
+            }
+          }
+        },
+        "required" : [ "memberName", "memberIdentity", "required", "assigned", "lastCheck", "unassigned", "onTheMove", "overtookSelfChecks" ]
+      },
       "MemberDocumentResponse" : {
         "type" : "object",
         "properties" : {
@@ -44173,13 +45695,13 @@
             }
           },
           "showName" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "showInternalId" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           },
           "showSize" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -44814,6 +46336,14 @@
         },
         "required" : [ "id", "stationId", "accountId", "name", "firstName", "lastName", "nickname", "email", "username", "userType", "profileComplete", "formerAt", "joinDate", "identity" ]
       },
+      "MessageBody" : {
+        "type" : "object",
+        "properties" : {
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
       "MessageResponse" : {
         "type" : "object",
         "properties" : {
@@ -45028,11 +46558,11 @@
         "type" : "object",
         "properties" : {
           "from" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "to" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
@@ -45051,7 +46581,11 @@
             }
           },
           "lossReport" : {
-            "$ref" : "#/components/schemas/LossReport"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LossReport"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "movement", "steps", "lossReport" ]
@@ -45078,50 +46612,62 @@
             "$ref" : "#/components/schemas/MovementState"
           },
           "memberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "memberName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "memberIdentity" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
           },
           "inventoryId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "inventoryName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "inventoryType" : {
-            "$ref" : "#/components/schemas/InventoryType"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/InventoryType"
+            }, {
+              "type" : "null"
+            } ]
           },
           "currentStepLabel" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "reachedStepLabel" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "currentStepActor" : {
-            "$ref" : "#/components/schemas/StepActor"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StepActor"
+            }, {
+              "type" : "null"
+            } ]
           },
           "reason" : {
             "type" : "string"
           },
           "oldSizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "newSizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "oldSizeName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "newSizeName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
@@ -45130,25 +46676,29 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "closedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "closeReason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "ownerAnswersHere" : {
             "type" : "boolean"
           },
           "ownerName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "ownerClusterId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "itemName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "itemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "itemStillWithMember" : {
@@ -45161,32 +46711,40 @@
             "$ref" : "#/components/schemas/ItemOwner"
           },
           "currentStepSubject" : {
-            "$ref" : "#/components/schemas/StepSubject"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StepSubject"
+            }, {
+              "type" : "null"
+            } ]
           },
           "currentStepCustody" : {
-            "$ref" : "#/components/schemas/ItemCustody"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ItemCustody"
+            }, {
+              "type" : "null"
+            } ]
           },
           "actionable" : {
             "type" : "boolean"
           },
           "incomingItemId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "incomingItemName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "itemInternalId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "itemSizeName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "icon" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "belongsOnAnotherFlow" : {
             "type" : "boolean"
@@ -45231,16 +46789,24 @@
             "type" : "boolean"
           },
           "ackKind" : {
-            "$ref" : "#/components/schemas/AckKind"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/AckKind"
+            }, {
+              "type" : "null"
+            } ]
           },
           "acknowledgedByName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "acknowledgedAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "note" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "actionable" : {
             "type" : "boolean"
@@ -45318,7 +46884,7 @@
             "type" : "string"
           },
           "internalId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "inventoryName" : {
             "type" : "string"
@@ -45327,43 +46893,51 @@
             "type" : "boolean"
           },
           "sizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "sizeName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "lostAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "custody" : {
             "$ref" : "#/components/schemas/ItemCustody"
           },
           "movementId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "movementStep" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "ownerKind" : {
             "$ref" : "#/components/schemas/ItemOwner"
           },
           "ownerClusterId" : {
-            "type" : "string",
+            "type" : [ "string", "null" ],
             "format" : "uuid"
           },
           "lostNote" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "lostNoteBy" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
           },
           "icon" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "inventoryId", "name", "internalId", "inventoryName", "inventoryHomogeneous", "sizeId", "sizeName", "lostAt", "custody", "movementId", "movementStep", "ownerKind", "ownerClusterId", "lostNote", "lostNoteBy", "icon", "color" ]
@@ -45542,13 +47116,13 @@
         "type" : "object",
         "properties" : {
           "internalId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
           },
           "sizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -45982,7 +47556,7 @@
         "type" : "object",
         "properties" : {
           "memberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         },
@@ -46152,13 +47726,13 @@
             "enum" : [ "NUMBER" ]
           },
           "min" : {
-            "type" : "number"
+            "type" : [ "number", "null" ]
           },
           "max" : {
-            "type" : "number"
+            "type" : [ "number", "null" ]
           },
           "step" : {
-            "type" : "number"
+            "type" : [ "number", "null" ]
           },
           "unit" : {
             "type" : "string"
@@ -46325,7 +47899,7 @@
         "type" : "object",
         "properties" : {
           "name" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "name" ]
@@ -46603,18 +48177,18 @@
         "type" : "object",
         "properties" : {
           "stepId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "standingOn" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "movements" : {
             "type" : "integer",
             "format" : "int32"
           },
           "suggestedIndex" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "certain" : {
@@ -47078,21 +48652,25 @@
             "type" : "string"
           },
           "memberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "memberName" : {
             "type" : "string"
           },
           "memberIdentity" : {
-            "$ref" : "#/components/schemas/MemberIdentity"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
           },
           "sizeId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "sizeLabel" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "notes" : {
             "type" : "string"
@@ -47101,7 +48679,11 @@
             "$ref" : "#/components/schemas/Instant"
           },
           "fulfilledAt" : {
-            "$ref" : "#/components/schemas/Instant"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
         "required" : [ "id", "inventoryId", "inventoryName", "memberId", "memberName", "memberIdentity", "sizeId", "sizeLabel", "notes", "requestedAt", "fulfilledAt" ]
@@ -49354,21 +50936,21 @@
             "format" : "int32"
           },
           "currentFlowId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "currentFlowName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "standingOn" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "targetFlowId" : {
             "type" : "integer",
             "format" : "int32"
           },
           "targetFlowName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "alreadyRight" : {
             "type" : "boolean"
@@ -49380,7 +50962,7 @@
             }
           },
           "suggestedIndex" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "certain" : {
@@ -49393,7 +50975,7 @@
         "type" : "object",
         "properties" : {
           "stepIndex" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -49496,7 +51078,7 @@
             "type" : "string"
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "adopted" : {
             "type" : "boolean"
@@ -50263,14 +51845,18 @@
             "format" : "int32"
           },
           "userType" : {
-            "$ref" : "#/components/schemas/StationUserType"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StationUserType"
+            }, {
+              "type" : "null"
+            } ]
           },
           "groupId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "stationGroupId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "quantity" : {
@@ -50294,14 +51880,18 @@
             "type" : "string"
           },
           "userType" : {
-            "$ref" : "#/components/schemas/StationUserType"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StationUserType"
+            }, {
+              "type" : "null"
+            } ]
           },
           "groupId" : {
             "type" : "integer",
             "format" : "int32"
           },
           "stationGroupId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "quantity" : {
@@ -50313,7 +51903,7 @@
             "format" : "int32"
           },
           "clusterName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id", "inventoryId", "inventoryName", "userType", "groupId", "stationGroupId", "quantity", "position", "clusterName" ]
@@ -50736,7 +52326,7 @@
         "type" : "object",
         "properties" : {
           "memberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           }
         }
@@ -51569,7 +53159,7 @@
             "format" : "int32"
           },
           "internalId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
@@ -52108,6 +53698,24 @@
           }
         }
       },
+      "SetShareRequest" : {
+        "type" : "object",
+        "properties" : {
+          "grant" : {
+            "$ref" : "#/components/schemas/ShareGrant"
+          },
+          "scope" : {
+            "$ref" : "#/components/schemas/ShareScope"
+          },
+          "partnerIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
       "SetTemplateGroupsRequest" : {
         "type" : "object",
         "properties" : {
@@ -52336,9 +53944,83 @@
         },
         "required" : [ "type", "host", "port", "username", "knownHostsPinned", "basePath" ]
       },
+      "ShareDetail" : {
+        "type" : "object",
+        "properties" : {
+          "share" : {
+            "$ref" : "#/components/schemas/InventoryShare"
+          },
+          "inventoryName" : {
+            "type" : [ "string", "null" ]
+          },
+          "artName" : {
+            "type" : [ "string", "null" ]
+          },
+          "itemName" : {
+            "type" : [ "string", "null" ]
+          },
+          "itemInternalId" : {
+            "type" : [ "string", "null" ]
+          },
+          "partners" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SharePartner"
+            }
+          }
+        },
+        "required" : [ "share", "inventoryName", "artName", "itemName", "itemInternalId", "partners" ]
+      },
+      "ShareGrant" : {
+        "type" : "string",
+        "enum" : [ "GRANT", "WITHHOLD" ]
+      },
+      "SharePartner" : {
+        "type" : "object",
+        "properties" : {
+          "partnerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "partnerId", "stationName" ]
+      },
       "ShareScope" : {
         "type" : "string",
         "enum" : [ "ALL_PARTNERS", "SPECIFIC" ]
+      },
+      "ShareSetting" : {
+        "type" : "object",
+        "properties" : {
+          "shared" : {
+            "type" : "boolean"
+          },
+          "grant" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ShareGrant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "scope" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ShareScope"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "partnerIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "shared", "grant", "scope", "partnerIds" ]
       },
       "SharedBrand" : {
         "type" : "object",
@@ -53998,7 +55680,7 @@
             "type" : "string"
           },
           "color" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "position" : {
             "type" : "integer",
@@ -54051,7 +55733,7 @@
             "format" : "int32"
           },
           "internalId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
@@ -54064,7 +55746,7 @@
             "type" : "string"
           },
           "artId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "stationUid" : {

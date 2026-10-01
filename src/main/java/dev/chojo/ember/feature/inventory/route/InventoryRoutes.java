@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryIntakeRow;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
+import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -55,6 +56,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -392,7 +394,7 @@ public class InventoryRoutes implements Routes {
      * @param inventoryId the inventory it belongs to
      * @param sizeId      the size, or {@code null} where the inventory keeps none
      */
-    public record HandOutRequest(int inventoryId, Integer sizeId) {}
+    public record HandOutRequest(int inventoryId, @Nullable Integer sizeId) {}
 
     /**
      * Renders one line of a member's own inventory, carrying the step of whatever movement the item
@@ -467,11 +469,19 @@ public class InventoryRoutes implements Routes {
         ctx.json(inventoryService.findByStation(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/inventories/all-items",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryItem[].class)))
     private void listAllItems(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(inventoryService.findAllItemsByStation(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/inventories/all-sizes",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventorySize[].class)))
     private void listAllSizes(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(inventoryService.findAllSizesByStation(session.stationId()));
@@ -941,6 +951,10 @@ public class InventoryRoutes implements Routes {
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/inventory-items/{id}/history",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = HistoryResponse[].class)))
     private void getHistory(Context ctx) {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
@@ -952,7 +966,8 @@ public class InventoryRoutes implements Routes {
                         h.memberName(),
                         h.memberId() != null ? memberIdentityFactory.local(session.stationId(), h.memberId()) : null,
                         h.givenOut(),
-                        h.returned()))
+                        h.returned(),
+                        h.corrected()))
                 .toList());
     }
 
@@ -1156,7 +1171,11 @@ public class InventoryRoutes implements Routes {
      *                         loan is said
      * @param dueOn            the day the loan was asked to run to, or {@code null} when none was named
      */
-    public record BorrowedItemResponse(InventoryItem item, String ownerStationName, int loanRequestId, String dueOn) {}
+    public record BorrowedItemResponse(
+            InventoryItem item,
+            String ownerStationName,
+            int loanRequestId,
+            @Nullable String dueOn) {}
 
     // -- Requirements --
 
@@ -1167,7 +1186,7 @@ public class InventoryRoutes implements Routes {
             tags = {"Inventory"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RequirementRequest.class)),
             responses = {
-                @OpenApiResponse(status = "201"),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryRequirement.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createRequirement(Context ctx) {
@@ -1294,44 +1313,48 @@ public class InventoryRoutes implements Routes {
 
     // -- Request/Response records --
 
+    /**
+     * @param corrected whether a check ended the spell by putting the record right rather than by a hand-back
+     */
     public record HistoryResponse(
             int id,
             int itemId,
-            Integer memberId,
+            @Nullable Integer memberId,
             String memberName,
-            MemberIdentity memberIdentity,
+            @Nullable MemberIdentity memberIdentity,
             Instant givenOut,
-            Instant returned) {}
+            @Nullable Instant returned,
+            boolean corrected) {}
 
     public record MyInventoryItem(
             int id,
             int inventoryId,
             String name,
-            String internalId,
+            @Nullable String internalId,
             String inventoryName,
             /**
              * Whether the inventory holds one thing in many copies, which is what makes a piece
              * exchangeable. Among a drawer of different things there is nothing to swap it for.
              */
             boolean inventoryHomogeneous,
-            Integer sizeId,
-            String sizeName,
-            Instant lostAt,
+            @Nullable Integer sizeId,
+            @Nullable String sizeName,
+            @Nullable Instant lostAt,
             ItemCustody custody,
-            Integer movementId,
-            String movementStep,
+            @Nullable Integer movementId,
+            @Nullable String movementStep,
             /** Who owns it, which a member is entitled to know about what they are looking after. */
             ItemOwner ownerKind,
-            Integer ownerClusterId,
+            @Nullable Integer ownerClusterId,
             /** What was written when it was reported missing, which the member wrote or had written for them. */
-            String lostNote,
-            MemberIdentity lostNoteBy,
+            @Nullable String lostNote,
+            @Nullable MemberIdentity lostNoteBy,
             /**
              * The picture the piece is drawn with, resolved from its kind and its inventory. A member's
              * own page loads neither of those, so the answer travels with the row.
              */
-            String icon,
-            String color) {}
+            @Nullable String icon,
+            @Nullable String color) {}
 
     public record MyRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
 
@@ -1346,9 +1369,9 @@ public class InventoryRoutes implements Routes {
             String name,
             InventoryType inventoryType,
             boolean hasSizes,
-            Boolean homogeneous,
-            String icon,
-            String color) {}
+            @Nullable Boolean homogeneous,
+            @Nullable String icon,
+            @Nullable String color) {}
 
     public record InventoryDetail(
             int id,
@@ -1358,8 +1381,8 @@ public class InventoryRoutes implements Routes {
             boolean hasSizes,
             boolean homogeneous,
             List<InventorySize> sizes,
-            String icon,
-            String color) {}
+            @Nullable String icon,
+            @Nullable String color) {}
 
     /**
      * A refused change of kind, carrying everything that stands in its way.
@@ -1384,13 +1407,13 @@ public class InventoryRoutes implements Routes {
      *               ordinary state for most pieces
      */
     public record ItemRequest(
-            String internalId,
+            @Nullable String internalId,
             String name,
-            Integer sizeId,
-            Integer artId,
-            InventoryItemMetadata metadata,
-            ItemOwner ownerKind,
-            Integer ownerClusterId) {}
+            @Nullable Integer sizeId,
+            @Nullable Integer artId,
+            @Nullable InventoryItemMetadata metadata,
+            @Nullable ItemOwner ownerKind,
+            @Nullable Integer ownerClusterId) {}
 
     /**
      * @param rows the lines of a stock-taking, in the order they were shown. A line that names no
@@ -1399,7 +1422,8 @@ public class InventoryRoutes implements Routes {
      */
     public record IntakeRequest(List<InventoryIntakeRow> rows) {}
 
-    public record AssignRequest(Integer memberId, String memberName) {}
+    public record AssignRequest(
+            @Nullable Integer memberId, @Nullable String memberName) {}
 
     /** What was written when gear was reported missing. */
     /**
@@ -1410,7 +1434,8 @@ public class InventoryRoutes implements Routes {
      *                    the submission can see it happened, or {@code null} where the loss was
      *                    raised on its own
      */
-    public record LostRequest(String note, Integer selfCheckId) {}
+    public record LostRequest(
+            @Nullable String note, @Nullable Integer selfCheckId) {}
 
     /** What a station has decided about its gear beyond any one inventory. */
     public record InventorySettings(boolean lossNoteRequired) {}
@@ -1421,12 +1446,17 @@ public class InventoryRoutes implements Routes {
      * @param reportable whether there is an owner here to report to at all
      * @param requires   nothing, a note, or a document as well
      */
-    public record LossReportTerms(boolean reportable, LossReportRequirement requires) {}
+    public record LossReportTerms(
+            boolean reportable, @Nullable LossReportRequirement requires) {}
 
-    public record ContainerAssignRequest(Integer containerId) {}
+    public record ContainerAssignRequest(@Nullable Integer containerId) {}
 
     public record ItemLocationResponse(
-            int itemId, Integer containerId, List<String> pathSegments, List<Integer> pathIds, String pathDisplay) {}
+            int itemId,
+            @Nullable Integer containerId,
+            List<String> pathSegments,
+            List<Integer> pathIds,
+            String pathDisplay) {}
 
     /**
      * A requirement as a station reads it.
@@ -1439,26 +1469,30 @@ public class InventoryRoutes implements Routes {
             int id,
             int inventoryId,
             String inventoryName,
-            StationUserType userType,
+            @Nullable StationUserType userType,
             int groupId,
-            Integer stationGroupId,
+            @Nullable Integer stationGroupId,
             int quantity,
             int position,
-            String clusterName) {}
+            @Nullable String clusterName) {}
 
     /**
      * @param stationGroupId the group of stations it counts at, or null for every station reading it. Only
      *                       an association writing its own requirement may name one.
      */
     public record RequirementRequest(
-            int inventoryId, StationUserType userType, Integer groupId, Integer stationGroupId, int quantity) {}
+            int inventoryId,
+            @Nullable StationUserType userType,
+            @Nullable Integer groupId,
+            @Nullable Integer stationGroupId,
+            int quantity) {}
 
     public record UpdateRequirementRequest(int quantity) {}
 
     /**
      * @param name the association above the station, or null when there is none keeping gear here
      */
-    public record OwnerAboveResponse(String name) {}
+    public record OwnerAboveResponse(@Nullable String name) {}
 
     public record UpdatePositionRequest(int position) {}
 
@@ -1466,7 +1500,7 @@ public class InventoryRoutes implements Routes {
             List<Integer> memberIds,
             List<Integer> inventoryIds,
             List<Integer> extraFieldIds,
-            Boolean showName,
-            Boolean showInternalId,
-            Boolean showSize) {}
+            @Nullable Boolean showName,
+            @Nullable Boolean showInternalId,
+            @Nullable Boolean showSize) {}
 }

@@ -11,7 +11,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
-import type { InventoryItem } from '@/api/inventory'
+import type { InventoryItem } from '@/api/generated/schema'
 import type { DataTableApi } from '@/composables/useDataTable'
 
 defineProps<{

@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type { MemberCheckState } from '@/api/inventoryCheck'
+import type { MemberCheckState } from '@/api/generated/schema'
 
 defineProps<{
   state: MemberCheckState

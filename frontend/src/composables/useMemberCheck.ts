@@ -5,8 +5,13 @@
  */
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
-import type { CheckResult, CorrectItemRequest, MemberCheckState } from '@/api/inventoryCheck'
+import type {
+    CheckResult,
+    CorrectItemRequest,
+    InventoryItem,
+    MemberCheckState,
+    RequiredInventoryItem,
+} from '@/api/generated/schema'
 import { inventoryCheck, movements, procurement } from '@/api'
 import type { HandOutMode } from '@/components/inventory/HandOutChoice.vue'
 import { showToast } from '@/util/toast'

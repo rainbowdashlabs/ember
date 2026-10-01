@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Station-defined container kind (room, drawer, box, …). The seven defaults
@@ -22,7 +23,14 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param enabled   whether new containers can pick this kind
  */
 public record InventoryContainerKind(
-        int id, int stationId, String key, String label, String icon, String color, int sortOrder, boolean enabled) {
+        int id,
+        int stationId,
+        String key,
+        String label,
+        String icon,
+        @Nullable String color,
+        int sortOrder,
+        boolean enabled) {
 
     /**
      * Creates a row mapping for database result set conversion.

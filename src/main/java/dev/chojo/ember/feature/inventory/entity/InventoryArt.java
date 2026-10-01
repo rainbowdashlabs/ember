@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
 
@@ -36,7 +37,14 @@ import java.util.Locale;
  *                    back to the inventory
  */
 public record InventoryArt(
-        int id, int inventoryId, String name, String note, int position, String mergeKey, String icon, String color) {
+        int id,
+        int inventoryId,
+        String name,
+        String note,
+        int position,
+        @Nullable String mergeKey,
+        @Nullable String icon,
+        @Nullable String color) {
 
     /**
      * Creates a row mapping for database result set conversion.

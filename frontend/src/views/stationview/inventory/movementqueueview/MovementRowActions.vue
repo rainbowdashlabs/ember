@@ -9,7 +9,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import {MovementState, type Movement} from '@/api/movements'
+import {MovementState} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 
 /**
  * What can be done with one movement from the list it is in.
@@ -22,7 +23,7 @@ import {MovementState, type Movement} from '@/api/movements'
  * button takes the width rather than three of them fighting over one line.
  */
 const props = defineProps<{
-  movement: Movement
+  movement: MovementResponse
   canCorrect: boolean
   picking?: boolean
   picked?: boolean

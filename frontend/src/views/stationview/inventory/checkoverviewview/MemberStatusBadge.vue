@@ -6,14 +6,14 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {MemberCheckSummary} from '@/api/inventoryCheck'
+import type {EnrichedCheckSummary} from '@/api/generated/schema'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import {isLockedByMe, isLockedByOther, lockerName} from './memberHelpers'
 
 const props = defineProps<{
-  member: MemberCheckSummary
+  member: EnrichedCheckSummary
   currentMemberId: number | undefined
 }>()
 

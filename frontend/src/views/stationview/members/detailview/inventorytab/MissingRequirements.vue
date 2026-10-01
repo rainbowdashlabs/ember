@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {InventoryItem, MemberRequirements} from '@/api/inventory'
+import type {InventoryItem, MemberRequirements} from '@/api/generated/schema'
 import MissingRequirementCard from './MissingRequirementCard.vue'
 
 /**

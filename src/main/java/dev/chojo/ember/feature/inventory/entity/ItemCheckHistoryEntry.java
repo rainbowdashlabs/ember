@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 
 /**
@@ -29,6 +31,6 @@ public record ItemCheckHistoryEntry(
         Instant checkedAt,
         String checkerName,
         String reporterName,
-        String containerName,
-        String scope,
+        @Nullable String containerName,
+        InventoryCheckScope scope,
         String note) {}

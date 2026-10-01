@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { InventoryItem } from '@/api/inventory'
+import type { InventoryItem } from '@/api/generated/schema'
 import type { MemberIdentity } from '@/api/types'
 
 /**

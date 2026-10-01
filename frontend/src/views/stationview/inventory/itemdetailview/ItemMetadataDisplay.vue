@@ -13,9 +13,9 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import ItemFact from './ItemFact.vue'
-import {ItemOwner, type InventoryItem, type InventorySize} from '@/api/inventory'
+import {ItemOwner} from '@/api/inventory'
+import type {InventoryItem, InventorySize, ItemLocationResponse} from '@/api/generated/schema'
 import type {MemberIdentity} from '@/api/types'
-import type {ItemLocationResponse} from '@/api/inventoryContainers'
 import {formatDate} from '@/util/format'
 
 const routes = useInventoryRoutes()

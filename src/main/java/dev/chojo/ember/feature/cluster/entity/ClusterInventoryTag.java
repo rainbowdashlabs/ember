@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A word an association recommends to the stations under it, shaped like the questions it asks of
@@ -25,7 +26,13 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param stationGroupId the group of stations it is meant for, or {@code null} for all of them
  */
 public record ClusterInventoryTag(
-        int id, int clusterId, String name, String canonicalName, String color, int position, Integer stationGroupId) {
+        int id,
+        int clusterId,
+        String name,
+        @Nullable String canonicalName,
+        @Nullable String color,
+        int position,
+        @Nullable Integer stationGroupId) {
 
     /**
      * Creates a row mapping for database result set conversion.

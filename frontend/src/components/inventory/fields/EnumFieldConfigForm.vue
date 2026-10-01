@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
-import type {EnumFieldConfig, EnumOption} from '@/api/inventoryFields'
+import type {EnumConfig, EnumOption} from '@/api/generated/schema'
 import {harmonizeKey} from './harmonize'
 
 /**
@@ -18,7 +18,7 @@ import {harmonizeKey} from './harmonize'
  * jacke" leaves the pieces already carrying it where they are. The stored half follows the label
  * while nobody has typed one of their own, and stops following the moment somebody does.
  */
-const config = defineModel<EnumFieldConfig>('config', {required: true})
+const config = defineModel<EnumConfig>('config', {required: true})
 
 const {t} = useI18n()
 

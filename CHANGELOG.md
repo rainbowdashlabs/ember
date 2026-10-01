@@ -106,6 +106,8 @@
 - **A cleared step note came back.** Emptying the note of a step in a procedure kept the old note. Clearing it now removes it.
 - **Generating quiz questions with AI failed.** Asking the AI for new questions for a catalog, or for a new version of selected questions, failed, and questions that did arrive were saved without their answers. Generated questions now arrive and are saved complete.
 - **Free-text and picture questions showed no answer.** In a quiz catalog opened read-only, free-text and picture questions showed no correct answer. They now list the accepted answers like every other kind of question.
+- **Corrections were not marked in a piece's history.** When a check put the record of who holds a piece right, its history showed that spell like an ordinary hand-back. Such entries are now marked as a correction.
+- **A kind blocking a change of inventory was not named.** When a collection could not become a stock because kinds are still defined in it, the reason was shown as unreadable text. It now names the kind that stands in the way.
 
 ## v26.19.5
 

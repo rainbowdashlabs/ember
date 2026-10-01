@@ -24,8 +24,7 @@ import ContainerNewModal from '@/views/stationview/inventory/storageview/Contain
 import ContainerTree from '@/views/stationview/inventory/storageview/ContainerTree.vue'
 import {inventory, inventoryContainers} from '@/api'
 import {containerPathFor} from '@/util/containerPath'
-import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
-import type {InventoryItem} from '@/api/inventory'
+import type {InventoryContainer, InventoryContainerKind, InventoryItem} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
 

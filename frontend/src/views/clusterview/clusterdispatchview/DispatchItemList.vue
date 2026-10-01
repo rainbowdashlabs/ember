@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import type {SendableItem} from '@/api/clusterInventory'
+import type {SendableItem} from '@/api/generated/schema'
 
 /**
  * What is in the store, grouped by the inventory each piece comes out of, with a box beside each.

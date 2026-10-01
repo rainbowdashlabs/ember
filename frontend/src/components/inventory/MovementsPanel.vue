@@ -14,7 +14,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import {movements} from '@/api'
-import {MovementState, StepActor, type Movement} from '@/api/movements'
+import {MovementState, StepActor} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -43,7 +44,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const open = ref<Movement[]>([])
+const open = ref<MovementResponse[]>([])
 const busy = ref(false)
 const actionFailure = ref<Failure | null>(null)
 
@@ -84,7 +85,7 @@ watch(() => props.memberId, load)
  * not have to ask the station to undo it. Once they have handed it in, the button is gone: from that
  * moment the station is the one who can say what happens to it.
  */
-async function callOff(movement: Movement) {
+async function callOff(movement: MovementResponse) {
   busy.value = true
   actionFailure.value = null
   try {
@@ -114,7 +115,7 @@ async function catchUp() {
   }
 }
 
-async function confirm(movement: Movement) {
+async function confirm(movement: MovementResponse) {
   busy.value = true
   actionFailure.value = null
   try {

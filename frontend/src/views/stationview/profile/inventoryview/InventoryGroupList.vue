@@ -9,7 +9,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
-import type {MyInventoryItem} from '@/api/inventory'
+import type {MyInventoryItem} from '@/api/generated/schema'
 
 interface InventoryGroup {
   inventoryId: number

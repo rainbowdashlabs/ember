@@ -25,6 +25,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -134,5 +135,9 @@ public class ClusterInventoryTagRoutes implements Routes {
      * @param position       where it should sit
      * @param stationGroupId the group of stations it is meant for, or {@code null} for all of them
      */
-    public record ClusterTagRequest(String name, String color, int position, Integer stationGroupId) {}
+    public record ClusterTagRequest(
+            String name,
+            @Nullable String color,
+            int position,
+            @Nullable Integer stationGroupId) {}
 }

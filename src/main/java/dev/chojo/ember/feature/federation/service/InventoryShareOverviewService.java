@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -114,10 +115,10 @@ public class InventoryShareOverviewService {
     /** One row of the overview of everything this station offers. */
     public record ShareDetail(
             InventoryShare share,
-            String inventoryName,
-            String artName,
-            String itemName,
-            String itemInternalId,
+            @Nullable String inventoryName,
+            @Nullable String artName,
+            @Nullable String itemName,
+            @Nullable String itemInternalId,
             List<SharePartner> partners) {}
 
     /** A partner named by a share, with the name to show for it. */

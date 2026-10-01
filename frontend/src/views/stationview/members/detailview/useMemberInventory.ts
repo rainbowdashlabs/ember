@@ -5,7 +5,7 @@
  */
 import { ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { MemberRequirements, MyInventoryItem } from '@/api/inventory'
+import type { MemberRequirements, MyInventoryItem } from '@/api/generated/schema'
 import { inventory, movements } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
 

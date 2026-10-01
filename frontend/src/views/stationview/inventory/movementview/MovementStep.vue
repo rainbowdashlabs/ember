@@ -10,13 +10,14 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import {AckKind, StepActor, type MovementStep} from '@/api/movements'
+import {AckKind, StepActor} from '@/api/movements'
+import type {MovementStepResponse} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 const {t} = useI18n()
 
 const props = defineProps<{
-  step: MovementStep
+  step: MovementStepResponse
   /** Whether the movement is still walking, which decides if anything ahead is still to come. */
   open: boolean
   /** The owning party by name, so a step of theirs says who rather than what role. */

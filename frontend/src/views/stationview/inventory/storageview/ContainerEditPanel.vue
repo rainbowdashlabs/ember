@@ -19,7 +19,7 @@ import ContainerParentPicker from '@/views/stationview/inventory/storageview/Con
 import {describeFailure, type Failure} from '@/util/failure'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {inventoryContainers} from '@/api'
-import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
+import type {InventoryContainer, InventoryContainerKind} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const props = defineProps<{

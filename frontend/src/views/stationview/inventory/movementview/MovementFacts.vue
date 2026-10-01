@@ -7,7 +7,8 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MemberName from '@/components/avatar/MemberName.vue'
-import {MovementState, type Movement} from '@/api/movements'
+import {MovementState} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 
 /**
  * What was written down about a movement: who it is with, what it is out of, and why.
@@ -17,7 +18,7 @@ import {MovementState, type Movement} from '@/api/movements'
  */
 const {t} = useI18n()
 
-const props = defineProps<{movement: Movement}>()
+const props = defineProps<{movement: MovementResponse}>()
 
 const open = computed(() => props.movement.state === MovementState.OPEN)
 </script>

@@ -6,9 +6,7 @@
 import {ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {equipment, inventory as inventoryApi, inventoryArts} from '@/api'
-import type {NeedCoverage} from '@/api/generated/schema'
-import type {Inventory, InventoryItem} from '@/api/inventory'
-import type {InventoryArt} from '@/api/inventoryArts'
+import type {Inventory, InventoryArt, InventoryItem, NeedCoverage} from '@/api/generated/schema'
 import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 

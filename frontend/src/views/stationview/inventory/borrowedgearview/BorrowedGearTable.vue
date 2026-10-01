@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
-import type {BorrowedItem} from '@/api/inventory'
+import type {BorrowedItemResponse} from '@/api/generated/schema'
 import {byValue} from '@/composables/useSortable'
 import {useDataTable} from '@/composables/useDataTable'
 import {formatDate} from '@/util/format'
@@ -21,11 +21,11 @@ import {formatDate} from '@/util/format'
  * the origin lives on the row rather than in a heading, so one partner's gear has to come together.
  * Within one partner the pieces stand by name.
  */
-const props = defineProps<{rows: BorrowedItem[]}>()
+const props = defineProps<{rows: BorrowedItemResponse[]}>()
 
 const {t} = useI18n()
 
-const columns = computed<TableColumn<BorrowedItem>[]>(() => [
+const columns = computed<TableColumn<BorrowedItemResponse>[]>(() => [
   {key: 'name', label: t('inventory.borrowed.colName'), type: ColumnTypes.TEXT, value: row => row.item.name, pinned: true},
   {key: 'internalId', label: t('inventory.borrowed.colId'), type: ColumnTypes.TEXT, value: row => row.item.internalId},
   {key: 'owner', label: t('inventory.borrowed.colOwner'), type: ColumnTypes.TEXT, value: row => row.ownerStationName},
@@ -35,7 +35,7 @@ const columns = computed<TableColumn<BorrowedItem>[]>(() => [
   },
 ])
 
-const table = useDataTable<BorrowedItem>({
+const table = useDataTable<BorrowedItemResponse>({
   id: 'inventory-borrowed',
   rows: () => props.rows,
   columns,

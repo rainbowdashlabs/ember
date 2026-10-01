@@ -16,7 +16,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import InventoryStatsPanel from '@/views/stationview/inventory/detailview/InventoryStatsPanel.vue'
 import InventoryTabs from './clusterinventoryview/InventoryTabs.vue'
 import {clusterInventory} from '@/api'
-import type {ClusterInventoryStat, ClusterSizeStat} from '@/api/clusterInventory'
+import type {InventoryStatResponse, SizeStatResponse} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
@@ -31,18 +31,18 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
  */
 const {t} = useI18n()
 
-const stats = ref<ClusterInventoryStat[]>([])
+const stats = ref<InventoryStatResponse[]>([])
 
 const {loading, failure} = useAsyncLoader(async () => {
   stats.value = await clusterInventory.statistics()
 })
 
 /** What is not resting in the association's own store, however far it has gone. */
-function outOf(stat: ClusterInventoryStat | ClusterSizeStat): number {
+function outOf(stat: InventoryStatResponse | SizeStatResponse): number {
   return stat.atStation + stat.withMember
 }
 
-function sizeStats(stat: ClusterInventoryStat) {
+function sizeStats(stat: InventoryStatResponse) {
   return stat.sizes.map(size => ({
     size: {id: size.sizeId, inventoryId: stat.inventoryId, label: size.label, position: 0, note: ''},
     total: size.total,

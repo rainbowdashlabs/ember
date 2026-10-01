@@ -13,7 +13,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {movements} from '@/api'
-import type {LossReport} from '@/api/movements'
+import type {LossReport} from '@/api/generated/schema'
 import {presentFile} from '@/util/documentFile'
 import {describeFailure, type Failure} from '@/util/failure'
 

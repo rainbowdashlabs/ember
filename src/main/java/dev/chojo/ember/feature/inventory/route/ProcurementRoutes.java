@@ -30,6 +30,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -199,17 +200,21 @@ public class ProcurementRoutes implements Routes {
             int id,
             int inventoryId,
             String inventoryName,
-            Integer memberId,
+            @Nullable Integer memberId,
             String memberName,
-            MemberIdentity memberIdentity,
-            Integer sizeId,
-            String sizeLabel,
+            @Nullable MemberIdentity memberIdentity,
+            @Nullable Integer sizeId,
+            @Nullable String sizeLabel,
             String notes,
             Instant requestedAt,
-            Instant fulfilledAt) {}
+            @Nullable Instant fulfilledAt) {}
 
     /**
      * @param memberId who it is for, left out for an order a cluster places for its own store
      */
-    public record CreateProcurementRequest(int inventoryId, Integer memberId, Integer sizeId, String notes) {}
+    public record CreateProcurementRequest(
+            int inventoryId,
+            @Nullable Integer memberId,
+            @Nullable Integer sizeId,
+            @Nullable String notes) {}
 }

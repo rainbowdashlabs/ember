@@ -29,6 +29,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -222,8 +223,8 @@ public class InventoryFieldDefinitionRoutes implements Routes {
      *               nothing else has, or {@code null}
      */
     public record FieldDefinitionRequest(
-            Integer artId,
-            Integer itemId,
+            @Nullable Integer artId,
+            @Nullable Integer itemId,
             String key,
             String label,
             FieldType fieldType,

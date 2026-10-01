@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import InventorySection from './InventorySection.vue'
 import MissingRequirements from './inventorytab/MissingRequirements.vue'
-import type { MemberRequirements, MyInventoryItem } from '@/api/inventory'
+import type { MemberRequirements, MyInventoryItem } from '@/api/generated/schema'
 
 defineProps<{
   memberInventory: MyInventoryItem[]

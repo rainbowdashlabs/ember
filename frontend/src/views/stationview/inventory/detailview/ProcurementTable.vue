@@ -13,10 +13,10 @@ import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
-import type { ProcurementEntry } from '@/api/procurement'
+import type { ProcurementResponse } from '@/api/generated/schema'
 
 const props = withDefaults(defineProps<{
-  entries: ProcurementEntry[]
+  entries: ProcurementResponse[]
   readonly?: boolean
   canCreate?: boolean
 }>(), {

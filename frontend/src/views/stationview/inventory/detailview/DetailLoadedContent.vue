@@ -8,7 +8,14 @@ import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ItemsByArt from './ItemsByArt.vue'
-import type {InventoryArt} from '@/api/inventoryArts'
+import type {
+  InventoryArt,
+  InventoryDetail,
+  InventoryItem,
+  InventorySize,
+  LentOutItem,
+  ProcurementResponse,
+} from '@/api/generated/schema'
 import type { ItemTableApi } from '../itemtable/useItemTable'
 import InventoryItemTable from '../itemtable/InventoryItemTable.vue'
 import ItemListControls from '../itemtable/ItemListControls.vue'
@@ -18,10 +25,8 @@ import LendingSharePanel from '@/components/lending/LendingSharePanel.vue'
 import ProcurementTable from './ProcurementTable.vue'
 import LostItemsTable from './LostItemsTable.vue'
 import FreeItemsGrid from './FreeItemsGrid.vue'
-import {isLendableInventory, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
-import type { ProcurementEntry } from '@/api/procurement'
+import {isLendableInventory} from '@/api/inventory'
 import type { StationMember } from '@/api/types'
-import type { LentOutItem } from '@/api/lending'
 import type { InventoryItemActionEmits } from '../itemEmits'
 
 type SizeStat = {
@@ -59,7 +64,7 @@ const props = withDefaults(defineProps<{
   freeItems: InventoryItem[]
   lostItems: InventoryItem[]
   memberMap: Map<number, StationMember>
-  openProcurement: ProcurementEntry[]
+  openProcurement: ProcurementResponse[]
   lentOutItems: LentOutItem[]
   lentItemStationMap: Map<number, string>
   containerPathById: Map<number, string>

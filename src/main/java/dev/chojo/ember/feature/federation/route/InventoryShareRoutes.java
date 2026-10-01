@@ -13,12 +13,19 @@ import dev.chojo.ember.feature.federation.entity.InventoryShare;
 import dev.chojo.ember.feature.federation.entity.ShareGrant;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.InventoryShareOverviewService;
+import dev.chojo.ember.feature.federation.service.InventoryShareOverviewService.ShareDetail;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -77,11 +84,19 @@ public class InventoryShareRoutes implements Routes {
                 StationPermission.INVENTORY_LENDING_MANAGER);
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareDetail[].class)))
     private void listShares(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(overviewService.overview(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/inventory/{inventoryId}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void getInventoryShare(Context ctx) {
         var session = UserSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
@@ -90,6 +105,10 @@ public class InventoryShareRoutes implements Routes {
                 .orElseGet(ShareSetting::unshared));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/art/{artId}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void getArtShare(Context ctx) {
         var session = UserSession.from(ctx);
         int artId = pathInt(ctx, "artId");
@@ -98,6 +117,10 @@ public class InventoryShareRoutes implements Routes {
                 .orElseGet(ShareSetting::unshared));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/item/{itemId}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void getItemShare(Context ctx) {
         var session = UserSession.from(ctx);
         int itemId = pathInt(ctx, "itemId");
@@ -110,6 +133,11 @@ public class InventoryShareRoutes implements Routes {
         return new ShareSetting(true, share.shareGrant(), share.shareScope(), service.findTargets(share.id()));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/inventory/{inventoryId}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetShareRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void setInventoryShare(Context ctx) {
         var session = UserSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
@@ -119,6 +147,11 @@ public class InventoryShareRoutes implements Routes {
         ctx.json(toSetting(share));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/art/{artId}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetShareRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void setArtShare(Context ctx) {
         var session = UserSession.from(ctx);
         int artId = pathInt(ctx, "artId");
@@ -127,6 +160,11 @@ public class InventoryShareRoutes implements Routes {
         ctx.json(toSetting(share));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/item/{itemId}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetShareRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void setItemShare(Context ctx) {
         var session = UserSession.from(ctx);
         int itemId = pathInt(ctx, "itemId");
@@ -135,18 +173,30 @@ public class InventoryShareRoutes implements Routes {
         ctx.json(toSetting(share));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/inventory/{inventoryId}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteInventoryShare(Context ctx) {
         var session = UserSession.from(ctx);
         service.removeInventoryShare(session.stationId(), pathInt(ctx, "inventoryId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/art/{artId}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteArtShare(Context ctx) {
         var session = UserSession.from(ctx);
         service.removeArtShare(session.stationId(), pathInt(ctx, "artId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/item/{itemId}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteItemShare(Context ctx) {
         var session = UserSession.from(ctx);
         service.removeItemShare(session.stationId(), pathInt(ctx, "itemId"));
@@ -174,7 +224,11 @@ public class InventoryShareRoutes implements Routes {
     }
 
     /** What is currently said about one inventory or one item. */
-    public record ShareSetting(boolean shared, ShareGrant grant, ShareScope scope, List<Integer> partnerIds) {
+    public record ShareSetting(
+            boolean shared,
+            @Nullable ShareGrant grant,
+            @Nullable ShareScope scope,
+            List<Integer> partnerIds) {
         static ShareSetting unshared() {
             return new ShareSetting(false, null, null, List.of());
         }

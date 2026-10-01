@@ -30,6 +30,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -267,7 +268,12 @@ public class InventoryArtRoutes implements Routes {
      * @param icon     the FontAwesome name its pieces are drawn with, or {@code null} to follow the inventory
      * @param color    the colour that picture is drawn in as {@code #rrggbb}, or {@code null} to follow it too
      */
-    public record ArtRequest(String name, String note, int position, String icon, String color) {}
+    public record ArtRequest(
+            String name,
+            @Nullable String note,
+            int position,
+            @Nullable String icon,
+            @Nullable String color) {}
 
     /**
      * Request body for putting pieces under a kind without touching their names.
@@ -275,7 +281,7 @@ public class InventoryArtRoutes implements Routes {
      * @param artId   the kind, or {@code null} to take the kind away again
      * @param itemIds the pieces
      */
-    public record ArtAssignRequest(Integer artId, List<Integer> itemIds) {}
+    public record ArtAssignRequest(@Nullable Integer artId, List<Integer> itemIds) {}
 
     /**
      * Request body for the tidying merge, which rewrites the names of the pieces it moves.

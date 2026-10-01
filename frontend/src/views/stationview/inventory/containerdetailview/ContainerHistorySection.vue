@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import type {InventoryContainerHistory} from '@/api/inventoryContainers'
+import type {InventoryContainerHistory} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{

@@ -7,7 +7,8 @@
 import {useI18n} from 'vue-i18n'
 import type {RouteLocationRaw} from 'vue-router'
 import Alert from '@/components/feedback/Alert.vue'
-import {SwitchBlockerKinds, type SwitchBlocker} from '@/api/inventory'
+import {SwitchBlockerKinds} from '@/api/inventory'
+import type {SwitchBlocker} from '@/api/generated/schema'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 
 /**

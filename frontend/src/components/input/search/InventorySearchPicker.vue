@@ -10,7 +10,8 @@ import EntitySearchPicker from './EntitySearchPicker.vue'
 import GearGlyph from '@/components/inventory/GearGlyph.vue'
 import {listSearch, numericPickerModel} from '@/util/listSearch'
 import {glyphFor} from '@/util/glyph'
-import {InventoryTypes, type Inventory} from '@/api/inventory'
+import {InventoryTypes} from '@/api/inventory'
+import type {Inventory} from '@/api/generated/schema'
 
 const model = defineModel<number | null>()
 

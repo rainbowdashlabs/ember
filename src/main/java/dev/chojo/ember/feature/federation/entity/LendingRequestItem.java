@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.federation.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
+import org.jspecify.annotations.Nullable;
 
 /**
  * One line of a lending request: a named piece, a count of one kind of thing, or a count out of a
@@ -26,11 +27,11 @@ import dev.chojo.ember.feature.inventory.entity.LineTarget;
 public record LendingRequestItem(
         int id,
         int requestId,
-        Integer inventoryId,
-        Integer itemId,
-        Integer artId,
+        @Nullable Integer inventoryId,
+        @Nullable Integer itemId,
+        @Nullable Integer artId,
         int quantity,
-        Integer needId,
+        @Nullable Integer needId,
         String label) {
 
     /**

@@ -7,10 +7,10 @@
 import {useI18n} from 'vue-i18n'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import type {NumberFieldConfig} from '@/api/inventoryFields'
+import type {NumberConfig} from '@/api/generated/schema'
 
 const props = defineProps<{
-    config: NumberFieldConfig
+    config: NumberConfig
 }>()
 
 const {t} = useI18n()

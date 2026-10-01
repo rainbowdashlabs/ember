@@ -13,8 +13,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IntakeMemberHeader from './IntakeMemberHeader.vue'
 import IntakeTableRow from './IntakeTableRow.vue'
 import {compareSortValues, type SortDirection} from '@/composables/useSortable'
-import type {InventorySize} from '@/api/inventory'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {InventoryFieldDefinition, InventorySize} from '@/api/generated/schema'
 import type {IntakeLine} from './intakeLines'
 
 /**

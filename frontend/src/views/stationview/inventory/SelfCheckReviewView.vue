@@ -19,10 +19,14 @@ import RaisedReportsPanel from './selfcheckreviewview/RaisedReportsPanel.vue'
 import RefuseRowModal from './selfcheckreviewview/RefuseRowModal.vue'
 import CorrectItemModal from './checkmemberview/CorrectItemModal.vue'
 import {selfChecks} from '@/api'
-import type {CorrectItemRequest} from '@/api/inventoryCheck'
-import type {InventoryItem, RequiredInventoryItem} from '@/api/inventory'
+import type {
+  CorrectItemRequest,
+  InventoryItem,
+  RequiredInventoryItem,
+  SelfCheckReview,
+  SelfCheckReviewRow,
+} from '@/api/generated/schema'
 import {SelfCheckAnswer} from '@/api/selfChecks'
-import type {SelfCheckReview, SelfCheckReviewRow} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {formatDate} from '@/util/format'
@@ -93,7 +97,7 @@ function openCorrect(row: SelfCheckReviewRow) {
 const {running: correctBusy, failure: correctFailure, run: applyCorrection, clearError: clearCorrectError} =
     useAsyncAction(async (payload: CorrectItemRequest) => {
       const row = correcting.value
-      if (!row) return
+      if (!row || payload.inventoryId === undefined) return
       review.value = await selfChecks.correctRow(taskId.value, row.row.id, {
         inventoryId: payload.inventoryId,
         pickedItemId: payload.pickedItemId,

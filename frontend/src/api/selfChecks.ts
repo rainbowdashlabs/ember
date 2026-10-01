@@ -4,13 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {ItemMetadata} from './inventory'
 import type {
     AnswerBody,
     components,
     CorrectRowRequest,
     HandOutSelfChecksRequest,
     HeldReportRequest,
+    InventoryItemMetadata as ItemMetadata,
     RefuseRowRequest,
     SelfCheckAnswerRequest,
     SelfCheckRaised,

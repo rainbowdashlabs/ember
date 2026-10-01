@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionSettings;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -38,8 +39,8 @@ import java.util.List;
 public record InventoryFieldDefinition(
         int id,
         int inventoryId,
-        Integer artId,
-        Integer itemId,
+        @Nullable Integer artId,
+        @Nullable Integer itemId,
         String key,
         String label,
         FieldType fieldType,

@@ -13,7 +13,7 @@ import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
 import StockShareBar from '@/components/inventory/StockShareBar.vue'
-import type { InventorySize } from '@/api/inventory'
+import type { InventorySize } from '@/api/generated/schema'
 
 interface SizeStat {
   size: InventorySize | null

@@ -6,10 +6,10 @@
 import {
     InventoryTypes,
     ItemOwner,
-    type InventoryItem,
     type InventoryTypeName,
     type ItemOwnerName,
 } from '@/api/inventory'
+import type {InventoryItem} from '@/api/generated/schema'
 
 /** Which pieces an item picker may offer, as its caller asked for them. */
 export interface ItemFilterCriteria {

@@ -33,7 +33,7 @@ import type {
   InventoryContainer,
   InventoryContainerHistory,
   InventoryContainerKind,
-} from '@/api/inventoryContainers'
+} from '@/api/generated/schema'
 
 const routes = useInventoryRoutes()
 

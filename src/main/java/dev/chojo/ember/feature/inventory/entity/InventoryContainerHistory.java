@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -24,11 +25,11 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 public record InventoryContainerHistory(
         int id,
-        Integer containerId,
+        @Nullable Integer containerId,
         int stationId,
         ContainerEventKind eventKind,
         Instant eventTs,
-        Integer actorId,
+        @Nullable Integer actorId,
         ContainerHistoryDetails details) {
 
     /**

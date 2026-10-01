@@ -22,7 +22,7 @@ import MemberTagChips from './MemberTagChips.vue'
 import {StationUserType, type MemberGroup, type PermissionGrant, type StationMember, type UserTag} from '@/api/types'
 import type {MemberGroupSet} from '@/api/groupSets'
 import {stationMembers, memberGroups} from '@/api'
-import type {MyInventoryItem} from '@/api/inventory'
+import type {MyInventoryItem} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {describeFailure, type Failure} from '@/util/failure'
 

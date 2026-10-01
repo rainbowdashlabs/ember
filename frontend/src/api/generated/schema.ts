@@ -17961,6 +17961,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federated/lending/available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailableInventoryResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federated/my-registrations": {
         parameters: {
             query?: never;
@@ -21315,6 +21350,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventories/all-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InventoryItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventories/all-sizes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InventorySize"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventories/members/export": {
         parameters: {
             query?: never;
@@ -21456,7 +21561,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["EnrichedCheckSummary"][];
+                    };
                 };
             };
         };
@@ -21497,7 +21604,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MemberCheckState"];
+                    };
                 };
             };
         };
@@ -21574,7 +21683,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["InventoryCheck"];
+                    };
                 };
             };
         };
@@ -21614,7 +21725,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MemberCheckState"];
+                    };
                 };
             };
         };
@@ -21654,7 +21767,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MemberCheckState"];
+                    };
                 };
             };
         };
@@ -21688,7 +21803,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["EnrichedCheckDetail"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -21733,7 +21850,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MemberCheckState"];
+                    };
                 };
             };
         };
@@ -21772,7 +21891,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MemberCheckState"];
+                    };
                 };
             };
         };
@@ -21813,7 +21934,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["InventoryCheck"];
+                    };
                 };
             };
         };
@@ -21849,7 +21972,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["InventoryItem"][];
+                    };
                 };
             };
         };
@@ -21887,7 +22012,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ItemLastCheck"][];
+                    };
                 };
             };
         };
@@ -21923,7 +22050,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ItemCheckHistoryEntry"][];
+                    };
                 };
             };
         };
@@ -22777,6 +22906,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory-items/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HistoryResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventory-items/{id}/inventory": {
         parameters: {
             query?: never;
@@ -23237,7 +23401,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["InventoryRequirement"];
+                    };
                 };
                 /** @description Bad Request */
                 400: {
@@ -25959,6 +26125,794 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InventoryBlock"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateBlockRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InventoryBlock"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/blocks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/inventory/{inventoryId}/lent-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LentOutItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LendingRequestResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateLendingRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LendingRequestResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LendingRequestDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LendingRequestResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/requests/{id}/assign-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AssignItemsRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/requests/{id}/available-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailableItemDetail"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/requests/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LendingRequestResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/requests/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DeclineBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LendingRequestResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/requests/{id}/lent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LendingRequestResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/requests/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EnrichedMessage"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MessageBody"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LendingMessage"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/requests/{id}/returned": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LendingRequestResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ShareDetail"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/shares/art/{artId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ShareSetting"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetShareRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ShareSetting"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/shares/inventory/{inventoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ShareSetting"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetShareRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ShareSetting"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lending/shares/item/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ShareSetting"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetShareRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ShareSetting"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -43221,10 +44175,10 @@ export interface components {
             comment?: string;
         };
         AcknowledgeStepRequest: {
-            newItem?: components["schemas"]["NewItemRequest"];
-            note?: string;
+            newItem?: components["schemas"]["NewItemRequest"] | null;
+            note?: string | null;
             /** Format: int32 */
-            pickedItemId?: number;
+            pickedItemId?: number | null;
             /** Format: int32 */
             stepId?: number;
         };
@@ -43437,7 +44391,7 @@ export interface components {
         };
         ArtAssignRequest: {
             /** Format: int32 */
-            artId?: number;
+            artId?: number | null;
             itemIds?: number[];
         };
         ArtMergeRequest: {
@@ -43446,10 +44400,10 @@ export interface components {
             itemIds?: number[];
         };
         ArtRequest: {
-            color?: string;
-            icon?: string;
+            color?: string | null;
+            icon?: string | null;
             name?: string;
-            note?: string;
+            note?: string | null;
             /** Format: int32 */
             position?: number;
         };
@@ -43469,7 +44423,10 @@ export interface components {
             /** Format: int32 */
             newItemId?: number;
             /** Format: int32 */
-            oldItemId?: number;
+            oldItemId?: number | null;
+        };
+        AssignItemsRequest: {
+            items?: components["schemas"]["ItemAssignment"][];
         };
         AssignmentRequest: {
             /** Format: int32 */
@@ -43483,8 +44440,8 @@ export interface components {
         };
         AssignRequest: {
             /** Format: int32 */
-            memberId?: number;
-            memberName?: string;
+            memberId?: number | null;
+            memberName?: string | null;
         };
         AttachmentOrderRequest: {
             attachmentIds?: number[];
@@ -43614,6 +44571,37 @@ export interface components {
             /** Format: uuid */
             uid: string;
         };
+        AvailableInventoryEntry: {
+            /** Format: int32 */
+            artId: number | null;
+            artName: string | null;
+            /** Format: int32 */
+            availableCount: number;
+            distanceKm: number | null;
+            /** Format: int32 */
+            inventoryId: number;
+            inventoryName: string;
+            /** Format: uuid */
+            stationId: string;
+            stationName: string;
+        };
+        AvailableInventoryResult: {
+            emptyReason: components["schemas"]["EmptyReason"] | null;
+            entries: components["schemas"]["AvailableInventoryEntry"][];
+        };
+        AvailableItemDetail: {
+            internalId: string | null;
+            /** Format: int32 */
+            inventoryId: number;
+            inventoryName: string;
+            /** Format: int32 */
+            itemId: number;
+            itemName: string;
+            preselected: boolean;
+            /** Format: int32 */
+            requestItemId: number;
+            sizeName: string | null;
+        };
         AwaitingAnswer: {
             /** Format: int32 */
             categoryId: number | null;
@@ -43686,16 +44674,16 @@ export interface components {
             /** Format: int32 */
             flowId?: number;
             /** Format: int32 */
-            inventoryId?: number;
+            inventoryId?: number | null;
             ownerKind?: components["schemas"]["ItemOwner"];
-            party?: components["schemas"]["MovementParty"];
+            party?: components["schemas"]["MovementParty"] | null;
             purpose?: components["schemas"]["MovementPurpose"];
         };
         BindingResponse: {
             /** Format: int32 */
             flowId: number;
             /** Format: int32 */
-            inventoryId: number;
+            inventoryId: number | null;
             ownerKind: components["schemas"]["ItemOwner"];
             party: components["schemas"]["MovementParty"];
             purpose: components["schemas"]["MovementPurpose"];
@@ -43936,7 +44924,7 @@ export interface components {
             value: boolean;
         };
         BorrowedItemResponse: {
-            dueOn: string;
+            dueOn: string | null;
             item: components["schemas"]["InventoryItem"];
             /** Format: int32 */
             loanRequestId: number;
@@ -44149,10 +45137,10 @@ export interface components {
         };
         CheckItemResult: {
             /** Format: int32 */
-            inventoryId?: number;
+            inventoryId?: number | null;
             /** Format: int32 */
-            itemId?: number;
-            note?: string;
+            itemId?: number | null;
+            note?: string | null;
             result?: components["schemas"]["CheckResult"];
         };
         ChecklistDetailResponse: {
@@ -44221,22 +45209,22 @@ export interface components {
         };
         ChosenLanding: {
             /** Format: int32 */
-            stepId?: number;
+            stepId?: number | null;
             /** Format: int32 */
-            stepIndex?: number;
+            stepIndex?: number | null;
         };
         /** @enum {string} */
         ClaimOrigin: "OWN_NEED" | "LOAN" | "BLOCK";
         ClaimRequest: {
             /** Format: int32 */
-            memberId?: number;
+            memberId?: number | null;
         };
         ClearedFormResponses: {
             /** Format: int32 */
             cleared: number;
         };
         CloseMovementRequest: {
-            reason?: string;
+            reason?: string | null;
         };
         ClusterApplicationResponse: {
             denyReason: string;
@@ -44303,7 +45291,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
-            purpose: string;
+            purpose: components["schemas"]["MovementPurpose"];
             steps: components["schemas"]["ClusterStepResponse"][];
         };
         ClusterGroupDetailResponse: {
@@ -44330,31 +45318,31 @@ export interface components {
             permissions?: string[];
         };
         ClusterInventoryTag: {
-            canonicalName: string;
+            canonicalName: string | null;
             /** Format: uuid */
             clusterId: string;
-            color: string;
+            color: string | null;
             /** Format: int32 */
             id: number;
             name: string;
             /** Format: int32 */
             position: number;
             /** Format: int32 */
-            stationGroupId: number;
+            stationGroupId: number | null;
         };
         ClusterItemResponse: {
-            custody: string;
-            holderName: string;
+            custody: components["schemas"]["ItemCustody"];
+            holderName: string | null;
             /** Format: int32 */
             id: number;
-            internalId: string;
+            internalId: string | null;
             name: string;
             /** Format: int32 */
-            sizeId: number;
-            sizeLabel: string;
-            stationName: string;
+            sizeId: number | null;
+            sizeLabel: string | null;
+            stationName: string | null;
             /** Format: uuid */
-            stationUid: string;
+            stationUid: string | null;
         };
         ClusterMail: {
             emailEnabled: boolean;
@@ -44394,14 +45382,14 @@ export interface components {
         };
         ClusterQueueResponse: {
             createdAt: components["schemas"]["Instant"];
-            itemName: string;
+            itemName: string | null;
             /** Format: int32 */
             movementId: number;
-            purpose: string;
-            stationName: string;
+            purpose: components["schemas"]["MovementPurpose"];
+            stationName: string | null;
             /** Format: uuid */
-            stationUid: string;
-            stepLabel: string;
+            stationUid: string | null;
+            stepLabel: string | null;
         };
         ClusterRequest: {
             autoFederate?: boolean;
@@ -44459,12 +45447,12 @@ export interface components {
             type: "CLUSTER";
         };
         ClusterTagRequest: {
-            color?: string;
+            color?: string | null;
             name?: string;
             /** Format: int32 */
             position?: number;
             /** Format: int32 */
-            stationGroupId?: number;
+            stationGroupId?: number | null;
         };
         /** @enum {string} */
         ClusterUserType: "CLUSTER_USER" | "CLUSTER_ADMIN";
@@ -44613,7 +45601,7 @@ export interface components {
         };
         ContainerAssignRequest: {
             /** Format: int32 */
-            containerId?: number;
+            containerId?: number | null;
         };
         ContainerContents: {
             children: components["schemas"]["InventoryContainer"][];
@@ -44640,13 +45628,13 @@ export interface components {
             segments: string[];
         };
         ContainerRequest: {
-            description?: string;
-            internalId?: string;
+            description?: string | null;
+            internalId?: string | null;
             /** Format: int32 */
-            kindId?: number;
+            kindId?: number | null;
             name?: string;
             /** Format: int32 */
-            parentId?: number;
+            parentId?: number | null;
         };
         ContentCell: {
             config: components["schemas"]["CellConfig"];
@@ -44677,23 +45665,23 @@ export interface components {
         /** @enum {string} */
         ConversionStatus: "PENDING" | "SUCCESS" | "FAILED";
         CorrectItemRequest: {
-            internalId?: string;
+            internalId?: string | null;
             /** Format: int32 */
             inventoryId?: number;
-            metadata?: components["schemas"]["InventoryItemMetadata"];
+            metadata?: components["schemas"]["InventoryItemMetadata"] | null;
             /** Format: int32 */
-            oldItemId?: number;
-            ownerKind?: components["schemas"]["ItemOwner"];
+            oldItemId?: number | null;
+            ownerKind?: components["schemas"]["ItemOwner"] | null;
             /** Format: int32 */
-            pickedItemId?: number;
+            pickedItemId?: number | null;
             /** Format: int32 */
-            sizeId?: number;
+            sizeId?: number | null;
         };
         CorrectMovementRequest: {
-            closeAs?: components["schemas"]["MovementState"];
+            closeAs?: components["schemas"]["MovementState"] | null;
             detachArrival?: boolean;
-            incoming?: components["schemas"]["ItemCustody"];
-            outgoing?: components["schemas"]["ItemCustody"];
+            incoming?: components["schemas"]["ItemCustody"] | null;
+            outgoing?: components["schemas"]["ItemCustody"] | null;
             reason?: string;
         };
         CorrectRowRequest: {
@@ -44716,9 +45704,18 @@ export interface components {
             /** Format: int32 */
             inventoryId?: number;
             /** Format: int32 */
-            oldItemId?: number;
+            oldItemId?: number | null;
             /** Format: int32 */
-            sizeId?: number;
+            sizeId?: number | null;
+        };
+        CreateBlockRequest: {
+            blockFrom?: components["schemas"]["LocalDate"];
+            blockTo?: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            inventoryId?: number | null;
+            /** Format: int32 */
+            itemId?: number | null;
+            reason?: string | null;
         };
         CreateBoardRequest: {
             description?: string;
@@ -44740,7 +45737,7 @@ export interface components {
         Created: {
             name: string;
             /** Format: int32 */
-            parentId: number;
+            parentId?: number;
         };
         CreateEntryRequest: {
             /** Format: int32 */
@@ -44757,13 +45754,23 @@ export interface components {
             provisioned: components["schemas"]["ProvisionedMemberResponse"][];
         };
         CreateItemRequest: {
-            description?: string;
+            description?: string | null;
             foundAt?: string;
         };
         CreateKbCommentRequest: {
             content?: string;
             /** Format: int32 */
             parentId?: number;
+        };
+        CreateLendingRequest: {
+            dateFrom?: components["schemas"]["LocalDate"];
+            dateTo?: components["schemas"]["LocalDate"] | null;
+            eventDate?: components["schemas"]["LocalDate"] | null;
+            /** Format: int32 */
+            eventId?: number | null;
+            items?: components["schemas"]["LendingItemRequest"][];
+            /** Format: uuid */
+            owningStationId?: string;
         };
         CreateMemberRequest: {
             /** Format: int32 */
@@ -44773,21 +45780,21 @@ export interface components {
         };
         CreateMovementRequest: {
             /** Format: int32 */
-            inventoryId?: number;
+            inventoryId?: number | null;
             /** Format: int32 */
-            memberId?: number;
+            memberId?: number | null;
             /** Format: int32 */
-            newSizeId?: number;
+            newSizeId?: number | null;
             /** Format: int32 */
-            oldSizeId?: number;
+            oldSizeId?: number | null;
             /** Format: int32 */
-            outgoingItemId?: number;
+            outgoingItemId?: number | null;
             /** Format: int32 */
-            pickedItemId?: number;
+            pickedItemId?: number | null;
             purpose?: components["schemas"]["MovementPurpose"];
-            reason?: string;
+            reason?: string | null;
             /** Format: int32 */
-            selfCheckId?: number;
+            selfCheckId?: number | null;
         };
         CreatePageRequest: {
             /** Format: int32 */
@@ -44817,10 +45824,10 @@ export interface components {
             /** Format: int32 */
             inventoryId?: number;
             /** Format: int32 */
-            memberId?: number;
-            notes?: string;
+            memberId?: number | null;
+            notes?: string | null;
             /** Format: int32 */
-            sizeId?: number;
+            sizeId?: number | null;
         };
         CreateRequest: {
             columns?: components["schemas"]["ColumnSpecRequest"][];
@@ -44915,6 +45922,9 @@ export interface components {
             count: number;
             day: string;
         };
+        DeclineBody: {
+            reason?: string | null;
+        };
         Deleted: {
             /** Format: int32 */
             id: number;
@@ -44988,7 +45998,7 @@ export interface components {
         DiscoveryVisibility: "NONE" | "INSTANCE" | "PUBLIC";
         DispatchRequest: {
             itemIds?: number[];
-            reason?: string;
+            reason?: string | null;
             /** Format: uuid */
             stationUid?: string;
         };
@@ -45042,6 +46052,8 @@ export interface components {
             /** Format: uuid */
             eventUid: string;
         };
+        /** @enum {string} */
+        EmptyReason: "NOTHING_SHARED" | "NOTHING_FREE";
         EmptyTrashResponse: {
             /** Format: int32 */
             cleared: number;
@@ -45068,9 +46080,54 @@ export interface components {
             /** Format: int64 */
             requestCount: number;
         };
+        EnrichedCheckDetail: {
+            check: components["schemas"]["InventoryCheck"];
+            checkerFirstName: string;
+            checkerLastName: string;
+            items: components["schemas"]["EnrichedCheckItem"][];
+            reporterFirstName: string;
+            reporterLastName: string;
+        };
+        EnrichedCheckItem: {
+            /** Format: int32 */
+            id: number;
+            internalId: string | null;
+            inventoryName: string;
+            /** Format: int32 */
+            itemId: number | null;
+            itemName: string | null;
+            note: string;
+            result: components["schemas"]["CheckResult"];
+            sizeName: string | null;
+        };
+        EnrichedCheckSummary: {
+            checkerFirstName: string | null;
+            checkerLastName: string | null;
+            firstName: string;
+            identity: components["schemas"]["MemberIdentity"];
+            lastCheckedAt: components["schemas"]["Instant"] | null;
+            lastName: string;
+            locked: boolean;
+            /** Format: int32 */
+            lockedBy: number | null;
+            lockerFirstName: string | null;
+            lockerLastName: string | null;
+            /** Format: int32 */
+            memberId: number;
+            userType: components["schemas"]["StationUserType"];
+        };
         EnrichedFederationRegistration: {
             memberIdentity: components["schemas"]["MemberIdentity"] | null;
             registration: components["schemas"]["EventFederationRegistration"];
+        };
+        EnrichedItem: {
+            inventoryName: string;
+            item: components["schemas"]["LendingRequestItem"];
+        };
+        EnrichedMessage: {
+            message: components["schemas"]["LendingMessage"];
+            senderName: string | null;
+            senderStationName: string;
         };
         EntryAudience: {
             /** Format: int32 */
@@ -45689,11 +46746,11 @@ export interface components {
         };
         FieldDefinitionRequest: {
             /** Format: int32 */
-            artId?: number;
+            artId?: number | null;
             config?: components["schemas"]["FieldConfig"];
             fieldType?: components["schemas"]["FieldType"];
             /** Format: int32 */
-            itemId?: number;
+            itemId?: number | null;
             key?: string;
             label?: string;
             required?: boolean;
@@ -45793,7 +46850,7 @@ export interface components {
             id: number;
             name: string;
             ownedByCluster: boolean;
-            problem: components["schemas"]["FlowProblem"];
+            problem: components["schemas"]["FlowProblem"] | null;
             purpose: components["schemas"]["MovementPurpose"];
             steps: components["schemas"]["StepResponse"][];
         };
@@ -46216,7 +47273,7 @@ export interface components {
             /** Format: int32 */
             inventoryId?: number;
             /** Format: int32 */
-            sizeId?: number;
+            sizeId?: number | null;
         };
         HandOutSelfChecksRequest: {
             dueOn?: string | null;
@@ -46239,6 +47296,19 @@ export interface components {
             headline?: string;
             imageHash?: string;
             subtitle?: string;
+        };
+        HistoryResponse: {
+            corrected: boolean;
+            givenOut: components["schemas"]["Instant"];
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            itemId: number;
+            /** Format: int32 */
+            memberId: number | null;
+            memberIdentity: components["schemas"]["MemberIdentity"] | null;
+            memberName: string;
+            returned: components["schemas"]["Instant"] | null;
         };
         HourlyStats: {
             avgDurationMs: number;
@@ -46332,10 +47402,10 @@ export interface components {
         IntervalType: "RECURRING" | "MONTHLY_FIRST" | "QUARTERLY" | "YEARLY";
         Inventory: {
             borrowed: boolean;
-            color: string;
+            color: string | null;
             hasSizes: boolean;
             homogeneous: boolean;
-            icon: string;
+            icon: string | null;
             /** Format: int32 */
             id: number;
             inventoryType: components["schemas"]["InventoryType"];
@@ -46344,39 +47414,71 @@ export interface components {
             stationId: string;
         };
         InventoryArt: {
-            color: string;
-            icon: string;
+            color: string | null;
+            icon: string | null;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
             inventoryId: number;
-            mergeKey: string;
+            mergeKey: string | null;
             name: string;
             note: string;
             /** Format: int32 */
             position: number;
         };
+        InventoryBlock: {
+            blockFrom: components["schemas"]["LocalDate"];
+            blockTo: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            inventoryId: number | null;
+            /** Format: int32 */
+            itemId: number | null;
+            reason: string;
+            /** Format: uuid */
+            stationId: string;
+        };
+        InventoryCheck: {
+            checkedAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            checkedBy: number;
+            /** Format: int32 */
+            containerId: number | null;
+            deep: boolean;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            memberId: number | null;
+            /** Format: int32 */
+            reportedBy: number | null;
+            scope: components["schemas"]["InventoryCheckScope"];
+            /** Format: uuid */
+            stationId: string;
+        };
+        /** @enum {string} */
+        InventoryCheckScope: "MEMBER" | "CONTAINER";
         InventoryContainer: {
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            createdBy: number;
+            createdBy: number | null;
             description: string;
             /** Format: int32 */
             id: number;
-            internalId: string;
+            internalId: string | null;
             /** Format: int32 */
-            kindId: number;
+            kindId: number | null;
             name: string;
             /** Format: int32 */
-            parentId: number;
+            parentId: number | null;
             /** Format: uuid */
             stationId: string;
         };
         InventoryContainerHistory: {
             /** Format: int32 */
-            actorId: number;
+            actorId: number | null;
             /** Format: int32 */
-            containerId: number;
+            containerId: number | null;
             details: components["schemas"]["ContainerHistoryDetails"];
             eventKind: components["schemas"]["ContainerEventKind"];
             eventTs: components["schemas"]["Instant"];
@@ -46386,7 +47488,7 @@ export interface components {
             stationId: string;
         };
         InventoryContainerKind: {
-            color: string;
+            color: string | null;
             enabled: boolean;
             icon: string;
             /** Format: int32 */
@@ -46399,10 +47501,10 @@ export interface components {
             stationId: string;
         };
         InventoryDetail: {
-            color: string;
+            color: string | null;
             hasSizes: boolean;
             homogeneous: boolean;
-            icon: string;
+            icon: string | null;
             /** Format: int32 */
             id: number;
             inventoryType: components["schemas"]["InventoryType"];
@@ -46413,7 +47515,7 @@ export interface components {
         };
         InventoryFieldDefinition: {
             /** Format: int32 */
-            artId: number;
+            artId: number | null;
             config: components["schemas"]["FieldConfig"];
             fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
@@ -46421,7 +47523,7 @@ export interface components {
             /** Format: int32 */
             inventoryId: number;
             /** Format: int32 */
-            itemId: number;
+            itemId: number | null;
             key: string;
             label: string;
             required: boolean;
@@ -46440,55 +47542,84 @@ export interface components {
         };
         InventoryItem: {
             /** Format: int32 */
-            artId: number;
+            artId: number | null;
             /** Format: int32 */
-            assignedTo: number;
+            assignedTo: number | null;
             /** Format: int32 */
-            containerId: number;
+            containerId: number | null;
             custody: components["schemas"]["ItemCustody"];
             /** Format: int32 */
-            custodyMovementId: number;
+            custodyMovementId: number | null;
             /** Format: int32 */
-            custodyPartnerStationId: number;
+            custodyPartnerStationId: number | null;
             /** Format: int32 */
-            custodyStationId: number;
+            custodyStationId: number | null;
             /** Format: int32 */
             id: number;
-            internalId: string;
+            internalId: string | null;
             /** Format: int32 */
             inventoryId: number;
             /** Format: int32 */
-            loanRequestItemId: number;
-            lostAt: components["schemas"]["Instant"];
-            lostNote: string;
+            loanRequestItemId: number | null;
+            lostAt: components["schemas"]["Instant"] | null;
+            lostNote: string | null;
             /** Format: int32 */
-            lostNoteBy: number;
+            lostNoteBy: number | null;
             metadata: components["schemas"]["InventoryItemMetadata"];
             name: string;
             /** Format: uuid */
-            ownerClusterId: string;
+            ownerClusterId: string | null;
             ownerKind: components["schemas"]["ItemOwner"];
             /** Format: int32 */
-            ownerStationId: number;
+            ownerStationId: number | null;
             /** Format: int32 */
-            sizeId: number;
+            sizeId: number | null;
         };
         InventoryItemMetadata: {
             fields: components["schemas"]["ItemFieldValues"];
         };
         InventoryRequest: {
-            color?: string;
+            color?: string | null;
             hasSizes?: boolean;
-            homogeneous?: boolean;
-            icon?: string;
+            homogeneous?: boolean | null;
+            icon?: string | null;
             inventoryType?: components["schemas"]["InventoryType"];
             name?: string;
+        };
+        InventoryRequirement: {
+            /** Format: int32 */
+            groupId: number;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            inventoryId: number;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            quantity: number;
+            /** Format: int32 */
+            stationGroupId: number | null;
+            userType: components["schemas"]["StationUserType"] | null;
         };
         InventorySettings: {
             lossNoteRequired: boolean;
         };
         InventorySettingsRequest: {
             usesInventory?: boolean;
+        };
+        InventoryShare: {
+            /** Format: int32 */
+            artId: number | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            inventoryId: number | null;
+            /** Format: int32 */
+            itemId: number | null;
+            shareGrant: components["schemas"]["ShareGrant"];
+            shareScope: components["schemas"]["ShareScope"];
+            /** Format: uuid */
+            stationId: string;
         };
         InventorySize: {
             /** Format: int32 */
@@ -46531,10 +47662,10 @@ export interface components {
             /** Format: int32 */
             artCount: number;
             borrowed: boolean;
-            color: string;
+            color: string | null;
             hasSizes: boolean;
             homogeneous: boolean;
-            icon: string;
+            icon: string | null;
             /** Format: int32 */
             id: number;
             inventoryType: components["schemas"]["InventoryType"];
@@ -46551,8 +47682,8 @@ export interface components {
             stationId: string;
         };
         InventoryTag: {
-            canonicalName: string;
-            color: string;
+            canonicalName: string | null;
+            color: string | null;
             /** Format: int32 */
             id: number;
             name: string;
@@ -46562,7 +47693,7 @@ export interface components {
             stationId: string;
         };
         InventoryTagRequest: {
-            color?: string;
+            color?: string | null;
             name?: string;
             /** Format: int32 */
             position?: number;
@@ -46582,6 +47713,12 @@ export interface components {
             id: number;
             lastName: string;
         };
+        ItemAssignment: {
+            /** Format: int32 */
+            itemId?: number;
+            /** Format: int32 */
+            requestItemId?: number;
+        };
         ItemBooleanValue: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -46589,6 +47726,17 @@ export interface components {
              */
             kind: "BOOLEAN";
             value: boolean;
+        };
+        ItemCheckHistoryEntry: {
+            checkedAt: components["schemas"]["Instant"];
+            checkerName: string;
+            /** Format: int32 */
+            checkId: number;
+            containerName: string | null;
+            note: string;
+            reporterName: string;
+            result: components["schemas"]["CheckResult"];
+            scope: components["schemas"]["InventoryCheckScope"];
         };
         /** @enum {string} */
         ItemCustody: "WITH_OWNER" | "AT_STATION" | "WITH_MEMBER" | "WITH_PARTNER" | "IN_TRANSIT" | "LOST";
@@ -46611,9 +47759,16 @@ export interface components {
         ItemFieldValues: {
             [key: string]: components["schemas"]["FieldValue"];
         };
+        ItemLastCheck: {
+            checkedAt: components["schemas"]["Instant"];
+            checkerName: string;
+            /** Format: int32 */
+            itemId: number;
+            result: components["schemas"]["CheckResult"];
+        };
         ItemLocationResponse: {
             /** Format: int32 */
-            containerId: number;
+            containerId: number | null;
             /** Format: int32 */
             itemId: number;
             pathDisplay: string;
@@ -46639,15 +47794,15 @@ export interface components {
         ItemOwner: "STATION" | "CLUSTER" | "PARTNER_STATION";
         ItemRequest: {
             /** Format: int32 */
-            artId?: number;
-            internalId?: string;
-            metadata?: components["schemas"]["InventoryItemMetadata"];
+            artId?: number | null;
+            internalId?: string | null;
+            metadata?: components["schemas"]["InventoryItemMetadata"] | null;
             name?: string;
             /** Format: uuid */
-            ownerClusterId?: string;
-            ownerKind?: components["schemas"]["ItemOwner"];
+            ownerClusterId?: string | null;
+            ownerKind?: components["schemas"]["ItemOwner"] | null;
             /** Format: int32 */
-            sizeId?: number;
+            sizeId?: number | null;
         };
         ItemTagsRequest: {
             names?: string[];
@@ -46822,7 +47977,7 @@ export interface components {
             version: number;
         };
         KindRequest: {
-            color?: string;
+            color?: string | null;
             enabled?: boolean;
             icon?: string;
             key?: string;
@@ -46876,6 +48031,99 @@ export interface components {
             consentVersion: string;
             privacyVersion: string;
             tosVersion: string;
+        };
+        LendingItemRequest: {
+            /** Format: int32 */
+            artId?: number | null;
+            /** Format: int32 */
+            inventoryId?: number | null;
+            /** Format: int32 */
+            itemId?: number | null;
+            /** Format: int32 */
+            needId?: number | null;
+            /** Format: int32 */
+            quantity?: number;
+        };
+        LendingMessage: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            id: number;
+            isSystem: boolean;
+            message: string;
+            /** Format: int32 */
+            requestId: number;
+            /** Format: int32 */
+            senderMemberId: number | null;
+            /** Format: uuid */
+            senderStationUid: string;
+        };
+        LendingRequest: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            createdBy: number | null;
+            eventDate: components["schemas"]["LocalDate"] | null;
+            /** Format: int32 */
+            eventId: number | null;
+            /** Format: int32 */
+            id: number;
+            occasion: string;
+            /** Format: uuid */
+            owningStationUid: string;
+            requestedDateFrom: components["schemas"]["LocalDate"];
+            requestedDateTo: components["schemas"]["LocalDate"] | null;
+            /** Format: uuid */
+            requestingStationUid: string;
+            status: components["schemas"]["LendingStatus"];
+            /** Format: uuid */
+            uid: string;
+            updatedAt: components["schemas"]["Instant"];
+        };
+        LendingRequestDetail: {
+            items: components["schemas"]["EnrichedItem"][];
+            request: components["schemas"]["LendingRequestResponse"];
+        };
+        LendingRequestItem: {
+            /** Format: int32 */
+            artId: number | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            inventoryId: number | null;
+            /** Format: int32 */
+            itemId: number | null;
+            label: string;
+            /** Format: int32 */
+            needId: number | null;
+            /** Format: int32 */
+            quantity: number;
+            /** Format: int32 */
+            requestId: number;
+        };
+        LendingRequestResponse: {
+            isOwner: boolean;
+            itemSummary: string;
+            overdue: boolean;
+            owningStationName: string;
+            request: components["schemas"]["LendingRequest"];
+            requestingStationName: string;
+        };
+        /** @enum {string} */
+        LendingStatus: "REQUESTED" | "APPROVED" | "DECLINED" | "LENT" | "RETURNED" | "CLOSED";
+        LentOutItem: {
+            /** Format: int32 */
+            assignedItemId: number | null;
+            dateFrom: components["schemas"]["LocalDate"];
+            dateTo: components["schemas"]["LocalDate"] | null;
+            /** Format: int32 */
+            itemId: number | null;
+            /** Format: int32 */
+            quantity: number;
+            /** Format: int32 */
+            requestId: number;
+            requestingStationName: string;
+            /** Format: int32 */
+            requestItemId: number;
+            status: string;
         };
         Likert: {
             /**
@@ -47053,11 +48301,11 @@ export interface components {
             themeLocked: boolean;
         };
         LossReport: {
-            documentName: string;
-            documentType: string;
+            documentName: string | null;
+            documentType: string | null;
             managerNote: string;
-            memberNote: string;
-            memberNoteBy: components["schemas"]["MemberIdentity"];
+            memberNote: string | null;
+            memberNoteBy: components["schemas"]["MemberIdentity"] | null;
         };
         /** @enum {string} */
         LossReportRequirement: "NOTHING" | "NOTE" | "DOCUMENT";
@@ -47066,17 +48314,17 @@ export interface components {
         };
         LossReportTerms: {
             reportable: boolean;
-            requires: components["schemas"]["LossReportRequirement"];
+            requires: components["schemas"]["LossReportRequirement"] | null;
         };
         LostAndFoundItemResponse: {
-            claimedAt: components["schemas"]["Instant"];
+            claimedAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
-            claimedBy: number;
-            claimedByName: string;
+            claimedBy: number | null;
+            claimedByName: string | null;
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
             createdBy: number;
-            description: string;
+            description: string | null;
             foundAt: string;
             hasImage: boolean;
             /** Format: int32 */
@@ -47085,9 +48333,9 @@ export interface components {
             stationId: string;
         };
         LostRequest: {
-            note?: string;
+            note?: string | null;
             /** Format: int32 */
-            selfCheckId?: number;
+            selfCheckId?: number | null;
         };
         MailDashboard: {
             blocks: components["schemas"]["ProviderBlock"][];
@@ -47263,6 +48511,20 @@ export interface components {
             /** Format: int32 */
             pendingCount: number;
         };
+        MemberCheckState: {
+            assigned: components["schemas"]["InventoryItem"][];
+            lastCheck: components["schemas"]["InventoryCheck"] | null;
+            memberIdentity: components["schemas"]["MemberIdentity"];
+            memberName: string;
+            onTheMove: {
+                [key: string]: string;
+            };
+            overtookSelfChecks: components["schemas"]["SelfCheck"][];
+            required: components["schemas"]["RequiredInventoryItem"][];
+            unassigned: {
+                [key: string]: components["schemas"]["InventoryItem"][];
+            };
+        };
         MemberDocumentResponse: {
             createdAt: components["schemas"]["Instant"];
             fileName: string;
@@ -47294,9 +48556,9 @@ export interface components {
             extraFieldIds?: number[];
             inventoryIds?: number[];
             memberIds?: number[];
-            showInternalId?: boolean;
-            showName?: boolean;
-            showSize?: boolean;
+            showInternalId?: boolean | null;
+            showName?: boolean | null;
+            showSize?: boolean | null;
         };
         MemberGroup: {
             color: string;
@@ -47521,6 +48783,9 @@ export interface components {
             username: string;
             userType: components["schemas"]["StationUserType"];
         };
+        MessageBody: {
+            message?: string;
+        };
         MessageResponse: {
             message: string;
         };
@@ -47568,9 +48833,9 @@ export interface components {
         };
         Moved: {
             /** Format: int32 */
-            from: number;
+            from: number | null;
             /** Format: int32 */
-            to: number;
+            to: number | null;
         };
         MoveFileRequest: {
             /** Format: int32 */
@@ -47589,7 +48854,7 @@ export interface components {
             folderId?: number;
         };
         MovementDetail: {
-            lossReport: components["schemas"]["LossReport"];
+            lossReport: components["schemas"]["LossReport"] | null;
             movement: components["schemas"]["MovementResponse"];
             steps: components["schemas"]["MovementStepResponse"][];
         };
@@ -47600,47 +48865,47 @@ export interface components {
         MovementResponse: {
             actionable: boolean;
             belongsOnAnotherFlow: boolean;
-            closedAt: components["schemas"]["Instant"];
-            closeReason: string;
-            color: string;
+            closedAt: components["schemas"]["Instant"] | null;
+            closeReason: string | null;
+            color: string | null;
             createdAt: components["schemas"]["Instant"];
-            currentStepActor: components["schemas"]["StepActor"];
-            currentStepCustody: components["schemas"]["ItemCustody"];
-            currentStepLabel: string;
-            currentStepSubject: components["schemas"]["StepSubject"];
-            icon: string;
+            currentStepActor: components["schemas"]["StepActor"] | null;
+            currentStepCustody: components["schemas"]["ItemCustody"] | null;
+            currentStepLabel: string | null;
+            currentStepSubject: components["schemas"]["StepSubject"] | null;
+            icon: string | null;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
-            incomingItemId: number;
-            incomingItemName: string;
+            incomingItemId: number | null;
+            incomingItemName: string | null;
             /** Format: int32 */
-            inventoryId: number;
-            inventoryName: string;
-            inventoryType: components["schemas"]["InventoryType"];
+            inventoryId: number | null;
+            inventoryName: string | null;
+            inventoryType: components["schemas"]["InventoryType"] | null;
             /** Format: int32 */
-            itemId: number;
-            itemInternalId: string;
-            itemName: string;
-            itemSizeName: string;
+            itemId: number | null;
+            itemInternalId: string | null;
+            itemName: string | null;
+            itemSizeName: string | null;
             itemStillWithMember: boolean;
             /** Format: int32 */
-            memberId: number;
-            memberIdentity: components["schemas"]["MemberIdentity"];
-            memberName: string;
+            memberId: number | null;
+            memberIdentity: components["schemas"]["MemberIdentity"] | null;
+            memberName: string | null;
             /** Format: int32 */
-            newSizeId: number;
-            newSizeName: string;
+            newSizeId: number | null;
+            newSizeName: string | null;
             /** Format: int32 */
-            oldSizeId: number;
-            oldSizeName: string;
+            oldSizeId: number | null;
+            oldSizeName: string | null;
             ownerAnswersHere: boolean;
-            ownerClusterId: string;
+            ownerClusterId: string | null;
             ownerKind: components["schemas"]["ItemOwner"];
-            ownerName: string;
+            ownerName: string | null;
             party: components["schemas"]["MovementParty"];
             purpose: components["schemas"]["MovementPurpose"];
-            reachedStepLabel: string;
+            reachedStepLabel: string | null;
             reason: string;
             state: components["schemas"]["MovementState"];
             updatedAt: components["schemas"]["Instant"];
@@ -47648,9 +48913,9 @@ export interface components {
         /** @enum {string} */
         MovementState: "OPEN" | "DONE" | "DECLINED" | "CANCELLED";
         MovementStepResponse: {
-            ackKind: components["schemas"]["AckKind"];
-            acknowledgedAt: components["schemas"]["Instant"];
-            acknowledgedByName: string;
+            ackKind: components["schemas"]["AckKind"] | null;
+            acknowledgedAt: components["schemas"]["Instant"] | null;
+            acknowledgedByName: string | null;
             actionable: boolean;
             actor: components["schemas"]["StepActor"];
             archived: boolean;
@@ -47659,7 +48924,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             label: string;
-            note: string;
+            note: string | null;
             picksItem: boolean;
             /** Format: int32 */
             position: number;
@@ -47697,29 +48962,29 @@ export interface components {
             reason?: string | null;
         };
         MyInventoryItem: {
-            color: string;
+            color: string | null;
             custody: components["schemas"]["ItemCustody"];
-            icon: string;
+            icon: string | null;
             /** Format: int32 */
             id: number;
-            internalId: string;
+            internalId: string | null;
             inventoryHomogeneous: boolean;
             /** Format: int32 */
             inventoryId: number;
             inventoryName: string;
-            lostAt: components["schemas"]["Instant"];
-            lostNote: string;
-            lostNoteBy: components["schemas"]["MemberIdentity"];
+            lostAt: components["schemas"]["Instant"] | null;
+            lostNote: string | null;
+            lostNoteBy: components["schemas"]["MemberIdentity"] | null;
             /** Format: int32 */
-            movementId: number;
-            movementStep: string;
+            movementId: number | null;
+            movementStep: string | null;
             name: string;
             /** Format: uuid */
-            ownerClusterId: string;
+            ownerClusterId: string | null;
             ownerKind: components["schemas"]["ItemOwner"];
             /** Format: int32 */
-            sizeId: number;
-            sizeName: string;
+            sizeId: number | null;
+            sizeName: string | null;
         };
         MyQuizAttempt: components["schemas"]["NoQuizAttempt"] | components["schemas"]["QuizAttemptDetail"];
         MyRequirement: {
@@ -47789,10 +49054,10 @@ export interface components {
             name?: string;
         };
         NewItemRequest: {
-            internalId?: string;
+            internalId?: string | null;
             name?: string;
             /** Format: int32 */
-            sizeId?: number;
+            sizeId?: number | null;
         };
         NewMemberRequest: {
             email?: string;
@@ -47924,7 +49189,7 @@ export interface components {
         };
         NextMemberResponse: {
             /** Format: int32 */
-            memberId: number;
+            memberId: number | null;
         };
         NicknameRequest: {
             nickname?: string;
@@ -47995,9 +49260,9 @@ export interface components {
              * @enum {string}
              */
             kind: "NUMBER";
-            max: number;
-            min: number;
-            step: number;
+            max: number | null;
+            min: number | null;
+            step: number | null;
             unit: string;
         };
         NumberValue: {
@@ -48052,7 +49317,7 @@ export interface components {
             stations: components["schemas"]["StationRoomResponse"][];
         };
         OwnerAboveResponse: {
-            name: string;
+            name: string | null;
         };
         PageLinkConfig: {
             fallbackTitle?: string;
@@ -48149,11 +49414,11 @@ export interface components {
             certain: boolean;
             /** Format: int32 */
             movements: number;
-            standingOn: string;
+            standingOn: string | null;
             /** Format: int32 */
-            stepId: number;
+            stepId: number | null;
             /** Format: int32 */
-            suggestedIndex: number;
+            suggestedIndex: number | null;
         };
         PlannedStep: {
             actor: components["schemas"]["StepActor"];
@@ -48304,21 +49569,21 @@ export interface components {
             name?: string;
         };
         ProcurementResponse: {
-            fulfilledAt: components["schemas"]["Instant"];
+            fulfilledAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
             inventoryId: number;
             inventoryName: string;
             /** Format: int32 */
-            memberId: number;
-            memberIdentity: components["schemas"]["MemberIdentity"];
+            memberId: number | null;
+            memberIdentity: components["schemas"]["MemberIdentity"] | null;
             memberName: string;
             notes: string;
             requestedAt: components["schemas"]["Instant"];
             /** Format: int32 */
-            sizeId: number;
-            sizeLabel: string;
+            sizeId: number | null;
+            sizeLabel: string | null;
         };
         ProfileField: {
             config: components["schemas"]["ProfileFieldConfig"];
@@ -49095,21 +50360,21 @@ export interface components {
             alreadyRight: boolean;
             certain: boolean;
             /** Format: int32 */
-            currentFlowId: number;
-            currentFlowName: string;
+            currentFlowId: number | null;
+            currentFlowName: string | null;
             /** Format: int32 */
             movementId: number;
-            standingOn: string;
+            standingOn: string | null;
             steps: components["schemas"]["RechainStep"][];
             /** Format: int32 */
-            suggestedIndex: number;
+            suggestedIndex: number | null;
             /** Format: int32 */
             targetFlowId: number;
-            targetFlowName: string;
+            targetFlowName: string | null;
         };
         RechainRequest: {
             /** Format: int32 */
-            stepIndex?: number;
+            stepIndex?: number | null;
         };
         RechainStep: {
             actor: components["schemas"]["StepActor"];
@@ -49145,7 +50410,7 @@ export interface components {
         };
         RecommendedTag: {
             adopted: boolean;
-            color: string;
+            color: string | null;
             name: string;
         };
         RecordConsentRequest: {
@@ -49404,17 +50669,17 @@ export interface components {
         };
         RequirementRequest: {
             /** Format: int32 */
-            groupId?: number;
+            groupId?: number | null;
             /** Format: int32 */
             inventoryId?: number;
             /** Format: int32 */
             quantity?: number;
             /** Format: int32 */
-            stationGroupId?: number;
-            userType?: components["schemas"]["StationUserType"];
+            stationGroupId?: number | null;
+            userType?: components["schemas"]["StationUserType"] | null;
         };
         RequirementResponse: {
-            clusterName: string;
+            clusterName: string | null;
             /** Format: int32 */
             groupId: number;
             /** Format: int32 */
@@ -49427,8 +50692,8 @@ export interface components {
             /** Format: int32 */
             quantity: number;
             /** Format: int32 */
-            stationGroupId: number;
-            userType: components["schemas"]["StationUserType"];
+            stationGroupId: number | null;
+            userType: components["schemas"]["StationUserType"] | null;
         };
         RequirementsResponse: {
             forcedForms: components["schemas"]["RequirementItem"][];
@@ -49544,7 +50809,7 @@ export interface components {
         };
         ReturnEverythingRequest: {
             /** Format: int32 */
-            memberId?: number;
+            memberId?: number | null;
         };
         RichMember: {
             /** Format: int32 */
@@ -49839,7 +51104,7 @@ export interface components {
         SendableItem: {
             /** Format: int32 */
             id: number;
-            internalId: string;
+            internalId: string | null;
             /** Format: int32 */
             inventoryId: number;
             inventoryName: string;
@@ -50002,6 +51267,11 @@ export interface components {
         SetSessionFieldsRequest: {
             fields?: components["schemas"]["AttendanceFieldValueEntry"][];
         };
+        SetShareRequest: {
+            grant?: components["schemas"]["ShareGrant"];
+            partnerIds?: number[];
+            scope?: components["schemas"]["ShareScope"];
+        };
         SetTemplateGroupsRequest: {
             groups?: components["schemas"]["TemplateGroupEntry"][];
         };
@@ -50099,6 +51369,14 @@ export interface components {
             stationUid: string;
             timezone: string;
         };
+        ShareDetail: {
+            artName: string | null;
+            inventoryName: string | null;
+            itemInternalId: string | null;
+            itemName: string | null;
+            partners: components["schemas"]["SharePartner"][];
+            share: components["schemas"]["InventoryShare"];
+        };
         SharedEvent: {
             /** Format: int32 */
             dayOfWeek: number;
@@ -50138,7 +51416,20 @@ export interface components {
             stationUid: string | null;
         };
         /** @enum {string} */
+        ShareGrant: "GRANT" | "WITHHOLD";
+        SharePartner: {
+            /** Format: int32 */
+            partnerId: number;
+            stationName: string;
+        };
+        /** @enum {string} */
         ShareScope: "ALL_PARTNERS" | "SPECIFIC";
+        ShareSetting: {
+            grant: components["schemas"]["ShareGrant"] | null;
+            partnerIds: number[];
+            scope: components["schemas"]["ShareScope"] | null;
+            shared: boolean;
+        };
         SignInFinishRequest: {
             challengeToken?: string;
             credentialJson?: string;
@@ -50692,9 +51983,9 @@ export interface components {
         };
         TaggedItemSummary: {
             /** Format: int32 */
-            artId: number;
+            artId: number | null;
             available: boolean;
-            internalId: string;
+            internalId: string | null;
             /** Format: int32 */
             inventoryId: number;
             inventoryName: string;
@@ -50714,7 +52005,7 @@ export interface components {
             visible?: boolean;
         };
         TagResponse: {
-            color: string;
+            color: string | null;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
@@ -51522,6 +52813,7 @@ export type ArtRequest = components['schemas']['ArtRequest'];
 export type ArtStock = components['schemas']['ArtStock'];
 export type AssigneeRequest = components['schemas']['AssigneeRequest'];
 export type AssignItemRequest = components['schemas']['AssignItemRequest'];
+export type AssignItemsRequest = components['schemas']['AssignItemsRequest'];
 export type AssignmentRequest = components['schemas']['AssignmentRequest'];
 export type AssignRequest = components['schemas']['AssignRequest'];
 export type AttachmentOrderRequest = components['schemas']['AttachmentOrderRequest'];
@@ -51542,6 +52834,9 @@ export type AttendanceTemplateField = components['schemas']['AttendanceTemplateF
 export type AudienceRequest = components['schemas']['AudienceRequest'];
 export type AudioEmbedConfig = components['schemas']['AudioEmbedConfig'];
 export type AvailableClusterResponse = components['schemas']['AvailableClusterResponse'];
+export type AvailableInventoryEntry = components['schemas']['AvailableInventoryEntry'];
+export type AvailableInventoryResult = components['schemas']['AvailableInventoryResult'];
+export type AvailableItemDetail = components['schemas']['AvailableItemDetail'];
 export type AwaitingAnswer = components['schemas']['AwaitingAnswer'];
 export type AwaitingMember = components['schemas']['AwaitingMember'];
 export type BackendOverrideRequest = components['schemas']['BackendOverrideRequest'];
@@ -51700,6 +52995,7 @@ export type CorrectMovementRequest = components['schemas']['CorrectMovementReque
 export type CorrectRowRequest = components['schemas']['CorrectRowRequest'];
 export type CountdownConfig = components['schemas']['CountdownConfig'];
 export type CreateAndAssignRequest = components['schemas']['CreateAndAssignRequest'];
+export type CreateBlockRequest = components['schemas']['CreateBlockRequest'];
 export type CreateBoardRequest = components['schemas']['CreateBoardRequest'];
 export type CreateCodeRequest = components['schemas']['CreateCodeRequest'];
 export type CreateCommentRequest = components['schemas']['CreateCommentRequest'];
@@ -51709,6 +53005,7 @@ export type CreateFilterRequest = components['schemas']['CreateFilterRequest'];
 export type CreateInvitesResponse = components['schemas']['CreateInvitesResponse'];
 export type CreateItemRequest = components['schemas']['CreateItemRequest'];
 export type CreateKbCommentRequest = components['schemas']['CreateKbCommentRequest'];
+export type CreateLendingRequest = components['schemas']['CreateLendingRequest'];
 export type CreateMemberRequest = components['schemas']['CreateMemberRequest'];
 export type CreateMovementRequest = components['schemas']['CreateMovementRequest'];
 export type CreatePageRequest = components['schemas']['CreatePageRequest'];
@@ -51730,6 +53027,7 @@ export type DateConfig = components['schemas']['DateConfig'];
 export type DatedEvent = components['schemas']['DatedEvent'];
 export type DateValue = components['schemas']['DateValue'];
 export type DayCount = components['schemas']['DayCount'];
+export type DeclineBody = components['schemas']['DeclineBody'];
 export type Deleted = components['schemas']['Deleted'];
 export type DeleteImpact = components['schemas']['DeleteImpact'];
 export type DeleteRequestResponse = components['schemas']['DeleteRequestResponse'];
@@ -51755,11 +53053,17 @@ export type EmailRequest = components['schemas']['EmailRequest'];
 export type EmailStatusCount = components['schemas']['EmailStatusCount'];
 export type EmbeddedEvent = components['schemas']['EmbeddedEvent'];
 export type EmbedReference = components['schemas']['EmbedReference'];
+export type EmptyReason = components['schemas']['EmptyReason'];
 export type EmptyTrashResponse = components['schemas']['EmptyTrashResponse'];
 export type EmptyView = components['schemas']['EmptyView'];
 export type EndpointDetail = components['schemas']['EndpointDetail'];
 export type EndpointStats = components['schemas']['EndpointStats'];
+export type EnrichedCheckDetail = components['schemas']['EnrichedCheckDetail'];
+export type EnrichedCheckItem = components['schemas']['EnrichedCheckItem'];
+export type EnrichedCheckSummary = components['schemas']['EnrichedCheckSummary'];
 export type EnrichedFederationRegistration = components['schemas']['EnrichedFederationRegistration'];
+export type EnrichedItem = components['schemas']['EnrichedItem'];
+export type EnrichedMessage = components['schemas']['EnrichedMessage'];
 export type EntryAudience = components['schemas']['EntryAudience'];
 export type EntryResponse = components['schemas']['EntryResponse'];
 export type EntrySource = components['schemas']['EntrySource'];
@@ -51911,6 +53215,7 @@ export type HandOutSelfChecksRequest = components['schemas']['HandOutSelfChecksR
 export type HandoverRequest = components['schemas']['HandoverRequest'];
 export type HeldReportRequest = components['schemas']['HeldReportRequest'];
 export type HeroBannerConfig = components['schemas']['HeroBannerConfig'];
+export type HistoryResponse = components['schemas']['HistoryResponse'];
 export type HourlyStats = components['schemas']['HourlyStats'];
 export type ImageConfig = components['schemas']['ImageConfig'];
 export type ImageFit = components['schemas']['ImageFit'];
@@ -51927,6 +53232,9 @@ export type IntakeRequest = components['schemas']['IntakeRequest'];
 export type IntervalType = components['schemas']['IntervalType'];
 export type Inventory = components['schemas']['Inventory'];
 export type InventoryArt = components['schemas']['InventoryArt'];
+export type InventoryBlock = components['schemas']['InventoryBlock'];
+export type InventoryCheck = components['schemas']['InventoryCheck'];
+export type InventoryCheckScope = components['schemas']['InventoryCheckScope'];
 export type InventoryContainer = components['schemas']['InventoryContainer'];
 export type InventoryContainerHistory = components['schemas']['InventoryContainerHistory'];
 export type InventoryContainerKind = components['schemas']['InventoryContainerKind'];
@@ -51936,8 +53244,10 @@ export type InventoryIntakeRow = components['schemas']['InventoryIntakeRow'];
 export type InventoryItem = components['schemas']['InventoryItem'];
 export type InventoryItemMetadata = components['schemas']['InventoryItemMetadata'];
 export type InventoryRequest = components['schemas']['InventoryRequest'];
+export type InventoryRequirement = components['schemas']['InventoryRequirement'];
 export type InventorySettings = components['schemas']['InventorySettings'];
 export type InventorySettingsRequest = components['schemas']['InventorySettingsRequest'];
+export type InventoryShare = components['schemas']['InventoryShare'];
 export type InventorySize = components['schemas']['InventorySize'];
 export type InventoryStatResponse = components['schemas']['InventoryStatResponse'];
 export type InventoryStatus = components['schemas']['InventoryStatus'];
@@ -51947,11 +53257,14 @@ export type InventoryTagRequest = components['schemas']['InventoryTagRequest'];
 export type InventoryType = components['schemas']['InventoryType'];
 export type InviteRequest = components['schemas']['InviteRequest'];
 export type InviteResponse = components['schemas']['InviteResponse'];
+export type ItemAssignment = components['schemas']['ItemAssignment'];
 export type ItemBooleanValue = components['schemas']['ItemBooleanValue'];
+export type ItemCheckHistoryEntry = components['schemas']['ItemCheckHistoryEntry'];
 export type ItemCustody = components['schemas']['ItemCustody'];
 export type ItemDateValue = components['schemas']['ItemDateValue'];
 export type ItemEnumValue = components['schemas']['ItemEnumValue'];
 export type ItemFieldValues = components['schemas']['ItemFieldValues'];
+export type ItemLastCheck = components['schemas']['ItemLastCheck'];
 export type ItemLocationResponse = components['schemas']['ItemLocationResponse'];
 export type ItemNameCount = components['schemas']['ItemNameCount'];
 export type ItemNumberValue = components['schemas']['ItemNumberValue'];
@@ -51989,6 +53302,14 @@ export type LegalFileEntry = components['schemas']['LegalFileEntry'];
 export type LegalImportRequest = components['schemas']['LegalImportRequest'];
 export type LegalImportResponse = components['schemas']['LegalImportResponse'];
 export type LegalVersionsResponse = components['schemas']['LegalVersionsResponse'];
+export type LendingItemRequest = components['schemas']['LendingItemRequest'];
+export type LendingMessage = components['schemas']['LendingMessage'];
+export type LendingRequest = components['schemas']['LendingRequest'];
+export type LendingRequestDetail = components['schemas']['LendingRequestDetail'];
+export type LendingRequestItem = components['schemas']['LendingRequestItem'];
+export type LendingRequestResponse = components['schemas']['LendingRequestResponse'];
+export type LendingStatus = components['schemas']['LendingStatus'];
+export type LentOutItem = components['schemas']['LentOutItem'];
 export type Likert = components['schemas']['Likert'];
 export type LikertAnswer = components['schemas']['LikertAnswer'];
 export type LineCheck = components['schemas']['LineCheck'];
@@ -52048,6 +53369,7 @@ export type MediaPruneResult = components['schemas']['MediaPruneResult'];
 export type MediaTagRequest = components['schemas']['MediaTagRequest'];
 export type MemberAbsence = components['schemas']['MemberAbsence'];
 export type MemberChangeSummary = components['schemas']['MemberChangeSummary'];
+export type MemberCheckState = components['schemas']['MemberCheckState'];
 export type MemberDocumentResponse = components['schemas']['MemberDocumentResponse'];
 export type MemberDocumentSummary = components['schemas']['MemberDocumentSummary'];
 export type MemberExportRequest = components['schemas']['MemberExportRequest'];
@@ -52079,6 +53401,7 @@ export type MemberTableColumnKind = components['schemas']['MemberTableColumnKind
 export type MemberTableHeader = components['schemas']['MemberTableHeader'];
 export type MemberTableRow = components['schemas']['MemberTableRow'];
 export type MemberWithName = components['schemas']['MemberWithName'];
+export type MessageBody = components['schemas']['MessageBody'];
 export type MessageResponse = components['schemas']['MessageResponse'];
 export type MigrationResponse = components['schemas']['MigrationResponse'];
 export type MissingStepsResponse = components['schemas']['MissingStepsResponse'];
@@ -52413,6 +53736,7 @@ export type SetPermissionsRequest = components['schemas']['SetPermissionsRequest
 export type SetRegistrationFieldsRequest = components['schemas']['SetRegistrationFieldsRequest'];
 export type SetRemindersRequest = components['schemas']['SetRemindersRequest'];
 export type SetSessionFieldsRequest = components['schemas']['SetSessionFieldsRequest'];
+export type SetShareRequest = components['schemas']['SetShareRequest'];
 export type SetTemplateGroupsRequest = components['schemas']['SetTemplateGroupsRequest'];
 export type SetTemplateUserTypesRequest = components['schemas']['SetTemplateUserTypesRequest'];
 export type SettingsRequest = components['schemas']['SettingsRequest'];
@@ -52426,11 +53750,15 @@ export type Sftp = components['schemas']['Sftp'];
 export type SftpRequest = components['schemas']['SftpRequest'];
 export type SftpSummary = components['schemas']['SftpSummary'];
 export type SharedBrand = components['schemas']['SharedBrand'];
+export type ShareDetail = components['schemas']['ShareDetail'];
 export type SharedEvent = components['schemas']['SharedEvent'];
 export type SharedPage = components['schemas']['SharedPage'];
 export type SharedProtocolView = components['schemas']['SharedProtocolView'];
 export type SharedQuizCatalog = components['schemas']['SharedQuizCatalog'];
+export type ShareGrant = components['schemas']['ShareGrant'];
+export type SharePartner = components['schemas']['SharePartner'];
 export type ShareScope = components['schemas']['ShareScope'];
+export type ShareSetting = components['schemas']['ShareSetting'];
 export type SignInFinishRequest = components['schemas']['SignInFinishRequest'];
 export type Simple = components['schemas']['Simple'];
 export type SizeRequest = components['schemas']['SizeRequest'];

@@ -13,11 +13,11 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EnlargeableImage from '@/components/button/EnlargeableImage.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import type {LostAndFoundItem} from '@/api/lostAndFound'
+import type {LostAndFoundItemResponse} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 const props = defineProps<{
-  item: LostAndFoundItem
+  item: LostAndFoundItemResponse
   imageSrc?: string
   myMemberId?: number
   /** The members in the reader's care, so a claim made for one of them still reads as theirs. */

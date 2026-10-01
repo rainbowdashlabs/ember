@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
@@ -152,7 +153,11 @@ public sealed interface FieldConfig
      * @param unit display unit (e.g. "kg", "cm"), may be empty
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record NumberConfig(BigDecimal min, BigDecimal max, BigDecimal step, String unit) implements FieldConfig {
+    record NumberConfig(
+            @Nullable BigDecimal min,
+            @Nullable BigDecimal max,
+            @Nullable BigDecimal step,
+            String unit) implements FieldConfig {
         @Override
         public FieldType fieldType() {
             return FieldType.NUMBER;

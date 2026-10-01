@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {LendingRequestDetail} from '@/api/lending'
+import type {LendingRequestDetail} from '@/api/generated/schema'
 
 defineProps<{
   detail: LendingRequestDetail

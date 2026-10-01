@@ -5,6 +5,15 @@
  */
 import client from './client'
 import {createScopedCrudResource} from './crud'
+import type {
+    components,
+    FieldConfig,
+    FieldDefinitionRequest,
+    FieldUpdateRequest,
+    InventoryFieldDefinition,
+} from './generated/schema'
+
+export type FieldTypeName = components['schemas']['FieldType']
 
 export const FieldType = {
     DATE: 'DATE',
@@ -12,84 +21,7 @@ export const FieldType = {
     TEXT: 'TEXT',
     NUMBER: 'NUMBER',
     BOOLEAN: 'BOOLEAN',
-} as const
-export type FieldTypeName = (typeof FieldType)[keyof typeof FieldType]
-
-export interface EnumOption {
-    value: string
-    label: string
-}
-
-export interface DateFieldConfig {
-    kind: 'DATE'
-}
-
-export interface EnumFieldConfig {
-    kind: 'ENUM'
-    options: EnumOption[]
-}
-
-export interface TextFieldConfig {
-    kind: 'TEXT'
-    multiline: boolean
-    maxLength: number
-}
-
-export interface NumberFieldConfig {
-    kind: 'NUMBER'
-    min?: number | null
-    max?: number | null
-    step?: number | null
-    unit?: string
-}
-
-export interface BooleanFieldConfig {
-    kind: 'BOOLEAN'
-    trueLabel: string
-    falseLabel: string
-}
-
-export type FieldConfig =
-    | DateFieldConfig
-    | EnumFieldConfig
-    | TextFieldConfig
-    | NumberFieldConfig
-    | BooleanFieldConfig
-
-export interface InventoryFieldDefinition {
-    id: number
-    inventoryId: number
-    /** The kind this field describes, or null when it describes the whole inventory. */
-    artId?: number | null
-    /** The single piece this field describes, or null when it describes more than one. */
-    itemId?: number | null
-    key: string
-    label: string
-    fieldType: FieldTypeName
-    required: boolean
-    sortOrder: number
-    config: FieldConfig
-}
-
-export interface FieldDefinitionRequest {
-    /** The kind this field describes, or null for the whole inventory. At most one of the two. */
-    artId?: number | null
-    /** The single piece this field describes, or null. At most one of the two. */
-    itemId?: number | null
-    key: string
-    label: string
-    fieldType: FieldTypeName
-    required: boolean
-    sortOrder: number
-    config: FieldConfig
-}
-
-export interface FieldUpdateRequest {
-    label: string
-    required: boolean
-    sortOrder: number
-    config: FieldConfig
-}
+} as const satisfies Record<FieldTypeName, FieldTypeName>
 
 const fields = createScopedCrudResource<
     InventoryFieldDefinition,

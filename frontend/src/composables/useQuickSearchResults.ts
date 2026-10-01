@@ -11,8 +11,8 @@ import { StationModules, StationPermission, type MemberIdentity } from '@/api/ty
 import { listCompletions, type MemberCompletion } from '@/api/stationMembers'
 import { search as searchKb } from '@/api/knowledgeBase'
 import { listUpcomingOccurrences } from '@/api/events'
-import type { SearchResultResponse as KbSearchResult, UpcomingEventOccurrence } from '@/api/generated/schema'
-import { listInventories, type Inventory } from '@/api/inventory'
+import type { Inventory, SearchResultResponse as KbSearchResult, UpcomingEventOccurrence } from '@/api/generated/schema'
+import { listInventories } from '@/api/inventory'
 import { matchesWords } from '@/util/listSearch'
 
 const MAX_PER_SECTION = 8

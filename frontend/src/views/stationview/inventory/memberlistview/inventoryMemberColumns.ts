@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { Inventory, InventoryItem } from '@/api/inventory'
+import type { Inventory, InventoryItem } from '@/api/generated/schema'
 import type { StationMember } from '@/api/types'
 import { ColumnTypes, type TableColumn } from '@/components/table/tableColumn'
 import { memberNameColumn } from '@/views/stationview/members/listview/memberColumns'

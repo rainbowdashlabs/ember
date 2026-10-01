@@ -33,6 +33,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1393,13 +1394,13 @@ public class ItemMovementService {
      */
     public record RechainPlan(
             int movementId,
-            Integer currentFlowId,
-            String currentFlowName,
-            String standingOn,
+            @Nullable Integer currentFlowId,
+            @Nullable String currentFlowName,
+            @Nullable String standingOn,
             int targetFlowId,
-            String targetFlowName,
+            @Nullable String targetFlowName,
             boolean alreadyRight,
             List<RechainStep> steps,
-            Integer suggestedIndex,
+            @Nullable Integer suggestedIndex,
             boolean certain) {}
 }

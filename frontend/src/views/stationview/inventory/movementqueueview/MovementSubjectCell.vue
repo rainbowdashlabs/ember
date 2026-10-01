@@ -7,14 +7,14 @@
 import {toRef} from 'vue'
 import ItemChip from '@/components/inventory/ItemChip.vue'
 import {useMovementRowView} from './movementRowView'
-import type {Movement} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 
 /**
  * What a movement is about: the piece where there is one, the inventory otherwise. It carries the
  * movement's id, which is what the end-to-end stories find a row by.
  */
 const props = defineProps<{
-  movement: Movement
+  movement: MovementResponse
 }>()
 
 const {chip} = useMovementRowView(toRef(props, 'movement'))

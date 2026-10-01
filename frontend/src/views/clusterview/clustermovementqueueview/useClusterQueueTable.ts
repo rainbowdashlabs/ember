@@ -7,7 +7,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 import {MovementPurpose} from '@/api/movements'
-import type {ClusterQueueEntry} from '@/api/clusterInventory'
+import type {ClusterQueueResponse} from '@/api/generated/schema'
 import {useDataTable} from '@/composables/useDataTable'
 
 /**
@@ -17,10 +17,10 @@ import {useDataTable} from '@/composables/useDataTable'
  *
  * @param entries the steps as the server lists them
  */
-export function useClusterQueueTable(entries: () => ClusterQueueEntry[]) {
+export function useClusterQueueTable(entries: () => ClusterQueueResponse[]) {
     const {t} = useI18n()
 
-    const columns = computed<TableColumn<ClusterQueueEntry>[]>(() => [
+    const columns = computed<TableColumn<ClusterQueueResponse>[]>(() => [
         {
             key: 'step', label: t('movements.queue.columns.step'), type: ColumnTypes.TEXT, pinned: true,
             value: entry => entry.stepLabel ?? t('clusterMovements.unnamedStep'),
@@ -35,7 +35,7 @@ export function useClusterQueueTable(entries: () => ClusterQueueEntry[]) {
         {key: 'created', label: t('movements.queue.columns.created'), type: ColumnTypes.DATE, value: entry => entry.createdAt},
     ])
 
-    return useDataTable<ClusterQueueEntry>({
+    return useDataTable<ClusterQueueResponse>({
         id: 'cluster-movements',
         rows: entries,
         columns,

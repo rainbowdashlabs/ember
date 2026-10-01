@@ -9,14 +9,14 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ItemTagPicker from '@/views/stationview/inventory/ItemTagPicker.vue'
-import type {InventoryTag} from '@/api/inventoryTags'
+import type {TagResponse} from '@/api/generated/schema'
 
 /** The picker as it stands on a piece that already wears one word and is about to wear a second. */
 const {t} = useI18n()
 
-const tags: InventoryTag[] = [
-    {id: 1, name: 'Funk', color: '#3694FF', position: 0},
-    {id: 2, name: 'Gemeinde', color: null, position: 1},
+const tags: TagResponse[] = [
+    {id: 1, name: 'Funk', color: '#3694FF', position: 0, itemCount: 4},
+    {id: 2, name: 'Gemeinde', color: null, position: 1, itemCount: 2},
 ]
 
 const names = ref(['Funk'])

@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type { InventoryItem } from '@/api/inventory'
+import type { InventoryItem } from '@/api/generated/schema'
 import { itemNamePart, itemSizeLabel, type ItemLabelParts } from './itemLabel'
 
 /** The pieces one member holds from one inventory, the lost ones marked as such. */

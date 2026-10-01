@@ -28,6 +28,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -369,14 +370,19 @@ public class InventoryContainerRoutes implements Routes {
      * Request body for container CRUD operations.
      */
     public record ContainerRequest(
-            Integer parentId, String internalId, String name, Integer kindId, String description) {}
+            @Nullable Integer parentId,
+            @Nullable String internalId,
+            String name,
+            @Nullable Integer kindId,
+            @Nullable String description) {}
 
     /**
      * Request body for kind CRUD operations.
      *
      * @param color the colour the icon is drawn in as {@code #rrggbb}, or {@code null} for the muted neutral
      */
-    public record KindRequest(String key, String label, String icon, String color, int sortOrder, boolean enabled) {}
+    public record KindRequest(
+            String key, String label, String icon, @Nullable String color, int sortOrder, boolean enabled) {}
 
     /**
      * Response body for a container plus its path.

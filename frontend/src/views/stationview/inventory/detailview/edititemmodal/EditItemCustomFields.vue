@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import CustomFieldsSection from '../CustomFieldsSection.vue'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {InventoryFieldDefinition} from '@/api/generated/schema'
 
 defineProps<{
   defs: InventoryFieldDefinition[]

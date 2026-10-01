@@ -12,13 +12,13 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type { ProcurementEntry } from '@/api/procurement'
+import type { ProcurementResponse } from '@/api/generated/schema'
 import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 
 defineProps<{
-  entry: ProcurementEntry
+  entry: ProcurementResponse
   canManageProcurement: boolean
 }>()
 

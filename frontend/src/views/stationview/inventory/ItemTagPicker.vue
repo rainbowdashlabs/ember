@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import LabelSelectInput from '@/components/input/select/LabelSelectInput.vue'
-import type {InventoryTag} from '@/api/inventoryTags'
+import type {TagResponse} from '@/api/generated/schema'
 
 /**
  * The words a piece wears, picked from the ones the station already uses.
@@ -19,7 +19,7 @@ import type {InventoryTag} from '@/api/inventoryTags'
  */
 const props = withDefaults(
     defineProps<{
-        tags: InventoryTag[]
+        tags: TagResponse[]
         disabled?: boolean
         /** Whether the reader may write down a word that is not there yet. */
         creatable?: boolean

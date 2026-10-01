@@ -27,6 +27,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -346,12 +347,12 @@ public class LostAndFoundRoutes implements Routes {
     public record LostAndFoundItemResponse(
             int id,
             int stationId,
-            String description,
+            @Nullable String description,
             String foundAt,
             boolean hasImage,
-            Integer claimedBy,
-            String claimedByName,
-            Instant claimedAt,
+            @Nullable Integer claimedBy,
+            @Nullable String claimedByName,
+            @Nullable Instant claimedAt,
             int createdBy,
             Instant createdAt) {}
 
@@ -361,12 +362,12 @@ public class LostAndFoundRoutes implements Routes {
      * @param description a description of the found item
      * @param foundAt     the date the item was found (ISO format, defaults to today if null)
      */
-    public record CreateItemRequest(String description, String foundAt) {}
+    public record CreateItemRequest(@Nullable String description, String foundAt) {}
 
     /**
      * Request body for claiming a lost and found item.
      *
      * @param memberId the member ID to claim on behalf of (null to claim for the current user)
      */
-    public record ClaimRequest(Integer memberId) {}
+    public record ClaimRequest(@Nullable Integer memberId) {}
 }

@@ -12,7 +12,7 @@ import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import InventorySearchPicker from '@/components/input/search/InventorySearchPicker.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import type { Inventory, InventorySize } from '@/api/inventory'
+import type { Inventory, InventorySize } from '@/api/generated/schema'
 import type { StationMember } from '@/api/types'
 
 /**

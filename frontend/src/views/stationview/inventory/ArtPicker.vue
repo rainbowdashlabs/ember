@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import LabelSelectInput from '@/components/input/select/LabelSelectInput.vue'
-import type {InventoryArt} from '@/api/inventoryArts'
+import type {InventoryArt} from '@/api/generated/schema'
 
 /**
  * The kind of thing a piece is, picked beside its name and never instead of it.
