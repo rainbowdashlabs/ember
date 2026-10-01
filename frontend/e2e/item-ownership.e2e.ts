@@ -38,7 +38,8 @@ test.describe('Item ownership', () => {
      * ITM-2 - One inventory holds both owners at once.
      *
      * A mixed inventory is the interesting case: the same list carries gear of both owners, and the row
-     * says which without the reader having to know which inventory they are in.
+     * says which without the reader having to know which inventory they are in. The story puts gear of
+     * both owners in itself rather than relying on what the demo happened to put there.
      */
     test('one inventory holds gear of both owners', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -46,8 +47,6 @@ test.describe('Item ownership', () => {
         const mixed = inventories.find((i: {inventoryType: string}) => i.inventoryType === 'MIXED')
         expect(mixed, 'the demo keeps a mixed inventory').toBeTruthy()
 
-        // Made mixed in fact as well as in kind: which owners the demo happens to have put in it is not
-        // what this is about, and a mixed inventory that holds one owner today would still be mixed.
         for (const ownerKind of ['STATION', 'CLUSTER']) {
             const added = await page.request.post(`/api/v1/inventories/${mixed.id}/items`, {
                 headers,
@@ -71,7 +70,8 @@ test.describe('Item ownership', () => {
      * ITM-3 - Gear whose owner is not on this instance stays editable here.
      *
      * Somebody has to be able to correct a name, and where the owner does not run here that somebody is
-     * the station. The contrast is the cluster case, where the same fields are not the station's.
+     * the station. The contrast is the cluster case, where the same fields are not the station's. The
+     * piece is the story's own, so no other story writes to the same name.
      */
     test('gear owned by a body that does not run here is still the station\'s to correct',
         async ({managerPage: page}) => {
@@ -79,8 +79,6 @@ test.describe('Item ownership', () => {
             const inventories = await page.request.get('/api/v1/inventories', {headers}).then(r => r.json())
             const mixed = inventories.find((i: {inventoryType: string}) => i.inventoryType === 'MIXED')
 
-            // Its own piece rather than one of the demo's: renaming is what this story is about, and a
-            // piece somebody else's story is also holding would have two of them writing to one name.
             const made = await page.request.post(`/api/v1/inventories/${mixed.id}/items`, {
                 headers,
                 data: {internalId: `OFF-${Date.now()}`, name: 'Gemeindehelm', sizeId: null, metadata: null,
@@ -119,8 +117,7 @@ test.describe('Item ownership', () => {
 
         const inventories = await page.request.get('/api/v1/inventories', {headers})
         if (!inventories.ok()) {
-            // Somebody without inventory rights at all cannot reach the list, which is the same refusal
-            expect(inventories.status()).toBe(403)
+            expect(inventories.status(), 'without inventory rights the list itself is refused').toBe(403)
             await page.context().close()
             return
         }
@@ -199,7 +196,6 @@ test.describe('Item ownership', () => {
         expect(started.ok()).toBeTruthy()
         const id = (await started.json()).movement.id
 
-        // Walked to the end, whatever the chain is
         for (let guard = 8; guard > 0; guard -= 1) {
             const seen = await page.request.get(`/api/v1/movements/${id}`, {headers}).then(r => r.json())
             if (seen.movement.state !== 'OPEN') break

@@ -95,12 +95,11 @@ test.describe('The time of an appointment', () => {
         })
         expect(refused.status(), await refused.text()).toBe(400)
 
-        // And the editor says so before anything is sent at all.
         await page.goto('/station/events/new')
         const times = page.locator('input[type="datetime-local"]')
         await times.first().fill('2026-06-05T18:00')
         await times.nth(1).fill('2026-06-05T16:00')
 
-        await expect(page.getByTestId('event-end-before-start')).toBeVisible()
+        await expect(page.getByTestId('event-end-before-start'), 'the editor says so before anything is sent').toBeVisible()
     })
 })

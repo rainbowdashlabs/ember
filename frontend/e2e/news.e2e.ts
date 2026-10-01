@@ -59,7 +59,7 @@ test.describe('News', () => {
     /**
      * The article and the public blog are two sides of one act: a station writes something and the
      * world can read it. The story crosses from the station into the public pages, where nobody is
-     * logged in at all.
+     * logged in at all. The blog control is a switch beside its label, not the label itself.
      */
     test('an article marked for the blog appears publicly', async ({managerPage: page}) => {
         const article = unique('Blogbeitrag')
@@ -80,7 +80,6 @@ test.describe('News', () => {
 
         const editUrl = `${page.url()}/edit`
         await page.goto(editUrl)
-        // The control is a switch beside the label, not the label itself.
         await page.getByRole('switch').first().click()
         await page.getByRole('button', {name: /Speichern/}).last().click()
 
@@ -122,7 +121,8 @@ test.describe('News', () => {
      * An entry can hand a file over, which it could not before: authors used to paste a link to a
      * file living somewhere else. The story attaches one out of the station library and reads the
      * entry back as a member would, where the attachment is offered under the text rather than
-     * buried inside it.
+     * buried inside it. The attachment is written after the entry, and the editor returns to the list
+     * only once both are through, so the entry is read after that.
      */
     test('a file attached to an article is offered under it', async ({managerPage: page}) => {
         const article = unique('Protokoll')
@@ -134,14 +134,12 @@ test.describe('News', () => {
         await expect(page.getByText(SEEDED_FILE).first()).toBeVisible()
         await page.getByRole('button', {name: /Speichern/}).last().click()
 
-        // The attachment is written after the entry itself, and the editor leaves for the list only
-        // once both are through. Reading the entry before that races the attachment being stored.
         await page.waitForURL(/\/station\/news$/)
 
         await page.goto(detailUrl)
         const download = page.getByRole('link', {name: new RegExp(SEEDED_FILE)})
         await expect(download).toBeVisible()
-        await expect(download).toHaveAttribute('href', /\/api\/v1\/public\/media\//)
+        await expect(download).toHaveAttribute('href', /\/api\/v1\/public\/media[/]/)
     })
 
     /**
@@ -194,10 +192,10 @@ test.describe('News', () => {
         await page.waitForURL(/\/station\/news\/\d+/)
         await expect(page.getByText(written).first()).toBeVisible()
 
-        // The entry is a block one now, so it no longer offers to become one.
         await page.goto(`${page.url()}/edit`)
         await expect(page.getByText(written).first()).toBeVisible()
-        await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
+        await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}), 'a block entry no longer offers the switch')
+            .toHaveCount(0)
     })
 
     /**
@@ -222,11 +220,11 @@ test.describe('News', () => {
             await page.waitForURL(/\/station\/news$/)
             await expect(page.getByText(article).first()).toBeVisible()
 
-            // It was created as a block entry, so it does not offer to become one.
             await page.getByText(article).first().click()
             await page.waitForURL(/\/station\/news\/\d+/)
             await page.goto(`${page.url()}/edit`)
-            await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
+            await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}), 'created as a block entry')
+                .toHaveCount(0)
         })
 
     test('a member reads the news of their station', async ({memberPage: page}) => {

@@ -96,7 +96,8 @@ test.describe('Quiz', () => {
     /**
      * A question offering answers to pick from, written one answer to a row of its own, with the
      * right one marked beside it. The rows are the list every choice question in Ember is written
-     * in; what is the quiz's own is the mark, and it has to survive being saved.
+     * in; what is the quiz's own is the mark, and it has to survive being saved. A comma is a character
+     * in an answer here, not a separator between two of them.
      */
     test('a multiple choice question keeps its answers and which of them is right', async ({managerPage: page}) => {
         const question = unique('Frage')
@@ -106,14 +107,10 @@ test.describe('Quiz', () => {
         await page.getByRole('button', {name: 'Neue Frage'}).click()
         await page.getByPlaceholder('Fragetext').fill(question)
 
-        // One answer to a row of its own, which is the list every choice question is written in.
-        // A comma is a character in an answer here, not a separator between two of them.
         await page.getByTestId('question-option-0').fill('Wasser, Schaum')
         await page.getByTestId('question-option-add').click()
         await page.getByTestId('question-option-1').fill('Sand')
 
-        // The mark for the right answer sits beside the answer rather than in a box of its own,
-        // which is what the row per answer is for.
         await page.getByRole('button', {name: 'Richtige Antwort'}).first().click()
         await page.getByRole('button', {name: 'Speichern'}).last().click()
 
@@ -129,7 +126,9 @@ test.describe('Quiz', () => {
     /**
      * A test sheet is assembled rather than written: it says how many questions to draw from which
      * catalogue, and the questions are picked when somebody sits it. The story builds one section
-     * over the catalogue it just filled and finds the sheet again in the list afterwards.
+     * over the catalogue it just filled and finds the sheet again in the list afterwards. A fresh
+     * section has no sources yet; the catalogue select is told apart from the category select beside
+     * it by the choice it offers.
      */
     test('a test sheet is assembled from a catalogue', async ({managerPage: page}) => {
         const question = unique('Frage')
@@ -149,9 +148,6 @@ test.describe('Quiz', () => {
         await page.getByRole('button', {name: 'Abschnitt hinzufügen'}).click()
         await page.getByPlaceholder('Titel des Abschnitts').fill(section)
 
-        // A section draws its questions from sources, and a fresh one has none yet. The catalogue
-        // belongs to the select that offers choosing one, which is what tells it apart from the
-        // category select beside it.
         await page.getByRole('button', {name: 'Quelle hinzufügen'}).click()
         await page.locator('select:has(option:text-is("Katalog wählen"))').first()
             .selectOption({label: catalogue})
@@ -165,7 +161,8 @@ test.describe('Quiz', () => {
     /**
      * A catalogue is often already written down somewhere else, so it can arrive as a file. The
      * story walks the whole wizard - file, columns, preview, import - because each step can refuse
-     * on its own, and then looks for the imported question in the catalogue itself.
+     * on its own, and then looks for the imported question in the catalogue itself. The file uses
+     * commas, the separator the wizard offers first.
      */
     test('questions are imported from a file', async ({managerPage: page}) => {
         const question = unique('Importfrage')
@@ -177,7 +174,6 @@ test.describe('Quiz', () => {
         await page.setInputFiles('input[type="file"]', {
             name: 'fragen.csv',
             mimeType: 'text/csv',
-            // Commas, because that is the separator the wizard offers to start with.
             buffer: Buffer.from(`Frage,Antwort\n${question},Eine Antwort\n`, 'utf-8'),
         })
 
@@ -209,7 +205,8 @@ test.describe('Quiz', () => {
      * story to aim at.
      *
      * The paper is handed in unanswered on purpose: what the story holds is that a member can sit
-     * a test and give it back, not that they know the answers.
+     * a test and give it back, not that they know the answers. Handing in asks once more, with the
+     * same words on the confirming button.
      */
     test('a member sits an active test and hands it in', async ({memberPage: page}) => {
         await page.goto('/station/quiz/tests')
@@ -221,7 +218,6 @@ test.describe('Quiz', () => {
 
         await page.waitForURL(/\/station\/quiz\/tests\/\d+\/take/)
 
-        // Handing in asks once more, with the same words on the confirming button.
         await page.getByRole('button', {name: 'Test abgeben'}).first().click()
         await page.getByRole('button', {name: 'Test abgeben'}).last().click()
 

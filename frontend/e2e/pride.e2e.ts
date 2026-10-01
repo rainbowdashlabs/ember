@@ -13,13 +13,14 @@ import {test, expect, apiHeaders, freshStepUpProof} from './fixtures/auth'
  * and Vue keeps whatever the server said for any class that disagrees at hydration. The flag was
  * therefore correct inside the application, which is rendered in the browser, and dead on every page
  * that is rendered by the server: the landing page, the login page, the public station pages.
+ *
+ * <p>The settings are written straight over the API, where no dialog can ask for the fresh proof, so
+ * it is given up front.
  */
 test.describe('Pride flag', () => {
     test('an instance that forces the flag shows it on a server-rendered page too',
         async ({adminPage}) => {
             const headers = await apiHeaders(adminPage)
-            // The settings are written straight over the API, where no dialog can ask: the fresh
-            // proof every session owes on the guarded routes is given up front.
             await freshStepUpProof(adminPage)
             const before = await adminPage.request.get('/api/v1/admin/settings', {headers})
             const settings = await before.json()

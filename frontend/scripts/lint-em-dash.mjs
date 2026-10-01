@@ -67,8 +67,6 @@ function check(file) {
     }
 }
 
-// ── The frontend, which is always there ─────────────────────────────
-
 const scanned = []
 for (const extension of FRONTEND_EXTENSIONS) {
     scanned.push(...walk(SRC, extension))
@@ -85,8 +83,6 @@ for (const target of ROOT_TARGETS) {
     files.forEach(check)
     rootFiles += files.length
 }
-
-// ── Output ──────────────────────────────────────────────────────────
 
 if (reporter.errors.length === 0 && reporter.warnings.length === 0) {
     console.log(`\n${GREEN}${BOLD}Em dash lint passed.${RESET} ${scanned.length + rootFiles} files carry none.\n`)

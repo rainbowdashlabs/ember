@@ -70,13 +70,6 @@ async function stationRegistrationEnabled(adminPage: Page): Promise<boolean> {
 }
 
 /**
- * Drives the public application form to open or closed.
- *
- * Whether it is open is instance-wide state that one story switches off and on again. Asking for
- * the state rather than assuming it is what keeps the stories from depending on the order the
- * suite happens to run them in, or on what a previous run left behind.
- */
-/**
  * Asserts what the public application form shows, as a visitor who arrives now.
  *
  * A fresh context each time, not a reload. The page reads the setting once when it loads and the
@@ -96,6 +89,14 @@ async function expectApplyPage(browser: Browser, expected: 'open' | 'closed') {
     }
 }
 
+/**
+ * Drives the public application form to open or closed.
+ *
+ * Whether it is open is instance-wide state, so it is asked for rather than assumed, which keeps the
+ * stories independent of their order. The switch shows its default before the panel's values
+ * arrive, so the click waits for what the server holds; a click on the stale rendering would send
+ * the setting the other way.
+ */
 async function setStationRegistration(adminPage: Page, enabled: boolean) {
     const current = await stationRegistrationEnabled(adminPage)
     if (current === enabled) return
@@ -103,9 +104,6 @@ async function setStationRegistration(adminPage: Page, enabled: boolean) {
     await adminPage.goto('/admin/settings')
     const toggle = adminPage.getByRole('switch', {name: 'Wachenregistrierung'})
 
-    // The panel renders before its values arrive, so the switch shows its default first. Waiting
-    // for it to show what the server actually holds is what stops the click below from being read
-    // off a stale rendering and sending the setting the other way.
     await expect(toggle).toHaveAttribute('aria-checked', String(current))
     await toggle.click()
     await expect(toggle).toHaveAttribute('aria-checked', String(enabled))
@@ -221,6 +219,9 @@ test.describe('Legal documents', () => {
      * The shipped imprint is meant to be filled in rather than rewritten. What proves it is a value
      * entered once reaching the public page - the substitution happens on the server, so the
      * editor showing the right thing would prove nothing.
+     *
+     * The save is awaited by its response: the document above was saved a moment ago and its button
+     * already reads "Gespeichert", so that word says nothing about this save.
      */
     test('a placeholder from the shipped imprint is filled in and published', async ({adminPage, page}) => {
         const operator = unique('Jugendfeuerwehr')
@@ -234,9 +235,6 @@ test.describe('Legal documents', () => {
 
         await adminPage.getByRole('textbox', {name: 'betreiber.name'}).fill(operator)
 
-        // The document above this panel was saved a moment ago and its button still reads
-        // "Gespeichert", so waiting for that word says nothing about this save: the assertion is
-        // already true and the public page is then read before the value has been written.
         const saved = adminPage.waitForResponse(
             response => response.request().method() === 'PUT'
                 && response.url().includes('/admin/legal/placeholders'),
@@ -421,13 +419,11 @@ test.describe('Problem reports', () => {
         const report = adminPage.getByTestId('problem-report').filter({hasText: complaint})
         await expect(report).toBeVisible()
 
-        // Acknowledging is what takes a report off the operator's desk, so the open list has to
-        // drop it. That it was acknowledged rather than lost is what the second half asserts.
         await report.getByRole('button', {name: 'Bestätigen'}).click()
-        await expect(report).toHaveCount(0)
+        await expect(report, 'acknowledging takes the report off the open list').toHaveCount(0)
 
         await adminPage.getByRole('switch', {name: 'Bestätigte anzeigen'}).click()
-        await expect(report).toBeVisible()
+        await expect(report, 'the report was acknowledged rather than lost').toBeVisible()
         await expect(report.getByText('Bestätigt')).toBeVisible()
     })
 })

@@ -45,7 +45,9 @@ test.describe('Waiting lists', () => {
      *
      * It takes the list that asks for nothing beyond a name and an address. The other two insist on
      * answers of their own, and a story guessing at what a station chose to ask would be testing the
-     * seed rather than the registration.
+     * seed rather than the registration. The applicant's own fields carry labels rather than
+     * placeholders, so they are filled in the order they are asked, and the consent to what is done
+     * with the address is given where it is asked for.
      */
     test('a stranger registers on the public waiting list', async ({page}) => {
         const surname = `Interessent-${Date.now()}`
@@ -55,14 +57,11 @@ test.describe('Waiting lists', () => {
         await page.getByText('Warteliste auswählen').waitFor()
         await page.getByText('Schnupperstunde').first().click()
 
-        // The applicant's own three fields carry labels rather than placeholders - only the fields
-        // for whoever looks after them are placeheld - so they are taken in the order they are asked.
         const fields = page.getByRole('textbox')
         await fields.nth(0).fill('Neu')
         await fields.nth(1).fill(surname)
         await fields.nth(2).fill(`${surname.toLowerCase()}@example.test`)
 
-        // Somebody handing over their address has to be told what is done with it.
         const consent = page.getByRole('checkbox')
         if (await consent.count() > 0) await consent.first().check()
 
@@ -74,6 +73,8 @@ test.describe('Waiting lists', () => {
     /**
      * Not everybody arrives through the public form: somebody rings up and a manager writes them
      * down. The story does that on the same undemanding list and finds the entry on it afterwards.
+     * By hand the form asks for the person and then, required here unlike on the public form, for
+     * whoever looks after them.
      */
     test('an entry is added to a waiting list by hand', async ({managerPage: page}) => {
         const surname = `Anruf-${Date.now()}`
@@ -83,9 +84,6 @@ test.describe('Waiting lists', () => {
         await page.waitForURL(/\/station\/members\/waiting-lists\/(\d+)/)
         const id = page.url().match(/waiting-lists\/(\d+)/)?.[1]
 
-        // Two blocks of the same fields: the person first, then whoever looks after them - required
-        // when an entry is written down by hand, unlike on the public form, where whoever fills it
-        // in is the one being asked.
         await page.goto(`/station/members/waiting-lists/${id}/entries/new`)
         await page.getByPlaceholder('Vorname').first().fill('Neu')
         await page.getByPlaceholder('Nachname').first().fill(surname)
@@ -102,7 +100,8 @@ test.describe('Waiting lists', () => {
 
     /**
      * A list that knows where the date of birth is can work with ages. The field carries that by
-     * its type, so an ordinary date field becomes the birth date without the answers moving.
+     * its type, so an ordinary date field becomes the birth date without the answers moving. Somebody
+     * is put on the list first, since an empty list draws no columns at all.
      */
     test('a date field becomes the date of birth and the list sorts by it', async ({managerPage: page}) => {
         const fieldName = `Geburtstag-${Date.now()}`
@@ -117,27 +116,26 @@ test.describe('Waiting lists', () => {
         await page.reload()
         await expect(page.getByText('Geburtsdatum').first()).toBeVisible()
 
-        // Somebody has to be on it, or the list draws the words for an empty one and no columns at
-        // all, which is a table with no headers rather than a table missing one.
         const entered = await page.request.post(`/api/v1/waiting-lists/${id}/entries`, {
             headers: await apiHeaders(page),
             data: {firstname: 'Testperson', lastname: `Wartend-${Date.now()}`},
         })
         expect(entered.ok(), `somebody stands on the list (${await entered.text()})`).toBeTruthy()
 
-        // The list opens with a column of its own for it, sortable like the rest.
         await page.goto(`/station/members/waiting-lists/${id}`)
-        await expect(page.getByRole('columnheader', {name: new RegExp(fieldName)})).toBeVisible()
+        await expect(page.getByRole('columnheader', {name: new RegExp(fieldName)}), 'the date of birth has a column of its own')
+            .toBeVisible()
         await page.getByRole('columnheader', {name: 'Vorname'}).getByTestId('column-sort').click()
         await expect(page.getByRole('columnheader', {name: 'Vorname'})).toHaveAttribute('aria-sort', 'ascending')
     })
 
-    /** One is what makes the age findable without being told where it is; two would be a guess. */
+    /**
+     * One is what makes the age findable without being told where it is; two would be a guess. The
+     * first is the story's own, so the second runs into a field nobody else can take away.
+     */
     test('a list takes only one date of birth field', async ({managerPage: page}) => {
         const id = await ownList(page)
 
-        // The first one is put there by this story rather than taken from the seed, so that what the
-        // second one runs into is a field this story knows about and nobody else can take away.
         const first = await page.request.post(`/api/v1/waiting-lists/${id}/fields`, {
             headers: await apiHeaders(page),
             data: {name: `Erstes-${Date.now()}`, fieldType: 'BIRTH_DATE', position: 0, required: false},

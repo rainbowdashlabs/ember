@@ -59,8 +59,8 @@ test.describe('Cluster stations', () => {
         await page.goto('/cluster/stations')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        // A name is typed, not chosen: there is no list of the instance's stations to pick from
-        await expect(page.getByPlaceholder('z.B. Löschzug Nord')).toBeVisible()
+        await expect(page.getByPlaceholder('z.B. Löschzug Nord'), 'a name is typed, not picked from a list')
+            .toBeVisible()
         await expect(page.getByText('JF Partnerwache')).toHaveCount(0)
     })
 
@@ -86,7 +86,8 @@ test.describe('Cluster stations', () => {
      *
      * The station asks and takes it back itself, and the cluster's pending list is empty again. It runs
      * before the two stories that answer an application, because it puts the one waiting request back the
-     * way it found it.
+     * way it found it. A withdrawn request leaves the pending half rather than vanishing, so the empty
+     * state is not what the story asks about.
      */
     test('an owner withdraws an application before it is answered', async ({adminPage: page, request}) => {
         await page.goto('/cross-station')
@@ -98,16 +99,14 @@ test.describe('Cluster stations', () => {
 
         const applicant = await withdrawAsTheWaitingOwner(request, cluster.uid)
 
-        // Gone from the pending half rather than gone altogether: a request that was taken back is still
-        // something the cluster can see happened, which is why the empty state is not what this asks about.
         await page.reload()
-        await expect(page.getByRole('button', {name: 'Ablehnen'})).toHaveCount(0)
+        await expect(page.getByRole('button', {name: 'Ablehnen'}), 'gone from the pending half').toHaveCount(0)
         await expect(page.getByRole('button', {name: 'Aufnehmen'})).toHaveCount(0)
 
-        // And it is the station's to ask again, which is what makes a withdrawal different from a refusal
         await applicant()
         await page.reload()
-        await expect(page.getByRole('button', {name: 'Ablehnen'}).first()).toBeVisible()
+        await expect(page.getByRole('button', {name: 'Ablehnen'}).first(), 'unlike a refused one, the station may ask again')
+            .toBeVisible()
     })
 
     /**
@@ -157,7 +156,6 @@ test.describe('Cluster stations', () => {
         await page.reload()
         await expect(page.getByText(name)).toHaveCount(0)
 
-        // And the station itself no longer answers to anybody, which is the half the station side sees
         const after = await station.page.request.get('/api/v1/station/cluster',
             {headers: await apiHeaders(station.page)})
         expect(after.ok(), `the station's manager reads its cluster (${after.status()})`).toBeTruthy()
@@ -189,9 +187,9 @@ test.describe('Cluster stations', () => {
             await dialog.getByPlaceholder('Warum wird die Anfrage abgelehnt?').fill('Im nächsten Jahr gerne')
             await dialog.getByRole('button', {name: 'Ablehnen'}).click()
 
-            // The refusal and its reason stay readable; what goes is the request waiting to be answered
-            await expect(page.getByRole('button', {name: 'Aufnehmen'})).toHaveCount(0)
-            await expect(page.getByText('Im nächsten Jahr gerne')).toBeVisible()
+            await expect(page.getByRole('button', {name: 'Aufnehmen'}), 'the request no longer waits to be answered')
+                .toHaveCount(0)
+            await expect(page.getByText('Im nächsten Jahr gerne'), 'the refusal and its reason stay readable').toBeVisible()
         })
 
     /**

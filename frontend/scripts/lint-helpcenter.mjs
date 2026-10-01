@@ -8,27 +8,24 @@
  * Exit code 1 if any app routes lack a help center counterpart.
  */
 
-import {readFileSync} from 'fs'
+import {existsSync, readFileSync} from 'fs'
 import {join} from 'path'
 import {parseRoutes, normalizePath, SRC, RED, GREEN, YELLOW, RESET, BOLD} from './lint-utils.mjs'
 
 const allRoutes = parseRoutes()
 
-// ── Known gaps (pre-existing, tracked as warnings) ──────────────────
-//
-// Routes that shipped without a help-center counterpart before the linter
-// started reading the real Nuxt pages tree. New routes must NOT be added
-// here - write the help page instead. Remove entries as pages get written.
-
+/**
+ * Routes that shipped without a help-center counterpart before the linter read the real pages tree,
+ * reported as warnings. New routes are never added here: write the help page instead.
+ */
 const KNOWN_MISSING_HELP = new Set([])
 
-// ── Articles that answer for two screens on purpose ─────────────────
-//
-// An association's knowledge base, news list and calendar are a station's, kept on the station the
-// association owns and edited with the station's own screens. The screens are one set of components, so
-// the article that explains them is one article, mounted once under each panel. Writing a second copy
-// would leave the two to drift apart while describing the same buttons.
-
+/**
+ * Articles that answer for two screens on purpose.
+ *
+ * An association's knowledge base, news list and calendar are a station's, edited with the station's own
+ * screens, so the article that explains them is mounted once under each panel rather than copied.
+ */
 const KNOWN_SHARED_HELP_COMPONENTS = new Set([
     'helpcenter/stationview/events/EventDetailHelp.vue',
     'helpcenter/stationview/events/EventDetailDateHelp.vue',
@@ -44,8 +41,6 @@ const KNOWN_SHARED_HELP_COMPONENTS = new Set([
     'helpcenter/stationview/forms/BuilderHelp.vue',
     'helpcenter/stationview/forms/EditHelp.vue',
 ])
-
-// ── Panel definitions ───────────────────────────────────────────────
 
 const panels = [
     {
@@ -75,8 +70,6 @@ const panels = [
         supplementaryHelp: (r) => r.name.endsWith('-overview'),
     },
 ]
-
-// ── Run checks per panel ────────────────────────────────────────────
 
 let totalMissing = 0
 
@@ -137,8 +130,6 @@ for (const panel of panels) {
     }
 }
 
-// ── Duplicate component check ───────────────────────────────────────
-
 console.log(`\n${BOLD}Duplicate Help Component Check${RESET}`)
 
 const helpComponentUsage = new Map()
@@ -153,7 +144,7 @@ for (const r of allRoutes) {
 let duplicateCount = 0
 for (const [comp, routes] of helpComponentUsage) {
     if (routes.length <= 1) continue
-    const short = comp.replace(/.*\/views\//, '')
+    const short = comp.replace(/.*\/views[/]/, '')
     const known = KNOWN_SHARED_HELP_COMPONENTS.has(short)
     if (!known) duplicateCount++
     const color = known ? YELLOW : RED
@@ -169,8 +160,6 @@ if (duplicateCount === 0) {
 } else {
     totalMissing += duplicateCount
 }
-
-// ── Section overview check ──────────────────────────────────────────
 
 console.log(`\n${BOLD}Section Overview Check${RESET}`)
 
@@ -210,8 +199,6 @@ if (missingSectionOverviews.length > 0) {
     console.log(`  ${GREEN}✓ All sections have overview pages${RESET}`)
 }
 
-// ── Sidebar linkage check ───────────────────────────────────────────
-
 console.log(`\n${BOLD}Sidebar Linkage Check${RESET}`)
 
 const sidebarFiles = [
@@ -221,16 +208,12 @@ const sidebarFiles = [
 ]
 
 const sidebarRouteNames = new Set()
-for (const file of sidebarFiles) {
-    try {
-        const content = readFileSync(file, 'utf-8')
-        // Match name="xxx" in SidebarLink and SidebarExpandableLink
-        const matches = content.matchAll(/\bname="([^"]+)"/g)
-        for (const m of matches) sidebarRouteNames.add(m[1])
-    } catch { /* file may not exist */ }
+for (const file of sidebarFiles.filter(existsSync)) {
+    const sidebarLinkNames = readFileSync(file, 'utf-8').matchAll(/\bname="([^"]+)"/g)
+    for (const m of sidebarLinkNames) sidebarRouteNames.add(m[1])
 }
 
-// Routes that don't need sidebar links
+/** Routes that need no sidebar link. */
 const SIDEBAR_SKIP = (r) =>
     r.name.startsWith('help-') || r.name.startsWith('helpcenter-')
     || r.path.includes(':id') || r.path.includes('pathMatch')
@@ -254,8 +237,6 @@ if (unlinkedRoutes.length > 0) {
 } else {
     console.log(`  ${GREEN}✓ All routes are linked in sidebars${RESET}`)
 }
-
-// ── Exit ────────────────────────────────────────────────────────────
 
 console.log('')
 

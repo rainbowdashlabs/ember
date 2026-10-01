@@ -27,11 +27,9 @@ test.describe('Cluster member screens', () => {
         await page.goto('/cluster/members')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        // The table's own rows, not a hand rolled stack.
         await expect(page.getByTestId('member-row').first()).toBeVisible({timeout: 15000})
 
-        // Narrowing to one station is offered, because more than one is in view.
-        await expect(page.locator('select').first()).toBeVisible()
+        await expect(page.locator('select').first(), 'narrowing to one station is offered').toBeVisible()
         await page.context().close()
     })
 
@@ -137,8 +135,8 @@ test.describe('Cluster member screens', () => {
         await page.goto('/cluster/members')
         await expect(page.getByTestId('member-row').first()).toBeVisible({timeout: 15000})
 
-        // Groups and tags belong to one station and are never a column here.
-        await expect(page.getByRole('columnheader', {name: /Gruppen/i})).toHaveCount(0)
+        await expect(page.getByRole('columnheader', {name: /Gruppen/i}), 'groups and tags belong to one station')
+            .toHaveCount(0)
         await expect(page.getByRole('columnheader', {name: /Tags/i})).toHaveCount(0)
         await page.context().close()
     })
@@ -158,8 +156,7 @@ test.describe('Cluster member screens', () => {
 
         await expect(page.getByTestId('roster-row').first()).toBeVisible({timeout: 15000})
 
-        // Adding is behind a button, so no email box is sitting on the page.
-        await expect(page.getByPlaceholder(/@/)).toHaveCount(0)
+        await expect(page.getByPlaceholder(/@/), 'adding is behind a button').toHaveCount(0)
         await page.context().close()
     })
 
@@ -265,7 +262,6 @@ test.describe('Cluster member screens', () => {
         await page.getByTestId('cluster-member-create').click()
         await expect(page.getByTestId('cluster-member-create-modal')).toBeVisible()
 
-        // The station first, because that is the question the association cannot answer for somebody
         const options = page.getByTestId('cluster-member-create-station').locator('option')
         const stationUid = await options.nth(1).getAttribute('value')
         expect(stationUid, 'the association has a station to take somebody on at').toBeTruthy()
@@ -299,7 +295,6 @@ test.describe('Cluster member screens', () => {
         await expect(page.getByTestId('member-row').first()).toBeVisible({timeout: 15000})
 
         await page.getByTestId('members-export').click()
-        // Every row on screen, which is what an association exports rather than one station's worth
         await page.getByTestId('member-select-all').click()
         await page.getByTestId('members-export-continue').click()
 
@@ -342,11 +337,9 @@ test.describe('Cluster member screens', () => {
         await page.getByTestId('cluster-member-document-name').fill(title)
         await page.getByTestId('cluster-member-document-save').click()
 
-        // It comes back from the server on the next read, not from what the form still holds
         const filed = panel.getByTestId('cluster-member-document').filter({hasText: title})
-        await expect(filed).toBeVisible({timeout: 15000})
+        await expect(filed, 'the document comes back from the server').toBeVisible({timeout: 15000})
 
-        // And the bytes come back too, which is the half of it the list cannot show
         const download = page.waitForEvent('download')
         await filed.getByTestId('cluster-member-document-download').click()
         expect((await download).suggestedFilename()).toBe('nachweis.txt')

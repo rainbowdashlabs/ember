@@ -61,6 +61,8 @@ async function openNotes(page: Page, rows?: Locator) {
  * station, which is the one state that means "hand this over now".
  *
  * <p>Built by the story rather than borrowed from the demo, because handing a swap over uses it up.
+ * Only pieces with a size qualify, since without one no replacement is set aside and the handover
+ * fails for want of a piece; the replacement is named as a free piece of the same inventory.
  */
 async function raiseSwapAwaitingHandover(page: Page, headers: Record<string, string>, onTheSheet: number[]) {
     for (const memberId of onTheSheet) {
@@ -69,9 +71,6 @@ async function raiseSwapAwaitingHandover(page: Page, headers: Record<string, str
             .get(`/api/v1/station-members/${member.id}/inventory-items`, {headers})
             .then(r => r.json())
         for (const item of Array.isArray(items) ? items : []) {
-            // The sizes are what make a replacement be picked out. Without them the swap reaches the
-            // point of being called arrived while nothing was ever set aside, and handing over then
-            // fails because there is no piece to hand.
             if (!item.inventoryHomogeneous || item.sizeId == null) continue
             const created = await page.request.post('/api/v1/movements', {
                 headers,
@@ -89,8 +88,6 @@ async function raiseSwapAwaitingHandover(page: Page, headers: Record<string, str
 
             const swap = (await created.json()).movement
 
-            // Which piece the member gets has to be named, and naming it is what makes the swap one
-            // that can be handed over at all. A free piece of the same inventory is the replacement.
             const spare = await page.request
                 .get(`/api/v1/inventories/${item.inventoryId}/items`, {headers})
                 .then(r => r.json())
@@ -114,12 +111,6 @@ function asLocalInput(moment: Date): string {
         + `T${pad(moment.getHours())}:${pad(moment.getMinutes())}`
 }
 
-/**
- * Opens a sheet from the first template offered, answering the step that asks when it runs.
- *
- * <p>The step is prefilled with the current time and the length the template last ran for, so the
- * ordinary appointment is one further click and nothing has to be typed here.
- */
 /**
  * Presses the export, wherever the toolbar is keeping it, until the dialog is actually open.
  *
@@ -145,6 +136,12 @@ async function openExport(page: Page) {
     }).toPass({timeout: 30_000})
 }
 
+/**
+ * Opens a sheet from the first template offered, answering the step that asks when it runs.
+ *
+ * <p>The step is prefilled with the current time and the length the template last ran for, so the
+ * ordinary appointment is one further click and nothing has to be typed here.
+ */
 async function openSheetFromTemplate(page: Page) {
     await page.getByRole('button', {name: 'Erstellen'}).first().click()
     await page.getByTestId('attendance-audience-confirm').click()
@@ -224,8 +221,6 @@ test.describe('Attendance', () => {
         await expect(reopen.or(marks.first()).first()).toBeVisible()
         if (await reopen.count() > 0) await reopen.click()
 
-        // Whoever is already present has that button switched off, so the story marks someone who
-        // is not - and afterwards their button is the one switched off.
         const unmarked = page.locator('button[aria-label="Anwesend"]:not([disabled])').first()
         await expect(unmarked).toBeVisible()
         await unmarked.click()
@@ -240,7 +235,9 @@ test.describe('Attendance', () => {
      * have something open in the demo data.
      *
      * <p>What matters is that the shape is the one the screen reads and that it is answered to
-     * whoever takes the attendance, since everything inside it is filtered by rights of its own.
+     * whoever takes the attendance, since everything inside it is filtered by rights of its own. No
+     * count of outstanding notes is asserted: the stories beside this one hand pieces over and sign
+     * finds off, so a count would race them.
      */
     test('the sheet says what is outstanding for its members', async ({managerPage: page}) => {
         await page.goto('/station/attendance/new')
@@ -260,9 +257,6 @@ test.describe('Attendance', () => {
             expect(Array.isArray(note.foundItems)).toBe(true)
         }
 
-        // The demo leaves swaps running and a claimed find, which is what makes both kinds of note
-        // reachable at all. Whether any one of them is still outstanding is not asserted here: the
-        // stories beside this one hand pieces over and sign finds off, so a count would race them.
         expect(
             notes.some((note: {swaps: unknown[]}) => note.swaps.length > 0),
             'the demo leaves somebody with a swap running',
@@ -274,6 +268,9 @@ test.describe('Attendance', () => {
      * before it starts. Opening the sheet has to put them on it as present: they stood in
      * the field with no row at all until somebody pressed the button that fills the sheet in from
      * its appointment, which is not something anybody does before taking an attendance.
+     *
+     * The appointment names the template because the tie that carries the answer onto the sheet only
+     * survives on a question of the appointment the sheet is taken on.
      */
     test('the people an appointment names in a self-attending field open the sheet as present', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -281,7 +278,6 @@ test.describe('Attendance', () => {
         const template = await page.request
             .post('/api/v1/attendance/templates', {headers, data: {name: unique('Storybogen')}})
             .then(response => response.json())
-        // Adding a field answers with the sheet's fields as they now stand, not with the one added.
         const field = await page.request
             .post(`/api/v1/attendance/templates/${template.id}/fields`, {
                 headers,
@@ -315,8 +311,6 @@ test.describe('Attendance', () => {
             .then(response => response.json())
             .then(session => session?.member?.id)
 
-        // The tie is what carries the answer onto the sheet, and it only survives on a question of
-        // the appointment the sheet is taken on, which is why the appointment names the template.
         const tied = await page.request.put(`/api/v1/events/${event.id}/fields`, {
             headers,
             data: {
@@ -368,6 +362,9 @@ test.describe('Attendance', () => {
      *
      * <p>The story raises its own swap rather than spending the one the demo leaves: handing that one
      * over consumes it, and a story that eats its own fixture passes once and fails every time after.
+     * Its owner is somebody the sheet lists, or the note would be correct and nowhere to be seen, and
+     * the handover is reached through the note of this very swap, since the same member may be
+     * waiting on several that other stories stand on.
      */
     test('a swap waiting to be handed over is handed over from the sheet', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -376,8 +373,6 @@ test.describe('Attendance', () => {
         await openSheetFromTemplate(page)
         const sessionId = Number(page.url().match(/\/session\/(\d+)/)![1])
 
-        // Whose swap it is has to be somebody the sheet lists, or the note is perfectly correct and
-        // nowhere to be seen. The sheet says who those are.
         const detail = await page.request
             .get(`/api/v1/attendance/sessions/${sessionId}`, {headers})
             .then(response => response.json())
@@ -385,9 +380,6 @@ test.describe('Attendance', () => {
         const waiting = await raiseSwapAwaitingHandover(page, headers, onTheSheet)
         await page.reload()
 
-        // Scoped to the note of this very swap. The same member may be waiting on several, ours
-        // among them, and reaching for the first handover button would just as happily finish
-        // somebody else's, which is data another story is standing on.
         const row = page.getByTestId(`member-row-${waiting.memberId}`)
         await openNotes(page, row)
         const handOver = row
@@ -455,16 +447,15 @@ test.describe('Attendance', () => {
     })
 
     /**
-     * A found item is signed over from the sheet and stops being outstanding. The story claims one
-     * for the manager themselves, which is who a claim may be made for without being their guardian.
+     * A found item is signed over from the sheet and stops being outstanding. The member claims it for
+     * themselves, which is who a claim may be made for, and which puts the note on a row the sheet
+     * lists: the templates cover the members and not the team. Only this story's find is signed
+     * over, since the demo leaves a claimed find another spec stands on.
      */
     test('a claimed find is signed over from the sheet', async ({managerPage: page, memberPage}) => {
         const headers = await apiHeaders(page)
         const memberHeaders = await apiHeaders(memberPage)
 
-        // A claim may only be made for oneself or somebody in one's care, so the member claims it.
-        // That also puts the note on a row the sheet actually lists, which the manager's own would
-        // not be: the templates cover the two groups of members and not the team.
         const description = unique('Fundstueck')
         const found = await page.request
             .post('/api/v1/lost-and-found', {
@@ -481,8 +472,6 @@ test.describe('Attendance', () => {
         await page.goto('/station/attendance/new')
         await openSheetFromTemplate(page)
 
-        // Scoped to the note naming the find this story reported. The demo leaves a claimed find of
-        // its own that another spec is standing on, and signing that one over would take it away.
         await openNotes(page)
         const signOff = page
             .getByTestId('note-found')
@@ -502,7 +491,8 @@ test.describe('Attendance', () => {
 
     /**
      * The notes are what the check is for, so one has to be readable where the walk puts it. The
-     * story finds the member the demo leaves a waiting handover on and looks at their row.
+     * story raises a swap of its own rather than the demo's, which the story beside it hands over.
+     * The button names the step the chain walks rather than carrying a word of its own.
      */
     test('a member owed a piece is told so on the sheet', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -511,8 +501,6 @@ test.describe('Attendance', () => {
         await openSheetFromTemplate(page)
         const sessionId = Number(page.url().match(/\/session\/(\d+)/)![1])
 
-        // Its own swap rather than the one the demo leaves: the story beside this one hands a swap
-        // over, and two stories reaching for the same one is a race whichever way it goes.
         const detail = await page.request
             .get(`/api/v1/attendance/sessions/${sessionId}`, {headers})
             .then(response => response.json())
@@ -527,8 +515,6 @@ test.describe('Attendance', () => {
         await expect(page.getByTestId('member-check-notes').first()).toBeVisible()
         await expect(page.getByTestId('note-swap').first()).toBeVisible()
 
-        // The button carries the name of the step it walks rather than a word of its own, so what it
-        // says is whatever the chain calls that step.
         const step = page.getByTestId('note-swap-step').first()
         await expect(step).toBeVisible()
         expect((await step.innerText()).trim(), 'the step is named on the button').not.toBe('')
@@ -576,7 +562,8 @@ test.describe('Attendance', () => {
 
     /**
      * Sessions are not closed by hand - an appointment simply ends, and what makes it findable
-     * afterwards is the past list. The story opens one and looks for it there.
+     * afterwards is the past list. The story opens one and looks for it there by its number, since
+     * the stories beside it push it down the list.
      */
     test('a session that was opened is found again among the past ones', async ({managerPage: page}) => {
         await page.goto('/station/attendance/new')
@@ -587,8 +574,6 @@ test.describe('Attendance', () => {
 
         await page.goto('/station/attendance/past')
 
-        // By its own number rather than by position: the stories run side by side and each one
-        // opening a session pushes the others down the list.
         const entry = page.locator(`[data-testid="attendance-session"][data-session="${id}"]`)
         await expect(entry).toBeVisible()
 
@@ -600,10 +585,11 @@ test.describe('Attendance', () => {
      * A camp runs from a Friday evening to a Sunday afternoon and has no appointment behind it, and
      * until the sheet was asked when it runs there was no way to write one down at all: a sheet made
      * from a template began and ended at the moment it was made.
+     *
+     * It starts tomorrow, since a sheet closes itself a week after its end. Over several days a
+     * member's times carry their day, because a time alone would name two moments.
      */
     test('a sheet is opened over several days without an appointment', async ({managerPage: page}) => {
-        // Tomorrow rather than a fixed date: a sheet closes itself a week after its end, and a
-        // closed one shows no times to write.
         const start = new Date(Date.now() + 86400000)
         start.setHours(18, 0, 0, 0)
         const end = new Date(start.getTime() + 44 * 3600000)
@@ -627,8 +613,6 @@ test.describe('Attendance', () => {
             (new Date(sheet.session.endTime).getTime() - new Date(sheet.session.startTime).getTime()) / 3_600_000
         expect(spanHours).toBe(44)
 
-        // A sheet over several days writes a member's times with their day, since a time alone
-        // would name two moments and the one that was picked decides the hours.
         await page.locator('button[aria-label="Anwesend"]:not([disabled])').first().click()
         const memberMoments = page.locator('[data-testid^="member-row-"] input[type="datetime-local"]')
         await expect(memberMoments.first()).toBeVisible()
@@ -772,9 +756,8 @@ test.describe('Attendance', () => {
         await page.goto('/station/attendance/new')
         await openSheetFromTemplate(page)
 
-        // The dialog that opened the sheet fades out over the page, and its backdrop swallows the
-        // press underneath it while it does.
-        await expect(page.getByTestId('modal')).toHaveCount(0)
+        await expect(page.getByTestId('modal'), 'the dialog that opened the sheet has faded and no longer swallows presses')
+            .toHaveCount(0)
         await openExport(page)
 
         const dialog = page.getByTestId('export-sheet-modal')

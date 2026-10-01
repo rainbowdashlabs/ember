@@ -69,10 +69,7 @@ test.describe('Members', () => {
             const refused = await warning.waitFor({state: 'visible', timeout: 5_000}).then(() => true, () => false)
             if (!refused) continue
 
-            // What stands in the way differs from person to person - equipment they hold, profiles
-            // they look after - so the story holds the page to naming something rather than to one
-            // reason.
-            await expect(page.getByRole('listitem').first()).toBeVisible()
+            await expect(page.getByRole('listitem').first(), 'the page names what stands in the way').toBeVisible()
             return
         }
 
@@ -151,7 +148,8 @@ test.describe('Members', () => {
 
     /**
      * An address is corrected precisely when it is wrong, so waiting for the wrong address to confirm
-     * the change would mean it never happens. Whoever may edit members writes it, and it stands.
+     * the change would mean it never happens. Whoever may edit members writes it, and it stands. Moving
+     * an address takes a fresh proof, so the story waits for the save before navigating away.
      */
     test('a manager puts a wrong address right', async ({managerPage: page}) => {
         const created = await createMember(page)
@@ -166,9 +164,8 @@ test.describe('Members', () => {
         await page.goto(`/station/members/edit/${id}`)
         await page.getByTestId('member-email').fill(address)
         await page.getByRole('button', {name: 'Speichern'}).first().click()
-        // Moving somebody's address takes a fresh proof, so the save is only done once the button
-        // says so; navigating before that would cancel the retried request mid-dialog.
-        await expect(page.getByRole('button', {name: 'Gespeichert'})).toBeVisible({timeout: 15_000})
+        await expect(page.getByRole('button', {name: 'Gespeichert'}), 'the save went through after its fresh proof')
+            .toBeVisible({timeout: 15_000})
 
         await page.goto(`/station/members/edit/${id}`)
         await expect(page.getByTestId('member-email'), 'the new address is the one on the account')
@@ -239,7 +236,8 @@ test.describe('Members', () => {
     /**
      * A question that offers a set of answers is written one choice to a row of its own. Every
      * feature used to pull one box of text apart afterwards, and one of them asked for commas while
-     * splitting on line breaks, so a station could only ever have a single choice.
+     * splitting on line breaks, so a station could only ever have a single choice. A comma inside a
+     * choice stays inside it.
      */
     test('a choice field is given two choices and offers both', async ({managerPage: page}) => {
         const field = unique('Auswahlfeld')
@@ -251,8 +249,6 @@ test.describe('Members', () => {
         await dialog.getByPlaceholder('Name des Feldes').fill(field)
         await dialog.getByRole('combobox').first().selectOption('CHOICE')
 
-        // A row per choice: the second one is added rather than typed after a separator nobody
-        // agrees on. A comma inside a choice stays inside it.
         await dialog.getByTestId('question-option-add').click()
         await dialog.getByTestId('question-option-0').fill('Ja, mit Begleitung')
         await dialog.getByTestId('question-option-add').click()
@@ -380,15 +376,16 @@ test.describe('Members', () => {
      * A station arriving with its members in a spreadsheet imports them. The story walks the whole
      * wizard and then looks for the imported person in the member list, which is the only place
      * that says the import did anything.
+     *
+     * The file uses semicolons, the separator the wizard starts with, and maps at least the name,
+     * without which the wizard does not go on. The person is searched for by the name the address is
+     * derived from, so one match is one imported member.
      */
     test('members are imported from a file', async ({managerPage: page}) => {
         const surname = unique('Importiert')
 
-        // Semicolons, because that is the separator the member wizard starts with.
         await uploadCsv(page, `Vorname;Nachname\nTestperson;${surname}\n`)
 
-        // Each column of the file is pointed at what it holds; the wizard refuses to go on until at
-        // least the name is answered for.
         await mapColumn(page, 'Vorname', 'firstName')
         await mapColumn(page, 'Nachname', 'lastName')
 
@@ -398,8 +395,6 @@ test.describe('Members', () => {
         await page.getByRole('button', {name: 'Importieren'}).click()
         await expect(page.getByText('Import abgeschlossen')).toBeVisible()
 
-        // Searched for rather than read off the row: the address the import derives from the name
-        // is what makes the person findable, and one match is one imported member.
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(surname)
         await expect(page.getByTestId('member-row')).toHaveCount(1)
@@ -608,6 +603,10 @@ test.describe('Members', () => {
      * What is written about a member is not for everyone who may look at them. The station keeps one
      * helper who may read the members but not their notes, which is the whole point of the story:
      * the manager writes a note and the helper, on the same member, is not even offered the tab.
+     *
+     * The note is one field per member, so it is kept when the field still holds it after a reload.
+     * The helper is cast rather than picked by the note right alone: the right to manage members
+     * carries the right to read notes, and the grants say nothing of what they imply.
      */
     test('a note is shown to whoever may read notes and hidden from the rest', async ({managerPage, browser, request}) => {
         const note = unique('Notiz')
@@ -617,8 +616,6 @@ test.describe('Members', () => {
         await managerPage.waitForURL(/\/station\/members\/detail\/(\d+)/)
         const id = managerPage.url().match(/detail\/(\d+)/)?.[1]
 
-        // The note is one field per member rather than a list of entries, so what says it was kept
-        // is the field still holding it after a reload.
         await managerPage.getByRole('tab', {name: 'Notizen'}).click()
         await managerPage.getByPlaceholder(/Notiz schreiben/).fill(note)
         await managerPage.getByRole('button', {name: 'Speichern'}).last().click()
@@ -627,9 +624,6 @@ test.describe('Members', () => {
         await managerPage.getByRole('tab', {name: 'Notizen'}).click()
         await expect(managerPage.getByPlaceholder(/Notiz schreiben/)).toHaveValue(note)
 
-        // The endpoint reports what was granted, not what those grants imply, and the right to manage
-        // members carries the right to read notes. Asking only about the note right picks somebody
-        // who can read them after all.
         const helper = (await cast()).plainTeam
         const helperPage = await pageAsThrowaway(browser, request, [], helper)
 
@@ -701,10 +695,9 @@ test.describe('Members', () => {
         await page.getByPlaceholder('Vorname').fill('Testperson')
         await page.getByPlaceholder('Nachname').fill(surname)
 
-        // Turning the login off takes the address field away entirely: nothing is typed, and
-        // nothing may be invented on the way to the server either.
         await page.getByRole('switch').first().click()
-        await expect(page.getByPlaceholder('E-Mail-Adresse')).toHaveCount(0)
+        await expect(page.getByPlaceholder('E-Mail-Adresse'), 'without a login there is no address to type')
+            .toHaveCount(0)
 
         await page.getByRole('button', {name: 'Weiter'}).first().click()
         await finishTheWizard(page)
@@ -712,8 +705,7 @@ test.describe('Members', () => {
         await page.goto('/station/members/list')
         const row = await searchForMember(page, surname)
 
-        // The address column reads as empty rather than carrying something ending in .local.
-        await expect(row).not.toContainText('.local')
+        await expect(row, 'no address was invented on the way to the server').not.toContainText('.local')
         await expect(row.getByRole('button', {name: 'Einrichtungs-Mail erneut senden'})).toHaveCount(0)
     })
 
@@ -743,13 +735,10 @@ test.describe('Members', () => {
         const row = page.getByTestId('member-row').first()
         await expect(row).toBeVisible()
 
-        // Nobody has been written to yet, so the link cannot have run out: the row offers the mail
-        // rather than reporting an expiry.
-        await expect(row.getByTestId('setup-link-expired')).toHaveCount(0)
+        await expect(row.getByTestId('setup-link-expired'), 'nobody was written to yet, so no link has run out')
+            .toHaveCount(0)
         await row.getByRole('button', {name: 'Einrichtungs-Mail erneut senden'}).click()
 
-        // The row's own button carries "Einrichtungs-Mail erneut senden", so the confirmation has to
-        // be asked for inside the dialog rather than by name alone.
         await page.getByTestId('modal').getByRole('button', {name: 'Erneut senden'}).click()
         await expect(page.getByText('Einrichtungs-Mail wurde erneut versendet.')).toBeVisible()
     })

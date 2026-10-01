@@ -157,6 +157,10 @@ test.describe('Inventory', () => {
      * stories could pick the same piece, and the one that lost found it free again when it came
      * back to hand it in: the same button then reads as assigning rather than taking back, so the
      * story pressed it and waited for a word that was never going to appear.
+     *
+     * <p>The picker's options are buttons, which tells them apart from the text the search leaves in
+     * the field. The counter is reopened before handing back, since the picker believes the piece is
+     * free until the page asks again.
      */
     test('an item is assigned to a member and handed back', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -171,16 +175,12 @@ test.describe('Inventory', () => {
         const picker = page.getByPlaceholder('Item suchen oder Code scannen…')
         await picker.fill(code)
 
-        // The options of the picker are buttons, which is what separates them from the text a
-        // search leaves behind in the field.
         const option = page.getByRole('button').filter({hasText: code}).first()
         await expect(option).toBeVisible()
         await option.click()
 
         await expect(page.getByText(/zugewiesen/).first()).toBeVisible()
 
-        // The counter is reopened before handing back, which is also what the picker needs: it
-        // still believes the item is free until the page asks again.
         await page.reload()
         await pickMemberByName(page, name)
 
@@ -205,7 +205,6 @@ test.describe('Inventory', () => {
         const code = await pieceOfItsOwn(page, headers)
         const surname = unique('Spaet')
 
-        // The counter opens first, so its list of members is older than the person about to join it.
         await page.goto('/station/inventory/assign')
         await expect(page.getByRole('heading', {name: 'Mitglied'})).toBeVisible()
 
@@ -273,13 +272,14 @@ test.describe('Inventory', () => {
      * An inventory is worth nothing empty, so adding to it is the first thing anybody does. The
      * story gives the item a readable identifier of its own and looks for it in the table after a
      * reload, since a row that vanishes on one was never stored.
+     *
+     * <p>The inventory is the story's own and internal, since one of borrowed things offers no way to
+     * add. The button is matched as a whole word, because adding a size carries the same verb.
      */
     test('an item is added to an inventory', async ({managerPage: page}) => {
         const identifier = `E2E-${Date.now()}`
         const inventory = `Inventar-${Date.now()}`
 
-        // An inventory of the story's own, and an internal one: an inventory of borrowed things
-        // offers no way to add an item, because its items come from whoever lent them.
         await page.goto('/station/inventory/manage')
         await page.getByRole('button', {name: 'Inventar erstellen'}).click()
         await page.getByPlaceholder('z.B. Schutzkleidung').fill(inventory)
@@ -289,8 +289,6 @@ test.describe('Inventory', () => {
         await page.getByText(inventory).first().click()
         await page.waitForURL(/\/station\/inventory\/(detail|edit)\/(\d+)/)
 
-        // Whole words, and either of the two the pages use: adding a size carries the same verb, and
-        // a partial match takes whichever of them comes first.
         await page.getByRole('button', {name: /^(Gegenstand hinzufügen|Hinzufügen)$/}).first().click()
 
         await page.getByPlaceholder('z.B. HLM-001').fill(identifier)
@@ -314,7 +312,6 @@ test.describe('Inventory', () => {
 
         await page.locator('select:has(option:text-is("Benutzertyp auswählen"))').selectOption({index: 1})
 
-        // The inventory is picked from a searchable menu now, the same one every other screen asks with.
         const inventory = page.getByTestId('requirement-inventory')
         await inventory.getByRole('searchbox').click()
         await inventory.getByRole('option').first().click()
@@ -332,26 +329,23 @@ test.describe('Inventory', () => {
      * Borrowing runs between two stations: one offers what it can spare and the other asks for it.
      * The story asks as one station and approves as the other, which is the only way to see that a
      * request reaches anybody - a request nobody can act on is a request that failed quietly.
+     *
+     * <p>The offer is reached by its own id, since the tab for requests carries the same word, and a
+     * start date is given because the form will not send without one.
      */
     test('equipment is asked for from a partner station', async ({managerPage: page}) => {
         await page.goto('/station/inventory/lending')
 
         await page.getByRole('button', {name: 'Angebote'}).click()
 
-        // The tab for requests carries the same word as the button that asks for an offer, so
-        // picking the later of the two was picking whichever there happened to be: with no offer on
-        // screen the tab itself was clicked, which switches tabs and navigates nowhere, and the
-        // story then waited a minute for a page it had never asked for.
         const offer = page.getByTestId('lending-offer-request').first()
         await expect(offer, 'a partner station offers something to ask for').toBeVisible()
         await offer.click()
         await page.waitForURL(/\/station\/inventory\/lending\/request\/new/)
 
-        // A borrowing has to start somewhere, and the form keeps its submit disabled until it does.
         await page.locator('input[type="date"]').first().fill('2026-12-01')
         await page.getByRole('button', {name: 'Anfrage senden'}).click()
 
-        // Sending opens the request itself, which is where both stations then talk about it.
         await page.waitForURL(/\/station\/inventory\/lending\/request\/\d+/)
         await expect(page.getByText('Angefragt').first()).toBeVisible()
     })
@@ -379,6 +373,10 @@ test.describe('Inventory', () => {
      * A check goes through what somebody is supposed to hold and records what was there. The story
      * runs one to its end: confirming everything and closing it, which is the point at which the
      * result is written down rather than merely looked at.
+     *
+     * <p>Confirming all covers what the member holds; each slot they should hold and do not is its own
+     * toggle, answered once by index since its wording never changes. Closing moves on to the next
+     * person, so the result is read where it is kept.
      */
     test('the equipment of a member is checked and the result recorded', async ({managerPage: page}) => {
         await page.goto('/station/inventory/checks/member')
@@ -387,13 +385,8 @@ test.describe('Inventory', () => {
         await page.waitForURL(/\/station\/inventory\/checks\/(\d+)/)
         const member = page.url().match(/checks\/(\d+)/)?.[1]
 
-        // Confirming all covers what the member holds. What they are supposed to hold and do not is
-        // a separate row each, and the check does not close until those are answered too.
         await page.getByRole('button', {name: 'Alle bestätigen'}).click()
 
-        // Each slot answered once, by index. The button is a toggle that keeps its wording either way,
-        // so pressing "the first one" as many times as there are slots turns one of them on and off
-        // again and leaves the rest unanswered.
         const missing = page.getByRole('button', {name: 'Nicht im Besitz'})
         const slots = await missing.count()
         for (let index = 0; index < slots; index += 1) {
@@ -404,8 +397,6 @@ test.describe('Inventory', () => {
         await expect(finish).toBeEnabled()
         await finish.click()
 
-        // Closing a check moves straight on to the next person, so the result is read where it is
-        // kept rather than wherever the walk happens to end.
         await page.goto(`/station/inventory/checks/${member}/result`)
         await expect(page.getByText('Vorhanden').first()).toBeVisible()
     })
@@ -417,14 +408,15 @@ test.describe('Inventory', () => {
      * had something to say about a piece had to remember it until the long list. The story writes the
      * note where it is now asked for and reads it back off the finished check, because a note that is
      * typed and not kept is worse than no field at all.
+     *
+     * <p>It checks the second member where there is one, since the story beside it closes the first
+     * one's, and walks to the end, because only a closed check writes anything down.
      */
     test('a note written during the quick check is kept', async ({managerPage: page}) => {
         const note = `Saum offen ${test.info().workerIndex}-${Date.now()}`
 
         await page.goto('/station/inventory/checks/member')
 
-        // A member of this story's own where there is one: closing a check is the last thing it does,
-        // and the story that closes the first member's would be closing the same one.
         const starts = page.getByRole('button', {name: 'Prüfung starten'})
         await expect(starts.first()).toBeVisible({timeout: 15000})
         await ((await starts.count()) > 1 ? starts.nth(1) : starts.first()).click()
@@ -437,8 +429,6 @@ test.describe('Inventory', () => {
         await expect(noteField).toBeVisible({timeout: 15000})
         await noteField.fill(note)
 
-        // The walk is answered to its end: a piece in hand is confirmed, an empty place is one the
-        // member never had. Only a check that is closed writes anything down.
         const present = page.getByRole('button', {name: 'Vorhanden'})
         const neverHeld = page.getByRole('button', {name: 'Nicht im Besitz'})
         const done = page.getByRole('button', {name: 'Zurück zur Übersicht'})
@@ -683,13 +673,12 @@ test.describe('Inventory', () => {
 
         const picker = page.getByTestId('requirement-inventory')
         await expect(picker).toBeVisible()
-        // The picker has something in it, so an empty list is not what makes the next line pass
-        await expect(picker.getByRole('option')).not.toHaveCount(1)
+        await expect(picker.getByRole('option'), 'the picker offers inventories at all').not.toHaveCount(1)
         await expect(picker.getByRole('option', {name: drawer})).toHaveCount(0)
 
-        // and the inventory really does exist; it is this screen that does not offer it
         const listed = await page.request.get('/api/v1/inventories', {headers}).then(r => r.json())
-        expect(listed.some((inv: {name?: string}) => inv.name === drawer)).toBeTruthy()
+        expect(listed.some((inv: {name?: string}) => inv.name === drawer), 'the drawer exists; this screen does not offer it')
+            .toBeTruthy()
     })
 
     /**

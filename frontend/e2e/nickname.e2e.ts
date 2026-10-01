@@ -82,12 +82,12 @@ test.describe('A name to be called by', () => {
      * What keeps this from becoming a way to label people is not a refusal but a record: who wrote
      * the name is kept on the row, which is what `nickname_set_by` is for. That record is not read
      * back by any screen yet, so this story stops where the product does, at the name itself.
+     *
+     * The member is the story's own: a name is read by whoever asserts one elsewhere, and putting it
+     * back afterwards leaves a window where another worker looks.
      */
     test('a manager may name a member they do not look after', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
-        // Somebody this story made. A name is read by whoever is asserting one elsewhere, and
-        // putting it back afterwards does not help: the window between is where the other worker
-        // looks, and a story that fails never reaches the putting back at all.
         const somebodyElse = await ownMember(page, 'Spitzname')
 
         const named = await page.request.put(`/api/v1/station-members/${somebodyElse.memberId}/nickname`, {

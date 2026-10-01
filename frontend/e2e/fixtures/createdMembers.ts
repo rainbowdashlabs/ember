@@ -49,6 +49,8 @@ export async function remember(page: Page, headers: Record<string, string>, memb
  * <p>Failures are swallowed on purpose. A story that already removed its own person, or one whose
  * station is gone, has nothing left to clear, and a tidy-up that fails a passing test would be
  * worse than the untidiness it exists to prevent.
+ *
+ * <p>Each is removed by the id they were made with, since a story may have renamed them.
  */
 export async function removeMade(): Promise<void> {
     const pending = made.splice(0)
@@ -58,12 +60,8 @@ export async function removeMade(): Promise<void> {
             storageState: {cookies: entry.cookies, origins: []},
         })
         try {
-            // By the id they were made with. Looking them up by surname again asked the name to be
-            // both unique and unchanged, and a story that renames somebody is exactly what this
-            // cleans up after.
             await context.delete(`/api/v1/station-members/${entry.memberId}`, {headers: entry.headers})
-        } catch {
-            /* a story that tore down its own station leaves nothing to clear */
+                .catch(() => undefined)
         } finally {
             await context.dispose()
         }

@@ -190,7 +190,8 @@ test.describe('Cluster storage backend', () => {
      * CLS-87 and CLS-88 - A joining station arrives with its files and a released one takes them with it.
      *
      * One story rather than two, because it is one station walking in and out again, and the point in both
-     * directions is the same: the copy finishes before the membership is written.
+     * directions is the same: the copy finishes before the membership is written. The station is let go
+     * and taken back, the only way to walk a join on a station that already has files.
      */
     test('a station arrives with its files and leaves with them', async ({adminPage: page, browser, request}) => {
         const own = await ownCluster(page, browser, request, 'Beitritt')
@@ -200,7 +201,6 @@ test.describe('Cluster storage backend', () => {
         const joiningHeaders = await apiHeaders(joining.page)
         const file = await putSomething(joining.page.request, joiningHeaders, 'beitritt')
 
-        // Out and back in again, which is the only way to walk a join on a station that has files already
         const released = await page.request.delete(`/api/v1/cluster/stations/${joining.uid}`,
             {headers: own.headers})
         expect(released.ok(), `the station was let go (${await released.text()})`).toBeTruthy()
@@ -230,12 +230,12 @@ test.describe('Cluster storage backend', () => {
      * CLS-89 - A copy that cannot run refuses the act rather than half doing it.
      *
      * The promise of moving first and acting second, which would otherwise be believed rather than known.
+     * The station is built before the association points anywhere, since making one under a cluster
+     * whose storage cannot be reached is itself refused.
      */
     test('a copy that cannot run refuses the act', async ({adminPage: page, browser, request}) => {
         const own = await ownCluster(page, browser, request, 'Unerreichbar')
 
-        // The station is built before the association points anywhere: making one under a cluster whose
-        // storage cannot be reached is itself refused, which is this story's subject one step earlier
         const joining = await stationUnder(page, browser, request, own.headers, `Ohne Ziel ${Date.now()}`)
         const joiningHeaders = await apiHeaders(joining.page)
         await page.request.delete(`/api/v1/cluster/stations/${joining.uid}`, {headers: own.headers})

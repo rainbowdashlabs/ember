@@ -28,9 +28,8 @@ test.describe('Cluster discovery', () => {
         await page.goto('/discovery')
         await expect(page.getByRole('heading', {name: clusterName})).toBeVisible()
 
-        // Each station under it still goes to its own page, which is the whole point of the grouping
         for (const entry of grouped.slice(0, 2)) {
-            await expect(page.getByText(entry.name).first()).toBeVisible()
+            await expect(page.getByText(entry.name).first(), 'each station under it is listed on its own').toBeVisible()
         }
     })
 

@@ -23,6 +23,10 @@ function cspViolations(page: Page): string[] {
 }
 
 test.describe('Security headers', () => {
+    /**
+     * The nonce is read off the served HTML rather than the DOM: a browser blanks the attribute once it
+     * has parsed the page, so that a selector cannot hand it to an injection.
+     */
     test('a page declares a policy with a nonce for its inline scripts', async ({page}) => {
         const response = await page.goto('/')
         const headers = response?.headers() ?? {}
@@ -37,8 +41,6 @@ test.describe('Security headers', () => {
         const nonce = policy!.match(/'nonce-([^']+)'/)?.[1]
         expect(nonce, 'the policy names a nonce').toBeTruthy()
 
-        // The served HTML rather than the DOM: a browser blanks the nonce attribute once it has
-        // parsed the page, so that a selector cannot read it back out and hand it to an injection.
         const tags = (await response!.text()).split('<script').slice(1)
         expect(tags.length, 'the page carries scripts at all').toBeGreaterThan(0)
         for (const tag of tags) {

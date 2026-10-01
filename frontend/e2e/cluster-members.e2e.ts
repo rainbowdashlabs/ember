@@ -31,7 +31,8 @@ test.describe('Cluster members and fields', () => {
      * CLS-23 - The cluster searches members across all its stations.
      *
      * Two stations in one list, each entry saying where it comes from. The demo puts members under two
-     * different member stations for exactly this.
+     * different member stations for exactly this. Every station the cluster reaches is offered to narrow
+     * by, asserted as options because an option is in the page without being on it.
      */
     test('the cluster searches members across all its stations', async ({browser, request}) => {
         const manager = await clusterAccountOnlyWith(request, 'CLUSTER_MEMBER_MANAGER')
@@ -48,14 +49,10 @@ test.describe('Cluster members and fields', () => {
         await page.goto('/cluster/members/manage')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        // The screen offers every station the cluster reaches as something to narrow by, which is the
-        // reach itself made visible. Asserted as options rather than as text: an option is in the page
-        // without being on it.
         for (const stationName of [...stations].slice(0, 2)) {
             await expect(page.getByRole('option', {name: stationName as string})).toHaveCount(1)
         }
 
-        // And somebody from each of two stations is actually listed
         const names = members
             .filter((m: {stationName: string}) => m.stationName === [...stations][0])
             .concat(members.filter((m: {stationName: string}) => m.stationName === [...stations][1]))
@@ -119,7 +116,8 @@ test.describe('Cluster members and fields', () => {
      * CLS-24 - A member is edited from the cluster.
      *
      * One form of two origins. What the cluster asks and what the station asks are answered side by side,
-     * each marked with who asked, and both survive being read back.
+     * each marked with who asked, and both survive being read back. The answer is read off the inputs:
+     * the form sets it as a property, so an attribute selector would only see what the markup said.
      */
     test('a member is edited from the cluster', async ({adminPage: page}) => {
         const cluster = await enterCluster(page)
@@ -154,13 +152,8 @@ test.describe('Cluster members and fields', () => {
         const read = await page.request.get(`/api/v1/cluster/fields/member/${target.id}`, {headers})
         expect(JSON.stringify(await read.json())).toContain(answer)
 
-        // Stored is half of it. The other half is that somebody at the cluster can open that person
-        // and read what was answered, which is the screen this story is named after and which for a
-        // long time did not exist at all.
         await page.goto(`/cluster/members/${target.id}`)
         await expect(page.getByTestId('app-shell')).toBeVisible()
-        // Read off the inputs rather than matched as an attribute: the form sets the value as a
-        // property, so `input[value=...]` would look at what the markup said and not at what is there.
         await expect.poll(
             () => page.getByRole('textbox')
                 .evaluateAll((inputs, want) =>
@@ -215,7 +208,6 @@ test.describe('Cluster members and fields', () => {
                 .find((m: {userType: string}) => m.userType === 'MEMBER')
             expect(member, 'the station has an ordinary member').toBeTruthy()
 
-            // CLS-27: both questions are on the station's form, marked as the cluster's
             const fields = await station.request
                 .get(`/api/v1/station-members/${member.id}/fields`, {headers: stationHeaders})
                 .then(r => r.json())
@@ -224,7 +216,6 @@ test.describe('Cluster members and fields', () => {
             expect(clusterFields.find((f: {id: number}) => f.id === keptId).readonlyAtStation).toBeTruthy()
             expect(clusterFields.find((f: {id: number}) => f.id === openId).readonlyAtStation).toBeFalsy()
 
-            // CLS-28: the station answers the open one, and the cluster reads the answer back
             const answer = `B12 ${stamp}`
             const wrote = await station.request.put(`/api/v1/station-members/${member.id}/profile`, {
                 headers: stationHeaders,
@@ -251,6 +242,9 @@ test.describe('Cluster members and fields', () => {
      *
      * The history a profile already had is the one the change lands in, so the people at the station who
      * watch for changes see it beside every other one.
+     *
+     * The answer is for somebody at the reading station, since a station's history holds only its own
+     * people, and the history is read past its first page, since several stories write answers at once.
      */
     test('a cluster field change lands in the profile history', async ({adminPage: page, browser, request}) => {
         const cluster = await enterCluster(page)
@@ -271,9 +265,6 @@ test.describe('Cluster members and fields', () => {
             data: {role: 'MEMBER', position: 0},
         })
 
-        // Answered for somebody at the station that will read the history. A station's history is its
-        // own people, so answering for whoever came first across all the stations reads back as nothing
-        // the moment another story takes somebody on somewhere else.
         const manager = await clusterStationManager(request)
         const {members} = await page.request
             .get('/api/v1/cluster/members/manage/search?size=50', {headers})
@@ -289,8 +280,6 @@ test.describe('Cluster members and fields', () => {
 
         const station = await pageAsThrowaway(browser, request, [], manager)
         const stationHeaders = await apiHeaders(station)
-        // Asked for more than one page: several stories write answers at once, and the newest twenty
-        // is not a promise that the one just written is among them
         const changes = await station.request
             .get('/api/v1/profile-changes/all?limit=200', {headers: stationHeaders})
             .then(r => r.json())

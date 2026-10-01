@@ -523,8 +523,6 @@ test.describe('Events', () => {
                 'and the member was told once',
             ).toBeTruthy()
 
-            // The deadline goes by before they answer, which is the whole point: the question is
-            // younger than the deadline, so it cannot be the deadline that stops them.
             const closed = await managerPage.request.put(`/api/v1/events/${eventId}`, {
                 headers: managerHeaders,
                 data: {
@@ -565,6 +563,10 @@ test.describe('Events', () => {
      * An event can ask the people signing up for things - shirt size, who is coming along. The
      * story adds such a question to an event of its own and then signs up as a member, who is asked
      * it and whose answer stands next to their name for the organiser afterwards.
+     *
+     * The form keeps its save disabled until the event has a time, and registration, which the
+     * questions belong to, is off to begin with. Saving lands on the planner, so the event is opened
+     * from there.
      */
     test('a registration question is asked and its answer reaches the organiser', async ({managerPage, memberPage}) => {
         const event = `Termin-${Date.now()}`
@@ -574,14 +576,10 @@ test.describe('Events', () => {
         await managerPage.goto('/station/events/new')
         await managerPage.getByPlaceholder('Name des Termins').fill(event)
 
-        // An event without a time is not an event, and the form keeps its save disabled until it
-        // has one.
         const times = managerPage.locator('input[type="datetime-local"]')
         await times.first().fill('2026-12-01T18:00')
         if (await times.count() > 1) await times.nth(1).fill('2026-12-01T20:00')
 
-        // Registration is off to begin with, and the questions belong to it. The switch sits beside
-        // the words rather than under them.
         await managerPage.getByText('Anmeldung erforderlich')
             .locator('xpath=following-sibling::button').click()
         await managerPage.getByRole('button', {name: 'Frage hinzufügen'}).click()
@@ -589,8 +587,6 @@ test.describe('Events', () => {
 
         await managerPage.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
 
-        // Saving lands back on the planner rather than on the event, so the story opens it from
-        // the list it now stands in.
         await managerPage.waitForURL(/\/station\/events$/)
         await managerPage.getByText(event).first().click()
         await managerPage.waitForURL(/\/station\/events\/(\d+)/)
@@ -644,7 +640,6 @@ test.describe('Events', () => {
     test('a run of events is created in one go', async ({managerPage: page}) => {
         const name = `Serie-${Date.now()}`
 
-        // Three steps: what the events are called, when they fall, and a last look at the list.
         await page.goto('/station/events/batch')
         await page.getByRole('textbox').first().fill(name)
         await page.getByRole('button', {name: 'Weiter'}).click()

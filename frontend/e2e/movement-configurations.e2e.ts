@@ -145,7 +145,10 @@ async function walkTogether(setup: Setup, id: number, arriving: () => Promise<Re
     return detail(setup.page, setup.headers, id)
 }
 
-/** Both exchanges, in one configuration. */
+/**
+ * Both exchanges, in one configuration. Every chain ends with the member's own word, so where the
+ * walk stops there the station forces it, as a manager does for somebody absent.
+ */
 async function walkBothExchanges(setup: Setup) {
     for (const ownerKind of ['STATION', 'CLUSTER']) {
         const old = await piece(setup.page, setup.headers, setup.inventoryId, ownerKind)
@@ -164,8 +167,6 @@ async function walkBothExchanges(setup: Setup) {
 
         const walked = await walkTogether(setup, id, async () => ({pickedItemId: spare.id}))
 
-        // Every chain ends with the member confirming, and that is the member's own word: the walk
-        // stops there and the station forces it, which is what a manager does for somebody absent.
         if (walked.movement.state === 'OPEN') {
             const waiting = walked.steps.find((step: {current: boolean}) => step.current)
             expect(waiting.actor, `${setup.label}, ${ownerKind} gear: stopped at '${waiting.label}'`).toBe('MEMBER')

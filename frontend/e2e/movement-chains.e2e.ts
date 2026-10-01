@@ -96,7 +96,7 @@ test.describe('Movement chains', () => {
      * The reported fault and this story's reason to exist: the chain for a piece belonging to a body
      * outside Ember asks which piece came back, nothing in the station's stock is that piece, and the
      * movement could not be finished, forced or salvaged. The piece that left is gone for good, so its
-     * row goes with it.
+     * row goes with it. The walk stops at the member's own step, which the manager forces with a note.
      */
     test('an exchange with an owner outside Ember is finished by recording what came', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -116,9 +116,6 @@ test.describe('Movement chains', () => {
         const walked = await walk(page, headers, movementId,
             async () => ({newItem: {name: 'Ersatzstück', internalId: `NEU-${Date.now()}`}}))
 
-        // The station walked its own steps and the owner's, and stopped at the one that is not its to
-        // press: the member saying they have the replacement. Nobody is waiting on this story, so the
-        // manager forces it with a note, which is what that step is for.
         expect(walked.movement.state, 'the chain waits for the member').toBe('OPEN')
         const theirs = walked.steps.find((s: {current: boolean}) => s.current)
         expect(theirs.actor).toBe('MEMBER')
@@ -162,7 +159,6 @@ test.describe('Movement chains', () => {
             .then(r => r.json())
         expect(arrived.custody, 'it is at the station and not left in the post').toBe('AT_STATION')
 
-        // And it can be moved again, which is what "not stranded" actually means.
         const again = await page.request.post('/api/v1/movements',
             {headers, data: {purpose: 'RETURN', outgoingItemId: item.id, inventoryId, reason: 'Doch nicht'}})
         expect(again.ok(), `the piece can start another chain (${await again.text()})`).toBeTruthy()

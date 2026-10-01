@@ -37,12 +37,14 @@ test.describe('Cluster', () => {
         await expect(page.getByText(name, {exact: true})).toHaveCount(0)
     })
 
-    /** CLS-2 - A cluster member reaches the cluster space. */
+    /**
+     * CLS-2 - A cluster member reaches the cluster space.
+     *
+     * The cluster is named before the button is pressed: the demo administrator is appointed to every
+     * cluster the other stories build, and the button would otherwise open whichever was made last.
+     */
     test('a cluster member reaches the cluster space', async ({adminPage: page}) => {
         await page.goto('/cross-station')
-        // Which cluster the shell is acting for is named first, because the demo administrator is
-        // appointed to every cluster the other stories build and the button would otherwise open
-        // whichever of them was made last
         const cluster = await enterCluster(page)
         await expect(page.getByRole('button', {name: 'Verband'}).first()).toBeVisible()
 
@@ -56,7 +58,8 @@ test.describe('Cluster', () => {
      * CLS-4 - An account in no cluster is offered none.
      *
      * The switcher and the panel button hang off the same question, so a member who belongs to no
-     * cluster should find neither anywhere in the shell.
+     * cluster should find neither anywhere in the shell. Running a station does not change that: a
+     * membership in the association is only written by somebody who already acts for it.
      */
     test('an account in no cluster is offered none', async ({memberPage: page, browser, request}) => {
         await page.goto('/station/members/list')
@@ -64,9 +67,6 @@ test.describe('Cluster', () => {
 
         await expect(page.getByRole('button', {name: 'Verband'})).toHaveCount(0)
 
-        // And running the station is no different from being at it. A membership in the association is
-        // only ever written by somebody who already acts for it, so nothing anybody holds at a station,
-        // up to and including administering it, puts them in the association above it.
         const accounts = await demoAccounts(request)
         const manager = accounts.find(account =>
             !!account.email
@@ -98,25 +98,23 @@ test.describe('Cluster', () => {
      *
      * A cluster keeps its things on a station of its own, and that station is not one anybody joins,
      * browses or finds. The story asks the three places a station is otherwise offered.
+     *
+     * The directory carries the cluster's name as the heading its stations are gathered under, and the
+     * dashboard as the tile for the cluster itself, so the name is looked for among the stations only.
+     * Waiting for that tile also says the page has loaded, without which an empty page would pass.
      */
     test('the home station is invisible everywhere a station is listed', async ({adminPage: page}) => {
         const cluster = await theSeededCluster(page)
 
-        // The directory does carry the cluster's name, as the heading its stations are gathered
-        // under. What it must not carry is the cluster's own station as an entry of its own.
         await page.goto('/discovery')
         await expect(page.getByRole('heading', {name: cluster.name})).toBeVisible()
-        await expect(page.getByRole('link', {name: cluster.name})).toHaveCount(0)
+        await expect(page.getByRole('link', {name: cluster.name}), 'the cluster\'s own station is no entry of its own')
+            .toHaveCount(0)
 
         const sitemap = await page.request.get('/sitemap.xml')
         expect(sitemap.ok()).toBeTruthy()
         expect(await sitemap.text()).not.toContain(cluster.name)
 
-        // Among the stations, and not on the page at large: the tile for the cluster itself carries
-        // the same name and belongs there, so asking whether the name appears anywhere asked the
-        // wrong question and answered it differently depending on which of the two lists had
-        // arrived. Waiting for that tile is also what says the page has finished loading, without
-        // which an empty page would answer "nowhere" and pass having looked at nothing.
         await page.goto('/cross-station')
         await expect(page.getByTestId('cross-station-cluster').filter({hasText: cluster.name})).toBeVisible()
         await expect(page.getByTestId('cross-station-station').filter({hasText: cluster.name})).toHaveCount(0)
@@ -149,7 +147,8 @@ test.describe('Cluster', () => {
      * CLS-3 - An account in two clusters switches between them.
      *
      * The demo has one cluster, so the story makes the second itself: an administrator creates it and
-     * appoints themselves, which is the only way anybody ever gets into a new one.
+     * appoints themselves, which is the only way anybody ever gets into a new one. The first cluster has
+     * member stations and the new one has none, so which one the space shows is read off the station list.
      */
     test('an account in two clusters switches between them', async ({adminPage: page}) => {
         const name = `${MADE_BY_A_STORY}Bezirksverband ${test.info().workerIndex}-${Date.now()}`
@@ -169,8 +168,6 @@ test.describe('Cluster', () => {
         expect(mine.length).toBeGreaterThan(1)
         expect(mine.map(cluster => cluster.name)).toContain(name)
 
-        // The first cluster has member stations and the new one has none, so which cluster the space is
-        // showing is readable from the station list rather than from the name in the header alone.
         await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), second.uid)
         await page.goto('/cluster/stations')
         await expect(page.getByTestId('app-shell')).toBeVisible()
@@ -186,7 +183,8 @@ test.describe('Cluster', () => {
      * CLS-7 - A cluster-only account lands in its cluster after login.
      *
      * Somebody who belongs to no station has no station picker worth showing and no account page worth
-     * landing on. The cluster is their whole reason to be here, so that is where they arrive.
+     * landing on. The cluster is their whole reason to be here, so that is where they arrive. The login
+     * is walked rather than planted, because where it lands is the whole story.
      */
     test('a cluster-only account lands in its cluster', async ({page, request}) => {
         const accounts = await demoAccounts(request)
@@ -197,8 +195,6 @@ test.describe('Cluster', () => {
             && (account.clusterPermissions ?? []).length > 0)
         expect(clusterOnly, 'the seeder makes somebody who belongs to a cluster and to no station').toBeTruthy()
 
-        // Walked rather than planted, because where a login lands is the whole story: the fixtures put a
-        // session in place and never answer the question this asks.
         await page.goto('/login')
         await page.getByRole('button', {name: 'Zustimmen'}).click()
         await page.getByText(`${clusterOnly!.firstName} ${clusterOnly!.lastName}`).first().click()

@@ -140,14 +140,13 @@ test.describe('Knowledge base', () => {
     /**
      * A file says what it is for underneath its name, and that line is written where it is read.
      * The story checks it after a reload, since a description that does not survive one was never
-     * saved.
+     * saved. Its pen is the one on the description line, not the only Bearbeiten on the page.
      */
     test('the description of a file is written and kept', async ({managerPage: page}) => {
         const description = unique('Beschreibung')
 
         await createFileInFolder(page)
 
-        // The pen belongs to the line under the name, and it is not the only Bearbeiten on the page.
         await page.locator('p', {hasText: 'Beschreibung'}).getByRole('button', {name: 'Bearbeiten'})
             .first().click()
         await page.getByPlaceholder('Beschreibung').fill(description)
@@ -201,6 +200,10 @@ test.describe('Knowledge base', () => {
      * A wiki file is worth having because it can be rewritten, and worth trusting because the
      * rewrite can be taken back. The story writes twice, so there is a version to go back to, and
      * then goes back to the first one: what the file shows afterwards is the older text.
+     *
+     * The editor is a rich one that takes typing, and it is opened from the header by name, since the
+     * description line carries a pen of the same name. Version one is the empty file as created, so
+     * the first text is version two.
      */
     test('the content of a file is written, versioned and reverted', async ({managerPage: page}) => {
         const first = unique('Erster Stand')
@@ -209,10 +212,7 @@ test.describe('Knowledge base', () => {
         await createFileInFolder(page)
         const fileUrl = page.url()
 
-        // The editor is a rich one: it takes typing into its own body, not a value into a field.
         for (const text of [first, second]) {
-            // The pen on the description line carries the same name, so the header is named rather
-            // than counted on to come first.
             await headerButton(page, 'Bearbeiten').click()
             const body = page.locator('.markdown-editor-content')
             await body.click()
@@ -229,7 +229,6 @@ test.describe('Knowledge base', () => {
         await page.getByRole('button', {name: 'Versionen'}).click()
         await page.waitForURL(/\/station\/knowledge\/file\/\d+\/versions/)
 
-        // Version one is the file as it was created, which is empty; the first text is version two.
         await page.locator('[data-testid="kb-version"][data-version="2"]')
             .getByRole('button', {name: 'Zurücksetzen'}).click()
         await page.getByRole('button', {name: 'Zurücksetzen'}).last().click()
@@ -260,7 +259,6 @@ test.describe('Knowledge base', () => {
         const publicPage = await stranger.newPage()
         await publicPage.goto('/public/station/jugendfeuerwehr-musterstadt/knowledge')
 
-        // The public wiki opens on the folders, as the station's own does.
         await publicPage.getByText(folder).first().click()
         await expect(publicPage.getByText(file).first()).toBeVisible()
         await stranger.close()
@@ -363,8 +361,6 @@ test.describe('Knowledge base', () => {
             await createMarkdownFile(page, article)
             const articleUrl = page.url()
 
-            // One level up, so the folder to move is an entry of the listing rather than the
-            // listing itself.
             await page.goto(middleUrl)
             await moveEntry(page, moved, null)
 
@@ -397,7 +393,6 @@ test.describe('Knowledge base', () => {
             await createFolder(page, target)
             await createFolder(page, clashing)
 
-            // The same name a second time, inside the target, which is what the move runs into.
             await openFolder(page, target)
             await createFolder(page, clashing)
             await page.goto(parentUrl)
@@ -426,7 +421,8 @@ test.describe('Knowledge base', () => {
     /**
      * A reference written on one article has to be readable from the other end, or half of what a
      * wiki is for is missing. Nothing is written on the second article: the list it shows is the
-     * same row read the other way round, which is also why it offers no way to remove it.
+     * same row read the other way round, which is also why it offers no way to remove it. The picker
+     * reads the wiki search, which indexes words, so it is searched by the readable part of the name.
      */
     test('an article shows what points at it', async ({managerPage: page}) => {
         const folder = unique('Verweise')
@@ -441,8 +437,6 @@ test.describe('Knowledge base', () => {
         await page.goto(folderUrl)
         await createMarkdownFile(page, source)
 
-        // The picker reads the wiki search, which indexes words rather than the whole name, so the
-        // term is the readable part of it and the exact article is picked out of what comes back.
         await page.getByTestId('kb-add-related').click()
         await page.getByPlaceholder('Datei suchen...').fill('Verweisziel')
         await page.getByRole('button', {name: target}).click()

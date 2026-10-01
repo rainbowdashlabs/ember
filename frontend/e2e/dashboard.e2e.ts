@@ -49,14 +49,13 @@ test.describe('Dashboard', () => {
             const row = memberPage.getByTestId('awaiting-answer').filter({hasText: name})
             await expect(row).toHaveCount(1, {timeout: 15000})
 
-            // Answering makes the row go, which is what the section is for
             const memberHeaders = await apiHeaders(memberPage)
             const declined = await memberPage.request.post(`/api/v1/events/${eventId}/decline`,
                 {headers: memberHeaders, data: {}})
             expect(declined.ok(), `the member answered (${await declined.text()})`).toBeTruthy()
 
             await memberPage.reload()
-            await expect(memberPage.getByTestId('awaiting-answer').filter({hasText: name}))
+            await expect(memberPage.getByTestId('awaiting-answer').filter({hasText: name}), 'answering makes the row go')
                 .toHaveCount(0, {timeout: 15000})
 
             await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})

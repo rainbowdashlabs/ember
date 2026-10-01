@@ -9,10 +9,10 @@ import {test, expect, clusterAccountWith, clusterHeaders, clusterPage, theSeeded
  * Sending gear out of the association's store.
  *
  * <p>The association could define gear and never send it anywhere, which made the whole material area an
- * inventory of things that could not move. These stories walk the screen that moves them.
+ * inventory of things that could not move. These stories walk the screen that moves them, one after
+ * another, since each consignment changes the store the next one reads.
  */
 test.describe('Dispatching the association gear', () => {
-    // The consignments these stories send change what is in the store, which the next one reads
     test.describe.configure({mode: 'serial', timeout: 120_000})
 
     /**
@@ -35,7 +35,6 @@ test.describe('Dispatching the association gear', () => {
         await page.goto('/cluster/inventory/dispatch')
         await expect(page.getByTestId('dispatch-items')).toBeVisible({timeout: 15000})
 
-        // Pick a station, then a piece, then send
         const options = page.getByTestId('dispatch-station-select').locator('option')
         const stationUid = await options.nth(1).getAttribute('value')
         expect(stationUid, 'the association has a station to send to').toBeTruthy()
@@ -46,14 +45,13 @@ test.describe('Dispatching the association gear', () => {
         await page.getByTestId('dispatch-reason').fill('Für die neue Gruppe')
         await page.getByTestId('dispatch-send').click()
 
-        // It is in the post: out of the store, and on a chain the station has yet to confirm
         await expect
             .poll(async () => {
                 const after = await page.request
                     .get('/api/v1/cluster/inventory/dispatch', {headers})
                     .then(r => r.json())
                 return after.some((item: {id: number}) => item.id === sent.id)
-            }, {timeout: 15000})
+            }, {message: 'the piece is out of the store', timeout: 15000})
             .toBeFalsy()
 
         await page.context().close()

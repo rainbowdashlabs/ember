@@ -45,14 +45,13 @@ export async function ownMember(page: Page, label: string): Promise<OwnMember> {
         data: {firstName: 'Testperson', lastName: surname, email, sendSetupMail: false},
     })
     expect(invited.ok(), `the story makes a member of its own (${await invited.text()})`).toBeTruthy()
-    // The invitation answers with the account id under the name `id`, which is not the member id.
-    const account = await invited.json() as {id: number}
+    const {id: accountId} = await invited.json() as {id: number}
 
-    const memberId = await memberIdOf(page.request, headers, account.id)
+    const memberId = await memberIdOf(page.request, headers, accountId)
     await remember(page, headers, memberId)
     return {
         memberId,
-        accountId: account.id,
+        accountId,
         email,
         firstName: 'Testperson',
         lastName: surname,

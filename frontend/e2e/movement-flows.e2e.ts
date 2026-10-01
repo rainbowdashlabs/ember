@@ -131,7 +131,6 @@ test.describe('Movement flows', () => {
         const refused = await page.request.delete(`/api/v1/movement-flow-steps/${stepIds[1]}`, {headers})
         expect(refused.ok(), 'a step somebody is walking towards cannot be taken out').toBeFalsy()
 
-        // Once the chain has closed, the same change is allowed
         const current = (await page.request.get(`/api/v1/movements/${id}`, {headers}).then(r => r.json()))
             .steps.find((s: {current: boolean}) => s.current)
         await page.request.post(`/api/v1/movements/${id}/acknowledge`,

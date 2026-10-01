@@ -91,17 +91,16 @@ test.describe('System news', () => {
         await adminPage.locator('[contenteditable="true"]').first().click()
         await adminPage.keyboard.type(written)
 
-        // What was already written goes into the first block, so it is still there afterwards.
         await adminPage.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}).click()
-        await expect(adminPage.getByText(written).first()).toBeVisible()
+        await expect(adminPage.getByText(written).first(), 'what was written goes into the first block').toBeVisible()
 
         await adminPage.getByRole('button', {name: 'Veröffentlichen'}).click()
         await expect(adminPage.getByText(notice).first()).toBeVisible()
 
-        // The switch is one way, so an entry that is already built from blocks does not offer it.
         await adminPage.getByTestId('system-news').filter({hasText: notice})
             .getByRole('button', {name: 'Bearbeiten'}).click()
-        await expect(adminPage.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
+        await expect(adminPage.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}), 'the switch is one way')
+            .toHaveCount(0)
 
         await managerPage.goto('/station/news')
         await managerPage.getByText(notice).first().click()
@@ -110,7 +109,8 @@ test.describe('System news', () => {
 
     /**
      * Withdrawing is the other half of publishing everywhere: it has to disappear everywhere, and
-     * the station never had a copy of its own to keep.
+     * the station never had a copy of its own to keep. The delete is pressed inside this entry's row,
+     * since other workers put notices of their own on the page.
      */
     test('a withdrawn entry is gone from the station that was reading it', async ({adminPage, managerPage}) => {
         const notice = unique('Zurückgezogen')
@@ -126,8 +126,6 @@ test.describe('System news', () => {
         await managerPage.goto('/station/news')
         await expect(managerPage.getByText(notice).first()).toBeVisible()
 
-        // The row of this entry alone: several notices are on the page, and under the full suite
-        // several more from other workers, so the button has to be the one inside this row.
         await adminPage.getByTestId('system-news').filter({hasText: notice})
             .getByRole('button', {name: 'Löschen'}).click()
         await adminPage.getByRole('button', {name: 'Löschen', exact: true}).last().click()
@@ -139,14 +137,14 @@ test.describe('System news', () => {
 
     /**
      * The restriction is by user type alone, because groups and tags are things one station has and
-     * the entry is read in all of them. A notice for managers is not in a plain member's list.
+     * the entry is read in all of them. A notice for managers is not in a plain member's list. A notice
+     * for everybody goes beside it, so the absence is the restriction working and not a member who
+     * sees no system entry at all.
      */
     test('an entry restricted to a user type is not read by everyone', async ({adminPage, memberPage}) => {
         const notice = unique('Nur Betreuer')
         const forAll = unique('Für alle')
 
-        // An entry nobody is shut out of, so the absence asserted below is the restriction working
-        // rather than this member never seeing a system entry at all.
         await adminPage.goto('/admin/news')
         await adminPage.getByRole('button', {name: 'Systemmeldung schreiben'}).click()
         await adminPage.getByPlaceholder('Titel der Systemmeldung').fill(forAll)

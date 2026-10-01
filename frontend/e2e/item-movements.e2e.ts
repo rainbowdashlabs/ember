@@ -309,15 +309,14 @@ test.describe('Item movements', () => {
      * ITM-20 - A step nobody answers can be forced, and says so afterwards.
      *
      * Forcing needs a note, because the record has to say who decided it and why, and the step reads as
-     * forced for good rather than quietly becoming a confirmation.
+     * forced for good rather than quietly becoming a confirmation. The chain's second step is the
+     * member's, since forcing is for somebody else's unanswered step; a station's own is simply pressed.
      */
     test('a step can be forced, with a note, and reads as forced afterwards', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
         const {inventoryId, item} = await gear(page, headers, 'FORCE', 'CLUSTER')
         const member = await someMember(page, headers)
 
-        // A chain whose second step is the member's, because forcing is for a step that belongs to
-        // somebody else and has gone unanswered. A station's own step is simply pressed.
         const flow = await page.request.post('/api/v1/movement-flows',
             {headers, data: {name: `Warten auf das Mitglied ${Date.now()}`, purpose: 'RETURN'}})
         const flowId = (await flow.json()).id
@@ -412,12 +411,12 @@ test.describe('Item movements', () => {
             .toContain('Alte Worte')
         expect(walked, 'and not with the ones it never saw').not.toContain('Neue Worte')
 
-        // A movement started afterwards walks the new wording, which is what renaming is for
         const next = await addTo(page, headers, inventoryId, 'WORDS2', 'CLUSTER')
         const later = await page.request.post('/api/v1/movements', {
             headers,
             data: {purpose: 'RETURN', outgoingItemId: next.id, inventoryId, reason: 'Zurück'},
         })
-        expect(JSON.stringify(await later.json())).toContain('Neue Worte')
+        expect(JSON.stringify(await later.json()), 'a movement started afterwards walks the new wording')
+            .toContain('Neue Worte')
     })
 })

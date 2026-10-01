@@ -29,7 +29,8 @@ test.describe('Federation', () => {
      * Held back until the second station's page is understood. On its own this passes in a second;
      * inside the full run the partner's federation page renders an empty frame and stays empty for
      * forty-five seconds, so the wait is not the problem. Something about a second station's
-     * session arriving while the rest of the suite is working stops that page loading at all.
+     * session arriving while the rest of the suite is working stops that page loading at all. The
+     * partner list is answered by asking the partners themselves, so it arrives later than the rest.
      */
     test('two stations each carry the other as a partner', async ({managerPage, partnerManagerPage}) => {
 
@@ -40,8 +41,6 @@ test.describe('Federation', () => {
 
         await partnerManagerPage.goto('/station/federate')
         await expect(partnerManagerPage.getByTestId('app-shell')).toBeVisible()
-        // The partner list is answered by asking the partners themselves, so it arrives later than
-        // anything served from one station's own database.
         await expect(partnerManagerPage.locator('main').getByText(/Musterstadt/).first())
             .toBeVisible({timeout: 45_000})
     })

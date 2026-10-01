@@ -15,6 +15,9 @@ import {unique} from './unique'
  * the seeded people are shared with every other story running at the same time, and one of them
  * marking somebody former takes that row off the page a waiting story is watching.
  *
+ * <p>The wizard does not answer with an id, so the person is found on the list once, here, while the
+ * name it was just given is still the name it carries, and noted down for removal.
+ *
  * @param page a page signed in as somebody who may create members
  * @return the surname, which is what the lists show and the menu searches by
  */
@@ -37,8 +40,6 @@ export async function createMember(page: Page): Promise<string> {
         await next.click()
     }
 
-    // The wizard walks the screens rather than the endpoint, so the id is read back from the list
-    // once, here, while the name it was just given is still the name it carries.
     const headers = await apiHeaders(page)
     const listed = await page.request.get('/api/v1/station-members/rich', {headers})
     if (listed.ok()) {

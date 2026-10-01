@@ -58,13 +58,12 @@ async function saveSession(
  * The stories create boards, tickets, checklists and groups, and nothing takes them away again.
  * Without this the seeded station fills up run by run until a story that counts rows, or one that
  * picks "the first entry", starts answering about someone else's leftovers. Skipped when the
- * endpoint is absent, which is every instance that is not a dev one.
+ * endpoint is absent, which is every instance that is not a dev one. Reseeding takes the better part
+ * of a minute, so the wait is far longer than a request's.
  */
 async function resetData(baseURL: string) {
     const context = await request.newContext({baseURL})
     try {
-        // Seeding a station from nothing takes the better part of a minute and grows with the
-        // seed, so this waits far longer than a request normally would.
         const response = await context.post('/api/v1/dev/reset', {timeout: 180_000})
         if (!response.ok() && response.status() !== 404) {
             throw new Error(`The dev reset answered ${response.status()}`)
@@ -85,6 +84,9 @@ async function resetData(baseURL: string) {
  * in its own container, so the two genuinely overlap: the run waits for the slower of them rather
  * than for the two of them in turn. Resetting only the first would leave the second filling up run
  * by run, which is what the reset exists to prevent.
+ *
+ * The cast is taken right after, while the seeded people still carry their seeded addresses; what it
+ * writes down is ids, which nothing rewrites.
  */
 export default async function globalSetup(config: FullConfig) {
     const baseURL = process.env.E2E_BASE_URL
@@ -104,8 +106,6 @@ export default async function globalSetup(config: FullConfig) {
     await saveSession(baseURL, member.email, member.stationId, 'member')
     await saveSession(baseURL, admin.email, admin.stationId, 'admin')
 
-    // Cast now, while the seeded people still carry the addresses they were seeded with and no
-    // story has edited anybody. What is written down is ids, which nothing rewrites.
     const managers = await request.newContext({
         baseURL,
         storageState: {cookies: managerSession.cookies, origins: []},

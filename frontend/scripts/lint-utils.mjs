@@ -5,20 +5,14 @@
 import {readdirSync, readFileSync} from 'fs'
 import {join, relative, sep} from 'path'
 
-// ── Paths ───────────────────────────────────────────────────────────
-
 export const SRC = new URL('../src', import.meta.url).pathname
 export const PAGES_DIR = join(SRC, 'pages')
-
-// ── Colors ──────────────────────────────────────────────────────────
 
 export const RED = '\x1b[31m'
 export const GREEN = '\x1b[32m'
 export const YELLOW = '\x1b[33m'
 export const RESET = '\x1b[0m'
 export const BOLD = '\x1b[1m'
-
-// ── File helpers ────────────────────────────────────────────────────
 
 export function walk(dir, ext) {
     const results = []
@@ -43,8 +37,6 @@ export function extractTemplate(content) {
     if (start === -1 || end === -1) return ''
     return content.substring(start, end + '</template>'.length)
 }
-
-// ── Route parsing (Nuxt file-based routing) ─────────────────────────
 
 const SECTION_ROOTS = ['helpcenter/station', 'helpcenter/admin', 'helpcenter/cluster', 'station', 'admin', 'account', 'cluster']
 
@@ -77,6 +69,9 @@ function stripSectionRoot(path) {
  * to the page's section root (station/, admin/, account/, helpcenter/*) to
  * make app and help-center routes comparable, and component is the page's
  * view import normalized to a `@/views/...` spec.
+ *
+ * A page that only forwards to another address shows nobody anything, so it is left out: no help page
+ * has to name it.
  */
 export function parseRoutes() {
     const routes = []
@@ -85,8 +80,6 @@ export function parseRoutes() {
         const metaBlock = content.match(/definePageMeta\(\{([\s\S]*?)\}\)/)
         const nameMatch = metaBlock && metaBlock[1].match(/name:\s*'([^']+)'/)
         if (!nameMatch) continue
-        // A page that only forwards to another address shows nobody anything, so there is nothing
-        // about it to document and it is not a gap when no help page names it.
         if (/redirect:\s*'/.test(metaBlock[1])) continue
         const compMatch = content.match(/import\s+\w+\s+from\s+'[~@]\/(views\/[^']+)'/)
         routes.push({
@@ -107,8 +100,6 @@ export function normalizePath(path) {
         .replace(/:[a-zA-Z]+\??/g, ':id')
         .replace(/^\/|\/$/g, '')
 }
-
-// ── Reporting ───────────────────────────────────────────────────────
 
 /**
  * Creates an error/warning collector with formatted output.
@@ -131,7 +122,6 @@ export function createReporter() {
             const printGroup = (items, color, label) => {
                 if (items.length === 0) return
                 console.log(`\n${color}${BOLD}${label} (${items.length}):${RESET}`)
-                // Group by category
                 const groups = new Map()
                 for (const item of items) {
                     const cat = item.category || 'Other'

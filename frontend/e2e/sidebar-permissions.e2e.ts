@@ -38,15 +38,14 @@ test.describe('Sidebar permissions', () => {
     /**
      * Subpoints are held to the same rule as the points above them. A guardian looks after somebody
      * else's profile and is given the entry for it; whoever looks after nobody is not.
+     *
+     * The guardian is this story's own, since two stories speaking for the same charge at once would
+     * settle it between them. A group's subpoints only render while it is open, which it is on its
+     * own routes.
      */
     test('the managed profiles of a guardian stay out of a member\'s sidebar', async ({browser, request, memberPage}) => {
-        // A guardian of this spec's own. Three specs used to take the first one the demo lists, at
-        // the same time, and a guardian speaks for somebody: two stories doing that at once settle
-        // it between them.
         const guardianPage = await pageAsThrowaway(browser, request, [], (await cast()).guardians.sidebarSpec)
 
-        // The subpoints of a group only render while the group is open, and a group opens on the
-        // routes it holds.
         await guardianPage.goto('/station/profile')
         await expect(sidebarEntry(guardianPage, 'Verwaltete Profile')).toBeVisible()
 

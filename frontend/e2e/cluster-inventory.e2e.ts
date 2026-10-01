@@ -41,7 +41,8 @@ test.describe('Cluster inventory', () => {
      * CLS-35 - The cluster keeps its gear and knows where every piece is.
      *
      * Owning it and holding it are different questions, and the cluster's list answers both: the piece,
-     * the station it is at, and whoever has it there.
+     * the station it is at, and whoever has it there. The API says the data is right; the screen, which
+     * groups the pieces by station, says somebody can see it.
      */
     test('the cluster sees every piece it owns and where each one is', async ({browser, request}) => {
         const page = await clusterGearManagerPage(browser, request)
@@ -59,8 +60,6 @@ test.describe('Cluster inventory', () => {
         expect(items.some((i: {stationName: string}) => !!i.stationName),
             'and each piece says which station it is at').toBeTruthy()
 
-        // Owning it and holding it are two questions, and the screen answers the second one by
-        // station. Reading the list from the API says the data is right; this says somebody can see it.
         await page.goto('/cluster/inventory/out')
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByTestId('out-station-group').first()).toBeVisible({timeout: 15000})
@@ -215,6 +214,9 @@ test.describe('Cluster inventory', () => {
      *
      * The contrast that makes the rest legible: where the owner cannot answer, the station answers for it,
      * and the record says asserted rather than confirmed so the difference survives.
+     *
+     * The presets carry no owner leg, being what a station falls back to, so the story adds a chain that
+     * records it and has the station walk the owner's steps itself.
      */
     test('a station stands in for an owner that does not run here', async ({browser, request}) => {
         const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
@@ -228,9 +230,6 @@ test.describe('Cluster inventory', () => {
                 i.ownerKind === 'CLUSTER' && !i.ownerClusterId && i.custody === 'AT_STATION')
         expect(offSystem, 'the demo keeps a piece owned by a body that is not on this instance').toBeTruthy()
 
-        // The presets carry no owner leg: they are what a station falls back to when nothing above it can
-        // answer for itself. A station that wants the leg recorded anyway adds it, which is the case this
-        // story is about.
         const flow = await station.request.post('/api/v1/movement-flows',
             {headers, data: {name: `Rückgabe mit Trägerbein ${Date.now()}`, purpose: 'RETURN'}})
         expect(flow.ok()).toBeTruthy()
@@ -261,7 +260,6 @@ test.describe('Cluster inventory', () => {
         expect(started.ok()).toBeTruthy()
         const detail = await started.json()
 
-        // The station walks the owner's steps itself, because there is nobody else to walk them
         let current = detail.steps.find((s: {current: boolean}) => s.current)
         for (let guard = 6; guard > 0 && current; guard -= 1) {
             expect(current.actionable, 'the station may answer where the owner cannot').toBeTruthy()
@@ -338,6 +336,9 @@ test.describe('Cluster inventory', () => {
      *
      * What it is stays with whoever owns it. Where it is remains the station's to say, which is the other
      * half of the same idea and is what the custody stories walk.
+     *
+     * Besides the server's refusals, the screen must never offer the edit at all, since a refusal after
+     * typing is the same no delivered late; it offers the two things a station may do instead.
      */
     test('a cluster-owned item is not the station\'s to rename or lend', async ({browser, request}) => {
         const page = await clusterGearManagerPage(browser, request)
@@ -360,16 +361,11 @@ test.describe('Cluster inventory', () => {
             {headers: stationHeaders})
         expect(removed.ok(), 'nor delete it').toBeFalsy()
 
-        // The refusals above are the server's. What matters to somebody at the station is that the
-        // screen never offered the edit in the first place: being refused after typing is the same
-        // no, delivered late. This half of the story went unwritten for a long time, and the form
-        // stayed on screen the whole while because nothing ever looked at it.
         await station.goto(`/station/inventory/item/${at.id}`)
         await expect(station.getByTestId('app-shell')).toBeVisible()
         await expect(station.getByTestId('item-edit'),
             'no pencil, because this is not the station\'s to describe').toHaveCount(0)
 
-        // What is offered instead are the two things a station may do with somebody else's gear.
         await expect(station.getByTestId('owned-elsewhere')).toBeVisible({timeout: 15000})
 
         await station.context().close()
@@ -424,6 +420,10 @@ test.describe('Cluster inventory', () => {
      *
      * A piece the cluster owns and the member holds counts towards what that member is supposed to have,
      * because who owns it was never the question a requirement asks.
+     *
+     * The station's own requirement screen is looked at rather than asked about: the cluster's
+     * requirement stands among the station's, named, with nothing on it to press, since it is changed
+     * where it was written.
      */
     test('gear the cluster owns counts towards what a member should hold', async ({browser, request}) => {
         const page = await clusterGearManagerPage(browser, request)
@@ -444,20 +444,16 @@ test.describe('Cluster inventory', () => {
         expect(mine.assignedTo, 'the station sees who has it').toBeTruthy()
         expect(mine.ownerKind, 'and that the cluster owns it').toBe('CLUSTER')
 
-        // The station's own requirement screen, looked at rather than asked about. What is on it is
-        // what a person at the station has to work from.
         await station.goto('/station/inventory/requirements')
         await expect(station.getByTestId('app-shell')).toBeVisible()
         await expect(station.getByRole('button', {name: /hinzufügen/i}).first())
             .toBeVisible({timeout: 15000})
 
-        // The cluster's requirement stands among the station's own, named rather than anonymous
         const fromCluster = station.getByTestId('cluster-requirement').first()
         await expect(fromCluster).toBeVisible({timeout: 15000})
         await expect(fromCluster.getByTestId('cluster-requirement-badge')).toHaveText(cluster.name)
         await expect(fromCluster.getByTestId('cluster-requirement-quantity')).toHaveText(/\d+/)
 
-        // And there is nothing on it to press: one definition, read here, changed where it was written
         await expect(fromCluster.getByRole('button')).toHaveCount(0)
         await expect(fromCluster.getByRole('spinbutton')).toHaveCount(0)
 

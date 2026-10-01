@@ -35,6 +35,7 @@ function fullName(account: DemoAccount): string {
  * The demo builds the same station twice, so most names are at two of them and prove nothing about
  * which station is on offer. A name belonging to one station alone does: it is out of sight until
  * that station is picked. Whoever that is, is the seeder's business and is read rather than named.
+ * Nobody acting for an association counts: those are offered in a band of their own above the picker.
  */
 async function somebodyAtOneStationOnly(
     request: APIRequestContext,
@@ -48,8 +49,6 @@ async function somebodyAtOneStationOnly(
     }
 
     for (const group of groups.slice(1)) {
-        // Not somebody acting for an association either: those are offered in a band of their own,
-        // above the picker and whichever station it stands on
         const alone = (group.accounts ?? []).find(account =>
             stationsPerName.get(fullName(account)) === 1 && !(account.clusterPermissions ?? []).length)
         if (alone && group.stationName) return {group, only: fullName(alone)}
@@ -157,10 +156,12 @@ test.describe('Account & session', () => {
         await expect(page.getByText(/ungültig, abgelaufen oder wurde bereits verwendet/)).toBeVisible()
     })
 
+    /**
+     * Logs out a member of the second seeded station, told apart by its .nord suffix: the passkey
+     * stories own fixed members of the shared one, and logging one of those out would break them.
+     * The button is taken from the header, since signing off an appointment carries the same name.
+     */
     test('logging out ends the session', async ({browser, request}) => {
-        // A member of the second seeded station: the passkey stories own fixed members of the
-        // shared one, and logging one of those out mid-story would pull the ground from under
-        // it. The .nord suffix is what separates the two seeds' people.
         const member = (await cast()).member
         const accounts = await demoAccounts(request)
         const loner = accounts.find(candidate =>
@@ -174,8 +175,6 @@ test.describe('Account & session', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
         await page.getByTestId('account-menu').click()
-        // Scoped to the header: signing off an appointment is called the same thing, and the
-        // dashboard behind the menu is full of those buttons.
         await page.getByRole('banner').getByRole('button', {name: 'Abmelden'}).click()
 
         await page.waitForURL(/\/login/)

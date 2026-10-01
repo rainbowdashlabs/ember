@@ -29,11 +29,10 @@ test.describe('Cluster fields and groups', () => {
 
         await expect(page.getByTestId('audiences-panel')).toBeVisible()
 
-        // The four kinds an association may ask, as the forms it can look at. A station has a fifth
-        // for people who are only trying it out, and an association has none of those.
         const tabs = page.getByRole('tab', {name: /Mitglieder|Erziehungsberechtigte|Team|Leitung/})
-        await expect(tabs.first()).toBeVisible()
-        await expect(page.getByRole('tab', {name: 'Schnupperer', exact: true})).toHaveCount(0)
+        await expect(tabs.first(), 'the kinds an association may ask are offered as forms').toBeVisible()
+        await expect(page.getByRole('tab', {name: 'Schnupperer', exact: true}), 'an association has no trial members')
+            .toHaveCount(0)
 
         await expect(page.getByRole('button', {name: /Feld hinzufügen/i})).toBeVisible()
         await page.context().close()
@@ -91,8 +90,7 @@ test.describe('Cluster fields and groups', () => {
         await page.goto('/cluster/team/groups')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        // Nothing is picked yet, so the right hand side says to pick something.
-        await expect(page.getByText(/wähl/i).first()).toBeVisible()
+        await expect(page.getByText(/wähl/i).first(), 'with nothing picked the detail side asks to pick').toBeVisible()
         await page.context().close()
     })
 
@@ -122,6 +120,9 @@ test.describe('Cluster fields and groups', () => {
      * meanwhile offered every type a station has, the date of birth included, which the server refuses:
      * the station declares its own and two would collide. What the owner may choose now decides what the
      * dialog offers, so the refusal is never reached.
+     *
+     * The heading is taken away again: an association's question reaches every station under it, and one
+     * left behind lands on the profile every other story is reading.
      */
     test('the association heads its questions and is offered no birth date', async ({browser, request}) => {
         const account = await clusterAccountWith(request, 'CLUSTER_FIELD_MANAGER')
@@ -132,9 +133,7 @@ test.describe('Cluster fields and groups', () => {
 
         await page.getByTestId('field-add').first().click({timeout: 15000})
         const types = page.getByTestId('field-type').locator('option')
-        // Reading the options does not wait for them, and an empty list reads as a passing
-        // "no date of birth" while saying nothing about what is on offer.
-        await expect(types.first()).toBeAttached()
+        await expect(types.first(), 'the options are there before an absence is read off them').toBeAttached()
         const offered = await types.allTextContents()
         expect(offered.join(' '), 'a heading is on offer').toContain('Überschrift')
         expect(offered.join(' '), 'a date of birth is not').not.toContain('Geburtsdatum')
@@ -144,20 +143,15 @@ test.describe('Cluster fields and groups', () => {
         await page.getByTestId('field-type').selectOption('SECTION')
         await page.getByTestId('field-save').click()
 
-        // It comes back as a row of its own, and says it is asked of nobody: a question is written
-        // first and put to somebody afterwards, so a new one reaches no form yet.
         const row = page.getByTestId(`field-row-${heading}`)
         await expect(row).toBeVisible({timeout: 15000})
-        await expect(row.getByTestId('asked-of-nobody')).toBeVisible()
+        await expect(row.getByTestId('asked-of-nobody'), 'a new question reaches no form yet').toBeVisible()
 
-        // Put to one kind of member, it lays out as a heading on that form, which is where a section
-        // either works or does not
         await row.click()
         await page.getByTestId('audiences-panel').getByTestId('audience-add').selectOption('ROLE:MEMBER')
-        await expect(page.getByRole('heading', {name: heading})).toBeVisible({timeout: 15000})
+        await expect(page.getByRole('heading', {name: heading}), 'put to members, it lays out as a heading on their form')
+            .toBeVisible({timeout: 15000})
 
-        // Taken away again: an association's question reaches every station under it, and leaving one
-        // behind puts it on the profile every other story is reading at that moment
         const headers = await clusterHeaders(page, await theSeededCluster(page))
         const fields = await page.request.get('/api/v1/cluster/fields', {headers}).then(r => r.json())
         const mine = fields.find((field: {name: string}) => field.name === heading)

@@ -11,6 +11,7 @@ import {unique} from './fixtures/unique'
  * A procedure of the story's own with one step in it, left open on its page - which is where
  * creating one lands. Every story makes its own: the stories run side by side, and one of them
  * ticking a step off the procedure another one is reading would be a story about the other story.
+ * The saving button carries the same words as the one that opened the page, so the last one is taken.
  */
 async function createProcedureWithStep(page: Page): Promise<string> {
     const procedure = unique('Ablauf')
@@ -23,8 +24,6 @@ async function createProcedureWithStep(page: Page): Promise<string> {
     await page.getByRole('button', {name: 'Schritt hinzufügen'}).click()
     await page.getByPlaceholder('Titel').first().fill('Erster Schritt')
 
-    // The button that saves a new procedure carries the same words as the one that opened the page
-    // for it, so the story takes the one on the page it is standing on.
     await page.getByRole('button', {name: 'Neuer Ablauf'}).last().click()
     await page.waitForURL(/\/station\/procedures\/\d+$/)
 
@@ -47,7 +46,6 @@ test.describe('Procedures', () => {
 
         await page.goto('/station/procedures')
 
-        // The list navigates by click handler, so its rows carry an identifier to aim at.
         await page.getByTestId('procedure-entry').first().click()
         await page.waitForURL(/\/station\/procedures\/\d+/)
         await page.goto(`${page.url()}/edit`)
@@ -120,7 +118,8 @@ test.describe('Procedures', () => {
      * in the sign-ups tab does and not about three people clicking a button. What it asserts is the
      * three things that make the list usable rather than decorative: the people who hold a place are
      * on it, the steps came from a template, and pressing the same entry again offers this list
-     * instead of building a second one beside it.
+     * instead of building a second one beside it. A procedure without a template has no steps, so the
+     * dialog asks for a template first.
      */
     test('a procedure is prepared for the people who are coming', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -160,7 +159,6 @@ test.describe('Procedures', () => {
         await page.getByRole('button', {name: 'Aus den Anmeldungen'}).click()
         await page.getByTestId('signup-procedure-entry').click()
 
-        // A procedure without a template has no steps, so the dialog asks for one before anything else.
         const template = page.getByTestId('signup-procedure-template')
         await expect(template).toBeVisible()
         await template.selectOption({index: 1})

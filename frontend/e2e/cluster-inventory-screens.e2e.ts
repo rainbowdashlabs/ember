@@ -245,8 +245,7 @@ test.describe('Cluster inventory screens', () => {
         await page.goto('/cluster/inventory/checks/container')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        // No route is named for a member check, so no control leads to one.
-        await expect(page.getByRole('link', {name: /Mitglied/i})).toHaveCount(0)
+        await expect(page.getByRole('link', {name: /Mitglied/i}), 'no control leads to a member check').toHaveCount(0)
         await page.context().close()
     })
 
@@ -269,7 +268,6 @@ test.describe('Cluster inventory screens', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByTestId('cluster-inventory-tabs')).toBeVisible()
 
-        // The totals, then the same gear cut by the size it was ordered in
         const rows = page.getByTestId('stats-size-row')
         await expect(rows.first()).toBeVisible({timeout: 15000})
         await expect(rows.first().locator('td').first()).not.toBeEmpty()
@@ -302,10 +300,8 @@ test.describe('Cluster inventory screens', () => {
         await page.goto('/cluster/inventory/procurement')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        // The screen loads at all, which it did not while it insisted on asking who there is
         await page.getByTestId('procurement-create').click({timeout: 15000})
 
-        // No member is asked for, because there is nobody at an association's own station to order for
         const picker = page.getByTestId('procurement-inventory')
         await expect(picker).toBeVisible()
         await picker.getByRole('searchbox').click()
@@ -323,13 +319,12 @@ test.describe('Cluster inventory screens', () => {
 
         await entry.getByTestId('procurement-fulfill').click()
 
-        // What arrived belongs to the association and rests in its store, ready to be sent somewhere
         await expect.poll(async () => {
             const items = await page.request
                 .get('/api/v1/cluster/inventory/items', {headers})
                 .then(r => r.json())
             return items.filter((row: {custody: string}) => row.custody === 'WITH_OWNER').length
-        }, {timeout: 15000}).toBeGreaterThan(
+        }, {message: 'what arrived rests in the association\'s own store', timeout: 15000}).toBeGreaterThan(
             before.filter((row: {custody: string}) => row.custody === 'WITH_OWNER').length)
 
         await page.context().close()
@@ -354,7 +349,6 @@ test.describe('Cluster inventory screens', () => {
         await page.getByLabel('Name').fill(name)
         await page.getByRole('button', {name: 'Erstellen'}).click()
 
-        // Opened from the list rather than by an address the story worked out for itself
         await page.getByText(name).first().click()
         await expect(page).toHaveURL(/\/cluster\/inventory\/storage\/\d+$/, {timeout: 15000})
         await expect(page.getByTestId('container-item')).toHaveCount(0)
@@ -365,8 +359,8 @@ test.describe('Cluster inventory screens', () => {
         await candidate.click()
         await page.getByTestId('container-add-submit').click()
 
-        // And it is in there afterwards, which is the half a page that merely opens cannot show
-        await expect(page.getByTestId('container-item').first()).toBeVisible({timeout: 15000})
+        await expect(page.getByTestId('container-item').first(), 'the piece is in the container afterwards')
+            .toBeVisible({timeout: 15000})
 
         await page.context().close()
     })
@@ -392,6 +386,9 @@ test.describe('Cluster inventory screens', () => {
      * The one story that would have caught the phase marked done that was not. Gear an association owns
      * refused every change, its own owner included, and the item screen agreed by hiding the pencil, so
      * the association could define a thing and never correct it again.
+     *
+     * The piece rests in the association's own store and is found on its own list: the barcode lookup
+     * finds only what a station holds, and a piece out at a member station is opened there instead.
      */
     test('the association describes its own gear from its own screen', async ({browser, request}) => {
         const account = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')
@@ -399,22 +396,16 @@ test.describe('Cluster inventory screens', () => {
         const cluster = await theSeededCluster(page)
         const headers = await clusterHeaders(page, cluster)
 
-        // Which piece is being looked at is arrangement; that it can be renamed is the story. Asked of the
-        // association's own list rather than the barcode lookup, which finds what a station is holding and
-        // so never finds a spare resting in its owner's store.
         const owned = await page.request
             .get('/api/v1/cluster/inventory/items', {headers})
             .then(r => r.json())
-        // One resting in its own store: the association's screens act at its own station, and a piece out
-        // at a member station is opened there rather than here
         const item = owned.find((row: {stationUid: string | null}) => row.stationUid === null)
         expect(item, 'the association keeps gear in its own store').toBeTruthy()
 
         await page.goto(`/cluster/inventory/item/${item.id}`)
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        // A station holding somebody else's jacket is told it belongs elsewhere. The owner is not.
-        await expect(page.getByTestId('owned-elsewhere')).toHaveCount(0)
+        await expect(page.getByTestId('owned-elsewhere'), 'the owner is not told its gear belongs elsewhere').toHaveCount(0)
 
         const renamed = `Einsatzjacke ${Date.now()}`
         await page.getByTestId('item-edit').click({timeout: 15000})

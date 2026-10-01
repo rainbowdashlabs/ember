@@ -132,7 +132,8 @@ test.describe('Cluster governance', () => {
      * CLS-19 - A locked look and feel cannot be changed at the station.
      *
      * The lock is the whole of it: an unlocked setting the cluster handed down is a starting point the
-     * station may still move, and the screen has to tell the two apart.
+     * station may still move, and the screen has to tell the two apart. The station then sends its own
+     * colours anyway, which a screen cannot stop and the server must.
      */
     test('a locked look and feel cannot be changed at the station', async ({adminPage: page, browser, request}) => {
         const own = await ownCluster(page, browser, request, 'Farbverband')
@@ -159,7 +160,6 @@ test.describe('Cluster governance', () => {
         await expect(own.stationPage.getByTestId('app-shell')).toBeVisible()
         await expect(own.stationPage.getByText(own.name, {exact: false}).first()).toBeVisible()
 
-        // The station sends its own colours anyway, which is what a screen cannot stop and the server must
         const stationHeaders = await apiHeaders(own.stationPage)
         const ignored = await own.stationPage.request.put('/api/v1/station/manage', {
             headers: stationHeaders,
@@ -169,9 +169,8 @@ test.describe('Cluster governance', () => {
 
         const after = await own.stationPage.request.get('/api/v1/station/manage', {headers: stationHeaders})
         const info = await after.json()
-        // Compared as colours rather than as text: the round trip through the database rewrites the
-        // spacing and the order of the keys, and neither is what the cluster locked.
-        expect(JSON.parse(info.customThemeColors)).toEqual(JSON.parse(colors))
+        expect(JSON.parse(info.customThemeColors), 'the locked colours, compared as values rather than as text')
+            .toEqual(JSON.parse(colors))
         expect(info.colorsLocked).toBeTruthy()
         expect(info.feelLocked).toBeFalsy()
         expect(info.clusterName).toBe(own.name)
@@ -188,7 +187,6 @@ test.describe('Cluster governance', () => {
         const own = await ownCluster(page, browser, request, 'Speicherverband')
         const headers = await apiHeaders(page)
 
-        // What the instance grants the association is the instance's act, and arrangement here
         const pooled = await page.request.put(`/api/v1/clusters/${own.uid}/storage-pool`,
             {headers, data: {quotaBytes: 8 * 1024 * 1024 * 1024}})
         expect(pooled.ok()).toBeTruthy()
@@ -198,19 +196,18 @@ test.describe('Cluster governance', () => {
         await page.goto('/cluster/storage')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        // Nothing handed out yet, out of the eight the instance granted
-        await expect(page.getByTestId('cluster-pool-usage')).toContainText('8.0 GiB', {timeout: 15000})
+        await expect(page.getByTestId('cluster-pool-usage'), 'nothing handed out of the eight granted')
+            .toContainText('8.0 GiB', {timeout: 15000})
 
         const row = page.getByTestId('storage-station-row').filter({hasText: own.stationName})
         await expect(row).toBeVisible()
         await row.getByTestId('station-room-edit').click()
 
-        // The total is one of the seven dimensions the association can name for that station
         await page.getByTestId('quota-field-total').fill('2')
         await page.getByTestId('station-room-save').click()
 
-        // The pool figure moves with it, because what a station gets comes out of the whole
-        await expect(page.getByTestId('cluster-pool-usage')).toContainText('2.0 GiB', {timeout: 15000})
+        await expect(page.getByTestId('cluster-pool-usage'), 'the pool figure moves with the station')
+            .toContainText('2.0 GiB', {timeout: 15000})
         await expect(row).toContainText('2.0 GiB')
     })
 
@@ -243,7 +240,6 @@ test.describe('Cluster governance', () => {
         expect(refused.ok()).toBeFalsy()
         expect((await refused.text()).toLowerCase()).toContain('cluster')
 
-        // What the station exports for its own use leaves nothing behind, so it is untouched
         const ownExport = await own.stationPage.request.get('/api/v1/station/members/export', {headers})
         expect(ownExport.status()).not.toBe(400)
 
