@@ -1,9 +1,6 @@
 { pkgs ? import <nixpkgs> {}, ... }:
 
 let
-  # The browsers have to be the exact revisions the `@playwright/test` in frontend/package.json
-  # asks for, so they come from a nixpkgs pinned to a commit that packages that same version
-  # (1.63.0). Bump the pin together with the npm package.
   playwrightPkgs = import (fetchTarball {
     url = "https://github.com/NixOS/nixpkgs/archive/c59305bab2065cfecc4944690d9eedbb56f3a9fa.tar.gz";
     sha256 = "16rsfnnxk6294sz6asx0shblirkhm4yyvkimq3v00c0y2114gp7b";
