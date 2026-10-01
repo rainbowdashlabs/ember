@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.station.service;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -328,10 +329,28 @@ class StationServiceTest extends RepositoryTestBase {
     @Test
     @Order(45)
     void createWithManagerNewAccount() {
-        // TODO: call createWithManager; this only creates a station through the repository.
-        var station = stationRepo.create("CreateWithMgr");
-        assertNotNull(station);
+        String email = "svc-new-mgr@test.com";
+        assertTrue(accountRepo.findByEmail(email).isEmpty());
+
+        var station = service.createWithManager("CreateWithMgr", email);
+
+        assertEquals("CreateWithMgr", station.name());
+        var account = accountRepo.findByEmail(email).orElseThrow();
+        var manager = stationMemberRepo
+                .findByStationAndAccount(station.id(), account.id())
+                .orElseThrow();
+        assertEquals(StationUserType.MANAGER, manager.userType());
+        var managerRole = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        assertTrue(stationMemberRepo.findPermissions(manager.id()).stream().anyMatch(p -> p.id() == managerRole.id()));
+        assertEquals(
+                manager.id(),
+                stationRepo.findById(station.id()).orElseThrow().ownerMemberId(),
+                "the manager owns the new station");
+
         stationRepo.delete(station.id());
+        accountRepo.delete(account.id());
     }
 
     @Test
