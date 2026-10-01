@@ -30,9 +30,10 @@ const isExternal = computed(() => {
   if (!props.identity?.stationUid) return false
   return props.identity.stationUid !== sessionInfo.value?.stationId
 })
-// Fall back to the station name for federated members whose display name couldn't be resolved
-// (no local mapping, no cached name) so the comment still shows a meaningful author label
-// instead of an empty span next to a "?" avatar.
+/**
+ * The name to show, falling back to the station's name for a member of another station whose own
+ * name could not be resolved, so the author never reads as an empty label beside a "?" avatar.
+ */
 const displayName = computed(() => {
   if (props.identity?.name) return props.identity.name
   if (isExternal.value && props.identity?.stationName) return props.identity.stationName

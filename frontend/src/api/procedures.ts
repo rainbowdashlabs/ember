@@ -68,15 +68,11 @@ const procedureItems = createScopedCrudResource<
     NoContent
 >((procedureId: number) => `/procedures/${procedureId}/items`)
 
-// -- Templates --
-
 export const getTemplates = templates.list
 export const getTemplate = templates.get
 export const createTemplate = templates.create
 export const updateTemplate = templates.update
 export const archiveTemplate = templates.remove
-
-// -- Template Items --
 
 export const createTemplateItem = templateItems.create
 export const updateTemplateItem = templateItems.update
@@ -105,8 +101,6 @@ export async function setProcedureDependencies(procedureId: number, dependencies
     const request: DependencyRequest = { dependencies }
     await client.put(`/procedures/${procedureId}/dependencies`, request)
 }
-
-// -- Procedures --
 
 export async function getProcedures(params?: ProcedureListParams): Promise<Procedure[]> {
     return procedures.list(params ? { ...params } : undefined)
@@ -141,8 +135,6 @@ export async function reopenProcedure(id: number): Promise<Procedure> {
     return res.data
 }
 
-// -- Assignees --
-
 /** Hands the procedure to more members. @returns the ids of everybody it is handed to now */
 export async function addAssignees(id: number, memberIds: number[]): Promise<number[]> {
     const request: AssigneeRequest = { memberIds }
@@ -155,8 +147,6 @@ export async function removeAssignee(id: number, memberId: number): Promise<numb
     const res = await client.delete<number[]>(`/procedures/${id}/assignees/${memberId}`)
     return res.data
 }
-
-// -- Procedure Items --
 
 export const addItem = procedureItems.create
 export const editItem = procedureItems.update

@@ -161,8 +161,6 @@ const tests = createCrudResource<
     QuizTest
 >('/quiz/tests')
 
-// -- Catalogs --
-
 export async function listCatalogs(): Promise<CatalogListResponse> {
     const res = await client.get<CatalogListResponse>('/quiz/catalogs')
     return res.data
@@ -173,22 +171,16 @@ export const createCatalog = catalogs.create
 export const updateCatalog = catalogs.update
 export const deleteCatalog = catalogs.remove
 
-// -- Categories (station-scoped) --
-
 export const listCategories = categories.list
 export const createCategory = categories.create
 export const updateCategory = categories.update
 export const deleteCategory = categories.remove
-
-// -- Questions --
 
 export const listQuestions = catalogQuestions.list
 export const createQuestion = catalogQuestions.create
 export const getQuestion = questions.get
 export const updateQuestion = questions.update
 export const deleteQuestion = questions.remove
-
-// -- Tests --
 
 export const listTests = tests.list
 export const getTest = tests.get
@@ -210,8 +202,6 @@ export async function closeTest(id: number): Promise<QuizTest> {
     const res = await client.post<QuizTest>(`/quiz/tests/${id}/close`)
     return res.data
 }
-
-// -- Frozen Questions --
 
 export async function generateFrozenQuestions(testId: number): Promise<FrozenQuestionDetail[]> {
     const res = await client.post<FrozenQuestionDetail[]>(`/quiz/tests/${testId}/generate-questions`)
@@ -239,14 +229,10 @@ export async function listAvailableReplacements(testId: number): Promise<QuizQue
     return res.data
 }
 
-// -- Sections --
-
 export async function replaceSections(testId: number, sections: QuizSectionRequest[]): Promise<QuizTestSection[]> {
     const res = await client.put<QuizTestSection[]>(`/quiz/tests/${testId}/sections`, sections)
     return res.data
 }
-
-// -- Test Taking --
 
 export async function startAttempt(testId: number): Promise<QuizAttemptDetail> {
     const res = await client.post<QuizAttemptDetail>(`/quiz/tests/${testId}/start`)
@@ -269,8 +255,6 @@ export async function submitAttempt(attemptId: number): Promise<QuizTestAttempt>
     return res.data
 }
 
-// -- Grading --
-
 export async function listAttempts(testId: number): Promise<QuizTestAttempt[]> {
     const res = await client.get<QuizTestAttempt[]>(`/quiz/tests/${testId}/attempts`)
     return res.data
@@ -291,8 +275,6 @@ export async function gradeAttempt(attemptId: number): Promise<QuizTestAttempt> 
     return res.data
 }
 
-// -- Restrictions --
-
 export async function getRestrictions(testId: number): Promise<QuizTestRestrictions> {
     const res = await client.get<QuizTestRestrictions>(`/quiz/tests/${testId}/restrictions`)
     return res.data
@@ -309,8 +291,6 @@ export async function setRestrictions(testId: number, data: QuizTestRestrictions
     return res.data
 }
 
-// -- Member Access --
-
 export async function grantAccess(testId: number, memberId: number, closesAt?: string | null): Promise<void> {
     const request: QuizAccessRequest = {memberId, closesAt}
     await client.post(`/quiz/tests/${testId}/access`, request)
@@ -319,8 +299,6 @@ export async function grantAccess(testId: number, memberId: number, closesAt?: s
 export async function revokeAccess(testId: number, memberId: number): Promise<void> {
     await client.delete(`/quiz/tests/${testId}/access/${memberId}`)
 }
-
-// -- Training --
 
 export async function listTrainingCatalogs(): Promise<QuizCatalog[]> {
     const res = await client.get<QuizCatalog[]>('/quiz/training/catalogs')
@@ -331,8 +309,6 @@ export async function getTrainingQuestions(catalogId: number): Promise<QuizQuest
     const res = await client.get<QuizQuestion[]>(`/quiz/training/catalogs/${catalogId}/questions`)
     return res.data
 }
-
-// -- Question Images --
 
 export function questionImageUrl(questionId: number, size?: number): string {
     const base = `/quiz/questions/${questionId}/image`
@@ -351,8 +327,6 @@ export async function deleteQuestionImage(questionId: number): Promise<void> {
     await client.delete(`/quiz/questions/${questionId}/image`)
 }
 
-// -- PDF Export --
-
 export async function downloadQuestionPdf(testId: number): Promise<void> {
     await downloadAuthed(`/quiz/tests/${testId}/export/questions`)
 }
@@ -360,8 +334,6 @@ export async function downloadQuestionPdf(testId: number): Promise<void> {
 export async function downloadSolutionPdf(testId: number): Promise<void> {
     await downloadAuthed(`/quiz/tests/${testId}/export/solutions`)
 }
-
-// -- Import/Export --
 
 export async function exportCatalog(catalogId: number): Promise<CatalogTransfer> {
     const res = await client.get<CatalogTransfer>(`/quiz/catalogs/${catalogId}/export`)
@@ -379,8 +351,6 @@ export async function appendToCatalog(catalogId: number, data: CatalogTransfer):
     return res.data
 }
 
-// -- Reading a sheet --
-
 /** Reads a sheet into a draft without writing anything, so the wizard can show what would arrive. */
 export async function draftFromCsv(content: string, mappings: CsvMappings): Promise<CsvDraft> {
     const request: CsvDraftRequest = {content, mappings}
@@ -392,8 +362,6 @@ export async function draftFromCsv(content: string, mappings: CsvMappings): Prom
 export async function downloadCatalogTemplate(format: 'csv' | 'json'): Promise<void> {
     await downloadAuthed(`/quiz/catalogs/template/${format}`)
 }
-
-// -- Reports on questions --
 
 /** Reports a question from the training view. */
 export async function reportQuestion(questionId: number, note: string): Promise<QuizQuestionReport> {

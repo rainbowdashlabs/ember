@@ -8,6 +8,10 @@ import {computed} from 'vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import ProseContent from '@/components/display/ProseContent.vue'
 
+/**
+ * One help article. Prose gives its own first child no top margin but leaves the margin on the first
+ * heading inside each box, where it lands on the box's padding; the article drops it for every box at once.
+ */
 const props = defineProps<{
   title: string
   subtitle?: string
@@ -26,13 +30,6 @@ useHead(computed(() => ({
 <template>
   <ViewContent :title="title" :subtitle="subtitle">
     <div class="max-w-3xl mx-auto space-y-6">
-      <!--
-        Prose gives every heading and paragraph a margin of its own, which is right in running text
-        and wrong as the first thing inside a box: there it lands on top of the box's own padding and
-        the heading floats away from the top of its panel. Prose drops that margin for its own first
-        child only, and an article is boxes all the way down, so the same is said here for every box
-        in it rather than in each of the dozen that draw one.
-      -->
       <ProseContent class="space-y-6 [&_*>:first-child]:mt-0 [&_*>:last-child]:mb-0">
         <slot/>
       </ProseContent>

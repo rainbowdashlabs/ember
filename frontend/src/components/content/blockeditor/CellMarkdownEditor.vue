@@ -6,6 +6,10 @@
 <script setup lang="ts">
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 
+/**
+ * The text of a markdown cell. The stylesheet lets the editor shrink inside the dialog's flex layout,
+ * so the written area scrolls on its own instead of growing and pushing the dialog open.
+ */
 const content = defineModel<string>('content', {required: true})
 </script>
 
@@ -16,11 +20,6 @@ const content = defineModel<string>('content', {required: true})
 </template>
 
 <style scoped>
-/*
- * A flex child may not shrink below its content unless it is told it may. Without min-height, the
- * editor grew with what was written and pushed the dialog open from the inside, carrying whatever
- * sat under it out of view. The scroll belongs to the written area alone.
- */
 .cell-markdown-editor :deep(> div) {
     display: flex;
     flex-direction: column;

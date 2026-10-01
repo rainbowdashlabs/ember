@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {describe, expect, it} from 'vitest'
 import {markdownSnippet, renderPageMarkdown} from './markdown'
 import {describeMarkdownRendering} from '@/test/markdownSanitizing'

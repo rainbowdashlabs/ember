@@ -19,7 +19,7 @@ const {t} = useI18n()
 const endpointInvalid = computed(() => {
     const v = model.value.endpoint?.trim() ?? ''
     if (v.length === 0) return false
-    return !/^https?:\/\//i.test(v)
+    return !/^https?:\/{2}/i.test(v)
 })
 </script>
 

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {createI18n} from 'vue-i18n'
 import {describeFailure, FailureKind, technicalSummary} from './failure'

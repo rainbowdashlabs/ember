@@ -42,8 +42,11 @@ const sizeClass = computed(() => {
   }
 })
 
+/**
+ * The outline that keeps the glyph's colour readable on its surface. It reads the theme revision so
+ * it is worked out again after a repaint, which moves every surface underneath it.
+ */
 const outline = computed(() => {
-  // Read so the answer is taken again after a repaint, which moves every surface underneath it.
   void themeRevision.value
   return outlineFor(props.glyph.color, props.surface ?? 'page')
 })

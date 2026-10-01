@@ -25,17 +25,14 @@ const nameCache = ref<Record<string, string>>({})
 
 const uids = computed(() => modelValue.value ?? [])
 
+/** Looks up the names not known yet. A station whose name cannot be found is shown by its UUID. */
 async function refreshNames(list: string[]) {
     const missing = list.filter(uid => !(uid in nameCache.value))
     if (missing.length === 0) return
-    try {
-        const resolved = await resolvePartnerStations(props.stationUid, missing)
-        const next = {...nameCache.value}
-        for (const r of resolved as PublicPartnerSummary[]) next[r.uid] = r.name
-        nameCache.value = next
-    } catch {
-        // leave missing entries; UI falls back to the UUID.
-    }
+    const resolved = await resolvePartnerStations(props.stationUid, missing).catch(() => [])
+    const next = {...nameCache.value}
+    for (const r of resolved as PublicPartnerSummary[]) next[r.uid] = r.name
+    nameCache.value = next
 }
 
 watch(uids, list => refreshNames(list), {immediate: true})

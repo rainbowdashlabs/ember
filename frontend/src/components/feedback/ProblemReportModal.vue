@@ -54,10 +54,12 @@ const capturing = ref(false)
 
 const enoughSaid = computed(() => description.value.trim().length >= 10)
 
+/**
+ * Sends the report. The picture's covers are flattened into it only now, at the moment of sending,
+ * so what leaves has no layer anybody could take off again.
+ */
 const {running: sending, error, run: send, clearError} = useAsyncAction(async () => {
   if (!enoughSaid.value) return
-  // Flattened here rather than as it was covered: the covers become pixels at the moment of sending,
-  // and what leaves has no layer to take off again.
   const covered = picture.value
       ? await flatten(picture.value, pictureSection.value?.covers ?? [])
       : null

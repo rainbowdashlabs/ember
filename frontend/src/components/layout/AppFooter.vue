@@ -20,10 +20,8 @@ const {t} = useI18n()
 const version = ref('')
 
 onMounted(async () => {
-  try {
-    const res = await client.get<PublicConfigResponse>('/public/config')
-    version.value = res.data.version
-  } catch { /* ignore */ }
+  const res = await client.get<PublicConfigResponse>('/public/config').catch(() => null)
+  if (res) version.value = res.data.version
 })
 </script>
 

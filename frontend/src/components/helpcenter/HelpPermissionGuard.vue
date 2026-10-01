@@ -9,6 +9,10 @@ import {useSession} from '@/composables/useSession'
 import type {StationPermission} from '@/api/generated/schema'
 import BareButton from '@/components/button/BareButton.vue'
 
+/**
+ * Help content meant for holders of certain permissions. A signed-in reader sees it only when they
+ * hold one of them; a reader who is not signed in gets it behind a toggle, so all of it can be explored.
+ */
 const props = defineProps<{
   permissions: StationPermission[]
   label: string
@@ -31,12 +35,10 @@ const hasPermission = computed(() => {
 </script>
 
 <template>
-  <!-- Authenticated: show only if user has the required permission -->
   <template v-if="isAuthenticated">
     <slot v-if="hasPermission"/>
   </template>
 
-  <!-- Unauthenticated: collapsible toggle so the reader can explore all content -->
   <template v-else>
     <div class="rounded-lg border border-[var(--border)] overflow-hidden">
       <BareButton

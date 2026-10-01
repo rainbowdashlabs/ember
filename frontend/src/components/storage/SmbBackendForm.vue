@@ -17,7 +17,7 @@ import type {SmbForm} from '@/util/storageBackendForm'
 const model = defineModel<SmbForm>({required: true})
 const {t} = useI18n()
 
-const hostInvalid = computed(() => /:\/\//.test(model.value.host ?? ''))
+const hostInvalid = computed(() => (model.value.host ?? '').includes('://'))
 </script>
 
 <template>

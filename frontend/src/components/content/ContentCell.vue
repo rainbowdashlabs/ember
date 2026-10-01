@@ -99,7 +99,6 @@ function youtubeEmbedUrl(url: string): string | null {
         :timezone="context.timezone"
     />
 
-    <!-- Nested rows carry their cells inside the config, so the render recurses into them. -->
     <div v-else-if="cell.contentType === CellContentType.NESTED_ROWS" class="space-y-3">
         <div
             v-for="(row, ri) in nestedRows" :key="ri"

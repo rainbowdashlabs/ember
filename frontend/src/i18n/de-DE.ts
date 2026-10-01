@@ -308,8 +308,8 @@ export default {
         withPasskey: 'Mit Passkey anmelden',
         passkeyElsewhere: 'Mit einem anderen Gerät anmelden',
     },
+    /** One word everywhere: Passkey, always explained by the same sentence. */
     passkeys: {
-        // Ein Wort, überall: Passkey. Der erklärende Satz ist immer derselbe.
         explainer: 'Ein Passkey ist eine Anmeldung ohne Passwort. Dein Gerät fragt dich nach Fingerabdruck, '
             + 'Gesicht oder deiner Geräte-PIN, und das war es.',
         defaultLabel: 'Passkey',
@@ -5576,14 +5576,12 @@ export default {
         score: 'Punkte',
         notes: 'Notizen',
         notesPlaceholder: 'Anmerkungen...',
-        // New statuses
         status_PENDING: 'Ausstehend',
         status_WAITING: 'Wartend',
         status_INVITED: 'Eingeladen',
         status_TESTING: 'Probezeitraum',
         status_WITHDRAWN: 'Ausgeschieden',
         status_JOINED: 'Beigetreten',
-        // State transition actions
         invite: 'Einladen',
         backToWaiting: 'Zurück in die Warteliste',
         answer_COMING: 'Kommt',
@@ -5602,7 +5600,6 @@ export default {
         inviteArrival: 'Bitte da sein um',
         inviteArrivalHint: 'Meist etwas früher als alle anderen, damit jemand Zeit für die Begrüßung hat.',
         inviteSend: 'Einladung senden',
-        // Transition confirmation modal
         transitionConfirmTitle: 'Statuswechsel bestätigen',
         transitionBackToWaitingText: 'Soll {name} zurück in die Warteliste? Die Einladung wird damit hinfällig.',
         transitionTestingText: 'Soll für {name} die Probezeit gestartet werden? Erst damit wird das Mitglied angelegt.',
@@ -5611,19 +5608,16 @@ export default {
         transitionRejectText: 'Soll {name} abgelehnt werden?',
         transitionWithdrawText: 'Soll {name} ausgeschieden werden?',
         transitionConfirmAction: 'Bestätigen',
-        // Sections
         sectionWaiting: 'Wartend & Eingeladen',
         sectionTesting: 'Im Probezeitraum',
         sectionFinished: 'Beigetreten / Ausgeschieden',
         noTestingEntries: 'Keine Einträge im Probezeitraum.',
         noFinishedEntries: 'Keine abgeschlossenen Einträge.',
-        // Group/PermissionGrant config
         testingGroup: 'Probegruppe',
         joinGroup: 'Beitrittsgruppe',
         attendanceThreshold: 'Anwesenheiten bis Aufnahme',
         attendanceCount: 'Anwesenheiten',
         noGroup: 'Keine Gruppe',
-        // Guardians
         guardian: 'Erziehungsberechtigter',
         guardians: 'Erziehungsberechtigte',
         addGuardian: 'Erziehungsberechtigten hinzufügen',
@@ -5631,7 +5625,6 @@ export default {
         guardianEmailPlaceholder: 'E-Mail-Adresse',
         guardianPhonePlaceholder: 'Telefonnummer',
         noGuardians: 'Keine Erziehungsberechtigten hinterlegt.',
-        // Timestamps
         invitedAt: 'Eingeladen am',
         testingAt: 'Probezeit seit',
         joinedAt: 'Beigetreten am',
@@ -8783,7 +8776,6 @@ export default {
         },
     },
     quiz: {
-        // Top-level keys used by views
         questionTypes: {
             MULTIPLE_CHOICE: 'Multiple Choice',
             FILL_IN_THE_BLANK: 'Lückentext',

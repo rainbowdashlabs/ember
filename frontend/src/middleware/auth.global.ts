@@ -25,13 +25,9 @@ const IDLE_LIMIT_MS = 3600000
 /**
  * The pages the idle check leaves alone, because they are the gates it would send somebody to.
  *
- * <p>Every other gate here turns a navigation away without stamping the session as active, which is
- * deliberate: a stamp written ahead of a redirect would spend the idle window before the
- * requirements were ever seen. That leaves the window open, so a gate that is itself sent away
- * bounces for ever. Consent, once out of date, redirected to {@code /reconsent}, the idle check sent
- * that to the requirements, consent sent it back, and neither ever wrote the stamp: the tab spun
- * until the browser called the page unresponsive, and only a reload broke out of it, because the
- * consent flag lives no longer than the page does.
+ * <p>No gate stamps the session before it redirects, so a gate the idle check sent away would bounce
+ * for ever: out-of-date consent and the requirements once sent each other back and forth until the
+ * tab hung.
  */
 const IDLE_EXEMPT: ReadonlySet<string> = new Set(['/station/requirements', '/reconsent'])
 
@@ -39,14 +35,9 @@ const IDLE_EXEMPT: ReadonlySet<string> = new Set(['/station/requirements', '/rec
  * Signs in as somebody else because a link said so, which only a demo or a development instance
  * allows.
  *
- * <p>It exists for the recordings and the walkthroughs: a link that carries both who is watching and
- * what they are looking at needs no spoken preamble about signing in first, and it lands on the same
- * screen every time. The endpoint behind it is registered only on those instances, so the parameter
- * is inert everywhere else; the check here keeps a production instance from even asking.
- *
- * <p>The stored station, cluster and last area go first. They belong to whoever was signed in a moment
- * ago, and the next person is often at another station, where they would be sent to a picker or an
- * emptiness instead of the page the link named.
+ * <p>It exists for recordings and walkthroughs, so a link lands on the same screen every time. The
+ * stored station, cluster and last area go first, because they belong to whoever was signed in a
+ * moment ago and would send the next person somewhere other than the page the link named.
  *
  * @param email the address to become
  */
@@ -61,27 +52,6 @@ async function switchAccount(email: string): Promise<void> {
 }
 
 /**
- * Order matters here. A link that names somebody to become is honoured before anything else, because
- * every gate below it asks about the person who is signed in. The active station is resolved next, so a link arriving with
- * {@code ?station=} hands its station over before anything else can redirect and drop the
- * parameter. The idle check runs afterwards and only once a station is known - the requirements
- * page is station-scoped, and sending someone there without one lands them back at the station
- * picker. For the same reason the activity stamp is written only when the navigation is let
- * through: a stamp written ahead of a redirect would consume the idle window without the
- * requirements ever being seen.
- *
- * An address that matches no page at all is let through untouched. Nothing below can judge it:
- * there is no page, so there is nothing to protect, and every gate here would read it as a
- * protected page nobody may see. An anonymous visitor mistyping an address was sent to the login
- * screen with the bad address as their redirect, which is a strange answer to a typo and hid the
- * page that exists to explain it.
- *
- * The administration area is closed to anyone who is not an instance administrator. The server
- * refuses every administration endpoint on its own - this only stops the panel from opening and
- * then failing on each call. It is deliberately closed rather than open when the session cannot be
- * established: a panel that cannot be shown to work is not shown.
- */
-/**
  * Whether the reader administers an instance that has no station at all yet. Such an instance has
  * nothing to choose between and no station to open, so the reader is led to found the first one.
  */
@@ -92,6 +62,19 @@ async function waitsForFirstStation(): Promise<boolean> {
     return isFirstStationNeeded().catch(() => false)
 }
 
+/**
+ * Gates every navigation, in an order that matters.
+ *
+ * <p>An address that matches no page is let through untouched, since there is nothing to protect and
+ * a login screen is a strange answer to a typo. A link naming somebody to become is honoured next,
+ * because every later gate asks about the person signed in. The administration area is closed to
+ * anyone who is not an instance administrator, and stays closed when the session cannot be
+ * established. A cluster area is closed to anyone who may act for no cluster, whose shell would
+ * otherwise open on an emptiness that reads as a page they are meant to be on. A {@code ?station=}
+ * link hands its station over before anything can redirect and drop it, and the idle check runs only
+ * once a station is known, since the requirements page is station-scoped. The activity stamp is
+ * written only when the navigation is let through, so a redirect never spends the idle window.
+ */
 export default defineNuxtRouteMiddleware(async (to) => {
     if (!import.meta.client) return
 
@@ -126,9 +109,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
         if (!isAdmin()) return navigateTo('/station/dashboard/overview')
     }
 
-    // A cluster area belongs to whoever may act for a cluster, and nobody else has one to be shown.
-    // Without this the shell opens on an emptiness that explains itself, which reads as a page somebody
-    // is meant to be on.
     if (to.path === '/cluster' || to.path.startsWith('/cluster/')) {
         const {loaded: clustersLoaded, load: loadClusters, hasClusters} = useCluster()
         if (!clustersLoaded.value) await loadClusters()

@@ -27,7 +27,10 @@ export interface PaletteRouteEntry {
     permission?: string
     anyPermission?: string[]
     module?: StationModule
-    /** What the caller must hold at the cluster, for entries of the cluster scope. */
+    /**
+     * What the caller must hold at the cluster, for entries of the cluster scope. Those are gated on
+     * what the association granted rather than on any station's rights.
+     */
     clusterPermission?: string
     clusterAnyPermission?: string[]
 }
@@ -145,7 +148,6 @@ export const PALETTE_ROUTES: PaletteRouteEntry[] = [
     {scope: 'admin', to: '/admin/monitoring/maps', labelKey: 'sidebar.maps', icon: 'map-location-dot'},
     {scope: 'admin', to: '/admin/dev/data-tracking', labelKey: 'sidebar.dataTracking', icon: 'database'},
 
-    // The association's own pages, gated on what it granted rather than on any station's rights
     {scope: 'cluster', to: '/cluster', labelKey: 'clusterSidebar.overview', icon: 'house'},
     {scope: 'cluster', to: '/cluster/settings', labelKey: 'clusterSidebar.settings', icon: 'gear',
         clusterPermission: ClusterPermission.CLUSTER_GENERAL},

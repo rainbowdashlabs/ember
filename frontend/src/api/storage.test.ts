@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {beforeEach, describe, expect, it} from 'vitest'
 import {
     StorageNecessity, acceptStorage, denyStorage, getGrantedScopes, getItem, isStorageAllowed,

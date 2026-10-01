@@ -2826,7 +2826,6 @@ volumes:
             tip: 'Tipp: Nutze die Bewertungsformel, um die Warteliste automatisch nach Priorität zu sortieren. Die Formel wird bei jeder Ansicht neu berechnet.',
         },
         quiz: {
-            // Overview
             overviewTitle: 'Quiz-Modul',
             overviewSubtitle: 'Fragen, Tests und Training',
             overviewTip: 'Das Quiz-Modul ist perfekt, um das Wissen deiner Mitglieder spielerisch zu testen und zu verbessern.',
@@ -2840,7 +2839,6 @@ volumes:
             pageTestsDesc: 'Hier baust du Tests aus Katalog-Fragen und verwaltest Teilnahmen.',
             pageTraining: 'Training',
             pageTrainingDesc: 'Hier können alle Mitglieder Fragen zum Üben beantworten.',
-            // Catalog List
             catalogListTitle: 'Fragenkataloge',
             catalogListSubtitle: 'Fragen verwalten und organisieren',
             whatIsCatalog: 'Was ist ein Katalog?',
@@ -2853,7 +2851,6 @@ volumes:
             createCatalogDesc: 'Kurze Beschreibung',
             createCatalogTraining: 'Für Training freigeben - dann können alle Mitglieder die Fragen üben',
             catalogListTip: 'Tipp: Aktiviere „Für Training freigeben", damit Mitglieder die Fragen auch selbst üben können.',
-            // Catalog Detail
             catalogDetailTitle: 'Katalog bearbeiten',
             catalogDetailSubtitle: 'Fragen und Kategorien verwalten',
             addQuestionsTitle: 'Fragen hinzufügen',
@@ -2873,7 +2870,6 @@ volumes:
             reportsText: 'Wer mit dem Katalog übt, kann eine Frage melden, wenn eine Antwort falsch oder veraltet ist oder die Frage sich doppeldeutig liest. Solche Anmerkungen stehen hier direkt an der betroffenen Frage, mit Namen und Datum.',
             reportsAcknowledge: 'Arbeite die Anmerkung in die Frage ein und klicke dann auf Erledigt. Damit verschwindet sie, und was hier stehen bleibt, ist nur das, was noch offen ist.',
             catalogDetailTip: 'Tipp: Punkte werden automatisch berechnet, du kannst sie aber auch manuell überschreiben.',
-            // Test List
             testListTitle: 'Tests',
             testListSubtitle: 'Tests erstellen und verwalten',
             whatIsTest: 'Was ist ein Test?',
@@ -2888,7 +2884,6 @@ volumes:
             createTestTime: 'Zeitlimit (optional)',
             createTestShuffle: 'Fragen mischen',
             testListTip: 'Tipp: Setze ein Zeitlimit, um echte Prüfungsbedingungen zu simulieren.',
-            // Test Detail
             testDetailTitle: 'Test-Details',
             testDetailSubtitle: 'Test verwalten und Ergebnisse ansehen',
             lifecycleTitle: 'Test-Ablauf',
@@ -2907,7 +2902,6 @@ volumes:
             accessTitle: 'Zugang',
             accessText: 'Du kannst einzelnen Mitgliedern einen Sonderzugang gewähren, z.B. wenn jemand den Test nachholen muss.',
             testDetailTip: 'Tipp: Schließe den Test erst, wenn alle Teilnahmen bewertet sind.',
-            // Training
             trainingTitle: 'Training',
             trainingSubtitle: 'Fragen üben und Wissen testen',
             trainingWhatIs: 'Was ist das Training?',

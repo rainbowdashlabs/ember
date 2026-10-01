@@ -229,8 +229,11 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     for (const id of toRemove) await procedures.removeAssignee(pid, id)
   }
 
+  /**
+   * Saves the steps and returns the real id of each new one by its temporary id. A row nobody wrote
+   * a title into never became a step, so it is dropped rather than saved.
+   */
   async function syncItems(pid: number): Promise<Map<number, number>> {
-    // A row nobody wrote a title into never became a step, so it is not saved as one.
     items.value = items.value.filter(item => item.title.trim())
     const keptIds = new Set(items.value.filter(i => i.id).map(i => i.id!))
     for (const oldId of existingItemIds.value) {

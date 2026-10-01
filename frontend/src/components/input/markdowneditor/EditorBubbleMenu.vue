@@ -22,13 +22,13 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+/** Whether the reader closed the bubble, which a new selection opens again. */
 const bubbleHidden = ref(false)
 
 function isActive(name: string, attrs?: Record<string, unknown>) {
   return props.editor.isActive(name, attrs)
 }
 
-// Reset on selection change
 props.editor.on('selectionUpdate', () => { bubbleHidden.value = false })
 
 interface ToolbarButton {
@@ -58,7 +58,6 @@ const buttons: ToolbarButton[] = [
     :tippy-options="{ duration: 150 }"
     class="flex items-center gap-0.5 px-1.5 py-1 rounded-lg shadow-lg border border-[var(--border)] bg-[var(--bg)]"
   >
-    <!-- Text selection: formatting buttons -->
     <template v-if="!editor.state.selection.empty">
       <button
         v-for="btn in buttons"
@@ -80,7 +79,6 @@ const buttons: ToolbarButton[] = [
       </button>
     </template>
 
-    <!-- Link tooltip: cursor on link, no selection -->
     <template v-else-if="isOnLink">
       <font-awesome-icon :icon="['fas', 'link']" class="w-3 h-3 text-[var(--text-muted)] flex-shrink-0" />
       <span class="truncate text-[var(--text-muted)] text-xs max-w-[200px] mx-1" :title="currentLinkUrl">{{ currentLinkUrl }}</span>

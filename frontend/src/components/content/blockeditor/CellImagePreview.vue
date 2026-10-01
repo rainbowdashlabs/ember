@@ -109,7 +109,6 @@ const containerStyle = computed(() => {
         style.aspectRatio = `${aspect}`
         if (c.maxHeight != null && c.maxHeight > 0) {
             style.maxHeight = `${c.maxHeight}px`
-            // Cap width so max-height can actually shrink the box without breaking the aspect.
             style.width = `min(100%, ${c.maxHeight * aspect}px)`
         } else {
             style.width = '100%'

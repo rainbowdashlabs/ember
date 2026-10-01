@@ -85,7 +85,6 @@ function swapAt(i: number, payload: {file: StationFile}) {
 
 <template>
     <div class="space-y-3">
-        <!-- Multi-mode: vertical list of items with reorder + alt + subtext -->
         <div
             v-if="multi && items.length > 0"
             class="space-y-2 pr-1"
@@ -109,7 +108,6 @@ function swapAt(i: number, payload: {file: StationFile}) {
             </DragList>
         </div>
 
-        <!-- Single-mode: one image preview -->
         <div v-if="!multi && items.length > 0" class="flex items-start gap-2">
             <img :src="mediaImageUrlAt(stationUid, items[0]?.imageHash ?? '', 128)"
                  :srcset="mediaImageSrcset(stationUid, items[0]?.imageHash ?? '', 128)" alt=""

@@ -51,22 +51,23 @@ function routeExists(name: string): boolean {
   return router.getRoutes().some(r => r.name === name)
 }
 
+/**
+ * The help page for the current route: an explicit override first, then a page named
+ * {@code help-<route>}, then the overview of the module the route name starts with, and the
+ * dashboard overview when nothing else fits.
+ */
 const helpRoute = computed(() => {
   const name = route.name as string
   if (!name) return {name: 'help-dashboard-module-overview'}
 
-  // 1. Check explicit overrides
   if (OVERRIDES[name]) return {name: OVERRIDES[name]}
 
-  // 2. Try automatic convention: help-{routeName}
   const autoName = `help-${name}`
   if (routeExists(autoName)) return {name: autoName}
 
-  // 3. Fall back to module overview based on route name prefix
   const prefix = name.split('-')[0] ?? ''
   if (MODULE_FALLBACKS[prefix]) return {name: MODULE_FALLBACKS[prefix]}
 
-  // 4. Default
   return {name: 'help-dashboard-module-overview'}
 })
 </script>

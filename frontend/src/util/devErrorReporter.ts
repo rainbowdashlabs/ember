@@ -7,13 +7,14 @@ import type {DevErrorReport} from '@/api/generated/schema'
 
 const DEV = import.meta.env.DEV
 
+/** Sends one error to the dev error writer, ignoring a failure since that endpoint may not be there. */
 function reportError(source: string, message: string, stack: string, context: string) {
     if (!DEV) return
     fetch('/api/v1/dev/errors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ source, message, stack, context } satisfies DevErrorReport),
-    }).catch(() => { /* ignore - dev endpoint may not be available */ })
+    }).catch(() => {})
 }
 
 /**
@@ -44,7 +45,6 @@ export function installDevErrorHandlers() {
         )
     })
 
-    // Return the Vue error handler
     return (err: unknown, _instance: unknown, info: string) => {
         const error = err instanceof Error ? err : new Error(String(err))
         reportError(
@@ -58,12 +58,12 @@ export function installDevErrorHandlers() {
 }
 
 /**
- * Reports an API error (4xx/5xx) to the dev error writer.
+ * Reports an API error (4xx/5xx) to the dev error writer, leaving out the authentication refusals.
  * Call from the axios response interceptor.
  */
 export function reportApiError(method: string, url: string, status: number, message: string, stack?: string) {
     if (!DEV) return
-    if (status === 401 || status === 403) return // skip auth errors
+    if (status === 401 || status === 403) return
     reportError(
         'axios',
         `${status} ${method.toUpperCase()} ${url}: ${message}`,

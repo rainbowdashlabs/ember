@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {afterEach, describe, expect, it, vi} from 'vitest'
 import {useCommentHighlight} from './useCommentHighlight'
 

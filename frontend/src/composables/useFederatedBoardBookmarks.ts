@@ -11,12 +11,9 @@ import type {EnrichedBookmark} from '@/api/generated/schema'
 export function useFederatedBoardBookmarks() {
     const bookmarks = useState<EnrichedBookmark[]>('useFederatedBoardBookmarks', () => [])
 
+    /** Reads the bookmarks again, keeping the ones already shown when that fails. */
     async function refresh() {
-        try {
-            bookmarks.value = await listBookmarks()
-        } catch {
-            // ignore
-        }
+        await listBookmarks().then(found => { bookmarks.value = found }).catch(() => {})
     }
 
     return {

@@ -38,7 +38,6 @@ const availableFeels = computed(() => {
 
 <template>
   <div class="space-y-3">
-    <!-- Dark mode -->
     <div class="flex items-center gap-2">
       <span class="text-sm font-medium">{{ t('theme.darkMode') }}</span>
       <div class="flex gap-1">
@@ -53,7 +52,6 @@ const availableFeels = computed(() => {
       </div>
     </div>
 
-    <!-- Theme picker -->
     <template v-if="showThemes">
       <ThemePicker />
       <div v-if="props.showLockTheme" class="flex items-center justify-between">
@@ -62,7 +60,6 @@ const availableFeels = computed(() => {
       </div>
     </template>
 
-    <!-- Feel -->
     <template v-if="showFeel && availableFeels.length > 1">
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">{{ t('theme.feel') }}</span>

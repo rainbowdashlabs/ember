@@ -21,9 +21,9 @@ import {useConfigPatch} from '@/composables/useConfigPatch'
 import {useBlockAudience} from '@/composables/useBlockAudience'
 
 /**
- * Editor block for FEATURED_EVENT / UPCOMING_EVENTS / PAST_EVENT_RECAP cells. Extracted from
- * {@code CellLayoutEditors.vue} purely to keep that file under the 500-line view limit; logic
- * is unchanged.
+ * Editor block for FEATURED_EVENT / UPCOMING_EVENTS / PAST_EVENT_RECAP cells. Upcoming events are a
+ * live list filtered by category; a past-event recap takes its title, date and picture live from the
+ * event, and only the recap text is written here.
  */
 const config = defineModel<Record<string, unknown>>('config', {required: true})
 
@@ -95,7 +95,6 @@ async function onFeaturedEventPick(eventUid: string) {
         />
     </template>
 
-    <!-- UPCOMING_EVENTS - live list filtered by category. -->
     <template v-else-if="kind === 'UPCOMING_EVENTS'">
         <FieldLabel hint class="mb-1">{{ TS('listTitle') }}</FieldLabel>
         <TextInput :model-value="(config.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
@@ -130,7 +129,6 @@ async function onFeaturedEventPick(eventUid: string) {
            class="text-xs text-(--text-muted) mt-1">{{ TS('eventCategoriesAll') }}</p>
     </template>
 
-    <!-- PAST_EVENT_RECAP - pick a past event; title/date/image come live, recap text is editor-supplied. -->
     <template v-else-if="kind === 'PAST_EVENT_RECAP'">
         <FieldLabel hint class="mb-1">{{ TS('choosePastEvent') }}</FieldLabel>
         <EventSearchPicker

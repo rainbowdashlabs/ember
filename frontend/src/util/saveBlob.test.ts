@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {afterEach, beforeEach, describe, expect, it, vi, type MockInstance} from 'vitest'
 import {SAVED_BLOB_LIFETIME_MS, SAVED_BLOB_TYPE, SaveResult, saveBlob} from './saveBlob'
 

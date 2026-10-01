@@ -24,12 +24,9 @@ export function useSidebarCounts() {
         procedureCount: 0,
     }))
 
+    /** Reads the counts again, keeping the last ones when the endpoint is not available yet. */
     async function refresh() {
-        try {
-            counts.value = await getSidebarCounts()
-        } catch {
-            // ignore - endpoint may not be available yet
-        }
+        await getSidebarCounts().then(found => { counts.value = found }).catch(() => {})
     }
 
     return {

@@ -98,15 +98,9 @@ function recordRequest(config: InternalAxiosRequestConfig, status: number | null
 }
 
 /**
- * How long any request waits before giving up.
- *
- * <p>Without this a request to a server that accepts the connection and then says nothing waits for
- * ever, which is what a backend still working through its startup does. A screen waiting on such a
- * request shows a spinner that never stops and says nothing, and a reader restarting their instance sees
- * exactly that. Sixty seconds is long enough for the slowest thing here to answer and short enough that
- * a reader learns something before they give up.
- *
- * <p>The few calls that legitimately take longer set their own deadline.
+ * How long any request waits before giving up. Without it a server that accepts the connection and
+ * then says nothing, as a backend still starting up does, leaves a spinner that never stops. The few
+ * calls that legitimately take longer set their own deadline.
  */
 const REQUEST_DEADLINE_MS = 60_000
 
@@ -121,6 +115,10 @@ const client = axios.create({
 /**
  * Adds what a request carries besides the session cookie, which the browser sends on its own: the
  * token proving a change came from this page, and the station and cluster it acts for.
+ *
+ * <p>A screen that edits an association's own content acts at the station the association owns,
+ * whether or not the reader has a station of their own selected. Station and cluster may both be
+ * sent, since one person can manage a cluster and belong to one of its stations.
  */
 function applyAuthHeaders(config: InternalAxiosRequestConfig) {
     const csrf = csrfToken()
@@ -128,17 +126,32 @@ function applyAuthHeaders(config: InternalAxiosRequestConfig) {
     if (csrf && UNSAFE_METHODS.has((config.method ?? 'get').toLowerCase())) {
         config.headers[CSRF_HEADER] = csrf
     }
-    // A screen that edits an association's own content acts at the station the association owns, whether or
-    // not the reader has a station of their own selected.
     const stationId = getActingStation() ?? getItem('station_id')
     if (stationId) {
         config.headers['X-Station-Id'] = stationId
     }
-    // A request may carry both: one person can be a cluster manager and a member of one of its stations
     const clusterId = getItem('cluster_id')
     if (clusterId) {
         config.headers['X-Cluster-Id'] = clusterId
     }
+}
+
+/**
+ * Stops a request whose step-up prompt has been answered as often as it may be. Answering again
+ * cannot help, so the toast says why the action stopped rather than leave the caller to show a bare
+ * failure with no prompt in sight.
+ */
+function rejectExhaustedStepUp(error: AxiosError): Promise<never> {
+    showToast(translator.t('twoFactor.stepUp.stillRequired'), 'error')
+    return Promise.reject(error)
+}
+
+/**
+ * Tells the reader a request was refused for want of rights. Rights are the station's to give, so the
+ * toast points there rather than at a bug report.
+ */
+function toastDenied(said: string | undefined): void {
+    showToast(said?.trim() ? said : translator.t('failure.DENIED.message'), 'error')
 }
 
 client.interceptors.request.use((config) => {
@@ -173,10 +186,7 @@ client.interceptors.response.use(
             if (isStepUp && config) {
                 const attempts = config._stepUpAttempts ?? 0
                 if (attempts >= MAX_STEP_UP_ATTEMPTS) {
-                    // Answering again cannot help, so say why the action stopped rather than let the
-                    // caller render a bare "something went wrong" with no prompt in sight.
-                    showToast(translator.t('twoFactor.stepUp.stillRequired'), 'error')
-                    return Promise.reject(error as AxiosError)
+                    return rejectExhaustedStepUp(error as AxiosError)
                 }
                 config._stepUpAttempts = attempts + 1
                 const category = stepUpCategoryOf(body, error.response?.headers?.['x-stepup-required'])
@@ -197,9 +207,7 @@ client.interceptors.response.use(
             }
         }
         if (error.response?.status === 403) {
-            // Rights are the station's to give, so the toast points there rather than at a bug report.
-            const said = error.response?.data?.message
-            showToast(said?.trim() ? said : translator.t('failure.DENIED.message'), 'error')
+            toastDenied(error.response?.data?.message)
         }
         return Promise.reject(error)
     },

@@ -116,6 +116,9 @@ function childrenOf(commentId: number): CommentResponse[] {
 
 type MentionPart = { type: 'text'; value: string } | { type: 'mention'; name: string; bulk?: boolean }
 
+/** A mention of many at once, written type:name:id, e.g. {@code GROUP:Vorstand:5}. */
+const BULK_MENTION = /^(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):\d+$/
+
 function resolveMentions(text: string): MentionPart[] {
   const parts: MentionPart[] = []
   const regex = /@\[([^\]]+)]/g
@@ -128,8 +131,7 @@ function resolveMentions(text: string): MentionPart[] {
     const inner = match[1] ?? ''
     const colonIdx = inner.indexOf(':')
     const slashIdx = inner.indexOf('/')
-    // Bulk mention: type:name:id (e.g. group:Vorstand:5)
-    const bulkName = inner.match(/^(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):\d+$/)?.[2]
+    const bulkName = inner.match(BULK_MENTION)?.[2]
     if (bulkName) {
       parts.push({type: 'mention', name: bulkName, bulk: true})
     } else if (slashIdx >= 0 && colonIdx > slashIdx) {
@@ -197,7 +199,6 @@ const maxDepth = 6
 
 <template>
   <div :class="depth > 0 ? 'ml-4 pl-3 border-l-2 border-(--border)' : ''">
-    <!-- Top-level new comment input (only at root depth, when not readonly) -->
     <div v-if="depth === 0 && !readonly" role="presentation" class="space-y-2 mb-4" @focusin="onNewCommentFocus" @focusout="onNewCommentBlur" @click="onNewCommentFocus">
       <MentionInput v-model="newComment" :members="members" :groups="groups" :special-mentions="specialMentions" :placeholder="t('comments.placeholder')" :expanded="newCommentExpanded"/>
       <MutedText v-if="newCommentExpanded" size="xs">{{ t('comments.mentionHint') }}</MutedText>
@@ -216,14 +217,12 @@ const maxDepth = 6
          class="space-y-2 py-2 transition-colors duration-1000"
          :class="{'bg-primary/10 rounded-theme px-2 -mx-2': highlightId === comment.id}"
     >
-      <!-- Deleted comment placeholder -->
       <div v-if="comment.deleted" class="space-y-1">
         <div class="flex items-center gap-2">
           <MutedText size="xs">{{ formatDate(comment.createdAt) }}</MutedText>
         </div>
         <p class="text-sm italic text-(--text-muted)">{{ t('comments.deleted') }}</p>
       </div>
-      <!-- Comment content -->
       <div v-else-if="editingId !== comment.id" class="space-y-1">
         <div class="flex items-center gap-2">
           <MemberName :identity="authorOf(comment)" class="text-sm font-medium"/>
@@ -252,7 +251,6 @@ const maxDepth = 6
         </div>
       </div>
 
-      <!-- Edit form -->
       <div v-else class="space-y-2">
         <MentionInput v-model="editContent" :members="members" :groups="groups" :special-mentions="specialMentions"/>
         <ButtonRow pair>
@@ -261,7 +259,6 @@ const maxDepth = 6
         </ButtonRow>
       </div>
 
-      <!-- Reply form -->
       <div v-if="replyingTo === comment.id" class="ml-4 space-y-2">
         <MentionInput v-model="replyContent" :members="members" :groups="groups" :special-mentions="specialMentions" :placeholder="t('comments.replyPlaceholder')"/>
         <ButtonRow pair>
@@ -270,7 +267,6 @@ const maxDepth = 6
         </ButtonRow>
       </div>
 
-      <!-- Recursive children -->
       <CommentThread
         v-if="childrenOf(comment.id).length > 0"
         :comments="comments"

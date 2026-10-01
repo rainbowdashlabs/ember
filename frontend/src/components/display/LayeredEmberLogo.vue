@@ -54,7 +54,10 @@ const directionVariants: Record<string, { open: string; half: string; blink: str
   right: { open: 'fire_eyes_right', half: 'fire_eyes_right_half', blink: 'fire_blink_right' },
 }
 
-// All layers rendered in DOM always - visibility toggled via v-show
+/**
+ * The layers shown right now. Every layer stays in the page and is only toggled with v-show, and all
+ * of them are fetched on mount, so an animation never waits for a picture.
+ */
 const displayedLayers = ref(new Set<string>())
 let blinkTimeout: ReturnType<typeof setTimeout> | null = null
 let gazeTimeout: ReturnType<typeof setTimeout> | null = null
@@ -92,23 +95,16 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-// --- Sync from parent ---
-
 watch(() => [...activeLayers.value], (active) => {
   displayedLayers.value = new Set(active)
 }, { immediate: true })
 
-// --- Preload on mount ---
-
 onMounted(() => {
-  // Preload all layers so animations never wait
   for (const layer of props.layers) {
     const img = new Image()
     img.src = fragmentUrl(layer.name)
   }
 })
-
-// --- Blink animation ---
 
 async function doBlink() {
   const dir = getCurrentDirection()
@@ -152,8 +148,6 @@ watch(() => props.autoBlink, (enabled) => {
   if (enabled) startBlink()
   else stopBlink()
 })
-
-// --- Gaze animation ---
 
 async function doGazeShift(from: string, to: string) {
   const fromV = directionVariants[from]

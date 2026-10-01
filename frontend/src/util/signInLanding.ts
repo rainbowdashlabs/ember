@@ -53,7 +53,9 @@ export async function loadLandingMemberships(): Promise<LandingMemberships> {
  * Works out where somebody belongs from what they may act for.
  *
  * <p>An administrator of an instance with no station at all is led to found the first one, whatever
- * they were headed for, since nothing else on the instance works before it exists.
+ * they were headed for, since nothing else on the instance works before it exists. Somebody who
+ * belongs to no station but acts for an association lands on the association, their whole reason to
+ * be here.
  *
  * @param memberships what the account may act for
  * @param redirect    where the reader was headed before they were asked to sign in
@@ -71,7 +73,6 @@ export function landingFromMemberships(memberships: LandingMemberships, redirect
         if (memberships.firstStationNeeded) return {path: FIRST_STATION_PATH}
         return {path: redirect || '/admin/dashboard/overview'}
     }
-    // Somebody who runs an association and belongs to no station has it as their whole reason to be here
     const [onlyCluster] = memberships.clusters
     if (memberships.clusters.length > 0) {
         return {

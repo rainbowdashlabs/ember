@@ -33,6 +33,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
+/** The size refusal said here, cleared once the parent reports an error of its own, which means a fresh attempt. */
 const sizeError = ref<string | null>(null)
 const lastFileName = ref<string | null>(null)
 
@@ -81,7 +82,6 @@ function onSelectMany(files: File[]) {
   }
 }
 
-// Clear the local size error when the parent's error message changes (assume a fresh attempt).
 watch(() => props.error, () => { if (props.error) sizeError.value = null })
 </script>
 

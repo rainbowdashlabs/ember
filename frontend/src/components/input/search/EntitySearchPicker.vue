@@ -66,6 +66,7 @@ const loading = ref(false)
 const open = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
+/** Which result the keyboard stands on, back at the top whenever the query changes the list. */
 const highlight = ref(0)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -120,7 +121,6 @@ async function onFocus() {
 
 watch(query, q => {
     if (!open.value || hasSelection.value) return
-    // The list underneath is about to change, so where the highlight stood means nothing.
     highlight.value = 0
     scheduleSearch(q)
 })
@@ -186,7 +186,6 @@ defineExpose({highlightedItem: highlighted})
 
 <template>
     <div ref="rootRef" class="relative w-full">
-        <!-- A reference is set: show the picked label as a chip with an X to clear. -->
         <div
             v-if="hasSelection"
             class="flex items-center gap-2 px-3 py-2 rounded-theme border border-(--border) bg-bg-light dark:bg-bg-dark"
@@ -204,7 +203,6 @@ defineExpose({highlightedItem: highlighted})
             />
         </div>
 
-        <!-- No reference set: search input + dropdown of typeahead results. -->
         <div v-else role="presentation" @focusin="onFocus" @click="onFocus">
             <SearchInput
                 v-model="query"

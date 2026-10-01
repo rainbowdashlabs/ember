@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {mount} from '@vue/test-utils'
 import {defineComponent} from 'vue'
 import {describe, expect, it} from 'vitest'

@@ -104,12 +104,13 @@ export function useOnboardingTour() {
         return localStorage.getItem(STORAGE_KEY) === 'true'
     }
 
+    /**
+     * Starts the tour for somebody who has not finished it, but only on the dashboard root. A reader
+     * who followed a deep link is left where they meant to go, and the tour waits for their next
+     * dashboard visit.
+     */
     function checkFirstLogin() {
         if (isTourCompleted()) return
-        // Auto-start the onboarding tour only when the user lands on the dashboard root.
-        // If they followed a deep link (an email/feed notification, a shared item URL, …)
-        // we honour where they intended to go and leave the tour for their next dashboard
-        // visit; otherwise the tour's first step would yank them off the deep link.
         if (router.currentRoute.value.name !== 'dashboard-overview') return
         startTour()
     }

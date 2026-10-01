@@ -59,19 +59,23 @@ export function normaliseScannedPayload(raw: string): string {
     return v.trim().toLocaleUpperCase('en-US')
 }
 
+/** Whether the browser's own detector reads any of the formats. A detector that cannot say counts as no. */
+async function nativeReadsAny(ctor: BarcodeDetectorCtor, formats: BarcodeFormat[]): Promise<boolean> {
+    try {
+        const supported = await ctor.getSupportedFormats()
+        const required = new Set<string>(formats)
+        return supported.some(f => required.has(f as BarcodeFormat))
+    } catch {
+        return false
+    }
+}
+
 async function probeTier(formats: BarcodeFormat[]): Promise<ScannerTier> {
     if (tierCache.value) return tierCache.value
     const ctor = (globalThis as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector
-    if (ctor) {
-        try {
-            const supported = await ctor.getSupportedFormats()
-            const required = new Set<string>(formats)
-            const intersection = supported.filter(f => required.has(f as BarcodeFormat))
-            if (intersection.length > 0) {
-                tierCache.value = 'native'
-                return 'native'
-            }
-        } catch { /* fall through */ }
+    if (ctor && await nativeReadsAny(ctor, formats)) {
+        tierCache.value = 'native'
+        return 'native'
     }
     if (typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getUserMedia === 'function') {
         tierCache.value = 'zxing'

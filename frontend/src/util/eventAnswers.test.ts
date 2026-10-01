@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
 import {FieldTypes} from '@/api/fieldTypes'

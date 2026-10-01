@@ -186,6 +186,11 @@ export function useDemoAccounts() {
     return bands
   })
 
+  /**
+   * Reads whether this instance offers demo accounts, and which. A failure is kept and shown, because
+   * a server that is still starting is not one without demo accounts, and silence would leave the
+   * reader at the wrong form with no idea why.
+   */
   async function load() {
     try {
       const status = await demo.getDemoStatus()
@@ -198,8 +203,6 @@ export function useDemoAccounts() {
         activeStation.value = stationGroups.value[0]?.stationId ?? ''
       }
     } catch (e) {
-      // A server that is still starting is not a server that has no demo accounts, and telling the
-      // reader nothing leaves them looking at the wrong form with no idea why.
       isDemo.value = false
       isDev.value = false
       unreachable.value = describeFailure(e, t)

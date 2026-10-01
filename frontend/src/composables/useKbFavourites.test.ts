@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {KbFavouriteTarget} from '@/api/knowledgeBase'
 import type {KbFavourite} from '@/api/generated/schema'

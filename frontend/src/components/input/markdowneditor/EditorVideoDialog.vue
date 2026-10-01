@@ -31,7 +31,7 @@ function onInput() {
   if (!url) { detectedProvider.value = ''; return }
   if (/youtube\.com|youtu\.be/i.test(url)) detectedProvider.value = 'YouTube'
   else if (/vimeo\.com/i.test(url)) detectedProvider.value = 'Vimeo'
-  else if (/\/videos\/watch\//i.test(url)) detectedProvider.value = 'PeerTube'
+  else if (url.toLowerCase().includes('/videos/watch/')) detectedProvider.value = 'PeerTube'
   else if (/dailymotion\.com|dai\.ly/i.test(url)) detectedProvider.value = 'Dailymotion'
   else if (url.startsWith('http')) detectedProvider.value = 'Video'
   else detectedProvider.value = ''

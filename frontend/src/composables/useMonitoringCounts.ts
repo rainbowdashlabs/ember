@@ -23,12 +23,9 @@ export function useMonitoringCounts() {
         beaconReports: 0,
     }))
 
+    /** Reads the counts again, keeping the last ones when that fails. */
     async function refresh() {
-        try {
-            counts.value = await getMonitoringCounts()
-        } catch {
-            // An operator who cannot be counted for is still an operator who can navigate.
-        }
+        await getMonitoringCounts().then(found => { counts.value = found }).catch(() => {})
     }
 
     return {counts: readonly(counts), refresh}

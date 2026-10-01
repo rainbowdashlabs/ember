@@ -26,7 +26,7 @@ const sortedPermissions = computed(() => [...(sessionInfo.value?.permissions ?? 
 
 function copyJson() {
   if (!sessionInfo.value) return
-  navigator.clipboard.writeText(JSON.stringify(sessionInfo.value, null, 2)).catch(() => { /* ignore */ })
+  navigator.clipboard.writeText(JSON.stringify(sessionInfo.value, null, 2)).catch(() => {})
 }
 </script>
 

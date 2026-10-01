@@ -21,10 +21,12 @@ onMounted(() => {
   void load()
 })
 
+/**
+ * Switches to another cluster with a full reload, because the cluster travels on every request and
+ * the screens already loaded were answered for the one being left.
+ */
 function switchCluster(clusterId: string) {
   setActiveCluster(clusterId)
-  // A full reload, because the cluster identity travels on every request and the loaded screens were
-  // answered for the cluster we are leaving
   window.location.href = '/cluster'
 }
 </script>

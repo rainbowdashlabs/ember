@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {useBackingOffPoll, type PollOutcome} from './useBackingOffPoll'
 

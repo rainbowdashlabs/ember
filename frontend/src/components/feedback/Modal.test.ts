@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {afterEach, describe, expect, it} from 'vitest'
 import {enableAutoUnmount, flushPromises, mount} from '@vue/test-utils'
 import {defineComponent, h, nextTick, ref} from 'vue'

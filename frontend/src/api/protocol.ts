@@ -60,8 +60,6 @@ const runs = createCrudResource<
     RunDetailResponse
 >('/protocols/runs')
 
-// -- Protocols --
-
 export const getProtocol = protocols.get
 export const createProtocol = protocols.create
 export const updateProtocol = protocols.update
@@ -71,8 +69,6 @@ export async function listProtocols(): Promise<ProtocolListResponse> {
     const res = await client.get<ProtocolListResponse>('/protocols')
     return res.data
 }
-
-// -- Sections --
 
 export async function createSection(protocolId: number, data: ProtocolSectionRequest): Promise<TestProtocolSection> {
     const res = await client.post<TestProtocolSection>(`/protocols/${protocolId}/sections`, data)
@@ -87,8 +83,6 @@ export async function deleteSection(id: number): Promise<void> {
     await client.delete(`/protocols/sections/${id}`)
 }
 
-// -- Items --
-
 export async function createItem(sectionId: number, data: ProtocolItemRequest): Promise<TestProtocolItem> {
     const res = await client.post<TestProtocolItem>(`/protocols/sections/${sectionId}/items`, data)
     return res.data
@@ -101,8 +95,6 @@ export async function updateItem(id: number, data: ProtocolItemRequest): Promise
 export async function deleteItem(id: number): Promise<void> {
     await client.delete(`/protocols/items/${id}`)
 }
-
-// -- Runs --
 
 export const listRuns = runs.list
 export const getRun = runs.get
@@ -118,8 +110,6 @@ export async function closeRun(id: number): Promise<TestProtocolRun> {
     const res = await client.post<TestProtocolRun>(`/protocols/runs/${id}/close`)
     return res.data
 }
-
-// -- Grading --
 
 export async function lockMember(runId: number, memberId: number): Promise<TestProtocolRunMember> {
     const res = await client.post<TestProtocolRunMember>(`/protocols/runs/${runId}/members/${memberId}/lock`)

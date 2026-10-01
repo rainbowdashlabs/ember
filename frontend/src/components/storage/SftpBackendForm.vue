@@ -18,7 +18,7 @@ import type {SftpForm} from '@/util/storageBackendForm'
 const model = defineModel<SftpForm>({required: true})
 const {t} = useI18n()
 
-const hostInvalid = computed(() => /:\/\//.test(model.value.host ?? ''))
+const hostInvalid = computed(() => (model.value.host ?? '').includes('://'))
 
 const authMode = ref<'PASSWORD' | 'KEY'>(model.value.privateKey ? 'KEY' : 'PASSWORD')
 

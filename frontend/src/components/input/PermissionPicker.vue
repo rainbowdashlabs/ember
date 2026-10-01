@@ -66,7 +66,6 @@ const {
           class="rounded-lg border border-(--border) overflow-hidden transition-shadow"
           :class="{'shadow-sm border-primary/30': isEffectivelyEnabled(node.name) || countEnabledDescendants(node) > 0}"
       >
-        <!-- Top-level group header -->
         <div
             class="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none transition-colors"
             :class="[isEffectivelyEnabled(node.name) ? 'bg-primary/5' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40', isDisabled(node.name) ? 'opacity-60' : '']"
@@ -113,7 +112,6 @@ const {
           />
         </div>
 
-        <!-- Flat list of all descendants -->
         <div v-if="node.children.length > 0 && isExpanded(node.name)" class="border-t border-(--border)">
           <div
               v-for="item in flattenDescendants(node)"

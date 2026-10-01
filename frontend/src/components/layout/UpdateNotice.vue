@@ -24,10 +24,8 @@ const latestVersion = ref('')
  */
 onMounted(async () => {
   if (!hasPermission(StationPermission.STATION_ADMINISTRATOR)) return
-  try {
-    const status = await getUpdateStatus()
-    if (status.updateAvailable && status.latestVersion) latestVersion.value = status.latestVersion
-  } catch { /* an instance that cannot ask simply says nothing */ }
+  const status = await getUpdateStatus().catch(() => null)
+  if (status?.updateAvailable && status.latestVersion) latestVersion.value = status.latestVersion
 })
 </script>
 

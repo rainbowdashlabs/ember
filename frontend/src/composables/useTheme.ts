@@ -151,32 +151,33 @@ function initFromLocalStorage(state: ThemeState) {
     return fetchPublicTheme(state)
 }
 
+/** Asks once for the instance's theme, leaving what is painted when the server cannot be reached. */
 async function fetchPublicTheme(state: ThemeState) {
     if (publicThemeRequested.value) return
     publicThemeRequested.value = true
+    await applyPublicTheme(state).catch(() => {})
+}
 
+/** Takes the instance's theme in, and paints it where nobody has chosen one of their own. */
+async function applyPublicTheme(state: ThemeState) {
     const pride = usePride()
     const hasSession = hasSessionCookie()
-    try {
-        const { getPublicTheme } = await import('@/api/adminSettings')
-        const pub = await getPublicTheme()
-        state.instanceTheme.value = pub.defaultTheme
-        state.instanceFeel.value = (pub.defaultFeel ?? 'ROUNDED') as FeelValue
-        pride.setForcePrideFlag(pub.forcePrideFlag ?? false)
+    const { getPublicTheme } = await import('@/api/adminSettings')
+    const pub = await getPublicTheme()
+    state.instanceTheme.value = pub.defaultTheme
+    state.instanceFeel.value = (pub.defaultFeel ?? 'ROUNDED') as FeelValue
+    pride.setForcePrideFlag(pub.forcePrideFlag ?? false)
 
-        setItem('instance_theme', pub.defaultTheme)
-        setItem('instance_feel', pub.defaultFeel ?? 'ROUNDED')
+    setItem('instance_theme', pub.defaultTheme)
+    setItem('instance_feel', pub.defaultFeel ?? 'ROUNDED')
 
-        const savedTheme = hasSession ? getItem('theme_name') : null
-        if (!state.override.value.active && (!savedTheme || !THEMES[savedTheme])) {
-            state.activeTheme.value = pub.defaultTheme
-            applyTheme(state, pub.defaultTheme)
-            const feel = resolveEffectiveFeel(state.instanceFeel.value, pub.defaultTheme)
-            state.activeFeel.value = feel
-            applyFeel(feel)
-        }
-    } catch {
-        /* ignore - server may not be reachable */
+    const savedTheme = hasSession ? getItem('theme_name') : null
+    if (!state.override.value.active && (!savedTheme || !THEMES[savedTheme])) {
+        state.activeTheme.value = pub.defaultTheme
+        applyTheme(state, pub.defaultTheme)
+        const feel = resolveEffectiveFeel(state.instanceFeel.value, pub.defaultTheme)
+        state.activeFeel.value = feel
+        applyFeel(feel)
     }
 }
 
@@ -282,11 +283,7 @@ async function setTheme(state: ThemeState, themeKey: string) {
         setItem('feel', effectiveFeel)
     }
     setItem('theme_name', themeKey)
-    try {
-        await userSettings.updateSettings({ theme: themeKey, feel: effectiveFeel })
-    } catch {
-        /* ignore */
-    }
+    await saveToAccount({ theme: themeKey, feel: effectiveFeel })
 }
 
 async function setFeel(state: ThemeState, feel: FeelValue) {
@@ -294,29 +291,32 @@ async function setFeel(state: ThemeState, feel: FeelValue) {
     state.activeFeel.value = effectiveFeel
     applyFeel(effectiveFeel)
     setItem('feel', effectiveFeel)
-    try {
-        await userSettings.updateSettings({ feel: effectiveFeel })
-    } catch {
-        /* ignore */
-    }
+    await saveToAccount({ feel: effectiveFeel })
 }
 
 async function setDarkMode(state: ThemeState, mode: DarkModeValue) {
     state.darkMode.value = mode
     applyDarkMode(state, mode)
     setItem('dark_mode', mode)
-    try {
-        await userSettings.updateSettings({ darkMode: mode })
-    } catch {
-        /* ignore */
-    }
+    await saveToAccount({ darkMode: mode })
+}
+
+/** Saves a look choice to the account, best effort: the browser already holds and shows it. */
+async function saveToAccount(settings: Parameters<typeof userSettings.updateSettings>[0]) {
+    await userSettings.updateSettings(settings).catch(() => {})
 }
 
 function applyCustomColors(state: ThemeState, colorsJson: string) {
+    const colors = readableColors(colorsJson)
+    if (colors !== undefined) state.customThemeColors.value = colors
+}
+
+/** The custom colours as stored, or nothing where what is stored cannot be read, which leaves the current ones. */
+function readableColors(colorsJson: string): ThemeColors | undefined {
     try {
-        state.customThemeColors.value = JSON.parse(colorsJson) as ThemeColors
+        return JSON.parse(colorsJson) as ThemeColors
     } catch {
-        /* ignore malformed JSON */
+        return undefined
     }
 }
 

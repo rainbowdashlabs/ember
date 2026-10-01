@@ -67,11 +67,14 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
   /** Whether the inventories of this opening are in hand, so a lost request is asked for again. */
   let inventoriesLoaded = false
 
+  /**
+   * Whether the reader may reach an entry. An association's pages answer to what it granted, which
+   * has nothing to do with any station's rights.
+   */
   function entryAllowed(entry: PaletteRouteEntry): boolean {
     if (entry.scope !== scope.value) return false
     if (entry.module && !isModuleEnabled(entry.module)) return false
     if (entry.scope === 'cluster') {
-      // An association's pages answer to what it granted, which has nothing to do with any station
       if (entry.clusterPermission && !hasClusterPermission(entry.clusterPermission)) return false
       if (entry.clusterAnyPermission && !entry.clusterAnyPermission.some(p => hasClusterPermission(p))) return false
       return true

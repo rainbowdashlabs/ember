@@ -35,7 +35,6 @@ function setHeading(level: 1 | 2 | 3) {
   }
 }
 
-// Highlight
 const showHighlightPicker = ref(false)
 const highlightColors = [
   '', '#fef08a', '#fde68a', '#bbf7d0', '#a5f3fc', '#c4b5fd',
@@ -47,7 +46,6 @@ function setHighlightColor(color: string) {
   showHighlightPicker.value = false
 }
 
-// Text color
 const showColorPicker = ref(false)
 const textColors = [
   '', '#ec2929', '#FF6421', '#ffdd1b', '#00C507', '#3694FF', '#73CEFF',
@@ -115,7 +113,6 @@ const toolbarButtons: ToolbarButton[][] = [
       </button>
     </template>
 
-    <!-- Highlight picker -->
     <div class="w-px h-5 bg-[var(--border)] mx-1" />
     <div class="relative">
       <button type="button" :title="t('markdownEditor.highlight')" :class="['p-1.5 rounded text-sm transition-colors', isActive('highlight') ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']" @mousedown.prevent @click="showHighlightPicker = !showHighlightPicker; showColorPicker = false">
@@ -128,7 +125,6 @@ const toolbarButtons: ToolbarButton[][] = [
       </div>
     </div>
 
-    <!-- Text color picker -->
     <div class="relative">
       <button type="button" :title="t('markdownEditor.textColor')" class="p-1.5 rounded text-sm transition-colors text-[var(--text)] hover:bg-[var(--bg-accent)]" @mousedown.prevent @click="showColorPicker = !showColorPicker; showHighlightPicker = false">
         <font-awesome-icon :icon="['fas', 'palette']" class="w-3.5 h-3.5" />

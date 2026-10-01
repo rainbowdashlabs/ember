@@ -132,11 +132,7 @@ function isRefusal(error: unknown): boolean {
  * product. Whether a frame actually arrived is answered by looking at the video, not by this.
  */
 async function played(video: HTMLVideoElement): Promise<void> {
-    try {
-        await video.play()
-    } catch {
-        /* a frame may still arrive; the wait below is what decides */
-    }
+    await video.play().catch(() => {})
 }
 
 /**

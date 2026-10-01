@@ -62,11 +62,6 @@ const LISTS: Record<string, string> = {
 }
 
 /**
- * The walk ends where the steps end. Ember says so rather than vanishing mid-page, and the list is
- * read again, because whether the task counts as done is the server's answer and not the last
- * click's.
- */
-/**
  * Who the task being walked is about, by name.
  *
  * <p>A guardian walks the same task once per child, and the steps say which one rather than "dein
@@ -79,7 +74,15 @@ const subjectName = computed(() => {
   return task?.subject ?? t('onboarding.child')
 })
 
-watch(finished, async ended => {
+/**
+ * The walk ends where the steps end. Ember says so rather than vanishing mid-page, and the list is
+ * read again, because whether the task counts as done is the server's answer and not the last click's.
+ *
+ * <p>A task Ember cannot read for itself is settled by the walk, because walking it is the whole of
+ * what it asks; a derived task stays derived. A task that is no longer listed counts as done, since
+ * it cannot be asked about.
+ */
+async function closeWalk(ended: boolean) {
   if (!ended) return
   const level = activeLevel.value
   const taskId = activeTaskId.value
@@ -92,10 +95,6 @@ watch(finished, async ended => {
       level && taskId ? (status.value[level]?.tasks ?? []).find(entry => entry.id === taskId) : undefined
   let task = find()
 
-  // A task Ember cannot read for itself is settled by the walk, because walking it is the whole of
-  // what it asks. Leaving it open here told a reader who had just done exactly as they were told to
-  // go and check whether their entry had saved, when the step before had said there was nothing to
-  // enter. What is derived stays derived: there the data really is the answer.
   if (level && task && task.confirmable && task.state !== OnboardingTaskState.DONE) {
     await confirm(level, task.id)
     await load(level)
@@ -105,10 +104,11 @@ watch(finished, async ended => {
   completed.value = {
     title,
     route: (level && LISTS[level]) || 'dashboard-overview',
-    // A task that is no longer listed cannot be asked about, and saying nothing is friendlier there.
     done: task === undefined || task.state === OnboardingTaskState.DONE,
   }
-})
+}
+
+watch(finished, closeWalk)
 
 function goToList() {
   const route = completed.value?.route

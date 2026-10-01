@@ -72,10 +72,7 @@ describe('OnboardingTaskCard', () => {
         expect(wrapper.text()).toContain('Erledigt')
     })
 
-    it('offers no tick for a task that reads its own answer', async () => {
-        // The notifications, because Ember reads the settings themselves. The profile used to stand
-        // here and no longer can: looking over what is written about you is not something any data
-        // can answer for you, so that task is ticked by walking it.
+    it('offers no tick for a task that reads its own answer, as the notifications read the settings', async () => {
         const wrapper = await mountCard([task({id: 'member.notifications', key: 'member.notifications'})])
 
         expect(wrapper.text()).not.toContain('Erledigt')

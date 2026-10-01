@@ -111,6 +111,7 @@ function onResize(cellIndex: number, leftDelta: number) {
     updateCells(cells)
 }
 
+/** Sets one cell's width and scales the others proportionally, so the row still sums to 100. */
 function setCellWidth(cellIndex: number, widthPercent: number) {
     if (row.value.cells.length < 2) return
     const clamped = Math.max(10, Math.min(100 - 10 * (row.value.cells.length - 1), widthPercent))
@@ -119,7 +120,6 @@ function setCellWidth(cellIndex: number, widthPercent: number) {
     const otherTotal = otherCells.reduce((sum, c) => sum + c.widthPercent, 0)
     const cells = row.value.cells.map((c, i) => {
         if (i === cellIndex) return {...c, widthPercent: clamped}
-        // Scale the rest proportionally so the row still sums to 100.
         const newWidth = otherTotal === 0
             ? remainingTotal / otherCells.length
             : (c.widthPercent / otherTotal) * remainingTotal
@@ -155,9 +155,7 @@ function onPasteCell() {
         id: 0,
         sortOrder: cells.length,
     }
-    // Redistribute widths
-    const count = cells.length + 1
-    const widthPercent = 100 / count
+    const widthPercent = 100 / (cells.length + 1)
     const adjusted = [...cells, newCell].map((c, i) => ({...c, widthPercent, sortOrder: i}))
     updateCells(adjusted)
 }
@@ -170,7 +168,6 @@ function onPasteCell() {
         :context="publicContentContext(stationUid)"
     />
 
-    <!-- Edit mode -->
     <NeutralContainer
         v-else
         :padded="row.cells.length > 1"
@@ -190,7 +187,6 @@ function onPasteCell() {
             @paste-cell="onPasteCell"
         />
 
-        <!-- Cells -->
         <div class="editor-row-cells relative flex items-stretch gap-0">
             <template v-for="(cell, ci) in row.cells" :key="ci">
                 <div :style="{width: `${cell.widthPercent}%`}" class="min-w-0 flex flex-col">

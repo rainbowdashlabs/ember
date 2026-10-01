@@ -71,7 +71,6 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
     @reorder-items="(from: number, to: number) => emit('reorderItems', from, to)"
     @set-connect-pair="(li: number, rv: string) => emit('setConnectPair', li, rv)"
   >
-    <!-- MC answer reveal -->
     <template v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE">
       <div class="space-y-1 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
         <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctAnswer') }}:</span>
@@ -86,13 +85,11 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
       </div>
     </template>
 
-    <!-- TF answer reveal -->
     <div v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.TRUE_FALSE" class="text-sm">
       <span class="text-(--text-muted)">{{ t('quiz.training.correctAnswer') }}: </span>
       <span :class="correctTf ? 'text-success' : 'text-error'">{{ correctTf ? t('quiz.attempt.true') : t('quiz.attempt.false') }}</span>
     </div>
 
-    <!-- Free answer reveal -->
     <template v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.FREE_ANSWER">
       <div v-if="(config.answers as string[] | undefined)?.length" class="space-y-1">
         <span class="text-xs text-(--text-muted)">{{ t('quiz.training.sampleAnswer') }}:</span>
@@ -103,13 +100,11 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
       </SuccessContainer>
     </template>
 
-    <!-- Image Text answer reveal -->
     <div v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.IMAGE_TEXT && (config.answer as string)" class="space-y-1">
       <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctAnswer') }}:</span>
       <p class="text-sm text-success">{{ config.answer as string }}</p>
     </div>
 
-    <!-- Fill in the blank answer reveal -->
     <template v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.FILL_IN_THE_BLANK">
       <div class="space-y-1">
         <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctAnswer') }}:</span>
@@ -120,7 +115,6 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
       </div>
     </template>
 
-    <!-- Ordering answer reveal -->
     <div v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.ORDERING" class="space-y-1">
       <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctOrder') }}:</span>
       <div v-for="(item, i) in correctOrderItems" :key="i" class="flex items-center gap-2 text-xs text-success">
@@ -129,7 +123,6 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
       </div>
     </div>
 
-    <!-- Connect answer reveal -->
     <div v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.CONNECT" class="space-y-1">
       <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctPairs') }}:</span>
       <div v-for="pair in correctPairs" :key="pair.left" class="text-xs text-success flex items-center gap-2">
@@ -139,7 +132,6 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
       </div>
     </div>
 
-    <!-- Enumeration answer reveal -->
     <div v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.ENUMERATION && (config.answers as string[] | undefined)?.length" class="space-y-1">
       <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctAnswer') }}:</span>
       <div v-for="(ans, i) in (config.answers as string[])" :key="i" class="flex items-center gap-1 text-sm text-success">

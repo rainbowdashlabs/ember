@@ -105,7 +105,6 @@ function toggleHistory() {
       <SaveButton :disabled="!hasChanges" compact :action="save"/>
     </template>
 
-    <!-- Version history -->
     <template v-if="showHistory && versions.length > 0">
       <NeutralContainer class="space-y-2 max-h-60 overflow-y-auto">
         <SubHeader class="text-xs">{{ t('notes.versionHistory') }}</SubHeader>
