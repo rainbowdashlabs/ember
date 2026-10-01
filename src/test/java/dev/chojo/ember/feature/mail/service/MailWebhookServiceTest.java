@@ -8,10 +8,13 @@ package dev.chojo.ember.feature.mail.service;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
+import dev.chojo.ember.feature.mail.repository.MailWebhookReceiptRepository;
 import dev.chojo.ember.feature.mail.service.MailDeliveryService.DeliveryEvent;
 import dev.chojo.ember.feature.mail.service.MailWebhookService.SignedCall;
+import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService.WebhookScope;
+import dev.chojo.ember.lifecycle.Schedule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
@@ -19,6 +22,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Base64;
@@ -49,6 +53,7 @@ class MailWebhookServiceTest {
 
     private MailDeliveryService deliveries;
     private MailChainService chains;
+    private MailWebhookReceiptRepository receipts;
     private MailWebhookService service;
 
     private static JsonNode json(String text) {
@@ -70,7 +75,56 @@ class MailWebhookServiceTest {
         when(chains.sweegoSecret(3)).thenReturn("");
         var keys = mock(WebhookKeyService.class);
         when(keys.resolve("station")).thenReturn(Optional.of(new WebhookScope(3)));
-        service = new MailWebhookService(deliveries, keys, chains, Clock.fixed(NOW, ZoneOffset.UTC));
+        receipts = mock(MailWebhookReceiptRepository.class);
+        when(receipts.claim(eq(MailProviderType.SWEEGO), any())).thenReturn(true);
+        service = new MailWebhookService(deliveries, keys, chains, receipts, Clock.fixed(NOW, ZoneOffset.UTC));
+    }
+
+    private static SignedCall sweegoCall(String webhookId, String body) {
+        return new SignedCall(webhookId, null, null, body, json(body));
+    }
+
+    @Test
+    void aSweegoReportSentAgainIsAnsweredWithoutBeingRecordedTwice() {
+        String body = "{\"event_type\":\"soft_bounce\",\"recipient\":\"a@b.test\"}";
+        when(receipts.claim(MailProviderType.SWEEGO, "msg_1")).thenReturn(true, false);
+
+        service.sweego("station", sweegoCall("msg_1", body));
+        service.sweego("station", sweegoCall("msg_1", body));
+
+        verify(deliveries, times(1)).record(any(), eq(3));
+    }
+
+    @Test
+    void aSweegoReportThatFailsGivesItsIdBackForTheNextAttempt() {
+        when(deliveries.record(any(), eq(3))).thenThrow(new IllegalStateException("database gone"));
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> service.sweego("station", sweegoCall("msg_2", "{\"event_type\":\"delivered\"}")));
+
+        verify(receipts).release(MailProviderType.SWEEGO, "msg_2");
+    }
+
+    @Test
+    void aSweegoReportWithoutAnIdIsRecordedWithoutAReceipt() {
+        service.sweego("station", sweegoCall(" ", "{\"event_type\":\"delivered\"}"));
+
+        verify(receipts, never()).claim(any(), any());
+        verify(deliveries).record(any(), eq(3));
+    }
+
+    @Test
+    void receiptsAreClearedOnceADay() {
+        var tasks = service.scheduledTasks();
+
+        tasks.forEach(task -> task.work().run());
+
+        verify(receipts).prune(7);
+        assertEquals("mail-webhook-receipt-cleanup", tasks.getFirst().name());
+        assertEquals(
+                Schedule.fixedRate(Duration.ofHours(1), Duration.ofHours(24)),
+                tasks.getFirst().schedule());
     }
 
     @Test

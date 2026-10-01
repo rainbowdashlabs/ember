@@ -602,3 +602,17 @@ FROM ember_schema.cluster_profile_field_value v
     USING ember_schema.cluster_profile_field f
 WHERE v.field_id = f.id
   AND f.field_type = 'AGE';
+
+CREATE TABLE IF NOT EXISTS ember_schema.mail_webhook_receipt
+(
+    provider    TEXT      NOT NULL,
+    webhook_id  TEXT      NOT NULL,
+    received_at TIMESTAMP NOT NULL DEFAULT now(),
+    PRIMARY KEY (provider, webhook_id)
+);
+
+COMMENT ON TABLE ember_schema.mail_webhook_receipt
+    IS 'Which delivery reports a mail provider has already handed over, so a report it sends again is answered without being taken twice.';
+COMMENT ON COLUMN ember_schema.mail_webhook_receipt.provider IS 'The provider that sent the report.';
+COMMENT ON COLUMN ember_schema.mail_webhook_receipt.webhook_id IS 'The id the provider gives the report, the same on every repeat of it.';
+COMMENT ON COLUMN ember_schema.mail_webhook_receipt.received_at IS 'When the report first arrived. Receipts older than the provider keeps retrying are removed.';

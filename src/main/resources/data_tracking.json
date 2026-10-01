@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:a87e8cc8b7619df4c287ac1f91219f125612ebae3b3ac1213775a55d49f0cbe5",
-  "generatedAt": "2026-10-01T09:26:32Z",
+  "schemaHash": "sha256:2c202e75c960573a79768f914c63221ae9e1c5402cf1ee9d932f15f36272660a",
+  "generatedAt": "2026-10-01T15:12:57Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -15833,6 +15833,48 @@
         "reason": "Joins a rule to a label, with nobody in it."
       },
       "description": "Tags every document this rule files is given. Names rather than references, resolved against the station's tags as the document is written."
+    },
+    "mail_webhook_receipt": {
+      "feature": "mail",
+      "scope": "INSTANCE",
+      "tableHash": "sha256:0e99f0870fc919a90b6b09718adf7965a0e3f333ab1334b6596920f98370f0d9",
+      "columns": [
+        {
+          "name": "provider",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The provider that sent the report."
+        },
+        {
+          "name": "webhook_id",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The id the provider gives the report, the same on every repeat of it."
+        },
+        {
+          "name": "received_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the report first arrived. Receipts older than the provider keeps retrying are removed."
+        }
+      ],
+      "foreignKeys": [],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Provider report ids kept for a week to spot repeats, belonging to no station"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Holds a provider's report id, never a person or an address"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Holds a provider's report id, never a person or an address; receipts lapse on their own"
+      },
+      "description": "Which delivery reports a mail provider has already handed over, so a report it sends again is answered without being taken twice."
     },
     "managed_login_notice": {
       "feature": "members",

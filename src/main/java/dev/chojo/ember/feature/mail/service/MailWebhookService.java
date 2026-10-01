@@ -7,7 +7,12 @@ package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
+import dev.chojo.ember.feature.mail.repository.MailWebhookReceiptRepository;
+import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -16,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 
@@ -26,20 +32,29 @@ import java.util.Locale;
  * the caller may touch: the instance key answers for all mail, a station key only for that station's.
  * Every refusal answers the same code as a wrong key, so somebody who guessed the address learns
  * nothing about how close they came; the log names the actual reason.
+ *
+ * <p>A Sweego report that arrives again under the id it carried before is answered as taken and not
+ * recorded a second time, so a repeat cannot send a bounced mail out twice. The receipts are kept for
+ * {@value #RECEIPT_DAYS} days, well past the time Sweego keeps retrying.
  */
 @Singleton
-public class MailWebhookService {
+public class MailWebhookService implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(MailWebhookService.class);
+    private static final int RECEIPT_DAYS = 7;
 
     private final MailDeliveryService deliveryService;
     private final WebhookKeyService keyService;
     private final MailChainService chainService;
+    private final MailWebhookReceiptRepository receipts;
     private final Clock clock;
 
     @Inject
     public MailWebhookService(
-            MailDeliveryService deliveryService, WebhookKeyService keyService, MailChainService chainService) {
-        this(deliveryService, keyService, chainService, Clock.systemUTC());
+            MailDeliveryService deliveryService,
+            WebhookKeyService keyService,
+            MailChainService chainService,
+            MailWebhookReceiptRepository receipts) {
+        this(deliveryService, keyService, chainService, receipts, Clock.systemUTC());
     }
 
     /**
@@ -51,11 +66,21 @@ public class MailWebhookService {
             MailDeliveryService deliveryService,
             WebhookKeyService keyService,
             MailChainService chainService,
+            MailWebhookReceiptRepository receipts,
             Clock clock) {
         this.deliveryService = deliveryService;
         this.keyService = keyService;
         this.chainService = chainService;
+        this.receipts = receipts;
         this.clock = clock;
+    }
+
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "mail-webhook-receipt-cleanup",
+                Schedule.fixedRate(Duration.ofHours(1), Duration.ofHours(24)),
+                () -> receipts.prune(RECEIPT_DAYS)));
     }
 
     /**
@@ -76,6 +101,10 @@ public class MailWebhookService {
      * timestamp and a signature this secret did not produce are all refused. Without a secret the
      * key in the address is what there is, as with the other relays.
      *
+     * <p>A report whose {@code webhook-id} was taken before is a repeat and is answered without
+     * being recorded again. One that fails while being recorded gives its id back, so the provider's
+     * next attempt is taken.
+     *
      * @param key  the webhook key from the address
      * @param call the call as it arrived, signature headers and body
      */
@@ -90,7 +119,27 @@ public class MailWebhookService {
                 throw Refusal.MAIL_REPORT_NOT_TAKEN.raise();
             }
         }
-        var body = call.body();
+        String webhookId = call.id();
+        if (webhookId == null || webhookId.isBlank()) {
+            recordSweego(call.body(), scope.stationId());
+            return;
+        }
+        if (!receipts.claim(MailProviderType.SWEEGO, webhookId)) {
+            log.debug("Sweego report {} arrived again and is answered without being taken twice", webhookId);
+            return;
+        }
+        try {
+            recordSweego(call.body(), scope.stationId());
+        } catch (RuntimeException e) {
+            receipts.release(MailProviderType.SWEEGO, webhookId);
+            throw e;
+        }
+    }
+
+    /**
+     * Records each delivery outcome of a Sweego report, one event or a list of them.
+     */
+    private void recordSweego(JsonNode body, @Nullable Integer stationId) {
         for (JsonNode entry : body.isArray() ? body : List.of(body)) {
             var status = sweegoStatus(text(entry, "event_type"));
             if (status == null) continue;
@@ -102,7 +151,7 @@ public class MailWebhookService {
                             text(entry.path("headers"), "x-custom-header"),
                             text(entry, "swg_uid"),
                             text(entry, "details")),
-                    scope.stationId());
+                    stationId);
         }
     }
 

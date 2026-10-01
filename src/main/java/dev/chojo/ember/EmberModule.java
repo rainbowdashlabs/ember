@@ -209,6 +209,7 @@ import dev.chojo.ember.feature.lostandfound.route.LostAndFoundRoutes;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundFeedDetails;
 import dev.chojo.ember.feature.mail.route.MailWebhookRoutes;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailWebhookService;
 import dev.chojo.ember.feature.mailimport.route.MailImportRoutes;
 import dev.chojo.ember.feature.mailimport.service.MailFilingService;
 import dev.chojo.ember.feature.mailimport.service.MailImportPoller;
@@ -698,6 +699,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(ManagedLoginNoticeSweeper.class);
         taskSources.addBinding().to(WaitingListService.class);
         taskSources.addBinding().to(EmailService.class);
+        taskSources.addBinding().to(MailWebhookService.class);
         taskSources.addBinding().to(NotificationDigest.class);
         taskSources.addBinding().to(MailImportPoller.class);
         taskSources.addBinding().to(AuthCleanupSweeper.class);

@@ -131,6 +131,7 @@
 - **Ehemalige Mitglieder konnten Listen und Exporte abbrechen lassen.** In manchen Fällen ließ ein ehemaliges Mitglied, dessen Konto entfernt worden war, den Anwesenheitsbericht und seinen Export, eine Inventarprüfung, die Bestands- und Bewegungsexporte, die Liste der betreuten Mitglieder eines Erziehungsberechtigten oder den Änderungsverlauf eines Profils mit einem Fehler abbrechen. Ein solches Mitglied erscheint jetzt mit Namen oder Nummer.
 - **„Im Browser öffnen" in einem Feed-Eintrag konnte ins Leere führen.** In manchen Fällen trug eine Benachrichtigung im RSS- oder Atom-Feed einen Knopf „Im Browser öffnen" ohne Ziel. Er öffnet jetzt dieselbe Seite wie der Eintrag selbst.
 - **Fragen zur Anmeldung aus einer Terminvorlage kamen nicht an.** Ein Termin, der aus einer Terminvorlage erstellt wurde, übernahm die Fragen zur Anmeldung aus der Vorlage nicht und in manchen Fällen stattdessen die einer anderen Vorlage. Er übernimmt jetzt die Fragen der Vorlage, aus der er erstellt wurde, und sie stehen schon vor dem Speichern im Editor.
+- **Eine wiederholte Meldung von Sweego konnte eine Mail doppelt senden.** In manchen Fällen, wenn Sweego dieselbe Meldung über eine nicht zugestellte Mail erneut schickte, ging die Mail zweimal hinaus oder wechselte zu früh zum nächsten Anbieter. Eine erneut eintreffende Meldung wird jetzt erkannt und nur einmal gezählt.
 
 ## v26.19.5
 
