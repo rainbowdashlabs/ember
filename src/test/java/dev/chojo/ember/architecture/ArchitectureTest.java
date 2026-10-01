@@ -16,6 +16,7 @@ import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.Conf;
+import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import jakarta.inject.Singleton;
@@ -101,6 +102,20 @@ public class ArchitectureTest {
             .should()
             .dependOnClassesThat()
             .areAssignableTo(CommentRepository.class);
+
+    /**
+     * A domain event handler belongs to the feature whose behaviour it carries, in that feature's
+     * {@code handler} package beside the services it calls. The bus and the events stay in the core
+     * {@code event} package, which holds no handler of its own. Handlers written inside tests are
+     * left out.
+     */
+    @ArchTest
+    static final ArchRule eventHandlersLiveInTheirFeatures = classes()
+            .that()
+            .implement(DomainEventHandler.class)
+            .and(DescribedPredicate.not(tests()))
+            .should()
+            .resideInAPackage("dev.chojo.ember.feature.*.handler");
 
     @ArchTest
     static final ArchRule routesDoNotConstructJsonMappers = noClasses()

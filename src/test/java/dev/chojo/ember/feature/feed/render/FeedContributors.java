@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFeedDetails;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
+import dev.chojo.ember.feature.federation.service.LendingFeedDetails;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.form.service.FormFeedDetails;
 import dev.chojo.ember.feature.inventory.service.InventoryFeedDetails;
