@@ -812,14 +812,6 @@ public abstract class RepositoryTestBase {
     }
 
     /**
-     * Comment mentions resolved over the shared lookup service and announced to nobody, for tests
-     * that write comments without looking at who they would notify.
-     */
-    protected static CommentMentions silentCommentMentions() {
-        return new CommentMentions(memberLookupService, new DomainEventBus(Set.of()));
-    }
-
-    /**
      * Builds a {@link StationMemberService} over the shared repositories and lookup service, so no
      * test has to repeat the fixed half of its constructor argument list.
      */

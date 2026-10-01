@@ -28,6 +28,7 @@
 - **Groups for chosen member types.** A group can be limited to some member types, such as team and manager, and takes nobody else. A member whose type changes leaves the groups that no longer fit, after their edit page has listed them.
 - **Groups and tags at the top of a member's permissions.** On a member's edit page, groups and tags are compact chips above the permission list, and the groups of a set are one choice. Groups bound to other member types are shown greyed out with the types they take.
 - **Edited news comments say so.** A comment on a news entry that its author changed is marked as edited, the same as comments on appointments, wiki files and board tickets.
+- **Comment notices read the same everywhere.** The excerpt a notice quotes from a long comment on a news entry or a wiki file now ends with "…", as it already did for appointments and board tickets. A notice that you were mentioned in a comment on a ticket names the person who wrote it, where it used to name the ticket.
 
 ### Security
 

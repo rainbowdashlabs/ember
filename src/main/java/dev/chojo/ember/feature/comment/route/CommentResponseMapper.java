@@ -10,11 +10,10 @@ import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import org.jspecify.annotations.Nullable;
 
-import java.time.Instant;
 import java.time.LocalDate;
 
 /**
- * Single source of truth for turning the comment entity of any commentable surface into a
+ * Single source of truth for turning a comment of any commentable surface into a
  * {@link CommentResponse}. Centralises the two rules every surface repeated: a soft-deleted
  * comment is stripped down to an empty body without author information, and a live comment
  * carries an author identity enriched with display metadata.
@@ -31,48 +30,21 @@ public final class CommentResponseMapper {
      * Maps an event comment, carrying the occurrence date of date-scoped comments.
      */
     public static CommentResponse fromEvent(MemberNameResolver resolver, Comment comment) {
-        return withResolvedName(
-                resolver,
-                new Scope(null, null, null, comment.eventDate()),
-                comment.id(),
-                comment.parentId(),
-                comment.author(),
-                comment.content(),
-                comment.deleted(),
-                comment.createdAt(),
-                comment.updatedAt());
+        return withResolvedName(resolver, new Scope(null, null, null, comment.eventDate()), comment);
     }
 
     /**
      * Maps a news comment.
      */
     public static CommentResponse fromNews(MemberNameResolver resolver, Comment comment) {
-        return withResolvedName(
-                resolver,
-                new Scope(comment.targetId(), null, null, null),
-                comment.id(),
-                comment.parentId(),
-                comment.author(),
-                comment.content(),
-                comment.deleted(),
-                comment.createdAt(),
-                comment.updatedAt());
+        return withResolvedName(resolver, new Scope(comment.targetId(), null, null, null), comment);
     }
 
     /**
      * Maps a knowledge base file comment.
      */
     public static CommentResponse fromKb(MemberNameResolver resolver, Comment comment) {
-        return withResolvedName(
-                resolver,
-                new Scope(null, comment.targetId(), null, null),
-                comment.id(),
-                comment.parentId(),
-                comment.author(),
-                comment.content(),
-                comment.deleted(),
-                comment.createdAt(),
-                comment.updatedAt());
+        return withResolvedName(resolver, new Scope(null, comment.targetId(), null, null), comment);
     }
 
     /**
@@ -82,80 +54,48 @@ public final class CommentResponseMapper {
     public static CommentResponse fromBoard(MemberNameResolver resolver, Comment comment) {
         var scope = new Scope(null, null, comment.targetId(), null);
         if (comment.deleted()) {
-            return removed(scope, comment.id(), comment.parentId(), comment.createdAt());
+            return removed(scope, comment);
         }
-        return live(
-                scope,
-                comment.id(),
-                comment.parentId(),
-                resolver.enrichDisplay(comment.author()),
-                null,
-                comment.content(),
-                comment.createdAt(),
-                comment.updatedAt());
+        return live(scope, comment, resolver.enrichDisplay(comment.author()), null);
     }
 
-    private static CommentResponse withResolvedName(
-            MemberNameResolver resolver,
-            Scope scope,
-            int id,
-            @Nullable Integer parentId,
-            @Nullable MemberIdentity author,
-            String content,
-            boolean deleted,
-            Instant createdAt,
-            @Nullable Instant updatedAt) {
-        if (deleted) {
-            return removed(scope, id, parentId, createdAt);
+    private static CommentResponse withResolvedName(MemberNameResolver resolver, Scope scope, Comment comment) {
+        if (comment.deleted()) {
+            return removed(scope, comment);
         }
-        var resolved = resolver.resolveDisplay(author);
-        return live(
-                scope,
-                id,
-                parentId,
-                resolved.identity(),
-                resolved.name() != null ? resolved.name() : "",
-                content,
-                createdAt,
-                updatedAt);
+        var resolved = resolver.resolveDisplay(comment.author());
+        return live(scope, comment, resolved.identity(), resolved.name() != null ? resolved.name() : "");
     }
 
     private static CommentResponse live(
-            Scope scope,
-            int id,
-            @Nullable Integer parentId,
-            @Nullable MemberIdentity author,
-            @Nullable String authorName,
-            String content,
-            Instant createdAt,
-            @Nullable Instant updatedAt) {
+            Scope scope, Comment comment, @Nullable MemberIdentity author, @Nullable String authorName) {
         return new CommentResponse(
-                id,
+                comment.id(),
                 scope.newsId(),
                 scope.fileId(),
                 scope.ticketId(),
-                parentId,
+                comment.parentId(),
                 author,
                 authorName,
-                content,
+                comment.content(),
                 false,
-                createdAt,
-                updatedAt,
+                comment.createdAt(),
+                comment.updatedAt(),
                 scope.eventDate());
     }
 
-    private static CommentResponse removed(Scope scope, int id, @Nullable Integer parentId, Instant createdAt) {
+    private static CommentResponse removed(Scope scope, Comment comment) {
         return new CommentResponse(
-                id,
+                comment.id(),
                 scope.newsId(),
                 scope.fileId(),
                 scope.ticketId(),
-                parentId,
+                comment.parentId(),
                 null,
                 null,
                 "",
                 true,
-                createdAt,
+                comment.createdAt(),
                 null,
                 scope.eventDate());
     }

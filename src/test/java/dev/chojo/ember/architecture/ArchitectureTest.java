@@ -16,6 +16,7 @@ import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.Conf;
+import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.ObjectMapper;
@@ -86,6 +87,21 @@ public class ArchitectureTest {
                             .or(name("deleteAllPointingAt"))
                             .or(name("deleteOldAcknowledged")))));
 
+    /**
+     * Comments of every kind live in one table behind one repository, and only the comment feature
+     * reaches it. Every other feature goes through the comment service, so the check that an answer
+     * stays on its parent's target, the soft delete, the notices and the mentions hold for every
+     * comment, whatever it was written on. Tests wire the repository into the service and are left out.
+     */
+    @ArchTest
+    static final ArchRule onlyTheCommentFeatureReachesCommentStorage = noClasses()
+            .that()
+            .resideOutsideOfPackage("dev.chojo.ember.feature.comment..")
+            .and(DescribedPredicate.not(tests()))
+            .should()
+            .dependOnClassesThat()
+            .areAssignableTo(CommentRepository.class);
+
     @ArchTest
     static final ArchRule routesDoNotConstructJsonMappers = noClasses()
             .that()
@@ -122,11 +138,14 @@ public class ArchitectureTest {
             classes().that().resideOutsideOfPackage(LIFECYCLE_PACKAGE).should(leaveThreadsToTheScheduler());
 
     private static DescribedPredicate<JavaClass> areRoutes() {
-        DescribedPredicate<JavaClass> tests = DescribedPredicate.describe("tests", ArchitectureTest::isTestClass);
         return resideInAPackage("..route..")
                 .or(assignableTo(Routes.class))
-                .and(DescribedPredicate.not(tests))
+                .and(DescribedPredicate.not(tests()))
                 .as("routes");
+    }
+
+    private static DescribedPredicate<JavaClass> tests() {
+        return DescribedPredicate.describe("tests", ArchitectureTest::isTestClass);
     }
 
     private static ArchCondition<JavaClass> leaveThreadsToTheScheduler() {

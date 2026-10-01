@@ -472,7 +472,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var boardSeeder = new DemoBoardSeeder(
                 boardRepo,
                 boardTicketRepo,
-                commentRepo,
+                commentService,
                 federatedBoardService,
                 federationService,
                 memberIdentityFactory,
