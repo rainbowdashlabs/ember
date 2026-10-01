@@ -292,8 +292,9 @@ test.describe('Instance administration', () => {
 
     /**
      * The whole way through: an anonymous applicant, the confirmation link, and the operator
-     * accepting. The token is taken from the submission response rather than from an inbox - the
-     * instance under test sends no mail, and the story is about the flow, not about the delivery.
+     * accepting. The code reaches the applicant only in the confirmation mail, so the link is taken
+     * from that mail as the instance under test queued it: it delivers nothing, and the story is about
+     * the flow, not about the delivery.
      */
     test('a station application is submitted, confirmed and accepted', async ({page, adminPage}) => {
         const station = unique('Antragswache')
@@ -307,13 +308,15 @@ test.describe('Instance administration', () => {
         await page.getByPlaceholder(/@feuerwehr-musterstadt\.de/).fill(applicant)
         await page.getByPlaceholder('Freiwillige Feuerwehr Musterstadt').fill(station)
 
-        const submission = page.waitForResponse(response =>
-            response.url().endsWith('/station-applications') && response.request().method() === 'POST')
         await page.getByRole('button', {name: 'Antrag absenden'}).click()
-        const {verificationToken} = await (await submission).json()
         await expect(page.getByText(/Dein Antrag wurde eingereicht/)).toBeVisible()
 
-        await page.goto(`/apply/verify?token=${verificationToken}`)
+        const mail = await page.request.get('/api/v1/dev/mails/latest', {params: {recipient: applicant}})
+        expect(mail.ok(), `a confirmation mail was queued for the applicant (${mail.status()})`).toBeTruthy()
+        const link = (await mail.json()).body.match(/\/apply\/verify\?token=[^"'&<\s]+/)?.[0]
+        expect(link, 'the mail carries the confirmation link').toBeTruthy()
+
+        await page.goto(link!)
         await expect(page.getByText(/Deine E-Mail-Adresse wurde bestätigt/)).toBeVisible()
 
         await adminPage.goto('/admin/stations/applications')

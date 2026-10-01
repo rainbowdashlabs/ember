@@ -17017,6 +17017,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dev/mails/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The mail most recently queued for an address */
+        get: {
+            parameters: {
+                query: {
+                    recipient: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DevMail"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dev/reset": {
         parameters: {
             query?: never;
@@ -55960,6 +56005,11 @@ export interface components {
         };
         /** @enum {string} */
         DeviceStepUpStatus: "PENDING" | "APPROVED" | "EXPIRED" | "UNKNOWN" | "REJECTED" | "CONFIRMED";
+        DevMail: {
+            body: string;
+            recipient: string;
+            subject: string;
+        };
         /** @enum {string} */
         Dimension: "USER_TYPE" | "GROUP" | "TAG" | "FIELD" | "AGE";
         Dimensions: {
@@ -64625,6 +64675,7 @@ export type DeviceStepUpBeginResponse = components['schemas']['DeviceStepUpBegin
 export type DeviceStepUpPollRequest = components['schemas']['DeviceStepUpPollRequest'];
 export type DeviceStepUpPollResponse = components['schemas']['DeviceStepUpPollResponse'];
 export type DeviceStepUpStatus = components['schemas']['DeviceStepUpStatus'];
+export type DevMail = components['schemas']['DevMail'];
 export type Dimension = components['schemas']['Dimension'];
 export type Dimensions = components['schemas']['Dimensions'];
 export type DimensionsRequest = components['schemas']['DimensionsRequest'];
